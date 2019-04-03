@@ -3357,8 +3357,12 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     auto zSpeed = getDriveKey(TRANSLATE_Z);
     auto xSpeed = getDriveKey(TRANSLATE_X);
     glm::vec3 direction;
-    if (qApp->isHMDMode()) {
-        switch(_controlSchemeIndex) {
+    if (!useAdvancedMovementControls() && qApp->isHMDMode()) {
+        // Walking disabled in settings.
+        return Vectors::ZERO;
+    } else if (qApp->isHMDMode()) {
+        // HMD advanced movement controls.
+        switch (_controlSchemeIndex) {
             case CONTROLS_DEFAULT:
                 // No acceleration curve for this one, constant speed.
                 if (zSpeed || xSpeed) {
@@ -4768,27 +4772,37 @@ bool MyAvatar::getIsSitStandStateLocked() const {
 }
 
 float MyAvatar::getWalkSpeed() const {
-    switch(_controlSchemeIndex) {
-        case CONTROLS_ANALOG:
-            return _analogWalkSpeed.get();
-        case CONTROLS_ANALOG_PLUS:
-            return _analogPlusWalkSpeed.get();
-        case CONTROLS_DEFAULT:
-        default:
-            return _defaultWalkSpeed.get();
+    if (qApp->isHMDMode()) {
+        switch (_controlSchemeIndex) {
+            case CONTROLS_ANALOG:
+                return _analogWalkSpeed.get();
+            case CONTROLS_ANALOG_PLUS:
+                return _analogPlusWalkSpeed.get();
+            case CONTROLS_DEFAULT:
+            default:
+                return _defaultWalkSpeed.get();
+        }
+    } else {
+        return _defaultWalkSpeed.get();
     }
+
 }
 
 float MyAvatar::getWalkBackwardSpeed() const {
-    switch(_controlSchemeIndex) {
-        case CONTROLS_ANALOG:
-            return _analogWalkBackwardSpeed.get();
-        case CONTROLS_ANALOG_PLUS:
-            return _analogPlusWalkBackwardSpeed.get();
-        case CONTROLS_DEFAULT:
-        default:
-            return _defaultWalkBackwardSpeed.get();
+    if (qApp->isHMDMode()) {
+        switch(_controlSchemeIndex) {
+            case CONTROLS_ANALOG:
+                return _analogWalkBackwardSpeed.get();
+            case CONTROLS_ANALOG_PLUS:
+                return _analogPlusWalkBackwardSpeed.get();
+            case CONTROLS_DEFAULT:
+            default:
+                return _defaultWalkBackwardSpeed.get();
+        }
+    } else {
+        return _defaultWalkBackwardSpeed.get();
     }
+
 }
 
 bool MyAvatar::isReadyForPhysics() const {
@@ -4907,13 +4921,17 @@ void MyAvatar::setSprintSpeed(float value) {
 }
 
 float MyAvatar::getSprintSpeed() const {
-    switch(_controlSchemeIndex) {
-    case CONTROLS_ANALOG:
-        return _analogSprintSpeed.get();
-    case CONTROLS_ANALOG_PLUS:
-        return _analogPlusSprintSpeed.get();
-    case CONTROLS_DEFAULT:
-    default:
+    if (qApp->isHMDMode()) {
+        switch (_controlSchemeIndex) {
+            case CONTROLS_ANALOG:
+                return _analogSprintSpeed.get();
+            case CONTROLS_ANALOG_PLUS:
+                return _analogPlusSprintSpeed.get();
+            case CONTROLS_DEFAULT:
+            default:
+                return _defaultSprintSpeed.get();
+        }
+    } else {
         return _defaultSprintSpeed.get();
     }
 }
