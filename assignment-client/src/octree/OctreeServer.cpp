@@ -289,7 +289,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 #ifdef FORCE_CRASH
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
-        && url.path() == "/force_crash") {
+        && path == "/force_crash") {
 
         qDebug() << "About to force a crash!";
 

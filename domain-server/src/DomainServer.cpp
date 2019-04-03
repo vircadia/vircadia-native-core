@@ -2028,22 +2028,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
-#define FORCE_CRASH TRUE
-#ifdef FORCE_CRASH
-        if (url.path() == "/force_crash") {
-            qDebug() << "About to force a crash!";
-
-            int foo;
-            int* forceCrash = &foo;
-
-            QString responseString("forcing a crash...");
-            connection->respond(HTTPConnection::StatusCode200, qPrintable(responseString));
-
-            delete[] forceCrash;
-
-            return true;
-        }
-#endif
         if (url.path() == "/assignments.json") {
             // user is asking for json list of assignments
 
@@ -2219,7 +2203,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             }
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PostOperation) {
-        
         if (url.path() == URI_ASSIGNMENT) {
             // this is a script upload - ask the HTTPConnection to parse the form data
             QList<FormData> formData = connection->parseFormData();
