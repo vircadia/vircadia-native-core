@@ -108,22 +108,20 @@ bool OctreeEntitiesFileParser::parseEntities(QVariantMap& parsedEntities) {
                 return false;
             }
 
-            if (idString == "{00000000-0000-0000-0000-000000000000}") {
-                // some older archives may have a null string id, so 
-                // return success without setting parsedEntities, 
-                // which will result in a new uuid for the restored
-                // archive.  (not parsing and using isNull as parsing
-                // results in null if there is a corrupt string)
-                return true;
-            }
+            // some older archives may have a null string id, so
+            // return success without setting parsedEntities,
+            // which will result in a new uuid for the restored
+            // archive.  (not parsing and using isNull as parsing
+            // results in null if there is a corrupt string)
 
-            QUuid idValue = QUuid::fromString(QLatin1String(idString.c_str()) );
-            if (idValue.isNull()) {
-                _errorString = "Id value invalid UUID string: " + idString;
-                return false;
+            if (idString != "{00000000-0000-0000-0000-000000000000}") {
+                QUuid idValue = QUuid::fromString(QLatin1String(idString.c_str()) );
+                if (idValue.isNull()) {
+                    _errorString = "Id value invalid UUID string: " + idString;
+                    return false;
+                }
+                parsedEntities["Id"] = idValue;
             }
-
-            parsedEntities["Id"] = idValue;
         } else if (key == "Version") {
             if (gotVersion) {
                 _errorString = "Duplicate Version entries";
