@@ -12,8 +12,8 @@ Image Image::getScaled(glm::uvec2 dstSize, AspectRatioMode ratioMode, Transforma
         glm::vec4* floatPixels = new glm::vec4[getWidth()*getHeight()];
         auto unpackFunc = getHDRUnpackingFunction();
         auto floatDataIt = floatPixels;
-        for (auto lineNb = 0; lineNb < getHeight(); lineNb++) {
-            const glm::uint32* srcPixelIt = reinterpret_cast<const glm::uint32*>(getScanLine(lineNb));
+        for (glm::uint32 lineNb = 0; lineNb < getHeight(); lineNb++) {
+            const glm::uint32* srcPixelIt = reinterpret_cast<const glm::uint32*>(getScanLine((int)lineNb));
             const glm::uint32* srcPixelEnd = srcPixelIt + getWidth();
 
             while (srcPixelIt < srcPixelEnd) {
@@ -42,8 +42,8 @@ Image Image::getScaled(glm::uvec2 dstSize, AspectRatioMode ratioMode, Transforma
         auto srcRedIt = reinterpret_cast<const float*>(surface.channel(0));
         auto srcGreenIt = reinterpret_cast<const float*>(surface.channel(1));
         auto srcBlueIt = reinterpret_cast<const float*>(surface.channel(2));
-        for (auto lineNb = 0; lineNb < dstSize.y; lineNb++) {
-            glm::uint32* dstPixelIt = reinterpret_cast<glm::uint32*>(resizedImage.scanLine(lineNb));
+        for (glm::uint32 lineNb = 0; lineNb < dstSize.y; lineNb++) {
+            glm::uint32* dstPixelIt = reinterpret_cast<glm::uint32*>(resizedImage.scanLine((int)lineNb));
             glm::uint32* dstPixelEnd = dstPixelIt + dstSize.x;
 
             while (dstPixelIt < dstPixelEnd) {
