@@ -1545,7 +1545,6 @@ float AvatarData::getDataRate(const QString& rateName) const {
  *     <tr><th>Rate Name</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
-
  *     <tr><td><code>"globalPosition"</code></td><td>Global position.</td></tr>
  *     <tr><td><code>"localPosition"</code></td><td>Local position.</td></tr>
  *     <tr><td><code>"avatarBoundingBox"</code></td><td>Avatar bounding box.</td></tr>
@@ -1559,7 +1558,6 @@ float AvatarData::getDataRate(const QString& rateName) const {
  *     <tr><td><code>"faceTracker"</code></td><td>Face tracker data.</td></tr>
  *     <tr><td><code>"jointData"</code></td><td>Joint data.</td></tr>
  *     <tr><td><code>"farGrabJointData"</code></td><td>Far grab joint data.</td></tr>
-
  *     <tr><td><code>""</code></td><td>When no rate name is specified, the overall update rate is provided.</td></tr>
  *   </tbody>
  * </table>
@@ -2905,6 +2903,20 @@ glm::mat4 AvatarData::getControllerRightHandMatrix() const {
     return _controllerRightHandMatrixCache.get();
 }
 
+/**jsdoc
+ * Information about a ray-to-avatar intersection.
+ * @typedef {object} RayToAvatarIntersectionResult
+ * @property {boolean} intersects - <code>true</code> if an avatar is intersected, <code>false</code> if it isn't.
+ * @property {string} avatarID - The ID of the avatar that is intersected.
+ * @property {number} distance - The distance from the ray origin to the intersection.
+ * @property {string} face - The name of the box face that is intersected; <code>"UNKNOWN_FACE"</code> if mesh was picked 
+ *     against.
+ * @property {Vec3} intersection - The ray intersection point in world coordinates.
+ * @property {Vec3} surfaceNormal - The surface normal at the intersection point.
+ * @property {number} jointIndex - The index of the joint intersected.
+ * @property {SubmeshIntersection} extraInfo - Extra information on the mesh intersected if mesh was picked against, 
+ *     <code>{}</code> if it wasn't.
+ */
 QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, const RayToAvatarIntersectionResult& value) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);

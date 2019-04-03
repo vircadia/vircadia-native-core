@@ -36,8 +36,10 @@ const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
 const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
 /**jsdoc
- * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
- * synonym for the {@link AvatarManager} API.
+ * The <code>AvatarList</code> API provides information about avatars within the domain.
+ *
+ * <p><strong>Warning:</strong> An API named "<code>AvatarList</code>" is also provided for Interface, client entity, and avatar 
+ * scripts, however, it is a synonym for the {@link AvatarManager} API.</p>
  *
  * @namespace AvatarList
  *
@@ -78,23 +80,37 @@ public:
     // Currently, your own avatar will be included as the null avatar id.
     
     /**jsdoc
+     * Gets the IDs of all avatars in the domain.
+     * <p><strong>Warning:</strong> If the AC script is acting as an avatar (i.e., <code>Agent.isAvatar == true</code>) the 
+     * avatar's ID is NOT included in results.</p>
      * @function AvatarList.getAvatarIdentifiers
-     * @returns {Uuid[]}
+     * @returns {Uuid[]} The IDs of all avatars in the domain (excluding AC script's avatar).
+     * @example <caption>Report the IDS of all avatars within the domain.</caption>
+     * var avatars = AvatarList.getAvatarIdentifiers();
+     * print("Avatars in the domain: " + JSON.stringify(avatars));
      */
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
 
     /**jsdoc
+     * Gets the IDs of all avatars within a specified distance from a point.
+     * <p><strong>Warning:</strong> If the AC script is acting as an avatar (i.e., <code>Agent.isAvatar == true</code>) the
+     * avatar's ID is NOT included in results.</p>
      * @function AvatarList.getAvatarsInRange
-     * @param {Vec3} position
-     * @param {number} range
-     * @returns {Uuid[]} 
+     * @param {Vec3} position - The point about which the search is performed.
+     * @param {number} range - The search radius.
+     * @returns {Uuid[]} The IDs of all avatars within the search distance from the position (excluding AC script's avatar).
+     * @example <caption>Report the IDs of all avatars within 10m of the origin.</caption>
+     * var RANGE = 10;
+     * var avatars = AvatarList.getAvatarsInRange(Vec3.ZERO, RANGE);
+     * print("Avatars near the origin: " + JSON.stringify(avatars));
      */
     Q_INVOKABLE QVector<QUuid> getAvatarsInRange(const glm::vec3& position, float rangeMeters) const;
 
     /**jsdoc
+     * Gets information about an avatar.
      * @function AvatarList.getAvatar
-     * @param {Uuid} avatarID
-     * @returns {AvatarData}
+     * @param {Uuid} avatarID - The ID of the avatar.
+     * @returns {AvatarData} Information about the avatar.
      */
     // Null/Default-constructed QUuids will return MyAvatar
     Q_INVOKABLE virtual ScriptAvatarData* getAvatar(QUuid avatarID) { return new ScriptAvatarData(getAvatarBySessionID(avatarID)); }
@@ -110,34 +126,57 @@ public:
 signals:
 
     /**jsdoc
+     * Triggered when an avatar arrives in the domain.
      * @function AvatarList.avatarAddedEvent
-     * @param {Uuid} sessionUUID
+     * @param {Uuid} sessionUUID - The ID of the avatar that arrived in the domain.
      * @returns {Signal}
+     * @example <caption>Report when an avatar arrives in the domain.</caption>
+     * AvatarManager.avatarAddedEvent.connect(function (sessionID) {
+     *     print("Avatar arrived: " + sessionID);
+     * });
+     *
+     * // Note: If using from the AvatarList API, replace "AvatarManager" with "AvatarList".
      */
     void avatarAddedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
+     * Triggered when an avatar leaves the domain.
      * @function AvatarList.avatarRemovedEvent
-     * @param {Uuid} sessionUUID
+     * @param {Uuid} sessionUUID - The ID of the avatar that left the domain.
      * @returns {Signal}
+     * @example <caption>Report when an avatar leaves the domain.</caption>
+     * AvatarManager.avatarRemovedEvent.connect(function (sessionID) {
+     *     print("Avatar left: " + sessionID);
+     * });
+     *
+     * // Note: If using from the AvatarList API, replace "AvatarManager" with "AvatarList".
      */
     void avatarRemovedEvent(const QUuid& sessionUUID);
 
     /**jsdoc
+     * Triggered when an avatar's session ID changes.
      * @function AvatarList.avatarSessionChangedEvent
-     * @param {Uuid} sessionUUID
-     * @param {Uuid} oldSessionUUID
+     * @param {Uuid} newSessionUUID - The new session ID.
+     * @param {Uuid} oldSessionUUID - The old session ID.
      * @returns {Signal}
+     * @example <caption>Report when an avatar's session ID changes.</caption>
+     * AvatarManager.avatarSessionChangedEvent.connect(function (newSessionID, oldSessionID) {
+     *     print("Avatar session ID changed from " + oldSessionID + " to " + newSessionID);
+     * });
+     *
+     * // Note: If using from the AvatarList API, replace "AvatarManager" with "AvatarList".
      */
     void avatarSessionChangedEvent(const QUuid& sessionUUID,const QUuid& oldUUID);
 
 public slots:
 
     /**jsdoc
+     * Checks whether there is an avatar within a specified distance from a point.
      * @function AvatarList.isAvatarInRange
-     * @param {string} position
-     * @param {string} range
-     * @returns {boolean}
+     * @param {string} position - The test position.
+     * @param {string} range - The test distance.
+     * @returns {boolean} <code>true</code> if there's an avatar within the specified distance of the point, <code>false</code> 
+     *     if not.
      */
     bool isAvatarInRange(const glm::vec3 & position, const float range);
 
@@ -145,36 +184,41 @@ protected slots:
 
     /**jsdoc
      * @function AvatarList.sessionUUIDChanged
-     * @param {Uuid} sessionUUID
-     * @param {Uuid} oldSessionUUID
+     * @param {Uuid} sessionUUID - New session ID.
+     * @param {Uuid} oldSessionUUID - Old session ID.
+     * @deprecated This function is deprecated and will be removed.
      */
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
 
     /**jsdoc
      * @function AvatarList.processAvatarDataPacket
-     * @param {} message
-     * @param {} sendingNode
+     * @param {object} message - Message.
+     * @param {object} sendingNode - Sending node.
+     * @deprecated This function is deprecated and will be removed.
      */
     void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
    
     /**jsdoc
      * @function AvatarList.processAvatarIdentityPacket
-     * @param {} message
-     * @param {} sendingNode
+     * @param {object} message - Message.
+     * @param {object} sendingNode - Sending node.
+     * @deprecated This function is deprecated and will be removed.
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
      * @function AvatarList.processBulkAvatarTraits
-     * @param {} message
-     * @param {} sendingNode
+     * @param {object} message - Message.
+     * @param {object} sendingNode - Sending node.
+     * @deprecated This function is deprecated and will be removed.
      */
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
      * @function AvatarList.processKillAvatar
-     * @param {} message
-     * @param {} sendingNode
+     * @param {object} message - Message.
+     * @param {object} sendingNode - Sending node.
+     * @deprecated This function is deprecated and will be removed.
      */
     void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 

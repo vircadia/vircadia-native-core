@@ -56,6 +56,7 @@ exports.handlers = {
             '../../libraries/physics/src',
             '../../libraries/plugins/src/plugins',
             '../../libraries/pointers/src',
+            '../../libraries/render-utils/src',
             '../../libraries/script-engine/src',
             '../../libraries/shared/src',
             '../../libraries/shared/src/shared',

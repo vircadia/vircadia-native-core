@@ -501,8 +501,8 @@ public:
 
     /**jsdoc
      * @function MyAvatar.getSimulationRate
-     * @param {string} [rateName=""] - Rate name.
-     * @returns {number} Simulation rate.
+     * @param {AvatarSimulationRate} [rateName=""] - Rate name.
+     * @returns {number} Simulation rate in Hz.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
