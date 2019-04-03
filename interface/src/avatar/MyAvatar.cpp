@@ -3397,7 +3397,12 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     } else {
         // Desktop mode.
         direction = (zSpeed * forward) + (xSpeed * right);
+        auto length = glm::length(direction);
+        if (length > EPSILON) {
+            direction /= length;
+        }
         direction *= getWalkSpeed() * _walkSpeedScalar;
+        return direction;
     }
 }
 
