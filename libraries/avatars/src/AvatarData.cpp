@@ -1721,7 +1721,6 @@ glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
     // on another thread in between the call to getJointIndex and getJointTranslation
     // return getJointTranslation(getJointIndex(name));
     return readLockWithNamedJointIndex<glm::vec3>(name, [this](int index) {
-        return _jointData.at(index).translation;
         return getJointTranslation(index);
     });
 }
@@ -1809,8 +1808,8 @@ glm::quat AvatarData::getJointRotation(const QString& name) const {
     // Can't do this, not thread safe
     // return getJointRotation(getJointIndex(name));
 
-    return readLockWithNamedJointIndex<glm::quat>(name, [&](int index) {
-        return _jointData.at(index).rotation;
+    return readLockWithNamedJointIndex<glm::quat>(name, [this](int index) {
+        return getJointRotation(index);
     });
 }
 
