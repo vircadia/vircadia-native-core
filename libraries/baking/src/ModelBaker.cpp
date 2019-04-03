@@ -326,6 +326,7 @@ void ModelBaker::outputBakedFST() {
     auto outputMapping = _mapping;
     outputMapping[FST_VERSION_FIELD] = FST_VERSION;
     outputMapping[FILENAME_FIELD] = _bakedModelURL.fileName();
+    outputMapping.remove(TEXDIR_FIELD);
     hifi::ByteArray fstOut = FSTReader::writeMapping(outputMapping);
 
     QFile fstOutputFile { outputFSTURL };

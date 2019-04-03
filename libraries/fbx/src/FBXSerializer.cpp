@@ -97,13 +97,24 @@ QString processID(const QString& id) {
     return id.mid(id.lastIndexOf(':') + 1);
 }
 
-QString getName(const QVariantList& properties) {
+QString getModelName(const QVariantList& properties) {
     QString name;
     if (properties.size() == 3) {
         name = properties.at(1).toString();
         name = processID(name.left(name.indexOf(QChar('\0'))));
     } else {
         name = processID(properties.at(0).toString());
+    }
+    return name;
+}
+
+QString getMaterialName(const QVariantList& properties) {
+    QString name;
+    if (properties.size() == 1 || properties.at(1).toString().isEmpty()) {
+        name = properties.at(0).toString();
+        name = processID(name.left(name.indexOf(QChar('\0'))));
+    } else {
+        name = processID(properties.at(1).toString());
     }
     return name;
 }
@@ -507,7 +518,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
-                    QString name = getName(object.properties);
+                    QString name = getModelName(object.properties);
                     QString id = getID(object.properties);
                     modelIDsToNames.insert(id, name);
 
@@ -826,7 +837,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 } else if (object.name == "Material") {
                     HFMMaterial material;
                     MaterialParam materialParam;
-                    material.name = (object.properties.at(1).toString());
+                    material.name = getMaterialName(object.properties);
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
 
