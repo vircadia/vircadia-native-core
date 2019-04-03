@@ -37,13 +37,13 @@ glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
     return result;
 }
 
-void InterleavedStereoDisplayPlugin::internalPresent(const gpu::FramebufferPointer& compositeFramebuffer) {
+void InterleavedStereoDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.resetViewTransform();
         batch.setFramebuffer(gpu::FramebufferPointer());
         batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
-        batch.setResourceTexture(0, compositeFramebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
         batch.setPipeline(_interleavedPresentPipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });

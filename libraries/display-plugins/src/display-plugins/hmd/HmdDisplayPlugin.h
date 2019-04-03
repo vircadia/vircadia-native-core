@@ -53,15 +53,16 @@ signals:
     void hmdVisibleChanged(bool visible);
 
 protected:
-    virtual void hmdPresent(const gpu::FramebufferPointer&) = 0;
+    virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
     virtual void postPreview() {};
     virtual void updatePresentPose();
 
     bool internalActivate() override;
     void internalDeactivate() override;
-    void compositePointer(const gpu::FramebufferPointer&) override;
-    void internalPresent(const gpu::FramebufferPointer&) override;
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
+    void compositePointer() override;
+    void internalPresent() override;
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;
@@ -119,6 +120,8 @@ private:
         static const size_t TEXTURE_OFFSET { offsetof(Vertex, uv) };
         static const int VERTEX_STRIDE { sizeof(Vertex) };
 
-        HUDOperator build();
+        void build();
+        void updatePipeline();
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> render(HmdDisplayPlugin& plugin);
     } _hudRenderer;
 };
