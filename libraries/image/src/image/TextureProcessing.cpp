@@ -615,7 +615,7 @@ nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture
     }
 }
 
-void convertToHDRTexture(gpu::Texture* texture, Image&& image, BackendTarget target, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing, int face) {
+void convertImageToHDRTexture(gpu::Texture* texture, Image&& image, BackendTarget target, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing, int face) {
     assert(image.hasFloatFormat());
 
     Image localCopy = image.getConvertedToFormat(Image::Format_RGBAF);
@@ -658,21 +658,20 @@ void convertToHDRTexture(gpu::Texture* texture, Image&& image, BackendTarget tar
     }
 }
 
-void convertToLDRTexture(gpu::Texture* texture, Image&& image, BackendTarget target, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing, int face) {
+void convertImageToLDRTexture(gpu::Texture* texture, Image&& image, BackendTarget target, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing, int face) {
     // Take a local copy to force move construction
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     Image localCopy = std::move(image);
-
-    assert(localCopy.getFormat() != Image::Format_PACKED_FLOAT);
-    if (localCopy.getFormat() != Image::Format_ARGB32) {
-        localCopy = localCopy.getConvertedToFormat(Image::Format_ARGB32);
-    }
 
     const int width = localCopy.getWidth(), height = localCopy.getHeight();
     auto mipFormat = texture->getStoredMipFormat();
     int mipLevel = baseMipLevel;
 
     if (target != BackendTarget::GLES32) {
+        if (localCopy.getFormat() != Image::Format_ARGB32) {
+            localCopy = localCopy.getConvertedToFormat(Image::Format_ARGB32);
+        }
+
         const void* data = static_cast<const void*>(localCopy.getBits());
         nvtt::TextureType textureType = nvtt::TextureType_2D;
         nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
@@ -864,12 +863,12 @@ void convertImageToTexture(gpu::Texture* texture, Image& image, BackendTarget ta
     PROFILE_RANGE(resource_parse, "convertToTextureWithMips");
 
     if (target == BackendTarget::GLES32) {
-        convertToLDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
+        convertImageToLDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
     } else {
         if (image.hasFloatFormat()) {
-            convertToHDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
+            convertImageToHDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
         } else {
-            convertToLDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
+            convertImageToLDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
         }
     }
 }
@@ -1487,12 +1486,31 @@ Image convertToHDRFormat(Image&& srcImage, gpu::Element format) {
     return hdrImage;
 }
 
-void convolveForGGX(const std::vector<Image>& faces, gpu::Element faceFormat, gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
+static bool isLinearTextureFormat(gpu::Element format) {
+    return !((format == gpu::Element::COLOR_SRGBA_32)
+        || (format == gpu::Element::COLOR_SBGRA_32)
+        || (format == gpu::Element::COLOR_SR_8)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGB)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_MASK)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_HIGH)
+        || (format == gpu::Element::COLOR_COMPRESSED_ETC2_SRGB)
+        || (format == gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA)
+        || (format == gpu::Element::COLOR_COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA));
+}
+
+void convolveForGGX(const std::vector<Image>& faces, gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
     PROFILE_RANGE(resource_parse, "convolveForGGX");
-    CubeMap source(faces, faceFormat, texture->getNumMips(), abortProcessing);
+    CubeMap source(faces, texture->getNumMips(), abortProcessing);
     CubeMap output(texture->getWidth(), texture->getHeight(), texture->getNumMips());
 
+    if (!faces.front().hasFloatFormat()) {
+        source.applyGamma(2.2f);
+    }
     source.convolveForGGX(output, abortProcessing);
+    if (!isLinearTextureFormat(texture->getTexelFormat())) {
+        output.applyGamma(1.0f/2.2f);
+    }
 
     for (int face = 0; face < 6; face++) {
         for (gpu::uint16 mipLevel = 0; mipLevel < output.getMipCount(); mipLevel++) {
@@ -1601,7 +1619,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcIm
         
         if (options & CUBE_GGX_CONVOLVE) {
             // Performs and convolution AND mip map generation
-            convolveForGGX(faces, GPU_CUBEMAP_HDR_FORMAT, theTexture.get(), target, abortProcessing);
+            convolveForGGX(faces, theTexture.get(), target, abortProcessing);
         } else {
             // Create mip maps and compress to final format in one go
             for (uint8 face = 0; face < faces.size(); ++face) {

@@ -31,10 +31,12 @@ namespace image {
     public:
  
         CubeMap(int width, int height, int mipCount);
-        CubeMap(const std::vector<Image>& faces, gpu::Element faceFormat, int mipCount, const std::atomic<bool>& abortProcessing = false);
+        CubeMap(const std::vector<Image>& faces, int mipCount, const std::atomic<bool>& abortProcessing = false);
 
         void reset(int width, int height, int mipCount);
         void copyTo(CubeMap& other) const;
+
+        void applyGamma(float value);
 
         gpu::uint16 getMipCount() const { return (gpu::uint16)_mips.size(); }
         int getMipWidth(gpu::uint16 mipLevel) const {

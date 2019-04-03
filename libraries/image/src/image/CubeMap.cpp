@@ -15,12 +15,13 @@
 #include <tbb/blocked_range2d.h>
 
 #include "RandomAndNoise.h"
-#include "TextureProcessing.h"
 #include "ImageLogging.h"
 
 #ifndef M_PI
 #define M_PI    3.14159265359
 #endif
+
+#include <nvtt/nvtt.h>
 
 using namespace image;
 
@@ -321,7 +322,7 @@ CubeMap::CubeMap(int width, int height, int mipCount) {
     reset(width, height, mipCount);
 }
 
-CubeMap::CubeMap(const std::vector<Image>& faces, gpu::Element srcTextureFormat, int mipCount, const std::atomic<bool>& abortProcessing) {
+CubeMap::CubeMap(const std::vector<Image>& faces, int mipCount, const std::atomic<bool>& abortProcessing) {
     reset(faces.front().getWidth(), faces.front().getHeight(), mipCount);
 
     int face;
@@ -330,13 +331,11 @@ CubeMap::CubeMap(const std::vector<Image>& faces, gpu::Element srcTextureFormat,
     surface.setAlphaMode(nvtt::AlphaMode_None);
     surface.setWrapMode(nvtt::WrapMode_Mirror);
 
-    std::vector<glm::vec4> floatPixels;
-    floatPixels.resize(_width * _height);
-
     // Compute mips
     for (face = 0; face < 6; face++) {
-        convertToFloatFromPacked(faces[face].getBits(), _width, _height, faces[face].getBytesPerLineCount(), srcTextureFormat, floatPixels.data(), _width);
-        surface.setImage(nvtt::InputFormat_RGBA_32F, _width, _height, 1, &floatPixels.front().x);
+        Image faceImage = faces[face].getConvertedToFormat(Image::Format_RGBAF);
+
+        surface.setImage(nvtt::InputFormat_RGBA_32F, _width, _height, 1, faceImage.editBits());
 
         auto mipLevel = 0;
         copySurface(surface, editFace(0, face), getMipLineStride(0));
@@ -356,6 +355,18 @@ CubeMap::CubeMap(const std::vector<Image>& faces, gpu::Element srcTextureFormat,
     for (gpu::uint16 mipLevel = 0; mipLevel < mipCount; ++mipLevel) {
         Mip mip(mipLevel, this);
         mip.applySeams();
+    }
+}
+
+void CubeMap::applyGamma(float value) {
+    for (auto& mip : _mips) {
+        for (auto& face : mip) {
+            for (auto& pixel : face) {
+                pixel.r = std::pow(pixel.r, value);
+                pixel.g = std::pow(pixel.g, value);
+                pixel.b = std::pow(pixel.b, value);
+            }
+        }
     }
 }
 
