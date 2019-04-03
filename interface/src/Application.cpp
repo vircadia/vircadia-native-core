@@ -3736,14 +3736,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-#if !defined(Q_OS_ANDROID)
        DependencyManager::get<AddressManager>()->goToEntry();
        sentTo = SENT_TO_ENTRY;
-#endif
         _firstRun.set(false);
 
     } else {
-#if !defined(Q_OS_ANDROID)
         QString goingTo = "";
         if (addressLookupString.isEmpty()) {
             if (Menu::getInstance()->isOptionChecked(MenuOption::HomeLocation)) {
@@ -3757,7 +3754,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(!goingTo.isEmpty() ? goingTo : addressLookupString);
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
-#endif
     }
 
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
