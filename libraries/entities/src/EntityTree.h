@@ -157,11 +157,6 @@ public:
         return _recentlyDeletedEntityItemIDs;
     }
 
-    QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
-        QReadLocker locker(&_entityCertificateIDMapLock);
-        return _entityCertificateIDMap;
-    }
-
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
@@ -252,8 +247,8 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
-    QByteArray computeNonce(const QString& certID, const QString ownerKey);
-    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
+    QByteArray computeNonce(const EntityItemID& entityID, const QString ownerKey);
+    bool verifyNonce(const EntityItemID& entityID, const QString& nonce);
 
     QUuid getMyAvatarSessionUUID() { return _myAvatar ? _myAvatar->getSessionUUID() : QUuid(); }
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
@@ -279,6 +274,7 @@ public:
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                  bool force, bool tellServer);
+    void startDynamicDomainVerificationOnServer(float minimumAgeToRemove);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -290,7 +286,7 @@ signals:
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
-    void killChallengeOwnershipTimeoutTimer(const QString& certID);
+    void killChallengeOwnershipTimeoutTimer(const EntityItemID& certID);
 
 protected:
 
@@ -327,10 +323,10 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entityMap;
 
     mutable QReadWriteLock _entityCertificateIDMapLock;
-    QHash<QString, EntityItemID> _entityCertificateIDMap;
+    QHash<QString, QList<EntityItemID>> _entityCertificateIDMap;
 
-    mutable QReadWriteLock _certNonceMapLock;
-    QHash<QString, QPair<QUuid, QString>> _certNonceMap;
+    mutable QReadWriteLock _entityNonceMapLock;
+    QHash<EntityItemID, QPair<QUuid, QString>> _entityNonceMap;
 
     EntitySimulationPointer _simulation;
 
@@ -377,8 +373,10 @@ protected:
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
 
 private:
+    void addCertifiedEntityOnServer(EntityItemPointer entity);
+    void removeCertifiedEntityOnServer(EntityItemPointer entity);
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
-    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };

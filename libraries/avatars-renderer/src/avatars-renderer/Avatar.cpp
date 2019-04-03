@@ -652,9 +652,8 @@ void Avatar::fadeIn(render::ScenePointer scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+void Avatar::fadeOut(render::Transaction& transaction, KillAvatarReason reason) {
     render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
-    render::Transaction transaction;
 
     if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
@@ -662,7 +661,6 @@ void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
         transitionType = render::Transition::BUBBLE_ISECT_OWNER;
     }
     fade(transaction, transitionType);
-    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
@@ -671,19 +669,6 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
             transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
-    }
-    _isFading = true;
-}
-
-void Avatar::updateFadingStatus() {
-    if (_isFading) {
-        render::Transaction transaction;
-        transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-            if (!transition || transition->isFinished) {
-                _isFading = false;
-            }
-        });
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     }
 }
 

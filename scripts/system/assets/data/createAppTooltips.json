@@ -227,6 +227,14 @@
     "speedSpread": {
         "tooltip": "The spread in speeds at which particles are emitted at, resulting in a variety of speeds."
     },
+    "particleShapeType": {
+        "tooltip": "The shape of the surface from which to emit particles.",
+        "jsPropertyName": "shapeType"
+    },
+    "particleCompoundShapeURL": {
+        "tooltip": "The model file to use for the particle emitter if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
+    },
     "emitDimensions": {
         "tooltip": "The outer limit radius in dimensions that the particles can be emitted from."
     },

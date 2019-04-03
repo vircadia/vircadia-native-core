@@ -26,6 +26,7 @@
 #include <Extents.h>
 #include <PerfStat.h>
 #include <Profile.h>
+#include <AddressManager.h>
 
 #include "EntitySimulation.h"
 #include "VariantMapToScriptValue.h"
@@ -286,27 +287,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     assert(entity);
 
     if (getIsServer()) {
-        QString certID(entity->getCertificateID());
-        EntityItemID entityItemID = entity->getEntityItemID();
-        EntityItemID existingEntityItemID;
-
-        {
-            QWriteLocker locker(&_entityCertificateIDMapLock);
-            existingEntityItemID = _entityCertificateIDMap.value(certID);
-            if (!certID.isEmpty()) {
-                _entityCertificateIDMap.insert(certID, entityItemID);
-                qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID;
-            }
-        }
-
-        // Delete an already-existing entity from the tree if it has the same
-        //     CertificateID as the entity we're trying to add.
-        if (!existingEntityItemID.isNull() && !entity->getCertificateType().contains(DOMAIN_UNLIMITED)) {
-            qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
-                << existingEntityItemID << ". Deleting existing entity.";
-            deleteEntity(existingEntityItemID, true);
-            return;
-        }
+        addCertifiedEntityOnServer(entity);
     }
 
     // check to see if we need to simulate this entity..
@@ -764,13 +745,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         theEntity->die();
 
         if (getIsServer()) {
-            {
-                QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
-                QString certID = theEntity->getCertificateID();
-                if (theEntity->getEntityItemID() == _entityCertificateIDMap.value(certID)) {
-                    _entityCertificateIDMap.remove(certID);
-                }
-            }
+            removeCertifiedEntityOnServer(theEntity);
 
             // set up the deleted entities ID
             QWriteLocker recentlyDeletedEntitiesLocker(&_recentlyDeletedEntitiesLock);
@@ -1421,11 +1396,123 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
     return false;
 }
 
+void EntityTree::addCertifiedEntityOnServer(EntityItemPointer entity) {
+    QString certID(entity->getCertificateID());
+    EntityItemID existingEntityItemID;
+    if (!certID.isEmpty()) {
+        EntityItemID entityItemID = entity->getEntityItemID();
+        QWriteLocker locker(&_entityCertificateIDMapLock);
+        QList<EntityItemID>& entityList = _entityCertificateIDMap[certID]; // inserts it if needed.
+        if (!entityList.isEmpty() && !entity->getCertificateType().contains(DOMAIN_UNLIMITED)) {
+            existingEntityItemID = entityList.first(); // we will only care about the first, if any, below.
+            entityList.removeOne(existingEntityItemID);
+        }
+        entityList << entityItemID; // adds to list within hash because entityList is a reference.
+        qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID << "total" << entityList.size() << "entities.";
+    }
+    // Delete an already-existing entity from the tree if it has the same
+    //     CertificateID as the entity we're trying to add.
+    if (!existingEntityItemID.isNull()) {
+        qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
+            << existingEntityItemID << ". Deleting existing entity.";
+        withWriteLock([&] {
+            deleteEntity(existingEntityItemID, true);
+        });
+    }
+}
+
+void EntityTree::removeCertifiedEntityOnServer(EntityItemPointer entity) {
+    QString certID = entity->getCertificateID();
+    if (!certID.isEmpty()) {
+        QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
+        QList<EntityItemID>& entityList = _entityCertificateIDMap[certID];
+        entityList.removeOne(entity->getEntityItemID());
+        if (entityList.isEmpty()) {
+            // hmmm, do we to make it be a hash instead of a list, so that this is faster if you stamp out 1000 of a domainUnlimited?
+            _entityCertificateIDMap.remove(certID);
+        }
+    }
+}
+
+void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove) {
+    QReadLocker locker(&_entityCertificateIDMapLock);
+    QHashIterator<QString, QList<EntityItemID>> i(_entityCertificateIDMap);
+    qCDebug(entities) << _entityCertificateIDMap.size() << "certificates present.";
+    while (i.hasNext()) {
+        i.next();
+        const auto& certificateID = i.key();
+        const auto& entityIDs = i.value();
+        if (entityIDs.isEmpty()) {
+            continue;
+        }
+
+        // Examine each cert:
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest networkRequest;
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+        QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+        requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
+        QJsonObject request;
+        request["certificate_id"] = certificateID;
+        networkRequest.setUrl(requestURL);
+
+        QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+
+        connect(networkReply, &QNetworkReply::finished, this, [this, entityIDs, networkReply, minimumAgeToRemove, &certificateID] {
+
+            QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
+            jsonObject = jsonObject["data"].toObject();
+            bool failure = networkReply->error() != QNetworkReply::NoError;
+            auto failureReason = networkReply->error();
+            networkReply->deleteLater();
+            if (failure) {
+                qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << failureReason
+                    << "; NOT deleting cert" << certificateID << "More info:" << jsonObject;
+                return;
+            }
+            QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
+            if (jsonObject["domain_id"].toString() == thisDomainID) {
+                // Entity belongs here. Nothing to do.
+                return;
+            }
+            // Entity does not belong here:
+            QList<EntityItemID> retained;
+            for (int i = 0; i < entityIDs.size(); i++) {
+                EntityItemID entityID = entityIDs.at(i);
+                EntityItemPointer entity = findEntityByEntityItemID(entityID);
+                if (!entity) {
+                    qCDebug(entities) << "Entity undergoing dynamic domain verification is no longer available:" << entityID;
+                    continue;
+                }
+                if (entity->getAge() <= minimumAgeToRemove) {
+                    qCDebug(entities) << "Entity failed dynamic domain verification, but was created too recently to necessitate deletion:" << entityID;
+                    retained << entityID;
+                    continue;
+                }
+                qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
+                    << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << entityID;
+                withWriteLock([&] {
+                    deleteEntity(entityID, true);
+                });
+            }
+            {
+                QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
+                if (retained.isEmpty()) {
+                    qCDebug(entities) << "Removed" << certificateID;
+                    _entityCertificateIDMap.remove(certificateID);
+                } else {
+                    qCDebug(entities) << "Retained" << retained.size() << "young entities for" << certificateID;
+                    _entityCertificateIDMap[certificateID] = retained;
+                }
+            }
+        });
+    }
+}
+
 void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
     QTimer* _challengeOwnershipTimeoutTimer = new QTimer(this);
-    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [=](const QString& certID) {
-        QReadLocker locker(&_entityCertificateIDMapLock);
-        EntityItemID id = _entityCertificateIDMap.value(certID);
+    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [=](const EntityItemID& id) {
         if (entityItemID == id && _challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1445,26 +1532,21 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     _challengeOwnershipTimeoutTimer->start(5000);
 }
 
-QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKey) {
+QByteArray EntityTree::computeNonce(const EntityItemID& entityID, const QString ownerKey) {
     QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
     QByteArray nonceBytes = nonce.toByteArray();
 
-    QWriteLocker locker(&_certNonceMapLock);
-    _certNonceMap.insert(certID, QPair<QUuid, QString>(nonce, ownerKey));
+    QWriteLocker locker(&_entityNonceMapLock);
+    _entityNonceMap.insert(entityID, QPair<QUuid, QString>(nonce, ownerKey));
 
     return nonceBytes;
 }
 
-bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id) {
-    {
-        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-        id = _entityCertificateIDMap.value(certID);
-    }
-
+bool EntityTree::verifyNonce(const EntityItemID& entityID, const QString& nonce) {
     QString actualNonce, key;
     {
-        QWriteLocker locker(&_certNonceMapLock);
-        QPair<QUuid, QString> sent = _certNonceMap.take(certID);
+        QWriteLocker locker(&_entityNonceMapLock);
+        QPair<QUuid, QString> sent = _entityNonceMap.take(entityID);
         actualNonce = sent.first.toString();
         key = sent.second;
     }
@@ -1474,9 +1556,9 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
     bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), hashedActualNonce, QByteArray::fromBase64(nonce.toUtf8()));
 
     if (verificationSuccess) {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
+        qCDebug(entities) << "Ownership challenge for Entity ID" << entityID << "succeeded.";
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed. Actual nonce:" << actualNonce <<
+        qCDebug(entities) << "Ownership challenge for Entity ID" << entityID << "failed. Actual nonce:" << actualNonce <<
             "\nHashed actual nonce (digest):" << hashedActualNonce << "\nSent nonce (signature)" << nonce << "\nKey" << key;
     }
 
@@ -1484,42 +1566,42 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, Entity
 }
 
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
     int nodeToChallengeByteArraySize;
 
-    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&idByteArraySize);
     message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
 
-    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray id(message.read(idByteArraySize));
     QByteArray text(message.read(textByteArraySize));
     QByteArray nodeToChallenge(message.read(nodeToChallengeByteArraySize));
 
-    sendChallengeOwnershipRequestPacket(certID, text, nodeToChallenge, sourceNode);
+    sendChallengeOwnershipRequestPacket(id, text, nodeToChallenge, sourceNode);
 }
 
 void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
-    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&idByteArraySize);
     message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&challengingNodeUUIDByteArraySize);
 
-    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray id(message.read(idByteArraySize));
     QByteArray text(message.read(textByteArraySize));
     QUuid challengingNode = QUuid::fromRfc4122(message.read(challengingNodeUUIDByteArraySize));
 
     auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-        certIDByteArraySize + text.length() + 2 * sizeof(int),
+        idByteArraySize + text.length() + 2 * sizeof(int),
         true);
-    challengeOwnershipReplyPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipReplyPacket->writePrimitive(idByteArraySize);
     challengeOwnershipReplyPacket->writePrimitive(text.length());
-    challengeOwnershipReplyPacket->write(certID);
+    challengeOwnershipReplyPacket->write(id);
     challengeOwnershipReplyPacket->write(text);
 
     nodeList->sendPacket(std::move(challengeOwnershipReplyPacket), *(nodeList->nodeWithUUID(challengingNode)));
@@ -1529,7 +1611,7 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     // 1. Obtain a nonce
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray text = computeNonce(certID, ownerKey);
+    QByteArray text = computeNonce(entityItemID, ownerKey);
 
     if (text == "") {
         qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
@@ -1539,14 +1621,14 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
         // 2. Send the nonce to the rezzing avatar's node
-        QByteArray certIDByteArray = certID.toUtf8();
-        int certIDByteArraySize = certIDByteArray.size();
+        QByteArray idByteArray = entityItemID.toByteArray();
+        int idByteArraySize = idByteArray.size();
         auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-            certIDByteArraySize + text.length() + 2 * sizeof(int),
+            idByteArraySize + text.length() + 2 * sizeof(int),
             true);
-        challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+        challengeOwnershipPacket->writePrimitive(idByteArraySize);
         challengeOwnershipPacket->writePrimitive(text.length());
-        challengeOwnershipPacket->write(certIDByteArray);
+        challengeOwnershipPacket->write(idByteArray);
         challengeOwnershipPacket->write(text);
         nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
 
@@ -1560,24 +1642,24 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     }
 }
 
-void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
+void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
     //     to make sure belongs to Avatar B.
     QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
 
-    int certIDByteArraySize = certID.length();
+    int idByteArraySize = id.length();
     int TextByteArraySize = text.length();
     int senderNodeUUIDSize = senderNodeUUID.length();
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-        certIDByteArraySize + TextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
+        idByteArraySize + TextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
         true);
-    challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipPacket->writePrimitive(idByteArraySize);
     challengeOwnershipPacket->writePrimitive(TextByteArraySize);
     challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
-    challengeOwnershipPacket->write(certID);
+    challengeOwnershipPacket->write(id);
     challengeOwnershipPacket->write(text);
     challengeOwnershipPacket->write(senderNodeUUID);
 
@@ -1636,22 +1718,21 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 }
 
 void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
 
-    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&idByteArraySize);
     message.readPrimitive(&textByteArraySize);
 
-    QString certID(message.read(certIDByteArraySize));
+    EntityItemID id(message.read(idByteArraySize));
     QString text(message.read(textByteArraySize));
 
-    emit killChallengeOwnershipTimeoutTimer(certID);
+    emit killChallengeOwnershipTimeoutTimer(id);
 
-    EntityItemID id;
-    if (!verifyNonce(certID, text, id)) {
-        if (!id.isNull()) {
+    if (!verifyNonce(id, text)) {
+        withWriteLock([&] {
             deleteEntity(id, true);
-        }
+        });
     }
 }
 

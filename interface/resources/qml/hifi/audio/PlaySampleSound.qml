@@ -64,11 +64,11 @@ RowLayout {
         height: 32;
     }
 
-//    RalewayRegular {
-//        Layout.leftMargin: 2;
-//        size: 14;
-//        color: "white";
-//        font.italic: true
-//        text: isPlaying ? qsTr("Listen to your output") : "";
-//    }
+    RalewayRegular {
+        Layout.leftMargin: 2;
+        size: 18;
+        color: "white";
+        font.italic: true
+        text: isPlaying ? qsTr("Listen to your output") : "";
+    }
 }
