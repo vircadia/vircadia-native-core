@@ -7,7 +7,7 @@
 using namespace image;
 
 Image Image::getScaled(glm::uvec2 dstSize, AspectRatioMode ratioMode, TransformationMode transformMode) const {
-    if (_data.format() == Image::Format_PACKED_FLOAT) {
+    if ((Image::Format)_data.format() == Image::Format_PACKED_FLOAT) {
         // Start by converting to full float
         glm::vec4* floatPixels = new glm::vec4[getWidth()*getHeight()];
         auto unpackFunc = getHDRUnpackingFunction();
@@ -33,7 +33,7 @@ Image Image::getScaled(glm::uvec2 dstSize, AspectRatioMode ratioMode, Transforma
         if (transformMode == Qt::TransformationMode::FastTransformation) {
             filter = nvtt::ResizeFilter_Box;
         }
-        surface.resize(dstSize.x, dstSize.y, 1, nvtt::ResizeFilter_Box);
+        surface.resize(dstSize.x, dstSize.y, 1, filter);
 
         // And convert back to original format
         QImage resizedImage((int)dstSize.x, (int)dstSize.y, (QImage::Format)Image::Format_PACKED_FLOAT);
