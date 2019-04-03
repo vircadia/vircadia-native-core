@@ -108,16 +108,13 @@ void OculusDisplayPlugin::customizeContext() {
 }
 
 void OculusDisplayPlugin::uncustomizeContext() {
-
 #if 0
-    if (_currentFrame && _currentFrame->framebuffer) {
-        // Present a final black frame to the HMD
-        _currentFrame->framebuffer->Bound(FramebufferTarget::Draw, [] {
-            Context::ClearColor(0, 0, 0, 1);
-            Context::Clear().ColorBuffer();
-        });
-        hmdPresent();
-    }
+    // Present a final black frame to the HMD
+    _compositeFramebuffer->Bound(FramebufferTarget::Draw, [] {
+        Context::ClearColor(0, 0, 0, 1);
+        Context::Clear().ColorBuffer();
+    });
+    hmdPresent();
 #endif
 
     ovr_DestroyTextureSwapChain(_session, _textureSwapChain);
@@ -130,7 +127,7 @@ void OculusDisplayPlugin::uncustomizeContext() {
 static const uint64_t FRAME_BUDGET = (11 * USECS_PER_MSEC);
 static const uint64_t FRAME_OVER_BUDGET = (15 * USECS_PER_MSEC);
 
-void OculusDisplayPlugin::hmdPresent(const gpu::FramebufferPointer& compositeFramebuffer) {
+void OculusDisplayPlugin::hmdPresent() {
     static uint64_t lastSubmitEnd = 0;
 
     if (!_customized) {
@@ -160,8 +157,15 @@ void OculusDisplayPlugin::hmdPresent(const gpu::FramebufferPointer& compositeFra
         auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
         glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
         render([&](gpu::Batch& batch) {
-            auto viewport = ivec4(uvec2(), _outputFramebuffer->getSize());
-            renderFromTexture(batch, compositeFramebuffer->getRenderBuffer(0), viewport, viewport, _outputFramebuffer);
+            batch.enableStereo(false);
+            batch.setFramebuffer(_outputFramebuffer);
+            batch.setViewportTransform(ivec4(uvec2(), _outputFramebuffer->getSize()));
+            batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
+            batch.resetViewTransform();
+            batch.setProjectionTransform(mat4());
+            batch.setPipeline(_presentPipeline);
+            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
         glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, 0, 0);
     }

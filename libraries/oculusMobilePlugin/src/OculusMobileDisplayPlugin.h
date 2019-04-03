@@ -54,8 +54,8 @@ protected:
     void uncustomizeContext() override;
 
     void updatePresentPose() override;
-    void internalPresent(const gpu::FramebufferPointer&) override;
-    void hmdPresent(const gpu::FramebufferPointer&) override { throw std::runtime_error("Unused"); }
+    void internalPresent() override;
+    void hmdPresent() override { throw std::runtime_error("Unused"); }
     bool isHmdMounted() const override;
     bool alwaysPresent() const override { return true; }
 
