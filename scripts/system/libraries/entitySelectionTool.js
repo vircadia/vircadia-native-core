@@ -1334,7 +1334,7 @@ SelectionDisplay = (function() {
             ctrlPressed = false;
             that.updateActiveRotateRing();
         }
-        that.updateLastMouseEventXZTranslation(event);
+        that.updateLastMouseEvent(event);
     };
 
     // Triggers notification on specific key driven events
@@ -1343,18 +1343,16 @@ SelectionDisplay = (function() {
             ctrlPressed = true;
             that.updateActiveRotateRing();
         }
-        that.updateLastMouseEventXZTranslation(event);
+        that.updateLastMouseEvent(event);
     };
     
-    that.updateLastMouseEventXZTranslation = function(event) {
-        var xzTranslateToolActive = isActiveTool(selectionBox) || isActiveTool(iconSelectionBox);
-        if (xzTranslateToolActive && lastMouseEvent !== null) {
-            lastMouseEvent.isShifted = event.isShifted;
-            lastMouseEvent.isMeta = event.isMeta;
-            lastMouseEvent.isControl = event.isControl;
-            lastMouseEvent.isAlt = event.isAlt;
-            activeTool.onMove(lastMouseEvent);
-            SelectionManager._update(false, this);
+    that.updateLastMouseEvent = function(event) {
+        if (activeTool && lastMouseEvent !== null) {            
+            lastMouseEvent.isShifted = event.isShifted; 
+            lastMouseEvent.isMeta = event.isMeta;   
+            lastMouseEvent.isControl = event.isControl; 
+            lastMouseEvent.isAlt = event.isAlt; 
+            activeTool.onMove(lastMouseEvent);      
         }
     };
 
