@@ -243,8 +243,7 @@ void MaterialBaker::outputMaterial() {
 
 void MaterialBaker::addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture) {
     auto& textureUsageMap = _textureContentMap[materialName.toStdString()];
-    if (textureUsageMap.find(textureUsage) == textureUsageMap.end()) {
-        // Content may be empty, unless the data is inlined
+    if (textureUsageMap.find(textureUsage) == textureUsageMap.end() && !texture.content.isEmpty()) {
         textureUsageMap[textureUsage] = { texture.content, texture.filename };
     }
 };
