@@ -132,16 +132,16 @@ public:
 
     /**jsdoc
      * @function Audio.setInputDevice
-     * @param {object} device
-     * @param {boolean} isHMD
+     * @param {object} device - Device.
+     * @param {boolean} isHMD - Is HMD.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
      * @function Audio.setOutputDevice
-     * @param {object} device
-     * @param {boolean} isHMD
+     * @param {object} device - Device.
+     * @param {boolean} isHMD - Is HMD.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
