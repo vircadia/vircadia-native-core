@@ -74,6 +74,7 @@
  *     avatar. <em>Read-only.</em>
  * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
  *     size in the virtual world. <em>Read-only.</em>
+ * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
  *
  * @example <caption>Create a scriptable avatar.</caption>
  * (function () {

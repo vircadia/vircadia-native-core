@@ -42,8 +42,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      *
      * @property {boolean} muted - <code>true</code> if the audio input is muted for the current user context (desktop or HMD), 
      *     otherwise <code>false</code>.
-     * @property {boolean} desktopMuted - <code>true</code> if desktop audio input is muted, otherwise <code>false</code>.
-     * @property {boolean} hmdMuted - <code>true</code> if the HMD input is muted, otherwise <code>false</code>.
+     * @property {boolean} mutedDesktop - <code>true</code> if desktop audio input is muted, otherwise <code>false</code>.
+     * @property {boolean} mutedHMD - <code>true</code> if the HMD input is muted, otherwise <code>false</code>.
      * @property {boolean} warnWhenMuted - <code>true</code> if the "muted" warning is enabled, otherwise <code>false</code>.
      *     When enabled, a "muted" warning is displayed when you try to speak while your microphone is muted.
      * @property {boolean} noiseReduction - <code>true</code> if noise reduction is enabled, otherwise <code>false</code>. When
@@ -84,8 +84,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool clipping READ isClipping NOTIFY clippingChanged)
     Q_PROPERTY(QString context READ getContext NOTIFY contextChanged)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
-    Q_PROPERTY(bool desktopMuted READ getMutedDesktop WRITE setMutedDesktop NOTIFY desktopMutedChanged)
-    Q_PROPERTY(bool hmdMuted READ getMutedHMD WRITE setMutedHMD NOTIFY hmdMutedChanged)
+    Q_PROPERTY(bool mutedDesktop READ getMutedDesktop WRITE setMutedDesktop NOTIFY mutedDesktopChanged)
+    Q_PROPERTY(bool mutedHMD READ getMutedHMD WRITE setMutedHMD NOTIFY mutedHMDChanged)
     Q_PROPERTY(bool pushToTalk READ getPTT WRITE setPTT NOTIFY pushToTalkChanged);
     Q_PROPERTY(bool pushToTalkDesktop READ getPTTDesktop WRITE setPTTDesktop NOTIFY pushToTalkDesktopChanged)
     Q_PROPERTY(bool pushToTalkHMD READ getPTTHMD WRITE setPTTHMD NOTIFY pushToTalkHMDChanged)
@@ -306,23 +306,23 @@ signals:
 
     /**jsdoc
      * Triggered when desktop audio input is muted or unmuted.
-     * @function Audio.desktopMutedChanged
+     * @function Audio.mutedDesektopChanged
      * @param {boolean} isMuted - <code>true</code> if desktop audio input is muted, otherwise <code>false</code>.
      * @returns {Signal}
      * @example <caption>Report when desktop muting changes.</caption>
-     * Audio.desktopMutedChanged.connect(function (desktopMuted) {
-     *     print("Desktop muted: " + desktopMuted);
+     * Audio.mutedDesktopChanged.connect(function (isMuted) {
+     *     print("Desktop muted: " + isMuted);
      * });
      */
-    void desktopMutedChanged(bool isMuted);
+    void mutedDesktopChanged(bool isMuted);
 
     /**jsdoc
      * Triggered when HMD audio input is muted or unmuted.
-     * @function Audio.hmdMutedChanged
+     * @function Audio.mutedHMDChanged
      * @param {boolean} isMuted - <code>true</code> if HMD audio input is muted, otherwise <code>false</code>.
      * @returns {Signal}
      */
-    void hmdMutedChanged(bool isMuted);
+    void mutedHMDChanged(bool isMuted);
 
     /**jsdoc
      * Triggered when push-to-talk is enabled or disabled for the current context (desktop or HMD).
@@ -445,12 +445,12 @@ private:
     bool _contextIsHMD { false };
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
-    Setting::Handle<bool> _desktopMutedSetting{ QStringList { Audio::AUDIO, "desktopMuted" }, true };
-    Setting::Handle<bool> _hmdMutedSetting{ QStringList { Audio::AUDIO, "hmdMuted" }, true };
+    Setting::Handle<bool> _mutedDesktopSetting{ QStringList { Audio::AUDIO, "mutedDesktop" }, true };
+    Setting::Handle<bool> _mutedHMDSetting{ QStringList { Audio::AUDIO, "mutedHMD" }, true };
     Setting::Handle<bool> _pttDesktopSetting{ QStringList { Audio::AUDIO, "pushToTalkDesktop" }, false };
     Setting::Handle<bool> _pttHMDSetting{ QStringList { Audio::AUDIO, "pushToTalkHMD" }, false };
-    bool _desktopMuted{ true };
-    bool _hmdMuted{ false };
+    bool _mutedDesktop{ true };
+    bool _mutedHMD{ false };
     bool _pttDesktop{ false };
     bool _pttHMD{ false };
     bool _pushingToTalk{ false };

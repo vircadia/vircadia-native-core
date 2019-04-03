@@ -75,6 +75,7 @@ button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
 Audio.mutedChanged.connect(onMuteToggled);
 Audio.pushToTalkChanged.connect(onMuteToggled);
+HMD.displayModeChanged.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     if (onAudioScreen) {
@@ -84,6 +85,7 @@ Script.scriptEnding.connect(function () {
     tablet.screenChanged.disconnect(onScreenChanged);
     Audio.mutedChanged.disconnect(onMuteToggled);
     Audio.pushToTalkChanged.disconnect(onMuteToggled);
+    HMD.displayModeChanged.disconnect(onMuteToggled);
     tablet.removeButton(button);
 });
 

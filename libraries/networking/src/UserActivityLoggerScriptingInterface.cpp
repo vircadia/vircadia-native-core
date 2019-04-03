@@ -71,12 +71,12 @@ void UserActivityLoggerScriptingInterface::makeUserConnection(QString otherID, b
     doLogAction("makeUserConnection", payload);
 }
 
-void UserActivityLoggerScriptingInterface::bubbleToggled(bool newValue) {
-    doLogAction(newValue ? "bubbleOn" : "bubbleOff");
+void UserActivityLoggerScriptingInterface::privacyShieldToggled(bool newValue) {
+    doLogAction(newValue ? "privacyShieldOn" : "privacyShieldOff");
 }
 
-void UserActivityLoggerScriptingInterface::bubbleActivated() {
-    doLogAction("bubbleActivated");
+void UserActivityLoggerScriptingInterface::privacyShieldActivated() {
+    doLogAction("privacyShieldActivated");
 }
 
 void UserActivityLoggerScriptingInterface::logAction(QString action, QVariantMap details) {

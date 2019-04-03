@@ -479,6 +479,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     avatar. <em>Read-only.</em>
      * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
      *     size in the virtual world. <em>Read-only.</em>
+     * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -517,6 +518,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
     Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
+
+    Q_PROPERTY(bool hasPriority READ getHasPriority)
 
 public:
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
@@ -1134,17 +1137,15 @@ public:
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
     void processAvatarIdentity(QDataStream& packetStream, bool& identityChanged, bool& displayNameChanged);
 
-    qint64 packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
-                     AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
-    qint64 packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID,
-                             ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion = AvatarTraits::NULL_TRAIT_VERSION);
-
-    void prepareResetTraitInstances();
+    QByteArray packTrait(AvatarTraits::TraitType traitType) const;
+    QByteArray packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
 
     void processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
     void processTraitInstance(AvatarTraits::TraitType traitType,
                               AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
     void processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
+
+    void prepareResetTraitInstances();
 
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
@@ -1596,13 +1597,13 @@ protected:
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
-    qint64 packAvatarEntityTraitInstance(AvatarTraits::TraitType traitType,
-                                         AvatarTraits::TraitInstanceID traitInstanceID,
-                                         ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion);
-    qint64 packGrabTraitInstance(AvatarTraits::TraitType traitType,
-                                 AvatarTraits::TraitInstanceID traitInstanceID,
-                                 ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion);
+    QByteArray packSkeletonModelURL() const;
+    QByteArray packAvatarEntityTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID);
+    QByteArray packGrabTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID);
 
+    void unpackSkeletonModelURL(const QByteArray& data);
+
+    
     // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
     // Audio Mixer that the replicated avatar is connected to.
     bool _isReplicated{ false };
@@ -1706,6 +1707,7 @@ protected:
     glm::vec3 _globalBoundingBoxOffset;
 
     AABox _defaultBubbleBox;
+    AABox _fitBoundingBox;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityRemoved; // recently removed AvatarEntity ids

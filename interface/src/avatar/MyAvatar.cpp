@@ -942,8 +942,6 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     }
 
     handleChangedAvatarEntityData();
-
-    updateFadingStatus();
 }
 
 // As far as I know no HMD system supports a play area of a kilometer in radius.
@@ -5463,7 +5461,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
         }
         auto collisionJoints = collisionsConfig.keys();
         if (collisionJoints.size() > 0) {
-            collisionSystem.resetCollisions();
+            collisionSystem.clearSelfCollisions();
             for (auto &jointName : collisionJoints) {
                 int jointIndex = getJointIndex(jointName);
                 FlowCollisionSettings collisionsSettings;
@@ -5478,6 +5476,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
                 collisionSystem.addCollisionSphere(jointIndex, collisionsSettings);
             }
         }
+        flow.updateScale();
     }
 }
 

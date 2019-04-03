@@ -129,6 +129,7 @@ Item {
         height: 40
         // Anchors
         anchors.top: avatarImage.top
+        anchors.topMargin: avatarImage.visible ? 18 : 0;
         anchors.left: avatarImage.right
         anchors.leftMargin: avatarImage.visible ? 5 : 0;
         anchors.rightMargin: 5;

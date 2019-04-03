@@ -1143,10 +1143,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
         // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
         // AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
-        //     +---+-----+-----+--+--+--+--+-----+
-        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|xxxxx|
-        //     +---+-----+-----+--+--+--+--+-----+
+        //     +---+-----+-----+--+--+--+--+--+----+
+        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|He|xxxx|
+        //     +---+-----+-----+--+--+--+--+--+----+
         // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+        // Hero-avatar status (He) - 12th bit
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
@@ -1990,42 +1991,16 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
     }
 }
 
-qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
-                           AvatarTraits::TraitVersion traitVersion) {
-
-    qint64 bytesWritten = 0;
-
-    if (traitType == AvatarTraits::SkeletonModelURL) {
-
-        QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
-
-        if (encodedSkeletonURL.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-            qWarning() << "Refusing to pack simple trait" << traitType << "of size" << encodedSkeletonURL.size()
-                << "bytes since it exceeds the maximum size" << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-            return 0;
-        }
-
-        bytesWritten += destination.writePrimitive(traitType);
-
-        if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-            bytesWritten += destination.writePrimitive(traitVersion);
-        }
-        
-        AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
-        bytesWritten += destination.writePrimitive(encodedURLSize);
-
-        bytesWritten += destination.write(encodedSkeletonURL);
-    }
-
-    return bytesWritten;
+QByteArray AvatarData::packSkeletonModelURL() const {
+    return getWireSafeSkeletonModelURL().toEncoded();
 }
 
+void AvatarData::unpackSkeletonModelURL(const QByteArray& data) {
+    auto skeletonModelURL = QUrl::fromEncoded(data);
+    setSkeletonModelURL(skeletonModelURL);
+}
 
-qint64 AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitType traitType,
-                                                 AvatarTraits::TraitInstanceID traitInstanceID,
-                                                 ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
-
+QByteArray AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID) {
     // grab a read lock on the avatar entities and check for entity data for the given ID
     QByteArray entityBinaryData;
     _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
@@ -2034,104 +2009,48 @@ qint64 AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitType traitTy
         }
     });
 
-    if (entityBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-        qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << entityBinaryData.size()
-                   << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-        return 0;
-    }
-
-    bytesWritten += destination.writePrimitive(traitType);
-
-    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        bytesWritten += destination.writePrimitive(traitVersion);
-    }
-
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
-
-    if (!entityBinaryData.isNull()) {
-        AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
-
-        bytesWritten += destination.writePrimitive(entityBinarySize);
-        bytesWritten += destination.write(entityBinaryData);
-    } else {
-        bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
-    }
-
-    return bytesWritten;
+    return entityBinaryData;
 }
 
-
-qint64 AvatarData::packGrabTraitInstance(AvatarTraits::TraitType traitType,
-                                         AvatarTraits::TraitInstanceID traitInstanceID,
-                                         ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
-
+QByteArray AvatarData::packGrabTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID) {
     // grab a read lock on the avatar grabs and check for grab data for the given ID
     QByteArray grabBinaryData;
-
     _avatarGrabsLock.withReadLock([this, &grabBinaryData, &traitInstanceID] {
         if (_avatarGrabData.contains(traitInstanceID)) {
             grabBinaryData = _avatarGrabData[traitInstanceID];
         }
     });
 
-    if (grabBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-        qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << grabBinaryData.size()
-                   << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-        return 0;
-    }
-
-    bytesWritten += destination.writePrimitive(traitType);
-
-    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        bytesWritten += destination.writePrimitive(traitVersion);
-    }
-
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
-
-    if (!grabBinaryData.isNull()) {
-        AvatarTraits::TraitWireSize grabBinarySize = grabBinaryData.size();
-
-        bytesWritten += destination.writePrimitive(grabBinarySize);
-        bytesWritten += destination.write(grabBinaryData);
-    } else {
-        bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
-    }
-
-    return bytesWritten;
+    return grabBinaryData;
 }
 
-qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
-                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
+QByteArray AvatarData::packTrait(AvatarTraits::TraitType traitType) const {
+    QByteArray traitBinaryData;
 
+    // Call packer function
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        traitBinaryData = packSkeletonModelURL();
+    }
+
+    return traitBinaryData;
+}
+
+QByteArray AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID) {
+    QByteArray traitBinaryData;
+
+    // Call packer function
     if (traitType == AvatarTraits::AvatarEntity) {
-        bytesWritten += packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        traitBinaryData = packAvatarEntityTraitInstance(traitInstanceID);
     } else if (traitType == AvatarTraits::Grab) {
-        bytesWritten += packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        traitBinaryData = packGrabTraitInstance(traitInstanceID);
     }
 
-    return bytesWritten;
-}
-
-void AvatarData::prepareResetTraitInstances() {
-    if (_clientTraitsHandler) {
-        _avatarEntitiesLock.withReadLock([this]{
-            foreach (auto entityID, _packedAvatarEntityData.keys()) {
-                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
-            }
-            foreach (auto grabID, _avatarGrabData.keys()) {
-                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
-            }
-        });
-    }
+    return traitBinaryData;
 }
 
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::SkeletonModelURL) {
-        // get the URL from the binary data
-        auto skeletonModelURL = QUrl::fromEncoded(traitBinaryData);
-        setSkeletonModelURL(skeletonModelURL);
+        unpackSkeletonModelURL(traitBinaryData);
     }
 }
 
@@ -2149,6 +2068,19 @@ void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, 
         clearAvatarEntity(instanceID);
     } else if (traitType == AvatarTraits::Grab) {
         clearAvatarGrabData(instanceID);
+    }
+}
+
+void AvatarData::prepareResetTraitInstances() {
+    if (_clientTraitsHandler) {
+        _avatarEntitiesLock.withReadLock([this]{
+            foreach (auto entityID, _packedAvatarEntityData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+            foreach (auto grabID, _avatarGrabData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
+            }
+        });
     }
 }
 

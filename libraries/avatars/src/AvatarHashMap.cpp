@@ -439,7 +439,6 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
         }
 
         auto removedAvatar = _avatarHash.take(sessionUUID);
-
         if (removedAvatar) {
             removedAvatars.push_back(removedAvatar);
         }

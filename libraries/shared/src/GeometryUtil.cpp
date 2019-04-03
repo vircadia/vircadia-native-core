@@ -358,6 +358,12 @@ glm::vec3 Triangle::getNormal() const {
     return glm::normalize(glm::cross(edge1, edge2));
 }
 
+float Triangle::getArea() const {
+    glm::vec3 edge1 = v1 - v0;
+    glm::vec3 edge2 = v2 - v0;
+    return 0.5f * glm::length(glm::cross(edge1, edge2));
+}
+
 Triangle Triangle::operator*(const glm::mat4& transform) const {
     return {
         glm::vec3(transform * glm::vec4(v0, 1.0f)),
