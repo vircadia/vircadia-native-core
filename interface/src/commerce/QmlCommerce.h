@@ -19,6 +19,7 @@
 
 #include <QPixmap>
 
+#include <EntityItemID.h>
 #include <DependencyManager.h>
 
 class QmlCommerce : public QObject, public Dependency {
@@ -49,7 +50,7 @@ signals:
     void availableUpdatesResult(QJsonObject result);
     void updateItemResult(QJsonObject result);
 
-    void updateCertificateStatus(const QString& certID, uint certStatus);
+    void updateCertificateStatus(const EntityItemID& entityID, uint certStatus);
 
     void transferAssetToNodeResult(QJsonObject result);
     void transferAssetToUsernameResult(QJsonObject result);

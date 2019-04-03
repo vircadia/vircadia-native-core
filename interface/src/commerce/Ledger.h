@@ -17,6 +17,7 @@
 #include <QJsonObject>
 #include <DependencyManager.h>
 #include <QtNetwork/QNetworkReply>
+#include <EntityItemID.h>
 #include "AccountManager.h"
 
 
@@ -65,7 +66,7 @@ signals:
     void availableUpdatesResult(QJsonObject result);
     void updateItemResult(QJsonObject result);
 
-    void updateCertificateStatus(const QString& certID, uint certStatus);
+    void updateCertificateStatus(const EntityItemID& entityID, uint certStatus);
 
 public slots:
     void buySuccess(QNetworkReply* reply);
