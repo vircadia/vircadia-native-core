@@ -3359,38 +3359,47 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     auto zSpeed = getDriveKey(TRANSLATE_Z);
     auto xSpeed = getDriveKey(TRANSLATE_X);
     glm::vec3 direction;
-    switch(_controlSchemeIndex) {
-    case CONTROLS_DEFAULT:
-        // No acceleration curve for this one, constant speed.
-        if (zSpeed || xSpeed) {
-            direction = (zSpeed * forward) + (xSpeed * right);
-            // Normalize direction.
-            direction /= glm::length(direction);
-            return getSensorToWorldScale() * direction * getSprintSpeed();
-        } else {
-            return Vectors::ZERO;
+    if (qApp->isHMDMode()) {
+        switch(_controlSchemeIndex) {
+            case CONTROLS_DEFAULT:
+                // No acceleration curve for this one, constant speed.
+                if (zSpeed || xSpeed) {
+                    direction = (zSpeed * forward) + (xSpeed * right);
+                    // Normalize direction.
+                    auto length = glm::length(direction);
+                    if (length > EPSILON) {
+                        direction /= length;
+                    }
+                    return getSensorToWorldScale() * direction * getSprintSpeed() * _walkSpeedScalar;
+                } else {
+                    return Vectors::ZERO;
+                }
+            case CONTROLS_ANALOG:
+                if (zSpeed || xSpeed) {
+                    glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+                    glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
+                    direction = scaledForward + scaledRight;
+                    return direction;
+                } else {
+                    return Vectors::ZERO;
+                }
+            case CONTROLS_ANALOG_PLUS:
+                if (zSpeed || xSpeed) {
+                    glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+                    glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
+                    direction = scaledForward + scaledRight;
+                    return direction;
+                } else {
+                    return Vectors::ZERO;
+                }
+            default:
+                qDebug() << "Invalid control scheme index.";
+                return Vectors::ZERO;
         }
-    case CONTROLS_ANALOG:
-        if (zSpeed || xSpeed) {
-            glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
-            glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
-            direction = scaledForward + scaledRight;
-            return direction;
-        } else {
-            return Vectors::ZERO;
-        }
-    case CONTROLS_ANALOG_PLUS:
-        if (zSpeed || xSpeed) {
-            glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
-            glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
-            direction = scaledForward + scaledRight;
-            return direction;
-        } else {
-            return Vectors::ZERO;
-        }
-    default:
-        qDebug() << "Invalid control scheme index.";
-        return Vectors::ZERO;
+    } else {
+        // Desktop mode.
+        direction = (zSpeed * forward) + (xSpeed * right);
+        direction *= getWalkSpeed() * _walkSpeedScalar;
     }
 }
 
@@ -3412,9 +3421,17 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
                 break;
             case MOVEMENT_HAND_RELATIVE_LEVELED:
                 forward = (handRotation * controllerForward);
-                forward = glm::normalize(forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                if (glm::length(forward) > EPSILON) {
+                    forward = glm::normalize(forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                } else {
+                    forward = Vectors::ZERO;
+                }
                 right = (handRotation * controllerRight);
-                right = glm::normalize(right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                if (glm::length(right) > EPSILON) {
+                    right = glm::normalize(right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                } else {
+                    right = Vectors::ZERO;
+                }
                 break;
             case MOVEMENT_HMD_RELATIVE:
             default:
@@ -3428,11 +3445,9 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
 
     glm::vec3 direction = scaleMotorSpeed(forward, right);
 
-    // RKNOTE: This may need to be changed later...
     if (state == CharacterController::State::Hover ||
         _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
-        //up /= glm::length(up);
         direction += up;
     }
 
@@ -4752,24 +4767,24 @@ bool MyAvatar::getIsSitStandStateLocked() const {
 float MyAvatar::getWalkSpeed() const {
     switch(_controlSchemeIndex) {
         case CONTROLS_ANALOG:
-            return _analogWalkSpeed.get() * _walkSpeedScalar;
+            return _analogWalkSpeed.get();
         case CONTROLS_ANALOG_PLUS:
-            return _analogPlusWalkSpeed.get() * _walkSpeedScalar;
+            return _analogPlusWalkSpeed.get();
         case CONTROLS_DEFAULT:
         default:
-            return _defaultWalkSpeed.get() * _walkSpeedScalar;
+            return _defaultWalkSpeed.get();
     }
 }
 
 float MyAvatar::getWalkBackwardSpeed() const {
     switch(_controlSchemeIndex) {
         case CONTROLS_ANALOG:
-            return _analogWalkBackwardSpeed.get() * _walkSpeedScalar;
+            return _analogWalkBackwardSpeed.get();
         case CONTROLS_ANALOG_PLUS:
-            return _analogPlusWalkBackwardSpeed.get() * _walkSpeedScalar;
+            return _analogPlusWalkBackwardSpeed.get();
         case CONTROLS_DEFAULT:
         default:
-            return _defaultWalkBackwardSpeed.get() * _walkSpeedScalar;
+            return _defaultWalkBackwardSpeed.get();
     }
 }
 
@@ -4778,19 +4793,7 @@ bool MyAvatar::isReadyForPhysics() const {
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    float value = AVATAR_WALK_SPEED_SCALAR;
-    if (sprint) {
-        switch(_controlSchemeIndex) {
-            case CONTROLS_ANALOG:
-                value = _analogSprintSpeed.get() * _walkSpeedScalar;
-            case CONTROLS_ANALOG_PLUS:
-                value = _analogPlusSprintSpeed.get() * _walkSpeedScalar;
-            case CONTROLS_DEFAULT:
-            default:
-                value = _defaultSprintSpeed.get() * _walkSpeedScalar;
-        }
-    }
-    _walkSpeedScalar = value;
+    _walkSpeedScalar = sprint ? AVATAR_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
 }
 
 void MyAvatar::setIsInWalkingState(bool isWalking) {
