@@ -117,6 +117,10 @@ Item {
                     }
                     StatText {
                         visible: root.expanded
+                        text: "Heroes Count/Updated: " + root.heroAvatarCount + "/" + root.updatedHeroAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
                         text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
                     }
                     StatText {
@@ -227,6 +231,10 @@ Item {
                         visible: root.expanded;
                         text: "Audio Codec: " + root.audioCodec + " Noise Gate: " +
                             root.audioNoiseGate;
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Injectors (Local/NonLocal): " + root.audioInjectors.x + "/" + root.audioInjectors.y;
                     }
                     StatText {
                         visible: root.expanded;

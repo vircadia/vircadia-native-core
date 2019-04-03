@@ -129,30 +129,24 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         incrementNumOutOfOrderSends();
     }
     _lastReceivedSequenceNumber = sequenceNumber;
-    glm::vec3 oldPosition = getPosition();
+    glm::vec3 oldPosition = _avatar->getClientGlobalPosition();
+    bool oldHasPriority = _avatar->getHasPriority();
 
     // compute the offset to the data payload
     if (!_avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()))) {
         return false;
     }
 
-    auto newPosition = getPosition();
-    if (newPosition != oldPosition) {
-//#define AVATAR_HERO_TEST_HACK
-#ifdef AVATAR_HERO_TEST_HACK
-        {
-            const static QString heroKey { "HERO" };
-            _avatar->setPriorityAvatar(_avatar->getDisplayName().contains(heroKey));
-        }
-#else
+    // Regardless of what the client says, restore the priority as we know it without triggering any update.
+    _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
+
+    auto newPosition = _avatar->getClientGlobalPosition();
+    if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
         EntityTree& entityTree = *slaveSharedData.entityTree;
-        FindPriorityZone findPriorityZone { newPosition, false } ;
+        FindPriorityZone findPriorityZone { newPosition } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
         _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
-        //if (findPriorityZone.isInPriorityZone) {
-        //    qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
-        //}
-#endif
+        _avatar->setNeedsHeroCheck(false);
     }
 
     return true;
@@ -337,7 +331,7 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
 
                 // the returned set traits packet uses the trait version from the incoming packet
                 // so the client knows they should not overwrite if they have since changed the trait
-                _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
+                AvatarTraits::packVersionedTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion, *_avatar);
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 nodeList->sendPacket(std::move(packet), sendingNode);

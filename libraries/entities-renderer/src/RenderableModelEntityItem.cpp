@@ -181,9 +181,11 @@ void RenderableModelEntityItem::updateModelBounds() {
         updateRenderItems = true;
     }
 
-    if (model->getScaleToFitDimensions() != getScaledDimensions() ||
-            model->getRegistrationPoint() != getRegistrationPoint() ||
-            !model->getIsScaledToFit()) {
+    bool overridingModelTransform = model->isOverridingModelTransformAndOffset();
+    if (!overridingModelTransform &&
+        (model->getScaleToFitDimensions() != getScaledDimensions() ||
+         model->getRegistrationPoint() != getRegistrationPoint() ||
+         !model->getIsScaledToFit())) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.
@@ -305,10 +307,6 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
-    // because the caching system only allows one Geometry per url, and because this url might also be used
-    // as a visual model, we need to change this url in some way.  We add a "collision-hull" query-arg so it
-    // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
-    // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
     if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
@@ -1032,7 +1030,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     });
 
     if (changed) {
-        locationChanged(false, true);
+        locationChanged(true, true);
     }
 }
 

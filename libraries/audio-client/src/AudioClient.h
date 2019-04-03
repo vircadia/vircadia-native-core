@@ -181,6 +181,8 @@ public:
     bool isHeadsetPluggedIn() { return _isHeadsetPluggedIn; }
 #endif
 
+    int getNumLocalInjectors();
+
 public slots:
     void start();
     void stop();
@@ -210,6 +212,9 @@ public slots:
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
+    void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
+    bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
+
     virtual bool getLocalEcho() override { return _shouldEchoLocally; }
     virtual void setLocalEcho(bool localEcho) override { _shouldEchoLocally = localEcho; }
     virtual void toggleLocalEcho() override { _shouldEchoLocally = !_shouldEchoLocally; }
@@ -236,6 +241,8 @@ public slots:
     void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
+    void setLocalInjectorGain(float gain) { _localInjectorGain = gain; };
+    void setSystemInjectorGain(float gain) { _systemInjectorGain = gain; };
 
     void outputNotify();
 
@@ -246,6 +253,7 @@ signals:
     void inputVolumeChanged(float volume);
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
+    void warnWhenMutedChanged(bool warnWhenMutedEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness, bool isClipping);
@@ -365,6 +373,7 @@ private:
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
+    bool _warnWhenMuted;
 
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
@@ -388,6 +397,8 @@ private:
     int16_t* _outputScratchBuffer { NULL };
 
     // for local audio (used by audio injectors thread)
+    std::atomic<float> _localInjectorGain { 1.0f };
+    std::atomic<float> _systemInjectorGain { 1.0f };
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     float* _localOutputMixBuffer { NULL };

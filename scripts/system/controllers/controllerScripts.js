@@ -33,7 +33,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/nearGrabHyperLinkEntity.js",
     "controllerModules/nearTabletHighlight.js",
     "controllerModules/nearGrabEntity.js",
-    "controllerModules/farGrabEntity.js"
+    "controllerModules/farGrabEntity.js",
+    "controllerModules/pushToTalk.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

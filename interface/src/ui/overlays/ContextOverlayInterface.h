@@ -46,7 +46,7 @@ public:
     ContextOverlayInterface();
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
-    void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); _lastInspectedEntity = entityID; }
+    void setLastInspectedEntity(const QUuid& entityID) { _challengeOwnershipTimeoutTimer.stop(); }
     void setEnabled(bool enabled);
     bool getEnabled() { return _enabled; }
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
@@ -83,7 +83,6 @@ private:
     EntityItemID _mouseDownEntity;
     quint64 _mouseDownEntityTimestamp;
     EntityItemID _currentEntityWithContextOverlay;
-    EntityItemID _lastInspectedEntity;
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 
@@ -94,7 +93,7 @@ private:
 
     void deletingEntity(const EntityItemID& entityItemID);
 
-    Q_INVOKABLE void startChallengeOwnershipTimer();
+    Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
     QTimer _challengeOwnershipTimeoutTimer;
 };
 

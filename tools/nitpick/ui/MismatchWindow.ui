@@ -45,7 +45,7 @@
   <widget class="QLabel" name="diffImage">
    <property name="geometry">
     <rect>
-     <x>540</x>
+     <x>900</x>
      <y>480</y>
      <width>800</width>
      <height>450</height>
@@ -78,7 +78,7 @@
     <rect>
      <x>60</x>
      <y>630</y>
-     <width>480</width>
+     <width>540</width>
      <height>28</height>
     </rect>
    </property>
@@ -145,7 +145,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Abort current test</string>
+    <string>Abort evaluation</string>
    </property>
   </widget>
   <widget class="QLabel" name="errorLabel">

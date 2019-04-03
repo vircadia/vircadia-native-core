@@ -28,9 +28,10 @@
 namespace AvatarTraits {
     template<typename T, T defaultValue>
     class AssociatedTraitValues {
+        using SimpleTypesArray = std::array<T, NUM_SIMPLE_TRAITS>;
     public:
         // constructor that pre-fills _simpleTypes with the default value specified by the template
-        AssociatedTraitValues() : _simpleTypes(FirstInstancedTrait, defaultValue) {}
+        AssociatedTraitValues() { std::fill(_simpleTypes.begin(), _simpleTypes.end(), defaultValue); }
 
         /// inserts the given value for the given simple trait type
         void insert(TraitType type, T value) { _simpleTypes[type] = value; }
@@ -71,12 +72,12 @@ namespace AvatarTraits {
         }
 
         /// const iterators for the vector of simple type values
-        typename std::vector<T>::const_iterator simpleCBegin() const { return _simpleTypes.cbegin(); }
-        typename std::vector<T>::const_iterator simpleCEnd() const { return _simpleTypes.cend(); }
+        typename SimpleTypesArray::const_iterator simpleCBegin() const { return _simpleTypes.cbegin(); }
+        typename SimpleTypesArray::const_iterator simpleCEnd() const { return _simpleTypes.cend(); }
 
         /// non-const iterators for the vector of simple type values
-        typename std::vector<T>::iterator simpleBegin() { return _simpleTypes.begin(); }
-        typename std::vector<T>::iterator simpleEnd() { return _simpleTypes.end(); }
+        typename SimpleTypesArray::iterator simpleBegin() { return _simpleTypes.begin(); }
+        typename SimpleTypesArray::iterator simpleEnd() { return _simpleTypes.end(); }
 
         struct TraitWithInstances {
             TraitType traitType;
@@ -96,7 +97,7 @@ namespace AvatarTraits {
         typename std::vector<TraitWithInstances>::iterator instancedEnd() { return _instancedTypes.end(); }
 
     private:
-        std::vector<T> _simpleTypes;
+        SimpleTypesArray _simpleTypes;
 
         /// return the iterator to the matching TraitWithInstances object for a given instanced trait type
         typename std::vector<TraitWithInstances>::iterator instancesForTrait(TraitType traitType) {

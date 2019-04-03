@@ -282,6 +282,28 @@ function checkEditPermissionsAndUpdate() {
     }
 }
 
+// Copies the properties in `b` into `a`. `a` will be modified.
+function copyProperties(a, b) {
+    for (var key in b) {
+        a[key] = b[key];
+    }
+    return a;
+}
+
+const DEFAULT_DYNAMIC_PROPERTIES = {
+    dynamic: true,
+    damping: 0.39347,
+    angularDamping: 0.39347,
+    gravity: { x: 0, y: -9.8, z: 0 },
+};
+
+const DEFAULT_NON_DYNAMIC_PROPERTIES = {
+    dynamic: false,
+    damping: 0,
+    angularDamping: 0,
+    gravity: { x: 0, y: 0, z: 0 },
+};
+
 const DEFAULT_ENTITY_PROPERTIES = {
     All: {
         description: "",
@@ -299,26 +321,14 @@ const DEFAULT_ENTITY_PROPERTIES = {
             y: 0,
             z: 0
         },
-        damping: 0,
         angularVelocity: {
             x: 0,
             y: 0,
             z: 0
         },
-        angularDamping: 0,
         restitution: 0.5,
         friction: 0.5,
         density: 1000,
-        gravity: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        acceleration: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
         dynamic: false,
     },
     Shape: {
@@ -484,11 +494,6 @@ var toolBar = (function () {
         dialogWindow = null,
         tablet = null;
 
-    function applyProperties(originalProperties, newProperties) {
-        for (var key in newProperties) {
-            originalProperties[key] = newProperties[key];
-        }
-    }
     function createNewEntity(requestedProperties) {
         var dimensions = requestedProperties.dimensions ? requestedProperties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
@@ -496,17 +501,23 @@ var toolBar = (function () {
 
         var properties = {};
 
-        applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
+        copyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
 
         var type = requestedProperties.type;
         if (type === "Box" || type === "Sphere") {
-            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
+            copyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
         } else {
-            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
+            copyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
         }
 
         // We apply the requested properties first so that they take priority over any default properties.
-        applyProperties(properties, requestedProperties);
+        copyProperties(properties, requestedProperties);
+
+        if (properties.dynamic) {
+            copyProperties(properties, DEFAULT_DYNAMIC_PROPERTIES);
+        } else {
+            copyProperties(properties, DEFAULT_NON_DYNAMIC_PROPERTIES);
+        }
 
 
         if (position !== null && position !== undefined) {
@@ -675,7 +686,6 @@ var toolBar = (function () {
                         grabbable: result.grabbable
                     },
                     dynamic: dynamic,
-                    gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
             }
         }
@@ -2286,14 +2296,15 @@ var PropertiesTool = function (opts) {
         })
     };
 
-    function updateSelections(selectionUpdated) {
+    function updateSelections(selectionUpdated, caller) {
         if (blockPropertyUpdates) {
             return;
         }
 
         var data = {
             type: 'update',
-            spaceMode: selectionDisplay.getSpaceMode()
+            spaceMode: selectionDisplay.getSpaceMode(),
+            isPropertiesToolUpdate: caller === this,
         };
 
         if (selectionUpdated) {
@@ -2339,7 +2350,7 @@ var PropertiesTool = function (opts) {
 
         emitScriptEvent(data);
     }
-    selectionManager.addEventListener(updateSelections);
+    selectionManager.addEventListener(updateSelections, this);
 
 
     var onWebEventReceived = function(data) {
@@ -2523,7 +2534,7 @@ var PropertiesTool = function (opts) {
 
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
-    webView.webEventReceived.connect(onWebEventReceived);
+    webView.webEventReceived.connect(this, onWebEventReceived);
 
     return that;
 };

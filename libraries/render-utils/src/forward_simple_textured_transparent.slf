@@ -11,6 +11,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include gpu/Color.slh@>
 <@include DefaultMaterials.slh@>
 
 <@include ForwardGlobalLight.slh@>
@@ -21,22 +22,25 @@
 
 <@include render-utils/ShaderConstants.h@>
 
-// the albedo texture
 LAYOUT(binding=0) uniform sampler2D originalTexture;
 
-// the interpolated normal
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
-layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 
 layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0);
-    float colorAlpha = _color.a * texel.a;
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
+    vec3 albedo = _color.xyz * texel.xyz;
+    float alpha = _color.a * texel.a;
+    float metallic = DEFAULT_METALLIC;
+
+    vec3 fresnel = getFresnelF0(metallic, albedo);
 
     TransformCamera cam = getTransformCamera();
     vec3 fragPosition = _positionES.xyz;
@@ -47,10 +51,10 @@ void main(void) {
         DEFAULT_OCCLUSION,
         fragPosition,
         normalize(_normalWS),
-        _color.rgb * texel.rgb,
-        DEFAULT_FRESNEL,
-        DEFAULT_METALLIC,
+        albedo,
+        fresnel,
+        metallic,
         DEFAULT_EMISSIVE,
-        DEFAULT_ROUGHNESS, colorAlpha),
-        colorAlpha);
+        DEFAULT_ROUGHNESS, alpha),
+        alpha);
 }

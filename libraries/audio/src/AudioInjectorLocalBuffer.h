@@ -22,6 +22,7 @@ class AudioInjectorLocalBuffer : public QIODevice {
     Q_OBJECT
 public:
     AudioInjectorLocalBuffer(AudioDataPointer audioData);
+    ~AudioInjectorLocalBuffer();
 
     void stop();
 

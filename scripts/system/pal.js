@@ -284,7 +284,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
             }
-            sendToQml({ method: 'refreshConnections' });
+            sendToQml({ method: 'connectionRemoved', params: connectionUserName });
         });
         break;
 

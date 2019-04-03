@@ -49,7 +49,7 @@ Item {
     property string wornEntityID;
     property string updatedItemId;
     property string upgradeTitle;
-    property bool updateAvailable: root.updateItemId && root.updateItemId !== "";
+    property bool updateAvailable: root.updateItemId !== "";
     property bool valid;
     property bool standaloneOptimized;
     property bool standaloneIncompatible;

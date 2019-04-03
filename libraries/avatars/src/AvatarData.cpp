@@ -564,6 +564,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             setAtBit16(flags, COLLIDE_WITH_OTHER_AVATARS);
         }
 
+        // Avatar has hero priority
+        if (getHasPriority()) {
+            setAtBit16(flags, HAS_HERO_PRIORITY);
+        }
+
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1138,10 +1143,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
         // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
         // AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
-        //     +---+-----+-----+--+--+--+--+-----+
-        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|xxxxx|
-        //     +---+-----+-----+--+--+--+--+-----+
+        //     +---+-----+-----+--+--+--+--+--+----+
+        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|He|xxxx|
+        //     +---+-----+-----+--+--+--+--+--+----+
         // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+        // Hero-avatar status (He) - 12th bit
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 
@@ -1152,7 +1158,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
         auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
-        
+        auto newHasPriority = oneAtBit16(bitItems, HAS_HERO_PRIORITY);        
+
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
@@ -1161,8 +1168,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
         bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
         bool collideWithOtherAvatarsChanged = (_collideWithOtherAvatars != newCollideWithOtherAvatars);
+        bool hasPriorityChanged = (getHasPriority() != newHasPriority);
         bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || 
-                                proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged;
+                                proceduralEyeFaceMovementChanged ||
+                                proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged || hasPriorityChanged;
 
         _keyState = newKeyState;
         _handState = newHandState;
@@ -1172,6 +1181,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
         _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
         _collideWithOtherAvatars = newCollideWithOtherAvatars;
+        setHasPriorityWithoutTimestampReset(newHasPriority);
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1425,6 +1435,47 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
     return numBytesRead;
 }
 
+/**jsdoc
+ * The avatar mixer data comprises different types of data, with the data rates of each being tracked in kbps.
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Rate Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"globalPosition"</code></td><td>Incoming global position.</td></tr>
+ *     <tr><td><code>"localPosition"</code></td><td>Incoming local position.</td></tr>
+ *     <tr><td><code>"avatarBoundingBox"</code></td><td>Incoming avatar bounding box.</td></tr>
+ *     <tr><td><code>"avatarOrientation"</code></td><td>Incoming avatar orientation.</td></tr>
+ *     <tr><td><code>"avatarScale"</code></td><td>Incoming avatar scale.</td></tr>
+ *     <tr><td><code>"lookAtPosition"</code></td><td>Incoming look-at position.</td></tr>
+ *     <tr><td><code>"audioLoudness"</code></td><td>Incoming audio loudness.</td></tr>
+ *     <tr><td><code>"sensorToWorkMatrix"</code></td><td>Incoming sensor-to-world matrix.</td></tr>
+ *     <tr><td><code>"additionalFlags"</code></td><td>Incoming additional avatar flags.</td></tr>
+ *     <tr><td><code>"parentInfo"</code></td><td>Incoming parent information.</td></tr>
+ *     <tr><td><code>"faceTracker"</code></td><td>Incoming face tracker data.</td></tr>
+ *     <tr><td><code>"jointData"</code></td><td>Incoming joint data.</td></tr>
+ *     <tr><td><code>"jointDefaultPoseFlagsRate"</code></td><td>Incoming joint default pose flags.</td></tr>
+ *     <tr><td><code>"farGrabJointRate"</code></td><td>Incoming far grab joint.</td></tr>
+ *     <tr><td><code>"globalPositionOutbound"</code></td><td>Outgoing global position.</td></tr>
+ *     <tr><td><code>"localPositionOutbound"</code></td><td>Outgoing local position.</td></tr>
+ *     <tr><td><code>"avatarBoundingBoxOutbound"</code></td><td>Outgoing avatar bounding box.</td></tr>
+ *     <tr><td><code>"avatarOrientationOutbound"</code></td><td>Outgoing avatar orientation.</td></tr>
+ *     <tr><td><code>"avatarScaleOutbound"</code></td><td>Outgoing avatar scale.</td></tr>
+ *     <tr><td><code>"lookAtPositionOutbound"</code></td><td>Outgoing look-at position.</td></tr>
+ *     <tr><td><code>"audioLoudnessOutbound"</code></td><td>Outgoing audio loudness.</td></tr>
+ *     <tr><td><code>"sensorToWorkMatrixOutbound"</code></td><td>Outgoing sensor-to-world matrix.</td></tr>
+ *     <tr><td><code>"additionalFlagsOutbound"</code></td><td>Outgoing additional avatar flags.</td></tr>
+ *     <tr><td><code>"parentInfoOutbound"</code></td><td>Outgoing parent information.</td></tr>
+ *     <tr><td><code>"faceTrackerOutbound"</code></td><td>Outgoing face tracker data.</td></tr>
+ *     <tr><td><code>"jointDataOutbound"</code></td><td>Outgoing joint data.</td></tr>
+ *     <tr><td><code>"jointDefaultPoseFlagsOutbound"</code></td><td>Outgoing joint default pose flags.</td></tr>
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the total incoming data rate is provided.</td></tr>
+ *   </tbody>
+ * </table>
+ *
+ * @typedef {string} AvatarDataRate
+ */
 float AvatarData::getDataRate(const QString& rateName) const {
     if (rateName == "") {
         return _parseBufferRate.rate() / BYTES_PER_KILOBIT;
@@ -1486,6 +1537,35 @@ float AvatarData::getDataRate(const QString& rateName) const {
     return 0.0f;
 }
 
+/**jsdoc
+ * The avatar mixer data comprises different types of data updated at different rates, in Hz.
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Rate Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+
+ *     <tr><td><code>"globalPosition"</code></td><td>Global position.</td></tr>
+ *     <tr><td><code>"localPosition"</code></td><td>Local position.</td></tr>
+ *     <tr><td><code>"avatarBoundingBox"</code></td><td>Avatar bounding box.</td></tr>
+ *     <tr><td><code>"avatarOrientation"</code></td><td>Avatar orientation.</td></tr>
+ *     <tr><td><code>"avatarScale"</code></td><td>Avatar scale.</td></tr>
+ *     <tr><td><code>"lookAtPosition"</code></td><td>Look-at position.</td></tr>
+ *     <tr><td><code>"audioLoudness"</code></td><td>Audio loudness.</td></tr>
+ *     <tr><td><code>"sensorToWorkMatrix"</code></td><td>Sensor-to-world matrix.</td></tr>
+ *     <tr><td><code>"additionalFlags"</code></td><td>Additional avatar flags.</td></tr>
+ *     <tr><td><code>"parentInfo"</code></td><td>Parent information.</td></tr>
+ *     <tr><td><code>"faceTracker"</code></td><td>Face tracker data.</td></tr>
+ *     <tr><td><code>"jointData"</code></td><td>Joint data.</td></tr>
+ *     <tr><td><code>"farGrabJointData"</code></td><td>Far grab joint data.</td></tr>
+
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the overall update rate is provided.</td></tr>
+ *   </tbody>
+ * </table>
+ *
+ * @typedef {string} AvatarUpdateRate
+ */
 float AvatarData::getUpdateRate(const QString& rateName) const {
     if (rateName == "") {
         return _parseBufferUpdateRate.rate();
@@ -1911,42 +1991,16 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
     }
 }
 
-qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice& destination,
-                           AvatarTraits::TraitVersion traitVersion) {
-
-    qint64 bytesWritten = 0;
-
-    if (traitType == AvatarTraits::SkeletonModelURL) {
-
-        QByteArray encodedSkeletonURL = getWireSafeSkeletonModelURL().toEncoded();
-
-        if (encodedSkeletonURL.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-            qWarning() << "Refusing to pack simple trait" << traitType << "of size" << encodedSkeletonURL.size()
-                << "bytes since it exceeds the maximum size" << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-            return 0;
-        }
-
-        bytesWritten += destination.writePrimitive(traitType);
-
-        if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-            bytesWritten += destination.writePrimitive(traitVersion);
-        }
-        
-        AvatarTraits::TraitWireSize encodedURLSize = encodedSkeletonURL.size();
-        bytesWritten += destination.writePrimitive(encodedURLSize);
-
-        bytesWritten += destination.write(encodedSkeletonURL);
-    }
-
-    return bytesWritten;
+QByteArray AvatarData::packSkeletonModelURL() const {
+    return getWireSafeSkeletonModelURL().toEncoded();
 }
 
+void AvatarData::unpackSkeletonModelURL(const QByteArray& data) {
+    auto skeletonModelURL = QUrl::fromEncoded(data);
+    setSkeletonModelURL(skeletonModelURL);
+}
 
-qint64 AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitType traitType,
-                                                 AvatarTraits::TraitInstanceID traitInstanceID,
-                                                 ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
-
+QByteArray AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID) {
     // grab a read lock on the avatar entities and check for entity data for the given ID
     QByteArray entityBinaryData;
     _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
@@ -1955,104 +2009,48 @@ qint64 AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitType traitTy
         }
     });
 
-    if (entityBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-        qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << entityBinaryData.size()
-                   << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-        return 0;
-    }
-
-    bytesWritten += destination.writePrimitive(traitType);
-
-    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        bytesWritten += destination.writePrimitive(traitVersion);
-    }
-
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
-
-    if (!entityBinaryData.isNull()) {
-        AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
-
-        bytesWritten += destination.writePrimitive(entityBinarySize);
-        bytesWritten += destination.write(entityBinaryData);
-    } else {
-        bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
-    }
-
-    return bytesWritten;
+    return entityBinaryData;
 }
 
-
-qint64 AvatarData::packGrabTraitInstance(AvatarTraits::TraitType traitType,
-                                         AvatarTraits::TraitInstanceID traitInstanceID,
-                                         ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
-
+QByteArray AvatarData::packGrabTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID) {
     // grab a read lock on the avatar grabs and check for grab data for the given ID
     QByteArray grabBinaryData;
-
     _avatarGrabsLock.withReadLock([this, &grabBinaryData, &traitInstanceID] {
         if (_avatarGrabData.contains(traitInstanceID)) {
             grabBinaryData = _avatarGrabData[traitInstanceID];
         }
     });
 
-    if (grabBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-        qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << grabBinaryData.size()
-                   << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-        return 0;
-    }
-
-    bytesWritten += destination.writePrimitive(traitType);
-
-    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-        bytesWritten += destination.writePrimitive(traitVersion);
-    }
-
-    bytesWritten += destination.write(traitInstanceID.toRfc4122());
-
-    if (!grabBinaryData.isNull()) {
-        AvatarTraits::TraitWireSize grabBinarySize = grabBinaryData.size();
-
-        bytesWritten += destination.writePrimitive(grabBinarySize);
-        bytesWritten += destination.write(grabBinaryData);
-    } else {
-        bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
-    }
-
-    return bytesWritten;
+    return grabBinaryData;
 }
 
-qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
-                                   ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
-    qint64 bytesWritten = 0;
+QByteArray AvatarData::packTrait(AvatarTraits::TraitType traitType) const {
+    QByteArray traitBinaryData;
 
+    // Call packer function
+    if (traitType == AvatarTraits::SkeletonModelURL) {
+        traitBinaryData = packSkeletonModelURL();
+    }
+
+    return traitBinaryData;
+}
+
+QByteArray AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID) {
+    QByteArray traitBinaryData;
+
+    // Call packer function
     if (traitType == AvatarTraits::AvatarEntity) {
-        bytesWritten += packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        traitBinaryData = packAvatarEntityTraitInstance(traitInstanceID);
     } else if (traitType == AvatarTraits::Grab) {
-        bytesWritten += packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        traitBinaryData = packGrabTraitInstance(traitInstanceID);
     }
 
-    return bytesWritten;
-}
-
-void AvatarData::prepareResetTraitInstances() {
-    if (_clientTraitsHandler) {
-        _avatarEntitiesLock.withReadLock([this]{
-            foreach (auto entityID, _packedAvatarEntityData.keys()) {
-                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
-            }
-            foreach (auto grabID, _avatarGrabData.keys()) {
-                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
-            }
-        });
-    }
+    return traitBinaryData;
 }
 
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::SkeletonModelURL) {
-        // get the URL from the binary data
-        auto skeletonModelURL = QUrl::fromEncoded(traitBinaryData);
-        setSkeletonModelURL(skeletonModelURL);
+        unpackSkeletonModelURL(traitBinaryData);
     }
 }
 
@@ -2070,6 +2068,19 @@ void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, 
         clearAvatarEntity(instanceID);
     } else if (traitType == AvatarTraits::Grab) {
         clearAvatarGrabData(instanceID);
+    }
+}
+
+void AvatarData::prepareResetTraitInstances() {
+    if (_clientTraitsHandler) {
+        _avatarEntitiesLock.withReadLock([this]{
+            foreach (auto entityID, _packedAvatarEntityData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+            foreach (auto grabID, _avatarGrabData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
+            }
+        });
     }
 }
 
@@ -2721,13 +2732,16 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
 }
 
 /**jsdoc
+ * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
- * @property {string} modelUrl
- * @property {string} jointName
- * @property {Vec3} translation
- * @property {Vec3} rotation
- * @property {number} scale
- * @property {boolean} soft
+ * @property {string} modelUrl - The URL of the model file. Models can be FBX or OBJ format.
+ * @property {string} jointName - The offset to apply to the model relative to the joint position.
+ * @property {Vec3} translation - The offset from the joint that the attachment is positioned at.
+ * @property {Vec3} rotation - The rotation applied to the model relative to the joint orientation.
+ * @property {number} scale - The scale applied to the attachment model.
+ * @property {boolean} soft - If <code>true</code> and the model has a skeleton, the bones of the attached model's skeleton are 
+ *   rotated to fit the avatar's current pose. If <code>true</code>, the <code>translation</code>, <code>rotation</code>, and 
+ *   <code>scale</code> parameters are ignored.
  */
 QVariant AttachmentData::toVariant() const {
     QVariantMap result;
@@ -2933,6 +2947,10 @@ float AvatarData::_avatarSortCoefficientSize { 8.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25f };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
+/**jsdoc
+ * An object with the UUIDs of avatar entities as keys and avatar entity properties objects as values.
+ * @typedef {Object.<Uuid, Entities.EntityProperties>} AvatarEntityMap
+ */
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
     QScriptValue obj = engine->newObject();
     for (auto entityID : value.keys()) {

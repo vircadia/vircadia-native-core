@@ -808,6 +808,21 @@ const GROUPS = [
                 propertyID: "speedSpread",
             },
             {
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "circle": "Circle", "plane": "Plane",
+                           "compound": "Use Compound Shape URL" },
+                propertyID: "particleShapeType",
+                propertyName: "shapeType",
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "particleCompoundShapeURL",
+                propertyName: "compoundShapeURL",
+            },
+            {
                 label: "Emit Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
@@ -3325,6 +3340,13 @@ function loaded() {
                         }
 
                         let hasSelectedEntityChanged = lastEntityID !== '"' + selectedEntityProperties.id + '"';
+
+                        if (!data.isPropertiesToolUpdate && !hasSelectedEntityChanged && document.hasFocus()) {
+                            // in case the selection has not changed and we still have focus on the properties page,
+                            // we will ignore the event.
+                            return;
+                        }
+
                         let doSelectElement = !hasSelectedEntityChanged;
 
                         // the event bridge and json parsing handle our avatar id string differently.

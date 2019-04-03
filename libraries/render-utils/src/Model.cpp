@@ -247,7 +247,7 @@ void Model::updateRenderItems() {
                 Transform renderTransform = modelTransform;
 
                 if (useDualQuaternionSkinning) {
-                    if (meshState.clusterDualQuaternions.size() == 1) {
+                    if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
                         const auto& dq = meshState.clusterDualQuaternions[0];
                         Transform transform(dq.getRotation(),
                                             dq.getScale(),
@@ -255,7 +255,7 @@ void Model::updateRenderItems() {
                         renderTransform = modelTransform.worldTransform(Transform(transform));
                     }
                 } else {
-                    if (meshState.clusterMatrices.size() == 1) {
+                    if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
                         renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
                     }
                 }
@@ -1346,19 +1346,14 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 
 void Model::computeMeshPartLocalBounds() {
-    render::Transaction transaction;
-    auto meshStates = _meshStates;
-    for (auto renderItem : _modelMeshRenderItemIDs) {
-        transaction.updateItem<ModelMeshPartPayload>(renderItem, [this, meshStates](ModelMeshPartPayload& data) {
-            const Model::MeshState& state = meshStates.at(data._meshIndex);
-            if (_useDualQuaternionSkinning) {
-                data.computeAdjustedLocalBound(state.clusterDualQuaternions);
-            } else {
-                data.computeAdjustedLocalBound(state.clusterMatrices);
-            }
-        });
+    for (auto& part : _modelMeshRenderItems) {
+        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
+        if (_useDualQuaternionSkinning) {
+            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
+        } else {
+            part->computeAdjustedLocalBound(state.clusterMatrices);
+        }
     }
-    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 // virtual
@@ -1391,7 +1386,6 @@ void Model::updateClusterMatrices() {
             }
         }
     }
-    computeMeshPartLocalBounds();
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
@@ -1648,7 +1642,7 @@ using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUn
 void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
     float len = glm::compMax(glm::abs(unpacked.positionOffset));
     glm::vec3 normalizedPos(unpacked.positionOffset);
-    if (len > 1.0f) {
+    if (len > 0.0f) {
         normalizedPos /= len;
     } else {
         len = 1.0f;

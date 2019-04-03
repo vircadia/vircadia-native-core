@@ -180,6 +180,7 @@ namespace controller {
      *       third person, to full screen mirror, then back to first person and repeat.</td></tr>
      *     <tr><td><code>ContextMenu</code></td><td>number</td><td>number</td><td>Show / hide the tablet.</td></tr>
      *     <tr><td><code>ToggleMute</code></td><td>number</td><td>number</td><td>Toggle the microphone mute.</td></tr>
+     *     <tr><td><code>TogglePushToTalk</code></td><td>number</td><td>number</td><td>Toggle push to talk.</td></tr>
      *     <tr><td><code>ToggleOverlay</code></td><td>number</td><td>number</td><td>Toggle the display of overlays.</td></tr>
      *     <tr><td><code>Sprint</code></td><td>number</td><td>number</td><td>Set avatar sprint mode.</td></tr>
      *     <tr><td><code>ReticleClick</code></td><td>number</td><td>number</td><td>Set mouse-pressed.</td></tr>
@@ -245,6 +246,8 @@ namespace controller {
      *       <code>ContextMenu</code> instead.</td></tr>
      *     <tr><td><code>TOGGLE_MUTE</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
      *       <code>ToggleMute</code> instead.</td></tr>
+     *     <tr><td><code>TOGGLE_PUSHTOTALK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
+     *       <code>TogglePushToTalk</code> instead.</td></tr>
      *     <tr><td><code>SPRINT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
      *       <code>Sprint</code> instead.</td></tr>
      *     <tr><td><code>LONGITUDINAL_BACKWARD</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
@@ -411,6 +414,7 @@ namespace controller {
             makeButtonPair(Action::ACTION2, "SecondaryAction"),
             makeButtonPair(Action::CONTEXT_MENU, "ContextMenu"),
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
+            makeButtonPair(Action::TOGGLE_PUSHTOTALK, "TogglePushToTalk"),
             makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
             makeButtonPair(Action::TOGGLE_OVERLAY, "ToggleOverlay"),
             makeButtonPair(Action::SPRINT, "Sprint"),

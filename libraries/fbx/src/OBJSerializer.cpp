@@ -54,7 +54,7 @@ T& checked_at(QVector<T>& vector, int i) {
 OBJTokenizer::OBJTokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) {
 }
 
-const QByteArray OBJTokenizer::getLineAsDatum() {
+const hifi::ByteArray OBJTokenizer::getLineAsDatum() {
     return _device->readLine().trimmed();
 }
 
@@ -117,7 +117,7 @@ bool OBJTokenizer::isNextTokenFloat() {
     if (nextToken() != OBJTokenizer::DATUM_TOKEN) {
         return false;
     }
-    QByteArray token = getDatum();
+    hifi::ByteArray token = getDatum();
     pushBackToken(OBJTokenizer::DATUM_TOKEN);
     bool ok;
     token.toFloat(&ok);
@@ -182,7 +182,7 @@ void setMeshPartDefaults(HFMMeshPart& meshPart, QString materialID) {
 // OBJFace
 //    NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
 //                         pairing it with the vertices vector for consistency.
-bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors) {
+bool OBJFace::add(const hifi::ByteArray& vertexIndex, const hifi::ByteArray& textureIndex, const hifi::ByteArray& normalIndex, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors) {
     bool ok;
     int index = vertexIndex.toInt(&ok);
     if (!ok) {
@@ -238,11 +238,11 @@ void OBJFace::addFrom(const OBJFace* face, int index) { // add using data from f
     }
 }
 
-bool OBJSerializer::isValidTexture(const QByteArray &filename) {
+bool OBJSerializer::isValidTexture(const hifi::ByteArray &filename) {
     if (_url.isEmpty()) {
         return false;
     }
-    QUrl candidateUrl = _url.resolved(QUrl(filename));
+    hifi::URL candidateUrl = _url.resolved(hifi::URL(filename));
 
     return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
@@ -278,7 +278,7 @@ void OBJSerializer::parseMaterialLibrary(QIODevice* device) {
 #endif
                 return;
         }
-        QByteArray token = tokenizer.getDatum();
+        hifi::ByteArray token = tokenizer.getDatum();
         if (token == "newmtl") {
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 return;
@@ -328,8 +328,8 @@ void OBJSerializer::parseMaterialLibrary(QIODevice* device) {
         } else if (token == "Ks") {
             currentMaterial.specularColor = tokenizer.getVec3();
         } else if ((token == "map_Kd") || (token == "map_Ke") || (token == "map_Ks") || (token == "map_bump") || (token == "bump") || (token == "map_d")) {
-            const QByteArray textureLine = tokenizer.getLineAsDatum();
-            QByteArray filename;
+            const hifi::ByteArray textureLine = tokenizer.getLineAsDatum();
+            hifi::ByteArray filename;
             OBJMaterialTextureOptions textureOptions;
             parseTextureLine(textureLine, filename, textureOptions);
             if (filename.endsWith(".tga")) {
@@ -354,7 +354,7 @@ void OBJSerializer::parseMaterialLibrary(QIODevice* device) {
     }
 } 
 
-void OBJSerializer::parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
+void OBJSerializer::parseTextureLine(const hifi::ByteArray& textureLine, hifi::ByteArray& filename, OBJMaterialTextureOptions& textureOptions) {
     // Texture options reference http://paulbourke.net/dataformats/mtl/
     // and https://wikivisually.com/wiki/Material_Template_Library
 
@@ -442,12 +442,12 @@ void OBJSerializer::parseTextureLine(const QByteArray& textureLine, QByteArray& 
     }
 }
 
-std::tuple<bool, QByteArray> requestData(QUrl& url) {
+std::tuple<bool, hifi::ByteArray> requestData(hifi::URL& url) {
     auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
         nullptr, url, true, -1, "(OBJSerializer) requestData");
 
     if (!request) {
-        return std::make_tuple(false, QByteArray());
+        return std::make_tuple(false, hifi::ByteArray());
     }
 
     QEventLoop loop;
@@ -458,12 +458,12 @@ std::tuple<bool, QByteArray> requestData(QUrl& url) {
     if (request->getResult() == ResourceRequest::Success) {
         return std::make_tuple(true, request->getData());
     } else {
-        return std::make_tuple(false, QByteArray());
+        return std::make_tuple(false, hifi::ByteArray());
     }
 }
 
 
-QNetworkReply* request(QUrl& url, bool isTest) {
+QNetworkReply* request(hifi::URL& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
@@ -488,7 +488,7 @@ QNetworkReply* request(QUrl& url, bool isTest) {
 }
 
 
-bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
+bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHash& mapping, HFMModel& hfmModel,
                               float& scaleGuess, bool combineParts) {
     FaceGroup faces;
     HFMMesh& mesh = hfmModel.meshes[0];
@@ -522,7 +522,7 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& m
             result = false;
             break;
         }
-        QByteArray token = tokenizer.getDatum();
+        hifi::ByteArray token = tokenizer.getDatum();
         //qCDebug(modelformat) << token;
         // we don't support separate objects in the same file, so treat "o" the same as "g".
         if (token == "g" || token == "o") {
@@ -535,7 +535,7 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& m
             if (tokenizer.nextToken() != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
-            QByteArray groupName = tokenizer.getDatum();
+            hifi::ByteArray groupName = tokenizer.getDatum();
             currentGroup = groupName;
             if (!combineParts) {
                 currentMaterialName = QString("part-") + QString::number(_partCounter++);
@@ -544,7 +544,7 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& m
             if (tokenizer.nextToken(true) != OBJTokenizer::DATUM_TOKEN) {
                 break;
             }
-            QByteArray libraryName = tokenizer.getDatum();
+            hifi::ByteArray libraryName = tokenizer.getDatum();
             librariesSeen[libraryName] = true;
             // We'll read it later only if we actually need it.
         } else if (token == "usemtl") {
@@ -598,14 +598,14 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& m
                 //   vertex-index
                 //   vertex-index/texture-index
                 //   vertex-index/texture-index/surface-normal-index
-                QByteArray token = tokenizer.getDatum();
+                hifi::ByteArray token = tokenizer.getDatum();
                 auto firstChar = token[0];
                 // Tokenizer treats line endings as whitespace. Non-digit and non-negative sign indicates done;
                 if (!isdigit(firstChar) && firstChar != '-') {
                     tokenizer.pushBackToken(OBJTokenizer::DATUM_TOKEN);
                     break;
                 }
-                QList<QByteArray> parts = token.split('/');
+                QList<hifi::ByteArray> parts = token.split('/');
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
                 // If indices are negative relative indices then adjust them to absolute indices based on current vector sizes
@@ -626,7 +626,7 @@ bool OBJSerializer::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& m
                         }
                     }
                 }
-                const QByteArray noData {};
+                const hifi::ByteArray noData {};
                 face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData,
                          vertices, vertexColors);
                 face.groupName = currentGroup;
@@ -661,9 +661,9 @@ std::unique_ptr<hfm::Serializer::Factory> OBJSerializer::getFactory() const {
     return std::make_unique<hfm::Serializer::SimpleFactory<OBJSerializer>>();
 }
 
-HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
+HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    QBuffer buffer { const_cast<QByteArray*>(&data) };
+    QBuffer buffer { const_cast<hifi::ByteArray*>(&data) };
     buffer.open(QIODevice::ReadOnly);
 
     auto hfmModelPtr = std::make_shared<HFMModel>();
@@ -849,11 +849,11 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
         int extIndex = filename.lastIndexOf('.'); // by construction, this does not fail
         QString basename = filename.remove(extIndex + 1, sizeof("obj"));
         preDefinedMaterial.diffuseColor = glm::vec3(1.0f);
-        QVector<QByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
-        QByteArray base = basename.toUtf8(), textName = "";
+        QVector<hifi::ByteArray> extensions = { "jpg", "jpeg", "png", "tga" };
+        hifi::ByteArray base = basename.toUtf8(), textName = "";
         qCDebug(modelformat) << "OBJSerializer looking for default texture";
         for (int i = 0; i < extensions.count(); i++) {
-            QByteArray candidateString = base + extensions[i];
+            hifi::ByteArray candidateString = base + extensions[i];
             if (isValidTexture(candidateString)) {
                 textName = candidateString;
                 break;
@@ -871,11 +871,11 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
     if (needsMaterialLibrary) {
         foreach (QString libraryName, librariesSeen.keys()) {
             // Throw away any path part of libraryName, and merge against original url.
-            QUrl libraryUrl = _url.resolved(QUrl(libraryName).fileName());
+            hifi::URL libraryUrl = _url.resolved(hifi::URL(libraryName).fileName());
             qCDebug(modelformat) << "OBJSerializer material library" << libraryName;
             bool success;
-            QByteArray data;
-            std::tie<bool, QByteArray>(success, data) = requestData(libraryUrl);
+            hifi::ByteArray data;
+            std::tie<bool, hifi::ByteArray>(success, data) = requestData(libraryUrl);
             if (success) {
                 QBuffer buffer { &data };
                 buffer.open(QIODevice::ReadOnly);

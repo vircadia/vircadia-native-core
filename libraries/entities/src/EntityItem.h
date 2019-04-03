@@ -124,8 +124,8 @@ public:
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
 
     /// Last time we sent out an edit packet for this entity
-    quint64 getLastBroadcast() const;
-    void setLastBroadcast(quint64 lastBroadcast);
+    quint64 getLastBroadcast() const { return _lastBroadcast; }
+    void setLastBroadcast(quint64 lastBroadcast) { _lastBroadcast = lastBroadcast; }
 
     void markAsChangedOnServer();
     quint64 getLastChangedOnServer() const;
@@ -448,7 +448,7 @@ public:
     bool clearActions(EntitySimulationPointer simulation);
     void setDynamicData(QByteArray dynamicData);
     const QByteArray getDynamicData() const;
-    bool hasActions() const { return !_objectActions.empty(); }
+    bool hasActions() const { return !_objectActions.empty() || !_grabActions.empty(); }
     QList<QUuid> getActionIDs() const { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
@@ -511,8 +511,6 @@ public:
     virtual void setProxyWindow(QWindow* proxyWindow) {}
     virtual QObject* getEventHandler() { return nullptr; }
 
-    virtual void emitScriptEvent(const QVariant& message) {}
-
     QUuid getLastEditedBy() const { return _lastEditedBy; }
     void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
 
@@ -564,6 +562,8 @@ public:
     static void setPrimaryViewFrustumPositionOperator(std::function<glm::vec3()> getPrimaryViewFrustumPositionOperator) { _getPrimaryViewFrustumPositionOperator = getPrimaryViewFrustumPositionOperator; }
     static glm::vec3 getPrimaryViewFrustumPosition() { return _getPrimaryViewFrustumPositionOperator(); }
 
+    bool stillHasMyGrabAction() const;
+
 signals:
     void requestRenderUpdate();
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
@@ -576,7 +576,7 @@ protected:
     void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getDynamicDataInternal() const;
-    bool stillHasGrabActions() const;
+    bool stillHasGrabAction() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
     virtual void dimensionsChanged() override;

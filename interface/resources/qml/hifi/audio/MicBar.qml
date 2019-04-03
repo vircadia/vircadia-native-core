@@ -11,18 +11,40 @@
 
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import stylesUit 1.0
 
 import TabletScriptingInterface 1.0
 
 Rectangle {
+    id: micBar
+    HifiConstants { id: hifi; }
+
+    property var muted: AudioScriptingInterface.muted;
     readonly property var level: AudioScriptingInterface.inputLevel;
-    
+    readonly property var clipping: AudioScriptingInterface.clipping;
+    property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
+
+    readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        HMD.displayModeChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
+        AudioScriptingInterface.mutedChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+        });
+        AudioScriptingInterface.pushToTalkChanged.connect(function() {
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
+        AudioScriptingInterface.pushingToTalkChanged.connect(function() {
+            pushingToTalk = AudioScriptingInterface.pushingToTalk;
+        });
     }
-        
+
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -64,7 +86,10 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
-            AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
+            if (pushToTalk) {
+                return;
+            }
+            AudioScriptingInterface.muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
@@ -78,16 +103,16 @@ Rectangle {
     QtObject {
         id: colors;
 
-        readonly property string unmuted: "#FFF";
-        readonly property string muted: "#E2334D";
+        readonly property string unmutedColor: "#FFF";
+        readonly property string mutedColor: "#E2334D";
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
         readonly property string yellow: "#C0C000";
-        readonly property string red: colors.muted;
+        readonly property string red: colors.mutedColor;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: AudioScriptingInterface.muted ? muted : unmuted;
+        readonly property string icon: muted ? colors.mutedColor : unmutedColor;
     }
 
     Item {
@@ -106,9 +131,13 @@ Rectangle {
             Image {
                 readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
                 readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
+                readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
+                readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
+                readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
 
                 id: image;
-                source: AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
+                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon :
+                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -131,9 +160,7 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
-
-        visible: AudioScriptingInterface.muted;
+        visible: (pushToTalk && !pushingToTalk) || muted;
 
         anchors {
             left: parent.left;
@@ -150,9 +177,9 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: parent.color;
+            color: colors.icon;
 
-            text: AudioScriptingInterface.muted ? "MUTED" : "MUTE";
+            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
@@ -162,9 +189,9 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
-            color: parent.color;
+            color: colors.icon;
         }
 
         Rectangle {
@@ -173,9 +200,9 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
-            color: parent.color;
+            color: colors.icon;
         }
     }
 
@@ -228,12 +255,12 @@ Rectangle {
                 }
             }
         }
-        
+
         Rectangle {
             id: gatedIndicator;
             visible: gated && !AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: "#0080FF";
@@ -242,12 +269,12 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
         }
-        
+
         Rectangle {
             id: clippingIndicator;
             visible: AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: colors.red;

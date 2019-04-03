@@ -49,8 +49,10 @@ private: \
  * @property {number} presentdroprate - <em>Read-only.</em>
  * @property {number} gameLoopRate - <em>Read-only.</em>
  * @property {number} avatarCount - <em>Read-only.</em>
+ * @property {number} heroAvatarCount - <em>Read-only.</em>
  * @property {number} physicsObjectCount - <em>Read-only.</em>
  * @property {number} updatedAvatarCount - <em>Read-only.</em>
+ * @property {number} updatedHeroAvatarCount - <em>Read-only.</em>
  * @property {number} notUpdatedAvatarCount - <em>Read-only.</em>
  * @property {number} packetInCount - <em>Read-only.</em>
  * @property {number} packetOutCount - <em>Read-only.</em>
@@ -85,6 +87,7 @@ private: \
  * @property {number} audioPacketLoss - <em>Read-only.</em>
  * @property {string} audioCodec - <em>Read-only.</em>
  * @property {string} audioNoiseGate - <em>Read-only.</em>
+ * @property {Vec2} audioInjectors - <em>Read-only.</em>
  * @property {number} entityPacketsInKbps - <em>Read-only.</em>
  *
  * @property {number} downloads - <em>Read-only.</em>
@@ -203,8 +206,10 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, gameLoopRate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, heroAvatarCount, 0)
     STATS_PROPERTY(int, physicsObjectCount, 0)
     STATS_PROPERTY(int, updatedAvatarCount, 0)
+    STATS_PROPERTY(int, updatedHeroAvatarCount, 0)
     STATS_PROPERTY(int, notUpdatedAvatarCount, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
@@ -239,6 +244,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioPacketLoss, 0)
     STATS_PROPERTY(QString, audioCodec, QString())
     STATS_PROPERTY(QString, audioNoiseGate, QString())
+    STATS_PROPERTY(QVector2D, audioInjectors, QVector2D());
     STATS_PROPERTY(int, entityPacketsInKbps, 0)
 
     STATS_PROPERTY(int, downloads, 0)
@@ -437,11 +443,25 @@ signals:
     void avatarCountChanged();
 
     /**jsdoc
+     * Triggered when the value of the <code>heroAvatarCount</code> property changes.
+     * @function Stats.heroAvatarCountChanged
+     * @returns {Signal}
+     */
+    void heroAvatarCountChanged();
+
+    /**jsdoc
      * Triggered when the value of the <code>updatedAvatarCount</code> property changes.
      * @function Stats.updatedAvatarCountChanged
      * @returns {Signal}
      */
     void updatedAvatarCountChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>updatedHeroAvatarCount</code> property changes.
+     * @function Stats.updatedHeroAvatarCountChanged
+     * @returns {Signal}
+     */
+    void updatedHeroAvatarCountChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>notUpdatedAvatarCount</code> property changes.
@@ -673,6 +693,13 @@ signals:
      * @returns {Signal}
      */
     void audioNoiseGateChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>audioInjectors</code> property changes.
+     * @function Stats.audioInjectorsChanged
+     * @returns {Signal}
+     */
+    void audioInjectorsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>entityPacketsInKbps</code> property changes.

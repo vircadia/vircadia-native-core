@@ -216,8 +216,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawHaze>("DrawHazeDeferred", drawHazeInputs);
 
     // Render transparent objects forward in LightingBuffer
-    const auto transparentsInputs = DrawDeferred::Inputs(transparents, hazeFrame, lightFrame, lightingModel, lightClusters, shadowFrame, jitter).asVarying();
-    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
+    const auto transparentsInputs = RenderTransparentDeferred::Inputs(transparents, hazeFrame, lightFrame, lightingModel, lightClusters, shadowFrame, jitter).asVarying();
+    task.addJob<RenderTransparentDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     const auto outlineRangeTimer = task.addJob<BeginGPURangeTimer>("BeginHighlightRangeTimer", "Highlight");
 
@@ -436,7 +436,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 }
 
 
-void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
+void RenderTransparentDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -453,7 +453,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     RenderArgs* args = renderContext->args;
 
-    gpu::doInBatch("DrawDeferred::run", args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch("RenderTransparentDeferred::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         
         // Setup camera, projection and viewport for all items

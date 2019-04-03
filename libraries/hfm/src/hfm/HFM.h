@@ -53,6 +53,14 @@ using ColorType = glm::vec3;
 
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
+// The version of the Draco mesh binary data itself. See also: FBX_DRACO_MESH_VERSION in FBX.h
+static const int DRACO_MESH_VERSION = 2;
+
+static const int DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES = 1000;
+static const int DRACO_ATTRIBUTE_MATERIAL_ID = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES;
+static const int DRACO_ATTRIBUTE_TEX_COORD_1 = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 1;
+static const int DRACO_ATTRIBUTE_ORIGINAL_INDEX = DRACO_BEGIN_CUSTOM_HIFI_ATTRIBUTES + 2;
+
 // High Fidelity Model namespace
 namespace hfm {
 

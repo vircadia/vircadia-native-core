@@ -156,7 +156,9 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorOffset",
     "userData",
     "avatarEntity",
-    "owningAvatarID"
+    "owningAvatarID",
+    "certificateID",
+    "certificateType"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -339,8 +341,6 @@ entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
-        isAnothersAvatarEntity(eigProps) ||
-        isAnothersChildEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }

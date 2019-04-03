@@ -103,6 +103,10 @@ private:
 
 };
 
+namespace scriptable {
+    QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material);
+};
+
 Q_DECLARE_METATYPE(glm::uint32)
 Q_DECLARE_METATYPE(QVector<glm::uint32>)
 Q_DECLARE_METATYPE(NestableType)

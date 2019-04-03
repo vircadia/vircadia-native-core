@@ -214,7 +214,7 @@ struct GLTFBufferView {
 struct GLTFBuffer {
     int byteLength; //required
     QString uri;
-    QByteArray blob;
+    hifi::ByteArray blob;
     QMap<QString, bool> defined;
     void dump() {
         if (defined["byteLength"]) {
@@ -705,16 +705,18 @@ public:
     MediaType getMediaType() const override;
     std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
 
-    HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
+    HFMModel::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) override;
 private:
     GLTFFile _file;
-    QUrl _url;
-    QByteArray _glbBinary;
+    hifi::URL _url;
+    hifi::ByteArray _glbBinary;
 
     glm::mat4 getModelTransform(const GLTFNode& node);
+    void getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues);
+    void getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, std::vector<int>& result);
 
-    bool buildGeometry(HFMModel& hfmModel, const QUrl& url);
-    bool parseGLTF(const QByteArray& data);
+    bool buildGeometry(HFMModel& hfmModel, const hifi::URL& url);
+    bool parseGLTF(const hifi::ByteArray& data);
     
     bool getStringVal(const QJsonObject& object, const QString& fieldname, 
                       QString& value, QMap<QString, bool>&  defined);
@@ -733,7 +735,7 @@ private:
     bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
                            QJsonArray& objects, QMap<QString, bool>& defined);
 
-    QByteArray setGLBChunks(const QByteArray& data);
+    hifi::ByteArray setGLBChunks(const hifi::ByteArray& data);
     
     int getMaterialAlphaMode(const QString& type);
     int getAccessorType(const QString& type);
@@ -760,24 +762,24 @@ private:
     bool addSkin(const QJsonObject& object);
     bool addTexture(const QJsonObject& object);
 
-    bool readBinary(const QString& url, QByteArray& outdata);
+    bool readBinary(const QString& url, hifi::ByteArray& outdata);
 
     template<typename T, typename L>
-    bool readArray(const QByteArray& bin, int byteOffset, int count, 
+    bool readArray(const hifi::ByteArray& bin, int byteOffset, int count,
                    QVector<L>& outarray, int accessorType);
     
     template<typename T>
-    bool addArrayOfType(const QByteArray& bin, int byteOffset, int count, 
+    bool addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
                         QVector<T>& outarray, int accessorType, int componentType);
 
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
                        const QVector<glm::vec3>& in_normals, QVector<int>& out_indices, 
                        QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
-    std::tuple<bool, QByteArray> requestData(QUrl& url);
-    QByteArray requestEmbeddedData(const QString& url);
+    std::tuple<bool, hifi::ByteArray> requestData(hifi::URL& url);
+    hifi::ByteArray requestEmbeddedData(const QString& url);
 
-    QNetworkReply* request(QUrl& url, bool isTest);
+    QNetworkReply* request(hifi::URL& url, bool isTest);
     bool doesResourceExist(const QString& url);
 
 

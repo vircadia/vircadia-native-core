@@ -573,11 +573,12 @@ public slots:
 
     /**jsdoc
      * @function Script.callAnimationStateHandler
-     * @param {function} callback
-     * @param {object} parameters
-     * @param {string[]} names
-     * @param {boolean} useNames
-     * @param {object} resultHandler
+     * @param {function} callback - Callback.
+     * @param {object} parameters - Parameters.
+     * @param {string[]} names - Names.
+     * @param {boolean} useNames - Use names.
+     * @param {function} resultHandler - Result handler.
+     * @deprecated This function is deprecated and will be removed.
      */
     void callAnimationStateHandler(QScriptValue callback, AnimVariantMap parameters, QStringList names, bool useNames, AnimVariantResultHandler resultHandler);
 

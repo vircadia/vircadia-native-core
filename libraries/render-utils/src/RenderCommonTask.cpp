@@ -95,7 +95,11 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
 
-            renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
+            if (_opaquePass) {
+                renderStateSortShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
+            } else {
+                renderShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
+            }
             args->_batch = nullptr;
         });
     }

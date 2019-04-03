@@ -834,6 +834,7 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     }
 
     _domainURL = domainURL;
+    _shareablePlaceName.clear();
 
     // clear any current place information
     _rootPlaceID = QUuid();

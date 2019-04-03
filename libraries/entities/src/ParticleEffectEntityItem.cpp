@@ -410,6 +410,7 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(const EntityPropert
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
     withReadLock([&] {
@@ -464,6 +465,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
     withWriteLock([&] {
@@ -540,6 +542,7 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+    READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
     withWriteLock([&] {
@@ -598,6 +601,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
     requestedProperties += PROP_SHAPE_TYPE;
+    requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
     requestedProperties += _pulseProperties.getEntityProperties(params);
@@ -656,6 +660,7 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
 
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
     withReadLock([&] {
@@ -718,11 +723,42 @@ void ParticleEffectEntityItem::debugDump() const {
 }
 
 void ParticleEffectEntityItem::setShapeType(ShapeType type) {
+    switch (type) {
+        case SHAPE_TYPE_NONE:
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+            // these types are unsupported for ParticleEffectEntity
+            type = particle::DEFAULT_SHAPE_TYPE;
+            break;
+        default:
+            break;
+    }
+
     withWriteLock([&] {
-        if (type != _shapeType) {
-            _shapeType = type;
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-        }
+        _shapeType = type;
+    });
+}
+
+ShapeType ParticleEffectEntityItem::getShapeType() const {
+    return resultWithReadLock<ShapeType>([&] {
+        return _shapeType;
+    });
+}
+
+void ParticleEffectEntityItem::setCompoundShapeURL(const QString& compoundShapeURL) {
+    withWriteLock([&] {
+        _compoundShapeURL = compoundShapeURL;
+    });
+}
+
+QString ParticleEffectEntityItem::getCompoundShapeURL() const {
+    return resultWithReadLock<QString>([&] {
+        return _compoundShapeURL;
     });
 }
 
