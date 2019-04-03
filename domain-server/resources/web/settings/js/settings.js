@@ -678,12 +678,9 @@ $(document).ready(function(){
     var errorEl = createDomainLoadingError("There was an error retrieving your places.");
     $("#" + Settings.PLACES_TABLE_ID).after(errorEl);
 
-    // do we have a domain ID?
-    if (!domainIDIsSet()) {
-      // we don't have a domain ID - add a button to offer the user a chance to get a temporary one
-      var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
-      $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
-    }
+    var temporaryPlaceButton = dynamicButton(Settings.GET_TEMPORARY_NAME_BTN_ID, 'Get a temporary place name');
+    temporaryPlaceButton.hide();
+    $('#' + Settings.PLACES_TABLE_ID).after(temporaryPlaceButton);
     if (accessTokenIsSet()) {
       appendAddButtonToPlacesTable();
     }
@@ -774,8 +771,9 @@ $(document).ready(function(){
 
       // check if we have owner_places (for a real domain) or a name (for a temporary domain)
       if (data.status == "success") {
+        $('#' + Settings.GET_TEMPORARY_NAME_BTN_ID).hide();
         $('.domain-loading-hide').show();
-        if (data.domain.owner_places) {
+        if (data.domain.owner_places && data.domain.owner_places.length > 0) {
           // add a table row for each of these names
           _.each(data.domain.owner_places, function(place){
             $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRowForPlaceObject(place));
@@ -783,8 +781,9 @@ $(document).ready(function(){
         } else if (data.domain.name) {
           // add a table row for this temporary domain name
           $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
+        } else {
+          $('#' + Settings.GET_TEMPORARY_NAME_BTN_ID).show();
         }
-
         // Update label
         if (showOrHideLabel()) {
           var label = data.domain.label;
