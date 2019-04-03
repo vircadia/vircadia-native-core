@@ -5847,9 +5847,7 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<ScriptEngines>()->reloadAllScripts();
     getOffscreenUI()->clearCache();
 
-    auto keyboard = DependencyManager::get<Keyboard>();
-    keyboard->createKeyboard();
-    keyboard->scaleKeyboard(getMyAvatar()->getSensorToWorldScale());
+    DependencyManager::get<Keyboard>()->createKeyboard();
 
     getMyAvatar()->resetFullAvatarURL();
 }
