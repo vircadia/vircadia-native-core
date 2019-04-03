@@ -18,8 +18,6 @@
 #include "TextureProcessing.h"
 #include "ImageLogging.h"
 
-#include <nvtt/nvtt.h>
-
 #ifndef M_PI
 #define M_PI    3.14159265359
 #endif
@@ -323,31 +321,6 @@ CubeMap::CubeMap(int width, int height, int mipCount) {
     reset(width, height, mipCount);
 }
 
-struct CubeMap::MipMapOutputHandler : public nvtt::OutputHandler {
-    MipMapOutputHandler(CubeMap* cube) : _cubemap(cube) {}
-
-    void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
-        _data = _cubemap->editFace(miplevel, face);
-        _current = _data;
-    }
-
-    bool writeData(const void* data, int size) override {
-        assert((size % sizeof(glm::vec4)) == 0);
-        memcpy(_current, data, size);
-        _current += size / sizeof(glm::vec4);
-        return true;
-    }
-
-    void endImage() override {
-        _data = nullptr;
-        _current = nullptr;
-    }
-
-    CubeMap* _cubemap{ nullptr };
-    glm::vec4* _data{ nullptr };
-    glm::vec4* _current{ nullptr };
-};
-
 CubeMap::CubeMap(const std::vector<Image>& faces, gpu::Element srcTextureFormat, int mipCount, const std::atomic<bool>& abortProcessing) {
     reset(faces.front().getWidth(), faces.front().getHeight(), mipCount);
 
@@ -362,7 +335,7 @@ CubeMap::CubeMap(const std::vector<Image>& faces, gpu::Element srcTextureFormat,
 
     // Compute mips
     for (face = 0; face < 6; face++) {
-        convertToFloat(faces[face].getBits(), _width, _height, faces[face].getBytesPerLineCount(), srcTextureFormat, floatPixels.data(), _width);
+        convertToFloatFromPacked(faces[face].getBits(), _width, _height, faces[face].getBytesPerLineCount(), srcTextureFormat, floatPixels.data(), _width);
         surface.setImage(nvtt::InputFormat_RGBA_32F, _width, _height, 1, &floatPixels.front().x);
 
         auto mipLevel = 0;
@@ -394,6 +367,13 @@ void CubeMap::copyFace(int width, int height, const glm::vec4* source, size_t sr
     }
 }
 
+Image CubeMap::getFaceImage(gpu::uint16 mipLevel, int face) const {
+    auto mipDims = getMipDimensions(mipLevel);
+    Image faceImage(mipDims.x, mipDims.y, Image::Format_RGBAF);
+    copyFace(mipDims.x, mipDims.y, getFace(mipLevel, face), getMipLineStride(mipLevel), (glm::vec4*)faceImage.editBits(), faceImage.getBytesPerLineCount() / sizeof(glm::vec4));
+    return faceImage;
+}
+
 void CubeMap::reset(int width, int height, int mipCount) {
     assert(mipCount >0 && width > 0 && height > 0);
     _width = width;
@@ -415,52 +395,6 @@ void CubeMap::copyTo(CubeMap& other) const {
     other._width = _width;
     other._height = _height;
     other._mips = _mips;
-}
-
-void CubeMap::copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing) const {
-    assert(_width == texture->getWidth() && _height == texture->getHeight() && texture->getNumMips() == _mips.size());
-
-    struct CompressionpErrorHandler : public nvtt::ErrorHandler {
-        virtual void error(nvtt::Error e) override {
-            qCWarning(imagelogging) << "Texture compression error:" << nvtt::errorString(e);
-        }
-    };
-
-    CompressionpErrorHandler errorHandler;
-    nvtt::OutputOptions outputOptions;
-    outputOptions.setOutputHeader(false);
-    outputOptions.setErrorHandler(&errorHandler);
-
-    nvtt::Surface surface;
-    surface.setAlphaMode(nvtt::AlphaMode_None);
-    surface.setWrapMode(nvtt::WrapMode_Mirror);
-
-    std::vector<glm::vec4> floatPixels;
-    floatPixels.resize(_width * _height);
-
-    nvtt::CompressionOptions compressionOptions;
-
-    SequentialTaskDispatcher dispatcher(abortProcessing);
-    nvtt::Context context;
-    context.setTaskDispatcher(&dispatcher);
-
-    for (int face = 0; face < 6; face++) {
-        for (gpu::uint16 mipLevel = 0; mipLevel < _mips.size() && !abortProcessing.load(); mipLevel++) {
-            auto mipDims = getMipDimensions(mipLevel);
-
-            std::unique_ptr<nvtt::OutputHandler> outputHandler{ getNVTTCompressionOutputHandler(texture, face, compressionOptions) };
-
-            outputOptions.setOutputHandler(outputHandler.get());
-
-            copyFace(mipDims.x, mipDims.y, getFace(mipLevel, face), getMipLineStride(mipLevel), &floatPixels.front(), mipDims.x);
-            surface.setImage(nvtt::InputFormat_RGBA_32F, mipDims.x, mipDims.y, 1, &floatPixels.front().x);
-            context.compress(surface, face, mipLevel, compressionOptions, outputOptions);
-        }
-
-        if (abortProcessing.load()) {
-            break;
-        }
-    }
 }
 
 void CubeMap::getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv) {

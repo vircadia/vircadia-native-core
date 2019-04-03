@@ -34,7 +34,6 @@ namespace image {
         CubeMap(const std::vector<Image>& faces, gpu::Element faceFormat, int mipCount, const std::atomic<bool>& abortProcessing = false);
 
         void reset(int width, int height, int mipCount);
-        void copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) const;
         void copyTo(CubeMap& other) const;
 
         gpu::uint16 getMipCount() const { return (gpu::uint16)_mips.size(); }
@@ -60,13 +59,14 @@ namespace image {
             return _mips[mipLevel][face].data() + (getMipLineStride(mipLevel) + 1)*EDGE_WIDTH;
         }
 
+        Image getFaceImage(gpu::uint16 mipLevel, int face) const;
+
         void convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProcessing) const;
         glm::vec4 fetchLod(const glm::vec3& dir, float lod) const;
 
     private:
 
         struct GGXSamples;
-        struct MipMapOutputHandler;
         class Mip;
         class ConstMip;
 

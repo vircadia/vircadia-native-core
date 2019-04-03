@@ -23,9 +23,9 @@ namespace image {
 
     std::function<gpu::uint32(const glm::vec3&)> getHDRPackingFunction();
     std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction();
-    void convertToFloat(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat, 
+    void convertToFloatFromPacked(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat, 
                         glm::vec4* output, size_t outputLinePixelStride);
-    void convertFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+    void convertToPackedFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
                           const glm::vec4* source, size_t srcLinePixelStride);
 
 namespace TextureUsage {
@@ -102,18 +102,8 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
 
-#if defined(NVTT_API)
-class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
-public:
-    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing = false);
-
-    const std::atomic<bool>& _abortProcessing;
-
-    void dispatch(nvtt::Task* task, void* context, int count) override;
-};
-
-nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressOptions);
-#endif
+void convertToTextureWithMips(gpu::Texture* texture, Image&& image, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1);
+void convertToTexture(gpu::Texture* texture, Image&& image, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1, int mipLevel = 0);
 
 } // namespace image
 
