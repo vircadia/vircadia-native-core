@@ -133,13 +133,14 @@ void Nitpick::setup() {
     );
 }
 
-void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
-                                      const bool isRunningInAutomaticTestRun,
-                                      const QString& snapshotDirectory,
-                                      const QString& branch,
-                                      const QString& user
+void Nitpick::startTestsEvaluation(
+    const bool isRunningFromCommandLine,
+    const bool isRunningInAutomaticTestRun,
+    const QString& snapshotDirectory,
+    const QString& branch,
+    const QString& user
 ) {
-    _testCreator->startTestsEvaluation(isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
+    _testCreator->startTestsEvaluation(_ui.clientProfileComboBox, isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
 void Nitpick::on_tabWidget_currentChanged(int index) {
@@ -257,7 +258,7 @@ void Nitpick::on_showTaskbarPushbutton_clicked() {
 }
 
 void Nitpick::on_evaluateTestsPushbutton_clicked() {
-    _testCreator->startTestsEvaluation(false, false);
+    _testCreator->startTestsEvaluation(_ui.clientProfileComboBox, false, false);
 }
 
 void Nitpick::on_closePushbutton_clicked() {

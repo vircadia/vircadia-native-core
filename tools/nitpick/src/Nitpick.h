@@ -28,11 +28,13 @@ public:
 
     void setup();
 
-    void startTestsEvaluation(const bool isRunningFromCommandLine,
-                              const bool isRunningInAutomaticTestRun,
-                              const QString& snapshotDirectory,
-                              const QString& branch,
-                              const QString& user);
+    void startTestsEvaluation(
+        const bool isRunningFromCommandLine,
+        const bool isRunningInAutomaticTestRun,
+        const QString& snapshotDirectory,
+        const QString& branch,
+        const QString& user
+    );
 
     void automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures);
 
