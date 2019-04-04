@@ -11,7 +11,7 @@ If you would like the extra functionality for gravPrep:
 To generate html documentation for the High Fidelity JavaScript API:
 
 * `cd tools/jsdoc`
-* `jsdoc root.js -c config.json`
+* `jsdoc root.js -r api-mainpage.md -c config.json`
 
 The out folder should contain index.html.
 

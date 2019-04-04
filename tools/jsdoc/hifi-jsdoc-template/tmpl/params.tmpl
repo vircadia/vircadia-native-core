@@ -71,7 +71,7 @@
         <?js } ?>
 
         <?js if (params.hasDefault) {?>
-        <th>Default</th>
+        <th>Default Value</th>
         <?js } ?>
 
         <th class="last">Description</th>
@@ -96,10 +96,26 @@
             <?js } ?>
             </td>
 
+            <?js if (params.hasAttributes) {?>
+                <td class="attributes">
+                <?js if (param.optional) { ?>
+                    &lt;optional><br>
+                <?js } ?>
+
+                <?js if (param.nullable) { ?>
+                    &lt;nullable><br>
+                <?js } ?>
+
+                <?js if (param.variable) { ?>
+                    &lt;repeatable><br>
+                <?js } ?>
+                </td>
+            <?js } ?>
+
             <?js if (params.hasDefault) {?>
                 <td class="default">
                 <?js if (typeof param.defaultvalue !== 'undefined') { ?>
-                    Default Value: <?js= self.htmlsafe(param.defaultvalue) ?>
+                    <?js= self.htmlsafe(param.defaultvalue) ?>
                 <?js } ?>
                 </td>
             <?js } ?>
