@@ -42,13 +42,13 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("Nitpick - " + nitpickVersion);
 
     _GPUVendors << "Nvidia" << "AMD";
-    _ui.clientProfileComboBox->insertItems(0, _GPUVendors);
+    _ui.gpuVendorComboBox->insertItems(0, _GPUVendors);
 
     QString gpuVendor = Platform::getGraphicsCardType().toUpper();
     if (gpuVendor.contains("NVIDIA")) {
-        _ui.clientProfileComboBox->setCurrentIndex(0);
+        _ui.gpuVendorComboBox->setCurrentIndex(0);
     } else {
-        _ui.clientProfileComboBox->setCurrentIndex(1);
+        _ui.gpuVendorComboBox->setCurrentIndex(1);
     }
 }
 
@@ -140,7 +140,7 @@ void Nitpick::startTestsEvaluation(
     const QString& branch,
     const QString& user
 ) {
-    _testCreator->startTestsEvaluation(_ui.clientProfileComboBox, isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
+    _testCreator->startTestsEvaluation(_ui.gpuVendorComboBox, isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
 void Nitpick::on_tabWidget_currentChanged(int index) {
@@ -152,9 +152,11 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
 #endif
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
+        _ui.gpuVendorComboBox->setDisabled(false);
     } else {
         _ui.userLineEdit->setDisabled(true);
         _ui.branchLineEdit->setDisabled(true);
+        _ui.gpuVendorComboBox->setDisabled(true);
     }
 }
 
@@ -167,7 +169,7 @@ void Nitpick::on_createAllRecursiveScriptsPushbutton_clicked() {
 }
 
 void Nitpick::on_createTestsPushbutton_clicked() {
-    _testCreator->createTests(_ui.clientProfileComboBox->currentText());
+    _testCreator->createTests(_ui.gpuVendorComboBox->currentText());
 }
 
 void Nitpick::on_createMDFilePushbutton_clicked() {
@@ -258,7 +260,7 @@ void Nitpick::on_showTaskbarPushbutton_clicked() {
 }
 
 void Nitpick::on_evaluateTestsPushbutton_clicked() {
-    _testCreator->startTestsEvaluation(_ui.clientProfileComboBox, false, false);
+    _testCreator->startTestsEvaluation(_ui.gpuVendorComboBox, false, false);
 }
 
 void Nitpick::on_closePushbutton_clicked() {
