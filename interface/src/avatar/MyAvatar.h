@@ -49,7 +49,7 @@ enum LocomotionRelativeMovementMode {
     MOVEMENT_HMD_RELATIVE = 0,
     MOVEMENT_HAND_RELATIVE,
     MOVEMENT_HAND_RELATIVE_LEVELED
-}
+};
 
 enum eyeContactTarget {
     LEFT_EYE,
