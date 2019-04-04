@@ -397,7 +397,7 @@ protected:
 
     glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
-    glm::vec3 _scale;
+    glm::vec3 _scale { 1.0f };
 
     glm::vec3 _overrideTranslation;
     glm::quat _overrideRotation;
