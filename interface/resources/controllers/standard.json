@@ -101,7 +101,7 @@
         { "from": "Standard.RightSecondaryThumb",
 		  "when": "Application.RightHandDominant",
 		  "to": "Actions.Up"
-		},
+        },
 
         { "from": "Standard.Back", "to": "Actions.CycleCamera" },
         { "from": "Standard.Start", "to": "Actions.ContextMenu" },
