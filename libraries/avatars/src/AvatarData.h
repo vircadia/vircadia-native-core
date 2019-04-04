@@ -1753,9 +1753,6 @@ protected:
         QReadLocker readLock(&_jointDataLock);
         int index = getJointIndex(name);
         if (index == -1) {
-            index = getFauxJointIndex(name);
-        }
-        if (index == -1) {
             return defaultValue;
         }
         return f(index);
@@ -1770,9 +1767,6 @@ protected:
     void writeLockWithNamedJointIndex(const QString& name, F f) {
         QWriteLocker writeLock(&_jointDataLock);
         int index = getJointIndex(name);
-        if (index == -1) {
-            index = getFauxJointIndex(name);
-        }
         if (index == -1) {
             return;
         }
