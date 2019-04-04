@@ -17,14 +17,26 @@
 
 #include <AvatarData.h>
 
+class ResourceRequest;
+
 class MixerAvatar : public AvatarData {
 public:
     bool getNeedsHeroCheck() const { return _needsHeroCheck; }
-    void setNeedsHeroCheck(bool needsHeroCheck = true)
-        { _needsHeroCheck = needsHeroCheck; }
+    void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
+
+    void fetchAvatarFST();
 
 private:
-    bool _needsHeroCheck { false };
+    bool _needsHeroCheck{ false };
+
+    QMutex _avatarCertifyLock;
+    ResourceRequest* _avatarRequest{ nullptr };
+    QString _avatarURLString;
+    QByteArray _avatarFSTContents;
+    bool _avatarFSTValid { false };
+
+private slots:
+    void fstRequestComplete();
 };
 
 using MixerAvatarSharedPointer = std::shared_ptr<MixerAvatar>;
