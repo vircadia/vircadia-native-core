@@ -291,7 +291,7 @@
     var clickMapping = Controller.newMapping('tabletToggle-click');
     var wantsMenu = 0;
     clickMapping.from(function () { return wantsMenu; }).to(Controller.Actions.ContextMenu);
-    clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(function (clicked) {
+    clickMapping.from(Controller.Standard.RightSecondaryThumb).peek().when(Controller.Hardware.Application.LeftHandDominant).to(function (clicked) {
     if (clicked) {
         //activeHudPoint2d(Controller.Standard.RightHand);
         Messages.sendLocalMessage("toggleHand", Controller.Standard.RightHand);
@@ -299,7 +299,7 @@
         wantsMenu = clicked;
     });
     
-    clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(function (clicked) {
+    clickMapping.from(Controller.Standard.LeftSecondaryThumb).peek().when(Controller.Hardware.Application.RightHandDominant).to(function (clicked) {
         if (clicked) {
             //activeHudPoint2d(Controller.Standard.LeftHand);
             Messages.sendLocalMessage("toggleHand", Controller.Standard.LeftHand);
