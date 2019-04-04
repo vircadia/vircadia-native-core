@@ -3413,6 +3413,7 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
         auto handRotation = getOffHandRotation();
         glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
         glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? 1.0f : -1.0f));
+        glm::vec3 transform;
         switch (getMovementReference()) {
             case LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE:
                 forward = (handRotation * controllerForward);
@@ -3420,7 +3421,7 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
                 break;
             case LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE_LEVELED:
                 forward = (handRotation * controllerForward);
-                auto transform = forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y);
+                transform = forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y);
                 if (glm::length(transform) > EPSILON) {
                     forward = glm::normalize(transform);
                 } else {
