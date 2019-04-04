@@ -3427,8 +3427,9 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
                     forward = Vectors::ZERO;
                 }
                 right = (handRotation * controllerRight);
-                if (glm::length(right) > EPSILON) {
-                    right = glm::normalize(right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                transform = right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y);
+                if (glm::length(transform) > EPSILON) {
+                    right = glm::normalize(transform);
                 } else {
                     right = Vectors::ZERO;
                 }
