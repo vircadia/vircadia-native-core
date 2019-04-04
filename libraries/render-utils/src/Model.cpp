@@ -1289,6 +1289,8 @@ void Model::scaleToFit() {
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a box that size...
     glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    const glm::vec3 MIN_MESH_DIMENSIONS { 1.0e-6f };  // one micrometer
+    meshDimensions = glm::max(meshDimensions, MIN_MESH_DIMENSIONS);
     glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
     setScaleInternal(rescaleDimensions);
     _scaledToFit = true;
