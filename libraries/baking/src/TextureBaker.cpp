@@ -16,7 +16,7 @@
 #include <QtCore/QFile>
 #include <QtNetwork/QNetworkReply>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 #include <ktx/KTX.h>
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>

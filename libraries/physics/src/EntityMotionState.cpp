@@ -217,9 +217,8 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         }
         return MOTION_TYPE_DYNAMIC;
     }
-    if (_entity->isMovingRelativeToParent() ||
-        _entity->hasActions() ||
-        _entity->hasGrabs() ||
+    if (_entity->hasActions() ||
+        _entity->isMovingRelativeToParent() ||
         _entity->hasAncestorOfType(NestableType::Avatar)) {
         return MOTION_TYPE_KINEMATIC;
     }

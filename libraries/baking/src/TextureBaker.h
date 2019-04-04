@@ -18,7 +18,7 @@
 #include <QDir>
 #include <QImageReader>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 #include "Baker.h"
 

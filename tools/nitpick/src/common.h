@@ -60,5 +60,5 @@ const double R_Y = 0.212655f;
 const double G_Y = 0.715158f;
 const double B_Y = 0.072187f;
 
-const QString nitpickVersion{ "v3.1.5" }; 
+const QString nitpickVersion{ "v3.2.0" }; 
 #endif // hifi_common_h

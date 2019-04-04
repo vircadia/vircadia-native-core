@@ -12,12 +12,11 @@
 #ifndef hifi_image_TGAReader_h
 #define hifi_image_TGAReader_h
 
-#include <QImage>
+#include "Image.h"
 
 namespace image {
 
-// TODO Move this into a plugin that QImageReader can use
-QImage readTGA(QIODevice& contents);
+    Image readTGA(QIODevice& contents);
 
 }
 

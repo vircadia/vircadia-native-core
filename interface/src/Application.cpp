@@ -6709,6 +6709,11 @@ void Application::updateRenderArgs(float deltaTime) {
                 // Configure the type of display / stereo
                 appRenderArgs._renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
             }
+
+            appRenderArgs._renderArgs._stencilMode = getActiveDisplayPlugin()->getStencilMaskMode();
+            if (appRenderArgs._renderArgs._stencilMode == StencilMode::MESH) {
+                appRenderArgs._renderArgs._stencilMaskOperator = getActiveDisplayPlugin()->getStencilMaskMeshOperator();
+            }
         }
 
         {
