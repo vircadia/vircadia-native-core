@@ -3377,14 +3377,6 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
                     return Vectors::ZERO;
                 }
             case LocomotionControlsMode::CONTROLS_ANALOG:
-                if (zSpeed || xSpeed) {
-                    glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
-                    glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
-                    direction = scaledForward + scaledRight;
-                    return direction;
-                } else {
-                    return Vectors::ZERO;
-                }
             case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
                 if (zSpeed || xSpeed) {
                     glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
@@ -3429,12 +3421,9 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
             case LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE_LEVELED:
                 forward = (handRotation * controllerForward);
                 if (glm::length(forward) > EPSILON) {
-                    auto transform = forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y);
-                    if (glm::length(transform) > 0.0f) {
-                        forward = glm::normalize(transform);
-                    } else {
-                        forward = Vectors::ZERO;
-                    }
+                auto transform = forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y);
+                if (glm::length(transform) > EPSILON) {
+                    forward = glm::normalize(transform);
                 } else {
                     forward = Vectors::ZERO;
                 }
