@@ -1750,6 +1750,7 @@ protected:
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
+        QReadLocker readLock(&_jointDataLock);
         int index = getJointIndex(name);
         if (index == -1) {
             index = getFauxJointIndex(name);
@@ -1757,7 +1758,6 @@ protected:
         if (index == -1) {
             return defaultValue;
         }
-        QReadLocker readLock(&_jointDataLock);
         return f(index);
     }
 
@@ -1768,6 +1768,7 @@ protected:
 
     template <typename F>
     void writeLockWithNamedJointIndex(const QString& name, F f) {
+        QWriteLocker writeLock(&_jointDataLock);
         int index = getJointIndex(name);
         if (index == -1) {
             index = getFauxJointIndex(name);
@@ -1775,7 +1776,6 @@ protected:
         if (index == -1) {
             return;
         }
-        QWriteLocker writeLock(&_jointDataLock);
         if (_jointData.size() <= index) {
             _jointData.resize(index + 1);
         }
