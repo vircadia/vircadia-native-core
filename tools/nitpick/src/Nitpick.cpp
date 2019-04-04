@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Nitpick.h"
+#include "Platform.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -40,9 +41,15 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
 
     setWindowTitle("Nitpick - " + nitpickVersion);
 
-    clientProfiles << "VR-High" << "Desktop-High" << "Desktop-Low" << "Mobile-Touch" << "VR-Standalone";
-    _ui.clientProfileComboBox->insertItems(0, clientProfiles);
+    _GPUVendors << "Nvidia" << "AMD";
+    _ui.gpuVendorComboBox->insertItems(0, _GPUVendors);
 
+    QString gpuVendor = Platform::getGraphicsCardType().toUpper();
+    if (gpuVendor.contains("NVIDIA")) {
+        _ui.gpuVendorComboBox->setCurrentIndex(0);
+    } else {
+        _ui.gpuVendorComboBox->setCurrentIndex(1);
+    }
 }
 
 Nitpick::~Nitpick() {
@@ -126,13 +133,14 @@ void Nitpick::setup() {
     );
 }
 
-void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
-                                      const bool isRunningInAutomaticTestRun,
-                                      const QString& snapshotDirectory,
-                                      const QString& branch,
-                                      const QString& user
+void Nitpick::startTestsEvaluation(
+    const bool isRunningFromCommandLine,
+    const bool isRunningInAutomaticTestRun,
+    const QString& snapshotDirectory,
+    const QString& branch,
+    const QString& user
 ) {
-    _testCreator->startTestsEvaluation(isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
+    _testCreator->startTestsEvaluation(_ui.gpuVendorComboBox, isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
 void Nitpick::on_tabWidget_currentChanged(int index) {
@@ -144,9 +152,11 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
 #endif
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
+        _ui.gpuVendorComboBox->setDisabled(false);
     } else {
         _ui.userLineEdit->setDisabled(true);
         _ui.branchLineEdit->setDisabled(true);
+        _ui.gpuVendorComboBox->setDisabled(true);
     }
 }
 
@@ -159,7 +169,7 @@ void Nitpick::on_createAllRecursiveScriptsPushbutton_clicked() {
 }
 
 void Nitpick::on_createTestsPushbutton_clicked() {
-    _testCreator->createTests(_ui.clientProfileComboBox->currentText());
+    _testCreator->createTests(_ui.gpuVendorComboBox->currentText());
 }
 
 void Nitpick::on_createMDFilePushbutton_clicked() {
@@ -250,7 +260,7 @@ void Nitpick::on_showTaskbarPushbutton_clicked() {
 }
 
 void Nitpick::on_evaluateTestsPushbutton_clicked() {
-    _testCreator->startTestsEvaluation(false, false);
+    _testCreator->startTestsEvaluation(_ui.gpuVendorComboBox, false, false);
 }
 
 void Nitpick::on_closePushbutton_clicked() {
