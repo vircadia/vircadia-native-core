@@ -1698,10 +1698,7 @@ AACube EntityItem::getQueryAACube(bool& success) const {
 }
 
 bool EntityItem::shouldPuffQueryAACube() const {
-    bool hasGrabs = _grabsLock.resultWithReadLock<bool>([&] {
-        return _grabs.count() > 0;
-    });
-    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent() || hasGrabs;
+    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent();
 }
 
 // TODO: get rid of all users of this function...
@@ -1896,7 +1893,8 @@ void EntityItem::setScaledDimensions(const glm::vec3& value) {
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
     glm::vec3 newDimensions = glm::max(value, glm::vec3(ENTITY_ITEM_MIN_DIMENSION));
-    if (getUnscaledDimensions() != newDimensions) {
+    const float MIN_SCALE_CHANGE_SQUARED = 1.0e-6f;
+    if (glm::length2(getUnscaledDimensions() - newDimensions) > MIN_SCALE_CHANGE_SQUARED) {
         withWriteLock([&] {
             _unscaledDimensions = newDimensions;
         });
@@ -2086,7 +2084,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask
     } else {
         if (getDynamic()) {
             group = BULLET_COLLISION_GROUP_DYNAMIC;
-        } else if (isMovingRelativeToParent() || hasActions()) {
+        } else if (hasActions() || isMovingRelativeToParent()) {
             group = BULLET_COLLISION_GROUP_KINEMATIC;
         } else {
             group = BULLET_COLLISION_GROUP_STATIC;
@@ -3057,30 +3055,18 @@ bool EntityItem::getCollisionless() const {
 }
 
 uint16_t EntityItem::getCollisionMask() const {
-    uint16_t result;
-    withReadLock([&] {
-        result = _collisionMask;
-    });
-    return result;
+    return _collisionMask;
 }
 
 bool EntityItem::getDynamic() const {
     if (SHAPE_TYPE_STATIC_MESH == getShapeType()) {
         return false;
     }
-    bool result;
-    withReadLock([&] {
-        result = _dynamic;
-    });
-    return result;
+    return _dynamic;
 }
 
 bool EntityItem::getLocked() const {
-    bool result;
-    withReadLock([&] {
-        result = _locked;
-    });
-    return result;
+    return _locked;
 }
 
 void EntityItem::setLocked(bool value) {
@@ -3151,7 +3137,6 @@ uint32_t EntityItem::getDirtyFlags() const {
     });
     return result;
 }
-
 
 void EntityItem::markDirtyFlags(uint32_t mask) {
     withWriteLock([&] {

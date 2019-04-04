@@ -125,6 +125,7 @@ public:
     glm::vec3 v1;
     glm::vec3 v2;
     glm::vec3 getNormal() const;
+    float getArea() const;
     Triangle operator*(const glm::mat4& transform) const;
 };
 
