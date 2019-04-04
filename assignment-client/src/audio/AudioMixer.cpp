@@ -98,7 +98,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::RequestsDomainListData,
             PacketType::PerAvatarGainSet,
             PacketType::InjectorGainSet,
-            PacketType::AudioSoloRequest },
+            PacketType::AudioSoloRequest,
+            PacketType::StopInjector },
             this, "queueAudioPacket");
 
     // packets whose consequences are global should be processed on the main thread
@@ -246,7 +247,8 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
 
     if (injectorClientData) {
         // stage the removal of this stream, workers handle when preparing mixes for listeners
-        _workerSharedData.removedStreams.emplace_back(injectorClientData->getNodeID(), injectorClientData->getNodeLocalID(),
+        _workerSharedData.removedStreams.emplace_back(injectorClientData->getNodeID(),
+                                                      injectorClientData->getNodeLocalID(),
                                                       streamID);
     }
 }
