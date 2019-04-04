@@ -136,7 +136,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _characterController(std::shared_ptr<MyAvatar>(this)),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
-        DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", true),
     _showPlayArea("showPlayArea", true),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
@@ -223,7 +223,7 @@ MyAvatar::MyAvatar(QThread* thread) :
 
     // connect to AddressManager signal for location jumps
     connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
-                this, static_cast<SlotType>(&MyAvatar::goToFeetLocation));
+            this, static_cast<SlotType>(&MyAvatar::goToFeetLocation));
 
     // handle scale constraints imposed on us by the domain-server
     auto& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -1890,7 +1890,7 @@ void MyAvatar::loadData() {
     setDriveGear3(firstRunVal.get() ? DEFAULT_GEAR_3 : _driveGear3Setting.get());
     setDriveGear4(firstRunVal.get() ? DEFAULT_GEAR_4 : _driveGear4Setting.get());
     setDriveGear5(firstRunVal.get() ? DEFAULT_GEAR_5 : _driveGear5Setting.get());
-    setControlSchemeIndex(firstRunVal.get() ? CONTROLS_DEFAULT : _controlSchemeIndexSetting.get());
+    setControlSchemeIndex(firstRunVal.get() ? LocomotionControlsMode::CONTROLS_DEFAULT : _controlSchemeIndexSetting.get());
     setAnalogWalkSpeed(firstRunVal.get() ? ANALOG_AVATAR_MAX_WALKING_SPEED : _analogWalkSpeedSetting.get());
     setAnalogPlusWalkSpeed(firstRunVal.get() ? ANALOG_PLUS_AVATAR_MAX_WALKING_SPEED : _analogPlusWalkSpeedSetting.get());
     setFlyingEnabled(getFlyingEnabled());
@@ -3363,7 +3363,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     } else if (qApp->isHMDMode()) {
         // HMD advanced movement controls.
         switch (_controlSchemeIndex) {
-            case CONTROLS_DEFAULT:
+            case LocomotionControlsMode::CONTROLS_DEFAULT:
                 // No acceleration curve for this one, constant speed.
                 if (zSpeed || xSpeed) {
                     direction = (zSpeed * forward) + (xSpeed * right);
@@ -3376,7 +3376,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
                 } else {
                     return Vectors::ZERO;
                 }
-            case CONTROLS_ANALOG:
+            case LocomotionControlsMode::CONTROLS_ANALOG:
                 if (zSpeed || xSpeed) {
                     glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
                     glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
@@ -3385,7 +3385,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
                 } else {
                     return Vectors::ZERO;
                 }
-            case CONTROLS_ANALOG_PLUS:
+            case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
                 if (zSpeed || xSpeed) {
                     glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * _walkSpeedScalar * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
                     glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * _walkSpeedScalar * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
@@ -3422,14 +3422,19 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
         glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
         glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? 1.0f : -1.0f));
         switch (getMovementReference()) {
-            case MOVEMENT_HAND_RELATIVE:
+            case LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE:
                 forward = (handRotation * controllerForward);
                 right = (handRotation * controllerRight);
                 break;
-            case MOVEMENT_HAND_RELATIVE_LEVELED:
+            case LocomotionRelativeMovementMode::MOVEMENT_HAND_RELATIVE_LEVELED:
                 forward = (handRotation * controllerForward);
                 if (glm::length(forward) > EPSILON) {
-                    forward = glm::normalize(forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                    auto transform = forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y);
+                    if (glm::length(transform) > 0.0f) {
+                        forward = glm::normalize(transform);
+                    } else {
+                        forward = Vectors::ZERO;
+                    }
                 } else {
                     forward = Vectors::ZERO;
                 }
@@ -3440,7 +3445,7 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
                     right = Vectors::ZERO;
                 }
                 break;
-            case MOVEMENT_HMD_RELATIVE:
+            case LocomotionRelativeMovementMode::MOVEMENT_HMD_RELATIVE:
             default:
                 forward = IDENTITY_FORWARD;
                 right = IDENTITY_RIGHT;
@@ -4070,13 +4075,13 @@ void MyAvatar::setDriveGear1(float shiftPoint) {
 
 float MyAvatar::getDriveGear1() {
     switch (_controlSchemeIndex) {
-    case CONTROLS_ANALOG:
-        return ANALOG_AVATAR_GEAR_1;
-    case CONTROLS_ANALOG_PLUS:
-        return _driveGear1;
-    case CONTROLS_DEFAULT:
-    default:
-        return 1.0f;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            return ANALOG_AVATAR_GEAR_1;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            return _driveGear1;
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+        default:
+            return 1.0f;
     }
 }
 
@@ -4091,13 +4096,13 @@ void MyAvatar::setDriveGear2(float shiftPoint) {
 
 float MyAvatar::getDriveGear2() {
     switch (_controlSchemeIndex) {
-    case CONTROLS_ANALOG:
-        return ANALOG_AVATAR_GEAR_2;
-    case CONTROLS_ANALOG_PLUS:
-        return _driveGear2;
-    case CONTROLS_DEFAULT:
-    default:
-        return 1.0f;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            return ANALOG_AVATAR_GEAR_2;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            return _driveGear2;
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+        default:
+            return 1.0f;
     }
 }
 
@@ -4112,13 +4117,13 @@ void MyAvatar::setDriveGear3(float shiftPoint) {
 
 float MyAvatar::getDriveGear3() {
     switch (_controlSchemeIndex) {
-    case CONTROLS_ANALOG:
-        return ANALOG_AVATAR_GEAR_3;
-    case CONTROLS_ANALOG_PLUS:
-        return _driveGear3;
-    case CONTROLS_DEFAULT:
-    default:
-        return 1.0f;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            return ANALOG_AVATAR_GEAR_3;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            return _driveGear3;
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+        default:
+            return 1.0f;
     }
 }
 
@@ -4133,13 +4138,13 @@ void MyAvatar::setDriveGear4(float shiftPoint) {
 
 float MyAvatar::getDriveGear4() {
     switch (_controlSchemeIndex) {
-    case CONTROLS_ANALOG:
-        return ANALOG_AVATAR_GEAR_4;
-    case CONTROLS_ANALOG_PLUS:
-        return _driveGear4;
-    case CONTROLS_DEFAULT:
-    default:
-        return 1.0f;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            return ANALOG_AVATAR_GEAR_4;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            return _driveGear4;
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+        default:
+            return 1.0f;
     }
 }
 
@@ -4154,13 +4159,13 @@ void MyAvatar::setDriveGear5(float shiftPoint) {
 
 float MyAvatar::getDriveGear5() {
     switch (_controlSchemeIndex) {
-    case CONTROLS_ANALOG:
-        return ANALOG_AVATAR_GEAR_5;
-    case CONTROLS_ANALOG_PLUS:
-        return _driveGear5;
-    case CONTROLS_DEFAULT:
-    default:
-        return 1.0f;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            return ANALOG_AVATAR_GEAR_5;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            return _driveGear5;
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+        default:
+            return 1.0f;
     }
 }
 
@@ -4774,11 +4779,11 @@ bool MyAvatar::getIsSitStandStateLocked() const {
 float MyAvatar::getWalkSpeed() const {
     if (qApp->isHMDMode()) {
         switch (_controlSchemeIndex) {
-            case CONTROLS_ANALOG:
+            case LocomotionControlsMode::CONTROLS_ANALOG:
                 return _analogWalkSpeed.get();
-            case CONTROLS_ANALOG_PLUS:
+            case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
                 return _analogPlusWalkSpeed.get();
-            case CONTROLS_DEFAULT:
+            case LocomotionControlsMode::CONTROLS_DEFAULT:
             default:
                 return _defaultWalkSpeed.get();
         }
@@ -4790,12 +4795,12 @@ float MyAvatar::getWalkSpeed() const {
 
 float MyAvatar::getWalkBackwardSpeed() const {
     if (qApp->isHMDMode()) {
-        switch(_controlSchemeIndex) {
-            case CONTROLS_ANALOG:
+        switch (_controlSchemeIndex) {
+            case LocomotionControlsMode::CONTROLS_ANALOG:
                 return _analogWalkBackwardSpeed.get();
-            case CONTROLS_ANALOG_PLUS:
+            case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
                 return _analogPlusWalkBackwardSpeed.get();
-            case CONTROLS_DEFAULT:
+            case LocomotionControlsMode::CONTROLS_DEFAULT:
             default:
                 return _defaultWalkBackwardSpeed.get();
         }
@@ -4873,61 +4878,61 @@ void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
 }
 
 void MyAvatar::setWalkSpeed(float value) {
-    switch(_controlSchemeIndex) {
-    case CONTROLS_DEFAULT:
-        _defaultWalkSpeed.set(value);
-        break;
-    case CONTROLS_ANALOG:
-        _analogWalkSpeed.set(value);
-        break;
-    case CONTROLS_ANALOG_PLUS:
-        _analogPlusWalkSpeed.set(value);
-        break;
-    default:
-        break;
+    switch (_controlSchemeIndex) {
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+            _defaultWalkSpeed.set(value);
+            break;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            _analogWalkSpeed.set(value);
+            break;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            _analogPlusWalkSpeed.set(value);
+            break;
+        default:
+            break;
     }
 }
 
 void MyAvatar::setWalkBackwardSpeed(float value) {
-    switch(_controlSchemeIndex) {
-    case CONTROLS_DEFAULT:
-        _defaultWalkBackwardSpeed.set(value);
-        break;
-    case CONTROLS_ANALOG:
-        _analogWalkBackwardSpeed.set(value);
-        break;
-    case CONTROLS_ANALOG_PLUS:
-        _analogPlusWalkBackwardSpeed.set(value);
-        break;
-    default:
-        break;
+    switch (_controlSchemeIndex) {
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+            _defaultWalkBackwardSpeed.set(value);
+            break;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            _analogWalkBackwardSpeed.set(value);
+            break;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            _analogPlusWalkBackwardSpeed.set(value);
+            break;
+        default:
+            break;
     }
 }
 
 void MyAvatar::setSprintSpeed(float value) {
-    switch(_controlSchemeIndex) {
-    case CONTROLS_DEFAULT:
-        _defaultSprintSpeed.set(value);
-        break;
-    case CONTROLS_ANALOG:
-        _analogSprintSpeed.set(value);
-        break;
-    case CONTROLS_ANALOG_PLUS:
-        _analogPlusSprintSpeed.set(value);
-        break;
-    default:
-        break;
+    switch (_controlSchemeIndex) {
+        case LocomotionControlsMode::CONTROLS_DEFAULT:
+            _defaultSprintSpeed.set(value);
+            break;
+        case LocomotionControlsMode::CONTROLS_ANALOG:
+            _analogSprintSpeed.set(value);
+            break;
+        case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            _analogPlusSprintSpeed.set(value);
+            break;
+        default:
+            break;
     }
 }
 
 float MyAvatar::getSprintSpeed() const {
     if (qApp->isHMDMode()) {
         switch (_controlSchemeIndex) {
-            case CONTROLS_ANALOG:
+            case LocomotionControlsMode::CONTROLS_ANALOG:
                 return _analogSprintSpeed.get();
-            case CONTROLS_ANALOG_PLUS:
+            case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
                 return _analogPlusSprintSpeed.get();
-            case CONTROLS_DEFAULT:
+            case LocomotionControlsMode::CONTROLS_DEFAULT:
             default:
                 return _defaultSprintSpeed.get();
         }

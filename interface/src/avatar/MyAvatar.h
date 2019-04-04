@@ -39,13 +39,17 @@ class ModelItemID;
 class MyHead;
 class DetailedMotionState;
 
-const int CONTROLS_DEFAULT = 0;
-const int CONTROLS_ANALOG = 1;
-const int CONTROLS_ANALOG_PLUS = 2;
+enum LocomotionControlsMode {
+    CONTROLS_DEFAULT = 0,
+    CONTROLS_ANALOG,
+    CONTROLS_ANALOG_PLUS
+};
 
-const int MOVEMENT_HMD_RELATIVE = 0;
-const int MOVEMENT_HAND_RELATIVE = 1;
-const int MOVEMENT_HAND_RELATIVE_LEVELED = 2;
+enum LocomotionRelativeMovementMode {
+    MOVEMENT_HMD_RELATIVE = 0,
+    MOVEMENT_HAND_RELATIVE,
+    MOVEMENT_HAND_RELATIVE_LEVELED
+}
 
 enum eyeContactTarget {
     LEFT_EYE,
