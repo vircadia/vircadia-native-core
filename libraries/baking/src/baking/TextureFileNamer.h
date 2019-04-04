@@ -15,7 +15,7 @@
 #include <QtCore/QFileInfo>
 #include <QHash>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 class TextureFileNamer {
 public:
