@@ -27,6 +27,7 @@
 #include <SimpleMovingAverage.h>
 #include <gpu/Forward.h>
 #include "Plugin.h"
+#include "StencilMode.h"
 
 class QOpenGLFramebufferObject;
 
@@ -220,6 +221,10 @@ public:
 
     // for updating plugin-related commands. Mimics the input plugin.
     virtual void pluginUpdate() = 0;
+
+    virtual StencilMode getStencilMaskMode() const { return StencilMode::NONE; }
+    using StencilMaskMeshOperator = std::function<void(gpu::Batch&)>;
+    virtual StencilMaskMeshOperator getStencilMaskMeshOperator() { return nullptr; }
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);

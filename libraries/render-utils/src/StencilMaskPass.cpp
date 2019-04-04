@@ -19,7 +19,6 @@ using namespace render;
 
 void PrepareStencil::configure(const Config& config) {
     _maskMode = config.maskMode;
-    _forceDraw = config.forceDraw;
 }
 
 graphics::MeshPointer PrepareStencil::getMesh() {
@@ -43,6 +42,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
         auto state = std::make_shared<gpu::State>();
         drawMask(*state);
         state->setColorWriteMask(gpu::State::WRITE_NONE);
+        state->setCullMode(gpu::State::CullMode::CULL_NONE);
 
         _meshStencilPipeline = gpu::Pipeline::create(program, state);
     }
@@ -64,30 +64,37 @@ gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
 void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     RenderArgs* args = renderContext->args;
 
-    // Only draw the stencil mask if in HMD mode or not forced.
-    if (!_forceDraw && (args->_displayMode != RenderArgs::STEREO_HMD)) {
+    StencilMode maskMode = _maskMode;
+    std::function<void(gpu::Batch&)> maskOperator = [this](gpu::Batch& batch) {
+        auto mesh = getMesh();
+        batch.setIndexBuffer(mesh->getIndexBuffer());
+        batch.setInputFormat((mesh->getVertexFormat()));
+        batch.setInputStream(0, mesh->getVertexStream());
+
+        // Draw
+        auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
+        batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+    };
+
+    if (maskMode == StencilMode::NONE) {
+        maskMode = args->_stencilMode;
+        maskOperator = args->_stencilMaskOperator;
+    }
+
+    if (maskMode == StencilMode::NONE || (maskMode == StencilMode::MESH && !maskOperator)) {
         return;
     }
 
     doInBatch("PrepareStencil::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
-
         batch.setViewportTransform(args->_viewport);
 
-        if (_maskMode < 0) {
-            batch.setPipeline(getMeshStencilPipeline());
-
-            auto mesh = getMesh();
-            batch.setIndexBuffer(mesh->getIndexBuffer());
-            batch.setInputFormat((mesh->getVertexFormat()));
-            batch.setInputStream(0, mesh->getVertexStream());
-
-            // Draw
-            auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
-            batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
-        } else {
+        if (maskMode == StencilMode::PAINT) {
             batch.setPipeline(getPaintStencilPipeline());
             batch.draw(gpu::TRIANGLE_STRIP, 4);
+        } else if (maskMode == StencilMode::MESH) {
+            batch.setPipeline(getMeshStencilPipeline());
+            maskOperator(batch);
         }
     });
 }
