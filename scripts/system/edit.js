@@ -2522,7 +2522,19 @@ var PropertiesTool = function (opts) {
                 type: 'propertyRangeReply',
                 propertyRanges: propertyRanges,
             });
-        }
+        } else if (data.type === "materialTargetRequest") {
+			var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
+			var parentModel = properties.parentID !== Uuid.NULL && 
+							  Entities.getEntityProperties(properties.parentID, ["type"]).type === "Model";
+			var parentModelData;
+			if (properties.type === "Material" && parentModel) {
+				parentModelData = Graphics.getModel(properties.parentID);
+			} 
+			emitScriptEvent({
+				type: 'materialTargetReply',
+				materialTargetData: parentModelData,
+			});
+		}
     };
 
     HMD.displayModeChanged.connect(function() {
