@@ -363,7 +363,7 @@ JitterSample::SampleSequence::SampleSequence(){
     // Halton sequence (2,3)
 
     for (int i = 0; i < SEQUENCE_LENGTH; i++) {
-        offsets[i] = glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i));
+        offsets[i] = glm::vec2(halton::evaluate<2>(i), halton::evaluate<3>(i));
         offsets[i] -= vec2(0.5f);
     }
     offsets[SEQUENCE_LENGTH] = glm::vec2(0.0f);

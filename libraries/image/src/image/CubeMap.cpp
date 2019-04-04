@@ -15,6 +15,7 @@
 #include <tbb/blocked_range2d.h>
 
 #include "RandomAndNoise.h"
+#include "BRDF.h"
 #include "ImageLogging.h"
 
 #ifndef M_PI
@@ -501,33 +502,14 @@ glm::vec4 CubeMap::fetchLod(const glm::vec3& dir, float lod) const {
     return loColor + (hiColor - loColor) * lodFrac;
 }
 
-static glm::vec3 sampleGGX(const glm::vec2& Xi, const float roughness) {
-    const float a = roughness * roughness;
-
-    float phi = (float)(2.0 * M_PI * Xi.x);
-    float cosTheta = (float)(std::sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y)));
-    float sinTheta = (float)(std::sqrt(1.0 - cosTheta * cosTheta));
-
-    // from spherical coordinates to cartesian coordinates
-    glm::vec3 H;
-    H.x = std::cos(phi) * sinTheta;
-    H.y = std::sin(phi) * sinTheta;
-    H.z = cosTheta;
-
-    return H;
-}
-
-static float evaluateGGX(float NdotH, float roughness) {
-    float alpha = roughness * roughness;
-    float alphaSquared = alpha * alpha;
-    float denom = (float)(NdotH * NdotH * (alphaSquared - 1.0) + 1.0);
-    return alphaSquared / (denom * denom);
-}
-
 struct CubeMap::GGXSamples {
     float invTotalWeight;
     std::vector<glm::vec4> points;
 };
+
+// All the GGX convolution code is inspired from:
+// https://placeholderart.wordpress.com/2015/07/28/implementation-notes-runtime-environment-map-filtering-for-image-based-lighting/
+// Computation is done in tangent space so normal is always (0,0,1) which simplifies a lot of things
 
 void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int resolution) {
     glm::vec2 xi;
@@ -546,8 +528,8 @@ void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int re
     // Do some computation in tangent space
     while (sampleIndex < sampleCount) {
         if (hammersleySampleIndex < hammersleySequenceLength) {
-            xi = evaluateHammersley((int)hammersleySampleIndex, (int)hammersleySequenceLength);
-            H = sampleGGX(xi, roughness);
+            xi = hammersley::evaluate((int)hammersleySampleIndex, (int)hammersleySequenceLength);
+            H = ggx::sample(xi, roughness);
             L = H * (2.0f * H.z) - glm::vec3(0.0f, 0.0f, 1.0f);
             NdotL = L.z;
             hammersleySampleIndex++;
@@ -559,14 +541,14 @@ void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int re
             // Create a purely random sample
             xi.x = rand() / float(RAND_MAX);
             xi.y = rand() / float(RAND_MAX);
-            H = sampleGGX(xi, roughness);
+            H = ggx::sample(xi, roughness);
             L = H * (2.0f * H.z) - glm::vec3(0.0f, 0.0f, 1.0f);
             NdotL = L.z;
         }
 
         float NdotH = std::max(0.0f, H.z);
         float HdotV = NdotH;
-        float D = evaluateGGX(NdotH, roughness);
+        float D = ggx::evaluate(NdotH, roughness);
         float pdf = (D * NdotH / (4.0f * HdotV)) + 0.0001f;
         float saSample = 1.0f / (float(sampleCount) * pdf + 0.0001f);
         float mipLevel = std::max(0.5f * log2(saSample / saTexel) + mipBias, 0.0f);
@@ -628,7 +610,7 @@ void CubeMap::convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, 
     const auto outputLineStride = output.getMipLineStride(mipLevel);
     auto outputFacePixels = output.editFace(mipLevel, face);
 
-    tbb::parallel_for(tbb::blocked_range2d<int, int>(0, mipDimensions.x, 32, 0, mipDimensions.y, 32), [&](const tbb::blocked_range2d<int, int>& range) {
+    tbb::parallel_for(tbb::blocked_range2d<int, int>(0, mipDimensions.y, 32, 0, mipDimensions.x, 32), [&](const tbb::blocked_range2d<int, int>& range) {
         auto rowRange = range.rows();
         auto colRange = range.cols();
 

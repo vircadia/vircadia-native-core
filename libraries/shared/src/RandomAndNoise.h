@@ -12,22 +12,24 @@
 
 #include <glm/vec2.hpp>
 
-// Low discrepancy Halton sequence generator
-template <int B>
-float evaluateHalton(int index) {
-    float f = 1.0f;
-    float r = 0.0f;
-    float invB = 1.0f / (float)B;
-    index++; // Indices start at 1, not 0
+namespace halton {
+    // Low discrepancy Halton sequence generator
+    template <int B>
+    float evaluate(int index) {
+        float f = 1.0f;
+        float r = 0.0f;
+        float invB = 1.0f / (float)B;
+        index++; // Indices start at 1, not 0
 
-    while (index > 0) {
-        f = f * invB;
-        r = r + f * (float)(index % B);
-        index = index / B;
+        while (index > 0) {
+            f = f * invB;
+            r = r + f * (float)(index % B);
+            index = index / B;
 
+        }
+
+        return r;
     }
-
-    return r;
 }
 
 inline float getRadicalInverseVdC(uint32_t bits) {
@@ -39,9 +41,12 @@ inline float getRadicalInverseVdC(uint32_t bits) {
     return float(bits) * 2.3283064365386963e-10f; // / 0x100000000\n"
 }
 
-// Low discrepancy Hammersley 2D sequence generator
-inline glm::vec2 evaluateHammersley(int k, const int sequenceLength) {
-    return glm::vec2(float(k) / float(sequenceLength), getRadicalInverseVdC(k));
+namespace hammersley {
+    // Low discrepancy Hammersley 2D sequence generator
+    inline glm::vec2 evaluate(int k, const int sequenceLength) {
+        return glm::vec2(float(k) / float(sequenceLength), getRadicalInverseVdC(k));
+    }
 }
+
 
 #endif

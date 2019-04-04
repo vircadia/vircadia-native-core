@@ -27,10 +27,17 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 <@endfunc@>
 
 <@func declareEvalAmbientSpecularIrradiance(supportAmbientSphere, supportAmbientMap, supportIfAmbientMapElseAmbientSphere)@>
+LAYOUT(binding=RENDER_UTILS_TEXTURE_AMBIENT_FRESNEL) uniform sampler2D ambientFresnelLUT;
 
-vec3 fresnelSchlickAmbient(vec3 fresnelColor, float ndotd, float gloss) {
+vec3 fresnelSchlickAmbient(vec3 fresnelColor, float ndotd, float roughness) {
+#if 0
+    float gloss = 1.0-roughness;
     float f = pow(1.0 - ndotd, 5.0);
     return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * f;
+#else
+    vec2 ambientFresnel = texture(ambientFresnelLUT, vec2(roughness, ndotd)).xy;
+    return fresnelColor * ambientFresnel.x + vec3(ambientFresnel.y);
+#endif
 }
 
 <@if supportAmbientMap@>
@@ -95,7 +102,7 @@ void evalLightingAmbient(out vec3 diffuse, out vec3 specular, LightAmbient ambie
     vec3 ambientSpaceLowNormal = (ambient.transform * vec4(lowNormalCurvature.xyz, 0.0)).xyz;
 <@endif@>
 
-    vec3 ambientFresnel = fresnelSchlickAmbient(fresnelF0, surface.ndotv, 1.0-surface.roughness);
+    vec3 ambientFresnel = fresnelSchlickAmbient(fresnelF0, surface.ndotv, surface.roughness);
 
     diffuse = (1.0 - metallic) * (vec3(1.0) - ambientFresnel) * 
               sphericalHarmonics_evalSphericalLight(getLightAmbientSphere(ambient), ambientSpaceSurfaceNormal).xyz;

@@ -365,6 +365,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
 
         // For the rest of the rendering, bind the lighting model
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
     });
 }
 
@@ -416,6 +417,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // THe lighting model
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
