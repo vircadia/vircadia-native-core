@@ -53,6 +53,14 @@
                 position: absolute;
                 top: 0; left: 0; bottom: 0; right: 0;
             }
+			
+			#image_button {
+				width: 480;
+				height: 720;
+				margin: auto;
+				position: absolute;
+				top: 0; left: 0; bottom: 0; right: 0;
+			}
 
             #report_problem {
                 position: fixed;
@@ -62,22 +70,28 @@
                 text-decoration: none;
                 color: #ddd;
             }
-        </style>
+        </sty	le>
         <script>
             var handControllerImageURL = null;
             var index = 0;
             var count = 3;
+			var handControllerRefURL = https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#vr-controls;
+			var keyboardRefURL = https://docs.highfidelity.com/en/rc81/explore/get-started/desktop.html#movement-controls;
+			var gamepadRefURL = https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#gamepad;
 
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
+				document.getElementById("main_image").setAttribute("href", keyboardRefURL);
             }
 
             function showHandControllers() {
                 document.getElementById("main_image").setAttribute("src", handControllerImageURL);
+				document.getElementById("main_image").setAttribute("href", handControllerRefURL);
             }
 
             function showGamepad() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-gamepad.jpg");
+				document.getElementById("main_image").setAttribute("href", gamepadRefURL);
             }
 
             function cycleRight() {
