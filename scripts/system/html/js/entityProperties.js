@@ -622,8 +622,6 @@ const GROUPS = [
                 type: "number-draggable",
                 step: 1,
                 decimals: 0,
-                min: 0,
-                max: 240,
                 propertyID: "maxFPS",
             },
             {
