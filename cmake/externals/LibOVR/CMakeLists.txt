@@ -17,8 +17,8 @@ if (WIN32)
 
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL https://hifi-public.s3.amazonaws.com/dependencies/ovr_sdk_win_1.35.0.zip
-    URL_MD5 1e3e8b2101387af07ff9c841d0ea285e
+    URL https://public.highfidelity.com/dependencies/ovr_sdk_win_1.26.0_public.zip
+    URL_MD5 06804ff9727b910dcd04a37c800053b5
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     PATCH_COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/LibOVRCMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
     LOG_DOWNLOAD 1
