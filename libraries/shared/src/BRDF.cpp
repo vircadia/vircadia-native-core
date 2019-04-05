@@ -10,16 +10,16 @@ namespace ggx {
 float evaluate(float NdotH, float roughness) {
     float alpha = roughness * roughness;
     float alphaSquared = alpha * alpha;
-    float denom = (float)(NdotH * NdotH * (alphaSquared - 1.0) + 1.0);
+    float denom = (float)(NdotH * NdotH * (alphaSquared - 1.0f) + 1.0f);
     return alphaSquared / (denom * denom);
 }
 
 glm::vec3 sample(const glm::vec2& Xi, const float roughness) {
     const float a = roughness * roughness;
 
-    float phi = (float)(2.0 * M_PI * Xi.x);
-    float cosTheta = (float)(std::sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0) * Xi.y)));
-    float sinTheta = (float)(std::sqrt(1.0 - cosTheta * cosTheta));
+    float phi = 2.0f * (float) M_PI * Xi.x;
+    float cosTheta = std::sqrt((1.0f - Xi.y) / (1.0f + (a*a - 1.0f) * Xi.y));
+    float sinTheta = std::sqrt(1.0f - cosTheta * cosTheta);
 
     // from spherical coordinates to cartesian coordinates
     glm::vec3 H;

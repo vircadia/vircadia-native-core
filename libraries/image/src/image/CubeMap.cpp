@@ -638,7 +638,7 @@ void CubeMap::convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, 
 
 glm::vec4 CubeMap::computeConvolution(const glm::vec3& N, const GGXSamples& samples) const {
     // from tangent-space vector to world-space
-    glm::vec3 bitangent = std::abs(N.z) < 0.999 ? glm::vec3(0.0, 0.0, 1.0) : glm::vec3(1.0, 0.0, 0.0);
+    glm::vec3 bitangent = std::abs(N.z) < 0.999f ? glm::vec3(0.0f, 0.0f, 1.0f) : glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 tangent = glm::normalize(glm::cross(bitangent, N));
     bitangent = glm::cross(N, tangent);
 
