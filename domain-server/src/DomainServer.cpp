@@ -2167,9 +2167,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             restart();
             return true;
         } else if (url.path() == URI_API_METAVERSE_INFO) {
-            auto id = url.path().mid(QString(URI_API_BACKUPS_ID).length());
-            auto info = _contentManager->consolidateBackup(id);
-
             QJsonObject rootJSON {
                 { "metaverse_url", NetworkingConstants::METAVERSE_SERVER_URL().toString() }
             };
