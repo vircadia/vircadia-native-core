@@ -713,7 +713,7 @@ private:
 
     glm::mat4 getModelTransform(const GLTFNode& node);
     void getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues);
-    void getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, std::vector<int>& result);
+    void getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool order, std::vector<int>& result);
 
     bool buildGeometry(HFMModel& hfmModel, const hifi::URL& url);
     bool parseGLTF(const hifi::ByteArray& data);

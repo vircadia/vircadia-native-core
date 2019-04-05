@@ -751,7 +751,7 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
     }
 }
 
-void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, std::vector<int>& result) {
+void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool order, std::vector<int>& result) {
     int startingIndex = 0;
     int finalIndex = (int)children.size();
     if (stride == -1) {
@@ -763,10 +763,12 @@ void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children
         result.push_back(c);
         std::vector<int> nested = _file.nodes[c].children.toStdVector();
         if (nested.size() != 0) {
-            std::sort(nested.begin(), nested.end());
+            if (order) {
+                std::sort(nested.begin(), nested.end());
+            }
             for (int r : nested) {
                 if (result.end() == std::find(result.begin(), result.end(), r)) {
-                    getNodeQueueByDepthFirstChildren(nested, stride, result);
+                    getNodeQueueByDepthFirstChildren(nested, stride, order, result);
                 }
             }
         } 
@@ -776,13 +778,18 @@ void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children
 
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     int numNodes = _file.nodes.size();
+    bool skinnedModel = !_file.skins.isEmpty();
 
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(numNodes);
     int nodecount = 0;
+    bool parentOutOfOrder = false;
     foreach(auto &node, _file.nodes) {
         //nodes_transforms.push_back(getModelTransform(node));
-        foreach(int child, node.children) nodeDependencies[child].push_back(nodecount);
+        foreach(int child, node.children) {
+            nodeDependencies[child].push_back(nodecount);
+            parentOutOfOrder |= nodecount < child;
+        }
         nodecount++;
     }
     
@@ -806,20 +813,27 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
 
     // initialize order in which nodes will be parsed
+    bool sortNodes = (!parentOutOfOrder && skinnedModel) || !skinnedModel;
     std::vector<int> nodeQueue;
     nodeQueue.reserve(numNodes);
     int rootNode = 0;
     int finalNode = numNodes;
-    if (!_file.scenes[_file.scene].nodes.contains(0)) {
-        rootNode = numNodes - 1;
-        finalNode = -1;
+    for (int sceneNode : _file.scenes[_file.scene].nodes) {
+        if (!_file.nodes[sceneNode].defined["camera"] && sceneNode != 0) {
+            rootNode = numNodes - 1;
+            finalNode = -1;
+            break;
+        }
     }
     bool rootAtStartOfList = rootNode < finalNode;
     int nodeListStride = 1;
     if (!rootAtStartOfList) { nodeListStride = -1; }
 
     QVector<int> initialSceneNodes = _file.scenes[_file.scene].nodes; 
-    std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
+    if (sortNodes) {
+        std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
+    }
+
     int sceneRootNode = 0; 
     int sceneFinalNode = initialSceneNodes.size();
     if (!rootAtStartOfList) { 
@@ -830,9 +844,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         int i = initialSceneNodes[index];
         nodeQueue.push_back(i);
         std::vector<int> children = _file.nodes[i].children.toStdVector(); 
-        std::sort(children.begin(), children.end());
-        getNodeQueueByDepthFirstChildren(children, nodeListStride, nodeQueue);
+        if (sortNodes) {
+            std::sort(children.begin(), children.end());
+        }
+        getNodeQueueByDepthFirstChildren(children, nodeListStride, sortNodes, nodeQueue);
     }
+
 
     // Build joints
     HFMJoint joint;
