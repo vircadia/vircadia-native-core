@@ -30,13 +30,13 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 LAYOUT(binding=RENDER_UTILS_TEXTURE_AMBIENT_FRESNEL) uniform sampler2D ambientFresnelLUT;
 
 vec3 fresnelSchlickAmbient(vec3 fresnelColor, float ndotd, float roughness) {
-#if 0
+#if RENDER_UTILS_ENABLE_AMBIENT_FRESNEL_LUT
+    vec2 ambientFresnel = texture(ambientFresnelLUT, vec2(roughness, ndotd)).xy;
+    return fresnelColor * ambientFresnel.x + vec3(ambientFresnel.y);
+#else
     float gloss = 1.0-roughness;
     float f = pow(1.0 - ndotd, 5.0);
     return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * f;
-#else
-    vec2 ambientFresnel = texture(ambientFresnelLUT, vec2(roughness, ndotd)).xy;
-    return fresnelColor * ambientFresnel.x + vec3(ambientFresnel.y);
 #endif
 }
 

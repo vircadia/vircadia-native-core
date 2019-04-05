@@ -12,6 +12,8 @@
 #include "RandomAndNoise.h"
 #include "BRDF.h"
 
+#include "render-utils/ShaderConstants.h"
+
 #include <tbb/parallel_for.h>
 #include <tbb/blocked_range2d.h>
 
@@ -21,6 +23,7 @@ LightingModel::LightingModel() {
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters, sizeof(Parameters)));
 
+#if RENDER_UTILS_ENABLE_AMBIENT_FRESNEL_LUT
     if (!_ambientFresnelLUT) {
         // Code taken from the IntegrateBRDF method as described in this talk :
         // https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
@@ -88,6 +91,7 @@ LightingModel::LightingModel() {
 
         _ambientFresnelLUT->assignStoredMip(0, N_roughness * N_NdotV * sizeof(LUTVector::value_type), (const gpu::Byte*)lut.data());
     }
+#endif
 }
 
 void LightingModel::setUnlit(bool enable) {

@@ -14,6 +14,10 @@
 #ifndef RENDER_UTILS_SHADER_CONSTANTS_H
 #define RENDER_UTILS_SHADER_CONSTANTS_H
 
+// Feature enabling flags (possibly need to rebuild shaders if this changes)
+#define RENDER_UTILS_ENABLE_AMBIENT_FRESNEL_LUT 1
+
+// Binding slots
 #define RENDER_UTILS_ATTR_TEXCOORD01 0
 #define RENDER_UTILS_ATTR_COLOR 1
 
