@@ -418,7 +418,9 @@ void CubeMap::getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv) {
     auto isYPositive = dir.y > 0;
     auto isZPositive = dir.z > 0;
 
-    float maxAxis, uc, vc;
+    float maxAxis = 1.0f;
+    float uc = 0.0f;
+    float vc = 0.0f;
 
     // POSITIVE X
     if (isXPositive && absX >= absY && absX >= absZ) {
@@ -518,8 +520,8 @@ void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int re
     const float mipBias = 3.0f;
     const auto sampleCount = data.points.size();
     const auto hammersleySequenceLength = data.points.size();
-    int sampleIndex = 0;
-    int hammersleySampleIndex = 0;
+    size_t sampleIndex = 0;
+    size_t hammersleySampleIndex = 0;
     float NdotL;
 
     data.invTotalWeight = 0.0f;
@@ -636,14 +638,14 @@ void CubeMap::convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, 
 
 glm::vec4 CubeMap::computeConvolution(const glm::vec3& N, const GGXSamples& samples) const {
     // from tangent-space vector to world-space
-    glm::vec3 bitangent = abs(N.z) < 0.999 ? glm::vec3(0.0, 0.0, 1.0) : glm::vec3(1.0, 0.0, 0.0);
+    glm::vec3 bitangent = std::abs(N.z) < 0.999 ? glm::vec3(0.0, 0.0, 1.0) : glm::vec3(1.0, 0.0, 0.0);
     glm::vec3 tangent = glm::normalize(glm::cross(bitangent, N));
     bitangent = glm::cross(N, tangent);
 
     const size_t sampleCount = samples.points.size();
     glm::vec4 prefilteredColor = glm::vec4(0.0f);
 
-    for (int i = 0; i < sampleCount; ++i) {
+    for (size_t i = 0; i < sampleCount; ++i) {
         const auto& sample = samples.points[i];
         glm::vec3 L(sample.x, sample.y, sample.z);
         float NdotL = L.z;

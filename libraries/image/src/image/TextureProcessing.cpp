@@ -534,8 +534,8 @@ public:
 };
 #endif
 
-void image::convertToFloatFromPacked(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
-                                     glm::vec4* output, size_t outputLinePixelStride) {
+void convertToFloatFromPacked(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
+                              glm::vec4* output, size_t outputLinePixelStride) {
     glm::vec4* outputIt;
     auto unpackFunc = getHDRUnpackingFunction(sourceFormat);
 
@@ -554,8 +554,8 @@ void image::convertToFloatFromPacked(const unsigned char* source, int width, int
     }
 }
 
-void image::convertToPackedFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
-                                     const glm::vec4* source, size_t srcLinePixelStride) {
+void convertToPackedFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+                              const glm::vec4* source, size_t srcLinePixelStride) {
     const glm::vec4* sourceIt;
     auto packFunc = getHDRPackingFunction(outputFormat);
 
@@ -576,10 +576,6 @@ void image::convertToPackedFromFloat(unsigned char* output, int width, int heigh
 
 nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressionOptions) {
     auto outputFormat = outputTexture->getStoredMipFormat();
-
-    nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
-    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
-    nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
     bool useNVTT = false;
 
     compressionOptions.setQuality(nvtt::Quality_Production);
@@ -620,12 +616,8 @@ void convertImageToHDRTexture(gpu::Texture* texture, Image&& image, BackendTarge
 
     Image localCopy = image.getConvertedToFormat(Image::Format_RGBAF);
 
-    const int width = localCopy.getWidth(), height = localCopy.getHeight();
-    auto mipFormat = texture->getStoredMipFormat();
-
-    nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
-    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
-    nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
+    const int width = localCopy.getWidth();
+    const int height = localCopy.getHeight();
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
@@ -641,9 +633,9 @@ void convertImageToHDRTexture(gpu::Texture* texture, Image&& image, BackendTarge
     outputOptions.setOutputHandler(outputHandler.get());
 
     nvtt::Surface surface;
-    surface.setImage(inputFormat, width, height, 1, localCopy.getBits());
-    surface.setAlphaMode(alphaMode);
-    surface.setWrapMode(wrapMode);
+    surface.setImage(nvtt::InputFormat_RGBA_32F, width, height, 1, localCopy.getBits());
+    surface.setAlphaMode(nvtt::AlphaMode_None);
+    surface.setWrapMode(nvtt::WrapMode_Mirror);
 
     SequentialTaskDispatcher dispatcher(abortProcessing);
     nvtt::Compressor compressor;
