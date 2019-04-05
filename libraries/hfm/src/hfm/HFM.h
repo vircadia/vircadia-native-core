@@ -53,6 +53,8 @@ using ColorType = glm::vec3;
 
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
+
+using ShapeVertices = std::vector<glm::vec3>;
 // The version of the Draco mesh binary data itself. See also: FBX_DRACO_MESH_VERSION in FBX.h
 static const int DRACO_MESH_VERSION = 2;
 
@@ -327,10 +329,12 @@ public:
 
     /// given a meshIndex this will return the name of the model that mesh belongs to if known
     QString getModelNameOfMesh(int meshIndex) const;
+    void computeKdops();
 
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
+    std::vector<ShapeVertices> shapeVertices;
     FlowData flowData;
 };
 

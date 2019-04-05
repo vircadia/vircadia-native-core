@@ -300,8 +300,6 @@ QString getString(const QVariant& value) {
     return list.isEmpty() ? value.toString() : list.at(0).toString();
 }
 
-typedef std::vector<glm::vec3> ShapeVertices;
-
 class AnimationCurve {
 public:
     QVector<float> values;
@@ -1352,8 +1350,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     }
 
     // NOTE: shapeVertices are in joint-frame
-    std::vector<ShapeVertices> shapeVertices;
-    shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
+    hfmModel.shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
 
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
@@ -1527,7 +1524,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 HFMJoint& joint = hfmModel.joints[jointIndex];
 
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
-                ShapeVertices& points = shapeVertices.at(jointIndex);
+                ShapeVertices& points = hfmModel.shapeVertices.at(jointIndex);
 
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
@@ -1601,7 +1598,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
             // transform cluster vertices to joint-frame and save for later
             glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
-            ShapeVertices& points = shapeVertices.at(jointIndex);
+            ShapeVertices& points = hfmModel.shapeVertices.at(jointIndex);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 const glm::mat4 vertexTransform = meshToJoint * glm::translate(vertex);
                 points.push_back(extractTranslation(vertexTransform));
@@ -1619,54 +1616,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
         hfmModel.meshes.append(extracted.mesh);
         int meshIndex = hfmModel.meshes.size() - 1;
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
-    }
-
-    const float INV_SQRT_3 = 0.57735026918f;
-    ShapeVertices cardinalDirections = {
-        Vectors::UNIT_X,
-        Vectors::UNIT_Y,
-        Vectors::UNIT_Z,
-        glm::vec3(INV_SQRT_3,  INV_SQRT_3,  INV_SQRT_3),
-        glm::vec3(INV_SQRT_3, -INV_SQRT_3,  INV_SQRT_3),
-        glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
-        glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
-    };
-
-    // now that all joints have been scanned compute a k-Dop bounding volume of mesh
-    for (int i = 0; i < hfmModel.joints.size(); ++i) {
-        HFMJoint& joint = hfmModel.joints[i];
-
-        // NOTE: points are in joint-frame
-        ShapeVertices& points = shapeVertices.at(i);
-        if (points.size() > 0) {
-            // compute average point
-            glm::vec3 avgPoint = glm::vec3(0.0f);
-            for (uint32_t j = 0; j < points.size(); ++j) {
-                avgPoint += points[j];
-            }
-            avgPoint /= (float)points.size();
-            joint.shapeInfo.avgPoint = avgPoint;
-
-            // compute a k-Dop bounding volume
-            for (uint32_t j = 0; j < cardinalDirections.size(); ++j) {
-                float maxDot = -FLT_MAX;
-                float minDot = FLT_MIN;
-                for (uint32_t k = 0; k < points.size(); ++k) {
-                    float kDot = glm::dot(cardinalDirections[j], points[k] - avgPoint);
-                    if (kDot > maxDot) {
-                        maxDot = kDot;
-                    }
-                    if (kDot < minDot) {
-                        minDot = kDot;
-                    }
-                }
-                joint.shapeInfo.points.push_back(avgPoint + maxDot * cardinalDirections[j]);
-                joint.shapeInfo.dots.push_back(maxDot);
-                joint.shapeInfo.points.push_back(avgPoint + minDot * cardinalDirections[j]);
-                joint.shapeInfo.dots.push_back(-minDot);
-            }
-            generateBoundryLinesForDop14(joint.shapeInfo.dots, joint.shapeInfo.avgPoint, joint.shapeInfo.debugLines);
-        }
     }
 
     // attempt to map any meshes to a named model
