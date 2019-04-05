@@ -18,7 +18,7 @@ if (WIN32 AND (NOT USE_GLES))
   link_hifi_libraries(
     shared task gl shaders gpu ${PLATFORM_GL_BACKEND} controllers ui qml
     plugins ui-plugins display-plugins input-plugins
-    audio-client networking render-utils graphics
+    audio-client networking render-utils
     ${PLATFORM_GL_BACKEND}
   )
   include_hifi_library_headers(octree)
