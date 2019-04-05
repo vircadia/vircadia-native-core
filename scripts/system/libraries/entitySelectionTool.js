@@ -1334,14 +1334,7 @@ SelectionDisplay = (function() {
             ctrlPressed = false;
             that.updateActiveRotateRing();
         }
-        if (activeTool && lastMouseEvent !== null) {
-            lastMouseEvent.isShifted = event.isShifted;
-            lastMouseEvent.isMeta = event.isMeta;
-            lastMouseEvent.isControl = event.isControl;
-            lastMouseEvent.isAlt = event.isAlt;
-            activeTool.onMove(lastMouseEvent);
-            SelectionManager._update(false, this);
-        }
+        that.updateLastMouseEvent(event);
     };
 
     // Triggers notification on specific key driven events
@@ -1350,13 +1343,16 @@ SelectionDisplay = (function() {
             ctrlPressed = true;
             that.updateActiveRotateRing();
         }
-        if (activeTool && lastMouseEvent !== null) {
-            lastMouseEvent.isShifted = event.isShifted;
-            lastMouseEvent.isMeta = event.isMeta;
-            lastMouseEvent.isControl = event.isControl;
-            lastMouseEvent.isAlt = event.isAlt;
-            activeTool.onMove(lastMouseEvent);
-            SelectionManager._update(false, this);
+        that.updateLastMouseEvent(event);
+    };
+    
+    that.updateLastMouseEvent = function(event) {
+        if (activeTool && lastMouseEvent !== null) {            
+            lastMouseEvent.isShifted = event.isShifted; 
+            lastMouseEvent.isMeta = event.isMeta;   
+            lastMouseEvent.isControl = event.isControl; 
+            lastMouseEvent.isAlt = event.isAlt; 
+            activeTool.onMove(lastMouseEvent);      
         }
     };
 
