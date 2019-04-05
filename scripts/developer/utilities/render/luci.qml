@@ -46,6 +46,22 @@ Rectangle {
                 anchors.right: parent.right 
             }        */
             Jet.TaskPropView {
+                id: "lightingModel"
+                jobPath: "RenderMainView.LightingModel"
+                label: "Le LightingModel"
+
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+            Jet.TaskPropView {
+                id: "theView"
+                jobPath: "RenderMainView"
+                label: "Le Render Main View"
+
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+            Jet.TaskPropView {
                 id: "the"
                 jobPath: "RenderMainView.RenderDeferredTask"
                 label: "Le Render Deferred Job"

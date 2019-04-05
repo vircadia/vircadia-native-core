@@ -16,24 +16,27 @@ Item {
 
     property var label: "group"
 
-    property alias isUnfold: headerRect.icon
+    property alias isUnfold: headerFolderIcon.icon
     property alias propItemsPanel: propItemsContainer
+    property alias headerContainer: headerContainer
 
+    // Header Item
     Item {
         id: header
         height: global.slimHeight
         anchors.left: parent.left           
         anchors.right: parent.right
 
+        // First in the header, the folder button / indicator
         Item {
-            id: folder
+            id: headerFolder
             anchors.left: header.left
-            width: headerRect.width * 2
+            width: headerFolderIcon.width * 2
             anchors.verticalCenter: header.verticalCenter
             height: parent.height
             
             PropCanvasIcon {
-                id: headerRect
+                id: headerFolderIcon
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
                  
@@ -47,26 +50,28 @@ Item {
             }
         }
 
-        PropLabel {
-            id: labelControl
-            anchors.left: folder.right
+        // Next the header container
+        // by default containing a Label showing the root.label
+        Item {
+            id: headerContainer
+            anchors.left: headerFolder.right
             anchors.right: header.right
             anchors.verticalCenter: header.verticalCenter
-            text: root.label
-            horizontalAlignment: Text.AlignHCenter
-        }
+            height: parent.height
 
-     /*   Rectangle {
-            anchors.left: parent.left           
-            anchors.right: parent.right
-            height: 1
-            anchors.bottom: parent.bottom
-            color: global.colorBorderHighight
-       
-            visible: root.isUnfold   
-        }*/
+            PropLabel {
+                id: labelControl
+                anchors.left: headerContainer.left
+                anchors.right: headerContainer.right
+                anchors.verticalCenter: headerContainer.verticalCenter
+                text: root.label
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+        }
     }
 
+    // The Panel container 
     Rectangle {
         visible: root.isUnfold
 
