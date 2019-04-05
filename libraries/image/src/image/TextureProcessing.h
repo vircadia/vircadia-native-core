@@ -25,6 +25,32 @@ namespace image {
 
 namespace TextureUsage {
 
+/**jsdoc
+ * <p>Describes the type of texture.</p>
+ * <p>See also: {@link Material} and 
+ * {@link https://docs.highfidelity.com/create/3d-models/pbr-materials-guide.html|PBR Materials Guide}.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>Default</td><td>Basic color.</td></tr>
+ *     <tr><td><code>1</code></td><td>Strict</td><td>Basic color. Quality never downgraded.</td></tr>
+ *     <tr><td><code>2</code></td><td>Albedo</td><td>Color for PBR.</td></tr>
+ *     <tr><td><code>3</code></td><td>Normal</td><td>Normal map.</td></tr>
+ *     <tr><td><code>4</code></td><td>Bump</td><td>Bump map.</td></tr>
+ *     <tr><td><code>5</code></td><td>Specular or metallic</td><td>Metallic or not.</td></tr>
+ *     <tr><td><code>6</code></td><td>Roughness</td><td>Rough or matte.</td></tr>
+ *     <tr><td><code>7</code></td><td>Gloss</td><td>Gloss or shine.</td></tr>
+ *     <tr><td><code>8</code></td><td>Emissive</td><td>The amount of light reflected.</td></tr>
+ *     <tr><td><code>9</code></td><td>Cube</td><td>Cubic image for sky boxes.</td></tr>
+ *     <tr><td><code>10</code></td><td>Occlusion or scattering</td><td>How objects or human skin interact with light.</td></tr>
+ *     <tr><td><code>11</code></td><td>Lightmap</td><td>Light map.</td></tr>
+ *     <tr><td><code>12</code></td><td>Unused</td><td>Texture is not currently used.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} TextureCache.TextureType
+ */
 enum Type {
     DEFAULT_TEXTURE,
     STRICT_TEXTURE,

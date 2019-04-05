@@ -116,15 +116,25 @@ protected:
      * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - Audio injector configuration.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      * @example <caption>Play a sound.</caption>
-     * var sound = SoundCache.getSound(Script.resourcesPath() + "sounds/sample.wav");
-     * var injector;
-     * var injectorOptions = {
-     *     position: MyAvatar.position
-     * };
+     * var sound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/ken/samples/forest_ambiX.wav");
      * 
-     * Script.setTimeout(function () { // Give the sound time to load.
-     *     injector = Audio.playSound(sound, injectorOptions);
-     * }, 1000);
+     * function playSound() {
+     *     var injectorOptions = {
+     *         position: MyAvatar.position
+     *     };
+     *     var injector = Audio.playSound(sound, injectorOptions);
+     * }
+     * 
+     * function onSoundReady() {
+     *     sound.ready.disconnect(onSoundReady);
+     *     playSound();
+     * }
+     * 
+     * if (sound.downloaded) {
+     *     playSound();
+     * } else {
+     *     sound.ready.connect(onSoundReady);
+     * }
      */
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
