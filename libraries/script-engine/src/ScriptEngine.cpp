@@ -589,7 +589,7 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {Resource.State} State - The possible loading states of a resource. <em>Read-inly.</em>
+ * @property {Resource.State} State - The possible loading states of a resource. <em>Read-only.</em>
  */
 static QScriptValue createScriptableResourcePrototype(ScriptEnginePointer engine) {
     auto prototype = engine->newObject();

@@ -116,9 +116,9 @@ public:
      * @typedef {object} Resource.State
      * @property {number} QUEUED - The resource is queued up, waiting to be loaded.
      * @property {number} LOADING - The resource is downloading.
-     * @property {number} LOADED - The resource has finished downloaded but is not complete.
+     * @property {number} LOADED - The resource has finished downloading but is not complete.
      * @property {number} FINISHED - The resource has completely finished loading and is ready.
-     * @property {number} FAILED - Downloading the resource has failed.
+     * @property {number} FAILED - The resource has failed to download.
      */
     enum State {
         QUEUED,
@@ -325,7 +325,7 @@ public:
      * @function ResourceCache.getResourceList
      * @returns {string[]} The URLs of all resources in the cache.
      * @example <caption>Report cached resources.</caption>
-     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as wanted.
+     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
      *
      * var cachedResources = AnimationCache.getResourceList();
      * print("Cached resources: " + JSON.stringify(cachedResources));

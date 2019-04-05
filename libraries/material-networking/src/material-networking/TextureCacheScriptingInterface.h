@@ -50,6 +50,7 @@ public:
     /**jsdoc
      * Prefetches a texture resource of specific type.
      * @function TextureCache.prefetch
+     * @variation 0
      * @param {string} url - The URL of the texture to prefetch.
      * @param {TextureCache.TextureType} type - The type of the texture.
      * @param {number} [maxNumPixels=67108864] - The maximum number of pixels to use for the image. If the texture has more 
