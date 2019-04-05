@@ -55,11 +55,9 @@
             }
 			
 			#image_button {
-				width: 480;
-				height: 720;
-				margin: auto;
-				position: absolute;
-				top: 0; left: 0; bottom: 0; right: 0;
+				width: 930;
+				height: 806;
+				top: 312; left: 16; right: 17; bottom: 294;
 			}
 
             #report_problem {
@@ -70,28 +68,28 @@
                 text-decoration: none;
                 color: #ddd;
             }
-        </sty	le>
+        </style>
         <script>
             var handControllerImageURL = null;
             var index = 0;
             var count = 3;
-			var handControllerRefURL = https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#vr-controls;
-			var keyboardRefURL = https://docs.highfidelity.com/en/rc81/explore/get-started/desktop.html#movement-controls;
-			var gamepadRefURL = https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#gamepad;
+			var handControllerRefURL = "https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#vr-controls";
+			var keyboardRefURL = "https://docs.highfidelity.com/en/rc81/explore/get-started/desktop.html#movement-controls";
+			var gamepadRefURL = "https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#gamepad";
 
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
-				document.getElementById("main_image").setAttribute("href", keyboardRefURL);
+				document.getElementById("image_button").setAttribute("href", keyboardRefURL);
             }
 
             function showHandControllers() {
                 document.getElementById("main_image").setAttribute("src", handControllerImageURL);
-				document.getElementById("main_image").setAttribute("href", handControllerRefURL);
+				document.getElementById("image_button").setAttribute("href", handControllerRefURL);
             }
 
             function showGamepad() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-gamepad.jpg");
-				document.getElementById("main_image").setAttribute("href", gamepadRefURL);
+				document.getElementById("image_button").setAttribute("href", gamepadRefURL);
             }
 
             function cycleRight() {
@@ -185,6 +183,7 @@
             <img id="main_image" src="img/tablet-help-keyboard.jpg" width="480px" height="720px"></img>
             <a href="#" id="left_button" onmousedown="cycleLeft()"></a>
             <a href="#" id="right_button" onmousedown="cycleRight()"></a>
+			<a href="#" id="image_button"></a>
         </div>
         <a href="mailto:support@highfidelity.com" id="report_problem">Report Problem</a>
     </body>
