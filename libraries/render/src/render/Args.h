@@ -16,10 +16,10 @@
 
 #include <GLMHelpers.h>
 #include <ViewFrustum.h>
+#include <StencilMode.h>
 
 #include <gpu/Forward.h>
 #include "Forward.h"
-
 
 class AABox;
 
@@ -133,6 +133,9 @@ namespace render {
 
         std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator;
         gpu::TexturePointer _hudTexture;
+
+        StencilMode _stencilMode { StencilMode::NONE };
+        std::function<void(gpu::Batch&)> _stencilMaskOperator;
     };
 
 }

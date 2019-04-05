@@ -267,11 +267,32 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->bool { return myAvatar->getStrafeEnabled(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setStrafeEnabled(value); };
+        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Strafing", getter, setter));
+    }
+    {
         auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
         auto setter = [myAvatar](bool value) { myAvatar->setFlyingHMDPref(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Jumping and flying", getter, setter);
         preference->setIndented(true);
         preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
+        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
+        //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Movement Direction", getter, setter);
+        QStringList items;
+        items << "HMD-Relative" << "Hand-Relative" << "Hand-Relative (Leveled)";
+        preference->setHeading("Movement Direction");
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(VR_MOVEMENT, "Dominant Hand", getter, setter));
     }
     {
         auto getter = [myAvatar]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
@@ -281,6 +302,26 @@ void setupPreferences() {
         items << "Snap turn" << "Smooth turn";
         preference->setHeading("Rotation mode");
         preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int { return myAvatar->getControlScheme(); };
+        auto setter = [myAvatar](int index) { myAvatar->setControlScheme(index); };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Control Scheme", getter, setter);
+        QStringList items;
+        items << "Default" << "Analog" << "Analog++";
+        preference->setHeading("Control Scheme Selection");
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->float { return myAvatar->getAnalogPlusWalkSpeed(); };
+        auto setter = [myAvatar](float value) { myAvatar->setAnalogPlusWalkSpeed(value); };
+        auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Analog++ Walk Speed", getter, setter);
+        preference->setMin(6.0f);
+        preference->setMax(30.0f);
+        preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {
