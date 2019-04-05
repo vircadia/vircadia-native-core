@@ -14,8 +14,7 @@
 
 #include "render-utils/ShaderConstants.h"
 
-#include <tbb/parallel_for.h>
-#include <tbb/blocked_range2d.h>
+#include <TBBHelpers.h>
 
 gpu::TexturePointer LightingModel::_ambientFresnelLUT;
 

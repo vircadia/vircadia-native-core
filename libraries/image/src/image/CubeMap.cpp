@@ -11,8 +11,7 @@
 #include "CubeMap.h"
 
 #include <cmath>
-#include <tbb/parallel_for.h>
-#include <tbb/blocked_range2d.h>
+#include <TBBHelpers.h>
 
 #include "RandomAndNoise.h"
 #include "BRDF.h"
@@ -551,7 +550,7 @@ void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int re
         float D = ggx::evaluate(NdotH, roughness);
         float pdf = (D * NdotH / (4.0f * HdotV)) + 0.0001f;
         float saSample = 1.0f / (float(sampleCount) * pdf + 0.0001f);
-        float mipLevel = std::max(0.5f * log2(saSample / saTexel) + mipBias, 0.0f);
+        float mipLevel = std::max(0.5f * std::log2(saSample / saTexel) + mipBias, 0.0f);
 
         auto& sample = data.points[sampleIndex];
         sample.x = L.x;
