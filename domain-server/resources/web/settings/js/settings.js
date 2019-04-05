@@ -16,7 +16,7 @@ $(document).ready(function(){
 
   Settings.extraGroupsAtEnd = Settings.extraDomainGroupsAtEnd;
   Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
-  var METAVERSE_URL = "https://metaverse.highfidelity.com";
+  var METAVERSE_URL = URLs.METAVERSE_URL;
 
   Settings.afterReloadActions = function() {
 

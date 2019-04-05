@@ -488,7 +488,7 @@ function getMetaverseUrl(callback) {
         callback(data.metaverse_url);
       },
       error: function() {
-        callback("https://metaverse.highfidelity.com");
+        callback(URLs.METAVERSE_URL);
       }
     });
 }
