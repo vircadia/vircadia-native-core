@@ -2400,6 +2400,7 @@ function createDynamicMultiselectProperty(property, elProperty) {
     
     let elDivOptions = document.createElement('div');
     elDivOptions.setAttribute("id", elementID + "-options");
+    elDivOptions.style = "overflow-y:scroll;max-height:160px;"
     
     let elDivButtons = document.createElement('div');
     elDivButtons.setAttribute("id", elDivOptions.getAttribute("id") + "-buttons");
@@ -2424,8 +2425,8 @@ function resetDynamicMultiselectProperty(elDivOptions) {
         let elDivOption = elInputs[0].parentNode;
         elDivOption.parentNode.removeChild(elDivOption);
     }
-    elDivOptions.firstChild.style.display = "none";
-    elDivOptions.parentNode.lastChild.style.display = "block";
+    elDivOptions.firstChild.style.display = "block"; // show "No Options" text
+    elDivOptions.parentNode.lastChild.style.display = "none"; // hide Select/Clear all buttons
 }
 
 function createTupleNumberInput(property, subLabel) {
@@ -3109,10 +3110,11 @@ function setMaterialTargetData(materialTargetData) {
     resetDynamicMultiselectProperty(elDivOptions);
     
     if (materialTargetData === undefined) {
-        elDivOptions.firstChild.style.display = "block";
-        elDivOptions.parentNode.lastChild.style.display = "none";
         return;
     }
+    
+    elDivOptions.firstChild.style.display = "none"; // hide "No Options" text
+    elDivOptions.parentNode.lastChild.style.display = "block"; // show Select/Clear all buttons
 
     let numMeshes = materialTargetData.numMeshes;
     for (let i = 0; i < numMeshes; ++i) {
