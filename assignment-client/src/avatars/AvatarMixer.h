@@ -34,8 +34,8 @@ public:
 
     static bool shouldReplicateTo(const Node& from, const Node& to) {
         return to.getType() == NodeType::DownstreamAvatarMixer &&
-               to.getPublicSocket() != from.getPublicSocket() &&
-               to.getLocalSocket() != from.getLocalSocket();
+            to.getPublicSocket() != from.getPublicSocket() &&
+            to.getLocalSocket() != from.getLocalSocket();
     }
 
 public slots:
@@ -45,6 +45,11 @@ public slots:
     void handleAvatarKilled(SharedNodePointer killedNode);
 
     void sendStatsPacket() override;
+
+    // Avatar zone possibly changed
+    void entityAdded(EntityItem* entity);
+    void entityRemoved(EntityItem* entity);
+    void entityChange();
 
 private slots:
     void queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
@@ -80,6 +85,7 @@ private:
 
     // Attach to entity tree for avatar-priority zone info.
     EntityTreeHeadlessViewer _entityViewer;
+    bool _dirtyHeroStatus { true };  // Dirty the needs-hero-update
 
     // FIXME - new throttling - use these values somehow
     float _trailingMixRatio { 0.0f };

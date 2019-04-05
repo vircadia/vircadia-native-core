@@ -73,7 +73,10 @@ public:
     void each(std::function<void(AvatarMixerSlave& slave)> functor);
 
     void setNumThreads(int numThreads);
-    int numThreads() { return _numThreads; }
+    int numThreads() const { return _numThreads; }
+
+    void setPriorityReservedFraction(float fraction) { _priorityReservedFraction = fraction; }
+    float getPriorityReservedFraction() const { return  _priorityReservedFraction; }
 
 private:
     void run(ConstIter begin, ConstIter end);
@@ -91,7 +94,11 @@ private:
     ConditionVariable _poolCondition;
     void (AvatarMixerSlave::*_function)(const SharedNodePointer& node);
     std::function<void(AvatarMixerSlave&)> _configure;
+
+    // Set from Domain Settings:
+    float _priorityReservedFraction { 0.4f };
     int _numThreads { 0 };
+
     int _numStarted { 0 }; // guarded by _mutex
     int _numFinished { 0 }; // guarded by _mutex
     int _numStopped { 0 }; // guarded by _mutex

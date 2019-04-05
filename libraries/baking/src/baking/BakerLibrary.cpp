@@ -26,11 +26,10 @@ QUrl getBakeableModelURL(const QUrl& url) {
         GLTF_EXTENSION
     };
 
-    QUrl cleanURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
-    QString cleanURLString = cleanURL.fileName();
+    QString filename = url.fileName();
     for (auto& extension : extensionsToBake) {
-        if (cleanURLString.endsWith(extension, Qt::CaseInsensitive)) {
-            return cleanURL;
+        if (filename.endsWith(extension, Qt::CaseInsensitive)) {
+            return url;
         }
     }
 

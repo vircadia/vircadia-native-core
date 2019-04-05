@@ -17,9 +17,10 @@ using System.Text.RegularExpressions;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.3.7";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.4.1";
     
-    static readonly float HIPS_GROUND_MIN_Y = 0.01f;
+    static readonly float HIPS_MIN_Y_PERCENT_OF_HEIGHT = 0.03f;
+    static readonly float BELOW_GROUND_THRESHOLD_PERCENT_OF_HEIGHT = -0.15f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
     static readonly int MAXIMUM_USER_BONE_COUNT = 256;
     static readonly string EMPTY_WARNING_TEXT = "None";
@@ -231,7 +232,8 @@ class AvatarExporter : MonoBehaviour {
         HeadMapped,
         HeadDescendantOfChest,
         EyesMapped,
-        HipsNotOnGround,
+        HipsNotAtBottom,
+        ExtentsNotBelowGround,
         HipsSpineChestNotCoincident,
         TotalBoneCountUnderLimit,
         AvatarRuleEnd,
@@ -247,18 +249,26 @@ class AvatarExporter : MonoBehaviour {
     class UserBoneInformation {
         public string humanName; // bone name in Humanoid if it is mapped, otherwise ""
         public string parentName; // parent user bone name
+        public BoneTreeNode boneTreeNode; // node within the user bone tree
         public int mappingCount; // number of times this bone is mapped in Humanoid
         public Vector3 position; // absolute position
         public Quaternion rotation; // absolute rotation
-        public BoneTreeNode boneTreeNode;
         
         public UserBoneInformation() {
             humanName = "";
             parentName = "";
+            boneTreeNode = new BoneTreeNode();
             mappingCount = 0;
             position = new Vector3();
             rotation = new Quaternion();
-            boneTreeNode = new BoneTreeNode();
+        }
+        public UserBoneInformation(string parent, BoneTreeNode treeNode, Vector3 pos) {
+            humanName = "";
+            parentName = parent;
+            boneTreeNode = treeNode;
+            mappingCount = 0;
+            position = pos;
+            rotation = new Quaternion();
         }
         
         public bool HasHumanMapping() { return !string.IsNullOrEmpty(humanName); }
@@ -266,11 +276,13 @@ class AvatarExporter : MonoBehaviour {
     
     class BoneTreeNode { 
         public string boneName;
+        public string parentName;
         public List<BoneTreeNode> children = new List<BoneTreeNode>();
         
         public BoneTreeNode() {}
-        public BoneTreeNode(string name) {
+        public BoneTreeNode(string name, string parent) {
             boneName = name;
+            parentName = parent;
         }
     }
     
@@ -697,11 +709,10 @@ class AvatarExporter : MonoBehaviour {
         if (materialDatas.Count > 0) {
             string materialJson = "{ ";
             foreach (var materialData in materialDatas) {
-                // if this is the only material in the mapping and it is the default name No Name mapped to No Name, 
+                // if this is the only material in the mapping and it is mapped to default material name No Name, 
                 // then the avatar has no embedded materials and this material should be applied to all meshes
                 string materialName = materialData.Key;
-                if (materialMappings.Count == 1 && materialName == DEFAULT_MATERIAL_NAME && 
-                    materialMappings[materialName] == DEFAULT_MATERIAL_NAME) {
+                if (materialMappings.Count == 1 && materialName == DEFAULT_MATERIAL_NAME) {
                     materialJson += "\"all\": ";
                 } else {
                     materialJson += "\"mat::" + materialName + "\": ";
@@ -733,9 +744,11 @@ class AvatarExporter : MonoBehaviour {
 
         // instantiate a game object of the user avatar to traverse the bone tree to gather
         // bone parents and positions as well as build a bone tree, then destroy it   
-        GameObject assetGameObject = (GameObject)Instantiate(avatarResource);     
-        TraverseUserBoneTree(assetGameObject.transform);      
-        DestroyImmediate(assetGameObject);
+        GameObject avatarGameObject = (GameObject)Instantiate(avatarResource, Vector3.zero, Quaternion.identity);
+        TraverseUserBoneTree(avatarGameObject.transform, userBoneTree);
+        Bounds bounds = AvatarUtilities.GetAvatarBounds(avatarGameObject);
+        float height = AvatarUtilities.GetAvatarHeight(avatarGameObject);
+        DestroyImmediate(avatarGameObject);
         
         // iterate over Humanoid bones and update user bone info to increase human mapping counts for each bone
         // as well as set their Humanoid name and build a Humanoid to user bone mapping
@@ -754,10 +767,10 @@ class AvatarExporter : MonoBehaviour {
         }
         
         // generate the list of avatar rule failure strings for any avatar rules that are not satisfied by this avatar
-        SetFailedAvatarRules();
+        SetFailedAvatarRules(bounds, height);
     }
 
-    static void TraverseUserBoneTree(Transform modelBone) {
+    static void TraverseUserBoneTree(Transform modelBone, BoneTreeNode boneTreeNode) {
         GameObject gameObject = modelBone.gameObject;
 
         // check if this transform is a node containing mesh, light, or camera instead of a bone
@@ -771,33 +784,52 @@ class AvatarExporter : MonoBehaviour {
         if (mesh) {
             Material[] materials = skinnedMeshRenderer != null ? skinnedMeshRenderer.sharedMaterials : meshRenderer.sharedMaterials;
             StoreMaterialData(materials);
+            
+            // ensure branches within the transform hierarchy that contain meshes are removed from the user bone tree
+            Transform ancestorBone = modelBone;
+            string previousBoneName = "";
+            // find the name of the root child bone that this mesh is underneath
+            while (ancestorBone != null) {
+                if (ancestorBone.parent == null) {
+                    break;
+                }
+                previousBoneName = ancestorBone.name;
+                ancestorBone = ancestorBone.parent;
+            }
+            // remove the bone tree node from root's children for the root child bone that has mesh children
+            if (!string.IsNullOrEmpty(previousBoneName)) {
+                foreach (BoneTreeNode rootChild in userBoneTree.children) {
+                    if (rootChild.boneName == previousBoneName) {
+                        userBoneTree.children.Remove(rootChild);
+                        break;
+                    }
+                }
+            }
         } else if (!light && !camera) { 
             // if it is in fact a bone, add it to the bone tree as well as user bone infos list with position and parent name
-            UserBoneInformation userBoneInfo = new UserBoneInformation();
-            userBoneInfo.position = modelBone.position; // bone's absolute position
-            
             string boneName = modelBone.name;
             if (modelBone.parent == null) {
                 // if no parent then this is actual root bone node of the user avatar, so consider it's parent as "root"
                 boneName = GetRootBoneName(); // ensure we use the root bone name from the skeleton list for consistency
-                userBoneTree = new BoneTreeNode(boneName); // initialize root of tree
-                userBoneInfo.parentName = "root";
-                userBoneInfo.boneTreeNode = userBoneTree;
+                boneTreeNode.boneName = boneName;
+                boneTreeNode.parentName = "root";
             } else {
                 // otherwise add this bone node as a child to it's parent's children list
                 // if its a child of the root bone, use the root bone name from the skeleton list as the parent for consistency
                 string parentName = modelBone.parent.parent == null ? GetRootBoneName() : modelBone.parent.name;
-                BoneTreeNode boneTreeNode = new BoneTreeNode(boneName);
-                userBoneInfos[parentName].boneTreeNode.children.Add(boneTreeNode);
-                userBoneInfo.parentName = parentName;
+                BoneTreeNode node = new BoneTreeNode(boneName, parentName);
+                boneTreeNode.children.Add(node);
+                boneTreeNode = node;
             }
 
+            Vector3 bonePosition = modelBone.position; // bone's absolute position in avatar space
+            UserBoneInformation userBoneInfo = new UserBoneInformation(boneTreeNode.parentName, boneTreeNode, bonePosition); 
             userBoneInfos.Add(boneName, userBoneInfo);
         }
         
         // recurse over transform node's children
         for (int i = 0; i < modelBone.childCount; ++i) {
-            TraverseUserBoneTree(modelBone.GetChild(i));
+            TraverseUserBoneTree(modelBone.GetChild(i), boneTreeNode);
         }
     }
     
@@ -841,7 +873,7 @@ class AvatarExporter : MonoBehaviour {
         return "";
     }
     
-    static void SetFailedAvatarRules() {
+    static void SetFailedAvatarRules(Bounds avatarBounds, float avatarHeight) {
         failedAvatarRules.Clear();
         
         string hipsUserBone = "";
@@ -906,18 +938,29 @@ class AvatarExporter : MonoBehaviour {
                     break;
                 case AvatarRule.ChestMapped:
                     if (!humanoidToUserBoneMappings.TryGetValue("Chest", out chestUserBone)) {
-                        // check to see if there is a child of Spine that we can suggest to be mapped to Chest
-                        string spineChild = "";
+                        // check to see if there is an unmapped child of Spine that we can suggest to be mapped to Chest
+                        string chestMappingCandidate = "";
                         if (!string.IsNullOrEmpty(spineUserBone)) {
                             BoneTreeNode spineTreeNode = userBoneInfos[spineUserBone].boneTreeNode;
-                            if (spineTreeNode.children.Count == 1) {
-                                spineChild = spineTreeNode.children[0].boneName;
+                            foreach (BoneTreeNode spineChildTreeNode in spineTreeNode.children) {
+                                string spineChildBone = spineChildTreeNode.boneName;
+                                if (userBoneInfos[spineChildBone].HasHumanMapping()) {
+                                    continue;
+                                }
+                                // a suitable candidate for Chest should have Neck/Head or Shoulder mappings in its descendants
+                                if (IsHumanBoneInHierarchy(spineChildTreeNode, "Neck") || 
+                                    IsHumanBoneInHierarchy(spineChildTreeNode, "Head") || 
+                                    IsHumanBoneInHierarchy(spineChildTreeNode, "LeftShoulder") || 
+                                    IsHumanBoneInHierarchy(spineChildTreeNode, "RightShoulder")) {
+                                    chestMappingCandidate = spineChildBone;
+                                    break;
+                                }
                             }
                         }
                         failedAvatarRules.Add(avatarRule, "There is no Chest bone mapped in Humanoid for the selected avatar.");
                         // if the only found child of Spine is not yet mapped then add it as a suggestion for Chest mapping 
-                        if (!string.IsNullOrEmpty(spineChild) && !userBoneInfos[spineChild].HasHumanMapping()) {
-                            failedAvatarRules[avatarRule] += " It is suggested that you map bone " + spineChild + 
+                        if (!string.IsNullOrEmpty(chestMappingCandidate)) {
+                            failedAvatarRules[avatarRule] += " It is suggested that you map bone " + chestMappingCandidate + 
                                                              " to Chest in Humanoid.";
                         }
                     }
@@ -950,15 +993,34 @@ class AvatarExporter : MonoBehaviour {
                         }
                     }
                     break;
-                case AvatarRule.HipsNotOnGround:
-                    // ensure the absolute Y position for the bone mapped to Hips (if its mapped) is at least HIPS_GROUND_MIN_Y
+                case AvatarRule.HipsNotAtBottom:
+                    // ensure that Hips is not below a proportional percentage of the avatar's height in avatar space
                     if (!string.IsNullOrEmpty(hipsUserBone)) {
                         UserBoneInformation hipsBoneInfo = userBoneInfos[hipsUserBone];
                         hipsPosition = hipsBoneInfo.position;
-                        if (hipsPosition.y < HIPS_GROUND_MIN_Y) {
-                            failedAvatarRules.Add(avatarRule, "The bone mapped to Hips in Humanoid (" + hipsUserBone + 
-                                                              ") should not be at ground level.");
+                        
+                        // find the lowest y position of the bones
+                        float minBoneYPosition = float.MaxValue;
+                        foreach (var userBoneInfo in userBoneInfos) {
+                            Vector3 position = userBoneInfo.Value.position;
+                            if (position.y < minBoneYPosition) {
+                                minBoneYPosition = position.y;
+                            }
                         }
+                        
+                        // check that Hips is within a percentage of avatar's height from the lowest Y point of the avatar
+                        float bottomYRange = HIPS_MIN_Y_PERCENT_OF_HEIGHT * avatarHeight;
+                        if (Mathf.Abs(hipsPosition.y - minBoneYPosition) < bottomYRange) {
+                            failedAvatarRules.Add(avatarRule, "The bone mapped to Hips in Humanoid (" + hipsUserBone + 
+                                                              ") should not be at the bottom of the selected avatar.");
+                        }
+                    }
+                    break;
+                case AvatarRule.ExtentsNotBelowGround:
+                    // ensure the minimum Y extent of the model's bounds is not below a proportional threshold of avatar's height
+                    float belowGroundThreshold = BELOW_GROUND_THRESHOLD_PERCENT_OF_HEIGHT * avatarHeight;
+                    if (avatarBounds.min.y < belowGroundThreshold) {
+                        failedAvatarRules.Add(avatarRule, "The bottom extents of the selected avatar go below ground level.");
                     }
                     break;
                 case AvatarRule.HipsSpineChestNotCoincident:
@@ -990,6 +1052,23 @@ class AvatarExporter : MonoBehaviour {
         }
     }
     
+    static bool IsHumanBoneInHierarchy(BoneTreeNode boneTreeNode, string humanBoneName) {
+        UserBoneInformation userBoneInfo;
+        if (userBoneInfos.TryGetValue(boneTreeNode.boneName, out userBoneInfo) && userBoneInfo.humanName == humanBoneName) {
+            // this bone matches the human bone name being searched for
+            return true;
+        }
+        
+        // recursively check downward through children bones for target human bone
+        foreach (BoneTreeNode childNode in boneTreeNode.children) {
+            if (IsHumanBoneInHierarchy(childNode, humanBoneName)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     static string CheckHumanBoneMappingRule(AvatarRule avatarRule, string humanBoneName) {
         string userBoneName = "";
         // avatar rule fails if bone is not mapped in Humanoid
@@ -1000,8 +1079,8 @@ class AvatarExporter : MonoBehaviour {
         return userBoneName;
     }
     
-    static void CheckUserBoneDescendantOfHumanRule(AvatarRule avatarRule, string userBoneName, string descendantOfHumanName) {
-        if (string.IsNullOrEmpty(userBoneName)) {
+    static void CheckUserBoneDescendantOfHumanRule(AvatarRule avatarRule, string descendantUserBoneName, string descendantOfHumanName) {
+        if (string.IsNullOrEmpty(descendantUserBoneName)) {
             return;
         }
         
@@ -1010,27 +1089,26 @@ class AvatarExporter : MonoBehaviour {
             return;
         }
 
-        string userBone = userBoneName;
-        string ancestorUserBone = "";
-        UserBoneInformation userBoneInfo = new UserBoneInformation();
+        string userBoneName = descendantUserBoneName;
+        UserBoneInformation userBoneInfo = userBoneInfos[userBoneName];
+        string descendantHumanName = userBoneInfo.humanName;
         // iterate upward from user bone through user bone info parent names until root 
         // is reached or the ancestor bone name matches the target descendant of name
-        while (ancestorUserBone != "root") {
-            if (userBoneInfos.TryGetValue(userBone, out userBoneInfo)) {
-                ancestorUserBone = userBoneInfo.parentName;
-                if (ancestorUserBone == descendantOfUserBoneName) {
-                    return;
-                }
-                userBone = ancestorUserBone;
+        while (userBoneName != "root") {
+            if (userBoneName == descendantOfUserBoneName) {
+                return;
+            }
+            if (userBoneInfos.TryGetValue(userBoneName, out userBoneInfo)) {
+                userBoneName = userBoneInfo.parentName;
             } else {
                 break;
             }
         }
         
         // avatar rule fails if no ancestor of given user bone matched the descendant of name (no early return)
-        failedAvatarRules.Add(avatarRule, "The bone mapped to " + userBoneInfo.humanName + " in Humanoid (" + userBoneName + 
-                                          ") is not a child of the bone mapped to " + descendantOfHumanName + " in Humanoid (" + 
-                                          descendantOfUserBoneName + ").");
+        failedAvatarRules.Add(avatarRule, "The bone mapped to " + descendantHumanName + " in Humanoid (" + 
+                                          descendantUserBoneName + ") is not a descendant of the bone mapped to " + 
+                                          descendantOfHumanName + " in Humanoid (" + descendantOfUserBoneName + ").");
     }
     
     static void CheckAsymmetricalMappingRule(AvatarRule avatarRule, string[] mappingSuffixes, string appendage) {
@@ -1297,9 +1375,9 @@ class ExportProjectWindow : EditorWindow {
     const float MAX_SCALE_SLIDER = 2.0f;
     const int SLIDER_SCALE_EXPONENT = 10;
     const float ACTUAL_SCALE_OFFSET = 1.0f;
-    const float DEFAULT_AVATAR_HEIGHT = 1.755f;
-    const float MAXIMUM_RECOMMENDED_HEIGHT = DEFAULT_AVATAR_HEIGHT * 1.5f;
-    const float MINIMUM_RECOMMENDED_HEIGHT = DEFAULT_AVATAR_HEIGHT * 0.25f;
+    const float MAXIMUM_RECOMMENDED_HEIGHT = AvatarUtilities.DEFAULT_AVATAR_HEIGHT * 1.5f;
+    const float MINIMUM_RECOMMENDED_HEIGHT = AvatarUtilities.DEFAULT_AVATAR_HEIGHT * 0.25f;
+    const float SLIDER_DIFFERENCE_REMOVE_TEXT = 0.01f;
     readonly Color COLOR_YELLOW = Color.yellow; //new Color(0.9176f, 0.8274f, 0.0f);
     readonly Color COLOR_BACKGROUND = new Color(0.5f, 0.5f, 0.5f);
 
@@ -1314,6 +1392,7 @@ class ExportProjectWindow : EditorWindow {
     Vector2 warningScrollPosition = new Vector2(0, 0);
     string scaleWarningText = "";
     float sliderScale = 0.30103f;
+    float originalSliderScale;
     
     public delegate void OnExportDelegate(string projectDirectory, string projectName, float scale);
     OnExportDelegate onExportCallback;
@@ -1338,12 +1417,14 @@ class ExportProjectWindow : EditorWindow {
         ShowUtility();
         
         // if the avatar's starting height is outside of the recommended ranges, auto-adjust the scale to default height
-        float height = GetAvatarHeight();
+        float height = AvatarUtilities.GetAvatarHeight(avatarPreviewObject);
         if (height < MINIMUM_RECOMMENDED_HEIGHT || height > MAXIMUM_RECOMMENDED_HEIGHT) {
-            float newScale = DEFAULT_AVATAR_HEIGHT / height;
+            float newScale = AvatarUtilities.DEFAULT_AVATAR_HEIGHT / height;
             SetAvatarScale(newScale);
             scaleWarningText = "Avatar's scale automatically adjusted to be within the recommended range.";
         }
+        
+        originalSliderScale = sliderScale;
     }
 
     void OnGUI() {      
@@ -1460,10 +1541,9 @@ class ExportProjectWindow : EditorWindow {
             Close();
         }
         
-        // when any value changes check for any errors and update scale warning if we are not exporting
+        // When a text field changes check for any errors if we didn't just check errors from clicking Export above
         if (GUI.changed && !export) {
             CheckForErrors(false);
-            UpdateScaleWarning();
         }
     }
     
@@ -1521,32 +1601,16 @@ class ExportProjectWindow : EditorWindow {
     }
     
     void UpdateScaleWarning() {
-        // called on any input changes
-        float height = GetAvatarHeight();
+        // called on any scale changes
+        float height = AvatarUtilities.GetAvatarHeight(avatarPreviewObject);
         if (height < MINIMUM_RECOMMENDED_HEIGHT) {
             scaleWarningText = "The height of the avatar is below the recommended minimum.";
         } else if (height > MAXIMUM_RECOMMENDED_HEIGHT) {
             scaleWarningText = "The height of the avatar is above the recommended maximum.";
-        } else {
+        } else if (Mathf.Abs(originalSliderScale - sliderScale) > SLIDER_DIFFERENCE_REMOVE_TEXT) {
+            // once moving slider beyond a small threshold, remove the automatically scaled text
             scaleWarningText = "";
         }
-    }
-    
-    float GetAvatarHeight() {
-        // height of an avatar model can be determined to be the max Y extents of the combined bounds for all its mesh renderers
-        if (avatarPreviewObject != null) {
-            Bounds bounds = new Bounds();
-            var meshRenderers = avatarPreviewObject.GetComponentsInChildren<MeshRenderer>();
-            var skinnedMeshRenderers = avatarPreviewObject.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (var renderer in meshRenderers) {
-                bounds.Encapsulate(renderer.bounds);
-            }
-            foreach (var renderer in skinnedMeshRenderers) {
-                bounds.Encapsulate(renderer.bounds);
-            }
-            return bounds.max.y;
-        }
-        return 0.0f;
     }
     
     void SetAvatarScale(float actualScale) {
@@ -1555,6 +1619,8 @@ class ExportProjectWindow : EditorWindow {
         
         // adjust slider scale value to match the new actual scale value
         sliderScale = GetSliderScaleFromActualScale(actualScale);
+        
+        UpdateScaleWarning();
     }
     
     float GetSliderScaleFromActualScale(float actualScale) {
@@ -1564,5 +1630,30 @@ class ExportProjectWindow : EditorWindow {
     
     void OnDestroy() {
         onCloseCallback();
+    }
+}
+
+class AvatarUtilities {
+    public const float DEFAULT_AVATAR_HEIGHT = 1.755f;
+        
+    public static Bounds GetAvatarBounds(GameObject avatarObject) {
+        Bounds bounds = new Bounds();
+        if (avatarObject != null) {
+            var meshRenderers = avatarObject.GetComponentsInChildren<MeshRenderer>();
+            var skinnedMeshRenderers = avatarObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+            foreach (var renderer in meshRenderers) {
+                bounds.Encapsulate(renderer.bounds);
+            }
+            foreach (var renderer in skinnedMeshRenderers) {
+                bounds.Encapsulate(renderer.bounds);
+            }
+        }
+        return bounds;
+    }
+    
+    public static float GetAvatarHeight(GameObject avatarObject) {
+        // height of an avatar model can be determined to be the max Y extents of the combined bounds for all its mesh renderers
+        Bounds avatarBounds = GetAvatarBounds(avatarObject);
+        return avatarBounds.max.y - avatarBounds.min.y;
     }
 }

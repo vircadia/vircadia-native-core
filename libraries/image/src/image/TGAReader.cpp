@@ -16,7 +16,7 @@
 #include <QIODevice>
 #include <QDebug>
 
-QImage image::readTGA(QIODevice& content) {
+image::Image image::readTGA(QIODevice& content) {
     enum class TGAImageType : uint8_t {
         NoImageData = 0,
         UncompressedColorMapped = 1,

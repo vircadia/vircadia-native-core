@@ -33,7 +33,7 @@
 #include <NodeType.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 #include "AssetServerLogging.h"
 #include "BakeAssetTask.h"

@@ -1101,13 +1101,13 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
 
 void EntityScriptingInterface::onAddingEntity(EntityItem* entity) {
     if (entity->isWearable()) {
-        emit addingWearable(entity->getEntityItemID());
+        QMetaObject::invokeMethod(this, "addingWearable", Q_ARG(EntityItemID, entity->getEntityItemID()));
     }
 }
 
 void EntityScriptingInterface::onDeletingEntity(EntityItem* entity) {
     if (entity->isWearable()) {
-        emit deletingWearable(entity->getEntityItemID());
+        QMetaObject::invokeMethod(this, "deletingWearable", Q_ARG(EntityItemID, entity->getEntityItemID()));
     }
 }
 

@@ -330,6 +330,7 @@ QtObject {
         readonly property string stop_square: "\ue01e"
         readonly property string avatarTPose: "\ue01f"
         readonly property string lock: "\ue006"
+        readonly property string unlock: "\ue039"
         readonly property string checkmark: "\ue020"
         readonly property string leftRightArrows: "\ue021"
         readonly property string hfc: "\ue022"

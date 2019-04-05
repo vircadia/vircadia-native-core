@@ -127,7 +127,12 @@ private:
 class Avatar : public AvatarData, public scriptable::ModelProvider, public MetaModelPayload {
     Q_OBJECT
 
-    // This property has JSDoc in MyAvatar.h.
+    /*jsdoc
+     * @comment IMPORTANT: The JSDoc for the following properties should be copied to MyAvatar.h.
+     *
+     * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
+     *     registration point of the 3D model.
+     */
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
@@ -175,7 +180,6 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    virtual bool isMyAvatar() const override { return false; }
     virtual void createOrb() { }
 
     enum class LoadingStatus {
@@ -196,36 +200,52 @@ public:
     virtual QStringList getJointNames() const override;
 
     /**jsdoc
+     * Gets the default rotation of a joint (in the current avatar) relative to its parent.
+     * <p>For information on the joint hierarchy used, see
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointRotation
-     * @param {number} index
-     * @returns {Quat} 
+     * @param {number} index - The joint index.
+     * @returns {Quat} The default rotation of the joint if the joint index is valid, otherwise {@link Quat(0)|Quat.IDENTITY}.
      */
     Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
 
     /**jsdoc
+     * Gets the default translation of a joint (in the current avatar) relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>For information on the joint hierarchy used, see
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointTranslation
-     * @param {number} index
-     * @returns {Vec3} 
+     * @param {number} index - The joint index.
+     * @returns {Vec3} The default translation of the joint (in model coordinates) if the joint index is valid, otherwise 
+     *     {@link Vec3(0)|Vec3.ZERO}.
      */
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
     /**jsdoc
-     * Provides read only access to the default joint rotations in avatar coordinates.
+     * Gets the default joint rotations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
      * in the avatar's model file. Typically this is a T-pose.
      * @function MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame
-     * @param index {number} index number
-     * @returns {Quat} The rotation of this joint in avatar coordinates.
+     * @param index {number} - The joint index.
+     * @returns {Quat} The default rotation of the joint in avatar coordinates.
+     * @example <caption>Report the default rotation of your avatar's head joint relative to your avatar.</caption>
+     * var headIndex = MyAvatar.getJointIndex("Head");
+     * var defaultHeadRotation = MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(headIndex);
+     * print("Default head rotation: " + JSON.stringify(Quat.safeEulerAngles(defaultHeadRotation))); // Degrees
      */
     Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
 
     /**jsdoc
-     * Provides read only access to the default joint translations in avatar coordinates.
+     * Gets the default joint translations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
      * in the avatar's model file. Typically this is a T-pose.
      * @function MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame
-     * @param index {number} index number
-     * @returns {Vec3} The position of this joint in avatar coordinates.
+     * @param index {number} - The joint index.
+     * @returns {Vec3} The default position of the joint in avatar coordinates.
+     * @example <caption>Report the default translation of your avatar's head joint relative to your avatar.</caption>
+     * var headIndex = MyAvatar.getJointIndex("Head");
+     * var defaultHeadTranslation = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(headIndex);
+     * print("Default head translation: " + JSON.stringify(defaultHeadTranslation));
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
@@ -233,59 +253,88 @@ public:
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
+    /**jsdoc
+     * Sets the rotation of a joint relative to the avatar.
+     * <p><strong>Warning:</strong> Not able to be used in the <code>MyAvatar</code> API.</p>
+     * @function MyAvatar.setAbsoluteJointRotationInObjectFrame
+     * @param {number} index - The index of the joint. <em>Not used.</em>
+     * @param {Quat} rotation - The rotation of the joint relative to the avatar. <em>Not used.</em>
+     * @returns {boolean} <code>false</code>.
+     */
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+
+    /**jsdoc
+     * Sets the translation of a joint relative to the avatar.
+     * <p><strong>Warning:</strong> Not able to be used in the <code>MyAvatar</code> API.</p>
+     * @function MyAvatar.setAbsoluteJointTranslationInObjectFrame
+     * @param {number} index - The index of the joint. <em>Not used.</em>
+     * @param {Vec3} translation - The translation of the joint relative to the avatar. <em>Not used.</em>
+     * @returns {boolean} <code>false</code>.
+     */
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
     virtual glm::vec3 getSpine2SplineOffset() const { return _spine2SplineOffset; }
     virtual float getSpine2SplineRatio() const { return _spine2SplineRatio; }
 
     // world-space to avatar-space rigconversion functions
     /**jsdoc
-    * @function MyAvatar.worldToJointPoint
-    * @param {Vec3} position
-    * @param {number} [jointIndex=-1]
-    * @returns {Vec3}
-    */
+     * Transforms a position in world coordinates to a position in a joint's coordinates, or avatar coordinates if no joint is 
+     * specified.
+     * @function MyAvatar.worldToJointPoint
+     * @param {Vec3} position - The position in world coordinates.
+     * @param {number} [jointIndex=-1] - The index of the joint.
+     * @returns {Vec3} The position in the joint's coordinate system, or avatar coordinate system if no joint is specified.
+     */
     Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
 
     /**jsdoc
-    * @function MyAvatar.worldToJointDirection
-    * @param {Vec3} direction
-    * @param {number} [jointIndex=-1]
-    * @returns {Vec3}
-    */
+     * Transforms a direction in world coordinates to a direction in a joint's coordinates, or avatar coordinates if no joint 
+     * is specified.
+     * @function MyAvatar.worldToJointDirection
+     * @param {Vec3} direction - The direction in world coordinates.
+     * @param {number} [jointIndex=-1] - The index of the joint.
+     * @returns {Vec3} The direction in the joint's coordinate system, or avatar coordinate system if no joint is specified.
+     */
     Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
 
     /**jsdoc
-    * @function MyAvatar.worldToJointRotation
-    * @param {Quat} rotation
-    * @param {number} [jointIndex=-1]
-    * @returns {Quat}
+     * Transforms a rotation in world coordinates to a rotation in a joint's coordinates, or avatar coordinates if no joint is 
+     * specified.
+     * @function MyAvatar.worldToJointRotation
+     * @param {Quat} rotation - The rotation in world coordinates.
+     * @param {number} [jointIndex=-1] - The index of the joint.
+     * @returns {Quat} The rotation in the joint's coordinate system, or avatar coordinate system if no joint is specified.
     */
     Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
-
     /**jsdoc
-    * @function MyAvatar.jointToWorldPoint
-    * @param {vec3} position
-    * @param {number} [jointIndex=-1]
-    * @returns {Vec3}
-    */
+     * Transforms a position in a joint's coordinates, or avatar coordinates if no joint is specified, to a position in world 
+     * coordinates.
+     * @function MyAvatar.jointToWorldPoint
+     * @param {Vec3} position - The position in joint coordinates, or avatar coordinates if no joint is specified.
+     * @param {number} [jointIndex=-1] - The index of the joint.
+     * @returns {Vec3} The position in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
 
     /**jsdoc
-    * @function MyAvatar.jointToWorldDirection
-    * @param {Vec3} direction
-    * @param {number} [jointIndex=-1]
-    * @returns {Vec3}
-    */
+     * Transforms a direction in a joint's coordinates, or avatar coordinates if no joint is specified, to a direction in world 
+     * coordinates.
+     * @function MyAvatar.jointToWorldDirection
+     * @param {Vec3} direction - The direction in joint coordinates, or avatar coordinates if no joint is specified.
+     * @param {number} [jointIndex=-1] - The index of the joint.
+     * @returns {Vec3} The direction in world coordinates.
+     */
     Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
 
     /**jsdoc
-    * @function MyAvatar.jointToWorldRotation
-    * @param {Quat} rotation
-    * @param {number} [jointIndex=-1]
-    * @returns {Quat}
-    */
+     * Transforms a rotation in a joint's coordinates, or avatar coordinates if no joint is specified, to a rotation in world 
+     * coordinates.
+     * @function MyAvatar.jointToWorldRotation
+     * @param {Quat} rotation - The rotation in joint coordinates, or avatar coordinates if no joint is specified.
+     * @param {number} [jointIndex=-1] - The index of the joint.
+     * @returns {Quat} The rotation in world coordinates.
+     */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
@@ -297,7 +346,7 @@ public:
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
     /**jsdoc
-     * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
+     * Sets the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
      * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
      * @function MyAvatar.setSkeletonOffset
      * @param {Vec3} offset - The skeleton offset to set.
@@ -313,7 +362,7 @@ public:
     Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
 
     /**jsdoc
-     * Get the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
+     * Gets the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
      * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
      * @function MyAvatar.getSkeletonOffset
      * @returns {Vec3} The current skeleton offset.
@@ -325,7 +374,7 @@ public:
     virtual glm::vec3 getSkeletonPosition() const;
 
     /**jsdoc
-     * Get the position of a joint in the current avatar.
+     * Gets the position of a joint in the current avatar.
      * @function MyAvatar.getJointPosition
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The position of the joint in world coordinates.
@@ -333,7 +382,7 @@ public:
     Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
 
     /**jsdoc
-     * Get the position of a joint in the current avatar.
+     * Gets the position of a joint in the current avatar.
      * @function MyAvatar.getJointPosition
      * @param {string} name - The name of the joint.
      * @returns {Vec3} The position of the joint in world coordinates.
@@ -343,7 +392,7 @@ public:
     Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
 
     /**jsdoc
-     * Get the position of the current avatar's neck in world coordinates.
+     * Gets the position of the current avatar's neck in world coordinates.
      * @function MyAvatar.getNeckPosition
      * @returns {Vec3} The position of the neck in world coordinates.
      * @example <caption>Report the position of your avatar's neck.</caption>
@@ -352,8 +401,9 @@ public:
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     /**jsdoc
+     * Gets the current acceleration of the avatar.
      * @function MyAvatar.getAcceleration
-     * @returns {Vec3} 
+     * @returns {Vec3} The current acceleration of the avatar.
      */
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
 
@@ -377,47 +427,55 @@ public:
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
     /**jsdoc
-     * Get the position of the current avatar's feet (or rather, bottom of its collision capsule) in world coordinates.
+     * Gets the position of the current avatar's feet (or rather, bottom of its collision capsule) in world coordinates.
      * @function MyAvatar.getWorldFeetPosition
      * @returns {Vec3} The position of the avatar's feet in world coordinates.
-    */
+     */
     Q_INVOKABLE glm::vec3 getWorldFeetPosition();
 
     void setPositionViaScript(const glm::vec3& position) override;
     void setOrientationViaScript(const glm::quat& orientation) override;
 
     /**jsdoc
+     * Gets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.getParentID
-     * @returns {Uuid} 
+     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid|Uuid.NULL} if not parented.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
 
     /**jsdoc
+     * Sets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.setParentID
-     * @param {Uuid} parentID
+     * @param {Uuid} parentID - The ID of the entity or avatar that the avatar should be parented to. Set to 
+     *    {@link Uuid|Uuid.NULL} to unparent.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
 
     /**jsdoc
+     * Gets the joint of the entity or avatar that the avatar is parented to.
      * @function MyAvatar.getParentJointIndex
-     * @returns {number} 
+     * @returns {number} The joint of the entity or avatar that the avatar is parented to. <code>65535</code> or 
+     *     <code>-1</code> if parented to the entity or avatar's position and orientation rather than a joint.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
 
     /**jsdoc
+     * Sets the joint of the entity or avatar that the avatar is parented to. 
      * @function MyAvatar.setParentJointIndex
-     * @param {number} parentJointIndex
+     * @param {number} parentJointIndex - he joint of the entity or avatar that the avatar should be parented to. Use
+     *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a 
+     *     joint.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
 
     /**jsdoc
-     * Returns an array of joints, where each joint is an object containing name, index, and parentIndex fields.
+     * Gets information on all the joints in the avatar's skeleton.
      * @function MyAvatar.getSkeleton
-     * @returns {MyAvatar.SkeletonJoint[]} A list of information about each joint in this avatar's skeleton.
+     * @returns {MyAvatar.SkeletonJoint[]} Information about each joint in the avatar's skeleton.
      */
     /**jsdoc
      * Information about a single joint in an Avatar's skeleton hierarchy.
@@ -443,8 +501,9 @@ public:
 
     /**jsdoc
      * @function MyAvatar.getSimulationRate
-     * @param {string} [rateName=""]
-     * @returns {number} 
+     * @param {string} [rateName=""] - Rate name.
+     * @returns {number} Simulation rate.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
 
@@ -461,9 +520,7 @@ public:
     bool isMoving() const { return _moving; }
 
     void fadeIn(render::ScenePointer scene);
-    void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
-    bool isFading() const { return _isFading; }
-    void updateFadingStatus();
+    void fadeOut(render::Transaction& transaction, KillAvatarReason reason);
 
     // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
@@ -500,6 +557,13 @@ public:
     uint32_t appendSubMetaItems(render::ItemIDs& subItems);
 
 signals:
+    /**jsdoc
+     * Triggered when the avatar's target scale is changed. The target scale is the desired scale of the avatar without any 
+     * restrictions on permissible scale values imposed by the domain.
+     * @function MyAvatar.targetScaleChanged
+     * @param {number} targetScale - The avatar's target scale.
+     * @returns Signal
+     */
     void targetScaleChanged(float targetScale);
 
 public slots:
@@ -508,7 +572,7 @@ public slots:
     // thread safe, will return last valid palm from cache
 
     /**jsdoc
-     * Get the position of the left palm in world coordinates.
+     * Gets the position of the left palm in world coordinates.
      * @function MyAvatar.getLeftPalmPosition
      * @returns {Vec3} The position of the left palm in world coordinates.
      * @example <caption>Report the position of your avatar's left palm.</caption>
@@ -517,15 +581,16 @@ public slots:
     glm::vec3 getLeftPalmPosition() const;
 
     /**jsdoc
-     * Get the rotation of the left palm in world coordinates.
+     * Gets the rotation of the left palm in world coordinates.
      * @function MyAvatar.getLeftPalmRotation
      * @returns {Quat} The rotation of the left palm in world coordinates.
      * @example <caption>Report the rotation of your avatar's left palm.</caption>
      * print(JSON.stringify(MyAvatar.getLeftPalmRotation()));
      */
     glm::quat getLeftPalmRotation() const;
+
     /**jsdoc
-     * Get the position of the right palm in world coordinates.
+     * Gets the position of the right palm in world coordinates.
      * @function MyAvatar.getRightPalmPosition
      * @returns {Vec3} The position of the right palm in world coordinates.
      * @example <caption>Report the position of your avatar's right palm.</caption>
@@ -542,21 +607,26 @@ public slots:
      */
     glm::quat getRightPalmRotation() const;
 
+    /**jsdoc
+     * @function MyAvatar.setModelURLFinished
+     * @param {boolean} success
+     * @deprecated This function is deprecated and will be removed.
+     */
     // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
 
     /**jsdoc
      * @function MyAvatar.rigReady
-     * @returns {Signal} 
+     * @deprecated This function is deprecated and will be removed.
      */
     // Hooked up to Model::rigReady signal
     void rigReady();
 
     /**jsdoc
      * @function MyAvatar.rigReset
-     * @returns {Signal} 
+     * @deprecated This function is deprecated and will be removed.
      */
-    // Jooked up to Model::rigReset signal
+    // Hooked up to Model::rigReset signal
     void rigReset();
 
 protected:
@@ -655,7 +725,6 @@ protected:
     bool _initialized { false };
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
-    bool _isFading { false };
     bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 

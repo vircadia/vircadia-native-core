@@ -11,9 +11,16 @@ If you would like the extra functionality for gravPrep:
 To generate html documentation for the High Fidelity JavaScript API:
 
 * `cd tools/jsdoc`
-* `jsdoc root.js -c config.json`
+* `jsdoc root.js -r api-mainpage.md -c config.json`
 
 The out folder should contain index.html.
+
+If you get a "JavaScript heap out of memory" error when running the `jsdoc` command you need to increase the amount of memory 
+available to it. For example, to increase the memory available to 2GB on Windows:
+* `where jsdoc` to find the `jsdoc.cmd` file.
+* Edit the `jsdoc.cmd` file to add `--max-old-space-size=2048` after the `node` and/or `node.exe` commands.
+
+Reference: https://medium.com/@vuongtran/how-to-solve-process-out-of-memory-in-node-js-5f0de8f8464c
 
 To generate the grav automation files, run node gravPrep.js after you have made a JSdoc output folder.
 

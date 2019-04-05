@@ -76,7 +76,8 @@ void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end,
                                                float maxKbpsPerNode, float throttlingRatio) {
     _function = &AvatarMixerSlave::broadcastAvatarData;
     _configure = [=](AvatarMixerSlave& slave) { 
-        slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio);
+        slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio,
+            _priorityReservedFraction);
    };
     run(begin, end);
 }

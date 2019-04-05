@@ -15,7 +15,7 @@
 #include "GraphicsScriptingUtil.h"
 #include "ScriptableMesh.h"
 #include "graphics/Material.h"
-#include "image/Image.h"
+#include "image/TextureProcessing.h"
 
 // #define SCRIPTABLE_MESH_DEBUG 1
 

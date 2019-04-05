@@ -138,7 +138,7 @@ public slots:
      *     var pickRay = Camera.computePickRay(event.x, event.y);
      *     var intersection = Entities.findRayIntersection(pickRay);
      *     if (intersection.intersects) {
-     *         print ("You clicked on entity " + intersection.entityID);
+     *         print("You clicked on entity " + intersection.entityID);
      *     }
      * }
      *

@@ -33,7 +33,7 @@ using namespace render::entities;
 
 ZoneEntityRenderer::ZoneEntityRenderer(const EntityItemPointer& entity)
     : Parent(entity) {
-    _background->setSkybox(std::make_shared<ProceduralSkybox>());
+    _background->setSkybox(std::make_shared<ProceduralSkybox>(entity->getCreated()));
 }
 
 void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
