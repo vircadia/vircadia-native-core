@@ -214,11 +214,11 @@ void SkyboxBakeWidget::addBaker(TextureBaker* baker, const QDir& outputDirectory
     // move the textureBaker to a worker thread
     textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
 
-    // invoke the bake method on the textureBaker thread
-    QMetaObject::invokeMethod(textureBaker.get(), "bake");
-
     // make sure we hear about the results of this textureBaker when it is done
     connect(textureBaker.get(), &TextureBaker::finished, this, &SkyboxBakeWidget::handleFinishedBaker);
+
+    // invoke the bake method on the textureBaker thread
+    QMetaObject::invokeMethod(textureBaker.get(), "bake");
 
     // add a pending row to the results window to show that this bake is in process
     auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();

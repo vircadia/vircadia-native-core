@@ -580,7 +580,6 @@ nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture
 
     compressionOptions.setQuality(nvtt::Quality_Production);
 
-    // TODO: gles: generate ETC mips instead?
     if (outputFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
         useNVTT = true;
         compressionOptions.setFormat(nvtt::Format_BC6);

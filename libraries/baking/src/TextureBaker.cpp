@@ -133,11 +133,7 @@ void TextureBaker::processTexture() {
     // so we add that to the processed texture before handling it off to be serialized
     QCryptographicHash hasher(QCryptographicHash::Md5);
     hasher.addData(_originalTexture);
-    // An ambient texture is built with the same pixel data as sky texture but its Mip Maps are different
-    // so we mustn't use one instead of the other.
-    if (_textureType == image::TextureUsage::AMBIENT_TEXTURE) {
-        hasher.addData((const char*)&_textureType, sizeof(_textureType));
-    }
+    hasher.addData((const char*)&_textureType, sizeof(_textureType));
     auto hashData = hasher.result();
     std::string hash = hashData.toHex().toStdString();
 
