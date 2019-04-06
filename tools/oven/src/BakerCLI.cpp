@@ -49,10 +49,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     if (type == MODEL_EXTENSION || type == FBX_EXTENSION) {
         QUrl bakeableModelURL = getBakeableModelURL(inputUrl);
         if (!bakeableModelURL.isEmpty()) {
-            auto getWorkerThreadCallback = []() -> QThread* {
-                return Oven::instance().getNextWorkerThread();
-            };
-            _baker = getModelBaker(bakeableModelURL, getWorkerThreadCallback, outputPath);
+            _baker = getModelBaker(bakeableModelURL, outputPath);
             if (_baker) {
                 _baker->moveToThread(Oven::instance().getNextWorkerThread());
             }
@@ -61,7 +58,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
         _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (type == MATERIAL_EXTENSION) {
-        _baker = std::unique_ptr<Baker> { new MaterialBaker(inputUrl.toDisplayString(), true, outputPath, QUrl(outputPath)) };
+        _baker = std::unique_ptr<Baker> { new MaterialBaker(inputUrl.toDisplayString(), true, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else {
         // If the type doesn't match the above, we assume we have a texture, and the type specified is the

@@ -27,21 +27,11 @@ std::function<QThread*()> MaterialBaker::_getNextOvenWorkerThreadOperator;
 
 static int materialNum = 0;
 
-namespace std {
-    template <>
-    struct hash<graphics::Material::MapChannel> {
-        size_t operator()(const graphics::Material::MapChannel& a) const {
-            return std::hash<size_t>()((size_t)a);
-        }
-    };
-};
-
-MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, const QUrl& destinationPath) :
+MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir) :
     _materialData(materialData),
     _isURL(isURL),
     _bakedOutputDir(bakedOutputDir),
-    _textureOutputDir(bakedOutputDir + "/materialTextures/" + QString::number(materialNum++)),
-    _destinationPath(destinationPath)
+    _textureOutputDir(bakedOutputDir + "/materialTextures/" + QString::number(materialNum++))
 {
 }
 
@@ -61,6 +51,14 @@ void MaterialBaker::bake() {
         } else {
             connect(_materialResource.data(), &Resource::finished, this, &MaterialBaker::originalMaterialLoaded);
         }
+    }
+}
+
+void MaterialBaker::abort() {
+    Baker::abort();
+
+    for (auto& textureBaker : _textureBakers) {
+        textureBaker->abort();
     }
 }
 
@@ -104,45 +102,42 @@ void MaterialBaker::processMaterial() {
 
     for (auto networkMaterial : _materialResource->parsedMaterials.networkMaterials) {
         if (networkMaterial.second) {
-            auto textureMaps = networkMaterial.second->getTextureMaps();
-            for (auto textureMap : textureMaps) {
-                if (textureMap.second && textureMap.second->getTextureSource()) {
-                    graphics::Material::MapChannel mapChannel = textureMap.first;
-                    auto texture = textureMap.second->getTextureSource();
+            auto textures = networkMaterial.second->getTextures();
+            for (auto texturePair : textures) {
+                auto mapChannel = texturePair.first;
+                auto textureMap = texturePair.second;
+                if (textureMap.texture && textureMap.texture->_textureSource) {
+                    auto type = textureMap.texture->getTextureType();
 
-                    QUrl url = texture->getUrl();
-                    QString cleanURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
+                    QByteArray content;
+                    QUrl textureURL;
+                    {
+                        bool foundEmbeddedTexture = false;
+                        auto textureContentMapIter = _textureContentMap.find(networkMaterial.second->getName());
+                        if (textureContentMapIter != _textureContentMap.end()) {
+                            auto textureUsageIter = textureContentMapIter->second.find(type);
+                            if (textureUsageIter != textureContentMapIter->second.end()) {
+                                content = textureUsageIter->second.first;
+                                textureURL = textureUsageIter->second.second;
+                                foundEmbeddedTexture = true;
+                            }
+                        }
+                        if (!foundEmbeddedTexture && textureMap.texture->_textureSource) {
+                            textureURL = textureMap.texture->_textureSource->getUrl().adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+                        }
+                    }
+
+                    QString cleanURL = textureURL.toDisplayString();
                     auto idx = cleanURL.lastIndexOf('.');
-                    auto extension = idx >= 0 ? url.toDisplayString().mid(idx + 1).toLower() : "";
+                    QString extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
                     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
-                        QUrl textureURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
-
-                        // FIXME: this isn't properly handling bumpMaps or glossMaps
-                        static std::unordered_map<graphics::Material::MapChannel, image::TextureUsage::Type> MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP;
-                        if (MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.empty()) {
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::EMISSIVE_MAP] = image::TextureUsage::EMISSIVE_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::ALBEDO_MAP] = image::TextureUsage::ALBEDO_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::METALLIC_MAP] = image::TextureUsage::METALLIC_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::ROUGHNESS_MAP] = image::TextureUsage::ROUGHNESS_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::NORMAL_MAP] = image::TextureUsage::NORMAL_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::OCCLUSION_MAP] = image::TextureUsage::OCCLUSION_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::LIGHTMAP_MAP] = image::TextureUsage::LIGHTMAP_TEXTURE;
-                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::SCATTERING_MAP] = image::TextureUsage::SCATTERING_TEXTURE;
-                        }
-
-                        auto it = MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.find(mapChannel);
-                        if (it == MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.end()) {
-                            handleError("Unknown map channel");
-                            return;
-                        }
-
-                        QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, it->second);
+                        QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, type);
                         if (!_textureBakers.contains(textureKey)) {
-                            auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), it->second);
+                            auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
                             QSharedPointer<TextureBaker> textureBaker {
-                                new TextureBaker(textureURL, it->second, _textureOutputDir, "", baseTextureFileName),
+                                new TextureBaker(textureURL, type, _textureOutputDir, "", baseTextureFileName, content),
                                 &TextureBaker::deleteLater
                             };
                             textureBaker->setMapChannel(mapChannel);
@@ -179,7 +174,7 @@ void MaterialBaker::handleFinishedTextureBaker() {
 
             // Replace the old texture URLs
             for (auto networkMaterial : _materialsNeedingRewrite.values(textureKey)) {
-                networkMaterial->getTextureMap(baker->getMapChannel())->getTextureSource()->setUrl(_destinationPath.resolved(relativeURL));
+                networkMaterial->getTextureMap(baker->getMapChannel())->getTextureSource()->setUrl(relativeURL);
             }
         } else {
             // this texture failed to bake - this doesn't fail the entire bake but we need to add the errors from
@@ -244,4 +239,31 @@ void MaterialBaker::outputMaterial() {
 
     // emit signal to indicate the material baking is finished
     emit finished();
+}
+
+void MaterialBaker::addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture) {
+    auto& textureUsageMap = _textureContentMap[materialName.toStdString()];
+    if (textureUsageMap.find(textureUsage) == textureUsageMap.end() && !texture.content.isEmpty()) {
+        textureUsageMap[textureUsage] = { texture.content, texture.filename };
+    }
+};
+
+void MaterialBaker::setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL) {
+    _materialResource = NetworkMaterialResourcePointer(new NetworkMaterialResource(), [](NetworkMaterialResource* ptr) { ptr->deleteLater(); });
+    for (auto& material : materials) {
+        _materialResource->parsedMaterials.names.push_back(material.name.toStdString());
+        _materialResource->parsedMaterials.networkMaterials[material.name.toStdString()] = std::make_shared<NetworkMaterial>(material, baseURL);
+
+        // Store any embedded texture content
+        addTexture(material.name, image::TextureUsage::NORMAL_TEXTURE, material.normalTexture);
+        addTexture(material.name, image::TextureUsage::ALBEDO_TEXTURE, material.albedoTexture);
+        addTexture(material.name, image::TextureUsage::GLOSS_TEXTURE, material.glossTexture);
+        addTexture(material.name, image::TextureUsage::ROUGHNESS_TEXTURE, material.roughnessTexture);
+        addTexture(material.name, image::TextureUsage::SPECULAR_TEXTURE, material.specularTexture);
+        addTexture(material.name, image::TextureUsage::METALLIC_TEXTURE, material.metallicTexture);
+        addTexture(material.name, image::TextureUsage::EMISSIVE_TEXTURE, material.emissiveTexture);
+        addTexture(material.name, image::TextureUsage::OCCLUSION_TEXTURE, material.occlusionTexture);
+        addTexture(material.name, image::TextureUsage::SCATTERING_TEXTURE, material.scatteringTexture);
+        addTexture(material.name, image::TextureUsage::LIGHTMAP_TEXTURE, material.lightmapTexture);
+    }
 }

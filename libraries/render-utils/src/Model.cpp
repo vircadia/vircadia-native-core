@@ -1546,18 +1546,40 @@ void Model::applyMaterialMapping() {
             continue;
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+        // This needs to be precomputed before the lambda, since the lambdas could be called out of order
+        std::unordered_map<unsigned int, quint16> priorityMapPerResource;
+        for (auto shapeID : shapeIDs) {
+            priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
+        }
+
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
             if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
             render::Transaction transaction;
-            auto networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+            std::shared_ptr<NetworkMaterial> networkMaterial;
+            {
+                QString url = networkMaterialResource->getURL().toString();
+                bool foundMaterialName = false;
+                if (url.contains("?")) {
+                    auto split = url.split("?");
+                    std::string materialName = split.last().toStdString();
+                    auto networkMaterialIter = networkMaterialResource->parsedMaterials.networkMaterials.find(materialName);
+                    if (networkMaterialIter != networkMaterialResource->parsedMaterials.networkMaterials.end()) {
+                        networkMaterial = networkMaterialIter->second;
+                        foundMaterialName = true;
+                    }
+                }
+                if (!foundMaterialName) {
+                    networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+                }
+            }
             for (auto shapeID : shapeIDs) {
                 if (shapeID < _modelMeshRenderItemIDs.size()) {
                     auto itemID = _modelMeshRenderItemIDs[shapeID];
                     auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
                     bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, ++_priorityMap[shapeID]);
+                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
                     _materialMapping[shapeID].push_back(material);
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
