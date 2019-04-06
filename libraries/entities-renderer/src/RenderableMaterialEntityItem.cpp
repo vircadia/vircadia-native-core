@@ -358,7 +358,13 @@ void MaterialEntityRenderer::deleteMaterial(const QUuid& oldParentID, const QStr
         return;
     }
 
-    // if a remove fails, our parent is gone, so we don't need to retry
+    // if a remove fails, our parent is gone, so we don't need to retry, EXCEPT:
+    // MyAvatar can change UUIDs when you switch domains, which leads to a timing issue.  Let's just make
+    // sure we weren't attached to MyAvatar by trying this (if we weren't, this will have no effect)
+    if (EntityTreeRenderer::removeMaterialFromAvatar(AVATAR_SELF_ID, material, oldParentMaterialNameStd)) {
+        _appliedMaterial = nullptr;
+        return;
+    }
 }
 
 void MaterialEntityRenderer::applyTextureTransform(std::shared_ptr<NetworkMaterial>& material) {
