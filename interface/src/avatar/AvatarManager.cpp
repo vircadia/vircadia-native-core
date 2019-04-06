@@ -497,7 +497,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // it might not fire until after we create a new instance for the same remote avatar, which creates a race
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == KillAvatarReason::NoReason) {
+    if (removalReason != KillAvatarReason::AvatarDisconnected) {
         emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
 
@@ -509,7 +509,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         render::Transaction transaction;
         avatar->removeFromScene(avatar, scene, transaction);
         scene->enqueueTransaction(transaction);
-    } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
+    } else {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
