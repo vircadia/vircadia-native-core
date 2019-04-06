@@ -16,47 +16,55 @@ $(document).ready(function(){
 
   Settings.extraGroupsAtEnd = Settings.extraDomainGroupsAtEnd;
   Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
+  var METAVERSE_URL = URLs.METAVERSE_URL;
 
   Settings.afterReloadActions = function() {
-    // call our method to setup the HF account button
-    setupHFAccountButton();
 
-    // call our method to setup the place names table
-    setupPlacesTable();
+    getMetaverseUrl(function(metaverse_url) {
+      METAVERSE_URL = metaverse_url;
 
-    setupDomainNetworkingSettings();
-    // setupDomainLabelSetting();
+      // call our method to setup the HF account button
+      setupHFAccountButton();
 
-    setupSettingsBackup();
+      // call our method to setup the place names table
+      setupPlacesTable();
 
-    if (domainIDIsSet()) {
-      // now, ask the API for what places, if any, point to this domain
-      reloadDomainInfo();
+      setupDomainNetworkingSettings();
+      // setupDomainLabelSetting();
 
-      // we need to ask the API what a shareable name for this domain is
-      getShareName(function(success, shareName) {
-        if (success) {
-          var shareLink = "https://hifi.place/" + shareName;
-          $('#visit-domain-link').attr("href", shareLink).show();
-        }
-      });
-    }
+      setupSettingsBackup();
 
-    if (Settings.data.values.wizard.cloud_domain) {
-      $('#manage-cloud-domains-link').show();
+      if (domainIDIsSet()) {
+        // now, ask the API for what places, if any, point to this domain
+        reloadDomainInfo();
 
-      var cloudWizardExit = qs["cloud-wizard-exit"];
-      if (cloudWizardExit != undefined) {
-        $('#cloud-domains-alert').show();
+        // we need to ask the API what a shareable name for this domain is
+        getShareName(function(success, shareName) {
+          if (success) {
+            var shareLink = "https://hifi.place/" + shareName;
+            $('#visit-domain-link').attr("href", shareLink).show();
+          }
+        });
+      } else if (accessTokenIsSet()) {
+        $('#' + Settings.GET_TEMPORARY_NAME_BTN_ID).show();
       }
 
-      $(Settings.DOMAIN_ID_SELECTOR).siblings('span').append("</br><strong>Changing the domain ID for a Cloud Domain may result in an incorrect status for the domain on your Cloud Domains page.</strong>");
-    } else {
-      // append the domain selection modal
-      appendDomainIDButtons();
-    }
+      if (Settings.data.values.wizard.cloud_domain) {
+        $('#manage-cloud-domains-link').show();
 
-    handleAction();
+        var cloudWizardExit = qs["cloud-wizard-exit"];
+        if (cloudWizardExit != undefined) {
+          $('#cloud-domains-alert').show();
+        }
+
+        $(Settings.DOMAIN_ID_SELECTOR).siblings('span').append("</br><strong>Changing the domain ID for a Cloud Domain may result in an incorrect status for the domain on your Cloud Domains page.</strong>");
+      } else {
+        // append the domain selection modal
+        appendDomainIDButtons();
+      }
+
+      handleAction();
+    });
   }
 
   Settings.handlePostSettings = function(formJSON) {
@@ -258,7 +266,7 @@ $(document).ready(function(){
       buttonSetting.button_label = "Connect High Fidelity Account";
       buttonSetting.html_id = Settings.CONNECT_ACCOUNT_BTN_ID;
 
-      buttonSetting.href = URLs.METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
+      buttonSetting.href = METAVERSE_URL + "/user/tokens/new?for_domain_server=true";
 
       // since we do not have an access token we change hide domain ID and auto networking settings
       // without an access token niether of them can do anything
@@ -645,7 +653,7 @@ $(document).ready(function(){
       label: 'Places',
       html_id: Settings.PLACES_TABLE_ID,
       help: "The following places currently point to this domain.</br>To point places to this domain, "
-        + " go to the <a href='" + URLs.METAVERSE_URL + "/user/places'>My Places</a> "
+        + " go to the <a href='" + METAVERSE_URL + "/user/places'>My Places</a> "
         + "page in your High Fidelity Metaverse account.",
       read_only: true,
       can_add_new_rows: false,
@@ -952,7 +960,7 @@ $(document).ready(function(){
             modal_buttons["success"] = {
               label: 'Create new domain',
               callback: function() {
-                window.open(URLs.METAVERSE_URL + "/user/domains", '_blank');
+                window.open(METAVERSE_URL + "/user/domains", '_blank');
               }
             }
             modal_body = "<p>You do not have any domains in your High Fidelity account." +
@@ -1000,7 +1008,7 @@ $(document).ready(function(){
         showSpinnerAlert('Creating temporary place name');
 
         // make a get request to get a temporary domain
-        $.post(URLs.METAVERSE_URL + '/api/v1/domains/temporary', function(data){
+        $.post(METAVERSE_URL + '/api/v1/domains/temporary', function(data){
           if (data.status == "success") {
             var domain = data.data.domain;
 
