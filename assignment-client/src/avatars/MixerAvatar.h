@@ -29,11 +29,21 @@ public:
 private:
     bool _needsHeroCheck{ false };
 
+    // Avatar certification/verification
+    enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kChallengeClient, kVerified,
+        kVerificationFailed, kVerificationSucceeded, kError };
+    Q_ENUM(VerifyState);
+    VerifyState _verifyState { kNoncertified };
     QMutex _avatarCertifyLock;
-    ResourceRequest* _avatarRequest{ nullptr };
-    QString _avatarURLString;
+    ResourceRequest* _avatarRequest { nullptr };
+    QString _marketplaceIdString;
     QByteArray _avatarFSTContents;
+    QByteArray _certificateHash;
+    QString _certificateId;
     bool _avatarFSTValid { false };
+
+    bool generateFSTHash();
+    bool validateFSTHash(const QString& publicKey);
 
 private slots:
     void fstRequestComplete();
