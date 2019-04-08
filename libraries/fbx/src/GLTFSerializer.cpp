@@ -751,7 +751,7 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
     }
 }
 
-void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool order, std::vector<int>& result) {
+void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool needToSort, std::vector<int>& result) {
     int startingIndex = 0;
     int finalIndex = (int)children.size();
     if (stride == -1) {
@@ -763,12 +763,12 @@ void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children
         result.push_back(c);
         std::vector<int> nested = _file.nodes[c].children.toStdVector();
         if (nested.size() != 0) {
-            if (order) {
+            if (needToSort) {
                 std::sort(nested.begin(), nested.end());
             }
             for (int r : nested) {
                 if (result.end() == std::find(result.begin(), result.end(), r)) {
-                    getNodeQueueByDepthFirstChildren(nested, stride, order, result);
+                    getNodeQueueByDepthFirstChildren(nested, stride, needToSort, result);
                 }
             }
         } 
@@ -813,7 +813,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
 
     // initialize order in which nodes will be parsed
-    bool sortNodes = (!parentOutOfOrder && skinnedModel) || !skinnedModel;
+    bool needToSort = !parentOutOfOrder || !skinnedModel;
     std::vector<int> nodeQueue;
     nodeQueue.reserve(numNodes);
     int rootNode = 0;
@@ -830,7 +830,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     if (!rootAtStartOfList) { nodeListStride = -1; }
 
     QVector<int> initialSceneNodes = _file.scenes[_file.scene].nodes; 
-    if (sortNodes) {
+    if (needToSort) {
         std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
     }
 
@@ -844,10 +844,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         int i = initialSceneNodes[index];
         nodeQueue.push_back(i);
         std::vector<int> children = _file.nodes[i].children.toStdVector(); 
-        if (sortNodes) {
+        if (needToSort) {
             std::sort(children.begin(), children.end());
         }
-        getNodeQueueByDepthFirstChildren(children, nodeListStride, sortNodes, nodeQueue);
+        getNodeQueueByDepthFirstChildren(children, nodeListStride, needToSort, nodeQueue);
     }
 
 
