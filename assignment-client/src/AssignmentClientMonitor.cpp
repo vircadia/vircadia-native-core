@@ -48,11 +48,10 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _maxAssignmentClientForks(maxAssignmentClientForks),
     _requestAssignmentType(requestAssignmentType),
     _assignmentPool(assignmentPool),
-    _childMinListenPort(childMinListenPort),
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
-    _assignmentServerPort(assignmentServerPort)
-
+    _assignmentServerPort(assignmentServerPort),
+    _childMinListenPort(childMinListenPort)
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
 
