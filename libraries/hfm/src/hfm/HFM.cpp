@@ -166,7 +166,7 @@ void HFMModel::computeKdops() {
         glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
         glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
     };
-    if (joints.size() != shapeVertices.size()) {
+    if (joints.size() != (int)shapeVertices.size()) {
         return;
     }
     // now that all joints have been scanned compute a k-Dop bounding volume of mesh
