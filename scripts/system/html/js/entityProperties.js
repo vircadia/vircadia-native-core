@@ -55,6 +55,7 @@ const GROUPS = [
                 label: "Parent",
                 type: "string",
                 propertyID: "parentID",
+                onChange: parentIDChanged,
             },
             {
                 label: "Parent Joint Index",
@@ -2007,6 +2008,9 @@ function createStringProperty(property, elProperty) {
 
     
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    if (propertyData.onChange !== undefined) {
+        elInput.addEventListener('change', propertyData.onChange);
+    }
     
     elProperty.appendChild(elInput);
     
@@ -2623,6 +2627,17 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
 
 
 /**
+ * PROPERTY-SPECIFIC CALLBACKS
+ */
+ 
+function parentIDChanged() {
+    if (selectedEntityProperties.type === "Material") {
+        requestMaterialTarget();
+    }
+}
+
+
+/**
  * BUTTON CALLBACKS
  */
 
@@ -3156,6 +3171,10 @@ function setTextareaScrolling(element) {
  * MATERIAL TARGET FUNCTIONS
  */
 
+function requestMaterialTarget() {
+    EventBridge.emitWebEvent(JSON.stringify({ type: 'materialTargetRequest', entityID: selectedEntityProperties.id }));
+}
+ 
 function setMaterialTargetData(materialTargetData) {
     let elDivOptions = getPropertyInputElement("parentMaterialName");
     resetDynamicMultiselectProperty(elDivOptions);
@@ -3256,7 +3275,9 @@ function sendMaterialTargetProperty() {
     
     if (materialTargetList !== "") {
         materialTargetList = materialTargetList.substring(0, materialTargetList.length - 1);
-        materialTargetList = "[" + materialTargetList + "]";
+        if (materialTargetList.length > 1) {
+            materialTargetList = "[" + materialTargetList + "]";
+        }
     }
     
     updateProperty("parentMaterialName", materialTargetList, false);
@@ -3780,7 +3801,7 @@ function loaded() {
                         }
                         
                         if (hasSelectedEntityChanged && selectedEntityProperties.type === "Material") {
-                            EventBridge.emitWebEvent(JSON.stringify({ type: 'materialTargetRequest', entityID: selectedEntityProperties.id }));
+                            requestMaterialTarget();
                         }
                         
                         let activeElement = document.activeElement;
