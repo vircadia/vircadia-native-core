@@ -2480,7 +2480,7 @@ function resetDynamicMultiselectProperty(elDivOptions) {
         let elDivOption = elInputs[0].parentNode;
         elDivOption.parentNode.removeChild(elDivOption);
     }
-    elDivOptions.firstChild.style.display = "block"; // show "No Options" text
+    elDivOptions.firstChild.style.display = null; // show "No Options" text
     elDivOptions.parentNode.lastChild.style.display = "none"; // hide Select/Clear all buttons
 }
 
@@ -3184,7 +3184,7 @@ function setMaterialTargetData(materialTargetData) {
     }
     
     elDivOptions.firstChild.style.display = "none"; // hide "No Options" text
-    elDivOptions.parentNode.lastChild.style.display = "block"; // show Select/Clear all buttons
+    elDivOptions.parentNode.lastChild.style.display = null; // show Select/Clear all buttons
 
     let numMeshes = materialTargetData.numMeshes;
     for (let i = 0; i < numMeshes; ++i) {
@@ -3260,37 +3260,35 @@ function sendMaterialTargetProperty() {
     let elDivOptions = getPropertyInputElement("parentMaterialName");   
     let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
     
-    let materialTargetList = "";
+    let materialTargetList = [];
     for (let i = 0; i < elInputs.length; ++i) {
         let elInput = elInputs[i];
         if (elInput.checked) {
             let targetID = elInput.getAttribute("targetID");
             if (elInput.getAttribute("isMaterialName") === "true") {
-                materialTargetList += "mat::" + targetID + ",";
+                materialTargetList.push("mat::" + targetID);
             } else {
-                materialTargetList += targetID + ",";
+                materialTargetList.push(targetID);
             }
         }
     }
     
-    if (materialTargetList !== "") {
-        materialTargetList = materialTargetList.substring(0, materialTargetList.length - 1);
-        if (materialTargetList.length > 1) {
-            materialTargetList = "[" + materialTargetList + "]";
-        }
+    let propertyValue = materialTargetList.join(",");
+    if (propertyValue.length > 1) {
+        propertyValue = "[" + propertyValue + "]";
     }
     
-    updateProperty("parentMaterialName", materialTargetList, false);
+    updateProperty("parentMaterialName", propertyValue, false);
 }
 
 function materialTargetPropertyUpdate(propertyValue) {
     let elDivOptions = getPropertyInputElement("parentMaterialName");
     let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
     
-    if (propertyValue.charAt(0) === '[') {
+    if (propertyValue.startsWith('[')) {
         propertyValue = propertyValue.substring(1, propertyValue.length);
     }
-    if (propertyValue.charAt(propertyValue.length - 1) === ']') {
+    if (propertyValue.endsWith(']')) {
         propertyValue = propertyValue.substring(0, propertyValue.length - 1);
     }
     
@@ -3854,7 +3852,9 @@ function loaded() {
                         }
                     }
                 } else if (data.type === 'materialTargetReply') {
-                    setMaterialTargetData(data.materialTargetData);
+                    if (data.entityID === selectedEntityProperties.id) {
+                        setMaterialTargetData(data.materialTargetData);
+                    }
                 }
             });
 

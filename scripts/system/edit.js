@@ -2537,6 +2537,7 @@ var PropertiesTool = function (opts) {
             }
             emitScriptEvent({
                 type: 'materialTargetReply',
+                entityID: data.entityID,
                 materialTargetData: parentModelData,
             });
         }
