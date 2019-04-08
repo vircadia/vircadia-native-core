@@ -31,11 +31,13 @@ void MixerAvatar::fetchAvatarFST() {
         return;
     }
     // Match UUID + version
-    static const QRegularExpression marketIdRegex{ "^https?://mpassets.highfidelity.com/([-0-9a-z]{36,})/" };
+    static const QRegularExpression marketIdRegex
+        { "^https://https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36}).*certificate_id=([\\w/+%]+)" };
     auto marketIdMatch = marketIdRegex.match(avatarURL.toDisplayString());
     if (marketIdMatch.hasMatch()) {
         QMutexLocker certifyLocker(&_avatarCertifyLock);
         _marketplaceIdString = marketIdMatch.captured(1);
+        _certificateId = QUrl::fromPercentEncoding(marketIdMatch.captured(2).toUtf8());
     } else {
         _marketplaceIdString = "2119142f-0cd6-4126-b18e-06b53afcc0a9";  // XXX: plants entity, for testing
     }
@@ -57,8 +59,8 @@ void MixerAvatar::fetchAvatarFST() {
 }
 
 // TESTING
-static const QString PLANT_CERTID {
-    "MEYCIQDxKA62xq/G/x1aWpXyJbGjIHm6SU4ceQu2ljtFRfeu/QIhAKw2uEfLId8sqLfEoErOlvu2UV2wbP3ttrYP1hoZT0Ge"};
+static const QString PLANT_CERTID
+    { "MEYCIQDxKA62xq/G/x1aWpXyJbGjIHm6SU4ceQu2ljtFRfeu/QIhAKw2uEfLId8sqLfEoErOlvu2UV2wbP3ttrYP1hoZT0Ge" };
 
 void MixerAvatar::fstRequestComplete() {
     ResourceRequest* fstRequest = static_cast<ResourceRequest*>(QObject::sender());
@@ -73,13 +75,10 @@ void MixerAvatar::fstRequestComplete() {
             _verifyState = kReceivedFST;
             generateFSTHash();
             QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
-            _certificateId = PLANT_CERTID;
             bool staticVerification = validateFSTHash(marketplacePublicKey);
-            if (!staticVerification) {
-                _verifyState = kNoncertified;
-            }
+            _verifyState = staticVerification ? kStaticValidation : kNoncertified;
 
-            if (!_certificateId.isEmpty()) {
+            if (_verifyState == kStaticValidation) {
                 static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
                 auto& networkAccessManager = NetworkAccessManager::getInstance();
                 QNetworkRequest networkRequest;
@@ -99,7 +98,7 @@ void MixerAvatar::fstRequestComplete() {
                     qCDebug(avatars) << "Marketplace response for avatar" << getDisplayName() << ":" << responseString;
                     QJsonDocument responseJson = QJsonDocument::fromJson(responseString.toUtf8());
                     if (networkReply->error() == QNetworkReply::NoError) {
-                        volatile int x = 1;
+                        QMutexLocker certifyLocker(&_avatarCertifyLock);
                         if (responseJson["status"].toString() == "success") {
                             auto jsonData = responseJson["data"];
                             // owner, owner key?
