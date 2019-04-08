@@ -1630,7 +1630,7 @@ function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
         if (entityHostTypes[i].entityHostType !== entityHostType) {
             if (wantDebug) {
                 console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
-                    entityHostTypes[i].entityHostType);
+                    entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
             }
             continue;
         }
