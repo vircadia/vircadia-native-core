@@ -13,6 +13,7 @@ function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.min = min;
     this.max = max;
     this.step = step !== undefined ? step : 1;
+    this.multiDiffModeEnabled = false;
     this.decimals = decimals;
     this.dragStartFunction = dragStart;
     this.dragEndFunction = dragEnd;
@@ -20,6 +21,7 @@ function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.initialMouseEvent = null;
     this.lastMouseEvent = null;
     this.valueChangeFunction = null;
+    this.multiDiffDragFunction = null;
     this.initialize();
 }
 
@@ -71,21 +73,26 @@ DraggableNumber.prototype = {
         }
         if (this.dragging && this.lastMouseEvent) {
             let initialValue = this.elInput.value;
-            let dx = event.clientX - this.lastMouseEvent.clientX;
-            let changeValue = dx !== 0;
-            if (changeValue) {
-                while (dx !== 0) {
-                    if (dx > 0) {
-                        this.elInput.stepUp();
-                        --dx;
-                    } else {
-                        this.elInput.stepDown();
-                        ++dx;
+            let changeDelta = event.clientX - this.lastMouseEvent.clientX;
+            if (changeDelta !== 0) {
+                if (this.multiDiffModeEnabled) {
+                    if (this.multiDiffDragFunction) {
+                        this.multiDiffDragFunction(changeDelta * this.step);
                     }
-                }
-                this.inputChange();
-                if (this.valueChangeFunction) {
-                    this.valueChangeFunction();
+                } else {
+                    while (changeDelta !== 0) {
+                        if (changeDelta > 0) {
+                            this.elInput.stepUp();
+                            --changeDelta;
+                        } else {
+                            this.elInput.stepDown();
+                            ++changeDelta;
+                        }
+                    }
+                    this.inputChange();
+                    if (this.valueChangeFunction) {
+                        this.valueChangeFunction();
+                    }
                 }
             }
             this.lastMouseEvent = event;
@@ -124,20 +131,39 @@ DraggableNumber.prototype = {
         }
     },
     
-    setValue: function(newValue) {
-        if (newValue !== "" && this.decimals !== undefined) {
-            this.elInput.value = parseFloat(newValue).toFixed(this.decimals);
-        } else {
-            this.elInput.value = newValue;
+    setValue: function(newValue, isMultiDiff) {
+        if (isMultiDiff !== undefined) {
+            this.setMultiDiff(isMultiDiff);
         }
-        this.elText.firstChild.data = this.elInput.value;
+
+        if (!isMultiDiff) {
+            if (newValue !== "" && this.decimals !== undefined) {
+                this.elInput.value = parseFloat(newValue).toFixed(this.decimals);
+            } else {
+                this.elInput.value = newValue;
+            }
+            this.elText.firstChild.data = this.elInput.value;
+        }
+    },
+
+    setMultiDiff: function(isMultiDiff) {
+        this.multiDiffModeEnabled = isMultiDiff;
+        if (isMultiDiff) {
+            this.elDiv.classList.add('multi-diff');
+        } else {
+            this.elDiv.classList.remove('multi-diff');
+        }
     },
 
     setValueChangeFunction: function(valueChangeFunction) {
         this.valueChangeFunction = valueChangeFunction.bind(this.elInput);
         this.elInput.addEventListener("change", this.valueChangeFunction);
     },
-    
+
+    setMultiDiffDragFunction: function(multiDiffDragFunction) {
+        this.multiDiffDragFunction = multiDiffDragFunction;
+    },
+
     inputChange: function() {
         let value = this.elInput.value;
         if (this.max !== undefined) {
@@ -203,7 +229,10 @@ DraggableNumber.prototype = {
         this.elRightArrow.className = 'right-arrow';
         this.elRightArrow.innerHTML = 'D';
         this.elRightArrow.addEventListener("click", this.onStepUp);
-        
+
+        this.elMultiDiff = document.createElement('span');
+        this.elMultiDiff.className = 'multi-diff';
+
         this.elInput = document.createElement('input');
         this.elInput.className = "input";
         this.elInput.setAttribute("type", "number");
@@ -220,6 +249,7 @@ DraggableNumber.prototype = {
         this.elDiv.appendChild(this.elLeftArrow);
         this.elDiv.appendChild(this.elText);
         this.elDiv.appendChild(this.elInput);
+        this.elDiv.appendChild(this.elMultiDiff);
         this.elDiv.appendChild(this.elRightArrow);
     }
 };
