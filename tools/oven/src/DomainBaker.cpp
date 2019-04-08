@@ -397,6 +397,8 @@ void DomainBaker::enumerateEntities() {
                 }
             }
 
+            // FIXME: disabled for now because it breaks some scripts
+            /*
             // Scripts
             if (entity.contains(SCRIPT_KEY)) {
                 addScriptBaker(SCRIPT_KEY, entity[SCRIPT_KEY].toString(), *it);
@@ -404,6 +406,7 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(SERVER_SCRIPTS_KEY)) {
                 // TODO: serverScripts can be multiple scripts, need to handle that
             }
+            */
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
