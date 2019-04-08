@@ -105,7 +105,7 @@ void AssignmentClientMonitor::childProcessFinished(qint64 pid, quint16 listenPor
     auto message = "Child process " + QString::number(pid) + " on port " + QString::number(listenPort) +
                    "has %1 with exit code " + QString::number(exitCode) + ".";
 
-    if (listenPort != INVALID_PORT) {
+    if (listenPort) {
         _childListenPorts.remove(listenPort);
     }
 
@@ -159,20 +159,20 @@ void AssignmentClientMonitor::aboutToQuit() {
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess* assignmentClient = new QProcess(this);
 
-    quint16 listenPort = INVALID_PORT;
+    quint16 listenPort = 0;
     // allocate a port
 
-    if (_childMinListenPort != INVALID_PORT) {
+    if (_childMinListenPort) {
         for (listenPort = _childMinListenPort; _childListenPorts.contains(listenPort); listenPort++) {
             if (_maxAssignmentClientForks &&
                 (listenPort >= _maxAssignmentClientForks + _childMinListenPort)) {
-                listenPort = INVALID_PORT;
+                listenPort = 0;
                 qDebug() << "Insufficient listen ports";
                 break;
             }
         }
     }
-    if (listenPort != INVALID_PORT) {
+    if (listenPort) {
         _childListenPorts.insert(listenPort);
     }
 
@@ -199,7 +199,7 @@ void AssignmentClientMonitor::spawnChildClient() {
         _childArguments.append(QString::number(_requestAssignmentType));
     }
 
-    if (listenPort != INVALID_PORT) {
+    if (listenPort) {
         _childArguments.append("-" + ASSIGNMENT_CLIENT_LISTEN_PORT_OPTION);
         _childArguments.append(QString::number(listenPort));
     }

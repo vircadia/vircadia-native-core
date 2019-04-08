@@ -199,7 +199,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         assignmentServerPort = parser.value(assignmentServerPortOption).toInt();
     }
 
-    quint16 childMinListenPort = INVALID_PORT;
+    quint16 childMinListenPort = 0;
     if (argumentVariantMap.contains(ASSIGNMENT_MONITOR_MIN_CHILDREN_LISTEN_PORT_OPTION)) {
         childMinListenPort = argumentVariantMap.value(ASSIGNMENT_MONITOR_MIN_CHILDREN_LISTEN_PORT_OPTION).toUInt();
     }
