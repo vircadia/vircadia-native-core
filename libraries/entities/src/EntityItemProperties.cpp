@@ -976,7 +976,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * by setting the <code>entityHostType</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.
  * Material entities render as non-scalable spheres if they don't have their parent set.
  * @typedef {object} Entities.EntityProperties-Material
- * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
+ * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>#name</code> to the URL, the 
  *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
  *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
  *     for the {@link MaterialResource} values.
