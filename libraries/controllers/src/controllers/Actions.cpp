@@ -35,9 +35,9 @@ namespace controller {
 
     /**jsdoc
      * <p>The <code>Controller.Actions</code> object has properties representing predefined actions on the user's avatar and 
-     * Interface. The property values are integer IDs, uniquely identifying each action. <em>Read-only.</em> These can be used 
-     * as end points in the routes of a {@link MappingObject}. The data routed to each action is either a number or a 
-     * {@link Pose}.</p>
+     * Interface. The property values are integer IDs, uniquely identifying each action. <em>Read-only.</em></p>
+     * <p>These actions can be used as end points in the routes of a {@link MappingObject}. The data item routed to each action 
+     * is either a number or a {@link Pose}.</p>
      *
      * <table>
      *   <thead>
@@ -246,8 +246,6 @@ namespace controller {
      *       <code>ContextMenu</code> instead.</td></tr>
      *     <tr><td><code>TOGGLE_MUTE</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
      *       <code>ToggleMute</code> instead.</td></tr>
-     *     <tr><td><code>TOGGLE_PUSHTOTALK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>TogglePushToTalk</code> instead.</td></tr>
      *     <tr><td><code>SPRINT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
      *       <code>Sprint</code> instead.</td></tr>
      *     <tr><td><code>LONGITUDINAL_BACKWARD</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 

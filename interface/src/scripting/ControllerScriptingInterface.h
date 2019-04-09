@@ -26,9 +26,9 @@ class ScriptEngine;
 
 
 /**jsdoc
- * The Controller API provides facilities to interact with computer and controller hardware.
+ * The <code>Controller</code> API provides facilities to interact with computer and controller hardware.
  *
- * <h5>Functions</h5>
+ * <h4>Facilities</h4>
  *
  * <p>Properties</p>
  * <ul>
@@ -55,16 +55,18 @@ class ScriptEngine;
  *   <li>{@link Controller.getAvailableInputs|getAvailableInputs}</li>
  *   <li>{@link Controller.getDeviceName|getDeviceName}</li>
  *   <li>{@link Controller.getDeviceNames|getDeviceNames}</li>
+ *   <li>{@link Controller.getRunningInputDevices|getRunningInputDevices}</li>
  * </ul>
  *
- * <p>Input, Hardware, and Action Events</p>
+ * <p>Input, Hardware, and Action Signals</p>
  * <ul>
  *   <li>{@link Controller.actionEvent|actionEvent}</li>
  *   <li>{@link Controller.hardwareChanged|hardwareChanged}</li>
+ *   <li>{@link Controller.inputDeviceRunningChanged|inputDeviceRunningChanged}</li>
  *   <li>{@link Controller.inputEvent|inputEvent}</li>
  * </ul>
  *
- * <p>Mouse, Keyboard, and Touch Events</p>
+ * <p>Mouse, Keyboard, and Touch Signals</p>
  * <ul>
  *   <li>{@link Controller.keyPressEvent|keyPressEvent}</li>
  *   <li>{@link Controller.keyReleaseEvent|keyReleaseEvent}</li>
@@ -140,10 +142,10 @@ class ScriptEngine;
  *   <li>{@link Controller.stopInputPlayback|stopInputPlayback}</li>
  * </ul>
  *
- * <h5>Entity Methods:</h5>
+ * <h4>Entity Methods</h4>
  *
  * <p>The default scripts implement hand controller actions that use {@link Entities.callEntityMethod} to call entity script 
- * methods, if present in the entity being interacted with.</p>
+ * methods, if present, in the entity being interacted with.</p>
  *
  * <table>
  *   <thead>
@@ -203,7 +205,7 @@ class ScriptEngine;
  *
  * @property {Controller.Actions} Actions - Predefined actions on Interface and the user's avatar. These can be used as end
  *     points in a {@link RouteObject} mapping. A synonym for <code>Controller.Hardware.Actions</code>.
- *     <em>Read-only.</em><br />
+ *     <em>Read-only.</em><br /><br />
  *     Default mappings are provided from the <code>Controller.Hardware.Keyboard</code> and <code>Controller.Standard</code> to 
  *     actions in 
  *     <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/keyboardMouse.json">
@@ -217,7 +219,7 @@ class ScriptEngine;
  *     controller outputs. <em>Read-only.</em>
  *
  * @property {Controller.Standard} Standard - Standard controller outputs that can be mapped to <code>Actions</code> or 
- *     functions in a {@link RouteObject} mapping. <em>Read-only.</em><br />
+ *     functions in a {@link RouteObject} mapping. <em>Read-only.</em><br /><br />
  *     Each hardware device has a mapping from its outputs to <code>Controller.Standard</code> items, specified in a JSON file. 
  *     For example, <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/leapmotion.json">
  *     leapmotion.json</a> and 
@@ -253,7 +255,7 @@ public:
 public slots:
 
     /**jsdoc
-     * Disable default Interface actions for a particular key event.
+     * Disables default Interface actions for a particular key event.
      * @function Controller.captureKeyEvents
      * @param {KeyEvent} event - Details of the key event to be captured. The <code>key</code> property must be specified. The 
      *     <code>text</code> property is ignored. The other properties default to <code>false</code>.
@@ -272,7 +274,7 @@ public slots:
     virtual void captureKeyEvents(const KeyEvent& event);
 
     /**jsdoc
-     * Re-enable default Interface actions for a particular key event that has been disabled using 
+     * Re-enables default Interface actions for a particular key event that has been disabled using 
      * {@link Controller.captureKeyEvents|captureKeyEvents}.
      * @function Controller.releaseKeyEvents
      * @param {KeyEvent} event - Details of the key event to release from capture. The <code>key</code> property must be 
@@ -281,7 +283,7 @@ public slots:
     virtual void releaseKeyEvents(const KeyEvent& event);
 
     /**jsdoc
-     * Disable default Interface actions for a joystick.
+     * Disables default Interface actions for a joystick.
      * @function Controller.captureJoystick
      * @param {number} joystickID - The integer ID of the joystick.
      * @deprecated This function no longer has any effect.
@@ -289,7 +291,7 @@ public slots:
     virtual void captureJoystick(int joystickIndex);
 
     /**jsdoc
-     * Re-enable default Interface actions for a joystick that has been disabled using 
+     * Re-enables default Interface actions for a joystick that has been disabled using 
      * {@link Controller.captureJoystick|captureJoystick}.
      * @function Controller.releaseJoystick
      * @param {number} joystickID - The integer ID of the joystick.
@@ -298,7 +300,7 @@ public slots:
     virtual void releaseJoystick(int joystickIndex);
 
     /**jsdoc
-     * Disable {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities.
+     * Disables {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities.
      * @function Controller.captureEntityClickEvents
      * @example <caption>Disable entity click events for a short period.</caption>
      * Entities.mousePressOnEntity.connect(function (entityID, event) {
@@ -316,7 +318,7 @@ public slots:
     virtual void captureEntityClickEvents();
 
     /**jsdoc
-     * Re-enable {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities that were 
+     * Re-enables {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities that were 
      * disabled using {@link Controller.captureEntityClickEvents|captureEntityClickEvents}.
      * @function Controller.releaseEntityClickEvents
      */
@@ -324,14 +326,14 @@ public slots:
 
 
     /**jsdoc
-     * Get the dimensions of the Interface window's interior if in desktop mode or the HUD surface if in HMD mode.
+     * Gets the dimensions of the Interface window's interior if in desktop mode or the HUD surface if in HMD mode.
      * @function Controller.getViewportDimensions
      * @returns {Vec2} The dimensions of the Interface window interior if in desktop mode or HUD surface if in HMD mode.
      */
     virtual glm::vec2 getViewportDimensions() const;
 
     /**jsdoc
-     * Get the recommended area to position UI on the HUD surface if in HMD mode or Interface's window interior if in desktop 
+     * Gets the recommended area to position UI on the HUD surface if in HMD mode or Interface's window interior if in desktop 
      * mode.
      * @function Controller.getRecommendedHUDRect
      * @returns {Rect} The recommended area in which to position UI.

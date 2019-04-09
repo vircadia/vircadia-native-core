@@ -219,9 +219,10 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
 
 /**jsdoc
  * <p>The <code>Controller.Hardware.Keyboard</code> object has properties representing keyboard, mouse, and display touch 
- * events. The property values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to 
- * actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} mapping. For presses, each data 
- * value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * events. The property values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
+ * <p>These events can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject}
+ * mapping. For presses, each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * 
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><td>Data</th><th>Description</th></tr>
@@ -274,9 +275,13 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *     <tr><td><code>MouseWheelLeft</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
  *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
  *     <tr><td><code>MouseWheelUp</code></td><td>number</td><td>number</td><td>The mouse wheel rotated up. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
+ *       is the number of units rotated (typically <code>1.0</code>).<br />
+ *       <strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
+ *       up/down.</td></tr>
  *     <tr><td><code>MouseWheelDown</code></td><td>number</td><td>number</td><td>The mouse wheel rotated down. The data value 
- *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
+ *       is the number of units rotated (typically <code>1.0</code>).<br />
+ *       <strong>Warning:</strong> The mouse wheel in an ordinary mouse generates left/right wheel events instead of 
+ *       up/down.</td></tr>
   *     <tr><td><code>TouchpadRight</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
  *       moved right. The data value is how far the average position of all touch points moved.</td></tr>
  *     <tr><td><code>TouchpadLeft</code></td><td>number</td><td>number</td><td>The average touch on a touch-enabled device 
@@ -288,7 +293,6 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
   *   </tbody>
  * </table>
  * @typedef {object} Controller.Hardware-Keyboard
- * @todo <em>Currently, the mouse wheel in an ordinary mouse generates left/right wheel events instead of up/down.</em>
  */
 controller::Input::NamedVector KeyboardMouseDevice::InputDevice::getAvailableInputs() const {
     using namespace controller;

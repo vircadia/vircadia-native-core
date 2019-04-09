@@ -134,7 +134,7 @@ public:
         : _parent(parent), _mapping(mapping) { }
 
     /**jsdoc
-     * Create a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
+     * Creates a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
      * function.<br />
      * This is a QML-specific version of {@link MappingObject#from|from}: use this version in QML files.
      * @function MappingObject#fromQml
@@ -145,7 +145,7 @@ public:
     Q_INVOKABLE QObject* fromQml(const QJSValue& source);
 
     /**jsdoc
-     * Create a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
+     * Creates a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
      * direction and the other in the positive direction, ready to be mapped to a standard control, action, or function.<br />
      * This is a QML-specific version of {@link MappingObject#makeAxis|makeAxis}: use this version in QML files.
      * @function MappingObject#makeAxisQml
@@ -157,7 +157,7 @@ public:
     Q_INVOKABLE QObject* makeAxisQml(const QJSValue& source1, const QJSValue& source2);
 
     /**jsdoc
-     * Create a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
+     * Creates a new {@link RouteObject} from a controller output, ready to be mapped to a standard control, action, or 
      * function.
      * @function MappingObject#from
      * @param {Controller.Standard|Controller.Hardware|function} source - The controller output or function that is the source 
@@ -167,7 +167,7 @@ public:
     Q_INVOKABLE QObject* from(const QScriptValue& source);
 
     /**jsdoc
-     * Create a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
+     * Creates a new {@link RouteObject} from two numeric {@link Controller.Hardware} outputs, one applied in the negative 
      * direction and the other in the positive direction, ready to be mapped to a standard control, action, or function.
      * @function MappingObject#makeAxis
      * @param {Controller.Hardware} source1 - The first, negative-direction controller output.
@@ -189,7 +189,7 @@ public:
     Q_INVOKABLE QObject* makeAxis(const QScriptValue& source1, const QScriptValue& source2);
 
     /**jsdoc
-     * Enable or disable the mapping. When enabled, the routes in the mapping take effect.<br />
+     * Enables or disables the mapping. When enabled, the routes in the mapping take effect.<br />
      * Synonymous with {@link Controller.enableMapping}.
      * @function MappingObject#enable
      * @param {boolean} enable=true - If <code>true</code> then the mapping is enabled, otherwise it is disabled.
@@ -198,7 +198,7 @@ public:
     Q_INVOKABLE QObject* enable(bool enable = true);
 
     /**jsdoc
-     * Disable the mapping. When disabled, the routes in the mapping have no effect.<br />
+     * Disables the mapping. When disabled, the routes in the mapping have no effect.<br />
      * Synonymous with {@link Controller.disableMapping}.
      * @function MappingObject#disable
      * @returns {MappingObject} The mapping object, so that further routes can be added.
