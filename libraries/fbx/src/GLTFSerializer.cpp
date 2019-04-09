@@ -751,24 +751,23 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
     }
 }
 
-void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool needToSort, std::vector<int>& result) {
+void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool addChildrenInReverseOrder, std::vector<int>& result) {
     int startingIndex = 0;
     int finalIndex = (int)children.size();
-    if (stride == -1) {
+    if (stride == -1 || addChildrenInReverseOrder) {
         startingIndex = (int)children.size() - 1;
         finalIndex = -1;
+        stride = -1; 
     }
     for (int index = startingIndex; index != finalIndex; index += stride) {
         int c = children[index];
         result.push_back(c);
         std::vector<int> nested = _file.nodes[c].children.toStdVector();
         if (nested.size() != 0) {
-            if (needToSort) {
-                std::sort(nested.begin(), nested.end());
-            }
+            std::sort(nested.begin(), nested.end());
             for (int r : nested) {
                 if (result.end() == std::find(result.begin(), result.end(), r)) {
-                    getNodeQueueByDepthFirstChildren(nested, stride, needToSort, result);
+                    getNodeQueueByDepthFirstChildren(nested, stride, addChildrenInReverseOrder, result);
                 }
             }
         } 
@@ -783,12 +782,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(numNodes);
     int nodecount = 0;
-    bool parentOutOfOrder = false;
+    bool parentGreaterThanChild = false;
     foreach(auto &node, _file.nodes) {
         //nodes_transforms.push_back(getModelTransform(node));
         foreach(int child, node.children) {
             nodeDependencies[child].push_back(nodecount);
-            parentOutOfOrder |= nodecount < child;
+            parentGreaterThanChild |= nodecount > child;
         }
         nodecount++;
     }
@@ -813,12 +812,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
 
     // initialize order in which nodes will be parsed
-    bool needToSort = !parentOutOfOrder || !skinnedModel;
     std::vector<int> nodeQueue;
     nodeQueue.reserve(numNodes);
     int rootNode = 0;
     int finalNode = numNodes;
     for (int sceneNode : _file.scenes[_file.scene].nodes) {
+        // reverse the order in which the nodes are initialized 
         if (!_file.nodes[sceneNode].defined["camera"] && sceneNode != 0) {
             rootNode = numNodes - 1;
             finalNode = -1;
@@ -830,9 +829,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     if (!rootAtStartOfList) { nodeListStride = -1; }
 
     QVector<int> initialSceneNodes = _file.scenes[_file.scene].nodes; 
-    if (needToSort) {
-        std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
-    }
+    std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
 
     int sceneRootNode = 0; 
     int sceneFinalNode = initialSceneNodes.size();
@@ -840,14 +837,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         sceneRootNode = initialSceneNodes.size() - 1;
         sceneFinalNode = -1;
     }
+    // this is an edge case where, for a skinned model, there is a parent who's index is greater than it's child's index
+    // when the opposite is expected
+    // in this case, we want the order of the children to be reversed, even if the root node is 0
+    bool addChildrenInReverseOrder = rootAtStartOfList && parentGreaterThanChild && skinnedModel;
     for (int index = sceneRootNode; index != sceneFinalNode; index += nodeListStride) {
         int i = initialSceneNodes[index];
         nodeQueue.push_back(i);
         std::vector<int> children = _file.nodes[i].children.toStdVector(); 
-        if (needToSort) {
-            std::sort(children.begin(), children.end());
-        }
-        getNodeQueueByDepthFirstChildren(children, nodeListStride, needToSort, nodeQueue);
+        std::sort(children.begin(), children.end());
+        getNodeQueueByDepthFirstChildren(children, nodeListStride, addChildrenInReverseOrder, nodeQueue);
     }
 
 
