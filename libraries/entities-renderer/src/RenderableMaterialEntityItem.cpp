@@ -121,7 +121,11 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
             QString materialURL = entity->getMaterialURL();
             if (materialURL != _materialURL) {
                 _materialURL = materialURL;
-                if (_materialURL.contains("?")) {
+                if (_materialURL.contains("#")) {
+                    auto split = _materialURL.split("#");
+                    newCurrentMaterialName = split.last().toStdString();
+                } else if (_materialURL.contains("?")) {
+                    qDebug() << "DEPRECATED: Use # instead of ? for material URLS:" << _materialURL;
                     auto split = _materialURL.split("?");
                     newCurrentMaterialName = split.last().toStdString();
                 }
