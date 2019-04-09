@@ -22,3 +22,7 @@ elseif (UNIX AND NOT APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
   endif()
 endif ()
+
+if (BUILD_SERVER)
+  install_beside_console()
+endif ()
