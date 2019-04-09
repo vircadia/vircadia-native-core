@@ -23,6 +23,4 @@ elseif (UNIX AND NOT APPLE)
   endif()
 endif ()
 
-if (BUILD_SERVER)
-  install_beside_console()
-endif ()
+install_beside_console()

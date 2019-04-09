@@ -18,6 +18,4 @@ elseif (APPLE)
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif()
 
-if (BUILD_SERVER)
-  install_beside_console()
-endif ()
+install_beside_console()
