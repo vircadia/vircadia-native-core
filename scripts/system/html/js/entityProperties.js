@@ -1645,6 +1645,33 @@ function mergeDeep(target, ...sources) {
     return mergeDeep(target, ...sources);
 }
 
+function deepEqual(a, b) {
+    if (a === b) {
+        return true;
+    }
+
+    if (typeof(a) !== "object" || typeof(b) !== "object") {
+        return false;
+    }
+
+    if (Object.keys(a).length !== Object.keys(b).length) {
+        return false;
+    }
+
+    for (let property in a) {
+        if (!a.hasOwnProperty(property)) {
+            continue;
+        }
+        if (!b.hasOwnProperty(property)) {
+            return false;
+        }
+        if (!deepEqual(a[property], b[property])) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function createElementFromHTML(htmlString) {
     let elTemplate = document.createElement('template');
     elTemplate.innerHTML = htmlString.trim();
@@ -1759,41 +1786,43 @@ function resetProperties() {
             }
             case 'number-draggable': {
                 if (propertyData.defaultValue !== undefined) {
-                    property.elNumber.setValue(propertyData.defaultValue);
+                    property.elNumber.setValue(propertyData.defaultValue, false);
                 } else { 
-                    property.elNumber.setValue("");
+                    property.elNumber.setValue("", false);
                 }
                 break;
             }
             case 'rect': {
-                property.elNumberX.setValue("");
-                property.elNumberY.setValue("");
-                property.elNumberWidth.setValue("");
-                property.elNumberHeight.setValue("");
+                property.elNumberX.setValue("", false);
+                property.elNumberY.setValue("", false);
+                property.elNumberWidth.setValue("", false);
+                property.elNumberHeight.setValue("", false);
                 break;
             }
             case 'vec3': 
             case 'vec2': {
-                property.elNumberX.setValue("");
-                property.elNumberY.setValue("");
+                property.elNumberX.setValue("", false);
+                property.elNumberY.setValue("", false);
                 if (property.elNumberZ !== undefined) {
-                    property.elNumberZ.setValue("");
+                    property.elNumberZ.setValue("", false);
                 }
                 break;
             }
             case 'color': {
                 property.elColorPicker.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-                property.elNumberR.setValue("");
-                property.elNumberG.setValue("");
-                property.elNumberB.setValue("");
+                property.elNumberR.setValue("", false);
+                property.elNumberG.setValue("", false);
+                property.elNumberB.setValue("", false);
                 break;
             }
             case 'dropdown': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 setDropdownText(property.elInput);
                 break;
             }
             case 'textarea': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 setTextareaScrolling(property.elInput);
                 break;
@@ -1803,6 +1832,7 @@ function resetProperties() {
                 break;
             }
             case 'texture': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 property.elInput.imageLoad(property.elInput.value);
                 break;
@@ -1839,6 +1869,14 @@ function showGroupsForType(type) {
     showGroupsForTypes([type]);
 }
 
+function getGroupsForTypes(types) {
+    return Object.keys(elGroups).filter((groupKey) => {
+        return types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) {
+            return hasGroup;
+        });
+    });
+}
+
 function showGroupsForTypes(types) {
     Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
         if (types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) { return hasGroup; })) {
@@ -1849,15 +1887,23 @@ function showGroupsForTypes(types) {
     });
 }
 
+const SUPPORTED_FALLBACK_TYPES = ['number', 'number-draggable', 'rect', 'vec3', 'vec2', 'color'];
+
 function getMultiplePropertyValue(originalPropertyName) {
     // if this is a compound property name (i.e. animation.running)
     // then split it by . up to 3 times to find property value
+
+    let propertyData = null;
+    if (properties[originalPropertyName] !== undefined) {
+        propertyData = properties[originalPropertyName].data;
+    }
+
     let propertyValues = [];
     let splitPropertyName = originalPropertyName.split('.');
     if (splitPropertyName.length > 1) {
         let propertyGroupName = splitPropertyName[PROPERTY_NAME_DIVISION.GROUP];
         let propertyName = splitPropertyName[PROPERTY_NAME_DIVISION.PROPERTY];
-        propertyValue = currentSelections.map(selection => {
+        propertyValues = currentSelections.map(selection => {
             let groupProperties = selection.properties[propertyGroupName];
             if (groupProperties === undefined || groupProperties[propertyName] === undefined) {
                 return undefined;
@@ -1873,17 +1919,42 @@ function getMultiplePropertyValue(originalPropertyName) {
         propertyValues = currentSelections.map(selection => selection.properties[originalPropertyName]);
     }
 
-    let detailedValues = [];
-    propertyValues.forEach(function(propertyValue) {
-        if (typeof propertyValues === "object") {
+    if (propertyData !== null && propertyData.fallbackProperty !== undefined &&
+        SUPPORTED_FALLBACK_TYPES.includes(propertyData.type)) {
 
-        } else {
-            detailedValues.push(propertyValue);
+        let fallbackMultiValue = null;
+
+        for (let i = 0; i < propertyValues.length; ++i) {
+            let isPropertyNotNumber = false;
+            let propertyValue = propertyValues[i];
+            if (propertyValue === undefined) {
+                continue;
+            }
+            switch (propertyData.type) {
+                case 'number':
+                case 'number-draggable':
+                    isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
+                    break;
+                case 'rect':
+                case 'vec3':
+                case 'vec2':
+                    isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
+                    break;
+                case 'color':
+                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
+                    break;
+            }
+            if (isPropertyNotNumber) {
+                if (fallbackMultiValue === null) {
+                    fallbackMultiValue = getMultiplePropertyValue(propertyData.fallbackProperty);
+                }
+                propertyValues[i] = fallbackMultiValue.values[i];
+            }
         }
-    });
+    }
 
-    const uniquePropertyValues = [...new Set(propertyValues)];
-    const isMultiDiffValue = uniquePropertyValues.length > 1;
+    const firstValue = propertyValues[0];
+    const isMultiDiffValue = !propertyValues.every((x) => deepEqual(firstValue, x));
 
     if (isMultiDiffValue) {
         return {
@@ -1894,10 +1965,71 @@ function getMultiplePropertyValue(originalPropertyName) {
     }
 
     return {
-        value: uniquePropertyValues[0],
+        value: propertyValues[0],
         values: propertyValues,
         isMultiDiffValue: false
     };
+}
+
+
+function getDetailedNumberMPVDiff(multiplePropertyValue, propertyData) {
+    let detailedValues = {};
+    // Fixed numbers can't be easily averaged since they're strings, so lets keep an array of unmodified numbers
+    let unmodifiedValues = {};
+    const DEFAULT_KEY = 0;
+    let uniqueKeys = new Set([]);
+    multiplePropertyValue.values.forEach(function(propertyValue) {
+        if (typeof propertyValue === "object") {
+            Object.entries(propertyValue).forEach(function([key, value]) {
+                if (!uniqueKeys.has(key)) {
+                    uniqueKeys.add(key);
+                    detailedValues[key] = [];
+                    unmodifiedValues[key] = [];
+                }
+                detailedValues[key].push(applyInputNumberPropertyModifiers(value, propertyData));
+                unmodifiedValues[key].push(value);
+            });
+        } else {
+            if (!uniqueKeys.has(DEFAULT_KEY)) {
+                uniqueKeys.add(DEFAULT_KEY);
+                detailedValues[DEFAULT_KEY] = [];
+                unmodifiedValues[DEFAULT_KEY] = [];
+            }
+            detailedValues[DEFAULT_KEY].push(applyInputNumberPropertyModifiers(propertyValue, propertyData));
+            unmodifiedValues[DEFAULT_KEY].push(propertyValue);
+        }
+    });
+    let keys = [...uniqueKeys];
+
+    let subPropertyDiff = {};
+    Object.entries(detailedValues).forEach(function([key, value]) {
+        subPropertyDiff[key] = [...new Set(value)].length > 1;
+    });
+
+    let averagePerSubProperty = {};
+    Object.entries(unmodifiedValues).forEach(function([key, value]) {
+        let average = value.reduce((a, b) => a + b) / value.length;
+        averagePerSubProperty[key] = applyInputNumberPropertyModifiers(average, propertyData);
+    });
+
+    return {
+        keys,
+        subPropertyDiff,
+        averagePerSubProperty
+    };
+}
+
+function getDetailedSubPropertyMVPDiff(multiplePropertyValue, subPropertyName) {
+    let isChecked = false;
+    let checkedValues = multiplePropertyValue.values.map((value) => value.split(",").includes(subPropertyName));
+    let isMultiDiff = !checkedValues.every(value => value === checkedValues[0]);
+    if (!isMultiDiff) {
+        isChecked = checkedValues[0];
+    }
+    return {
+        isChecked,
+        isMultiDiff
+    }
 }
 
 function updateVisibleSpaceModeProperties() {
@@ -1985,11 +2117,6 @@ function updateMultiDiffProperties(propertiesMapToUpdate, onlyUpdateEntity) {
         propertiesMap: propertiesMapToUpdate,
         onlyUpdateEntities: onlyUpdateEntity
     }));
-    console.log(JSON.stringify({
-        type: "update",
-        propertiesMap: propertiesMapToUpdate,
-        onlyUpdateEntities: onlyUpdateEntity
-    }))
 }
 
 function createEmitTextPropertyUpdateFunction(property) {
@@ -2020,7 +2147,7 @@ function createDragEndFunction(property) {
             let updateObjects = [];
             const selectedEntityIDsArray = [...selectedEntityIDs];
 
-            for (var i = 0; i < selectedEntityIDsArray.length; ++i) {
+            for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
                 let entityID = selectedEntityIDsArray[i];
                 updateObjects.push({
                     entityIDs: [entityID],
@@ -2039,53 +2166,46 @@ function createDragEndFunction(property) {
 
 function createEmitNumberPropertyUpdateFunction(property) {
     return function() {
-        let multiplier = property.data.multiplier;
-        if (multiplier === undefined) {
-            multiplier = 1;
-        }
-        let value = parseFloat(this.value) * multiplier;
+        let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
         updateProperty(property.name, value, property.isParticleProperty);
     };
 }
 
-function createEmitVec2PropertyUpdateFunction(property) {
-    return function () {
-        let multiplier = property.data.multiplier;
-        if (multiplier === undefined) {
-            multiplier = 1;
-        }
-        let newValue = {
-            x: property.elNumberX.elInput.value * multiplier,
-            y: property.elNumberY.elInput.value * multiplier
-        };
-        updateProperty(property.name, newValue, property.isParticleProperty);
-    };
-}
-
-function createEmitVec3PropertyUpdateFunction(property) {
+function createEmitNumberSubPropertyUpdateFunction(property, subProperty) {
     return function() {
-        let multiplier = property.data.multiplier;
-        if (multiplier === undefined) {
-            multiplier = 1;
-        }
-        let newValue = {
-            x: property.elNumberX.elInput.value * multiplier,
-            y: property.elNumberY.elInput.value * multiplier,
-            z: property.elNumberZ.elInput.value * multiplier
-        };
-        updateProperty(property.name, newValue, property.isParticleProperty);
-    };
-}
+        let propertyMultiValue = getMultiplePropertyValue(property.name);
+        let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
 
-function createEmitRectPropertyUpdateFunction(property) {
-    return function() {
-        let newValue = {
-            x: property.elNumberX.elInput.value,
-            y: property.elNumberY.elInput.value,
-            width: property.elNumberWidth.elInput.value,
-            height: property.elNumberHeight.elInput.value,
-        };
-        updateProperty(property.name, newValue, property.isParticleProperty);
+        if (propertyMultiValue.isMultiDiffValue) {
+            let updateObjects = [];
+            const selectedEntityIDsArray = [...selectedEntityIDs];
+
+            for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
+                let entityID = selectedEntityIDsArray[i];
+
+                let propertyObject = propertyMultiValue.values[i];
+                propertyObject[subProperty] = value;
+
+                let updateObject = createPropertyUpdateObject(property.name, propertyObject);
+                updateObjects.push({
+                    entityIDs: [entityID],
+                    properties: updateObject,
+                });
+
+                mergeDeep(currentSelections[i].properties, updateObject);
+            }
+
+            // only update the entity property value itself if in the middle of dragging
+            // prevent undo command push, saving new property values, and property update
+            // callback until drag is complete (additional update sent via dragEnd callback)
+            let onlyUpdateEntity = properties[property.name] && properties[property.name].dragging === true;
+            updateMultiDiffProperties(updateObjects, onlyUpdateEntity);
+            console.log('updateMultiDiffProperties');
+        } else {
+            let propertyValue = propertyMultiValue.value;
+            propertyValue[subProperty] = value;
+            updateProperty(property.name, propertyValue, property.isParticleProperty);
+        }
     };
 }
 
@@ -2105,16 +2225,34 @@ function emitColorPropertyUpdate(propertyName, red, green, blue, isParticlePrope
     updateProperty(propertyName, newValue, isParticleProperty);
 }
 
-function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString, isParticleProperty) {
-    if (subPropertyElement.checked) {
-        if (propertyValue.indexOf(subPropertyString)) {
-            propertyValue += subPropertyString + ',';
-        }
-    } else {
-        // We've unchecked, so remove
-        propertyValue = propertyValue.replace(subPropertyString + ",", "");
+function toggleBooleanCSV(inputCSV, property, enable) {
+    let values = inputCSV.split(",");
+    if (enable && !values.includes(property)) {
+        values.push(property);
+    } else if (!enable && values.includes(property)) {
+        values = values.filter(value => value !== property);
     }
-    updateProperty(propertyName, propertyValue, isParticleProperty);
+    return values.join(",");
+}
+
+function updateCheckedSubProperty(propertyName, propertyMultiValue, subPropertyElement, subPropertyString, isParticleProperty) {
+    if (propertyMultiValue.isMultiDiffValue) {
+        let updateObjects = [];
+        const selectedEntityIDsArray = [...selectedEntityIDs];
+
+        for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
+            let newValue = toggleBooleanCSV(propertyMultiValue.values[i], subPropertyString, subPropertyElement.checked);
+            updateObjects.push({
+                entityIDs: [selectedEntityIDsArray[i]],
+                properties: createPropertyUpdateObject(propertyName, newValue),
+            });
+        }
+
+        updateMultiDiffProperties(updateObjects);
+    } else {
+        updateProperty(propertyName, toggleBooleanCSV(propertyMultiValue.value, subPropertyString, subPropertyElement.checked),
+            isParticleProperty);
+    }
 }
 
 /**
@@ -2181,7 +2319,7 @@ function createBoolProperty(property, elProperty) {
             let subPropertyMultiValue = getMultiplePropertyValue(subPropertyOf);
 
             updateCheckedSubProperty(subPropertyOf,
-                         subPropertyMultiValue.value,
+                                     subPropertyMultiValue,
                                      elInput, propertyName, property.isParticleProperty);
         });
     } else {
@@ -2245,26 +2383,14 @@ function updateNumberMinMax(property) {
     }
 }
 
-function createNumberDraggableProperty(property, elProperty) { 
-    let elementID = property.elementID;
-    let propertyData = property.data;
-    
-    elProperty.className += " draggable-number-container";
-
-    let dragStartFunction = createDragStartFunction(property);
-    let dragEndFunction = createDragEndFunction(property);
-    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step,
-                                                propertyData.decimals, dragStartFunction, dragEndFunction);
-    
-    let defaultValue = propertyData.defaultValue;   
-    if (defaultValue !== undefined) {   
-        elDraggableNumber.elInput.value = defaultValue; 
-    }
-
-    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(property);
-    elDraggableNumber.setValueChangeFunction(valueChangeFunction);
-
-    elDraggableNumber.setMultiDiffDragFunction((changedDelta) => {
+/**
+ *
+ * @param {object} property - property update on drag
+ * @param {string} [subProperty] - subProperty to update on drag (e.g. enter 'x' to just update position.x)
+ * @returns {Function}
+ */
+function createMultiDiffDragFunction(property, subProperty) {
+    return function(changedDelta) {
         let propertyMultiValue = getMultiplePropertyValue(property.name);
         if (!propertyMultiValue.isMultiDiffValue) {
             console.log("setMultiDiffDragFunction is only supposed to be called in MultiDiff mode.");
@@ -2274,26 +2400,58 @@ function createNumberDraggableProperty(property, elProperty) {
         let multiplier = property.data.multiplier !== undefined ? property.data.multiplier : 1;
 
         let applyDelta = changedDelta * multiplier;
-        console.log(applyDelta);
 
         if (selectedEntityIDs.size !== propertyMultiValue.values.length) {
             console.log("selectedEntityIDs and propertyMultiValue got out of sync.");
             return;
         }
-        let updateObjects = {};
+        let updateObjects = [];
         const selectedEntityIDsArray = [...selectedEntityIDs];
 
-        for (var i = 0; i < selectedEntityIDsArray.length; ++i) {
+        for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
             let entityID = selectedEntityIDsArray[i];
-            let updatedValue = propertyMultiValue.values[i] + applyDelta;
-            // FIXME: handle min/max per value?
-            updateObjects[entityID] = createPropertyUpdateObject(property.name, updatedValue);
+
+            let updatedValue;
+            if (subProperty !== undefined) {
+                let objectToUpdate = propertyMultiValue.values[i];
+                objectToUpdate[subProperty] += applyDelta;
+                updatedValue = objectToUpdate;
+            } else {
+                updatedValue = propertyMultiValue.values[i] + applyDelta;
+            }
+            let propertiesUpdate = createPropertyUpdateObject(property.name, updatedValue);
+            updateObjects.push({
+                entityIDs: [entityID],
+                properties: propertiesUpdate
+            });
             // We need to store these so that we can send a full update on the dragEnd
-            mergeDeep(currentSelections[i].properties, updateObjects[entityID]);
+            mergeDeep(currentSelections[i].properties, propertiesUpdate);
         }
 
         updateMultiDiffProperties(updateObjects, true);
-    });
+    }
+}
+
+function createNumberDraggableProperty(property, elProperty) { 
+    let elementID = property.elementID;
+    let propertyData = property.data;
+
+    elProperty.className += " draggable-number-container";
+
+    let dragStartFunction = createDragStartFunction(property);
+    let dragEndFunction = createDragEndFunction(property);
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step,
+                                                propertyData.decimals, dragStartFunction, dragEndFunction);
+
+    let defaultValue = propertyData.defaultValue;
+    if (defaultValue !== undefined) {
+        elDraggableNumber.elInput.value = defaultValue;
+    }
+
+    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(property);
+    elDraggableNumber.setValueChangeFunction(valueChangeFunction);
+
+    elDraggableNumber.setMultiDiffDragFunction(createMultiDiffDragFunction(property));
     
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elProperty.appendChild(elDraggableNumber.elDiv);
@@ -2334,11 +2492,15 @@ function createRectProperty(property, elProperty) {
     elWidthHeightRow.appendChild(elNumberWidth.elDiv);
     elWidthHeightRow.appendChild(elNumberHeight.elDiv);
 
-    let valueChangeFunction = createEmitRectPropertyUpdateFunction(property);
-    elNumberX.setValueChangeFunction(valueChangeFunction);
-    elNumberY.setValueChangeFunction(valueChangeFunction);
-    elNumberWidth.setValueChangeFunction(valueChangeFunction);
-    elNumberHeight.setValueChangeFunction(valueChangeFunction);
+    elNumberX.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'y'));
+    elNumberWidth.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'width'));
+    elNumberHeight.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'height'));
+
+    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
+    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
+    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'width'));
+    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'height'));
 
     let elResult = [];
     elResult[RECT_ELEMENTS.X_NUMBER] = elNumberX;
@@ -2368,11 +2530,14 @@ function createVec3Property(property, elProperty) {
     elProperty.appendChild(elNumberX.elDiv);
     elProperty.appendChild(elNumberY.elDiv);
     elProperty.appendChild(elNumberZ.elDiv);
-    
-    let valueChangeFunction = createEmitVec3PropertyUpdateFunction(property);
-    elNumberX.setValueChangeFunction(valueChangeFunction);
-    elNumberY.setValueChangeFunction(valueChangeFunction);
-    elNumberZ.setValueChangeFunction(valueChangeFunction);
+
+    elNumberX.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'y'));
+    elNumberZ.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'z'));
+
+    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
+    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
+    elNumberZ.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'z'));
     
     let elResult = [];
     elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
@@ -2395,10 +2560,12 @@ function createVec2Property(property, elProperty) {
     let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
     elProperty.appendChild(elNumberX.elDiv);
     elProperty.appendChild(elNumberY.elDiv);
-    
-    let valueChangeFunction = createEmitVec2PropertyUpdateFunction(property);
-    elNumberX.setValueChangeFunction(valueChangeFunction);
-    elNumberY.setValueChangeFunction(valueChangeFunction);
+
+    elNumberX.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'y'));
+
+    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
+    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
     
     let elResult = [];
     elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
@@ -2462,7 +2629,6 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
-            console.log("Showing");
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
             colorPickers[colorPickerID].colpickSetColor({
@@ -2546,7 +2712,6 @@ function createTextareaProperty(property, elProperty) {
 
 function createIconProperty(property, elProperty) { 
     let elementID = property.elementID;
-    let propertyData = property.data;
 
     elProperty.className = "value";
     
@@ -2574,6 +2739,7 @@ function createTextureProperty(property, elProperty) {
     elInput.setAttribute("type", "text"); 
     
     let imageLoad = function(url) {
+        elDiv.style.display = null;
         if (url.slice(0, 5).toLowerCase() === "atp:/") {
             elImage.src = "";
             elImage.style.display = "none";
@@ -2595,12 +2761,18 @@ function createTextureProperty(property, elProperty) {
         }
     };
     elInput.imageLoad = imageLoad;
+    elInput.setMultipleValues = function() {
+        elDiv.style.display = "none";
+    };
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
     elInput.addEventListener('change', function(ev) {
         imageLoad(ev.target.value);
     });
 
     elProperty.appendChild(elInput);
+    let elMultiDiff = document.createElement('span');
+    elMultiDiff.className = "multi-diff";
+    elProperty.appendChild(elMultiDiff);
     elProperty.appendChild(elDiv);
    
     let elResult = [];
@@ -2630,7 +2802,7 @@ function createDynamicMultiselectProperty(property, elProperty) {
     
     let elDivOptions = document.createElement('div');
     elDivOptions.setAttribute("id", elementID + "-options");
-    elDivOptions.style = "overflow-y:scroll;max-height:160px;"
+    elDivOptions.style = "overflow-y:scroll;max-height:160px;";
     
     let elDivButtons = document.createElement('div');
     elDivButtons.setAttribute("id", elDivOptions.getAttribute("id") + "-buttons");
@@ -2883,6 +3055,7 @@ function clearUserData() {
 }
 
 function newJSONEditor() {
+    getPropertyInputElement("userData").classList.remove('multi-diff');
     deleteJSONEditor();
     createJSONEditor();
     let data = {};
@@ -2949,9 +3122,6 @@ function createJSONEditor() {
         mode: 'tree',
         modes: ['code', 'tree'],
         name: 'userData',
-        onModeChange: function() {
-            $('.jsoneditor-poweredBy').remove();
-        },
         onError: function(e) {
             alert('JSON editor:' + e);
         },
@@ -3061,6 +3231,7 @@ function clearMaterialData() {
 }
 
 function newJSONMaterialEditor() {
+    getPropertyInputElement("materialData").classList.remove('multi-diff');
     deleteJSONMaterialEditor();
     createJSONMaterialEditor();
     let data = {};
@@ -3387,7 +3558,7 @@ function sendMaterialTargetProperty() {
         if (elInput.checked) {
             let targetID = elInput.getAttribute("targetID");
             if (elInput.getAttribute("isMaterialName") === "true") {
-                materialTargetList.push("mat::" + targetID);
+                materialTargetList.push(MATERIAL_PREFIX_STRING + targetID);
             } else {
                 materialTargetList.push(targetID);
             }
@@ -3419,7 +3590,7 @@ function materialTargetPropertyUpdate(propertyValue) {
         let targetID = elInput.getAttribute("targetID");
         let materialTargetName = targetID;
         if (elInput.getAttribute("isMaterialName") === "true") {
-            materialTargetName = "mat::" + targetID;
+            materialTargetName = MATERIAL_PREFIX_STRING + targetID;
         }
         elInput.checked = materialTargets.indexOf(materialTargetName) >= 0;
     }
@@ -3427,10 +3598,8 @@ function materialTargetPropertyUpdate(propertyValue) {
     elDivOptions.propertyValue = propertyValue;
 }
 
-
-function applyNumberPropertyModifiers(number, propertyData) {
-    const multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-    let result = number / multiplier;
+function roundAndFixNumber(number, propertyData) {
+    let result = number;
     if (propertyData.round !== undefined) {
         result = Math.round(result * propertyData.round) / propertyData.round;
     }
@@ -3438,6 +3607,16 @@ function applyNumberPropertyModifiers(number, propertyData) {
         return result.toFixed(propertyData.decimals)
     }
     return result;
+}
+
+function applyInputNumberPropertyModifiers(number, propertyData) {
+    const multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+    return roundAndFixNumber(number / multiplier, propertyData);
+}
+
+function applyOutputNumberPropertyModifiers(number, propertyData) {
+    const multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+    return roundAndFixNumber(number * multiplier, propertyData);
 }
 
 const isSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value));
@@ -3503,6 +3682,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         const entityTypes = [...new Set(currentSelections.map(a =>
             shapeTypes.includes(a.properties.type) ? "Shape" : a.properties.type))];
 
+        const shownGroups = getGroupsForTypes(entityTypes);
         showGroupsForTypes(entityTypes);
 
         const lockedMultiValue = getMultiplePropertyValue('locked');
@@ -3531,6 +3711,15 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                 return;
             }
 
+            if (!shownGroups.includes(property.group_id)) {
+                const WANT_DEBUG_SHOW_HIDDEN_FROM_GROUPS = false;
+                if (WANT_DEBUG_SHOW_HIDDEN_FROM_GROUPS) {
+                    console.log("Skipping property " + property.data.label + " [" + property.name +
+                        "] from hidden group " + property.group_id);
+                }
+                return;
+            }
+
             if (propertyData.hideIfCertified && hasCertifiedInSelection) {
                 propertyValue = "** Certified **";
                 property.elInput.disabled = true;
@@ -3538,29 +3727,6 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
             if (propertyName === "type") {
                 propertyValue = entityTypes.length > 1 ?  "Multiple" : propertyMultiValue.values[0];
-            }
-
-            if (!isMultiDiffValue) {
-                let isPropertyNotNumber = false;
-                switch (propertyData.type) {
-                    case 'number':
-                    case 'number-draggable':
-                        isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
-                        break;
-                    case 'rect':
-                    case 'vec3':
-                    case 'vec2':
-                        isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
-                        break;
-                    case 'color':
-                        isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
-                        break;
-                }
-                if (isPropertyNotNumber && propertyData.fallbackProperty !== undefined) {
-                    propertyMultiValue = getMultiplePropertyValue(propertyData.fallbackProperty);
-                    propertyValue = propertyMultiValue.value;
-                    isMultiDiffValue = propertyMultiValue.value;
-                }
             }
 
             switch (propertyData.type) {
@@ -3582,13 +3748,13 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                 case 'bool': {
                     const inverse = propertyData.inverse !== undefined ? propertyData.inverse : false;
                     if (isSubProperty) {
-
                         let subPropertyMultiValue = getMultiplePropertyValue(propertyData.subPropertyOf);
                         let propertyValue = subPropertyMultiValue.value;
                         isMultiDiffValue = subPropertyMultiValue.isMultiDiffValue;
                         if (isMultiDiffValue) {
-                            property.elInput.checked = false;
-                            property.elInput.classList.add('multi-diff');
+                            let detailedSubProperty = getDetailedSubPropertyMVPDiff(subPropertyMultiValue, propertyName);
+                            property.elInput.checked = detailedSubProperty.isChecked;
+                            property.elInput.classList.toggle('multi-diff', detailedSubProperty.isMultiDiff);
                         } else {
                             let subProperties = propertyValue.split(",");
                             let subPropertyValue = subProperties.indexOf(propertyName) > -1;
@@ -3599,11 +3765,10 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     } else {
                         if (isMultiDiffValue) {
                             property.elInput.checked = false;
-                            property.elInput.classList.add('multi-diff');
                         } else {
                             property.elInput.checked = inverse ? !propertyValue : propertyValue;
-                            property.elInput.classList.remove('multi-diff');
                         }
+                        property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
                     }
 
                     break;
@@ -3619,42 +3784,35 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     break;
                 }
                 case 'number-draggable': {
-                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                    let value = propertyValue / multiplier;
-                    if (propertyData.round !== undefined) {
-                        value = Math.round(value.round) / propertyData.round;
-                    }
-                    property.elNumber.setValue(value, isMultiDiffValue);
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumber.setValue(detailedNumberDiff.averagePerSubProperty[0], detailedNumberDiff.subPropertyDiff[0]);
                     break;
                 }
-                case 'rect':
-                    property.elNumberX.setValue(propertyValue.x);
-                    property.elNumberY.setValue(propertyValue.y);
-                    property.elNumberWidth.setValue(propertyValue.width);
-                    property.elNumberHeight.setValue(propertyValue.height);
+                case 'rect': {
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.subPropertyDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.subPropertyDiff.y);
+                    property.elNumberWidth.setValue(detailedNumberDiff.averagePerSubProperty.width, detailedNumberDiff.subPropertyDiff.width);
+                    property.elNumberHeight.setValue(detailedNumberDiff.averagePerSubProperty.height, detailedNumberDiff.subPropertyDiff.height);
                     break;
+                }
                 case 'vec3':
                 case 'vec2': {
-                    if (isMultiDiffValue) {
-                        property.elNumberX.setValue(0, true);
-                        property.elNumberY.setValue(0, true);
-                        if (property.elNumberZ !== undefined) {
-                            property.elNumberZ.setValue(0, true);
-                        }
-                    } else {
-                        property.elNumberX.setValue(applyNumberPropertyModifiers(propertyValue.x, propertyData), false);
-                        property.elNumberY.setValue(applyNumberPropertyModifiers(propertyValue.y, propertyData), false);
-                        if (property.elNumberZ !== undefined) {
-                            property.elNumberZ.setValue(applyNumberPropertyModifiers(propertyValue.z, propertyData), false);
-                        }
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.subPropertyDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.subPropertyDiff.y);
+                    if (property.elNumberZ !== undefined) {
+                        property.elNumberZ.setValue(detailedNumberDiff.averagePerSubProperty.z, detailedNumberDiff.subPropertyDiff.z);
                     }
                     break;
                 }
                 case 'color': {
-                    let displayColor = isMultiDiffValue ? propertyMultiValue.values[0] : propertyValue;
+                    let displayColor = propertyMultiValue.isMultiDiffValue ? propertyMultiValue.values[0] : propertyValue;
                     property.elColorPicker.style.backgroundColor = "rgb(" + displayColor.red + "," +
                         displayColor.green + "," +
                         displayColor.blue + ")";
+                    property.elColorPicker.classList.toggle('multi-diff', propertyMultiValue.isMultiDiffValue);
+
                     if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
                         // Set the color picker inactive before setting the color,
                         // otherwise an update will be sent directly after setting it here.
@@ -3673,13 +3831,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     break;
                 }
                 case 'dropdown': {
-                    if (isMultiDiffValue) {
-                        property.elInput.classList.add('multi-diff');
-                        property.elInput.value = "";
-                    } else {
-                        property.elInput.classList.remove('multi-diff');
-                        property.elInput.value = propertyValue;
-                    }
+                    property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
+                    property.elInput.value = isMultiDiffValue ? "" : propertyValue;
                     setDropdownText(property.elInput);
                     break;
                 }
@@ -3694,12 +3847,17 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     break;
                 }
                 case 'texture': {
-                    property.elInput.value = propertyValue;
-                    property.elInput.imageLoad(property.elInput.value);
+                    property.elInput.value = isMultiDiffValue ? "" : propertyValue;
+                    property.elInput.classList.toggle('multi-diff');
+                    if (isMultiDiffValue) {
+                        property.elInput.setMultipleValues();
+                    } else {
+                        property.elInput.imageLoad(property.elInput.value);
+                    }
                     break;
                 }
                 case 'dynamic-multiselect': {
-                    if (property.data.propertyUpdate) {
+                    if (!isMultiDiffValue && property.data.propertyUpdate) {
                         property.data.propertyUpdate(propertyValue);
                     }
                     break;
@@ -3718,9 +3876,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
 
         updateVisibleSpaceModeProperties();
 
-
         let userDataMultiValue = getMultiplePropertyValue("userData");
-
+        let userDataTextArea = getPropertyInputElement("userData");
         let json = null;
         if (!userDataMultiValue.isMultiDiffValue) {
             try {
@@ -3733,6 +3890,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             if (editor === null) {
                 createJSONEditor();
             }
+            userDataTextArea.classList.remove('multi-diff');
             setEditorJSON(json);
             showSaveUserDataButton();
             hideUserDataTextArea();
@@ -3741,14 +3899,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         } else {
             // normal text
             deleteJSONEditor();
-
-            if (userDataMultiValue.isMultiDiffValue) {
-                // FIXME: set multiValue property
-                getPropertyInputElement("userData").value = "";
-            } else {
-                // FIXME: unset multiValue property
-                getPropertyInputElement("userData").value = userDataMultiValue.value;
-            }
+            userDataTextArea.classList.toggle('multi-diff', userDataMultiValue.isMultiDiffValue);
+            userDataTextArea.value = userDataMultiValue.isMultiDiffValue ? "" : userDataMultiValue.value;
 
             showUserDataTextArea();
             showNewJSONEditorButton();
@@ -3757,8 +3909,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         }
 
         let materialDataMultiValue = getMultiplePropertyValue("materialData");
-
-
+        let materialDataTextArea = getPropertyInputElement("materialData");
         let materialJson = null;
         if (!materialDataMultiValue.isMultiDiffValue) {
             try {
@@ -3771,6 +3922,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             if (materialEditor === null) {
                 createJSONMaterialEditor();
             }
+            materialDataTextArea.classList.remove('multi-diff');
             setMaterialEditorJSON(materialJson);
             showSaveMaterialDataButton();
             hideMaterialDataTextArea();
@@ -3779,20 +3931,15 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
         } else {
             // normal text
             deleteJSONMaterialEditor();
-            if (materialDataMultiValue.isMultiDiffValue) {
-                // FIXME: set multiValue property
-                getPropertyInputElement("materialData").value = "";
-            } else {
-                // FIXME: unset multiValue property
-                getPropertyInputElement("materialData").value = materialDataMultiValue.value;
-            }
+            materialDataTextArea.classList.toggle('multi-diff', materialDataMultiValue.isMultiDiffValue);
+            materialDataTextArea.value = materialDataMultiValue.isMultiDiffValue ? "" :  materialDataMultiValue.value;
             showMaterialDataTextArea();
             showNewJSONMaterialEditorButton();
             hideSaveMaterialDataButton();
             hideMaterialDataSaved();
         }
 
-        if (hasSelectedEntityChanged && selectedEntityProperties.type === "Material") {
+        if (hasSelectedEntityChanged && selections.length === 1 && entityTypes[0] === "Material") {
             requestMaterialTarget();
         }
 
@@ -3912,6 +4059,7 @@ function loaded() {
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
                         property.spaceMode = propertySpaceMode;
+                        property.group_id = group.id;
 
                         let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
                         createAppTooltip.registerTooltipElement(elLabel, propertyID, propertyName);
@@ -3930,6 +4078,7 @@ function loaded() {
                     property.isParticleProperty = group.id.includes("particles");
                     property.elContainer = elContainer;
                     property.spaceMode = propertySpaceMode;
+                    property.group_id = group.id;
                     
                     if (property.type !== 'placeholder') {
                         properties[propertyID] = property;
@@ -4000,13 +4149,13 @@ function loaded() {
                         if (propertyRange !== undefined) {
                             let propertyData = properties[property].data;
                             let multiplier = propertyData.multiplier;
-                            if (propertyData.min === undefined && propertyRange.minimum != "") {
+                            if (propertyData.min === undefined && propertyRange.minimum !== "") {
                                 propertyData.min = propertyRange.minimum;
                                 if (multiplier !== undefined) {
                                     propertyData.min /= multiplier;
                                 }
                             }
-                            if (propertyData.max === undefined && propertyRange.maximum != "") {
+                            if (propertyData.max === undefined && propertyRange.maximum !== "") {
                                 propertyData.max = propertyRange.maximum;
                                 if (multiplier !== undefined) {
                                     propertyData.max /= multiplier;

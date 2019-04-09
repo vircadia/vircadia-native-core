@@ -72,7 +72,6 @@ DraggableNumber.prototype = {
             this.lastMouseEvent = event;
         }
         if (this.dragging && this.lastMouseEvent) {
-            let initialValue = this.elInput.value;
             let changeDelta = event.clientX - this.lastMouseEvent.clientX;
             if (changeDelta !== 0) {
                 if (this.multiDiffModeEnabled) {
@@ -136,14 +135,16 @@ DraggableNumber.prototype = {
             this.setMultiDiff(isMultiDiff);
         }
 
-        if (!isMultiDiff) {
-            if (newValue !== "" && this.decimals !== undefined) {
-                this.elInput.value = parseFloat(newValue).toFixed(this.decimals);
-            } else {
-                this.elInput.value = newValue;
-            }
-            this.elText.firstChild.data = this.elInput.value;
+        if (isNaN(newValue)) {
+            throw newValue + " is not a number";
         }
+
+        if (newValue !== "" && this.decimals !== undefined) {
+            this.elInput.value = parseFloat(newValue).toFixed(this.decimals);
+        } else {
+            this.elInput.value = newValue;
+        }
+        this.elText.firstChild.data = this.elInput.value;
     },
 
     setMultiDiff: function(isMultiDiff) {
@@ -181,6 +182,9 @@ DraggableNumber.prototype = {
 
     keyPress: function(event) {
         if (event.keyCode === ENTER_KEY) {
+            if (this.valueChangeFunction) {
+                this.valueChangeFunction();
+            }
             this.inputBlur();
         }
     },
