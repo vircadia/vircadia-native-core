@@ -224,6 +224,7 @@ void Model::updateRenderItems() {
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
+        bool cauterized = self->isCauterized();
 
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
@@ -237,7 +238,7 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
@@ -261,6 +262,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
+                data.setCauterized(cauterized);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -920,6 +922,23 @@ void Model::setGroupCulled(bool groupCulled, const render::ScenePointer& scene) 
 
 bool Model::isGroupCulled() const {
     return _renderItemKeyGlobalFlags.isSubMetaCulled();
+}
+
+void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
+    if (Model::isCauterized() != cauterized) {
+        _cauterized = cauterized;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+        render::Transaction transaction;
+        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [cauterized](ModelMeshPartPayload& data) {
+                data.setCauterized(cauterized);
+            });
+        }
+        scene->enqueueTransaction(transaction);
+    }
 }
 
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
