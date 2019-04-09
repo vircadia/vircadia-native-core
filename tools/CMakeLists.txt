@@ -32,6 +32,7 @@ if (BUILD_TOOLS)
             skeleton-dump
             atp-client
             oven
+            vhacd-util
         )
     else()
         set(ALL_TOOLS 
@@ -45,6 +46,7 @@ if (BUILD_TOOLS)
             skeleton-dump
             atp-client
             oven
+            vhacd-util
             nitpick
         )
     endif()
