@@ -1480,13 +1480,15 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     if (_animNode && _enabledAnimations) {
         DETAILED_PERFORMANCE_TIMER("handleTriggers");
 
+        ++_framesAnimatedThisSession;
+
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
         if (_networkNode) {
             _networkVars.setRigToGeometryTransform(_rigToGeometryTransform);
         }
         AnimContext context(_enableDebugDrawIKTargets, _enableDebugDrawIKConstraints, _enableDebugDrawIKChains,
-                            getGeometryToRigTransform(), rigToWorldTransform);
+                            getGeometryToRigTransform(), rigToWorldTransform, _framesAnimatedThisSession);
 
         // evaluate the animation
         AnimVariantMap triggersOut;
@@ -2009,8 +2011,11 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         return;
     }
 
-    _animVars.set("isTalking", params.isTalking);
-    _animVars.set("notIsTalking", !params.isTalking);
+    if (params.isTalking) {
+        _animVars.set("idleOverlayAlpha", 1.0f);
+    } else {
+        _animVars.set("idleOverlayAlpha", 0.0f);
+    }
 
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;
