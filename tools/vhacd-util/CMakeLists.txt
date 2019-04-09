@@ -12,7 +12,9 @@ target_link_libraries(${TARGET_NAME} ${VHACD_LIBRARIES})
 
 setup_memory_debugger()
 
-if (UNIX AND NOT APPLE)
+if (WIN32)
+  package_libraries_for_deployment()
+elseif (UNIX AND NOT APPLE)
   include(FindOpenMP)
   if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")

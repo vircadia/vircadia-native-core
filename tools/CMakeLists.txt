@@ -21,8 +21,8 @@ endfunction()
 if (BUILD_TOOLS)
     # Allow different tools for stable builds
     if (STABLE_BUILD)
-        set(ALL_TOOLS 
-            udt-test 
+        set(ALL_TOOLS
+            udt-test
             vhacd-util
             frame-optimizer
             gpu-frame-player
@@ -32,11 +32,10 @@ if (BUILD_TOOLS)
             skeleton-dump
             atp-client
             oven
-            vhacd-util
         )
     else()
-        set(ALL_TOOLS 
-            udt-test 
+        set(ALL_TOOLS
+            udt-test
             vhacd-util
             frame-optimizer
             gpu-frame-player
@@ -46,11 +45,10 @@ if (BUILD_TOOLS)
             skeleton-dump
             atp-client
             oven
-            vhacd-util
             nitpick
         )
     endif()
-    
+
     foreach(TOOL ${ALL_TOOLS})
         check_test(${TOOL})
         if (${BUILD_TOOL_RESULT})
