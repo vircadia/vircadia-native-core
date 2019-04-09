@@ -791,7 +791,7 @@ void CharacterController::updateState() {
                         SET_STATE(State::Hover, "double jump button");
                     } else if (_comfortFlyingAllowed && (jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
                         SET_STATE(State::Hover, "jump button held");
-                    } else if ((!rayHasHit && !_hasSupport) || _floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT) {
+                    } else if (_useFallHeightThreshold && ((!rayHasHit && !_hasSupport) || _floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT)) {
                         // Transition to hover if there's no ground beneath us or we are above the fall threshold, regardless of _comfortFlyingAllowed
                         SET_STATE(State::Hover, "above fall threshold");
                     }

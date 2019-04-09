@@ -305,6 +305,12 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]() -> bool { return myAvatar->useFallHeightThreshold(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setUseFallHeightThreshold(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Use Fall Height Threshold", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [myAvatar]()->int { return myAvatar->getControlScheme(); };
         auto setter = [myAvatar](int index) { myAvatar->setControlScheme(index); };
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Control Scheme", getter, setter);

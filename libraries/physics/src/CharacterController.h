@@ -131,6 +131,7 @@ public:
 
     void setZoneFlyingAllowed(bool value) { _zoneFlyingAllowed = value; }
     void setComfortFlyingAllowed(bool value) { _comfortFlyingAllowed = value; }
+    void setUseFallHeightThreshold(bool value) { _useFallHeightThreshold = value; }
     void setCollisionlessAllowed(bool value);
 
     void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
@@ -215,6 +216,7 @@ protected:
 
     bool _zoneFlyingAllowed { true };
     bool _comfortFlyingAllowed { true };
+    bool _useFallHeightThreshold{ true };
     bool _collisionlessAllowed { true };
     bool _collisionless { false };
 

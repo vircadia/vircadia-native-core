@@ -759,6 +759,18 @@ public:
      * @param {number} index
     */
     Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
+    
+    /**jsdoc
+     * @function MyAvatar.useFallHeightThreshold
+     * @returns {boolean} 
+     */
+    Q_INVOKABLE bool useFallHeightThreshold() const { return _useFallHeightThreshold; }
+    /**jsdoc
+     * @function MyAvatar.setUseFallHeightThreshold
+     * @param {boolean} on
+     */
+    Q_INVOKABLE void setUseFallHeightThreshold(bool on) { _useFallHeightThreshold = on; }
+
     /**jsdoc
      * Sets the avatar's dominant hand.
      * @function MyAvatar.setDominantHand
@@ -2442,6 +2454,7 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
+    bool _useFallHeightThreshold{ true };
     ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
     ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
     ThreadSafeValueCache<bool> _strafeEnabled{ DEFAULT_STRAFE_ENABLED };
@@ -2637,6 +2650,7 @@ private:
     Setting::Handle<QString> _displayNameSetting;
     Setting::Handle<QUrl> _collisionSoundURLSetting;
     Setting::Handle<bool> _useSnapTurnSetting;
+    Setting::Handle<bool> _useFallHeightThresholdSetting;
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
     Setting::Handle<int> _movementReferenceSetting;

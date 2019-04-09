@@ -168,6 +168,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _displayNameSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "displayName", ""),
     _collisionSoundURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "collisionSoundURL", QUrl(_collisionSoundURL)),
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
+    _useFallHeightThresholdSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useFallHeightThreshold", _useFallHeightThreshold),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
     _movementReferenceSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "movementReference", _movementReference),
@@ -956,6 +957,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         bool collisionlessAllowed = zoneInteractionProperties.second;
         _characterController.setZoneFlyingAllowed(zoneAllowsFlying || !isPhysicsEnabled);
         _characterController.setComfortFlyingAllowed(_enableFlying);
+        _characterController.setUseFallHeightThreshold(_useFallHeightThreshold);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
@@ -1296,6 +1298,7 @@ void MyAvatar::saveData() {
     _displayNameSetting.set(_displayName);
     _collisionSoundURLSetting.set(_collisionSoundURL);
     _useSnapTurnSetting.set(_useSnapTurn);
+    _useFallHeightThresholdSetting.set(_useFallHeightThreshold);
     _userHeightSetting.set(getUserHeight());
     _flyingHMDSetting.set(getFlyingHMDPref());
     _movementReferenceSetting.set(getMovementReference());
@@ -1898,6 +1901,7 @@ void MyAvatar::loadData() {
     setDisplayName(_displayNameSetting.get());
     setCollisionSoundURL(_collisionSoundURLSetting.get(QUrl(DEFAULT_AVATAR_COLLISION_SOUND_URL)).toString());
     setSnapTurn(_useSnapTurnSetting.get());
+    setUseFallHeightThreshold(_useFallHeightThresholdSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
     setStrafeEnabled(_strafeEnabledSetting.get(DEFAULT_STRAFE_ENABLED));
     setHmdAvatarAlignmentType(_hmdAvatarAlignmentTypeSetting.get(DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE).toLower());
