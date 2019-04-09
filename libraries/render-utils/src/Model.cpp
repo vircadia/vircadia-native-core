@@ -1561,8 +1561,8 @@ void Model::applyMaterialMapping() {
             {
                 QString url = networkMaterialResource->getURL().toString();
                 bool foundMaterialName = false;
-                if (url.contains("?")) {
-                    auto split = url.split("?");
+                if (url.contains("#")) {
+                    auto split = url.split("#");
                     std::string materialName = split.last().toStdString();
                     auto networkMaterialIter = networkMaterialResource->parsedMaterials.networkMaterials.find(materialName);
                     if (networkMaterialIter != networkMaterialResource->parsedMaterials.networkMaterials.end()) {
