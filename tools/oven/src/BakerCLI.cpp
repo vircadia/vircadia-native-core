@@ -55,8 +55,9 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
             }
         }
     } else if (type == SCRIPT_EXTENSION) {
-        _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
-        _baker->moveToThread(Oven::instance().getNextWorkerThread());
+        // FIXME: disabled for now because it breaks some scripts
+        //_baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
+        //_baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else if (type == MATERIAL_EXTENSION) {
         _baker = std::unique_ptr<Baker> { new MaterialBaker(inputUrl.toDisplayString(), true, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
