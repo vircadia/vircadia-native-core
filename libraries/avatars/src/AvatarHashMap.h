@@ -36,7 +36,7 @@ const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
 const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
 /**jsdoc
- * The <code>AvatarList</code> API provides information about avatars within the domain.
+ * The <code>AvatarList</code> API provides information about avatars within the current domain.
  *
  * <p><strong>Warning:</strong> An API named "<code>AvatarList</code>" is also provided for Interface, client entity, and avatar 
  * scripts, however, it is a synonym for the {@link AvatarManager} API.</p>

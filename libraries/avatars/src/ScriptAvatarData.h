@@ -46,7 +46,7 @@
  *
  * @property {string} skeletonModelURL - The avatar's FST file.
  * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
- *     <strong>Deprecated:</strong> Use avatar entities insteada.
+ *     <strong>Deprecated:</strong> Use avatar entities instead.
  * @property {string[]} jointNames - The list of joints in the current avatar model.
  *
  * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 

@@ -453,9 +453,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
          * @property {number} shapeID - The index of the mesh part within the model.
          * @property {number} subMeshIndex - The index of the intersected submesh within the model.
          * @property {string} subMeshName - The name of the intersected submesh.
-         * @property {Triangle} subMeshTriangleWorld - The vertexes of the intersected mesh part triangle in world coordinates.
+         * @property {Triangle} subMeshTriangleWorld - The vertices of the intersected mesh part triangle in world coordinates.
          * @property {Vec3} subMeshNormal - The normal of the intersected mesh part triangle in model coordinates.
-         * @property {Triangle} subMeshTriangle - The vertexes of the intersected mesh part triangle in model coordinates.
+         * @property {Triangle} subMeshTriangle - The vertices of the intersected mesh part triangle in model coordinates.
          */
         if (intersectedSomething) {
             distance = bestDistance;
