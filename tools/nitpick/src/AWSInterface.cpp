@@ -480,7 +480,7 @@ void AWSInterface::createEntry(const int index, const QString& testResult, QText
         if (differenceFileFound) {
             stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/" << _comparisonImageFilename << "\" width = \"576\" height = \"324\" ></td>\n";
         } else {
-            stream << "\t\t\t\t<td><h2>No Image Found</h2>\n";
+            stream << "\t\t\t\t<td><h2>Image size mismatch</h2>\n";
         }
 
         stream << "\t\t\t</tr>\n";

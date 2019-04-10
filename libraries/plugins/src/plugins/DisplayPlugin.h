@@ -121,8 +121,6 @@ class DisplayPlugin : public Plugin, public HmdDisplay {
     Q_OBJECT
     using Parent = Plugin;
 public:
-    DisplayPlugin();
-
     virtual int getRequiredThreadCount() const { return 0; }
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
@@ -216,8 +214,7 @@ public:
     void waitForPresent();
     float getAveragePresentTime() { return _movingAveragePresent.average / (float)USECS_PER_MSEC; } // in msec
 
-    using HUDOperator = std::function<void(gpu::Batch&, const gpu::TexturePointer&, const gpu::FramebufferPointer&, bool mirror)>;
-    virtual HUDOperator getHUDOperator() final;
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
 
     static const QString& MENU_PATH();
 
@@ -234,8 +231,7 @@ protected:
 
     gpu::ContextPointer _gpuContext;
 
-    static const HUDOperator DEFAULT_HUD_OPERATOR;
-    HUDOperator _hudOperator;
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)>() };
 
     MovingAverage<float, 10> _movingAveragePresent;
 

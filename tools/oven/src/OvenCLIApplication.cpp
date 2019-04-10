@@ -14,7 +14,7 @@
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QUrl>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 #include <TextureBaker.h>
 
 #include "BakerCLI.h"

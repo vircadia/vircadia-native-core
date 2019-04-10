@@ -86,7 +86,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
+        case PacketType::StopInjector:
+            return static_cast<PacketVersion>(AudioVersion::StopInjectors);
         case PacketType::DomainSettings:
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         case PacketType::Ping:

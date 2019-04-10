@@ -24,7 +24,7 @@ public:
 
 protected:
     void updatePresentPose() override;
-    void hmdPresent(const gpu::FramebufferPointer&) override {}
+    void hmdPresent() override {}
     bool isHmdMounted() const override { return true; }
     bool internalActivate() override;
 private:

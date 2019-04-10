@@ -1630,7 +1630,7 @@ function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
         if (entityHostTypes[i].entityHostType !== entityHostType) {
             if (wantDebug) {
                 console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
-                    entityHostTypes[i].entityHostType);
+                    entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
             }
             continue;
         }
@@ -2522,7 +2522,19 @@ var PropertiesTool = function (opts) {
                 type: 'propertyRangeReply',
                 propertyRanges: propertyRanges,
             });
-        }
+        } else if (data.type === "materialTargetRequest") {
+			var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
+			var parentModel = properties.parentID !== Uuid.NULL && 
+							  Entities.getEntityProperties(properties.parentID, ["type"]).type === "Model";
+			var parentModelData;
+			if (properties.type === "Material" && parentModel) {
+				parentModelData = Graphics.getModel(properties.parentID);
+			} 
+			emitScriptEvent({
+				type: 'materialTargetReply',
+				materialTargetData: parentModelData,
+			});
+		}
     };
 
     HMD.displayModeChanged.connect(function() {
