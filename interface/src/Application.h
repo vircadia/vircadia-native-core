@@ -1,4 +1,4 @@
-//
+﻿//
 //  Application.h
 //  interface/src
 //
@@ -808,5 +808,8 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
+    bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
 };
 #endif // hifi_Application_h
