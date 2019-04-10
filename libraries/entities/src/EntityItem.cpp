@@ -3007,6 +3007,26 @@ void EntityItem::setPrimitiveMode(PrimitiveMode value) {
     }
 }
 
+bool EntityItem::getCauterized() const {
+    return resultWithReadLock<bool>([&] {
+        return _cauterized;
+    });
+}
+
+void EntityItem::setCauterized(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_cauterized != value) {
+            changed = true;
+            _cauterized = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
 bool EntityItem::getIgnorePickIntersection() const {
     return resultWithReadLock<bool>([&] {
         return _ignorePickIntersection;

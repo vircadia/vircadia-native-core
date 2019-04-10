@@ -818,20 +818,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     if (_cauterizationNeedsUpdate) {
         _cauterizationNeedsUpdate = false;
 
-        // Redisplay cauterized entities that are no longer children of the avatar.
-        auto cauterizedChild = _cauterizedChildrenOfHead.begin();
-        if (cauterizedChild != _cauterizedChildrenOfHead.end()) {
-            auto children = getChildren();
-            while (cauterizedChild != _cauterizedChildrenOfHead.end()) {
-                if (!children.contains(*cauterizedChild)) {
-                    updateChildCauterization(*cauterizedChild, false);
-                    cauterizedChild = _cauterizedChildrenOfHead.erase(cauterizedChild);
-                } else {
-                    ++cauterizedChild;
-                }
-            }
-        }
-
+        auto objectsToUncauterize = _cauterizedChildrenOfHead;
+        _cauterizedChildrenOfHead.clear();
         // Update cauterization of entities that are children of the avatar.
         auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
@@ -843,15 +831,19 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
                     updateChildCauterization(descendant, !_prevShouldDrawHead);
                 });
                 _cauterizedChildrenOfHead.insert(object);
-            } else if (_cauterizedChildrenOfHead.find(object) != _cauterizedChildrenOfHead.end()) {
-                // Redisplay cauterized children that are not longer children of the head.
-                updateChildCauterization(object, false);
+                objectsToUncauterize.erase(object);
+            } else if (objectsToUncauterize.find(object) == objectsToUncauterize.end()) {
+                objectsToUncauterize.insert(object);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                    updateChildCauterization(descendant, false);
+                    objectsToUncauterize.insert(descendant);
                 });
-                _cauterizedChildrenOfHead.erase(object);
             }
         });
+
+        // Redisplay cauterized entities that are no longer children of the avatar.
+        for (auto cauterizedChild = objectsToUncauterize.begin(); cauterizedChild != objectsToUncauterize.end(); cauterizedChild++) {
+            updateChildCauterization(*cauterizedChild, false);
+        }
     }
 
     {
