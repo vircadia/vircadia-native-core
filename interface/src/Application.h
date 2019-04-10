@@ -156,6 +156,7 @@ public:
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void resizeGL();
 
+    bool notify(QObject *, QEvent *) override;
     bool event(QEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
 
