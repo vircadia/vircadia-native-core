@@ -1,4 +1,4 @@
-//
+﻿//
 //  Application.h
 //  interface/src
 //
@@ -156,6 +156,7 @@ public:
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void resizeGL();
 
+    bool notify(QObject *, QEvent *) override;
     bool event(QEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
 
@@ -329,6 +330,9 @@ public:
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
     void createLoginDialog();
     void updateLoginDialogPosition();
+
+    void createAvatarInputsBar();
+    void destroyAvatarInputsBar();
 
     // Check if a headset is connected
     bool hasRiftControllers();
@@ -704,12 +708,14 @@ private:
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
     bool _interstitialModeEnabled{ false };
 
-    bool _loginDialogPoppedUp = false;
+    bool _loginDialogPoppedUp{ false };
+    bool _desktopRootItemCreated{ false };
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
     CameraMode _previousCameraMode;
     QUuid _loginDialogID;
+    QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;
@@ -802,5 +808,8 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
+    bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
 };
 #endif // hifi_Application_h

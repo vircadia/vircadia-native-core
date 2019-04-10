@@ -1708,6 +1708,7 @@ protected:
     glm::vec3 _globalBoundingBoxOffset;
 
     AABox _defaultBubbleBox;
+    AABox _fitBoundingBox;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
     AvatarEntityIDs _avatarEntityRemoved; // recently removed AvatarEntity ids

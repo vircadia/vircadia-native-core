@@ -109,7 +109,7 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::compositeExtra(const gpu::FramebufferPointer& compositeFramebuffer) {
+void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
 #if defined(Q_OS_ANDROID)
     auto& virtualPadManager = VirtualPad::Manager::instance();
     if(virtualPadManager.getLeftVirtualPad()->isShown()) {
@@ -121,7 +121,7 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra(const gpu::FramebufferPoin
 
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
-            batch.setFramebuffer(compositeFramebuffer);
+            batch.setFramebuffer(_compositeFramebuffer);
             batch.resetViewTransform();
             batch.setProjectionTransform(mat4());
             batch.setPipeline(_cursorPipeline);
@@ -140,7 +140,7 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra(const gpu::FramebufferPoin
         });
     }
 #endif
-    Parent::compositeExtra(compositeFramebuffer);
+    Parent::compositeExtra();
 }
 
 static const uint32_t MIN_THROTTLE_CHECK_FRAMES = 60;

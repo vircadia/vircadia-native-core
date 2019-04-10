@@ -672,9 +672,8 @@ void Avatar::fadeIn(render::ScenePointer scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+void Avatar::fadeOut(render::Transaction& transaction, KillAvatarReason reason) {
     render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
-    render::Transaction transaction;
 
     if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
@@ -682,7 +681,6 @@ void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
         transitionType = render::Transition::BUBBLE_ISECT_OWNER;
     }
     fade(transaction, transitionType);
-    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
@@ -691,19 +689,6 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
             transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
-    }
-    _isFading = true;
-}
-
-void Avatar::updateFadingStatus() {
-    if (_isFading) {
-        render::Transaction transaction;
-        transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-            if (!transition || transition->isFinished) {
-                _isFading = false;
-            }
-        });
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     }
 }
 
@@ -1560,8 +1545,8 @@ void Avatar::rigReset() {
 
 void Avatar::computeMultiSphereShapes() {
     const Rig& rig = getSkeletonModel()->getRig();
-    glm::vec3 scale = extractScale(rig.getGeometryOffsetPose());
     const HFMModel& geometry = getSkeletonModel()->getHFMModel();
+    glm::vec3 geometryScale = extractScale(rig.getGeometryOffsetPose());
     int jointCount = rig.getJointStateCount();
     _multiSphereShapes.clear();
     _multiSphereShapes.reserve(jointCount);
@@ -1570,9 +1555,10 @@ void Avatar::computeMultiSphereShapes() {
         std::vector<btVector3> btPoints;
         int lineCount = (int)shapeInfo.debugLines.size();
         btPoints.reserve(lineCount);
+        glm::vec3 jointScale = rig.getJointPose(i).scale() / extractScale(rig.getGeometryToRigTransform());
         for (int j = 0; j < lineCount; j++) {
             const glm::vec3 &point = shapeInfo.debugLines[j];
-            auto rigPoint = scale * point;
+            auto rigPoint = jointScale * geometryScale * point;
             btVector3 btPoint = glmToBullet(rigPoint);
             btPoints.push_back(btPoint);
         }

@@ -39,7 +39,7 @@ protected:
 
     void customizeContext() override;
     void uncustomizeContext() override;
-    void hmdPresent(const gpu::FramebufferPointer&) override;
+    void hmdPresent() override;
     bool isHmdMounted() const override { return true; }
 
 private:

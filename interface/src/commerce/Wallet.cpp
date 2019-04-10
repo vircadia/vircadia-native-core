@@ -816,18 +816,18 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 
     bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
     int status;
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
-    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&idByteArraySize);
     packet->readPrimitive(&textByteArraySize);  // returns a cast char*, size
     if (challengeOriginatedFromClient) {
         packet->readPrimitive(&challengingNodeUUIDByteArraySize);
     }
 
     // "encryptedText"  is now a series of random bytes, a nonce
-    QByteArray certID = packet->read(certIDByteArraySize);
+    QByteArray id = packet->read(idByteArraySize);
     QByteArray text = packet->read(textByteArraySize);
     QByteArray challengingNodeUUID;
     if (challengeOriginatedFromClient) {
@@ -853,32 +853,32 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
         textByteArray = sig.toUtf8();
     }
     textByteArraySize = textByteArray.size();
-    int certIDSize = certID.size();
+    int idSize = id.size();
     // setup the packet
     if (challengeOriginatedFromClient) {
         auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-            certIDSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+            idSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
             true);
 
-        textPacket->writePrimitive(certIDSize);
+        textPacket->writePrimitive(idSize);
         textPacket->writePrimitive(textByteArraySize);
         textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
-        textPacket->write(certID);
+        textPacket->write(id);
         textPacket->write(textByteArray);
         textPacket->write(challengingNodeUUID);
 
-        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for id" << id;
 
         nodeList->sendPacket(std::move(textPacket), *sendingNode);
     } else {
-        auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, certIDSize + textByteArraySize + 2 * sizeof(int), true);
+        auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, idSize + textByteArraySize + 2 * sizeof(int), true);
 
-        textPacket->writePrimitive(certIDSize);
+        textPacket->writePrimitive(idSize);
         textPacket->writePrimitive(textByteArraySize);
-        textPacket->write(certID);
+        textPacket->write(id);
         textPacket->write(textByteArray);
 
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for CertID" << certID;
+        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for id" << id;
 
         nodeList->sendPacket(std::move(textPacket), *sendingNode);
     }

@@ -10,8 +10,9 @@
             "filters": [ { "type": "hysteresis", "min": 0.7, "max": 0.75 } ]
         },
 
-        { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
-        { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
+        { "from": "Vive.LY", "when": "Vive.LS", "filters": [ { "type": "deadZone", "min": 0.15 }, "invert" ], "to": "Standard.LY" },
+        { "from": "Vive.LX", "when": ["Vive.LS", "Application.RightHandDominant"], "filters": { "type": "deadZone", "min": 0.15 }, "to": "Standard.LX" },
+        { "from": "Vive.LX", "when": ["Vive.LS", "Vive.LSX", "!Vive.LSY", "Application.LeftHandDominant"], "filters": { "type": "deadZone", "min": 0.15 }, "to": "Standard.LX" },
         {
             "from": "Vive.LT", "to": "Standard.LT",
             "filters": [
@@ -28,8 +29,9 @@
         },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
-        { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
-        { "from": "Vive.RX", "when": "Vive.RSX", "to": "Standard.RX" },
+        { "from": "Vive.RY", "when": "Vive.RS", "filters": [ { "type": "deadZone", "min": 0.15 }, "invert" ], "to": "Standard.RY" },
+        { "from": "Vive.RX", "when": ["Vive.RS", "Application.LeftHandDominant"], "filters": { "type": "deadZone", "min": 0.15 }, "to": "Standard.RX" },
+        { "from": "Vive.RX", "when": ["Vive.RS", "Vive.RSX", "!Vive.RSY", "Application.RightHandDominant"], "filters": { "type": "deadZone", "min": 0.15 }, "to": "Standard.RX" },
         {
             "from": "Vive.RT", "to": "Standard.RT",
             "filters": [

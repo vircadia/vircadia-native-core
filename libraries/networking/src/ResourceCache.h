@@ -91,6 +91,9 @@ private:
 class ScriptableResource : public QObject {
 
     /**jsdoc
+     * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link ModelCache.prefetch},
+     * {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
+     *
      * @class ResourceObject
      *
      * @hifi-interface
@@ -99,8 +102,8 @@ class ScriptableResource : public QObject {
      * @hifi-server-entity
      * @hifi-assignment-client
      *
-     * @property {string} url - URL of this resource.
-     * @property {Resource.State} state - Current loading state.
+     * @property {string} url - URL of the resource. <em>Read-only.</em>
+     * @property {Resource.State} state - Current loading state. <em>Read-only.</em>
      */
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getURL)
@@ -109,12 +112,13 @@ class ScriptableResource : public QObject {
 public:
 
     /**jsdoc
+     * The loading state of a resource.
      * @typedef {object} Resource.State
      * @property {number} QUEUED - The resource is queued up, waiting to be loaded.
      * @property {number} LOADING - The resource is downloading.
-     * @property {number} LOADED - The resource has finished downloaded by is not complete.
+     * @property {number} LOADED - The resource has finished downloading but is not complete.
      * @property {number} FINISHED - The resource has completely finished loading and is ready.
-     * @property {number} FAILED - Downloading the resource has failed.
+     * @property {number} FAILED - The resource has failed to download.
      */
     enum State {
         QUEUED,
@@ -129,7 +133,7 @@ public:
     virtual ~ScriptableResource() = default;
 
     /**jsdoc
-      * Release this resource.
+      * Releases the resource.
       * @function ResourceObject#release
       */
     Q_INVOKABLE void release();
@@ -144,16 +148,16 @@ public:
 signals:
 
     /**jsdoc
-     * Triggered when download progress for this resource has changed.
+     * Triggered when the resource's download progress changes.
      * @function ResourceObject#progressChanged
-     * @param {number} bytesReceived - Byytes downloaded so far.
+     * @param {number} bytesReceived - Bytes downloaded so far.
      * @param {number} bytesTotal - Total number of bytes in the resource.
      * @returns {Signal}
      */
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
 
     /**jsdoc
-     * Triggered when resource loading state has changed.
+     * Triggered when the resource's loading state changes.
      * @function ResourceObject#stateChanged
      * @param {Resource.State} state - New state.
      * @returns {Signal}
@@ -317,30 +321,63 @@ public:
     ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache);
 
     /**jsdoc
-     * Get the list of all resource URLs.
+     * Gets the URLs of all resources in the cache.
      * @function ResourceCache.getResourceList
-     * @returns {string[]}
+     * @returns {string[]} The URLs of all resources in the cache.
+     * @example <caption>Report cached resources.</caption>
+     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
+     *
+     * var cachedResources = AnimationCache.getResourceList();
+     * print("Cached resources: " + JSON.stringify(cachedResources));
      */
     Q_INVOKABLE QVariantList getResourceList();
 
     /**jsdoc
      * @function ResourceCache.updateTotalSize
-     * @param {number} deltaSize
+     * @param {number} deltaSize - Delta size.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void updateTotalSize(const qint64& deltaSize);
 
     /**jsdoc
      * Prefetches a resource.
      * @function ResourceCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @returns {ResourceObject}
+     * @param {string} url - The URL of the resource to prefetch.
+     * @returns {ResourceObject} A resource object.
+     * @example <caption>Prefetch a resource and wait until it has loaded.</caption>
+     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
+     * // TextureCache has its own version of this function.
+     * 
+     * var resourceURL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
+     * var resourceObject = AnimationCache.prefetch(resourceURL);
+     * 
+     * function checkIfResourceLoaded(state) {
+     *     if (state === Resource.State.FINISHED) {
+     *         print("Resource loaded and ready.");
+     *     } else if (state === Resource.State.FAILED) {
+     *         print("Resource not loaded.");
+     *     }
+     * }
+     * 
+     * // Resource may have already been loaded.
+     * print("Resource state: " + resourceObject.state);
+     * checkIfResourceLoaded(resourceObject.state);
+     * 
+     * // Resource may still be loading.
+     * resourceObject.stateChanged.connect(function (state) {
+     *     print("Resource state changed to: " + state);
+     *     checkIfResourceLoaded(state);
+     * });
      */
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr, std::numeric_limits<size_t>::max()); }
+    
+    // FIXME: This function variation shouldn't be in the API.
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra, size_t extraHash);
 
 signals:
 
     /**jsdoc
+     * Triggered when the cache content has changed.
      * @function ResourceCache.dirty
      * @returns {Signal}
      */

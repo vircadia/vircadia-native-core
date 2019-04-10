@@ -17,6 +17,14 @@ void SphereRegion::translate(const glm::vec3& translation) {
         line.second += translation;
     }
 }
+
+void SphereRegion::scale(float scale) {
+    for (auto &line : _lines) {
+        line.first *= scale;
+        line.second *= scale;
+    }
+}
+
 void SphereRegion::dump(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines) {
     for (auto &line : _lines) {
         outLines.push_back(line);
@@ -127,7 +135,7 @@ bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& na
     _jointIndex = jointIndex;
     _name = name;
     _mode = getExtractionModeByName(_name);
-    if (_mode == CollisionShapeExtractionMode::None || kdop.size() < 4 || kdop.size() > 200) {
+    if (_mode == CollisionShapeExtractionMode::None || kdop.size() < 4) {
         return false;
     }
     std::vector<glm::vec3> points;
@@ -151,7 +159,9 @@ bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& na
 
     _midPoint /= (int)points.size();
     glm::vec3 dimensions = max - min;
-
+    if (glm::length(dimensions) == 0.0f) {
+        return false;
+    }
     for (size_t i = 0; i < points.size(); i++) {
         glm::vec3 relPoint = points[i] - _midPoint;
         relPoints.push_back(relPoint);
@@ -343,6 +353,7 @@ void MultiSphereShape::connectSpheres(int index1, int index2, bool onlyEdges) {
 }
 
 void MultiSphereShape::calculateDebugLines() {
+    std::vector<float> radiuses;
     if (_spheres.size() == 1) {
         auto sphere = _spheres[0];
         calculateSphereLines(_debugLines, sphere._position, sphere._radius);
@@ -351,41 +362,25 @@ void MultiSphereShape::calculateDebugLines() {
     } else if (_spheres.size() == 4) {
         std::vector<glm::vec3> axes;
         axes.resize(8);
+        const float AXIS_DOT_THRESHOLD = 0.3f;
         for (size_t i = 0; i < CORNER_SIGNS.size(); i++) {
-            for (size_t j = 0; j < 4; j++) {
+            for (size_t j = 0; j < _spheres.size(); j++) {
                 auto axis = _spheres[j]._position - _midPoint;
-                glm::vec3 sign = { axis.x != 0.0f ? glm::abs(axis.x) / axis.x : 0.0f,
-                                   axis.x != 0.0f ? glm::abs(axis.y) / axis.y : 0.0f ,
-                                   axis.z != 0.0f ? glm::abs(axis.z) / axis.z : 0.0f };
-                bool add = false;
-                if (sign.x == 0.0f) {
-                    if (sign.y == CORNER_SIGNS[i].y && sign.z == CORNER_SIGNS[i].z) {
-                        add = true;
-                    }
-                } else if (sign.y == 0.0f) {
-                    if (sign.x == CORNER_SIGNS[i].x && sign.z == CORNER_SIGNS[i].z) {
-                        add = true;
-                    }
-                } else if (sign.z == 0.0f) {
-                    if (sign.x == CORNER_SIGNS[i].x && sign.y == CORNER_SIGNS[i].y) {
-                        add = true;
-                    }
-                } else if (sign == CORNER_SIGNS[i]) {
-                    add = true;
-                }
-                if (add) {
+                if (glm::length(axes[i]) == 0.0f && glm::length(axis) > 0.0f && glm::dot(CORNER_SIGNS[i], glm::normalize(axis)) > AXIS_DOT_THRESHOLD) {
+                    radiuses.push_back(_spheres[j]._radius);
                     axes[i] = axis;
                     break;
                 }
-            }            
+            }
         }        
-        calculateChamferBox(_debugLines, _spheres[0]._radius, axes, _midPoint);
+        calculateChamferBox(_debugLines, radiuses, axes, _midPoint);
     } else if (_spheres.size() == 8) {
         std::vector<glm::vec3> axes;
         for (size_t i = 0; i < _spheres.size(); i++) {
+            radiuses.push_back(_spheres[i]._radius);
             axes.push_back(_spheres[i]._position - _midPoint);
         }
-        calculateChamferBox(_debugLines, _spheres[0]._radius, axes, _midPoint);
+        calculateChamferBox(_debugLines, radiuses, axes, _midPoint);
     }
 }
 
@@ -398,9 +393,9 @@ void MultiSphereShape::connectEdges(std::vector<std::pair<glm::vec3, glm::vec3>>
     }
 }
 
-void MultiSphereShape::calculateChamferBox(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const float& radius, const std::vector<glm::vec3>& axes, const glm::vec3& translation) {
+void MultiSphereShape::calculateChamferBox(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const std::vector<float>& radiuses, const std::vector<glm::vec3>& axes, const glm::vec3& translation) {
     std::vector<std::pair<glm::vec3, glm::vec3>> sphereLines;
-    calculateSphereLines(sphereLines, glm::vec3(0.0f), radius);
+    calculateSphereLines(sphereLines, glm::vec3(0.0f), radiuses[0]);
 
     std::vector<SphereRegion> regions = {
         SphereRegion({ 1.0f, 1.0f, 1.0f }),
@@ -417,6 +412,7 @@ void MultiSphereShape::calculateChamferBox(std::vector<std::pair<glm::vec3, glm:
 
     for (size_t i = 0; i < regions.size(); i++) {
         regions[i].extractSphereRegion(sphereLines);
+        regions[i].scale(radiuses[i]/radiuses[0]);
         regions[i].translate(translation + axes[i]);
         regions[i].extractEdges(axes[i].y < 0);
         regions[i].dump(outLines);

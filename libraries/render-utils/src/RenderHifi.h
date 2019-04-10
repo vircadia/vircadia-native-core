@@ -23,9 +23,9 @@ namespace render {
 
         // Tag is the alias names of render::ItemKey::Tag combinations used in the Hifi Render Engine
         enum Tag : uint8_t {
-            TAG_NONE = render::ItemKey::TAG_BITS_NONE, // No Tags at all
-            TAG_MAIN_VIEW = render::ItemKey::TAG_BITS_0, // Main view
-            TAG_SECONDARY_VIEW = render::ItemKey::TAG_BITS_1, // Secondary View
+            TAG_NONE = render::ItemKey::TAG_BITS_NONE,          // No Tags at all
+            TAG_MAIN_VIEW = render::ItemKey::TAG_BITS_0,        // Main view
+            TAG_SECONDARY_VIEW = render::ItemKey::TAG_BITS_1,   // Secondary View
             TAG_ALL_VIEWS = TAG_MAIN_VIEW | TAG_SECONDARY_VIEW, // All views
         };
 

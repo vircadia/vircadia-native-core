@@ -43,7 +43,7 @@ CreateAppTooltip.prototype = {
         this._tooltipData = tooltipData;
     },
 
-    registerTooltipElement: function(element, tooltipID) {
+    registerTooltipElement: function(element, tooltipID, jsPropertyName) {
         element.addEventListener("mouseover", function() {
             if (!this._isEnabled) {
                 return;
@@ -70,7 +70,7 @@ CreateAppTooltip.prototype = {
                 elTipDescription.innerText = tooltipData.tooltip;
                 elTip.appendChild(elTipDescription);
 
-                let jsAttribute = tooltipID;
+                let jsAttribute = jsPropertyName;
                 if (tooltipData.jsPropertyName) {
                     jsAttribute = tooltipData.jsPropertyName;
                 }

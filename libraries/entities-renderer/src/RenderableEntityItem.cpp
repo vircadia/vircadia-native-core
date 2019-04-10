@@ -148,7 +148,7 @@ EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entit
     });
 }
 
-EntityRenderer::~EntityRenderer() { }
+EntityRenderer::~EntityRenderer() {}
 
 //
 // Smart payload proxy members, implementing the payload interface
@@ -166,7 +166,10 @@ ShapeKey EntityRenderer::getShapeKey() {
 }
 
 render::hifi::Tag EntityRenderer::getTagMask() const {
-    return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
+    render::hifi::Tag mask = render::hifi::TAG_NONE;
+    mask = (render::hifi::Tag)(mask | (!_cauterized * render::hifi::TAG_MAIN_VIEW));
+    mask = (render::hifi::Tag)(mask | (_isVisibleInSecondaryCamera * render::hifi::TAG_SECONDARY_VIEW));
+    return mask;
 }
 
 render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
@@ -215,12 +218,7 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    auto& renderMode = args->_renderMode;
-    bool cauterized = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE &&
-                       renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE &&
-                       _cauterized);
-
-    if (_visible && !cauterized) {
+    if (_visible && (args->_renderMode != RenderArgs::RenderMode::DEFAULT_RENDER_MODE || !_cauterized)) {
         doRender(args);
     }
 }
@@ -421,6 +419,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         if (fading) {
             _isFading = Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
         }
+
         _prevIsTransparent = transparent;
 
         updateModelTransformAndBound();

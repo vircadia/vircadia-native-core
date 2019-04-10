@@ -292,7 +292,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
 
     setLastInspectedEntity(entityID);
 
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityID, _entityPropertyFlags);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -328,31 +328,31 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                             } else {
                                 QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
-                                QByteArray certID = entityProperties.getCertificateID().toUtf8();
-                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
+                                QByteArray id = entityID.toByteArray();
+                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(entityID, ownerKey);
                                 QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
 
-                                int certIDByteArraySize = certID.length();
+                                int idByteArraySize = id.length();
                                 int textByteArraySize = text.length();
                                 int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
 
                                 auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-                                    certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                                    idByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
                                     true);
-                                challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                                challengeOwnershipPacket->writePrimitive(idByteArraySize);
                                 challengeOwnershipPacket->writePrimitive(textByteArraySize);
                                 challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
-                                challengeOwnershipPacket->write(certID);
+                                challengeOwnershipPacket->write(id);
                                 challengeOwnershipPacket->write(text);
                                 challengeOwnershipPacket->write(nodeToChallengeByteArray);
                                 nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
 
                                 // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
                                 if (thread() != QThread::currentThread()) {
-                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
+                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityID));
                                     return;
                                 } else {
-                                    startChallengeOwnershipTimer();
+                                    startChallengeOwnershipTimer(entityID);
                                 }
                             }
                         } else {
@@ -370,14 +370,14 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
             // so they always pass Ownership Verification. It's necessary to emit this signal
             // so that the Inspection Certificate can continue its information-grabbing process.
             auto ledger = DependencyManager::get<Ledger>();
-            emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+            emit ledger->updateCertificateStatus(entityID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
         }
     } else {
         auto ledger = DependencyManager::get<Ledger>();
         _challengeOwnershipTimeoutTimer.stop();
-        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
-        qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
+        emit ledger->updateCertificateStatus(entityID, (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(entityID);
+        qCDebug(context_overlay) << "Entity" << entityID << "failed static certificate verification!";
     }
 }
 
@@ -395,14 +395,14 @@ void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
     }
 }
 
-void ContextOverlayInterface::startChallengeOwnershipTimer() {
+void ContextOverlayInterface::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
     auto ledger = DependencyManager::get<Ledger>();
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
 
     connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
-        qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
-        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        qCDebug(entities) << "Ownership challenge timed out for" << entityItemID;
+        emit ledger->updateCertificateStatus(entityItemID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(entityItemID);
     });
 
     _challengeOwnershipTimeoutTimer.start(5000);
@@ -413,23 +413,22 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
 
     _challengeOwnershipTimeoutTimer.stop();
 
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
 
-    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&idByteArraySize);
     packet->readPrimitive(&textByteArraySize);
 
-    QString certID(packet->read(certIDByteArraySize));
+    EntityItemID id(packet->read(idByteArraySize));
     QString text(packet->read(textByteArraySize));
 
-    EntityItemID id;
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text, id);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(id, text);
 
     if (verificationSuccess) {
-        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(_lastInspectedEntity);
+        emit ledger->updateCertificateStatus(id, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(id);
     } else {
-        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        emit ledger->updateCertificateStatus(id, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(id);
     }
 }
