@@ -47,8 +47,8 @@ public:
 
 public slots:
     /**jsdoc
-     * Gets the ID of the entity that the camera is set to use the position and orientation from when it's in entity mode. You 
-     * can also get the entity ID using the {@link Camera|Camera.cameraEntity} property.
+     * Gets the ID of the entity that the camera is set to follow (i.e., use the position and orientation from) when it's in 
+     * entity mode. You can also get the entity ID using the {@link Camera|Camera.cameraEntity} property.
      * @function Camera.getCameraEntity
      * @returns {Uuid} The ID of the entity that the camera is set to follow when in entity mode; <code>null</code> if no 
      *     camera entity has been set.
@@ -56,8 +56,8 @@ public slots:
     QUuid getCameraEntity() const;
 
     /**jsdoc
-     * Sets the entity that the camera should use the position and orientation from when it's in entity mode. You can also set 
-     * the entity using the {@link Camera|Camera.cameraEntity} property.
+     * Sets the entity that the camera should follow (i.e., use the position and orientation from) when it's in entity mode. 
+     * You can also set the entity using the {@link Camera|Camera.cameraEntity} property.
      * @function Camera.setCameraEntity
      * @param {Uuid} entityID - The entity that the camera should follow when it's in entity mode.
      * @example <caption>Move your camera to the position and orientation of the closest entity.</caption>
