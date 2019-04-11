@@ -616,6 +616,8 @@ const GROUPS = [
                 decimals: 3,
                 propertyID: "webAlpha",
                 propertyName: "alpha",
+                min: 0,
+                max: 1,
             },
             {
                 label: "Max FPS",

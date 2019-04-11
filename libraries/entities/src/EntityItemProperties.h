@@ -14,6 +14,9 @@
 
 #include <stdint.h>
 
+#include <limits>
+#include <type_traits>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 
@@ -84,6 +87,16 @@ struct EntityPropertyInfo {
     QVariant minimum;
     QVariant maximum;
 };
+
+template <typename T>
+EntityPropertyInfo makePropertyInfo(EntityPropertyList p, typename std::enable_if<!std::is_integral<T>::value>::type* = 0) {
+    return EntityPropertyInfo(p);
+}
+
+template <typename T>
+EntityPropertyInfo makePropertyInfo(EntityPropertyList p, typename std::enable_if<std::is_integral<T>::value>::type* = 0) {
+    return EntityPropertyInfo(p, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+}
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
