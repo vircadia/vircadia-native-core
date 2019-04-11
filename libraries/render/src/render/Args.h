@@ -16,6 +16,7 @@
 
 #include <GLMHelpers.h>
 #include <ViewFrustum.h>
+#include <StencilMaskMode.h>
 
 #include <gpu/Forward.h>
 #include "Forward.h"
@@ -133,6 +134,10 @@ namespace render {
 
         std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator;
         gpu::TexturePointer _hudTexture;
+
+        bool _takingSnapshot { false };
+        StencilMaskMode _stencilMaskMode { StencilMaskMode::NONE };
+        std::function<void(gpu::Batch&)> _stencilMaskOperator;
     };
 
 }

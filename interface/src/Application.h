@@ -344,6 +344,10 @@ public:
     void toggleAwayMode();
     #endif
 
+    using SnapshotOperator = std::pair<std::function<void(const QImage&)>, float>;
+    void addSnapshotOperator(const SnapshotOperator& snapshotOperator);
+    bool takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators);
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -788,6 +792,8 @@ private:
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
     SharedSoundPointer _sampleSound;
+    std::mutex _snapshotMutex;
+    std::queue<SnapshotOperator> _snapshotOperators;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;

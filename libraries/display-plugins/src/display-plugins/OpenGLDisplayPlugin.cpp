@@ -723,6 +723,15 @@ void OpenGLDisplayPlugin::present() {
             compositeLayers();
         }
 
+        { // If we have any snapshots this frame, handle them
+            PROFILE_RANGE_EX(render, "snapshotOperators", 0xffff00ff, frameId)
+            while (!_currentFrame->snapshotOperators.empty()) {
+                auto& snapshotOperator = _currentFrame->snapshotOperators.front();
+                snapshotOperator.first(getScreenshot(snapshotOperator.second));
+                _currentFrame->snapshotOperators.pop();
+            }
+        }
+
         // Take the composite framebuffer and send it to the output device
         {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)

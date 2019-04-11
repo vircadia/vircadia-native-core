@@ -25,6 +25,7 @@
 #include "shared/Bilateral.h"
 #include "Transform.h"
 #include "PhysicsCollisionGroups.h"
+#include "StencilMaskMode.h"
 
 class QColor;
 class QUrl;
@@ -729,5 +730,8 @@ void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>
 
 QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures);
 
+Q_DECLARE_METATYPE(StencilMaskMode)
+QScriptValue stencilMaskModeToScriptValue(QScriptEngine* engine, const StencilMaskMode& stencilMode);
+void stencilMaskModeFromScriptValue(const QScriptValue& object, StencilMaskMode& stencilMode);
 
 #endif // hifi_RegisteredMetaTypes_h

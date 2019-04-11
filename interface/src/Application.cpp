@@ -6725,6 +6725,11 @@ void Application::updateRenderArgs(float deltaTime) {
             }
         }
 
+        appRenderArgs._renderArgs._stencilMaskMode = getActiveDisplayPlugin()->getStencilMaskMode();
+        if (appRenderArgs._renderArgs._stencilMaskMode == StencilMaskMode::MESH) {
+            appRenderArgs._renderArgs._stencilMaskOperator = getActiveDisplayPlugin()->getStencilMaskMeshOperator();
+        }
+
         {
             QMutexLocker viewLocker(&_viewMutex);
             _myCamera.loadViewFrustum(_displayViewFrustum);
@@ -8412,11 +8417,20 @@ void Application::loadAvatarBrowser() const {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 }
 
+void Application::addSnapshotOperator(const SnapshotOperator& snapshotOperator) {
+    std::lock_guard<std::mutex> lock(_snapshotMutex);
+    _snapshotOperators.push(snapshotOperator);
+}
+
+bool Application::takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators) {
+    std::lock_guard<std::mutex> lock(_snapshotMutex);
+    _snapshotOperators.swap(snapshotOperators);
+    return !snapshotOperators.empty();
+}
+
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
-        // Get a screenshot and save it
-        QString path = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename,
-                                              TestScriptingInterface::getInstance()->getTestResultsLocation());
+    addSnapshotOperator({ [notify, includeAnimated, aspectRatio, filename](const QImage& snapshot) {
+        QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
@@ -8428,7 +8442,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
             // Get an animated GIF snapshot and save it
             SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
         }
-    });
+    }, aspectRatio });
 }
 
 void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
