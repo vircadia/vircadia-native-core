@@ -279,6 +279,12 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]() -> bool { return myAvatar->hoverWhenUnsupported(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setHoverWhenUnsupported(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Hover When Unsupported", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
         auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
         //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
@@ -302,12 +308,6 @@ void setupPreferences() {
         items << "Snap turn" << "Smooth turn";
         preference->setHeading("Rotation mode");
         preference->setItems(items);
-        preferences->addPreference(preference);
-    }
-    {
-        auto getter = [myAvatar]() -> bool { return myAvatar->useFallHeightThreshold(); };
-        auto setter = [myAvatar](bool value) { myAvatar->setUseFallHeightThreshold(value); };
-        auto preference = new CheckPreference(VR_MOVEMENT, "Use Fall Height Threshold", getter, setter);
         preferences->addPreference(preference);
     }
     {
