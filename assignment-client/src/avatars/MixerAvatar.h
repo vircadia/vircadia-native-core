@@ -44,6 +44,7 @@ private:
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey);
+    static QByteArray canonicalJson(const QString fstFile);
 
 private slots:
     void fstRequestComplete();

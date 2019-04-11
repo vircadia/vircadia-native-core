@@ -11,6 +11,7 @@
 
 #include <QRegularExpression>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QJSonDocument>
 #include <QNetworkReply>
 #include <QCryptographicHash>
@@ -30,9 +31,11 @@ void MixerAvatar::fetchAvatarFST() {
     if (avatarURL.isEmpty()) {
         return;
     }
+    auto avatarURLString = avatarURL.toDisplayString();
     // Match UUID + version
-    static const QRegularExpression marketIdRegex
-        { "^https://https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36}).*certificate_id=([\\w/+%]+)" };
+    static const QRegularExpression marketIdRegex{
+        "^https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36}).*certificate_id=([\\w/+%]+)"
+    };
     auto marketIdMatch = marketIdRegex.match(avatarURL.toDisplayString());
     if (marketIdMatch.hasMatch()) {
         QMutexLocker certifyLocker(&_avatarCertifyLock);
@@ -59,8 +62,9 @@ void MixerAvatar::fetchAvatarFST() {
 }
 
 // TESTING
-static const QString PLANT_CERTID
-    { "MEYCIQDxKA62xq/G/x1aWpXyJbGjIHm6SU4ceQu2ljtFRfeu/QIhAKw2uEfLId8sqLfEoErOlvu2UV2wbP3ttrYP1hoZT0Ge" };
+static const QString PLANT_CERTID{
+    "MEYCIQDxKA62xq/G/x1aWpXyJbGjIHm6SU4ceQu2ljtFRfeu/QIhAKw2uEfLId8sqLfEoErOlvu2UV2wbP3ttrYP1hoZT0Ge"
+};
 
 void MixerAvatar::fstRequestComplete() {
     ResourceRequest* fstRequest = static_cast<ResourceRequest*>(QObject::sender());
@@ -79,7 +83,7 @@ void MixerAvatar::fstRequestComplete() {
             _verifyState = staticVerification ? kStaticValidation : kNoncertified;
 
             if (_verifyState == kStaticValidation) {
-                static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
+                static const QString POP_MARKETPLACE_API{ "/api/v1/commerce/proof_of_purchase_status/transfer" };
                 auto& networkAccessManager = NetworkAccessManager::getInstance();
                 QNetworkRequest networkRequest;
                 networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
@@ -105,16 +109,14 @@ void MixerAvatar::fstRequestComplete() {
                         }
                     } else {
                         auto jsonData = responseJson["data"];
-                        if (!jsonData.isUndefined()
-                            && !jsonData.toObject()["message"].isUndefined()) {
+                        if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
                             qCDebug(avatars) << "Certificate Id lookup failed for" << getDisplayName() << ":"
-                                << jsonData.toObject()["message"].toString();
+                                             << jsonData.toObject()["message"].toString();
                             _verifyState = kError;
                         }
                     }
                     networkReply->deleteLater();
                 });
-
             }
         }
         _avatarRequest->deleteLater();
@@ -128,14 +130,45 @@ bool MixerAvatar::generateFSTHash() {
     if (_avatarFSTContents.length() == 0) {
         return false;
     }
-    QCryptographicHash fstHash(QCryptographicHash::Sha224);
-    fstHash.addData(_avatarFSTContents);
+    QByteArray hashJson = canonicalJson(_avatarFSTContents);
+    QCryptographicHash fstHash(QCryptographicHash::Sha256);
+    fstHash.addData(hashJson);
     _certificateHash = fstHash.result();
     return true;
 }
 
 bool MixerAvatar::validateFSTHash(const QString& publicKey) {
     // Guess we should refactor this stuff into a Authorization namespace ...
-    return EntityItemProperties::verifySignature(publicKey, _certificateHash,
-        QByteArray::fromBase64(_certificateId.toUtf8()));
+    return EntityItemProperties::verifySignature(publicKey, _certificateHash, QByteArray::fromBase64(_certificateId.toUtf8()));
+}
+
+QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
+    QStringList fstLines = fstFile.split("\n", QString::SkipEmptyParts);
+    static const QString fstKeywordsReg{
+        "(marketplaceID|itemDescription|itemCategories|itemArtist|itemLicenseUrl|limitedRun|itemName|"
+        "filename|texdir|script|editionNumber)"
+    };
+    QRegularExpression fstLineRegExp{ QString("^\\s*") + fstKeywordsReg + "\\s*=\\s*(.*)$" };
+    QStringListIterator fstLineIter(fstLines);
+
+    QJsonObject certifiedItems;
+    QJsonArray scriptsArray;
+    while (fstLineIter.hasNext()) {
+        auto line = fstLineIter.next();
+        auto lineMatch = fstLineRegExp.match(line);
+        if (lineMatch.hasMatch()) {
+            QString key = lineMatch.captured(1);
+            if (key == "limitedRun" || key == "editionNumber") {
+                certifiedItems[key] = QJsonValue(lineMatch.captured(2).toDouble());
+            } else {
+                certifiedItems[key] = QJsonValue(lineMatch.captured(2));
+            }
+        }
+    }
+    if (!scriptsArray.empty()) {
+        certifiedItems["script"] = scriptsArray;
+    }
+    QJsonDocument jsonDocCertifiedItems(certifiedItems);
+    // return R"({"editionNumber":34,"filename":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/Hifi_Toon_Male_3.fbx","itemArtist":"EgyMax","itemCategories":"Avatars","itemDescription":"This is my first avatar. I hope you like it. More will come","itemLicenseUrl":"","itemName":"Bridger","limitedRun":"-1","marketplaceID":"7f142fde-541a-4902-b33a-25fa89dfba21","texdir":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/textures"})";
+    return jsonDocCertifiedItems.toJson(QJsonDocument::Compact);
 }
