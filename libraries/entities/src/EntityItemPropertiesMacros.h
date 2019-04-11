@@ -416,9 +416,10 @@ inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
         T _##n;                                  \
         static T _static##N; 
 
+
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
     { \
-        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        EntityPropertyInfo propertyInfo { makePropertyInfo<T>(P) }; \
         _propertyInfos[#n] = propertyInfo; \
 		_enumsToPropertyStrings[P] = #n; \
     }
