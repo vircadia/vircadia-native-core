@@ -37,27 +37,27 @@
 
 #include "FBXSerializer.h"
 
-#define GLTF_GET_INDICIES(acc_count) int index1 = (indices[n + 0] * acc_count); int index2 = (indices[n + 1] * acc_count); int index3 = (indices[n + 2] * acc_count);
+#define GLTF_GET_INDICIES(accCount) int index1 = (indices[n + 0] * accCount); int index2 = (indices[n + 1] * accCount); int index3 = (indices[n + 2] * accCount);
 
-#define GLTF_APPEND_ARRAY_1(new_array, old_array) GLTF_GET_INDICIES(1) \
-new_array.append(old_array[index1]); \
-new_array.append(old_array[index2]); \
-new_array.append(old_array[index3]);
+#define GLTF_APPEND_ARRAY_1(newArray, oldArray) GLTF_GET_INDICIES(1) \
+newArray.append(oldArray[index1]); \
+newArray.append(oldArray[index2]); \
+newArray.append(oldArray[index3]);
 
-#define GLTF_APPEND_ARRAY_2(new_array, old_array) GLTF_GET_INDICIES(2) \
-new_array.append(old_array[index1]); new_array.append(old_array[index1 + 1]); \
-new_array.append(old_array[index2]); new_array.append(old_array[index2 + 1]); \
-new_array.append(old_array[index3]); new_array.append(old_array[index3 + 1]);
+#define GLTF_APPEND_ARRAY_2(newArray, oldArray) GLTF_GET_INDICIES(2) \
+newArray.append(oldArray[index1]); newArray.append(oldArray[index1 + 1]); \
+newArray.append(oldArray[index2]); newArray.append(oldArray[index2 + 1]); \
+newArray.append(oldArray[index3]); newArray.append(oldArray[index3 + 1]);
 
-#define GLTF_APPEND_ARRAY_3(new_array, old_array) GLTF_GET_INDICIES(3) \
-new_array.append(old_array[index1]); new_array.append(old_array[index1 + 1]); new_array.append(old_array[index1 + 2]); \
-new_array.append(old_array[index2]); new_array.append(old_array[index2 + 1]); new_array.append(old_array[index2 + 2]); \
-new_array.append(old_array[index3]); new_array.append(old_array[index3 + 1]); new_array.append(old_array[index3 + 2]);
+#define GLTF_APPEND_ARRAY_3(newArray, oldArray) GLTF_GET_INDICIES(3) \
+newArray.append(oldArray[index1]); newArray.append(oldArray[index1 + 1]); newArray.append(oldArray[index1 + 2]); \
+newArray.append(oldArray[index2]); newArray.append(oldArray[index2 + 1]); newArray.append(oldArray[index2 + 2]); \
+newArray.append(oldArray[index3]); newArray.append(oldArray[index3 + 1]); newArray.append(oldArray[index3 + 2]);
 
-#define GLTF_APPEND_ARRAY_4(new_array, old_array) GLTF_GET_INDICIES(4) \
-new_array.append(old_array[index1]); new_array.append(old_array[index1 + 1]); new_array.append(old_array[index1 + 2]); new_array.append(old_array[index1 + 3]); \
-new_array.append(old_array[index2]); new_array.append(old_array[index2 + 1]); new_array.append(old_array[index2 + 2]); new_array.append(old_array[index2 + 3]); \
-new_array.append(old_array[index3]); new_array.append(old_array[index3 + 1]); new_array.append(old_array[index3 + 2]); new_array.append(old_array[index3 + 3]);
+#define GLTF_APPEND_ARRAY_4(newArray, oldArray) GLTF_GET_INDICIES(4) \
+newArray.append(oldArray[index1]); newArray.append(oldArray[index1 + 1]); newArray.append(oldArray[index1 + 2]); newArray.append(oldArray[index1 + 3]); \
+newArray.append(oldArray[index2]); newArray.append(oldArray[index2 + 1]); newArray.append(oldArray[index2 + 2]); newArray.append(oldArray[index2 + 3]); \
+newArray.append(oldArray[index3]); newArray.append(oldArray[index3 + 1]); newArray.append(oldArray[index3 + 2]); newArray.append(oldArray[index3 + 3]);
 
 bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
@@ -997,7 +997,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         hfmModel.materials[matid] = HFMMaterial();
         HFMMaterial& hfmMaterial = hfmModel.materials[matid];
         hfmMaterial._material = std::make_shared<graphics::Material>();
-		hfmMaterial.name = hfmMaterial.materialID = matid;
+        hfmMaterial.name = hfmMaterial.materialID = matid;
         setHFMMaterial(hfmMaterial, _file.materials[i]);
     }
 
@@ -1044,15 +1044,15 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 QVector<float> vertices;
                 QVector<float> normals;
                 QVector<float> tangents;
-                int tangent_stride = 0;
+                int tangentStride = 0;
                 QVector<float> texcoords;
                 QVector<float> texcoords2;
                 QVector<float> colors;
-                int color_stride = 0;
+                int colorStride = 0;
                 QVector<uint16_t> joints;
-                int joint_stride = 0;
+                int jointStride = 0;
                 QVector<float> weights;
-                int weight_stride = 0;
+                int weightStride = 0;
 
                 bool success = addArrayOfFromAccessor(indicesAccessor, indices);
 
@@ -1073,7 +1073,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                     GLTFAccessor& accessor = _file.accessors[accessorIdx];
 
-                    int accBoffset = accessor.defined["byteOffset"] ? accessor.byteOffset : 0;
                     if (key == "POSITION") {
                         success = addArrayOfFromAccessor(accessor, vertices);
                         if (!success) {
@@ -1104,9 +1103,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
 
                         if (accessor.type == GLTFAccessorType::VEC4) {
-                            tangent_stride = 4;
+                            tangentStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            tangent_stride = 3;
+                            tangentStride = 3;
                         } else {
                             qWarning(modelformat) << "Invalid accessor type on glTF TANGENT data for model " << _url;
                             continue;
@@ -1141,9 +1140,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
 
                         if (accessor.type == GLTFAccessorType::VEC4) {
-                            color_stride = 4;
+                            colorStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            color_stride = 3;
+                            colorStride = 3;
                         } else {
                             qWarning(modelformat) << "Invalid accessor type on glTF COLOR_0 data for model " << _url;
                             continue;
@@ -1156,13 +1155,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
 
                         if (accessor.type == GLTFAccessorType::VEC4) {
-                            joint_stride = 4;
+                            jointStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            joint_stride = 3;
+                            jointStride = 3;
                         } else if (accessor.type == GLTFAccessorType::VEC2) {
-                            joint_stride = 2;
+                            jointStride = 2;
                         } else if (accessor.type == GLTFAccessorType::SCALAR) {
-                            joint_stride = 1;
+                            jointStride = 1;
                         } else {
                             qWarning(modelformat) << "Invalid accessor type on glTF JOINTS_0 data for model " << _url;
                             continue;
@@ -1175,113 +1174,18 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         }
 
                         if (accessor.type == GLTFAccessorType::VEC4) {
-                            weight_stride = 4;
+                            weightStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
-                            weight_stride = 3;
+                            weightStride = 3;
                         } else if (accessor.type == GLTFAccessorType::VEC2) {
-                            weight_stride = 2;
+                            weightStride = 2;
                         } else if (accessor.type == GLTFAccessorType::SCALAR) {
-                            weight_stride = 1;
+                            weightStride = 1;
                         } else {
                             qWarning(modelformat) << "Invalid accessor type on glTF WEIGHTS_0 data for model " << _url;
                             continue;
                         }
                     }
-                }
-
-                // generate the normals if they don't exist
-                if (normals.size() == 0) {
-                    QVector<int> new_indices;
-                    QVector<float> new_vertices;
-                    QVector<float> new_normals;
-                    QVector<float> new_tangents;
-                    QVector<float> new_texcoords;
-                    QVector<float> new_texcoords2;
-                    QVector<float> new_colors;
-                    QVector<uint16_t> new_joints;
-                    QVector<float> new_weights;
-
-                    for (int n = 0; n < indices.size(); n = n + 3) {
-                        int v1_index = (indices[n + 0] * 3);
-                        int v2_index = (indices[n + 1] * 3);
-                        int v3_index = (indices[n + 2] * 3);
-
-                        glm::vec3 v1 = glm::vec3(vertices[v1_index], vertices[v1_index + 1], vertices[v1_index + 2]);
-                        glm::vec3 v2 = glm::vec3(vertices[v2_index], vertices[v2_index + 1], vertices[v2_index + 2]);
-                        glm::vec3 v3 = glm::vec3(vertices[v3_index], vertices[v3_index + 1], vertices[v3_index + 2]);
-
-                        new_vertices.append(v1.x); new_vertices.append(v1.y); new_vertices.append(v1.z);
-                        new_vertices.append(v2.x); new_vertices.append(v2.y); new_vertices.append(v2.z);
-                        new_vertices.append(v3.x); new_vertices.append(v3.y); new_vertices.append(v3.z);
-
-                        glm::vec3 norm = glm::normalize(glm::cross(v2 - v1, v3 - v1));
-
-                        new_normals.append(norm.x); new_normals.append(norm.y); new_normals.append(norm.z);
-                        new_normals.append(norm.x); new_normals.append(norm.y); new_normals.append(norm.z);
-                        new_normals.append(norm.x); new_normals.append(norm.y); new_normals.append(norm.z);
-
-                        if (tangents.size() > 0) {
-							if (tangent_stride == 4) {
-                                GLTF_APPEND_ARRAY_4(new_tangents, tangents)
-                            } else {
-                                GLTF_APPEND_ARRAY_3(new_tangents, tangents)
-                            }
-                        }
-
-                        if (texcoords.size() > 0) {
-                            GLTF_APPEND_ARRAY_2(new_texcoords, texcoords)
-                        }
-
-                        if (texcoords2.size() > 0) {
-                            GLTF_APPEND_ARRAY_2(new_texcoords2, texcoords2)
-                        }
-
-                        if (colors.size() > 0) {
-                            if (color_stride == 4) {
-                                GLTF_APPEND_ARRAY_4(new_colors, colors)
-                            } else {
-                                GLTF_APPEND_ARRAY_3(new_colors, colors)
-                            }
-                        }
-
-                        if (joints.size() > 0) {
-                            if (joint_stride == 4) {
-                                GLTF_APPEND_ARRAY_4(new_joints, joints)
-                            } else if (joint_stride == 3) {
-                                GLTF_APPEND_ARRAY_3(new_joints, joints)
-                            } else if (joint_stride == 2) {
-                                GLTF_APPEND_ARRAY_2(new_joints, joints)
-                            } else {
-                                GLTF_APPEND_ARRAY_1(new_joints, joints)
-                            }
-                        }
-
-                        if (weights.size() > 0) {
-                            if (weight_stride == 4) {
-                                GLTF_APPEND_ARRAY_4(new_weights, weights)
-                            } else if (weight_stride == 3) {
-                                GLTF_APPEND_ARRAY_3(new_weights, weights)
-                            } else if (weight_stride == 2) {
-                                GLTF_APPEND_ARRAY_2(new_weights, weights)
-                            } else {
-                                GLTF_APPEND_ARRAY_1(new_weights, weights)
-                            }
-                        }
-
-                        new_indices.append(n);
-                        new_indices.append(n + 1);
-                        new_indices.append(n + 2);
-                    }
-
-                    vertices = new_vertices;
-                    normals = new_normals;
-                    tangents = new_tangents;
-                    indices = new_indices;
-                    texcoords = new_texcoords;
-                    texcoords2 = new_texcoords2;
-                    colors = new_colors;
-                    joints = new_joints;
-                    weights = new_weights;
                 }
 
                 for (int n = 0; n < indices.count(); n++) {
@@ -1296,8 +1200,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                 }
 
-                for (int n = 0; n < tangents.size(); n += tangent_stride) {
-                    float tanW = tangent_stride == 4 ? tangents[n + 3] : 1;
+                for (int n = 0; n < tangents.size(); n += tangentStride) {
+                    float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
                     mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                 }
 
@@ -1308,17 +1212,17 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
                 }
 
-                for (int n = 0; n < colors.size(); n += color_stride) {
+                for (int n = 0; n < colors.size(); n += colorStride) {
                     mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
                 }
 
-                for (int n = 0; n < joints.size(); n += joint_stride) {
+                for (int n = 0; n < joints.size(); n += jointStride) {
                     clusterJoints.push_back(joints[n]);
-                    if (joint_stride > 1) {
+                    if (jointStride > 1) {
                         clusterJoints.push_back(joints[n + 1]);
-                        if (joint_stride > 2) {
+                        if (jointStride > 2) {
                             clusterJoints.push_back(joints[n + 2]);
-                            if (joint_stride > 3) {
+                            if (jointStride > 3) {
                                 clusterJoints.push_back(joints[n + 3]);
                             } else {
                                 clusterJoints.push_back(0);
@@ -1334,13 +1238,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 }
 
-                for (int n = 0; n < weights.size(); n += weight_stride) {
+                for (int n = 0; n < weights.size(); n += weightStride) {
                     clusterWeights.push_back(weights[n]);
-                    if (weight_stride > 1) {
+                    if (weightStride > 1) {
                         clusterWeights.push_back(weights[n + 1]);
-                        if (weight_stride > 2) {
+                        if (weightStride > 2) {
                             clusterWeights.push_back(weights[n + 2]);
-                            if (weight_stride > 3) {
+                            if (weightStride > 3) {
                                 clusterWeights.push_back(weights[n + 3]);
                             } else {
                                 clusterWeights.push_back(0);
