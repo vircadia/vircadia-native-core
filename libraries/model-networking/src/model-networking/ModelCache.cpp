@@ -31,8 +31,6 @@
 
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
-class GeometryReader;
-
 class GeometryExtra {
 public:
     const GeometryMappingPair& mapping;
@@ -85,113 +83,6 @@ namespace std {
             return result;
         }
     };
-}
-
-QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
-    return textureBaseUrl.isValid() ? textureBaseUrl : url;
-}
-
-class GeometryMappingResource : public GeometryResource {
-    Q_OBJECT
-public:
-    GeometryMappingResource(const QUrl& url) : GeometryResource(url) {};
-
-    QString getType() const override { return "GeometryMapping"; }
-
-    virtual void downloadFinished(const QByteArray& data) override;
-
-private slots:
-    void onGeometryMappingLoaded(bool success);
-
-private:
-    GeometryResource::Pointer _geometryResource;
-    QMetaObject::Connection _connection;
-};
-
-void GeometryMappingResource::downloadFinished(const QByteArray& data) {
-    PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString(),
-                         { { "url", _url.toString() } });
-
-    // store parsed contents of FST file
-    _mapping = FSTReader::readMapping(data);
-
-    QString filename = _mapping.value("filename").toString();
-
-    if (filename.isNull()) {
-        finishedLoading(false);
-    } else {
-        const QString baseURL = _mapping.value("baseURL").toString();
-        const QUrl base = _effectiveBaseURL.resolved(baseURL);
-        QUrl url = base.resolved(filename);
-
-        QString texdir = _mapping.value(TEXDIR_FIELD).toString();
-        if (!texdir.isNull()) {
-            if (!texdir.endsWith('/')) {
-                texdir += '/';
-            }
-            _textureBaseUrl = resolveTextureBaseUrl(url, base.resolved(texdir));
-        } else {
-            _textureBaseUrl = url.resolved(QUrl("."));
-        }
-
-        auto scripts = FSTReader::getScripts(base, _mapping);
-        if (scripts.size() > 0) {
-            _mapping.remove(SCRIPT_FIELD);
-            for (auto &scriptPath : scripts) {
-                _mapping.insertMulti(SCRIPT_FIELD, scriptPath);
-            }
-        }
-
-        auto animGraphVariant = _mapping.value("animGraphUrl");
-
-        if (animGraphVariant.isValid()) {
-            QUrl fstUrl(animGraphVariant.toString());
-            if (fstUrl.isValid()) {
-                _animGraphOverrideUrl = base.resolved(fstUrl);
-            } else {
-                _animGraphOverrideUrl = QUrl();
-            }
-        } else {
-            _animGraphOverrideUrl = QUrl();
-        }
-
-        auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra { GeometryMappingPair(base, _mapping), _textureBaseUrl, false };
-
-        // Get the raw GeometryResource
-        _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
-        // Avoid caching nested resources - their references will be held by the parent
-        _geometryResource->_isCacheable = false;
-
-        if (_geometryResource->isLoaded()) {
-            onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
-        } else {
-            if (_connection) {
-                disconnect(_connection);
-            }
-
-            _connection = connect(_geometryResource.data(), &Resource::finished,
-                                  this, &GeometryMappingResource::onGeometryMappingLoaded);
-        }
-    }
-}
-
-void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
-    if (success && _geometryResource) {
-        _hfmModel = _geometryResource->_hfmModel;
-        _materialMapping = _geometryResource->_materialMapping;
-        _meshParts = _geometryResource->_meshParts;
-        _meshes = _geometryResource->_meshes;
-        _materials = _geometryResource->_materials;
-
-        // Avoid holding onto extra references
-        _geometryResource.reset();
-        // Make sure connection will not trigger again
-        disconnect(_connection); // FIXME Should not have to do this
-    }
-
-    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString());
-    finishedLoading(success);
 }
 
 class GeometryReader : public QRunnable {
@@ -300,47 +191,137 @@ void GeometryReader::run() {
     }
 }
 
-class GeometryDefinitionResource : public GeometryResource {
-    Q_OBJECT
-public:
-    GeometryDefinitionResource(const ModelLoader& modelLoader, const QUrl& url) : GeometryResource(url), _modelLoader(modelLoader) {}
-    GeometryDefinitionResource(const GeometryDefinitionResource& other) :
-        GeometryResource(other),
-        _modelLoader(other._modelLoader),
-        _mapping(other._mapping),
-        _combineParts(other._combineParts) {}
+QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
+    return textureBaseUrl.isValid() ? textureBaseUrl : url;
+}
 
-    QString getType() const override { return "GeometryDefinition"; }
+GeometryResource::GeometryResource(const GeometryResource& other) :
+    Resource(other),
+    Geometry(other),
+    _modelLoader(other._modelLoader),
+    _mappingPair(other._mappingPair),
+    _textureBaseURL(other._textureBaseURL),
+    _combineParts(other._combineParts),
+    _isCacheable(other._isCacheable)
+{
+    if (other._geometryResource) {
+        _startedLoading = false;
+    }
+}
 
-    virtual void downloadFinished(const QByteArray& data) override;
+void GeometryResource::downloadFinished(const QByteArray& data) {
+    if (_activeUrl.fileName().toLower().endsWith(".fst")) {
+        PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString(), { { "url", _url.toString() } });
 
-    void setExtra(void* extra) override;
+        // store parsed contents of FST file
+        _mapping = FSTReader::readMapping(data);
 
-protected:
-    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping);
+        QString filename = _mapping.value("filename").toString();
 
-private:
-    ModelLoader _modelLoader;
-    GeometryMappingPair _mapping;
-    bool _combineParts;
-};
+        if (filename.isNull()) {
+            finishedLoading(false);
+        } else {
+            const QString baseURL = _mapping.value("baseURL").toString();
+            const QUrl base = _effectiveBaseURL.resolved(baseURL);
+            QUrl url = base.resolved(filename);
 
-void GeometryDefinitionResource::setExtra(void* extra) {
+            QString texdir = _mapping.value(TEXDIR_FIELD).toString();
+            if (!texdir.isNull()) {
+                if (!texdir.endsWith('/')) {
+                    texdir += '/';
+                }
+                _textureBaseURL = resolveTextureBaseUrl(url, base.resolved(texdir));
+            } else {
+                _textureBaseURL = url.resolved(QUrl("."));
+            }
+
+            auto scripts = FSTReader::getScripts(base, _mapping);
+            if (scripts.size() > 0) {
+                _mapping.remove(SCRIPT_FIELD);
+                for (auto &scriptPath : scripts) {
+                    _mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+                }
+            }
+
+            auto animGraphVariant = _mapping.value("animGraphUrl");
+
+            if (animGraphVariant.isValid()) {
+                QUrl fstUrl(animGraphVariant.toString());
+                if (fstUrl.isValid()) {
+                    _animGraphOverrideUrl = base.resolved(fstUrl);
+                } else {
+                    _animGraphOverrideUrl = QUrl();
+                }
+            } else {
+                _animGraphOverrideUrl = QUrl();
+            }
+
+            auto modelCache = DependencyManager::get<ModelCache>();
+            GeometryExtra extra { GeometryMappingPair(base, _mapping), _textureBaseURL, false };
+
+            // Get the raw GeometryResource
+            _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
+            // Avoid caching nested resources - their references will be held by the parent
+            _geometryResource->_isCacheable = false;
+
+            if (_geometryResource->isLoaded()) {
+                onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
+            } else {
+                if (_connection) {
+                    disconnect(_connection);
+                }
+
+                _connection = connect(_geometryResource.data(), &Resource::finished, this, &GeometryResource::onGeometryMappingLoaded);
+            }
+        }
+    } else {
+        if (_url != _effectiveBaseURL) {
+            _url = _effectiveBaseURL;
+            _textureBaseURL = _effectiveBaseURL;
+        }
+        QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mappingPair, data, _combineParts, _request->getWebMediaType()));
+    }
+}
+
+bool GeometryResource::handleFailedRequest(ResourceRequest::Result result) {
+    if (_shouldFailOnRedirect && result == ResourceRequest::Result::RedirectFail) {
+        auto newPath = _request->getRelativePathUrl();
+        if (newPath.fileName().toLower().endsWith(".fst")) {
+            _activeUrl = newPath;
+            _shouldFailOnRedirect = false;
+            makeRequest();
+            return true;
+        }
+    }
+    return Resource::handleFailedRequest(result);
+}
+
+void GeometryResource::onGeometryMappingLoaded(bool success) {
+    if (success && _geometryResource) {
+        _hfmModel = _geometryResource->_hfmModel;
+        _materialMapping = _geometryResource->_materialMapping;
+        _meshParts = _geometryResource->_meshParts;
+        _meshes = _geometryResource->_meshes;
+        _materials = _geometryResource->_materials;
+
+        // Avoid holding onto extra references
+        _geometryResource.reset();
+        // Make sure connection will not trigger again
+        disconnect(_connection); // FIXME Should not have to do this
+    }
+
+    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString());
+    finishedLoading(success);
+}
+
+void GeometryResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
-    _mapping = geometryExtra ? geometryExtra->mapping : GeometryMappingPair(QUrl(), QVariantHash());
-    _textureBaseUrl = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
+    _mappingPair = geometryExtra ? geometryExtra->mapping : GeometryMappingPair(QUrl(), QVariantHash());
+    _textureBaseURL = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
 
-void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    if (_url != _effectiveBaseURL) {
-        _url = _effectiveBaseURL;
-        _textureBaseUrl = _effectiveBaseURL;
-    }
-    QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mapping, data, _combineParts, _request->getWebMediaType()));
-}
-
-void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
+void GeometryResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
     // Do processing on the model
     baker::Baker modelBaker(hfmModel, mapping.second, mapping.first);
     modelBaker.run();
@@ -353,7 +334,7 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmMode
     QHash<QString, size_t> materialIDAtlas;
     for (const HFMMaterial& material : _hfmModel->materials) {
         materialIDAtlas[material.materialID] = _materials.size();
-        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseURL));
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
@@ -376,6 +357,23 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmMode
     finishedLoading(true);
 }
 
+void GeometryResource::deleter() {
+    resetTextures();
+    Resource::deleter();
+}
+
+void GeometryResource::setTextures() {
+    if (_hfmModel) {
+        for (const HFMMaterial& material : _hfmModel->materials) {
+            _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseURL));
+        }
+    }
+}
+
+void GeometryResource::resetTextures() {
+    _materials.clear();
+}
+
 ModelCache::ModelCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
@@ -388,26 +386,14 @@ ModelCache::ModelCache() {
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
-    Resource* resource = nullptr;
-    if (url.path().toLower().endsWith(".fst")) {
-        resource = new GeometryMappingResource(url);
-    } else {
-        resource = new GeometryDefinitionResource(_modelLoader, url);
-    }
-
-    return QSharedPointer<Resource>(resource, &Resource::deleter);
+    return QSharedPointer<Resource>(new GeometryResource(url, _modelLoader), &GeometryResource::deleter);
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    if (resource->getURL().path().toLower().endsWith(".fst")) {
-        return QSharedPointer<Resource>(new GeometryMappingResource(*resource.staticCast<GeometryMappingResource>()), &Resource::deleter);
-    } else {
-        return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
-    }
+    return QSharedPointer<Resource>(new GeometryResource(*resource.staticCast<GeometryResource>()), &GeometryResource::deleter);
 }
 
-GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
-                                                          const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
+GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
     bool combineParts = true;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
@@ -511,23 +497,6 @@ const std::shared_ptr<NetworkMaterial> Geometry::getShapeMaterial(int partID) co
         }
     }
     return nullptr;
-}
-
-void GeometryResource::deleter() {
-    resetTextures();
-    Resource::deleter();
-}
-
-void GeometryResource::setTextures() {
-    if (_hfmModel) {
-        for (const HFMMaterial& material : _hfmModel->materials) {
-            _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
-        }
-    }
-}
-
-void GeometryResource::resetTextures() {
-    _materials.clear();
 }
 
 void GeometryResourceWatcher::startWatching() {
