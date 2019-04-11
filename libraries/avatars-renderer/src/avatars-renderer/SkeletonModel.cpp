@@ -271,12 +271,18 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
         return true;
     }
 
+    int headJointIndex = _rig.indexOfJoint("Head");
     glm::vec3 headPosition;
-    if (getJointPosition(_rig.indexOfJoint("Head"), headPosition)) {
+    if (getJointPosition(headJointIndex, headPosition)) {
+
+        // get head joint rotation.
+        glm::quat headRotation;
+        getJointRotation(headJointIndex, headRotation);
+
         float heightRatio = _rig.getUnscaledEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
         glm::vec3 ipdOffset = glm::vec3(DEFAULT_AVATAR_IPD / 2.0f, 0.0f, 0.0f);
-        firstEyePosition = headPosition + heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET + ipdOffset);
-        secondEyePosition = headPosition + heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET - ipdOffset);
+        firstEyePosition = headPosition + headRotation * heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET + ipdOffset);
+        secondEyePosition = headPosition + headRotation * heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET - ipdOffset);
         return true;
     }
     return false;
