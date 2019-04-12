@@ -2630,11 +2630,11 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
                                        ENTITY_ITEM_MIN_FRICTION, ENTITY_ITEM_MAX_FRICTION);
         ADD_PROPERTY_TO_MAP(PROP_LIFETIME, Lifetime, lifetime, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, unused);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, bool); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, bool); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, bool);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
 
