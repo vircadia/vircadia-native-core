@@ -53,7 +53,6 @@ namespace MenuOption {
     const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
-    const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString ClearDiskCache = "Clear Disk Cache";
@@ -120,7 +119,6 @@ namespace MenuOption {
     const QString Help = "Help...";
     const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
-    const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
     const QString LastLocation = "Last Location";
     const QString LoadScript = "Open and Run Script File...";

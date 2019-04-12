@@ -1861,12 +1861,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
-        cameraMenuChanged();
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
-        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
-        cameraMenuChanged();
     }
 
     {
@@ -5757,9 +5751,6 @@ void Application::cycleCamera() {
         menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
         menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
 
-    } else if (menu->isOptionChecked(MenuOption::IndependentMode) || menu->isOptionChecked(MenuOption::CameraEntityMode)) {
-        // do nothing if in independent or camera entity modes
-        return;
     }
     cameraMenuChanged(); // handle the menu change
 }
@@ -5774,12 +5765,6 @@ void Application::cameraModeChanged() {
             break;
         case CAMERA_MODE_MIRROR:
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-            break;
-        case CAMERA_MODE_INDEPENDENT:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::IndependentMode, true);
-            break;
-        case CAMERA_MODE_ENTITY:
-            Menu::getInstance()->setIsOptionChecked(MenuOption::CameraEntityMode, true);
             break;
         default:
             break;
@@ -5823,14 +5808,6 @@ void Application::cameraMenuChanged() {
             if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
                 getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
-        }
-    } else if (menu->isOptionChecked(MenuOption::IndependentMode)) {
-        if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
-            _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
-        }
-    } else if (menu->isOptionChecked(MenuOption::CameraEntityMode)) {
-        if (_myCamera.getMode() != CAMERA_MODE_ENTITY) {
-            _myCamera.setMode(CAMERA_MODE_ENTITY);
         }
     }
 }
