@@ -80,7 +80,7 @@ class GeometryResource : public Resource, public Geometry {
 public:
     using Pointer = QSharedPointer<GeometryResource>;
 
-    GeometryResource(const QUrl& url, const ModelLoader& modelLoader) : Resource(url), _modelLoader(modelLoader) { _shouldFailOnRedirect = !url.fileName().toLower().endsWith(".fst"); }
+    GeometryResource(const QUrl& url, const ModelLoader& modelLoader) : Resource(url), _modelLoader(modelLoader) {}
     GeometryResource(const GeometryResource& other);
 
     QString getType() const override { return "Geometry"; }
@@ -88,7 +88,6 @@ public:
     virtual void deleter() override;
 
     virtual void downloadFinished(const QByteArray& data) override;
-    bool handleFailedRequest(ResourceRequest::Result result) override;
     void setExtra(void* extra) override;
 
     virtual bool areTexturesLoaded() const override { return isLoaded() && Geometry::areTexturesLoaded(); }
