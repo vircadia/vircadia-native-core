@@ -218,7 +218,7 @@ GeometryResource::GeometryResource(const GeometryResource& other) :
 }
 
 void GeometryResource::downloadFinished(const QByteArray& data) {
-    if (_activeUrl.fileName().toLower().endsWith(".fst")) {
+    if (_effectiveBaseURL.fileName().toLower().endsWith(".fst")) {
         PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString(), { { "url", _url.toString() } });
 
         // store parsed contents of FST file
@@ -289,19 +289,6 @@ void GeometryResource::downloadFinished(const QByteArray& data) {
         }
         QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mappingPair, data, _combineParts, _request->getWebMediaType()));
     }
-}
-
-bool GeometryResource::handleFailedRequest(ResourceRequest::Result result) {
-    if (_shouldFailOnRedirect && result == ResourceRequest::Result::RedirectFail) {
-        auto newPath = _request->getRelativePathUrl();
-        if (newPath.fileName().toLower().endsWith(".fst")) {
-            _activeUrl = newPath;
-            _shouldFailOnRedirect = false;
-            makeRequest();
-            return true;
-        }
-    }
-    return Resource::handleFailedRequest(result);
 }
 
 void GeometryResource::onGeometryMappingLoaded(bool success) {
