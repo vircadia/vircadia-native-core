@@ -2523,18 +2523,24 @@ var PropertiesTool = function (opts) {
                 propertyRanges: propertyRanges,
             });
         } else if (data.type === "materialTargetRequest") {
-			var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
-			var parentModel = properties.parentID !== Uuid.NULL && 
-							  Entities.getEntityProperties(properties.parentID, ["type"]).type === "Model";
-			var parentModelData;
-			if (properties.type === "Material" && parentModel) {
-				parentModelData = Graphics.getModel(properties.parentID);
-			} 
-			emitScriptEvent({
-				type: 'materialTargetReply',
-				materialTargetData: parentModelData,
-			});
-		}
+            var parentModelData;
+            var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
+            if (properties.type === "Material" && properties.parentID !== Uuid.NULL) {
+                var parentType = Entities.getEntityProperties(properties.parentID, ["type"]).type;
+                if (parentType === "Model" || Entities.getNestableType(properties.parentID) === "avatar") {
+                    parentModelData = Graphics.getModel(properties.parentID);
+                } else if (parentType === "Shape" || parentType === "Box" || parentType === "Sphere") {
+                    parentModelData = {};
+                    parentModelData.numMeshes = 1;
+                    parentModelData.materialNames = [];
+                }
+            }
+            emitScriptEvent({
+                type: 'materialTargetReply',
+                entityID: data.entityID,
+                materialTargetData: parentModelData,
+            });
+        }
     };
 
     HMD.displayModeChanged.connect(function() {
