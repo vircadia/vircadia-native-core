@@ -1326,11 +1326,39 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
 }
 
 void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath,
-                                      QString bakedTempOutputDir, QVector<QString> bakedFilePaths) {
+                                      QString bakedTempOutputDir) {
     bool errorCompletingBake { false };
     QString errorReason;
 
     qDebug() << "Completing bake for " << originalAssetHash;
+
+
+
+    QDir outputDir(bakedTempOutputDir);
+    auto directories = outputDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    assert(directories.size() == 1);
+    QString bakedDirectoryPath;
+    for (const auto& dirName : directories) {
+        outputDir.cd(dirName);
+        if (outputDir.exists("baked") && outputDir.exists("original")) {
+            bakedDirectoryPath = outputDir.filePath("baked");
+        }
+        outputDir.cdUp();
+    }
+
+    assert(!bakedDirectoryPath.isEmpty());
+
+    QDirIterator it(bakedDirectoryPath, QDirIterator::Subdirectories);
+    QVector<QString> bakedFilePaths;
+    while (it.hasNext()) {
+        it.next();
+        if (it.fileInfo().isFile()) {
+            bakedFilePaths.push_back(it.filePath());
+        }
+    }
+
+    QDir bakedDirectory(bakedDirectoryPath);
+    QString redirectTarget;
 
     for (auto& filePath : bakedFilePaths) {
         // figure out the hash for the contents of this file
@@ -1340,62 +1368,59 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 
         AssetUtils::AssetHash bakedFileHash;
 
-        if (file.open(QIODevice::ReadOnly)) {
-            QCryptographicHash hasher(QCryptographicHash::Sha256);
-
-            if (hasher.addData(&file)) {
-                bakedFileHash = hasher.result().toHex();
-            } else {
-                // stop handling this bake, couldn't hash the contents of the file
-                errorCompletingBake = true;
-                errorReason = "Failed to finalize bake";
-                break;
-            }
-
-            // first check that we don't already have this bake file in our list
-            auto bakeFileDestination = _filesDirectory.absoluteFilePath(bakedFileHash);
-            if (!QFile::exists(bakeFileDestination)) {
-                // copy each to our files folder (with the hash as their filename)
-                if (!file.copy(_filesDirectory.absoluteFilePath(bakedFileHash))) {
-                    // stop handling this bake, couldn't copy the bake file into our files directory
-                    errorCompletingBake = true;
-                    errorReason = "Failed to copy baked assets to asset server";
-                    break;
-                }
-            }
-
-            // setup the mapping for this bake file
-            auto relativeFilePath = QUrl(filePath).fileName();
-            qDebug() << "Relative file path is: " << relativeFilePath;
-            if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
-                // for an FBX file, we replace the filename with the simple name
-                // (to handle the case where two mapped assets have the same hash but different names)
-                relativeFilePath = BAKED_ASSET_SIMPLE_FBX_NAME;
-            } else if (relativeFilePath.endsWith(".js", Qt::CaseInsensitive)) {
-                relativeFilePath = BAKED_ASSET_SIMPLE_JS_NAME;
-            } else if (!originalAssetPath.endsWith(".fbx", Qt::CaseInsensitive)) {
-                relativeFilePath = BAKED_ASSET_SIMPLE_TEXTURE_NAME;
-            }
-
-            QString bakeMapping = getBakeMapping(originalAssetHash, relativeFilePath);
-
-            // add a mapping (under the hidden baked folder) for this file resulting from the bake
-            if (setMapping(bakeMapping, bakedFileHash)) {
-                qDebug() << "Added" << bakeMapping << "for bake file" << bakedFileHash << "from bake of" << originalAssetHash;
-            } else {
-                qDebug() << "Failed to set mapping";
-                // stop handling this bake, couldn't add a mapping for this bake file
-                errorCompletingBake = true;
-                errorReason = "Failed to finalize bake";
-                break;
-            }
-        } else {
+        if (!file.open(QIODevice::ReadOnly)) {
             qDebug() << "Failed to open baked file: " << filePath;
             // stop handling this bake, we couldn't open one of the files for reading
             errorCompletingBake = true;
             errorReason = "Failed to finalize bake";
             break;
         }
+
+        QCryptographicHash hasher(QCryptographicHash::Sha256);
+
+        if (!hasher.addData(&file)) {
+            // stop handling this bake, couldn't hash the contents of the file
+            errorCompletingBake = true;
+            errorReason = "Failed to finalize bake";
+            break;
+        }
+
+        bakedFileHash = hasher.result().toHex();
+
+        // first check that we don't already have this bake file in our list
+        auto bakeFileDestination = _filesDirectory.absoluteFilePath(bakedFileHash);
+        if (!QFile::exists(bakeFileDestination)) {
+            // copy each to our files folder (with the hash as their filename)
+            if (!file.copy(_filesDirectory.absoluteFilePath(bakedFileHash))) {
+                // stop handling this bake, couldn't copy the bake file into our files directory
+                errorCompletingBake = true;
+                errorReason = "Failed to copy baked assets to asset server";
+                break;
+            }
+        }
+
+        // setup the mapping for this bake file
+        auto relativeFilePath = bakedDirectory.relativeFilePath(filePath);
+        qDebug() << "Relative file path is: " << relativeFilePath;
+
+        QString bakeMapping = getBakeMapping(originalAssetHash, relativeFilePath);
+
+        // Check if this is the file we should redirect to when someone asks for the original asset
+        if ((relativeFilePath.endsWith(".baked.fst", Qt::CaseInsensitive) && originalAssetPath.endsWith(".fbx")) ||
+            (relativeFilePath.endsWith(".texmeta.json", Qt::CaseInsensitive) && !originalAssetPath.endsWith(".fbx"))) {
+            redirectTarget = bakeMapping;
+        }
+
+        // add a mapping (under the hidden baked folder) for this file resulting from the bake
+        if (!setMapping(bakeMapping, bakedFileHash)) {
+            qDebug() << "Failed to set mapping";
+            // stop handling this bake, couldn't add a mapping for this bake file
+            errorCompletingBake = true;
+            errorReason = "Failed to finalize bake";
+            break;
+        }
+
+        qDebug() << "Added" << bakeMapping << "for bake file" << bakedFileHash << "from bake of" << originalAssetHash;
     }
 
     for (auto& filePath : bakedFilePaths) {
@@ -1411,9 +1436,12 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
     auto type = assetTypeForFilename(originalAssetPath);
     auto currentTypeVersion = currentBakeVersionForAssetType(type);
 
+    assert(!redirectTarget.isEmpty());
+
     AssetMeta meta;
     meta.bakeVersion = currentTypeVersion;
     meta.failedLastBake = errorCompletingBake;
+    meta.redirectTarget = redirectTarget;
 
     if (errorCompletingBake) {
         qWarning() << "Could not complete bake for" << originalAssetHash;
@@ -1435,6 +1463,7 @@ void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath
 static const QString BAKE_VERSION_KEY = "bake_version";
 static const QString FAILED_LAST_BAKE_KEY = "failed_last_bake";
 static const QString LAST_BAKE_ERRORS_KEY = "last_bake_errors";
+static const QString REDIRECT_TARGET_KEY = "redirect_target";
 
 std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetUtils::AssetHash hash) {
     auto metaFilePath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + "meta.json";
@@ -1461,6 +1490,7 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetUtils::AssetHash hash)
             auto bakeVersion = root[BAKE_VERSION_KEY];
             auto failedLastBake = root[FAILED_LAST_BAKE_KEY];
             auto lastBakeErrors = root[LAST_BAKE_ERRORS_KEY];
+            auto redirectTarget = root[REDIRECT_TARGET_KEY];
 
             if (bakeVersion.isDouble()
                 && failedLastBake.isBool()
@@ -1470,6 +1500,7 @@ std::pair<bool, AssetMeta> AssetServer::readMetaFile(AssetUtils::AssetHash hash)
                 meta.bakeVersion = bakeVersion.toInt();
                 meta.failedLastBake = failedLastBake.toBool();
                 meta.lastBakeErrors = lastBakeErrors.toString();
+                meta.redirectTarget = redirectTarget.toString();
 
                 return { true, meta };
             } else {
@@ -1488,6 +1519,7 @@ bool AssetServer::writeMetaFile(AssetUtils::AssetHash originalAssetHash, const A
     metaFileObject[BAKE_VERSION_KEY] = (int)meta.bakeVersion;
     metaFileObject[FAILED_LAST_BAKE_KEY] = meta.failedLastBake;
     metaFileObject[LAST_BAKE_ERRORS_KEY] = meta.lastBakeErrors;
+    metaFileObject[REDIRECT_TARGET_KEY] = meta.redirectTarget;
 
     QJsonDocument metaFileDoc;
     metaFileDoc.setObject(metaFileObject);
