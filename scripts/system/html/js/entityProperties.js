@@ -3505,6 +3505,7 @@ function loaded() {
                                 deleteJSONMaterialEditor();
                             }
                         }
+                        lastEntityID = null;
                         
                         resetProperties();
                         showGroupsForType("None");
