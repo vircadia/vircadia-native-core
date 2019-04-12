@@ -1902,6 +1902,13 @@ function showGroupsForTypes(types) {
     });
 }
 
+function getFirstSelectedID() {
+    if (selectedEntityIDs.size === 0) {
+        return null;
+    }
+    return selectedEntityIDs.values().next().value;
+}
+
 const SUPPORTED_FALLBACK_TYPES = ['number', 'number-draggable', 'rect', 'vec3', 'vec2', 'color'];
 
 function getMultiplePropertyValue(originalPropertyName) {
@@ -2992,7 +2999,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
  */
  
 function parentIDChanged() {
-    if (selectedEntityProperties.type === "Material") {
+    if (currentSelections.length === 1 && currentSelections[0].type === "Material") {
         requestMaterialTarget();
     }
 }
@@ -3478,7 +3485,10 @@ function setTextareaScrolling(element) {
  */
 
 function requestMaterialTarget() {
-    EventBridge.emitWebEvent(JSON.stringify({ type: 'materialTargetRequest', entityID: selectedEntityProperties.id }));
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: 'materialTargetRequest',
+        entityID: getFirstSelectedID(),
+    }));
 }
  
 function setMaterialTargetData(materialTargetData) {
@@ -3642,16 +3652,6 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
     selectedEntityIDs = new Set(selections.map(selection => selection.id));
     const multipleSelections = currentSelections.length > 1;
     const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
-
-    // FIXME: do we really want to save userData/materialData here instead of saving it on the blur event of the json editor?
-    if (hasSelectedEntityChanged) {
-        if (editor !== null) {
-            saveUserData(previouslySelectedEntityIDs);
-        }
-        if (materialEditor !== null) {
-            saveMaterialData(previouslySelectedEntityIDs);
-        }
-    }
 
     if (selections.length === 0) {
         deleteJSONEditor();
@@ -4200,7 +4200,7 @@ function loaded() {
                         }
                     }
                 } else if (data.type === 'materialTargetReply') {
-                    if (data.entityID === selectedEntityProperties.id) {
+                    if (data.entityID === getFirstSelectedID()) {
                         setMaterialTargetData(data.materialTargetData);
                     }
                 }
