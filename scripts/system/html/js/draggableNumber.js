@@ -72,21 +72,17 @@ DraggableNumber.prototype = {
             this.lastMouseEvent = event;
         }
         if (this.dragging && this.lastMouseEvent) {
-            let changeDelta = event.clientX - this.lastMouseEvent.clientX;
-            if (changeDelta !== 0) {
+            let dragDelta = event.clientX - this.lastMouseEvent.clientX;
+            if (dragDelta !== 0) {
                 if (this.multiDiffModeEnabled) {
                     if (this.multiDiffDragFunction) {
-                        this.multiDiffDragFunction(changeDelta * this.step);
+                        this.multiDiffDragFunction(dragDelta * this.step);
                     }
                 } else {
-                    while (changeDelta !== 0) {
-                        if (changeDelta > 0) {
-                            this.elInput.stepUp();
-                            --changeDelta;
-                        } else {
-                            this.elInput.stepDown();
-                            ++changeDelta;
-                        }
+                    if (dragDelta > 0) {
+                        this.elInput.stepUp(dragDelta);
+                    } else {
+                        this.elInput.stepDown(-dragDelta);
                     }
                     this.inputChange();
                     if (this.valueChangeFunction) {

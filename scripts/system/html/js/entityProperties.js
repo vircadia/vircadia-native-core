@@ -14,21 +14,28 @@ const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
 const NO_SELECTION = ",";
 
-const PROPERTY_SPACE_MODE = {
+const PROPERTY_SPACE_MODE = Object.freeze({
     ALL: 0,
     LOCAL: 1,
     WORLD: 2
-};
+});
+
+const PROPERTY_SELECTION_VISIBILITY = Object.freeze({
+    SINGLE_SELECTION: 1,
+    MULTIPLE_SELECTIONS: 2,
+    MULTI_DIFF_SELECTIONS: 4,
+    ANY_SELECTIONS: 7, /* SINGLE_SELECTION | MULTIPLE_SELECTIONS | MULTI_DIFF_SELECTIONS */
+});
 
 // Multiple-selection behavior
-const PROPERTY_MULTI_DISPLAY_MODE = {
+const PROPERTY_MULTI_DISPLAY_MODE = Object.freeze({
     DEFAULT: 0,
     /**
      * Comma separated values
      * Limited for properties with type "string" or "textarea" and readOnly enabled
      */
     COMMA_SEPARATED_VALUES: 1,
-};
+});
 
 const GROUPS = [
     {
@@ -719,6 +726,7 @@ const GROUPS = [
                 type: "dynamic-multiselect",
                 propertyUpdate: materialTargetPropertyUpdate,
                 propertyID: "parentMaterialName",
+                selectionVisibility: PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION,
             },
             {
                 label: "Priority",
@@ -1351,6 +1359,7 @@ const GROUPS = [
                 type: "placeholder",
                 indentedLabel: true,
                 propertyID: "serverScriptStatus",
+                selectionVisibility: PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION,
             },
             {
                 label: "Lifetime",
@@ -1604,7 +1613,6 @@ let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 
-
 // mergeDeep function from https://stackoverflow.com/a/34749873
 /**
  * Simple object check.
@@ -1676,6 +1684,10 @@ function createElementFromHTML(htmlString) {
     let elTemplate = document.createElement('template');
     elTemplate.innerHTML = htmlString.trim();
     return elTemplate.content.firstChild;
+}
+
+function isFlagSet(value, flag) {
+    return (value & flag) === flag;
 }
 
 /**
@@ -1759,8 +1771,11 @@ function disableProperties() {
 }
 
 function showPropertyElement(propertyID, show) {
-    let elProperty = properties[propertyID].elContainer;
-    elProperty.style.display = show ? "" : "none";
+    setPropertyVisibility(properties[propertyID], show);
+}
+
+function setPropertyVisibility(property, visible) {
+    property.elContainer.style.display = visible ? null : "none";
 }
 
 function resetProperties() {
@@ -2001,9 +2016,9 @@ function getDetailedNumberMPVDiff(multiplePropertyValue, propertyData) {
     });
     let keys = [...uniqueKeys];
 
-    let subPropertyDiff = {};
+    let childPropertyDiff = {};
     Object.entries(detailedValues).forEach(function([key, value]) {
-        subPropertyDiff[key] = [...new Set(value)].length > 1;
+        childPropertyDiff[key] = [...new Set(value)].length > 1;
     });
 
     let averagePerSubProperty = {};
@@ -2014,12 +2029,12 @@ function getDetailedNumberMPVDiff(multiplePropertyValue, propertyData) {
 
     return {
         keys,
-        subPropertyDiff,
+        childPropertyDiff,
         averagePerSubProperty
     };
 }
 
-function getDetailedSubPropertyMVPDiff(multiplePropertyValue, subPropertyName) {
+function getDetailedSubPropertyMPVDiff(multiplePropertyValue, subPropertyName) {
     let isChecked = false;
     let checkedValues = multiplePropertyValue.values.map((value) => value.split(",").includes(subPropertyName));
     let isMultiDiff = !checkedValues.every(value => value === checkedValues[0]);
@@ -2171,7 +2186,7 @@ function createEmitNumberPropertyUpdateFunction(property) {
     };
 }
 
-function createEmitNumberSubPropertyUpdateFunction(property, subProperty) {
+function createEmitNumberChildPropertyUpdateFunction(property, childProperty) {
     return function() {
         let propertyMultiValue = getMultiplePropertyValue(property.name);
         let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
@@ -2184,7 +2199,7 @@ function createEmitNumberSubPropertyUpdateFunction(property, subProperty) {
                 let entityID = selectedEntityIDsArray[i];
 
                 let propertyObject = propertyMultiValue.values[i];
-                propertyObject[subProperty] = value;
+                propertyObject[childProperty] = value;
 
                 let updateObject = createPropertyUpdateObject(property.name, propertyObject);
                 updateObjects.push({
@@ -2200,10 +2215,9 @@ function createEmitNumberSubPropertyUpdateFunction(property, subProperty) {
             // callback until drag is complete (additional update sent via dragEnd callback)
             let onlyUpdateEntity = properties[property.name] && properties[property.name].dragging === true;
             updateMultiDiffProperties(updateObjects, onlyUpdateEntity);
-            console.log('updateMultiDiffProperties');
         } else {
             let propertyValue = propertyMultiValue.value;
-            propertyValue[subProperty] = value;
+            propertyValue[childProperty] = value;
             updateProperty(property.name, propertyValue, property.isParticleProperty);
         }
     };
@@ -2386,11 +2400,11 @@ function updateNumberMinMax(property) {
 /**
  *
  * @param {object} property - property update on drag
- * @param {string} [subProperty] - subProperty to update on drag (e.g. enter 'x' to just update position.x)
+ * @param {string} [childProperty] - childProperty to update on drag (e.g. enter 'x' to just update position.x)
  * @returns {Function}
  */
-function createMultiDiffDragFunction(property, subProperty) {
-    return function(changedDelta) {
+function createMultiDiffDragFunction(property, childProperty) {
+    return function(dragDelta) {
         let propertyMultiValue = getMultiplePropertyValue(property.name);
         if (!propertyMultiValue.isMultiDiffValue) {
             console.log("setMultiDiffDragFunction is only supposed to be called in MultiDiff mode.");
@@ -2399,7 +2413,7 @@ function createMultiDiffDragFunction(property, subProperty) {
 
         let multiplier = property.data.multiplier !== undefined ? property.data.multiplier : 1;
 
-        let applyDelta = changedDelta * multiplier;
+        let applyDelta = dragDelta * multiplier;
 
         if (selectedEntityIDs.size !== propertyMultiValue.values.length) {
             console.log("selectedEntityIDs and propertyMultiValue got out of sync.");
@@ -2412,9 +2426,9 @@ function createMultiDiffDragFunction(property, subProperty) {
             let entityID = selectedEntityIDsArray[i];
 
             let updatedValue;
-            if (subProperty !== undefined) {
+            if (childProperty !== undefined) {
                 let objectToUpdate = propertyMultiValue.values[i];
-                objectToUpdate[subProperty] += applyDelta;
+                objectToUpdate[childProperty] += applyDelta;
                 updatedValue = objectToUpdate;
             } else {
                 updatedValue = propertyMultiValue.values[i] + applyDelta;
@@ -2492,10 +2506,10 @@ function createRectProperty(property, elProperty) {
     elWidthHeightRow.appendChild(elNumberWidth.elDiv);
     elWidthHeightRow.appendChild(elNumberHeight.elDiv);
 
-    elNumberX.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'x'));
-    elNumberY.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'y'));
-    elNumberWidth.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'width'));
-    elNumberHeight.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'height'));
+    elNumberX.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'y'));
+    elNumberWidth.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'width'));
+    elNumberHeight.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'height'));
 
     elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
     elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
@@ -2531,9 +2545,9 @@ function createVec3Property(property, elProperty) {
     elProperty.appendChild(elNumberY.elDiv);
     elProperty.appendChild(elNumberZ.elDiv);
 
-    elNumberX.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'x'));
-    elNumberY.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'y'));
-    elNumberZ.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'z'));
+    elNumberX.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'y'));
+    elNumberZ.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'z'));
 
     elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
     elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
@@ -2561,8 +2575,8 @@ function createVec2Property(property, elProperty) {
     elProperty.appendChild(elNumberX.elDiv);
     elProperty.appendChild(elNumberY.elDiv);
 
-    elNumberX.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'x'));
-    elNumberY.setValueChangeFunction(createEmitNumberSubPropertyUpdateFunction(property, 'y'));
+    elNumberX.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'y'));
 
     elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
     elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
@@ -3619,7 +3633,7 @@ function applyOutputNumberPropertyModifiers(number, propertyData) {
     return roundAndFixNumber(number * multiplier, propertyData);
 }
 
-const isSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value));
+const areSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value));
 
 
 function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
@@ -3627,7 +3641,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
     currentSelections = selections;
     selectedEntityIDs = new Set(selections.map(selection => selection.id));
     const multipleSelections = currentSelections.length > 1;
-    const hasSelectedEntityChanged = !isSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
+    const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
 
     // FIXME: do we really want to save userData/materialData here instead of saving it on the blur event of the json editor?
     if (hasSelectedEntityChanged) {
@@ -3667,9 +3681,8 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             // we will ignore the event.
             return;
         }
+
         if (hasSelectedEntityChanged) {
-            let elServerScriptStatusOuter = document.getElementById('div-property-serverScriptStatus');
-            elServerScriptStatusOuter.style.display = multipleSelections ? "none" : null;
             if (!multipleSelections) {
                 resetServerScriptStatus();
             }
@@ -3705,6 +3718,19 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
             let propertyMultiValue = getMultiplePropertyValue(propertyName);
             let isMultiDiffValue = propertyMultiValue.isMultiDiffValue;
             let propertyValue = propertyMultiValue.value;
+
+            if (propertyData.selectionVisibility !== undefined) {
+                let visibility = propertyData.selectionVisibility;
+                let propertyVisible = true;
+                if (!multipleSelections) {
+                    propertyVisible = isFlagSet(visibility, PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION);
+                } else if (isMultiDiffValue) {
+                    propertyVisible = isFlagSet(visibility, PROPERTY_SELECTION_VISIBILITY.MULTI_DIFF_SELECTIONS);
+                } else {
+                    propertyVisible = isFlagSet(visibility, PROPERTY_SELECTION_VISIBILITY.MULTIPLE_SELECTIONS);
+                }
+                setPropertyVisibility(property, propertyVisible);
+            }
 
             const isSubProperty = propertyData.subPropertyOf !== undefined;
             if (propertyValue === undefined && !isMultiDiffValue && !isSubProperty) {
@@ -3752,7 +3778,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                         let propertyValue = subPropertyMultiValue.value;
                         isMultiDiffValue = subPropertyMultiValue.isMultiDiffValue;
                         if (isMultiDiffValue) {
-                            let detailedSubProperty = getDetailedSubPropertyMVPDiff(subPropertyMultiValue, propertyName);
+                            let detailedSubProperty = getDetailedSubPropertyMPVDiff(subPropertyMultiValue, propertyName);
                             property.elInput.checked = detailedSubProperty.isChecked;
                             property.elInput.classList.toggle('multi-diff', detailedSubProperty.isMultiDiff);
                         } else {
@@ -3774,35 +3800,30 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                     break;
                 }
                 case 'number': {
-                    if (isMultiDiffValue) {
-                        property.elInput.value = "";
-                        property.elInput.classList.add('multi-diff');
-                    } else {
-                        property.elInput.value = propertyValue;
-                        property.elInput.classList.remove('multi-diff');
-                    }
+                    property.elInput.value = isMultiDiffValue ? "" : propertyValue;
+                    property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
                     break;
                 }
                 case 'number-draggable': {
                     let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
-                    property.elNumber.setValue(detailedNumberDiff.averagePerSubProperty[0], detailedNumberDiff.subPropertyDiff[0]);
+                    property.elNumber.setValue(detailedNumberDiff.averagePerSubProperty[0], detailedNumberDiff.childPropertyDiff[0]);
                     break;
                 }
                 case 'rect': {
                     let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
-                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.subPropertyDiff.x);
-                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.subPropertyDiff.y);
-                    property.elNumberWidth.setValue(detailedNumberDiff.averagePerSubProperty.width, detailedNumberDiff.subPropertyDiff.width);
-                    property.elNumberHeight.setValue(detailedNumberDiff.averagePerSubProperty.height, detailedNumberDiff.subPropertyDiff.height);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.childPropertyDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.childPropertyDiff.y);
+                    property.elNumberWidth.setValue(detailedNumberDiff.averagePerSubProperty.width, detailedNumberDiff.childPropertyDiff.width);
+                    property.elNumberHeight.setValue(detailedNumberDiff.averagePerSubProperty.height, detailedNumberDiff.childPropertyDiff.height);
                     break;
                 }
                 case 'vec3':
                 case 'vec2': {
                     let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
-                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.subPropertyDiff.x);
-                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.subPropertyDiff.y);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.childPropertyDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.childPropertyDiff.y);
                     if (property.elNumberZ !== undefined) {
-                        property.elNumberZ.setValue(detailedNumberDiff.averagePerSubProperty.z, detailedNumberDiff.subPropertyDiff.z);
+                        property.elNumberZ.setValue(detailedNumberDiff.averagePerSubProperty.z, detailedNumberDiff.childPropertyDiff.z);
                     }
                     break;
                 }
@@ -3848,7 +3869,7 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                 }
                 case 'texture': {
                     property.elInput.value = isMultiDiffValue ? "" : propertyValue;
-                    property.elInput.classList.toggle('multi-diff');
+                    property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
                     if (isMultiDiffValue) {
                         property.elInput.setMultipleValues();
                     } else {
