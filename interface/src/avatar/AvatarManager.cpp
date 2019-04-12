@@ -932,6 +932,18 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
+/**jsdoc
+ * PAL (People Access List) data for an avatar.
+ * @typedef {object} AvatarManager.PalData
+ * @property {Uuid} sessionUUID - The avatar's session ID. <code>""</code> if the avatar is your own.
+ * @property {string} sessionDisplayName - The avatar's display name, sanitized and versioned, as defined by the avatar mixer. 
+ *     It is unique among all avatars present in the domain at the time.
+ * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
+ *     domain.
+ * @property {boolean} isReplicated - <strong>Deprecated.</strong>
+ * @property {Vec3} position - The position of the avatar.
+ * @property {number} palOrbOffset - The vertical offset from the avatar's position that an overlay orb should be displayed at.
+ */
 QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifiers) {
     QJsonArray palData;
 
