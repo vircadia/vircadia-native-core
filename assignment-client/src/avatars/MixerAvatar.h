@@ -39,12 +39,13 @@ private:
     QString _marketplaceIdString;
     QByteArray _avatarFSTContents;
     QByteArray _certificateHash;
-    QString _certificateId;
+    QString _certificateIdFromURL;
+    QString _certificateIdFromFST;
     bool _avatarFSTValid { false };
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey);
-    static QByteArray canonicalJson(const QString fstFile);
+    QByteArray canonicalJson(const QString fstFile);
 
 private slots:
     void fstRequestComplete();
