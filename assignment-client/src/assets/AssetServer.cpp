@@ -107,6 +107,10 @@ BakeVersion currentBakeVersionForAssetType(BakedAssetType type) {
     }
 }
 
+QString getBakeMapping(const AssetUtils::AssetHash& hash, const QString& relativeFilePath) {
+    return AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
+}
+
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
 void AssetServer::bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath) {
@@ -141,26 +145,22 @@ std::pair<AssetUtils::BakingStatus, QString> AssetServer::getAssetStatus(const A
         return { AssetUtils::Baked, "" };
     }
 
-    auto dotIndex = path.lastIndexOf(".");
-    if (dotIndex == -1) {
+    BakedAssetType type = assetTypeForFilename(path);
+
+    if (type == BakedAssetType::Undefined) {
         return { AssetUtils::Irrelevant, "" };
     }
 
-    auto extension = path.mid(dotIndex + 1);
+    bool loaded;
+    AssetMeta meta;
+    std::tie(loaded, meta) = readMetaFile(hash);
 
-    QString bakedFilename;
-
-    if (BAKEABLE_MODEL_EXTENSIONS.contains(extension)) {
-        bakedFilename = BAKED_MODEL_SIMPLE_NAME;
-    } else if (BAKEABLE_TEXTURE_EXTENSIONS.contains(extension.toLocal8Bit()) && hasMetaFile(hash)) {
-        bakedFilename = BAKED_TEXTURE_SIMPLE_NAME;
-    } else if (BAKEABLE_SCRIPT_EXTENSIONS.contains(extension)) {
-        bakedFilename = BAKED_SCRIPT_SIMPLE_NAME;
-    } else {
-        return { AssetUtils::Irrelevant, "" };
+    QString bakedFilename = bakedFilenameForAssetType(type);
+    auto bakedPath = getBakeMapping(hash, bakedFilename);
+    if (loaded && !meta.redirectTarget.isEmpty()) {
+        bakedPath = meta.redirectTarget;
     }
 
-    auto bakedPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + bakedFilename;
     auto jt = _fileMappings.find(bakedPath);
     if (jt != _fileMappings.end()) {
         if (jt->second == hash) {
@@ -168,14 +168,8 @@ std::pair<AssetUtils::BakingStatus, QString> AssetServer::getAssetStatus(const A
         } else {
             return { AssetUtils::Baked, "" };
         }
-    } else {
-        bool loaded;
-        AssetMeta meta;
-
-        std::tie(loaded, meta) = readMetaFile(hash);
-        if (loaded && meta.failedLastBake) {
-            return { AssetUtils::Error, meta.lastBakeErrors };
-        }
+    } else if (loaded && meta.failedLastBake) {
+        return { AssetUtils::Error, meta.lastBakeErrors };
     }
     
     return { AssetUtils::Pending, "" };
@@ -227,8 +221,16 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
         return false;
     }
 
+    bool loaded;
+    AssetMeta meta;
+    std::tie(loaded, meta) = readMetaFile(assetHash);
+
     QString bakedFilename = bakedFilenameForAssetType(type);
-    auto bakedPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + assetHash + "/" + bakedFilename;
+    auto bakedPath = getBakeMapping(assetHash, bakedFilename);
+    if (loaded && !meta.redirectTarget.isEmpty()) {
+        bakedPath = meta.redirectTarget;
+    }
+
     auto mappingIt = _fileMappings.find(bakedPath);
     bool bakedMappingExists = mappingIt != _fileMappings.end();
 
@@ -237,10 +239,6 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
     if (bakedMappingExists && mappingIt->second == assetHash) {
         return false;
     }
-
-    bool loaded;
-    AssetMeta meta;
-    std::tie(loaded, meta) = readMetaFile(assetHash);
 
     if (type == BakedAssetType::Texture && !loaded) {
         return false;
@@ -633,36 +631,33 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketLi
     if (it != _fileMappings.end()) {
 
         // check if we should re-direct to a baked asset
-
-        // first, figure out from the mapping extension what type of file this is
-        auto assetPathExtension = assetPath.mid(assetPath.lastIndexOf('.') + 1).toLower();
-
-        auto type = assetTypeForFilename(assetPath);
-        QString bakedRootFile = bakedFilenameForAssetType(type);
-        
         auto originalAssetHash = it->second;
         QString redirectedAssetHash;
-        QString bakedAssetPath;
         quint8 wasRedirected = false;
         bool bakingDisabled = false;
 
-        if (!bakedRootFile.isEmpty()) {
-            // we ran into an asset for which we could have a baked version, let's check if it's ready
-            bakedAssetPath = AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + originalAssetHash + "/" + bakedRootFile;
-            auto bakedIt = _fileMappings.find(bakedAssetPath);
+        bool loaded;
+        AssetMeta meta;
+        std::tie(loaded, meta) = readMetaFile(originalAssetHash);
 
-            if (bakedIt != _fileMappings.end()) {
-                if (bakedIt->second != originalAssetHash) {
-                    qDebug() << "Did find baked version for: " << originalAssetHash << assetPath;
-                    // we found a baked version of the requested asset to serve, redirect to that
-                    redirectedAssetHash = bakedIt->second;
-                    wasRedirected = true;
-                } else {
-                    qDebug() << "Did not find baked version for: " << originalAssetHash << assetPath << " (disabled)";
-                    bakingDisabled = true;
-                }
+        auto type = assetTypeForFilename(assetPath);
+        QString bakedRootFile = bakedFilenameForAssetType(type);
+        QString bakedAssetPath = getBakeMapping(originalAssetHash, bakedRootFile);
+
+        if (loaded && !meta.redirectTarget.isEmpty()) {
+            bakedAssetPath = meta.redirectTarget;
+        }
+
+        auto bakedIt = _fileMappings.find(bakedAssetPath);
+        if (bakedIt != _fileMappings.end()) {
+            if (bakedIt->second != originalAssetHash) {
+                qDebug() << "Did find baked version for: " << originalAssetHash << assetPath;
+                // we found a baked version of the requested asset to serve, redirect to that
+                redirectedAssetHash = bakedIt->second;
+                wasRedirected = true;
             } else {
-                qDebug() << "Did not find baked version for: " << originalAssetHash << assetPath;
+                qDebug() << "Did not find baked version for: " << originalAssetHash << assetPath << " (disabled)";
+                bakingDisabled = true;
             }
         }
 
@@ -684,20 +679,13 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, NLPacketLi
 
             auto query = QUrlQuery(url.query());
             bool isSkybox = query.hasQueryItem("skybox");
-            if (isSkybox) {
-                bool loaded;
-                AssetMeta meta;
-                std::tie(loaded, meta) = readMetaFile(originalAssetHash);
+            if (isSkybox && !loaded) {
+                AssetMeta needsBakingMeta;
+                needsBakingMeta.bakeVersion = NEEDS_BAKING_BAKE_VERSION;
 
-                if (!loaded) {
-                    AssetMeta needsBakingMeta;
-                    needsBakingMeta.bakeVersion = NEEDS_BAKING_BAKE_VERSION;
-
-                    writeMetaFile(originalAssetHash, needsBakingMeta);
-                    if (!bakingDisabled) {
-                        maybeBake(assetPath, originalAssetHash);
-                    }
-
+                writeMetaFile(originalAssetHash, needsBakingMeta);
+                if (!bakingDisabled) {
+                    maybeBake(assetPath, originalAssetHash);
                 }
             }
         }
@@ -1297,14 +1285,6 @@ bool AssetServer::renameMapping(AssetUtils::AssetPath oldPath, AssetUtils::Asset
     }
 }
 
-static const QString BAKED_ASSET_SIMPLE_FBX_NAME = "asset.fbx";
-static const QString BAKED_ASSET_SIMPLE_TEXTURE_NAME = "texture.ktx";
-static const QString BAKED_ASSET_SIMPLE_JS_NAME = "asset.js";
-
-QString getBakeMapping(const AssetUtils::AssetHash& hash, const QString& relativeFilePath) {
-    return AssetUtils::HIDDEN_BAKED_CONTENT_FOLDER + hash + "/" + relativeFilePath;
-}
-
 void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath, QString errors) {
     qDebug() << "Failed to bake: " << originalAssetHash << assetPath << "(" << errors << ")";
 
@@ -1553,10 +1533,18 @@ bool AssetServer::setBakingEnabled(const AssetUtils::AssetPathList& paths, bool 
             if (type == BakedAssetType::Undefined) {
                 continue;
             }
-            QString bakedFilename = bakedFilenameForAssetType(type);
 
             auto hash = it->second;
+
+            bool loaded;
+            AssetMeta meta;
+            std::tie(loaded, meta) = readMetaFile(hash);
+
+            QString bakedFilename = bakedFilenameForAssetType(type);
             auto bakedMapping = getBakeMapping(hash, bakedFilename);
+            if (loaded && !meta.redirectTarget.isEmpty()) {
+                bakedMapping = meta.redirectTarget;
+            }
 
             auto it = _fileMappings.find(bakedMapping);
             bool currentlyDisabled = (it != _fileMappings.end() && it->second == hash);
