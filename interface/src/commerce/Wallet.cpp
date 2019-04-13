@@ -110,7 +110,7 @@ EC_KEY* readKeys(QString filename) {
 
             qCDebug(commerce) << "read public key";
 
-            if (key = PEM_read_bio_ECPrivateKey(bufio, &key, passwordCallback, NULL)) {
+            if ((key = PEM_read_bio_ECPrivateKey(bufio, &key, passwordCallback, NULL))) {
                 qCDebug(commerce) << "read private key";
                 BIO_free(bufio);
                 file.close();
@@ -647,7 +647,7 @@ QStringList Wallet::listPublicKeys() {
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     EC_KEY* ecPrivateKey = NULL;
 
-    if (ecPrivateKey = readPrivateKey(keyFilePath())) {
+    if ((ecPrivateKey = readPrivateKey(keyFilePath()))) {
         unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
 
         unsigned int signatureBytes = 0;
