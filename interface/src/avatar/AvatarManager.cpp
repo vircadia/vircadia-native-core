@@ -498,8 +498,10 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
     if (removalReason != KillAvatarReason::AvatarDisconnected) {
-        emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
-        emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+        if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+            emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
+            emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+        }
 
         workload::Transaction workloadTransaction;
         workloadTransaction.remove(avatar->getSpaceIndex());
