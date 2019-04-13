@@ -302,8 +302,11 @@ QByteArray readPublicKey(QString filename) {
 
             qCDebug(commerce) << "parsed public key file successfully";
 
-            retval.setRawData((char*)publicKeyDER, publicKeyLength);
+            QByteArray retval((char*)publicKeyDER, publicKeyLength);
             OPENSSL_free(publicKeyDER);
+            BIO_free(bufio);
+            file.close();
+            return retval;
         } else {
             qCDebug(commerce) << "couldn't parse" << filename;
         }
@@ -312,7 +315,7 @@ QByteArray readPublicKey(QString filename) {
     } else {
         qCDebug(commerce) << "couldn't open" << filename;
     }
-    return retval;
+    return QByteArray();
 }
 
 // the private key should be read/copied into heap memory.  For now, we need the EC_KEY struct
@@ -387,7 +390,7 @@ Wallet::Wallet() {
         } else {
             status = (uint) WalletStatus::WALLET_STATUS_READY;
         }
-
+        qCDebug(commerce) << "WALLET STATUS:" + keyStatus + " " + status;
         walletScriptingInterface->setWalletStatus(status);
     });
 
