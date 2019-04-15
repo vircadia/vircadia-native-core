@@ -25,12 +25,16 @@
 #include "AvatarLogging.h"
 
 void MixerAvatar::fetchAvatarFST() {
-    _avatarFSTValid = false;
+    _verifyState = kNoncertified;
+    _certificateIdFromURL.clear();
+    _certificateIdFromFST.clear();
+    _marketplaceIdString.clear();
     auto resourceManager = DependencyManager::get<ResourceManager>();
     QUrl avatarURL = getSkeletonModelURL();
     if (avatarURL.isEmpty()) {
         return;
     }
+
     auto avatarURLString = avatarURL.toDisplayString();
     // Match UUID + version
     static const QRegularExpression marketIdRegex{
@@ -56,6 +60,7 @@ void MixerAvatar::fetchAvatarFST() {
         fstRequest->send();
     } else {
         qCDebug(avatars) << "Couldn't create FST request for" << avatarURL;
+        _verifyState = kError;
     }
 }
 
@@ -73,7 +78,7 @@ void MixerAvatar::fstRequestComplete() {
             generateFSTHash();
             QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
             bool staticVerification = validateFSTHash(marketplacePublicKey);
-            _verifyState = staticVerification ? kStaticValidation : kNoncertified;
+            _verifyState = staticVerification ? kStaticValidation : kVerificationFailed;
 
             if (_verifyState == kStaticValidation) {
                 static const QString POP_MARKETPLACE_API{ "/api/v1/commerce/proof_of_purchase_status/transfer" };
@@ -86,7 +91,7 @@ void MixerAvatar::fstRequestComplete() {
                 networkRequest.setUrl(requestURL);
 
                 QJsonObject request;
-                request["certificate_id"] = _certificateIdFromURL;
+                request["certificate_id"] = _certificateIdFromFST;
                 _verifyState = kRequestingOwner;
                 QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
                 networkReply->setParent(this);
@@ -96,6 +101,8 @@ void MixerAvatar::fstRequestComplete() {
                     QJsonDocument responseJson = QJsonDocument::fromJson(responseString.toUtf8());
                     if (networkReply->error() == QNetworkReply::NoError) {
                         QMutexLocker certifyLocker(&_avatarCertifyLock);
+                        // TODO: move processing to slave thread.
+                        _verifyState = kOwnerResponse;
                         if (responseJson["status"].toString() == "success") {
                             auto jsonData = responseJson["data"];
                             // owner, owner key?
@@ -110,6 +117,9 @@ void MixerAvatar::fstRequestComplete() {
                     }
                     networkReply->deleteLater();
                 });
+            } else {
+                _verifyState = kVerificationFailed;
+                qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
             }
         }
         _avatarRequest->deleteLater();
@@ -133,7 +143,7 @@ bool MixerAvatar::generateFSTHash() {
 bool MixerAvatar::validateFSTHash(const QString& publicKey) {
     // Guess we should refactor this stuff into a Authorization namespace ...
     return EntityItemProperties::verifySignature(publicKey, _certificateHash,
-        QByteArray::fromBase64(_certificateIdFromURL.toUtf8()));
+        QByteArray::fromBase64(_certificateIdFromFST.toUtf8()));
 }
 
 QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
@@ -146,7 +156,6 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
     QStringListIterator fstLineIter(fstLines);
 
     QJsonObject certifiedItems;
-    QJsonArray scriptsArray;
     QStringList scripts;
     while (fstLineIter.hasNext()) {
         auto line = fstLineIter.next();
@@ -155,15 +164,22 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
             QString key = lineMatch.captured(1);
             if (key == "certificateID") {
                 _certificateIdFromFST = lineMatch.captured(2);
+            } else if (key == "itemDescription") {
+                // Item description can be multiline - intermediate lines end in <CR>
+                QString itemDesc = lineMatch.captured(2);
+                while (itemDesc.endsWith('\r') && fstLineIter.hasNext()) {
+                    itemDesc += '\n' + fstLineIter.next();
+                }
+                certifiedItems[key] = QJsonValue(itemDesc);
             } else if (key == "limitedRun" || key == "editionNumber") {
                 double value = lineMatch.captured(2).toDouble();
                 if (value != 0.0) {
                     certifiedItems[key] = QJsonValue(value);
                 }
             } else if (key == "script") {
-                scripts.append(lineMatch.captured(2));
+                scripts.append(lineMatch.captured(2).trimmed());
             } else {
-                certifiedItems[key] = QJsonValue(lineMatch.captured(2));
+                certifiedItems[key] = QJsonValue(lineMatch.captured(2).trimmed());
             }
         }
     }
@@ -172,7 +188,7 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
         certifiedItems["script"] = QJsonArray::fromStringList(scripts);
     }
     QJsonDocument jsonDocCertifiedItems(certifiedItems);
-    //OK - this one works
+    //Example working form:
     //return R"({"editionNumber":34,"filename":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/Hifi_Toon_Male_3.fbx","itemArtist":"EgyMax","itemCategories":"Avatars","itemDescription":"This is my first avatar. I hope you like it. More will come","itemName":"Bridger","limitedRun":-1,"marketplaceID":"7f142fde-541a-4902-b33a-25fa89dfba21","texdir":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/textures"})";
     return jsonDocCertifiedItems.toJson(QJsonDocument::Compact);
 }

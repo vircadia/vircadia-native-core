@@ -15,6 +15,8 @@
 #ifndef hifi_MixerAvatar_h
 #define hifi_MixerAvatar_h
 
+#include <QJsonDocument>
+
 #include <AvatarData.h>
 
 class ResourceRequest;
@@ -25,13 +27,14 @@ public:
     void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
 
     void fetchAvatarFST();
+    bool isCertifyFailed() const { return _verifyState == kVerificationFailed;  }
 
 private:
     bool _needsHeroCheck{ false };
 
-    // Avatar certification/verification
-    enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kChallengeClient, kVerified,
-        kVerificationFailed, kVerificationSucceeded, kError };
+    // Avatar certification/verification:
+    enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kOwnerResponse,
+        kChallengeClient, kVerified, kVerificationFailed, kVerificationSucceeded, kError };
     Q_ENUM(VerifyState);
     VerifyState _verifyState { kNoncertified };
     QMutex _avatarCertifyLock;
@@ -41,7 +44,7 @@ private:
     QByteArray _certificateHash;
     QString _certificateIdFromURL;
     QString _certificateIdFromFST;
-    bool _avatarFSTValid { false };
+    QJsonDocument _dynamicMarketResponse;
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey);
