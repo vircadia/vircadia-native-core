@@ -18,17 +18,13 @@
 #include <QtNetwork/QNetworkReply>
 
 #include "Baker.h"
-#include "TextureBaker.h"
-#include "baking/TextureFileNamer.h"
+#include "MaterialBaker.h"
 
 #include "ModelBakingLoggingCategory.h"
-
-#include <gpu/Texture.h> 
 
 #include <FBX.h>
 #include <hfm/HFM.h>
 
-using TextureBakerThreadGetter = std::function<QThread*()>;
 using GetMaterialIDCallback = std::function <int(int)>;
 
 static const QString FST_EXTENSION { ".fst" };
@@ -42,10 +38,7 @@ class ModelBaker : public Baker {
     Q_OBJECT
 
 public:
-    using TextureKey = QPair<QUrl, image::TextureUsage::Type>;
-
-    ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
-               const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
+    ModelBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
     void setOutputURLSuffix(const QUrl& urlSuffix);
     void setMappingURL(const QUrl& mappingURL);
@@ -54,7 +47,6 @@ public:
     void initializeOutputDirs();
 
     bool buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
-    QString compressTexture(QString textureFileName, image::TextureUsage::Type = image::TextureUsage::Type::DEFAULT_TEXTURE);
     virtual void setWasAborted(bool wasAborted) override;
 
     QUrl getModelURL() const { return _modelURL; }
@@ -71,20 +63,15 @@ public slots:
 protected:
     void saveSourceModel();
     virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) = 0;
-    void checkIfTexturesFinished();
-    void texturesFinished();
-    void embedTextureMetaData();
     void exportScene();
 
     FBXNode _rootNode;
-    QHash<QByteArray, QByteArray> _textureContentMap;
     QUrl _modelURL;
     QUrl _outputURLSuffix;
     QUrl _mappingURL;
     hifi::VariantHash _mapping;
     QString _bakedOutputDir;
     QString _originalOutputDir;
-    TextureBakerThreadGetter _textureThreadGetter;
     QString _originalOutputModelPath;
     QString _outputMappingURL;
     QUrl _bakedModelURL;
@@ -92,23 +79,15 @@ protected:
 protected slots:
     void handleModelNetworkReply();
     virtual void bakeSourceCopy();
-
-private slots:
-    void handleBakedTexture();
-    void handleAbortedTexture();
+    void handleFinishedMaterialBaker();
 
 private:
-    QUrl getTextureURL(const QFileInfo& textureFileInfo, bool isEmbedded = false);
-    void bakeTexture(const TextureKey& textureKey, const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent);
-    QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);
-
-    QMultiHash<TextureKey, QSharedPointer<TextureBaker>> _bakingTextures;
-    QHash<QString, int> _textureNameMatchCount;
-    bool _pendingErrorEmission { false };
+    void outputBakedFST();
 
     bool _hasBeenBaked { false };
 
-    TextureFileNamer _textureFileNamer;
+    hfm::Model::Pointer _hfmModel;
+    QSharedPointer<MaterialBaker> _materialBaker;
 };
 
 #endif // hifi_ModelBaker_h

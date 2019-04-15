@@ -132,55 +132,6 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
         handleWarning("Baked mesh for OBJ model '" + _modelURL.toString() + "' is empty");
     }
 
-    // Generating Texture Node
-    // iterate through mesh parts and process the associated textures
-    auto size = meshParts.size();
-    for (int i = 0; i < size; i++) {
-        QString material = meshParts[i].materialID;
-        HFMMaterial currentMaterial = hfmModel->materials[material];
-        if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
-            auto textureID = nextNodeID();
-            _mapTextureMaterial.emplace_back(textureID, i);
-
-            FBXNode textureNode;
-            {
-                textureNode.name = TEXTURE_NODE_NAME;
-                textureNode.properties = { textureID, "texture" + QString::number(textureID) };
-            }
-
-            // Texture node child - TextureName node
-            FBXNode textureNameNode;
-            {
-                textureNameNode.name = TEXTURENAME_NODE_NAME;
-                QByteArray propertyString = (!currentMaterial.albedoTexture.filename.isEmpty()) ? "Kd" : "Ka";
-                textureNameNode.properties = { propertyString };
-            }
-
-            // Texture node child - Relative Filename node
-            FBXNode relativeFilenameNode;
-            {
-                relativeFilenameNode.name = RELATIVEFILENAME_NODE_NAME;
-            }
-
-            QByteArray textureFileName = (!currentMaterial.albedoTexture.filename.isEmpty()) ? currentMaterial.albedoTexture.filename : currentMaterial.specularTexture.filename;
-
-            auto textureType = (!currentMaterial.albedoTexture.filename.isEmpty()) ? image::TextureUsage::Type::ALBEDO_TEXTURE : image::TextureUsage::Type::SPECULAR_TEXTURE;
-
-            // Compress the texture using ModelBaker::compressTexture() and store compressed file's name in the node
-            auto textureFile = compressTexture(textureFileName, textureType);
-            if (textureFile.isNull()) {
-                // Baking failed return
-                handleError("Failed to compress texture: " + textureFileName);
-                return;
-            }
-            relativeFilenameNode.properties = { textureFile };
-
-            textureNode.children = { textureNameNode, relativeFilenameNode };
-
-            objectNode.children.append(textureNode);
-        }
-    }
-
     // Generating Connections node
     connectionsNode.name = CONNECTIONS_NODE_NAME;
 
@@ -198,29 +149,6 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
         cNode.name = C_NODE_NAME;
         cNode.properties = { CONNECTIONS_NODE_PROPERTY, materialID, modelID };
         connectionsNode.children.append(cNode);
-    }
-
-    // Connect textures to materials
-    for (const auto& texMat : _mapTextureMaterial) {
-        FBXNode cAmbientNode;
-        cAmbientNode.name = C_NODE_NAME;
-        cAmbientNode.properties = {
-            CONNECTIONS_NODE_PROPERTY_1,
-            texMat.first,
-            _materialIDs[texMat.second],
-            "AmbientFactor"
-        };
-        connectionsNode.children.append(cAmbientNode);
-
-        FBXNode cDiffuseNode;
-        cDiffuseNode.name = C_NODE_NAME;
-        cDiffuseNode.properties = {
-            CONNECTIONS_NODE_PROPERTY_1,
-            texMat.first,
-            _materialIDs[texMat.second],
-            "DiffuseColor"
-        };
-        connectionsNode.children.append(cDiffuseNode);
     }
 }
 

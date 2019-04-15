@@ -33,9 +33,8 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
-FBXBaker::FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
-        const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
-        ModelBaker(inputModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
+FBXBaker::FBXBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+        ModelBaker(inputModelURL, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
     if (hasBeenBaked) {
         // Look for the original model file one directory higher. Perhaps this is an oven output directory.
         QUrl originalRelativePath = QUrl("../original/" + inputModelURL.fileName().replace(BAKED_FBX_EXTENSION, FBX_EXTENSION));
@@ -45,15 +44,6 @@ FBXBaker::FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputText
 }
 
 void FBXBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
-    _hfmModel = hfmModel;
-
-    if (shouldStop()) {
-        return;
-    }
-
-    // enumerate the models and textures found in the scene and start a bake for them
-    rewriteAndBakeSceneTextures();
-
     if (shouldStop()) {
         return;
     }
@@ -114,15 +104,15 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
     int meshIndex = 0;
     for (FBXNode& rootChild : _rootNode.children) {
         if (rootChild.name == "Objects") {
-            for (FBXNode& object : rootChild.children) {
-                if (object.name == "Geometry") {
-                    if (object.properties.at(2) == "Mesh") {
+            for (auto object = rootChild.children.begin(); object != rootChild.children.end(); object++) {
+                if (object->name == "Geometry") {
+                    if (object->properties.at(2) == "Mesh") {
                         int meshNum = meshIndexToRuntimeOrder[meshIndex];
-                        replaceMeshNodeWithDraco(object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
+                        replaceMeshNodeWithDraco(*object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
                         meshIndex++;
                     }
-                } else if (object.name == "Model") {
-                    for (FBXNode& modelChild : object.children) {
+                } else if (object->name == "Model") {
+                    for (FBXNode& modelChild : object->children) {
                         if (modelChild.name == "Properties60" || modelChild.name == "Properties70") {
                             // This is a properties node
                             // Remove the geometric transform because that has been applied directly to the vertices in FBXSerializer
@@ -142,92 +132,17 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
                         } else if (modelChild.name == "Vertices") {
                             // This model is also a mesh
                             int meshNum = meshIndexToRuntimeOrder[meshIndex];
-                            replaceMeshNodeWithDraco(object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
+                            replaceMeshNodeWithDraco(*object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
                             meshIndex++;
                         }
                     }
+                } else if (object->name == "Texture" || object->name == "Video") {
+                    // this is an embedded texture, we need to remove it from the FBX
+                    object = rootChild.children.erase(object);
                 }
 
                 if (hasErrors()) {
                     return;
-                }
-            }
-        }
-    }
-}
-
-void FBXBaker::rewriteAndBakeSceneTextures() {
-    using namespace image::TextureUsage;
-    QHash<QString, image::TextureUsage::Type> textureTypes;
-
-    // enumerate the materials in the extracted geometry so we can determine the texture type for each texture ID
-    for (const auto& material : _hfmModel->materials) {
-        if (material.normalTexture.isBumpmap) {
-            textureTypes[material.normalTexture.id] = BUMP_TEXTURE;
-        } else {
-            textureTypes[material.normalTexture.id] = NORMAL_TEXTURE;
-        }
-
-        textureTypes[material.albedoTexture.id] = ALBEDO_TEXTURE;
-        textureTypes[material.glossTexture.id] = GLOSS_TEXTURE;
-        textureTypes[material.roughnessTexture.id] = ROUGHNESS_TEXTURE;
-        textureTypes[material.specularTexture.id] = SPECULAR_TEXTURE;
-        textureTypes[material.metallicTexture.id] = METALLIC_TEXTURE;
-        textureTypes[material.emissiveTexture.id] = EMISSIVE_TEXTURE;
-        textureTypes[material.occlusionTexture.id] = OCCLUSION_TEXTURE;
-        textureTypes[material.lightmapTexture.id] = LIGHTMAP_TEXTURE;
-    }
-
-    // enumerate the children of the root node
-    for (FBXNode& rootChild : _rootNode.children) {
-
-        if (rootChild.name == "Objects") {
-
-            // enumerate the objects
-            auto object = rootChild.children.begin();
-            while (object != rootChild.children.end()) {
-                if (object->name == "Texture") {
-
-                    // double check that we didn't get an abort while baking the last texture
-                    if (shouldStop()) {
-                        return;
-                    }
-
-                    // enumerate the texture children
-                    for (FBXNode& textureChild : object->children) {
-
-                        if (textureChild.name == "RelativeFilename") {
-                            QString hfmTextureFileName { textureChild.properties.at(0).toString() };
-                            
-                            // grab the ID for this texture so we can figure out the
-                            // texture type from the loaded materials
-                            auto textureID { object->properties[0].toString() };
-                            auto textureType = textureTypes[textureID];
-
-                            // Compress the texture information and return the new filename to be added into the FBX scene
-                            auto bakedTextureFile = compressTexture(hfmTextureFileName, textureType);
-
-                            // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
-                            if (!bakedTextureFile.isNull()) {
-                                textureChild.properties[0] = bakedTextureFile;
-                            } else {
-                                // if bake fails - return, if there were errors and continue, if there were warnings.
-                                if (hasErrors()) {
-                                    return;
-                                } else if (hasWarnings()) {
-                                    continue;
-                                }
-                            }
-                        }
-                    }
-
-                    ++object;
-
-                } else if (object->name == "Video") {
-                    // this is an embedded texture, we need to remove it from the FBX
-                    object = rootChild.children.erase(object);
-                } else {
-                    ++object;
                 }
             }
         }

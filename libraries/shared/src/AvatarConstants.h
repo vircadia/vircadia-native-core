@@ -69,7 +69,23 @@ const glm::quat DEFAULT_AVATAR_RIGHTFOOT_ROT { -0.4016716778278351f, 0.915461599
 const float DEFAULT_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
 const float DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
 const float DEFAULT_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
-const float DEFAULT_AVATAR_WALK_SPEED_THRESHOLD = 0.15f;
+const float DEFAULT_AVATAR_MAX_SPRINT_SPEED = 3.4f; // meters / second
+const float DEFAULT_AVATAR_WALK_SPEED_THRESHOLD = 0.15f; // meters / second
+
+const float ANALOG_AVATAR_MAX_WALKING_SPEED = 6.0f; // meters / second
+const float ANALOG_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
+const float ANALOG_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
+const float ANALOG_AVATAR_MAX_SPRINT_SPEED = 8.0f; // meters / second
+const float ANALOG_AVATAR_GEAR_1 = 0.2f;    // meters / second
+const float ANALOG_AVATAR_GEAR_2 = 0.4f;    // meters / second
+const float ANALOG_AVATAR_GEAR_3 = 0.6f;    // meters / second
+const float ANALOG_AVATAR_GEAR_4 = 0.8f;    // meters / second
+const float ANALOG_AVATAR_GEAR_5 = 1.0f;    // meters / second
+
+const float ANALOG_PLUS_AVATAR_MAX_WALKING_SPEED = 10.0f; // meters / second
+const float ANALOG_PLUS_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.42f; // meters / second
+const float ANALOG_PLUS_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
+const float ANALOG_PLUS_AVATAR_MAX_SPRINT_SPEED = 20.0f; // meters / second
 
 const float DEFAULT_AVATAR_GRAVITY = -5.0f; // meters / second^2 (world)
 const float DEFAULT_AVATAR_JUMP_SPEED = 3.5f; // meters / second (sensor)
@@ -86,6 +102,6 @@ static const float MAX_AVATAR_HEIGHT = 1000.0f * DEFAULT_AVATAR_HEIGHT; // meter
 static const float MIN_AVATAR_HEIGHT = 0.005f * DEFAULT_AVATAR_HEIGHT; // meters
 static const float MIN_AVATAR_RADIUS = 0.5f * MIN_AVATAR_HEIGHT;
 static const float AVATAR_WALK_SPEED_SCALAR = 1.0f;
-static const float AVATAR_SPRINT_SPEED_SCALAR = 3.0f;
+static const float AVATAR_SPRINT_SPEED_SCALAR = 2.0f;
 
 #endif // hifi_AvatarConstants_h

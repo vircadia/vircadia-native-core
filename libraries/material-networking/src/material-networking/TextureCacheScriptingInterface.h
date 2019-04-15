@@ -25,7 +25,8 @@ class TextureCacheScriptingInterface : public ScriptableResourceCache, public De
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * API to manage texture cache resources.
+     * The <code>TextureCache</code> API manages texture cache resources.
+     *
      * @namespace TextureCache
      *
      * @hifi-interface
@@ -47,11 +48,14 @@ public:
     TextureCacheScriptingInterface();
 
     /**jsdoc
+     * Prefetches a texture resource of specific type.
      * @function TextureCache.prefetch
-     * @param {string} url
-     * @param {number} type
-     * @param {number} [maxNumPixels=67108864]
-     * @returns {ResourceObject}
+     * @variation 0
+     * @param {string} url - The URL of the texture to prefetch.
+     * @param {TextureCache.TextureType} type - The type of the texture.
+     * @param {number} [maxNumPixels=67108864] - The maximum number of pixels to use for the image. If the texture has more 
+     *     than this number it is downscaled.
+     * @returns {ResourceObject} A resource object.
      */
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
@@ -59,6 +63,7 @@ signals:
     /**jsdoc
      * @function TextureCache.spectatorCameraFramebufferReset
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void spectatorCameraFramebufferReset();
 };

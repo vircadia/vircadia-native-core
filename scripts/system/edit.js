@@ -1630,7 +1630,7 @@ function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
         if (entityHostTypes[i].entityHostType !== entityHostType) {
             if (wantDebug) {
                 console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
-                    entityHostTypes[i].entityHostType);
+                    entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
             }
             continue;
         }
@@ -2521,6 +2521,24 @@ var PropertiesTool = function (opts) {
             emitScriptEvent({
                 type: 'propertyRangeReply',
                 propertyRanges: propertyRanges,
+            });
+        } else if (data.type === "materialTargetRequest") {
+            var parentModelData;
+            var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
+            if (properties.type === "Material" && properties.parentID !== Uuid.NULL) {
+                var parentType = Entities.getEntityProperties(properties.parentID, ["type"]).type;
+                if (parentType === "Model" || Entities.getNestableType(properties.parentID) === "avatar") {
+                    parentModelData = Graphics.getModel(properties.parentID);
+                } else if (parentType === "Shape" || parentType === "Box" || parentType === "Sphere") {
+                    parentModelData = {};
+                    parentModelData.numMeshes = 1;
+                    parentModelData.materialNames = [];
+                }
+            }
+            emitScriptEvent({
+                type: 'materialTargetReply',
+                entityID: data.entityID,
+                materialTargetData: parentModelData,
             });
         }
     };

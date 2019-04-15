@@ -206,7 +206,7 @@ SelectionManager = (function() {
             if (entityHostTypes[i].entityHostType !== entityHostType) {
                 if (wantDebug) {
                     console.log("Skipping addition of entity " + childID + " with conflicting entityHostType: " +
-                        entityHostTypes[i].entityHostType);
+                        entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
                 }
                 continue;
             }
@@ -398,15 +398,15 @@ SelectionManager = (function() {
 
                 if (entityHostTypes[i].entityHostType !== entityHostType) {
                     if (wantDebug) {
-                        console.warn("Skipping deletion of entity " + id + " with conflicting entityHostType: " +
-                            entityHostTypes[i].entityHostType);
+                        console.warn("Skipping addition of entity " + id + " with conflicting entityHostType: " +
+                            entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
                     }
                     continue;
                 }
 
                 if (!(id in entities)) {
                     entities[id] = Entities.getEntityProperties(id); 
-                    appendChildren(id, entities);
+                    appendChildren(id, entities, entityHostType);
                 }
             }
         }
@@ -1334,14 +1334,7 @@ SelectionDisplay = (function() {
             ctrlPressed = false;
             that.updateActiveRotateRing();
         }
-        if (activeTool && lastMouseEvent !== null) {
-            lastMouseEvent.isShifted = event.isShifted;
-            lastMouseEvent.isMeta = event.isMeta;
-            lastMouseEvent.isControl = event.isControl;
-            lastMouseEvent.isAlt = event.isAlt;
-            activeTool.onMove(lastMouseEvent);
-            SelectionManager._update(false, this);
-        }
+        that.updateLastMouseEvent(event);
     };
 
     // Triggers notification on specific key driven events
@@ -1350,13 +1343,16 @@ SelectionDisplay = (function() {
             ctrlPressed = true;
             that.updateActiveRotateRing();
         }
-        if (activeTool && lastMouseEvent !== null) {
-            lastMouseEvent.isShifted = event.isShifted;
-            lastMouseEvent.isMeta = event.isMeta;
-            lastMouseEvent.isControl = event.isControl;
-            lastMouseEvent.isAlt = event.isAlt;
-            activeTool.onMove(lastMouseEvent);
-            SelectionManager._update(false, this);
+        that.updateLastMouseEvent(event);
+    };
+    
+    that.updateLastMouseEvent = function(event) {
+        if (activeTool && lastMouseEvent !== null) {            
+            lastMouseEvent.isShifted = event.isShifted; 
+            lastMouseEvent.isMeta = event.isMeta;   
+            lastMouseEvent.isControl = event.isControl; 
+            lastMouseEvent.isAlt = event.isAlt; 
+            activeTool.onMove(lastMouseEvent);      
         }
     };
 

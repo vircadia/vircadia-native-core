@@ -18,8 +18,7 @@ class FSTBaker : public ModelBaker {
     Q_OBJECT
 
 public:
-    FSTBaker(const QUrl& inputMappingURL, TextureBakerThreadGetter inputTextureThreadGetter,
-        const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
+    FSTBaker(const QUrl& inputMappingURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
     virtual QUrl getFullOutputMappingURL() const override;
 

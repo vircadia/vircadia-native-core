@@ -680,6 +680,8 @@ private:
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
  *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement controls are enabled.
  *       </td></tr>
+ *     <tr><td><code>LeftHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to left.</td></tr>
+ *     <tr><td><code>RightHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to right.</td></tr>
  *     <tr><td><code>SnapTurn</code></td><td>number</td><td>number</td><td>Snap turn is enabled.</td></tr>
  *     <tr><td><code>Grounded</code></td><td>number</td><td>number</td><td>The user's avatar is on the ground.</td></tr>
  *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
@@ -701,6 +703,9 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 static const QString STATE_PLATFORM_WINDOWS = "PlatformWindows";
 static const QString STATE_PLATFORM_MAC = "PlatformMac";
 static const QString STATE_PLATFORM_ANDROID = "PlatformAndroid";
+static const QString STATE_LEFT_HAND_DOMINANT = "LeftHandDominant";
+static const QString STATE_RIGHT_HAND_DOMINANT = "RightHandDominant";
+static const QString STATE_STRAFE_ENABLED = "StrafeEnabled";
 
 // Statically provided display and input plugins
 extern DisplayPluginList getDisplayPlugins();
@@ -902,7 +907,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     controller::StateController::setStateVariables({ { STATE_IN_HMD, STATE_CAMERA_FULL_SCREEN_MIRROR,
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED,
-                    STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID } });
+                    STATE_PLATFORM_WINDOWS, STATE_PLATFORM_MAC, STATE_PLATFORM_ANDROID, STATE_LEFT_HAND_DOMINANT, STATE_RIGHT_HAND_DOMINANT, STATE_STRAFE_ENABLED } });
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
@@ -1446,6 +1451,34 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _overlays.init(); // do this before scripts load
     DependencyManager::set<ContextOverlayInterface>();
 
+    auto offscreenUi = getOffscreenUI();
+    connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
+        // Now that we've loaded the menu and thus switched to the previous display plugin
+        // we can unlock the desktop repositioning code, since all the positions will be
+        // relative to the desktop size for this plugin
+        auto offscreenUi = getOffscreenUI();
+        auto desktop = offscreenUi->getDesktop();
+        if (desktop) {
+            desktop->setProperty("repositionLocked", false);
+        }
+    });
+
+    connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
+#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
+        // Do not show login dialog if requested not to on the command line
+        QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
+        int index = arguments().indexOf(hifiNoLoginCommandLineKey);
+        if (index != -1) {
+            resumeAfterLoginDialogActionTaken();
+            return;
+        }
+
+        showLoginScreen();
+#else
+        resumeAfterLoginDialogActionTaken();
+#endif
+    });
+
     // Initialize the user interface and menu system
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
@@ -1740,6 +1773,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _applicationStateDevice->setInputVariant(STATE_ADVANCED_MOVEMENT_CONTROLS, []() -> float {
         return qApp->getMyAvatar()->useAdvancedMovementControls() ? 1 : 0;
     });
+    _applicationStateDevice->setInputVariant(STATE_LEFT_HAND_DOMINANT, []() -> float {
+        return qApp->getMyAvatar()->getDominantHand() == "left" ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_RIGHT_HAND_DOMINANT, []() -> float {
+        return qApp->getMyAvatar()->getDominantHand() == "right" ? 1 : 0;
+    });
+    _applicationStateDevice->setInputVariant(STATE_STRAFE_ENABLED, []() -> float {
+        return qApp->getMyAvatar()->getStrafeEnabled() ? 1 : 0;
+    });
 
     _applicationStateDevice->setInputVariant(STATE_GROUNDED, []() -> float {
         return qApp->getMyAvatar()->getCharacterController()->onGround() ? 1 : 0;
@@ -1790,34 +1832,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     updateVerboseLogging();
-
-    // Now that we've loaded the menu and thus switched to the previous display plugin
-    // we can unlock the desktop repositioning code, since all the positions will be
-    // relative to the desktop size for this plugin
-    auto offscreenUi = getOffscreenUI();
-    connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
-        auto offscreenUi = getOffscreenUI();
-        auto desktop = offscreenUi->getDesktop();
-        if (desktop) {
-            desktop->setProperty("repositionLocked", false);
-        }
-    });
-
-    connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
-#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
-        // Do not show login dialog if requested not to on the command line
-        QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
-        int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
-            resumeAfterLoginDialogActionTaken();
-            return;
-        }
-
-        showLoginScreen();
-#else
-        resumeAfterLoginDialogActionTaken();
-#endif
-    });
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
@@ -3967,6 +3981,15 @@ static void dumpEventQueue(QThread* thread) {
 }
 #endif // DEBUG_EVENT_QUEUE
 
+bool Application::notify(QObject * object, QEvent * event) {
+    if (thread() == QThread::currentThread()) {
+        PROFILE_RANGE_IF_LONGER(app, "notify", 2)
+        return QApplication::notify(object, event);
+    } 
+        
+    return QApplication::notify(object, event);
+}
+
 bool Application::event(QEvent* event) {
 
     if (_aboutToQuit) {
@@ -5458,11 +5481,23 @@ void Application::pauseUntilLoginDetermined() {
     // disconnect domain handler.
     nodeList->getDomainHandler().disconnect();
 
+    // From now on, it's permissible to call resumeAfterLoginDialogActionTaken()
+    _resumeAfterLoginDialogActionTaken_SafeToRun = true;
+
+    if (_resumeAfterLoginDialogActionTaken_WasPostponed) {
+        // resumeAfterLoginDialogActionTaken() was already called, but it aborted. Now it's safe to call it again.
+        resumeAfterLoginDialogActionTaken();
+    }
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
     if (QThread::currentThread() != qApp->thread()) {
         QMetaObject::invokeMethod(this, "resumeAfterLoginDialogActionTaken");
+        return;
+    }
+
+    if (!_resumeAfterLoginDialogActionTaken_SafeToRun) {
+        _resumeAfterLoginDialogActionTaken_WasPostponed = true;
         return;
     }
 

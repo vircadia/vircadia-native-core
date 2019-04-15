@@ -104,6 +104,9 @@ int AudioMixerClientData::processPackets(ConcurrentAddedStreams& addedStreams) {
             case PacketType::AudioSoloRequest:
                 parseSoloRequest(packet, node);
                 break;
+            case PacketType::StopInjector:
+                parseStopInjectorPacket(packet);
+                break;
             default:
                 Q_UNREACHABLE();
         }
@@ -572,6 +575,19 @@ int AudioMixerClientData::checkBuffersBeforeFrameSend() {
     }
 
     return (int)_audioStreams.size();
+}
+
+void AudioMixerClientData::parseStopInjectorPacket(QSharedPointer<ReceivedMessage> packet) {
+    auto streamID = QUuid::fromRfc4122(packet->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    auto it = std::find_if(std::begin(_audioStreams), std::end(_audioStreams), [&](auto stream) {
+        return streamID == stream->getStreamIdentifier();
+    });
+
+    if (it != std::end(_audioStreams)) {
+        _audioStreams.erase(it);
+        emit injectorStreamFinished(streamID);
+    }
 }
 
 bool AudioMixerClientData::shouldSendStats(int frameNumber) {

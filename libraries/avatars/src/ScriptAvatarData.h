@@ -16,6 +16,52 @@
 
 #include "AvatarData.h"
 
+/**jsdoc
+ * Information about an avatar.
+ * @typedef {object} AvatarData
+ * @property {Vec3} position - The avatar's position.
+ * @property {number} scale - The target scale of the avatar without any restrictions on permissible values imposed by the 
+ *     domain.
+ * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar but 
+ *    is otherwise not used or changed by Interface.
+ * @property {number} bodyPitch - The pitch of the avatar's body, in degrees.
+ * @property {number} bodyYaw - The yaw of the avatar's body, in degrees.
+ * @property {number} bodyRoll - The roll of the avatar's body, in degrees.
+ * @property {Quat} orientation - The orientation of the avatar's body.
+ * @property {Quat} headOrientation - The orientation of the avatar's head.
+ * @property {number} headPitch - The pitch of the avatar's head relative to the body, in degrees.
+ * @property {number} headYaw - The yaw of the avatar's head relative to the body, in degrees.
+ * @property {number} headRoll - The roll of the avatar's head relative to the body, in degrees.
+ *
+ * @property {Vec3} velocity - The linear velocity of the avatar.
+ * @property {Vec3} angularVelocity - The angular velocity of the avatar.
+ *
+ * @property {Uuid} sessionUUID - The avatar's session ID.
+ * @property {string} displayName - The avatar's display name.
+ * @property {string} sessionDisplayName - The avatar's display name, sanitized and versioned, as defined by the avatar mixer. 
+ *     It is unique among all avatars present in the domain at the time.
+ * @property {boolean} isReplicated - <strong>Deprecated.</strong>
+ * @property {boolean} lookAtSnappingEnabled - <code>true</code> if the avatar's eyes snap to look at another avatar's eyes 
+ *     when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
+ *
+ * @property {string} skeletonModelURL - The avatar's FST file.
+ * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
+ *     <strong>Deprecated:</strong> Use avatar entities instead.
+ * @property {string[]} jointNames - The list of joints in the current avatar model.
+ *
+ * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
+ *     domain.
+ * @property {number} audioAverageLoudness - The rolling average loudness of the audio input that the avatar is injecting into 
+ *     the domain.
+ *
+ * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the 
+ *     avatar's size, orientation, and position in the virtual world.
+ * @property {Mat4} controllerLeftHandMatrix - The rotation and translation of the left hand controller relative to the avatar.
+ * @property {Mat4} controllerRightHandMatrix - The rotation and translation of the right hand controller relative to the 
+ *     avatar.
+ *
+ * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
+ */
 class ScriptAvatarData : public QObject {
     Q_OBJECT
 

@@ -891,12 +891,14 @@ HFMModel::Pointer OBJSerializer::read(const hifi::ByteArray& data, const hifi::V
         if (!objMaterial.used) {
             continue;
         }
-        hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
-                                                     objMaterial.specularColor,
-                                                     objMaterial.emissiveColor,
-                                                     objMaterial.shininess,
-                                                     objMaterial.opacity);
-        HFMMaterial& hfmMaterial = hfmModel.materials[materialID];
+
+        HFMMaterial& hfmMaterial = hfmModel.materials[materialID] = HFMMaterial(objMaterial.diffuseColor,
+                                                                                objMaterial.specularColor,
+                                                                                objMaterial.emissiveColor,
+                                                                                objMaterial.shininess,
+                                                                                objMaterial.opacity);
+
+        hfmMaterial.name = materialID;
         hfmMaterial.materialID = materialID;
         hfmMaterial._material = std::make_shared<graphics::Material>();
         graphics::MaterialPointer modelMaterial = hfmMaterial._material;
