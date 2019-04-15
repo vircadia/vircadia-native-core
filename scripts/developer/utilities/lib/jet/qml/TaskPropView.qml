@@ -27,33 +27,40 @@ Prop.PropGroup {
     property var jobPath: ""
     property alias label: root.label
 
+    property var showProps: true
+    property var showSubs: true
+
     function populatePropItems() {
         var propsModel = []
         var props = Jet.job_propKeys(rootConfig.getConfig(jobPath));
         console.log(JSON.stringify(props));
-        for (var p in props) {
-            propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
+        if (showProps) {
+            for (var p in props) {
+                propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
+            }
+            root.updatePropItems(propsModel);
         }
-        root.updatePropItems(propsModel);
-
         
-        Jet.task_traverse(rootConfig.getConfig(jobPath),
-            function(job, depth, index) {
-                var component = Qt.createComponent("./TaskPropView.qml");
-                component.createObject(root.propItemsPanel, {
-                    "label": job.objectName,
-                    "rootConfig": root.rootConfig,
-                    "jobPath": root.jobPath + '.' + job.objectName
-                })
-              /*  var component = Qt.createComponent("../../prop/PropItem.qml");
-                component.createObject(root.propItemsPanel, {
-                    "label": root.jobPath + '.' + job.objectName + ' num=' + index,
-                })*/
-              //  propsModel.push({"type": "printLabel", "label": root.jobPath + '.' + job.objectName + ' num=' + index })
+        if (showSubs) {
+            Jet.task_traverse(rootConfig.getConfig(jobPath),
+                function(job, depth, index) {
+                    var component = Qt.createComponent("./TaskPropView.qml");
+                    component.createObject(root.propItemsPanel, {
+                        "label": job.objectName,
+                        "rootConfig": root.rootConfig,
+                        "jobPath": root.jobPath + '.' + job.objectName,
+                        "showProps": root.showProps,
+                        "showSubs": root.showSubs
+                    })
+                    /*  var component = Qt.createComponent("../../prop/PropItem.qml");
+                    component.createObject(root.propItemsPanel, {
+                        "label": root.jobPath + '.' + job.objectName + ' num=' + index,
+                    })*/
+                    //  propsModel.push({"type": "printLabel", "label": root.jobPath + '.' + job.objectName + ' num=' + index })
 
-                 return (depth < 1);
-            }, 0)      
-
+                        return (depth < 1);
+                }, 0)      
+        }
     }
 
     Component.onCompleted: {

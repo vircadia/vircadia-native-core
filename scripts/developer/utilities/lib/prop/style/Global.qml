@@ -18,32 +18,36 @@ Item {
     HifiConstants { id: hifi }
     id: root
 
-    property real lineHeight: 32
-    property real slimHeight: 24  
+    readonly property real lineHeight: 32
+    readonly property real slimHeight: 24  
 
-    property real horizontalMargin: 4
+    readonly property real horizontalMargin: 4
 
-    property var color: hifi.colors.baseGray
-    property var colorBackHighlight: hifi.colors.baseGrayHighlight
-    property var colorBorderLight: hifi.colors.lightGray
-    property var colorBorderHighight: hifi.colors.blueHighlight
+    readonly property color color: hifi.colors.baseGray
+    readonly property color colorBackHighlight: hifi.colors.baseGrayHighlight
+    readonly property color colorBorderLight: hifi.colors.lightGray
+    readonly property color colorBorderHighight: hifi.colors.blueHighlight
 
-    property real fontSize: 12
-    property var fontFamily: "Raleway"
-    property var fontWeight: Font.DemiBold
-    property var fontColor: hifi.colors.faintGray
+    readonly property color colorOrangeAccent: "#FF6309"
+    readonly property color colorRedAccent: "#C62147"
+    readonly property color colorGreenHighlight: "#1ac567"
 
-    property var splitterRightWidthScale: 0.45
-    property real splitterWidth: 8
+    readonly property real fontSize: 12
+    readonly property var fontFamily: "Raleway"
+    readonly property var fontWeight: Font.DemiBold
+    readonly property color fontColor: hifi.colors.faintGray
 
-    property real iconWidth: fontSize
-    property real iconHeight: fontSize
+    readonly property var splitterRightWidthScale: 0.45
+    readonly property real splitterWidth: 8
+
+    readonly property real iconWidth: fontSize
+    readonly property real iconHeight: fontSize
     
-    property var labelTextAlign: Text.AlignRight
-    property var labelTextElide: Text.ElideMiddle
+    readonly property var labelTextAlign: Text.AlignRight
+    readonly property var labelTextElide: Text.ElideMiddle
 
-    property var valueAreaWidthScale: 0.3 * (1.0 - splitterRightWidthScale)
-    property var valueTextAlign: Text.AlignHCenter 
-    property real valueBorderWidth: 1
-    property real valueBorderRadius: 2
+    readonly property var valueAreaWidthScale: 0.3 * (1.0 - splitterRightWidthScale)
+    readonly property var valueTextAlign: Text.AlignHCenter 
+    readonly property real valueBorderWidth: 1
+    readonly property real valueBorderRadius: 2
 }

@@ -18,7 +18,7 @@ Item {
 
     property alias isUnfold: headerFolderIcon.icon
     property alias propItemsPanel: propItemsContainer
-    property alias headerContainer: headerContainer
+    default property alias extHeader: headerContainer.data
 
     // Header Item
     Item {
@@ -39,7 +39,9 @@ Item {
                 id: headerFolderIcon
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
-                 
+                fillColor: global.colorOrangeAccent 
+                filled: root.propItemsPanel.height > 4
+
                 MouseArea{
                     id: mousearea
                     anchors.fill: parent
@@ -80,6 +82,7 @@ Item {
         border.width: global.valueBorderWidth
         radius: global.valueBorderRadius
 
+        anchors.margins: 0
         anchors.left: parent.left           
         anchors.right: parent.right
         anchors.top: header.bottom
@@ -87,9 +90,11 @@ Item {
 
         Column {
             id: propItemsContainer
-          //  anchors.top: header.bottom
             anchors.left: parent.left
-            anchors.right: parent.right   
+            anchors.right: parent.right
+            anchors.leftMargin: 0
+            anchors.rightMargin: 0
+               
             clip: true
 
             // Where the propItems are added
@@ -97,8 +102,9 @@ Item {
     }
 
     height: header.height + isUnfold * propItemsContainer.height
-    anchors.leftMargin: global.horizontalMargin
-    anchors.rightMargin: global.horizontalMargin
+//    anchors.leftMargin: global.horizontalMargin
+//    anchors.rightMargin: global.horizontalMargin
+    anchors.margins: 0
     anchors.left: parent.left           
     anchors.right: parent.right
 

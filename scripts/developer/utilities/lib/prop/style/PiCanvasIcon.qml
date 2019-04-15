@@ -18,6 +18,7 @@ Canvas {
     height: global.iconHeight
 
     property var icon: 0 
+    property var filled: true 
     onIconChanged: function () { requestPaint() }
     property var fillColor: global.colorBorderHighight 
 
@@ -43,8 +44,13 @@ Canvas {
                 context.lineTo(width / 2, 0);
             }
             context.closePath();
-            context.fillStyle = fillColor;
-            context.fill();
+            if (filled) {
+                context.fillStyle = fillColor;
+                context.fill();
+            } else {
+                context.strokeStyle = fillColor;
+                context.stroke();
+            }
         }}
     }
 }
