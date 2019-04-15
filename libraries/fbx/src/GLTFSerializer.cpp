@@ -751,43 +751,25 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
     }
 }
 
-void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, bool addChildrenInReverseOrder, std::vector<int>& result) {
-    int startingIndex = 0;
-    int finalIndex = (int)children.size();
-    if (stride == -1 || addChildrenInReverseOrder) {
-        startingIndex = (int)children.size() - 1;
-        finalIndex = -1;
-        stride = -1; 
-    }
-    for (int index = startingIndex; index != finalIndex; index += stride) {
-        int c = children[index];
-        result.push_back(c);
-        std::vector<int> nested = _file.nodes[c].children.toStdVector();
-        if (nested.size() != 0) {
-            std::sort(nested.begin(), nested.end());
-            for (int r : nested) {
-                if (result.end() == std::find(result.begin(), result.end(), r)) {
-                    getNodeQueueByDepthFirstChildren(nested, stride, addChildrenInReverseOrder, result);
-                }
-            }
-        } 
-    }
-}
-
-
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     int numNodes = _file.nodes.size();
     bool skinnedModel = !_file.skins.isEmpty();
 
+
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(numNodes);
+    QVector<int> parents;
+    QVector<int> nodesToSort = _file.scenes[_file.scene].nodes;
+    parents.fill(-1, numNodes);
+    nodesToSort.reserve(numNodes);
     int nodecount = 0;
-    bool parentGreaterThanChild = false;
     foreach(auto &node, _file.nodes) {
-        //nodes_transforms.push_back(getModelTransform(node));
         foreach(int child, node.children) {
             nodeDependencies[child].push_back(nodecount);
-            parentGreaterThanChild |= nodecount > child;
+            parents[child] = nodecount;
+        }
+        if (!nodesToSort.contains(nodecount)) {
+            nodesToSort.push_back(nodecount);
         }
         nodecount++;
     }
@@ -806,47 +788,62 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                 } else break;
             }
         }
-        
         nodecount++;
     }
 
-
+ 
     // initialize order in which nodes will be parsed
     std::vector<int> nodeQueue;
-    nodeQueue.reserve(numNodes);
-    int rootNode = 0;
-    int finalNode = numNodes;
-    for (int sceneNode : _file.scenes[_file.scene].nodes) {
-        // reverse the order in which the nodes are initialized 
-        if (!_file.nodes[sceneNode].defined["camera"] && sceneNode != 0) {
-            rootNode = numNodes - 1;
-            finalNode = -1;
-            break;
+    QVector<int> originalToNewNodeIndexMap;
+    QVector<bool> hasBeenSorted;
+    originalToNewNodeIndexMap.fill(-1, numNodes);
+    hasBeenSorted.fill(false, numNodes);
+    nodeQueue = _file.scenes[_file.scene].nodes.toStdVector();
+
+    for (int sceneNodeCount = 0; sceneNodeCount < _file.scenes[_file.scene].nodes.size(); sceneNodeCount++) {
+        int sceneNode = nodeQueue[sceneNodeCount];
+        originalToNewNodeIndexMap[sceneNode] = sceneNodeCount;
+        nodesToSort[nodesToSort.indexOf(sceneNode)] = nodesToSort.back();
+        nodesToSort.pop_back();
+        hasBeenSorted[sceneNode] = true;
+        for (int child : _file.nodes[sceneNode].children.toStdVector()) {
+            nodesToSort[nodesToSort.indexOf(child)] = nodesToSort.back();
+            nodesToSort.pop_back();
         }
-    }
-    bool rootAtStartOfList = rootNode < finalNode;
-    int nodeListStride = 1;
-    if (!rootAtStartOfList) { nodeListStride = -1; }
 
-    QVector<int> initialSceneNodes = _file.scenes[_file.scene].nodes; 
-    std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
+        for (int child : _file.nodes[sceneNode].children) {
+            originalToNewNodeIndexMap[child] = nodeQueue.size();
+            nodeQueue.push_back(child);
+            hasBeenSorted[child] = true;
 
-    int sceneRootNode = 0; 
-    int sceneFinalNode = initialSceneNodes.size();
-    if (!rootAtStartOfList) { 
-        sceneRootNode = initialSceneNodes.size() - 1;
-        sceneFinalNode = -1;
-    }
-    // this is an edge case where, for a skinned model, there is a parent who's index is greater than it's child's index
-    // when the opposite is expected
-    // in this case, we want the order of the children to be reversed, even if the root node is 0
-    bool addChildrenInReverseOrder = rootAtStartOfList && parentGreaterThanChild && skinnedModel;
-    for (int index = sceneRootNode; index != sceneFinalNode; index += nodeListStride) {
-        int i = initialSceneNodes[index];
-        nodeQueue.push_back(i);
-        std::vector<int> children = _file.nodes[i].children.toStdVector(); 
-        std::sort(children.begin(), children.end());
-        getNodeQueueByDepthFirstChildren(children, nodeListStride, addChildrenInReverseOrder, nodeQueue);
+            if (!_file.nodes[child].children.isEmpty() && nodeQueue.size() < numNodes) {
+                int newSize = nodesToSort.size();
+                while (!nodesToSort.isEmpty()) {
+                    int i = 0;
+
+                    while (i < nodesToSort.size()) {
+                        int nodeIndex = nodesToSort[i];
+                        int parentIndex = parents[nodeIndex];
+                        newSize = nodesToSort.size();
+
+                        if ((parentIndex == -1 || hasBeenSorted[parentIndex])) {
+                            originalToNewNodeIndexMap[nodeIndex] = nodeQueue.size();
+                            nodeQueue.push_back(nodeIndex);
+                            hasBeenSorted[nodeIndex] = true;
+                            // copy back and pop
+                            nodesToSort[i] = nodesToSort.back();
+                            nodesToSort.pop_back();
+                        } else {  // skip
+                            i++;
+                        }
+                    }
+                    // if the end of nodesToSort is reached without removing any nodes, break to move onto the next child
+                    if (newSize == nodesToSort.size() && i == nodesToSort.size()) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
 
@@ -861,13 +858,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
         joint.parentIndex = -1;
         if (!_file.scenes[_file.scene].nodes.contains(nodeIndex)) {
-            joint.parentIndex = std::distance(nodeQueue.begin(), std::find(nodeQueue.begin(), nodeQueue.end(), nodeDependencies[nodeIndex][0]));
+            joint.parentIndex = originalToNewNodeIndexMap[parents[nodeIndex]];
         }
         joint.transform = node.transforms.first();
         joint.translation = extractTranslation(joint.transform);
         joint.rotation = glmExtractRotation(joint.transform);
         glm::vec3 scale = extractScale(joint.transform);
-        joint.postTransform = glm::scale(glm::mat4(), scale);        
+        joint.postTransform = glm::scale(glm::mat4(), scale);  
 
         joint.name = node.name;
         joint.isSkeletonJoint = false;
@@ -882,20 +879,19 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         std::vector<std::vector<float>> inverseBindValues;
         getSkinInverseBindMatrices(inverseBindValues);
 
-        int jointIndex = finalNode;
-        while (jointIndex != rootNode) {
-            rootAtStartOfList ? jointIndex-- : jointIndex++;
-            int jOffset = nodeQueue[jointIndex];
+        for (int jointIndex = 0; jointIndex < numNodes; jointIndex++) {
+            int nodeIndex = nodeQueue[jointIndex];
             auto joint = hfmModel.joints[jointIndex];
 
             hfmModel.hasSkeletonJoints = true;
             for (int s = 0; s < _file.skins.size(); s++) {
-                auto skin = _file.skins[s];
-                joint.isSkeletonJoint = skin.joints.contains(jOffset);
+                const auto& skin = _file.skins[s];
+                int matrixIndex = skin.joints.indexOf(nodeIndex);
+                joint.isSkeletonJoint = skin.joints.contains(nodeIndex);
 
                 if (joint.isSkeletonJoint) {
-                    std::vector<float> value = inverseBindValues[s];
-                    int matrixCount = 16 * skin.joints.indexOf(jOffset);
+                    std::vector<float>& value = inverseBindValues[s];
+                    int matrixCount = 16 * matrixIndex;
                     jointInverseBindTransforms[jointIndex] =
                         glm::mat4(value[matrixCount], value[matrixCount + 1], value[matrixCount + 2], value[matrixCount + 3], 
                             value[matrixCount + 4], value[matrixCount + 5], value[matrixCount + 6], value[matrixCount + 7], 
@@ -932,7 +928,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     
     // Build meshes
     nodecount = 0;
-    for (int nodeIndex = rootNode; nodeIndex != finalNode; nodeIndex += nodeListStride) {
+    for (int nodeIndex : nodeQueue) {
         auto& node = _file.nodes[nodeIndex];
 
         if (node.defined["mesh"]) {
@@ -947,7 +943,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                     cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
                     mesh.clusters.append(cluster);
                 } else {
-                    for (int j = rootNode; j != finalNode; j += nodeListStride) {
+                    for (int j : nodeQueue) {
                         HFMCluster cluster;
                         cluster.jointIndex = j;
                         cluster.inverseBindMatrix = jointInverseBindTransforms[j];
@@ -956,7 +952,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                     }
                 }
                 HFMCluster root; 
-                root.jointIndex = rootNode;
+                root.jointIndex = nodeQueue[0];
                 if (root.jointIndex == -1) { 
                     root.jointIndex = 0; 
                 }
@@ -1181,7 +1177,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         nodecount++;
     }
 
-    
     return true;
 }
 
