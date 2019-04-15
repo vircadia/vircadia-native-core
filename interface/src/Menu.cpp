@@ -116,7 +116,7 @@ Menu::Menu() {
     // Edit > Delete
     auto deleteAction = addActionToQMenuAndActionHash(editMenu, "Delete", QKeySequence::Delete);
     connect(deleteAction, &QAction::triggered, [] {
-            QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Delete, Qt::ControlModifier);
+            QKeyEvent* keyEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Delete, Qt::NoModifier);
             QCoreApplication::postEvent(QCoreApplication::instance(), keyEvent);
     });
 

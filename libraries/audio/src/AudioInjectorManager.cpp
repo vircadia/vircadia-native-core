@@ -105,6 +105,8 @@ void AudioInjectorManager::run() {
                         if (nextCallDelta >= 0 && !injector->isFinished()) {
                             // enqueue the injector with the correct timing in our holding queue
                             heldInjectors.emplace(heldInjectors.end(), usecTimestampNow() + nextCallDelta, injector);
+                        } else {
+                            injector->sendStopInjectorPacket();
                         }
                     }
 

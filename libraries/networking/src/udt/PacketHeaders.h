@@ -134,6 +134,7 @@ public:
         BulkAvatarTraits,
         AudioSoloRequest,
         BulkAvatarTraitsAck,
+        StopInjector,
         NUM_PACKET_TYPE
     };
 
@@ -369,6 +370,7 @@ enum class AudioVersion : PacketVersion {
     SpaceBubbleChanges,
     HasPersonalMute,
     HighDynamicRangeVolume,
+    StopInjectors
 };
 
 enum class MessageDataVersion : PacketVersion {

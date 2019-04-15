@@ -67,11 +67,10 @@ public:
     void parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
     void parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
     void parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
+    void parseStopInjectorPacket(QSharedPointer<ReceivedMessage> packet);
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client
     int checkBuffersBeforeFrameSend();
-
-    void removeDeadInjectedStreams();
 
     QJsonObject getAudioStreamStats();
 
@@ -163,7 +162,7 @@ public:
     // end of methods called non-concurrently from single AudioMixerSlave
 
 signals:
-    void injectorStreamFinished(const QUuid& streamIdentifier);
+    void injectorStreamFinished(const QUuid& streamID);
 
 public slots:
     void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);

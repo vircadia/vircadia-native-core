@@ -180,11 +180,7 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         QUrl bakeableModelURL = getBakeableModelURL(modelToBakeURL);
         if (!bakeableModelURL.isEmpty()) {
-            auto getWorkerThreadCallback = []() -> QThread* {
-                return Oven::instance().getNextWorkerThread();
-            };
-
-            std::unique_ptr<Baker> baker = getModelBaker(bakeableModelURL, getWorkerThreadCallback, outputDirectory.path());
+            std::unique_ptr<Baker> baker = getModelBaker(bakeableModelURL, outputDirectory.path());
             if (baker) {
                 // everything seems to be in place, kick off a bake for this model now
 

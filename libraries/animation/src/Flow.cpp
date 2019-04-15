@@ -499,12 +499,12 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
                     bool toFloatSuccess;
                     QStringRef(&name, (int)(name.size() - j), 1).toString().toFloat(&toFloatSuccess);
                     if (!toFloatSuccess && (name.size() - j) > (int)simPrefix.size()) {
-                        group = QStringRef(&name, (int)simPrefix.size(), (int)(name.size() - j + 1)).toString();
+                        group = QStringRef(&name, (int)simPrefix.size(), (int)(name.size() - j + 1) - (int)simPrefix.size()).toString();
                         break;
                     }
                 }
                 if (group.isEmpty()) {
-                    group = QStringRef(&name, (int)simPrefix.size(), name.size() - 1).toString();
+                    group = QStringRef(&name, (int)simPrefix.size(), name.size() - (int)simPrefix.size()).toString();
                 }
                 qCDebug(animation) << "Sim joint added to flow: " << name;
             } else {

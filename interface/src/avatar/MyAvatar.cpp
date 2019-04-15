@@ -818,20 +818,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     if (_cauterizationNeedsUpdate) {
         _cauterizationNeedsUpdate = false;
 
-        // Redisplay cauterized entities that are no longer children of the avatar.
-        auto cauterizedChild = _cauterizedChildrenOfHead.begin();
-        if (cauterizedChild != _cauterizedChildrenOfHead.end()) {
-            auto children = getChildren();
-            while (cauterizedChild != _cauterizedChildrenOfHead.end()) {
-                if (!children.contains(*cauterizedChild)) {
-                    updateChildCauterization(*cauterizedChild, false);
-                    cauterizedChild = _cauterizedChildrenOfHead.erase(cauterizedChild);
-                } else {
-                    ++cauterizedChild;
-                }
-            }
-        }
-
+        auto objectsToUncauterize = _cauterizedChildrenOfHead;
+        _cauterizedChildrenOfHead.clear();
         // Update cauterization of entities that are children of the avatar.
         auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
@@ -843,15 +831,19 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
                     updateChildCauterization(descendant, !_prevShouldDrawHead);
                 });
                 _cauterizedChildrenOfHead.insert(object);
-            } else if (_cauterizedChildrenOfHead.find(object) != _cauterizedChildrenOfHead.end()) {
-                // Redisplay cauterized children that are not longer children of the head.
-                updateChildCauterization(object, false);
+                objectsToUncauterize.erase(object);
+            } else if (objectsToUncauterize.find(object) == objectsToUncauterize.end()) {
+                objectsToUncauterize.insert(object);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                    updateChildCauterization(descendant, false);
+                    objectsToUncauterize.insert(descendant);
                 });
-                _cauterizedChildrenOfHead.erase(object);
             }
         });
+
+        // Redisplay cauterized entities that are no longer children of the avatar.
+        for (auto cauterizedChild = objectsToUncauterize.begin(); cauterizedChild != objectsToUncauterize.end(); cauterizedChild++) {
+            updateChildCauterization(*cauterizedChild, false);
+        }
     }
 
     {
@@ -3889,7 +3881,8 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
         QVariantMap extraInfo;
         EntityItemID entityID = entityTree->evalRayIntersection(startPointIn, directionIn, include, ignore,
-            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE) | PickFilter::getBitMask(PickFilter::FlagBit::PRECISE)),
+            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE) | PickFilter::getBitMask(PickFilter::FlagBit::PRECISE)
+            | PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES)),    // exclude Local entities
             element, distance, face, normalOut, extraInfo, lockType, accurateResult);
         if (entityID.isNull()) {
             return false;

@@ -154,3 +154,57 @@ QString HFMModel::getModelNameOfMesh(int meshIndex) const {
     }
     return QString();
 }
+
+void HFMModel::computeKdops() {
+    const float INV_SQRT_3 = 0.57735026918f;
+    ShapeVertices cardinalDirections = {
+        Vectors::UNIT_X,
+        Vectors::UNIT_Y,
+        Vectors::UNIT_Z,
+        glm::vec3(INV_SQRT_3,  INV_SQRT_3,  INV_SQRT_3),
+        glm::vec3(INV_SQRT_3, -INV_SQRT_3,  INV_SQRT_3),
+        glm::vec3(INV_SQRT_3,  INV_SQRT_3, -INV_SQRT_3),
+        glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
+    };
+    if (joints.size() != (int)shapeVertices.size()) {
+        return;
+    }
+    // now that all joints have been scanned compute a k-Dop bounding volume of mesh
+    for (int i = 0; i < joints.size(); ++i) {
+        HFMJoint& joint = joints[i];
+
+        // NOTE: points are in joint-frame
+        ShapeVertices& points = shapeVertices.at(i);
+        glm::quat rotOffset = jointRotationOffsets.contains(i) ? glm::inverse(jointRotationOffsets[i]) : quat();
+        if (points.size() > 0) {
+            // compute average point
+            glm::vec3 avgPoint = glm::vec3(0.0f);
+            for (uint32_t j = 0; j < points.size(); ++j) {
+                points[j] = rotOffset * points[j];
+                avgPoint += points[j];
+            }
+            avgPoint /= (float)points.size();
+            joint.shapeInfo.avgPoint = avgPoint;
+
+            // compute a k-Dop bounding volume
+            for (uint32_t j = 0; j < cardinalDirections.size(); ++j) {
+                float maxDot = -FLT_MAX;
+                float minDot = FLT_MIN;
+                for (uint32_t k = 0; k < points.size(); ++k) {
+                    float kDot = glm::dot(cardinalDirections[j], points[k] - avgPoint);
+                    if (kDot > maxDot) {
+                        maxDot = kDot;
+                    }
+                    if (kDot < minDot) {
+                        minDot = kDot;
+                    }
+                }
+                joint.shapeInfo.points.push_back(avgPoint + maxDot * cardinalDirections[j]);
+                joint.shapeInfo.dots.push_back(maxDot);
+                joint.shapeInfo.points.push_back(avgPoint + minDot * cardinalDirections[j]);
+                joint.shapeInfo.dots.push_back(-minDot);
+            }
+            generateBoundryLinesForDop14(joint.shapeInfo.dots, joint.shapeInfo.avgPoint, joint.shapeInfo.debugLines);
+        }
+    }
+}
