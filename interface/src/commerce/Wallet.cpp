@@ -390,7 +390,6 @@ Wallet::Wallet() {
         } else {
             status = (uint) WalletStatus::WALLET_STATUS_READY;
         }
-        qCDebug(commerce) << "WALLET STATUS:" + keyStatus + " " + status;
         walletScriptingInterface->setWalletStatus(status);
     });
 
