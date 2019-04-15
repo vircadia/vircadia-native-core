@@ -132,7 +132,8 @@ DraggableNumber.prototype = {
         }
 
         if (isNaN(newValue)) {
-            throw newValue + " is not a number";
+            console.error("DraggableNumber.setValue() > " + newValue + " is not a number.");
+            return;
         }
 
         if (newValue !== "" && this.decimals !== undefined) {

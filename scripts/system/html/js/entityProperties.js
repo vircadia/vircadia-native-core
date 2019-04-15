@@ -1613,73 +1613,6 @@ let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 
-// mergeDeep function from https://stackoverflow.com/a/34749873
-/**
- * Simple object check.
- * @param item
- * @returns {boolean}
- */
-function isObject(item) {
-    return (item && typeof item === 'object' && !Array.isArray(item));
-}
-
-/**
- * Deep merge two objects.
- * @param target
- * @param sources
- */
-function mergeDeep(target, ...sources) {
-    if (!sources.length) {
-        return target;
-    }
-    const source = sources.shift();
-
-    if (isObject(target) && isObject(source)) {
-        for (const key in source) {
-            if (!source.hasOwnProperty(key)) {
-                continue;
-            }
-            if (isObject(source[key])) {
-                if (!target[key]) {
-                    Object.assign(target, { [key]: {} });
-                }
-                mergeDeep(target[key], source[key]);
-            } else {
-                Object.assign(target, { [key]: source[key] });
-            }
-        }
-    }
-
-    return mergeDeep(target, ...sources);
-}
-
-function deepEqual(a, b) {
-    if (a === b) {
-        return true;
-    }
-
-    if (typeof(a) !== "object" || typeof(b) !== "object") {
-        return false;
-    }
-
-    if (Object.keys(a).length !== Object.keys(b).length) {
-        return false;
-    }
-
-    for (let property in a) {
-        if (!a.hasOwnProperty(property)) {
-            continue;
-        }
-        if (!b.hasOwnProperty(property)) {
-            return false;
-        }
-        if (!deepEqual(a[property], b[property])) {
-            return false;
-        }
-    }
-    return true;
-}
-
 function createElementFromHTML(htmlString) {
     let elTemplate = document.createElement('template');
     elTemplate.innerHTML = htmlString.trim();
@@ -1909,6 +1842,15 @@ function getFirstSelectedID() {
     return selectedEntityIDs.values().next().value;
 }
 
+/**
+ * Returns true when the user is currently dragging the numeric slider control of the property
+ * @param propertyName - name of property
+ * @returns {boolean} currentlyDragging
+ */
+function isCurrentlyDraggingProperty(propertyName) {
+    return properties[propertyName] && properties[propertyName].dragging === true;
+}
+
 const SUPPORTED_FALLBACK_TYPES = ['number', 'number-draggable', 'rect', 'vec3', 'vec2', 'color'];
 
 function getMultiplePropertyValue(originalPropertyName) {
@@ -1993,7 +1935,12 @@ function getMultiplePropertyValue(originalPropertyName) {
     };
 }
 
-
+/**
+ * Retrieve more detailed info for differing Numeric MultiplePropertyValue
+ * @param multiplePropertyValue - input multiplePropertyValue
+ * @param propertyData
+ * @returns {{keys: *[], propertyComponentDiff, averagePerPropertyComponent}}
+ */
 function getDetailedNumberMPVDiff(multiplePropertyValue, propertyData) {
     let detailedValues = {};
     // Fixed numbers can't be easily averaged since they're strings, so lets keep an array of unmodified numbers
@@ -2023,21 +1970,21 @@ function getDetailedNumberMPVDiff(multiplePropertyValue, propertyData) {
     });
     let keys = [...uniqueKeys];
 
-    let childPropertyDiff = {};
+    let propertyComponentDiff = {};
     Object.entries(detailedValues).forEach(function([key, value]) {
-        childPropertyDiff[key] = [...new Set(value)].length > 1;
+        propertyComponentDiff[key] = [...new Set(value)].length > 1;
     });
 
-    let averagePerSubProperty = {};
+    let averagePerPropertyComponent = {};
     Object.entries(unmodifiedValues).forEach(function([key, value]) {
         let average = value.reduce((a, b) => a + b) / value.length;
-        averagePerSubProperty[key] = applyInputNumberPropertyModifiers(average, propertyData);
+        averagePerPropertyComponent[key] = applyInputNumberPropertyModifiers(average, propertyData);
     });
 
     return {
         keys,
-        childPropertyDiff,
-        averagePerSubProperty
+        propertyComponentDiff,
+        averagePerPropertyComponent,
     };
 }
 
@@ -2108,7 +2055,7 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
         // only update the entity property value itself if in the middle of dragging
         // prevent undo command push, saving new property values, and property update
         // callback until drag is complete (additional update sent via dragEnd callback)
-        let onlyUpdateEntity = properties[originalPropertyName] && properties[originalPropertyName].dragging === true;
+        let onlyUpdateEntity = isCurrentlyDraggingProperty(originalPropertyName);
         updateProperties(propertyUpdate, onlyUpdateEntity);
     }
 }
@@ -2193,7 +2140,7 @@ function createEmitNumberPropertyUpdateFunction(property) {
     };
 }
 
-function createEmitNumberChildPropertyUpdateFunction(property, childProperty) {
+function createEmitNumberPropertyComponentUpdateFunction(property, propertyComponent) {
     return function() {
         let propertyMultiValue = getMultiplePropertyValue(property.name);
         let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
@@ -2206,7 +2153,7 @@ function createEmitNumberChildPropertyUpdateFunction(property, childProperty) {
                 let entityID = selectedEntityIDsArray[i];
 
                 let propertyObject = propertyMultiValue.values[i];
-                propertyObject[childProperty] = value;
+                propertyObject[propertyComponent] = value;
 
                 let updateObject = createPropertyUpdateObject(property.name, propertyObject);
                 updateObjects.push({
@@ -2220,11 +2167,11 @@ function createEmitNumberChildPropertyUpdateFunction(property, childProperty) {
             // only update the entity property value itself if in the middle of dragging
             // prevent undo command push, saving new property values, and property update
             // callback until drag is complete (additional update sent via dragEnd callback)
-            let onlyUpdateEntity = properties[property.name] && properties[property.name].dragging === true;
+            let onlyUpdateEntity = isCurrentlyDraggingProperty(property.name);
             updateMultiDiffProperties(updateObjects, onlyUpdateEntity);
         } else {
             let propertyValue = propertyMultiValue.value;
-            propertyValue[childProperty] = value;
+            propertyValue[propertyComponent] = value;
             updateProperty(property.name, propertyValue, property.isParticleProperty);
         }
     };
@@ -2407,10 +2354,10 @@ function updateNumberMinMax(property) {
 /**
  *
  * @param {object} property - property update on drag
- * @param {string} [childProperty] - childProperty to update on drag (e.g. enter 'x' to just update position.x)
+ * @param {string} [propertyComponent] - propertyComponent to update on drag (e.g. enter 'x' to just update position.x)
  * @returns {Function}
  */
-function createMultiDiffDragFunction(property, childProperty) {
+function createMultiDiffDragFunction(property, propertyComponent) {
     return function(dragDelta) {
         let propertyMultiValue = getMultiplePropertyValue(property.name);
         if (!propertyMultiValue.isMultiDiffValue) {
@@ -2433,9 +2380,9 @@ function createMultiDiffDragFunction(property, childProperty) {
             let entityID = selectedEntityIDsArray[i];
 
             let updatedValue;
-            if (childProperty !== undefined) {
+            if (propertyComponent !== undefined) {
                 let objectToUpdate = propertyMultiValue.values[i];
-                objectToUpdate[childProperty] += applyDelta;
+                objectToUpdate[propertyComponent] += applyDelta;
                 updatedValue = objectToUpdate;
             } else {
                 updatedValue = propertyMultiValue.values[i] + applyDelta;
@@ -2513,10 +2460,10 @@ function createRectProperty(property, elProperty) {
     elWidthHeightRow.appendChild(elNumberWidth.elDiv);
     elWidthHeightRow.appendChild(elNumberHeight.elDiv);
 
-    elNumberX.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'x'));
-    elNumberY.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'y'));
-    elNumberWidth.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'width'));
-    elNumberHeight.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'height'));
+    elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
+    elNumberWidth.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'width'));
+    elNumberHeight.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'height'));
 
     elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
     elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
@@ -2552,9 +2499,9 @@ function createVec3Property(property, elProperty) {
     elProperty.appendChild(elNumberY.elDiv);
     elProperty.appendChild(elNumberZ.elDiv);
 
-    elNumberX.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'x'));
-    elNumberY.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'y'));
-    elNumberZ.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'z'));
+    elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
+    elNumberZ.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'z'));
 
     elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
     elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
@@ -2582,8 +2529,8 @@ function createVec2Property(property, elProperty) {
     elProperty.appendChild(elNumberX.elDiv);
     elProperty.appendChild(elNumberY.elDiv);
 
-    elNumberX.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'x'));
-    elNumberY.setValueChangeFunction(createEmitNumberChildPropertyUpdateFunction(property, 'y'));
+    elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
 
     elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
     elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
@@ -3806,24 +3753,24 @@ function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
                 }
                 case 'number-draggable': {
                     let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
-                    property.elNumber.setValue(detailedNumberDiff.averagePerSubProperty[0], detailedNumberDiff.childPropertyDiff[0]);
+                    property.elNumber.setValue(detailedNumberDiff.averagePerPropertyComponent[0], detailedNumberDiff.propertyComponentDiff[0]);
                     break;
                 }
                 case 'rect': {
                     let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
-                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.childPropertyDiff.x);
-                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.childPropertyDiff.y);
-                    property.elNumberWidth.setValue(detailedNumberDiff.averagePerSubProperty.width, detailedNumberDiff.childPropertyDiff.width);
-                    property.elNumberHeight.setValue(detailedNumberDiff.averagePerSubProperty.height, detailedNumberDiff.childPropertyDiff.height);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerPropertyComponent.x, detailedNumberDiff.propertyComponentDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerPropertyComponent.y, detailedNumberDiff.propertyComponentDiff.y);
+                    property.elNumberWidth.setValue(detailedNumberDiff.averagePerPropertyComponent.width, detailedNumberDiff.propertyComponentDiff.width);
+                    property.elNumberHeight.setValue(detailedNumberDiff.averagePerPropertyComponent.height, detailedNumberDiff.propertyComponentDiff.height);
                     break;
                 }
                 case 'vec3':
                 case 'vec2': {
                     let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
-                    property.elNumberX.setValue(detailedNumberDiff.averagePerSubProperty.x, detailedNumberDiff.childPropertyDiff.x);
-                    property.elNumberY.setValue(detailedNumberDiff.averagePerSubProperty.y, detailedNumberDiff.childPropertyDiff.y);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerPropertyComponent.x, detailedNumberDiff.propertyComponentDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerPropertyComponent.y, detailedNumberDiff.propertyComponentDiff.y);
                     if (property.elNumberZ !== undefined) {
-                        property.elNumberZ.setValue(detailedNumberDiff.averagePerSubProperty.z, detailedNumberDiff.childPropertyDiff.z);
+                        property.elNumberZ.setValue(detailedNumberDiff.averagePerPropertyComponent.z, detailedNumberDiff.propertyComponentDiff.z);
                     }
                     break;
                 }

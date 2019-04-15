@@ -2365,12 +2365,10 @@ var PropertiesTool = function (opts) {
             if (data.properties || data.propertiesMap) {
                 var propertiesMap = data.propertiesMap;
                 if (propertiesMap === undefined) {
-                    var updateEntityIDs = data.ids !== undefined ? data.ids : selectionManager.selections;
-                    propertiesMap = [];
-                    propertiesMap.push({
-                        entityIDs: updateEntityIDs,
-                        properties: data.properties
-                    });
+                    propertiesMap = [{
+                        entityIDs: data.ids,
+                        properties: data.properties,
+                    }];
                 }
 
                 var sendListUpdate = false;
