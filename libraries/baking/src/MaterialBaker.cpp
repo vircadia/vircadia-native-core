@@ -144,7 +144,12 @@ void MaterialBaker::processMaterial() {
                             connect(textureBaker.data(), &TextureBaker::finished, this, &MaterialBaker::handleFinishedTextureBaker);
                             _textureBakers.insert(textureKey, textureBaker);
                             textureBaker->moveToThread(_getNextOvenWorkerThreadOperator ? _getNextOvenWorkerThreadOperator() : thread());
-                            QMetaObject::invokeMethod(textureBaker.data(), "bake");
+                            // By default, Qt will invoke this bake immediately if the TextureBaker is on the same worker thread as this MaterialBaker.
+                            // We don't want that, because threads may be waiting for work while this thread is stuck processing a TextureBaker.
+                            // On top of that, _textureBakers isn't fully populated.
+                            // So, use Qt::QueuedConnection.
+                            // TODO: Better thread utilization at the top level, not just the MaterialBaker level
+                            QMetaObject::invokeMethod(textureBaker.data(), "bake", Qt::QueuedConnection);
                         }
                         _materialsNeedingRewrite.insert(textureKey, networkMaterial.second);
                     } else {
