@@ -412,9 +412,13 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(MATERIAL_URL_KEY)) {
                 addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
             }
+            // FIXME: Disabled for now because relative texture URLs are not supported for embedded materials in material entities
+            //        We need to make texture URLs absolute in this particular case only, keeping in mind that FSTBaker also uses embedded materials
+            /*
             if (entity.contains(MATERIAL_DATA_KEY)) {
                 addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
             }
+            */
         }
     }
 
