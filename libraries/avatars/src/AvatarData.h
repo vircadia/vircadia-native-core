@@ -479,7 +479,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     avatar. <em>Read-only.</em>
      * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
      *     size in the virtual world. <em>Read-only.</em>
-     * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
+     * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
+     *     <em>Read-only.</em>
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -1751,14 +1752,11 @@ protected:
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
-        int index = getFauxJointIndex(name);
         QReadLocker readLock(&_jointDataLock);
-
-        // The first conditional is superfluous, but illustrative
-        if (index == -1 || index < _jointData.size()) {
+        int index = getJointIndex(name);
+        if (index == -1) {
             return defaultValue;
         }
-
         return f(index);
     }
 
@@ -1769,8 +1767,8 @@ protected:
 
     template <typename F>
     void writeLockWithNamedJointIndex(const QString& name, F f) {
-        int index = getFauxJointIndex(name);
         QWriteLocker writeLock(&_jointDataLock);
+        int index = getJointIndex(name);
         if (index == -1) {
             return;
         }
