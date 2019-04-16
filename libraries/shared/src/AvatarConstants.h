@@ -102,6 +102,7 @@ static const float MAX_AVATAR_HEIGHT = 1000.0f * DEFAULT_AVATAR_HEIGHT; // meter
 static const float MIN_AVATAR_HEIGHT = 0.005f * DEFAULT_AVATAR_HEIGHT; // meters
 static const float MIN_AVATAR_RADIUS = 0.5f * MIN_AVATAR_HEIGHT;
 static const float AVATAR_WALK_SPEED_SCALAR = 1.0f;
-static const float AVATAR_SPRINT_SPEED_SCALAR = 2.0f;
+static const float AVATAR_DESKTOP_SPRINT_SPEED_SCALAR = 3.0f;
+static const float AVATAR_HMD_SPRINT_SPEED_SCALAR = 2.0f;
 
 #endif // hifi_AvatarConstants_h
