@@ -146,7 +146,6 @@ std::pair<AssetUtils::BakingStatus, QString> AssetServer::getAssetStatus(const A
     }
 
     BakedAssetType type = assetTypeForFilename(path);
-
     if (type == BakedAssetType::Undefined) {
         return { AssetUtils::Irrelevant, "" };
     }
@@ -154,6 +153,12 @@ std::pair<AssetUtils::BakingStatus, QString> AssetServer::getAssetStatus(const A
     bool loaded;
     AssetMeta meta;
     std::tie(loaded, meta) = readMetaFile(hash);
+
+    // We create a meta file for Skyboxes at runtime when they get requested
+    // Otherwise, textures don't get baked by themselves.
+    if (type == BakedAssetType::Texture && !loaded) {
+        return { AssetUtils::Irrelevant, "" };
+    }
 
     QString bakedFilename = bakedFilenameForAssetType(type);
     auto bakedPath = getBakeMapping(hash, bakedFilename);
@@ -240,6 +245,8 @@ bool AssetServer::needsToBeBaked(const AssetUtils::AssetPath& path, const AssetU
         return false;
     }
 
+    // We create a meta file for Skyboxes at runtime when they get requested
+    // Otherwise, textures don't get baked by themselves.
     if (type == BakedAssetType::Texture && !loaded) {
         return false;
     }
