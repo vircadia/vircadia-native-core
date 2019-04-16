@@ -104,13 +104,15 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
     int meshIndex = 0;
     for (FBXNode& rootChild : _rootNode.children) {
         if (rootChild.name == "Objects") {
-            for (auto object = rootChild.children.begin(); object != rootChild.children.end(); object++) {
+            auto object = rootChild.children.begin();
+            while (object != rootChild.children.end()) {
                 if (object->name == "Geometry") {
                     if (object->properties.at(2) == "Mesh") {
                         int meshNum = meshIndexToRuntimeOrder[meshIndex];
                         replaceMeshNodeWithDraco(*object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
                         meshIndex++;
                     }
+                    object++;
                 } else if (object->name == "Model") {
                     for (FBXNode& modelChild : object->children) {
                         if (modelChild.name == "Properties60" || modelChild.name == "Properties70") {
@@ -136,9 +138,12 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
                             meshIndex++;
                         }
                     }
+                    object++;
                 } else if (object->name == "Texture" || object->name == "Video") {
                     // this is an embedded texture, we need to remove it from the FBX
                     object = rootChild.children.erase(object);
+                } else {
+                    object++;
                 }
 
                 if (hasErrors()) {
