@@ -76,7 +76,7 @@ private:
     void addModelBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
     void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef);
     void addScriptBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
-    void addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef);
+    void addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef, QUrl destinationPath = QUrl());
 };
 
 #endif // hifi_DomainBaker_h

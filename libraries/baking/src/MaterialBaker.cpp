@@ -27,9 +27,10 @@ std::function<QThread*()> MaterialBaker::_getNextOvenWorkerThreadOperator;
 
 static int materialNum = 0;
 
-MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir) :
+MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, QUrl destinationPath) :
     _materialData(materialData),
     _isURL(isURL),
+    _destinationPath(destinationPath),
     _bakedOutputDir(bakedOutputDir),
     _textureOutputDir(bakedOutputDir + "/materialTextures/" + QString::number(materialNum++))
 {
@@ -176,6 +177,10 @@ void MaterialBaker::handleFinishedTextureBaker() {
 
             auto newURL = QUrl(_textureOutputDir).resolved(baker->getMetaTextureFileName());
             auto relativeURL = QDir(_bakedOutputDir).relativeFilePath(newURL.toString());
+
+            if (!_destinationPath.isEmpty()) {
+                relativeURL = _destinationPath.resolved(relativeURL).toDisplayString();
+            }
 
             // Replace the old texture URLs
             for (auto networkMaterial : _materialsNeedingRewrite.values(textureKey)) {
