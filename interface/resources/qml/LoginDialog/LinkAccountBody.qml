@@ -107,9 +107,9 @@ Item {
         emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
         if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
-            loginButton.anchors.right = displayName.right;
+            loginButton.anchors.right = displayNameField.right;
         } else {
-            loginButton.anchors.left = displayName.left;
+            loginButton.anchors.left = displayNameField.left;
         }
         loginContainer.visible = true;
     }
@@ -396,7 +396,7 @@ Item {
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
-                    left: displayName.left
+                    left: displayNameField.left
                 }
                 font.family: linkAccountBody.fontFamily
                 font.pixelSize: linkAccountBody.textFieldFontSize
@@ -427,13 +427,13 @@ Item {
             }
             HifiControlsUit.Button {
                 id: continueButton;
-                width: displayName.width;
+                width: displayNameField.width;
                 height: d.minHeightButton
                 color: hifi.buttons.none;
                 anchors {
                     top: cantAccessText.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
-                    left: displayName.left
+                    left: displayNameField.left
                 }
                 text: qsTr("CONTINUE WITH STEAM")
                 fontFamily: linkAccountBody.fontFamily
@@ -582,7 +582,7 @@ Item {
         onFocusEnabled: {
             if (!linkAccountBody.lostFocus) {
                 Qt.callLater(function() {
-                    displayName.forceActiveFocus();
+                    displayNameField.forceActiveFocus();
                 });
             }
         }
@@ -590,7 +590,7 @@ Item {
             linkAccountBody.lostFocus = !root.isTablet && !root.isOverlay;
             if (linkAccountBody.lostFocus) {
                 Qt.callLater(function() {
-                    displayName.focus = false;
+                    displayNameField.focus = false;
                     emailField.focus = false;
                     passwordField.focus = false;
                 });
@@ -606,7 +606,7 @@ Item {
         d.resize();
         init();
         Qt.callLater(function() {
-            displayName.forceActiveFocus();
+            displayNameField.forceActiveFocus();
         });
     }
 
