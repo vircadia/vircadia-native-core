@@ -285,7 +285,7 @@ void ModelBaker::handleFinishedMaterialBaker() {
             QJsonArray materialMapping;
             for (auto material : _hfmModel->materials) {
                 QJsonObject json;
-                json["mat::" + material.name] = relativeBakedMaterialURL + "?" + material.name;
+                json["mat::" + material.name] = relativeBakedMaterialURL + "#" + material.name;
                 materialMapping.push_back(json);
             }
 

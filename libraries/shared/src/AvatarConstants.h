@@ -42,6 +42,7 @@ const float DEFAULT_AVATAR_HIPS_MASS = 40.0f;
 const float DEFAULT_AVATAR_HEAD_MASS = 20.0f;
 const float DEFAULT_AVATAR_LEFTHAND_MASS = 2.0f;
 const float DEFAULT_AVATAR_RIGHTHAND_MASS = 2.0f;
+const float DEFAULT_AVATAR_IPD = 0.064f;
 
 // Used when avatar is missing joints... (avatar space)
 const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
@@ -102,6 +103,7 @@ static const float MAX_AVATAR_HEIGHT = 1000.0f * DEFAULT_AVATAR_HEIGHT; // meter
 static const float MIN_AVATAR_HEIGHT = 0.005f * DEFAULT_AVATAR_HEIGHT; // meters
 static const float MIN_AVATAR_RADIUS = 0.5f * MIN_AVATAR_HEIGHT;
 static const float AVATAR_WALK_SPEED_SCALAR = 1.0f;
-static const float AVATAR_SPRINT_SPEED_SCALAR = 2.0f;
+static const float AVATAR_DESKTOP_SPRINT_SPEED_SCALAR = 3.0f;
+static const float AVATAR_HMD_SPRINT_SPEED_SCALAR = 2.0f;
 
 #endif // hifi_AvatarConstants_h
