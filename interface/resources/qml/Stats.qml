@@ -79,6 +79,12 @@ Item {
                     }
                     StatText {
                         visible: root.expanded
+                        text: "  RefreshRateController:\n    " +
+                            "refreshRateTarget:\t " + root.refreshRateTarget + "\n    " +
+                            "refreshRateMode:\t " + root.refreshRateMode ;
+                    }
+                    StatText {
+                        visible: root.expanded
                         text: "    Present Drop Rate: " + root.presentdroprate.toFixed(2);
                     }
                     StatText {

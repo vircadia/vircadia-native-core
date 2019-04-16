@@ -46,7 +46,7 @@
 #include <TextureCache.h>
 #include "CompositorHelper.h"
 #include "Logging.h"
-
+#include "RefreshRateController.h"
 extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
@@ -60,11 +60,15 @@ public:
             shutdown();
         });
         setObjectName("Present");
+
+        _refreshRateController = std::make_shared<RefreshRateController>();
     }
 
     ~PresentThread() {
         shutdown();
     }
+
+    auto getRefreshRateController() { return _refreshRateController; }
 
     void shutdown() {
         if (isRunning()) {
@@ -179,6 +183,7 @@ public:
             }
 
             // Execute the frame and present it to the display device.
+            _refreshRateController->clockStartTime();
             {
                 PROFILE_RANGE(render, "PluginPresent")
                 gl::globalLock();
@@ -186,6 +191,10 @@ public:
                 gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
+            // stop time
+            _refreshRateController->clockEndTime();
+            _refreshRateController->sleepThreadIfNeeded(this);
+            // sleep if needed
         }
 
         _context->doneCurrent();
@@ -234,6 +243,7 @@ private:
     bool _finishedOtherThreadOperation { false };
     std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
     gl::Context* _context { nullptr };
+    std::shared_ptr<RefreshRateController> _refreshRateController { nullptr };
 };
 
 bool OpenGLDisplayPlugin::activate() {
@@ -757,6 +767,13 @@ float OpenGLDisplayPlugin::droppedFrameRate() const {
 
 float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
+}
+
+std::function<void(int)>  OpenGLDisplayPlugin::getRefreshRateOperator() {
+    return [](int targetRefreshRate) {
+        auto refreshRateController = DependencyManager::get<PresentThread>()->getRefreshRateController();
+        refreshRateController->setRefreshRateLimit(targetRefreshRate);
+    };
 }
 
 void OpenGLDisplayPlugin::resetPresentRate() {

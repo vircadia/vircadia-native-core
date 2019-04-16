@@ -222,6 +222,10 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
     if (_expanded || force) {
+        RefreshRateManager& refreshRateManager = qApp->getRefreshRateManager();
+        std::string refreshRateMode = RefreshRateManager::refreshRateProfileToString(refreshRateManager.getRefreshRateProfile());
+        STAT_UPDATE(refreshRateMode, QString::fromStdString(refreshRateMode));
+        STAT_UPDATE(refreshRateTarget, refreshRateManager.getActiveRefreshRate());
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             STAT_UPDATE(avatarMixerInKbps, (int)roundf(avatarMixer->getInboundKbps()));
