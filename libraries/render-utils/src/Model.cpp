@@ -1540,9 +1540,13 @@ void Model::applyMaterialMapping() {
 
     auto& materialMapping = getMaterialMapping();
     for (auto& mapping : materialMapping) {
-        std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(mapping.first.c_str()));
         auto networkMaterialResource = mapping.second;
-        if (!networkMaterialResource || shapeIDs.size() == 0) {
+        if (!networkMaterialResource) {
+            continue;
+        }
+
+        std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(mapping.first.c_str()));
+        if (shapeIDs.size() == 0) {
             continue;
         }
 
