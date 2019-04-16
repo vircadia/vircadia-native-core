@@ -42,6 +42,7 @@ const float DEFAULT_AVATAR_HIPS_MASS = 40.0f;
 const float DEFAULT_AVATAR_HEAD_MASS = 20.0f;
 const float DEFAULT_AVATAR_LEFTHAND_MASS = 2.0f;
 const float DEFAULT_AVATAR_RIGHTHAND_MASS = 2.0f;
+const float DEFAULT_AVATAR_IPD = 0.064f;
 
 // Used when avatar is missing joints... (avatar space)
 const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
