@@ -322,7 +322,7 @@ public:
     bool getDynamic() const;
     void setDynamic(bool value);
 
-    virtual bool shouldBePhysical() const { return false; }
+    virtual bool shouldBePhysical() const { return !isDead(); }
     bool isVisuallyReady() const { return _visuallyReady; }
 
     bool getLocked() const;
