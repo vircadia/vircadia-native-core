@@ -30,6 +30,36 @@ Prop.PropGroup {
 
     property var showProps: true
     property var showSubs: true
+    property var jobEnabled: true
+
+    // Panel Header Data Component
+    panelHeaderData: Component {
+        Item {
+            id: header
+            Prop.PropLabel {
+                text: root.label
+                horizontalAlignment: Text.AlignHCenter
+                anchors.left: parent.left
+                anchors.right: enabledIcon.left
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Prop.PropCanvasIcon {
+                id: enabledIcon
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                fillColor: global.colorOrangeAccent 
+                filled: jobEnabled
+
+                MouseArea{
+                    id: mousearea
+                    anchors.fill: parent
+                    onClicked: {
+                        root.jobEnabled = !root.jobEnabled
+                    }
+                }
+            }
+        }
+    }
 
     function populatePropItems() {
         var propsModel = []

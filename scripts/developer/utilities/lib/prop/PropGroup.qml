@@ -20,7 +20,16 @@ Item {
     property var indentDepth: 0
     
     property alias propItemsPanel: propItemsContainer
-    default property alias extHeader: headerContainer.data
+
+    // Panel Header Data Component
+    property Component panelHeaderData: defaultPanelHeaderData  
+    Component { // default is a Label
+        id: defaultPanelHeaderData
+        PropLabel {
+            text: root.label
+            horizontalAlignment: Text.AlignHCenter
+        }
+    }
 
     // Header Item
     Rectangle {
@@ -67,22 +76,12 @@ Item {
 
         // Next the header container
         // by default containing a Label showing the root.label
-        Item {
-            id: headerContainer
+        Loader { 
+            sourceComponent: panelHeaderData
             anchors.left: headerFolder.right
             anchors.right: header.right
             anchors.verticalCenter: header.verticalCenter
             height: parent.height
-
-            PropLabel {
-                id: labelControl
-                anchors.left: headerContainer.left
-                anchors.right: headerContainer.right
-                anchors.verticalCenter: headerContainer.verticalCenter
-                text: root.label
-                horizontalAlignment: Text.AlignHCenter
-            }
-
         }
     }
 
@@ -115,8 +114,6 @@ Item {
     }
 
     height: header.height + isUnfold * propItemsContainer.height
-//    anchors.leftMargin: global.horizontalMargin
-//    anchors.rightMargin: global.horizontalMargin
     anchors.margins: 0
     anchors.left: parent.left           
     anchors.right: parent.right
