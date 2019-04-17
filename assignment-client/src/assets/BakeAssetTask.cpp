@@ -55,8 +55,8 @@ void BakeAssetTask::run() {
     // Copy file to bake the temporary dir and give a name the oven can work with
     auto assetName = _assetPath.split("/").last();
     auto tempAssetPath = tempOutputDir + "/" + assetName;
-    auto sucess = QFile::copy(_filePath, tempAssetPath);
-    if (!sucess) {
+    auto success = QFile::copy(_filePath, tempAssetPath);
+    if (!success) {
         QString errors = "Couldn't copy file to bake to temporary directory";
         emit bakeFailed(_assetHash, _assetPath, errors);
         PathUtils::deleteMyTemporaryDir(tempOutputDirName);
