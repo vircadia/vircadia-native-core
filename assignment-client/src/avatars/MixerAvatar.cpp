@@ -28,7 +28,7 @@ void MixerAvatar::fetchAvatarFST() {
     _verifyState = kNoncertified;
     _certificateIdFromURL.clear();
     _certificateIdFromFST.clear();
-    _marketplaceIdString.clear();
+    _marketplaceIdFromURL.clear();
     auto resourceManager = DependencyManager::get<ResourceManager>();
     QUrl avatarURL = getSkeletonModelURL();
     if (avatarURL.isEmpty()) {
@@ -38,13 +38,15 @@ void MixerAvatar::fetchAvatarFST() {
     auto avatarURLString = avatarURL.toDisplayString();
     // Match UUID + version
     static const QRegularExpression marketIdRegex{
-        "^https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36}).*certificate_id=([\\w/+%]+)"
+        "^https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36}).*?(certificate_id=([\\w/+%]+)).*$"
     };
     auto marketIdMatch = marketIdRegex.match(avatarURL.toDisplayString());
     if (marketIdMatch.hasMatch()) {
         QMutexLocker certifyLocker(&_avatarCertifyLock);
-        _marketplaceIdString = marketIdMatch.captured(1);
-        _certificateIdFromURL = QUrl::fromPercentEncoding(marketIdMatch.captured(2).toUtf8());
+        _marketplaceIdFromURL = marketIdMatch.captured(1);
+        if (marketIdMatch.lastCapturedIndex() == 3) {
+            _certificateIdFromURL = QUrl::fromPercentEncoding(marketIdMatch.captured(3).toUtf8());
+        }
     }
 
     ResourceRequest* fstRequest = resourceManager->createResourceRequest(this, avatarURL);
@@ -96,21 +98,14 @@ void MixerAvatar::fstRequestComplete() {
                 QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
                 networkReply->setParent(this);
                 connect(networkReply, &QNetworkReply::finished, [this, networkReply]() {
-                    QString responseString = networkReply->readAll();
-                    qCDebug(avatars) << "Marketplace response for avatar" << getDisplayName() << ":" << responseString;
-                    QJsonDocument responseJson = QJsonDocument::fromJson(responseString.toUtf8());
+                    QMutexLocker certifyLocker(&_avatarCertifyLock);
                     if (networkReply->error() == QNetworkReply::NoError) {
-                        QMutexLocker certifyLocker(&_avatarCertifyLock);
-                        // TODO: move processing to slave thread.
+                        _dynamicMarketResponse = networkReply->readAll();
                         _verifyState = kOwnerResponse;
-                        if (responseJson["status"].toString() == "success") {
-                            auto jsonData = responseJson["data"];
-                            // owner, owner key?
-                        }
                     } else {
-                        auto jsonData = responseJson["data"];
+                        auto jsonData = QJsonDocument::fromJson(networkReply->readAll())["data"];
                         if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
-                            qCDebug(avatars) << "Certificate Id lookup failed for" << getDisplayName() << ":"
+                            qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
                                              << jsonData.toObject()["message"].toString();
                             _verifyState = kError;
                         }
@@ -179,7 +174,7 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
             } else if (key == "script") {
                 scripts.append(lineMatch.captured(2).trimmed());
             } else {
-                certifiedItems[key] = QJsonValue(lineMatch.captured(2).trimmed());
+                certifiedItems[key] = QJsonValue(lineMatch.captured(2));
             }
         }
     }
@@ -187,8 +182,53 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
         scripts.sort();
         certifiedItems["script"] = QJsonArray::fromStringList(scripts);
     }
+
     QJsonDocument jsonDocCertifiedItems(certifiedItems);
     //Example working form:
-    //return R"({"editionNumber":34,"filename":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/Hifi_Toon_Male_3.fbx","itemArtist":"EgyMax","itemCategories":"Avatars","itemDescription":"This is my first avatar. I hope you like it. More will come","itemName":"Bridger","limitedRun":-1,"marketplaceID":"7f142fde-541a-4902-b33a-25fa89dfba21","texdir":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/textures"})";
+    //return R"({"editionNumber":34,"filename":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/Hifi_Toon_Male_3.fbx","itemArtist":"EgyMax",
+    //"itemCategories":"Avatars","itemDescription":"This is my first avatar. I hope you like it. More will come","itemName":"Bridger","limitedRun":-1,
+    //"marketplaceID":"7f142fde-541a-4902-b33a-25fa89dfba21","texdir":"http://mpassets.highfidelity.com/7f142fde-541a-4902-b33a-25fa89dfba21-v1/Bridger/textures"})";
     return jsonDocCertifiedItems.toJson(QJsonDocument::Compact);
+}
+
+void MixerAvatar::processCertifyEvents() {
+    QMutexLocker certifyLocker(&_avatarCertifyLock);
+    if (_verifyState != kOwnerResponse) {
+        return;
+    }
+
+    switch (_verifyState) {
+    case kOwnerResponse:
+    {
+        QJsonDocument responseJson = QJsonDocument::fromJson(_dynamicMarketResponse.toUtf8());
+        _verifyState = kChallengeClient;
+        QString ownerPublicKey;
+        bool ownerValid = false;
+        qCDebug(avatars) << "Marketplace response for avatar" << getDisplayName() << ":" << _dynamicMarketResponse;
+        if (responseJson["status"].toString() == "success") {
+            QJsonValue jsonData = responseJson["data"];
+            if (jsonData.isObject()) {
+                auto ownerJson = jsonData["transfer_recipient_key"];
+                if (ownerJson.isString()) {
+                    ownerPublicKey = ownerJson.toString();
+                }
+                auto transferStatusJson = jsonData["transfer_status"];
+                if (transferStatusJson.isArray() && transferStatusJson.toArray()[0].toString() == "confirmed") {
+                    ownerValid = true;
+                }
+            }
+            if (ownerValid && !ownerPublicKey.isEmpty()) {
+                // Challenge owner ...
+            } else {
+                _verifyState = kError;
+            }
+        } else {
+            qCDebug(avatars) << "Get owner status failed for " << getDisplayName() << _marketplaceIdFromURL <<
+                "message:" << responseJson["message"].toString();
+            _verifyState = kError;
+        }
+        break;
+    }
+
+    }  // close switch
 }

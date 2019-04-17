@@ -81,6 +81,10 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
     }
     assert(_packetQueue.empty());
 
+    if (_avatar) {
+        _avatar->processCertifyEvents();
+    }
+
     return packetsProcessed;
 }
 

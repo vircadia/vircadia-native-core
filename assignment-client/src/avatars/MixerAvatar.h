@@ -15,8 +15,6 @@
 #ifndef hifi_MixerAvatar_h
 #define hifi_MixerAvatar_h
 
-#include <QJsonDocument>
-
 #include <AvatarData.h>
 
 class ResourceRequest;
@@ -28,6 +26,7 @@ public:
 
     void fetchAvatarFST();
     bool isCertifyFailed() const { return _verifyState == kVerificationFailed;  }
+    void processCertifyEvents();
 
 private:
     bool _needsHeroCheck{ false };
@@ -39,12 +38,12 @@ private:
     VerifyState _verifyState { kNoncertified };
     QMutex _avatarCertifyLock;
     ResourceRequest* _avatarRequest { nullptr };
-    QString _marketplaceIdString;
+    QString _marketplaceIdFromURL;
     QByteArray _avatarFSTContents;
     QByteArray _certificateHash;
     QString _certificateIdFromURL;
     QString _certificateIdFromFST;
-    QJsonDocument _dynamicMarketResponse;
+    QString _dynamicMarketResponse;
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey);
