@@ -43,6 +43,7 @@ namespace gpu {
         FramebufferRecycler framebufferRecycler;
 
         std::queue<std::pair<std::function<void(const QImage&)>, float>> snapshotOperators;
+        std::queue<std::function<void(const QImage&)>> secondarySnapshotOperators;
 
     protected:
         friend class Deserializer;

@@ -345,8 +345,11 @@ public:
     #endif
 
     using SnapshotOperator = std::pair<std::function<void(const QImage&)>, float>;
+    using SecondarySnapshotOperator = std::function<void(const QImage&)>;
     void addSnapshotOperator(const SnapshotOperator& snapshotOperator);
     bool takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators);
+    void addSecondarySnapshotOperator(const SecondarySnapshotOperator& snapshotOperator);
+    bool takeSecondarySnapshotOperators(std::queue<SecondarySnapshotOperator>& snapshotOperators);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -794,6 +797,7 @@ private:
     SharedSoundPointer _sampleSound;
     std::mutex _snapshotMutex;
     std::queue<SnapshotOperator> _snapshotOperators;
+    std::queue<SecondarySnapshotOperator> _secondarySnapshotOperators;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;

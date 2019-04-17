@@ -8428,6 +8428,17 @@ bool Application::takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOp
     return !snapshotOperators.empty();
 }
 
+void Application::addSecondarySnapshotOperator(const SecondarySnapshotOperator& snapshotOperator) {
+    std::lock_guard<std::mutex> lock(_snapshotMutex);
+    _secondarySnapshotOperators.push(snapshotOperator);
+}
+
+bool Application::takeSecondarySnapshotOperators(std::queue<SecondarySnapshotOperator>& snapshotOperators) {
+    std::lock_guard<std::mutex> lock(_snapshotMutex);
+    _secondarySnapshotOperators.swap(snapshotOperators);
+    return !snapshotOperators.empty();
+}
+
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     addSnapshotOperator({ [notify, includeAnimated, aspectRatio, filename](const QImage& snapshot) {
         QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
@@ -8439,16 +8450,17 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
                 emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
             }
         } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
-            // Get an animated GIF snapshot and save it
-            SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+            qApp->postLambdaEvent([path, aspectRatio] {
+                // Get an animated GIF snapshot and save it
+                SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, DependencyManager::get<WindowScriptingInterface>());
+            });
         }
     }, aspectRatio });
 }
 
 void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
-    postLambdaEvent([notify, filename, this] {
-        QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
-                                                      TestScriptingInterface::getInstance()->getTestResultsLocation());
+    addSecondarySnapshotOperator([notify, filename](const QImage& snapshot) {
+        QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
     });

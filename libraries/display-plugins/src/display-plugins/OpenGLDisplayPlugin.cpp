@@ -732,6 +732,15 @@ void OpenGLDisplayPlugin::present() {
             }
         }
 
+        { // If we have any secondary camera snapshots this frame, handle them
+            PROFILE_RANGE_EX(render, "secondarySnapshotOperators", 0x00ff00ff, frameId)
+            while (!_currentFrame->secondarySnapshotOperators.empty()) {
+                auto& snapshotOperator = _currentFrame->secondarySnapshotOperators.front();
+                snapshotOperator(getSecondaryCameraScreenshot());
+                _currentFrame->secondarySnapshotOperators.pop();
+            }
+        }
+
         // Take the composite framebuffer and send it to the output device
         {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
@@ -796,7 +805,7 @@ bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
     return !!_displayTexture;
 }
 
-QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
+QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) {
     auto size = _compositeFramebuffer->getSize();
     if (isHmd()) {
         size.x /= 2;
@@ -812,24 +821,18 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
         corner.x = round((size.x - bestSize.x) / 2.0f);
         corner.y = round((size.y - bestSize.y) / 2.0f);
     }
-    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
-    withOtherThreadContext([&] {
-        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
-    });
+    getGLBackend()->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
     return screenshot.mirrored(false, true);
 }
 
-QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() const {
+QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() {
     auto textureCache = DependencyManager::get<TextureCache>();
     auto secondaryCameraFramebuffer = textureCache->getSpectatorCameraFramebuffer();
     gpu::Vec4i region(0, 0, secondaryCameraFramebuffer->getWidth(), secondaryCameraFramebuffer->getHeight());
 
-    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(region.z, region.w, QImage::Format_ARGB32);
-    withOtherThreadContext([&] {
-        glBackend->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
-    });
+    getGLBackend()->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
     return screenshot.mirrored(false, true);
 }
 
