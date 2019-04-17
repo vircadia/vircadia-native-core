@@ -358,7 +358,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
             std::vector<QString> dracoMaterialList;
             for (const auto& dracoChild : child.children) {
                 if (dracoChild.name == "FBXDracoMeshVersion") {
-                    if (!dracoChild.children.isEmpty()) {
+                    if (!dracoChild.properties.isEmpty()) {
                         dracoMeshNodeVersion = dracoChild.properties[0].toUInt();
                     }
                 } else if (dracoChild.name == "MaterialList") {
@@ -492,7 +492,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                     // Figure out what material this part is
                     if (dracoMeshNodeVersion >= 2) {
                         // Define the materialID now
-                        if (dracoMaterialList.size() - 1 <= materialID) {
+                        if (materialID <= dracoMaterialList.size() - 1) {
                             part.materialID = dracoMaterialList[materialID];
                         }
                     } else {
