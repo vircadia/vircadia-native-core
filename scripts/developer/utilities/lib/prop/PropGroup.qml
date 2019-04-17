@@ -17,20 +17,33 @@ Item {
     property var label: "group"
 
     property alias isUnfold: headerFolderIcon.icon
+    property var indentDepth: 0
+    
     property alias propItemsPanel: propItemsContainer
     default property alias extHeader: headerContainer.data
 
     // Header Item
-    Item {
+    Rectangle {
         id: header
         height: global.slimHeight
         anchors.left: parent.left           
         anchors.right: parent.right
 
-        // First in the header, the folder button / indicator
+        color: global.colorBackShadow // header of group is darker
+
+        // First in the header, some indentation spacer
+        Item {
+            id: indentSpacer
+            width: (headerFolderIcon.width * root.indentDepth) + global.horizontalMargin   // Must be non-zero
+            height: parent.height
+
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Second, the folder button / indicator
         Item {
             id: headerFolder
-            anchors.left: header.left
+            anchors.left: indentSpacer.right
             width: headerFolderIcon.width * 2
             anchors.verticalCenter: header.verticalCenter
             height: parent.height

@@ -26,6 +26,7 @@ Prop.PropGroup {
     property var rootConfig : Render
     property var jobPath: ""
     property alias label: root.label
+    property alias indentDepth: root.indentDepth
 
     property var showProps: true
     property var showSubs: true
@@ -33,7 +34,7 @@ Prop.PropGroup {
     function populatePropItems() {
         var propsModel = []
         var props = Jet.job_propKeys(rootConfig.getConfig(jobPath));
-        console.log(JSON.stringify(props));
+      //  console.log(JSON.stringify(props));
         if (showProps) {
             for (var p in props) {
                 propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
@@ -50,7 +51,8 @@ Prop.PropGroup {
                         "rootConfig": root.rootConfig,
                         "jobPath": root.jobPath + '.' + job.objectName,
                         "showProps": root.showProps,
-                        "showSubs": root.showSubs
+                        "showSubs": root.showSubs,
+                        "indentDepth": root.indentDepth + 1,
                     })
                     /*  var component = Qt.createComponent("../../prop/PropItem.qml");
                     component.createObject(root.propItemsPanel, {
