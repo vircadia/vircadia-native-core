@@ -387,13 +387,13 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(AMBIENT_LIGHT_KEY)) {
                 auto ambientLight = entity[AMBIENT_LIGHT_KEY].toObject();
                 if (ambientLight.contains(AMBIENT_URL_KEY)) {
-                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::AMBIENT_TEXTURE, *it);
                 }
             }
             if (entity.contains(SKYBOX_KEY)) {
                 auto skybox = entity[SKYBOX_KEY].toObject();
                 if (skybox.contains(SKYBOX_URL_KEY)) {
-                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::SKY_TEXTURE, *it);
                 }
             }
 
