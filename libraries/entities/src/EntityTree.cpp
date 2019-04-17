@@ -2079,7 +2079,6 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 }
 
 void EntityTree::fixupNeedsParentFixups() {
-    PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
     QVector<EntityItemWeakPointer> entitiesToFixup;
     {
