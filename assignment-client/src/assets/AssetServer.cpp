@@ -1314,27 +1314,57 @@ void AssetServer::handleFailedBake(QString originalAssetHash, QString assetPath,
 
 void AssetServer::handleCompletedBake(QString originalAssetHash, QString originalAssetPath,
                                       QString bakedTempOutputDir) {
+    auto reportCompletion = [this, originalAssetPath, originalAssetHash](bool errorCompletingBake,
+                                                                         QString errorReason,
+                                                                         QString redirectTarget) {
+        auto type = assetTypeForFilename(originalAssetPath);
+        auto currentTypeVersion = currentBakeVersionForAssetType(type);
+
+        AssetMeta meta;
+        meta.bakeVersion = currentTypeVersion;
+        meta.failedLastBake = errorCompletingBake;
+        meta.redirectTarget = redirectTarget;
+
+        if (errorCompletingBake) {
+            qWarning() << "Could not complete bake for" << originalAssetHash;
+            meta.lastBakeErrors = errorReason;
+        }
+
+        writeMetaFile(originalAssetHash, meta);
+
+        _pendingBakes.remove(originalAssetHash);
+    };
+
     bool errorCompletingBake { false };
     QString errorReason;
+    QString redirectTarget;
 
     qDebug() << "Completing bake for " << originalAssetHash;
 
-
-
+    // Find the directory containing the baked content
     QDir outputDir(bakedTempOutputDir);
+    QString outputDirName = outputDir.dirName();
     auto directories = outputDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-    assert(directories.size() == 1);
     QString bakedDirectoryPath;
     for (const auto& dirName : directories) {
         outputDir.cd(dirName);
         if (outputDir.exists("baked") && outputDir.exists("original")) {
             bakedDirectoryPath = outputDir.filePath("baked");
+            break;
         }
         outputDir.cdUp();
     }
+    if (bakedDirectoryPath.isEmpty()) {
+        errorCompletingBake = true;
+        errorReason = "Failed to find baking output";
 
-    assert(!bakedDirectoryPath.isEmpty());
+        // Cleanup temporary output directory
+        PathUtils::deleteMyTemporaryDir(outputDirName);
+        reportCompletion(errorCompletingBake, errorReason, redirectTarget);
+        return;
+    }
 
+    // Compile list of all the baked files
     QDirIterator it(bakedDirectoryPath, QDirIterator::Subdirectories);
     QVector<QString> bakedFilePaths;
     while (it.hasNext()) {
@@ -1343,9 +1373,17 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             bakedFilePaths.push_back(it.filePath());
         }
     }
+    if (bakedFilePaths.isEmpty()) {
+        errorCompletingBake = true;
+        errorReason = "Baking output has no files";
+
+        // Cleanup temporary output directory
+        PathUtils::deleteMyTemporaryDir(outputDirName);
+        reportCompletion(errorCompletingBake, errorReason, redirectTarget);
+        return;
+    }
 
     QDir bakedDirectory(bakedDirectoryPath);
-    QString redirectTarget;
 
     for (auto& filePath : bakedFilePaths) {
         // figure out the hash for the contents of this file
@@ -1359,7 +1397,7 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             qDebug() << "Failed to open baked file: " << filePath;
             // stop handling this bake, we couldn't open one of the files for reading
             errorCompletingBake = true;
-            errorReason = "Failed to finalize bake";
+            errorReason = "Could not open baked file " + file.fileName();
             break;
         }
 
@@ -1368,7 +1406,7 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
         if (!hasher.addData(&file)) {
             // stop handling this bake, couldn't hash the contents of the file
             errorCompletingBake = true;
-            errorReason = "Failed to finalize bake";
+            errorReason = "Could not hash data for " + file.fileName();
             break;
         }
 
@@ -1388,13 +1426,15 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
 
         // setup the mapping for this bake file
         auto relativeFilePath = bakedDirectory.relativeFilePath(filePath);
-        qDebug() << "Relative file path is: " << relativeFilePath;
 
         QString bakeMapping = getBakeMapping(originalAssetHash, relativeFilePath);
 
         // Check if this is the file we should redirect to when someone asks for the original asset
         if ((relativeFilePath.endsWith(".baked.fst", Qt::CaseInsensitive) && originalAssetPath.endsWith(".fbx")) ||
             (relativeFilePath.endsWith(".texmeta.json", Qt::CaseInsensitive) && !originalAssetPath.endsWith(".fbx"))) {
+            if (!redirectTarget.isEmpty()) {
+                qWarning() << "Found multiple baked redirect target for" << originalAssetPath;
+            }
             redirectTarget = bakeMapping;
         }
 
@@ -1403,41 +1443,22 @@ void AssetServer::handleCompletedBake(QString originalAssetHash, QString origina
             qDebug() << "Failed to set mapping";
             // stop handling this bake, couldn't add a mapping for this bake file
             errorCompletingBake = true;
-            errorReason = "Failed to finalize bake";
+            errorReason = "Failed to set mapping for baked file " + file.fileName();
             break;
         }
 
         qDebug() << "Added" << bakeMapping << "for bake file" << bakedFileHash << "from bake of" << originalAssetHash;
     }
 
-    for (auto& filePath : bakedFilePaths) {
-        QFile file(filePath);
-        if (!file.remove()) {
-            qWarning() << "Failed to remove temporary file:" << filePath;
-        }
-    }
-    if (!QDir(bakedTempOutputDir).rmdir(".")) {
-        qWarning() << "Failed to remove temporary directory:" << bakedTempOutputDir;
+
+    if (redirectTarget.isEmpty()) {
+        errorCompletingBake = true;
+        errorReason = "Could not find root file for baked output";
     }
 
-    auto type = assetTypeForFilename(originalAssetPath);
-    auto currentTypeVersion = currentBakeVersionForAssetType(type);
-
-    assert(!redirectTarget.isEmpty());
-
-    AssetMeta meta;
-    meta.bakeVersion = currentTypeVersion;
-    meta.failedLastBake = errorCompletingBake;
-    meta.redirectTarget = redirectTarget;
-
-    if (errorCompletingBake) {
-        qWarning() << "Could not complete bake for" << originalAssetHash;
-        meta.lastBakeErrors = errorReason;
-    }
-
-    writeMetaFile(originalAssetHash, meta);
-
-    _pendingBakes.remove(originalAssetHash);
+    // Cleanup temporary output directory
+    PathUtils::deleteMyTemporaryDir(outputDirName);
+    reportCompletion(errorCompletingBake, errorReason, redirectTarget);
 }
 
 void AssetServer::handleAbortedBake(QString originalAssetHash, QString assetPath) {

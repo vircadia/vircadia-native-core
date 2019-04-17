@@ -36,21 +36,6 @@ BakeAssetTask::BakeAssetTask(const AssetUtils::AssetHash& assetHash, const Asset
     });
 }
 
-void cleanupTempFiles(QString tempOutputDir, std::vector<QString> files) {
-    for (const auto& filename : files) {
-        QFile f { filename };
-        if (!f.remove()) {
-            qDebug() << "Failed to remove:" << filename;
-        }
-    }
-    if (!tempOutputDir.isEmpty()) {
-        QDir dir { tempOutputDir };
-        if (!dir.rmdir(".")) {
-            qDebug() << "Failed to remove temporary directory:" << tempOutputDir;
-        }
-    }
-};
-
 void BakeAssetTask::run() {
     if (_isBaking.exchange(true)) {
         qWarning() << "Tried to start bake asset task while already baking";
@@ -59,11 +44,24 @@ void BakeAssetTask::run() {
 
     // Make a new temporary directory for the Oven to work in
     QString tempOutputDir = PathUtils::generateTemporaryDir();
+    QString tempOutputDirName = QDir(tempOutputDir).dirName();
+    if (tempOutputDir.isEmpty()) {
+        QString errors = "Could not create temporary working directory";
+        emit bakeFailed(_assetHash, _assetPath, errors);
+        PathUtils::deleteMyTemporaryDir(tempOutputDirName);
+        return;
+    }
 
     // Copy file to bake the temporary dir and give a name the oven can work with
     auto assetName = _assetPath.split("/").last();
     auto tempAssetPath = tempOutputDir + "/" + assetName;
-    QFile::copy(_filePath, tempAssetPath);
+    auto sucess = QFile::copy(_filePath, tempAssetPath);
+    if (!sucess) {
+        QString errors = "Couldn't copy file to bake to temporary directory";
+        emit bakeFailed(_assetHash, _assetPath, errors);
+        PathUtils::deleteMyTemporaryDir(tempOutputDirName);
+        return;
+    }
 
     auto base = QFileInfo(QCoreApplication::applicationFilePath()).absoluteDir();
     QString path = base.absolutePath() + "/oven";
@@ -79,30 +77,23 @@ void BakeAssetTask::run() {
     QEventLoop loop;
 
     connect(_ovenProcess.get(), static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-            this, [&loop, this, tempOutputDir, tempAssetPath](int exitCode, QProcess::ExitStatus exitStatus) {
+            this, [&loop, this, tempOutputDir, tempAssetPath, tempOutputDirName](int exitCode, QProcess::ExitStatus exitStatus) {
         qDebug() << "Baking process finished: " << exitCode << exitStatus;
 
         if (exitStatus == QProcess::CrashExit) {
+            PathUtils::deleteMyTemporaryDir(tempOutputDirName);
             if (_wasAborted) {
                 emit bakeAborted(_assetHash, _assetPath);
             } else {
                 QString errors = "Fatal error occurred while baking";
                 emit bakeFailed(_assetHash, _assetPath, errors);
             }
-            if (!QDir(tempOutputDir).rmdir(".")) {
-                qWarning() << "Failed to remove temporary directory:" << tempOutputDir;
-            }
         } else if (exitCode == OVEN_STATUS_CODE_SUCCESS) {
-            // Remove temp copy of the original asset
-            QFile::remove(tempAssetPath);
-
             emit bakeComplete(_assetHash, _assetPath, tempOutputDir);
         } else if (exitStatus == QProcess::NormalExit && exitCode == OVEN_STATUS_CODE_ABORT) {
             _wasAborted.store(true);
+            PathUtils::deleteMyTemporaryDir(tempOutputDirName);
             emit bakeAborted(_assetHash, _assetPath);
-            if (!QDir(tempOutputDir).rmdir(".")) {
-                qWarning() << "Failed to remove temporary directory:" << tempOutputDir;
-            }
         } else {
             QString errors;
             if (exitCode == OVEN_STATUS_CODE_FAIL) {
@@ -116,10 +107,8 @@ void BakeAssetTask::run() {
                     errors = "Unknown error occurred while baking";
                 }
             }
+            PathUtils::deleteMyTemporaryDir(tempOutputDirName);
             emit bakeFailed(_assetHash, _assetPath, errors);
-            if (!QDir(tempOutputDir).rmdir(".")) {
-                qWarning() << "Failed to remove temporary directory:" << tempOutputDir;
-            }
         }
 
         loop.quit();
@@ -128,12 +117,11 @@ void BakeAssetTask::run() {
     qDebug() << "Starting oven for " << _assetPath;
     _ovenProcess->start(path, args, QIODevice::ReadOnly);
     qDebug() << "Running:" << path << args;
-    if (!_ovenProcess->waitForStarted(-1)) {
+    if (!_ovenProcess->waitForStarted()) {
+        PathUtils::deleteMyTemporaryDir(tempOutputDirName);
+
         QString errors = "Oven process failed to start";
         emit bakeFailed(_assetHash, _assetPath, errors);
-        if (!QDir(tempOutputDir).rmdir(".")) {
-            qWarning() << "Failed to remove temporary directory:" << tempOutputDir;
-        }
         return;
     }
 
