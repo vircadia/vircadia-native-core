@@ -437,6 +437,11 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
         RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
+    } else {
+        // We might have an opacity mask so we need to bind the albedo texture and material which might hold
+        // the alpha mask channel
+        RenderPipelines::bindMaterialsOpacityMask(_drawMaterials, batch, args->_enableTexturing);
+        args->_details._materialSwitches++;
     }
 
     // Draw!

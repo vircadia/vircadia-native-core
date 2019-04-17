@@ -730,6 +730,8 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     multiMaterial.setInitialized();
 }
 
+static gpu::TextureTablePointer defaultMaterialTextures = std::make_shared<gpu::TextureTable>();
+
 void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
     if (multiMaterial.shouldUpdate()) {
         updateMultiMaterial(multiMaterial);
@@ -737,7 +739,6 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
 
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    static gpu::TextureTablePointer defaultMaterialTextures = std::make_shared<gpu::TextureTable>();
     static std::once_flag once;
     std::call_once(once, [textureCache] {
         defaultMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());
@@ -761,5 +762,37 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
             defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
         }
         batch.setResourceTextureTable(defaultMaterialTextures);
+    }
+}
+
+static gpu::BufferView defaultMaterialSchema;
+
+void RenderPipelines::bindMaterialsOpacityMask(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
+    if (multiMaterial.shouldUpdate()) {
+        updateMultiMaterial(multiMaterial);
+    }
+
+    if (multiMaterial.getMaterialKey().isOpacityMaskMap()) {
+        auto textureCache = DependencyManager::get<TextureCache>();
+
+        static std::once_flag once;
+        std::call_once(once, [textureCache] {
+            defaultMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());
+        });
+
+        auto& schemaBuffer = multiMaterial.getSchemaBuffer();
+        batch.setUniformBuffer(gr::Buffer::Material, schemaBuffer);
+
+        if (enableTextures) {
+            batch.setResourceTextureTable(multiMaterial.getTextureTable());
+        } else {
+            batch.setResourceTextureTable(defaultMaterialTextures);
+        }
+    } else {
+        if (defaultMaterialSchema._buffer == nullptr) {
+            graphics::MultiMaterial::Schema schema;
+            defaultMaterialSchema = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(schema), (const gpu::Byte*) &schema, sizeof(schema)));
+        }
+        batch.setUniformBuffer(gr::Buffer::Material, defaultMaterialSchema);
     }
 }
