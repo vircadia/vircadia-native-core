@@ -14,11 +14,13 @@
 
 #include <vector>
 
+#include <QObject>
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
 #include <ShapeInfo.h>
 
+#include "ShapeFactory.h"
 #include "HashKey.h"
 
 // The ShapeManager handles the ref-counting on shared shapes:
@@ -44,7 +46,8 @@
 // entries that still have zero ref-count.
 
 
-class ShapeManager {
+class ShapeManager : public QObject {
+    Q_OBJECT
 public:
 
     ShapeManager();
@@ -65,6 +68,9 @@ public:
     int getNumReferences(const btCollisionShape* shape) const;
     bool hasShape(const btCollisionShape* shape) const;
 
+protected slots:
+    void acceptWork(ShapeFactory::Worker* worker);
+
 private:
     bool releaseShapeByKey(uint64_t key);
 
@@ -79,6 +85,8 @@ private:
     // btHashMap is required because it supports memory alignment of the btCollisionShapes
     btHashMap<HashKey, ShapeReference> _shapeMap;
     std::vector<uint64_t> _garbageRing;
+    std::vector<uint64_t> _pendingMeshShapes;
+    ShapeFactory::Worker* _deadWorker { nullptr };
     uint32_t _ringIndex { 0 };
 };
 

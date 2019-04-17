@@ -12,10 +12,8 @@
 #include "ShapeManager.h"
 
 #include <glm/gtx/norm.hpp>
+#include <QThreadPool>
 
-#include <QDebug>
-
-#include "ShapeFactory.h"
 
 const int MAX_RING_SIZE = 256;
 
@@ -42,13 +40,36 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         shapeRef->refCount++;
         return shapeRef->shape;
     }
-    const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
-    if (shape) {
-        ShapeReference newRef;
-        newRef.refCount = 1;
-        newRef.shape = shape;
-        newRef.key = info.getHash();
-        _shapeMap.insert(hashKey, newRef);
+    const btCollisionShape* shape = nullptr;
+    if (info.getType() == SHAPE_TYPE_STATIC_MESH) {
+        uint64_t hash = info.getHash();
+        const auto itr = std::find(_pendingMeshShapes.begin(), _pendingMeshShapes.end(), hash);
+        if (itr == _pendingMeshShapes.end()) {
+            // start a worker
+            _pendingMeshShapes.push_back(hash);
+            // try to recycle old deadWorker
+            ShapeFactory::Worker* worker = _deadWorker;
+            if (!worker) {
+                worker = new ShapeFactory::Worker(info);
+            } else {
+                worker->shapeInfo = info;
+                _deadWorker = nullptr;
+            }
+            // we will delete worker manually later
+            worker->setAutoDelete(false);
+            QObject::connect(worker, &ShapeFactory::Worker::submitWork, this, &ShapeManager::acceptWork);
+            QThreadPool::globalInstance()->start(worker);
+        }
+        // else we're still waiting for the shape to be created on another thread
+    } else {
+        shape = ShapeFactory::createShapeFromInfo(info);
+        if (shape) {
+            ShapeReference newRef;
+            newRef.refCount = 1;
+            newRef.shape = shape;
+            newRef.key = info.getHash();
+            _shapeMap.insert(hashKey, newRef);
+        }
     }
     return shape;
 }
@@ -152,4 +173,40 @@ bool ShapeManager::hasShape(const btCollisionShape* shape) const {
         }
     }
     return false;
+}
+
+// slot: called when ShapeFactory::Worker is done building shape
+void ShapeManager::acceptWork(ShapeFactory::Worker* worker) {
+    auto itr = std::find(_pendingMeshShapes.begin(), _pendingMeshShapes.end(), worker->shapeInfo.getHash());
+    if (itr == _pendingMeshShapes.end()) {
+        // we've received a shape but don't remember asking for it
+        // (should not fall in here, but if we do: delete the unwanted shape)
+        if (worker->shape) {
+            ShapeFactory::deleteShape(worker->shape);
+        }
+    } else {
+        // clear pending status
+        *itr = _pendingMeshShapes.back();
+        _pendingMeshShapes.pop_back();
+
+        // cache the new shape
+        if (worker->shape) {
+            ShapeReference newRef;
+            newRef.refCount = 1;
+            newRef.shape = worker->shape;
+            newRef.key = worker->shapeInfo.getHash();
+            HashKey hashKey(newRef.key);
+            _shapeMap.insert(hashKey, newRef);
+        }
+    }
+    disconnect(worker, &ShapeFactory::Worker::submitWork, this, &ShapeManager::acceptWork);
+
+    if (_deadWorker) {
+        // delete the previous deadWorker manually
+        delete _deadWorker;
+    }
+    // save this dead worker for later
+    worker->shapeInfo.clear();
+    worker->shape = nullptr;
+    _deadWorker = worker;
 }

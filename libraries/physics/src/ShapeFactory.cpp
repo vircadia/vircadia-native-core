@@ -481,3 +481,8 @@ void ShapeFactory::deleteShape(const btCollisionShape* shape) {
     }
     delete nonConstShape;
 }
+
+void ShapeFactory::Worker::run() {
+    shape = ShapeFactory::createShapeFromInfo(shapeInfo);
+    emit submitWork(this);
+}
