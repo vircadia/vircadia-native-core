@@ -492,7 +492,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                     // Figure out what material this part is
                     if (dracoMeshNodeVersion >= 2) {
                         // Define the materialID now
-                        if (materialID <= dracoMaterialList.size() - 1) {
+                        if (materialID < dracoMaterialList.size()) {
                             part.materialID = dracoMaterialList[materialID];
                         }
                     } else {
