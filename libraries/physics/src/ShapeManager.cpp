@@ -14,11 +14,13 @@
 #include <glm/gtx/norm.hpp>
 #include <QThreadPool>
 
+#include <NumericalConstants.h>
 
 const int MAX_RING_SIZE = 256;
 
 ShapeManager::ShapeManager() {
     _garbageRing.reserve(MAX_RING_SIZE);
+    _nextOrphanExpiry = std::chrono::steady_clock::now();
 }
 
 ShapeManager::~ShapeManager() {
@@ -74,6 +76,33 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     return shape;
 }
 
+void ShapeManager::addToGarbage(uint64_t key) {
+    // look for existing entry in _garbageRing
+    int32_t ringSize = (int32_t)(_garbageRing.size());
+    for (int32_t i = 0; i < ringSize; ++i) {
+        int32_t j = (_ringIndex + ringSize) % ringSize;
+        if (_garbageRing[j] == key) {
+            // already on the list, don't add it again
+            return;
+        }
+    }
+    if (ringSize == MAX_RING_SIZE) {
+        // remove one
+        HashKey hashKeyToRemove(_garbageRing[_ringIndex]);
+        ShapeReference* shapeRef = _shapeMap.find(hashKeyToRemove);
+        if (shapeRef && shapeRef->refCount == 0) {
+            ShapeFactory::deleteShape(shapeRef->shape);
+            _shapeMap.remove(hashKeyToRemove);
+        }
+        // replace at _ringIndex and advance
+        _garbageRing[_ringIndex] = key;
+        _ringIndex = (_ringIndex + 1) % ringSize;
+    } else {
+        // add one
+        _garbageRing.push_back(key);
+    }
+}
+
 // private helper method
 bool ShapeManager::releaseShapeByKey(uint64_t key) {
     HashKey hashKey(key);
@@ -82,30 +111,7 @@ bool ShapeManager::releaseShapeByKey(uint64_t key) {
         if (shapeRef->refCount > 0) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
-                // look for existing entry in _garbageRing
-                int32_t ringSize = (int32_t)(_garbageRing.size());
-                for (int32_t i = 0; i < ringSize; ++i) {
-                    int32_t j = (_ringIndex + ringSize) % ringSize;
-                    if (_garbageRing[j] == key) {
-                        // already on the list, don't add it again
-                        return true;
-                    }
-                }
-                if (ringSize == MAX_RING_SIZE) {
-                    // remove one
-                    HashKey hashKeyToRemove(_garbageRing[_ringIndex]);
-                    ShapeReference* shapeRef = _shapeMap.find(hashKeyToRemove);
-                    if (shapeRef && shapeRef->refCount == 0) {
-                        ShapeFactory::deleteShape(shapeRef->shape);
-                        _shapeMap.remove(hashKeyToRemove);
-                    }
-                    // replace at _ringIndex and advance
-                    _garbageRing[_ringIndex] = key;
-                    _ringIndex = (_ringIndex + 1) % ringSize;
-                } else {
-                    // add one
-                    _garbageRing.push_back(key);
-                }
+                addToGarbage(key);
             }
             return true;
         } else {
@@ -192,11 +198,45 @@ void ShapeManager::acceptWork(ShapeFactory::Worker* worker) {
         // cache the new shape
         if (worker->shape) {
             ShapeReference newRef;
-            newRef.refCount = 1;
+            // refCount is zero because nothing is using the shape yet
+            newRef.refCount = 0;
             newRef.shape = worker->shape;
             newRef.key = worker->shapeInfo.getHash();
             HashKey hashKey(newRef.key);
             _shapeMap.insert(hashKey, newRef);
+
+            // This shape's refCount is zero because an object requested it but is not yet using it.  We expect it to be
+            // used later but there is a possibility it will never be used (e.g. the object that wanted it was removed
+            // before the shape could be added, or has changed its mind and now wants a different shape).
+            // Normally zero refCount shapes belong on _garbageRing for possible cleanup but we don't want to add it there
+            // because it might get reaped too soon.  So we add it to _orphans to check later.  If it still has zero
+            // refCount on expiry we will move it to _garbageRing.
+            const int64_t SHAPE_EXPIRY = USECS_PER_SECOND;
+            auto now = std::chrono::steady_clock::now();
+            auto expiry = now + std::chrono::microseconds(SHAPE_EXPIRY);
+            if (_nextOrphanExpiry < now) {
+                // check for expired orphan shapes
+                size_t i = 0;
+                while (i < _orphans.size()) {
+                    if (_orphans[i].expiry < now) {
+                        uint64_t key = _orphans[i].key;
+                        HashKey hashKey(key);
+                        ShapeReference* shapeRef = _shapeMap.find(hashKey);
+                        if (shapeRef) {
+                            if (shapeRef->refCount == 0) {
+                                // shape unused after expiry
+                                addToGarbage(key);
+                            }
+                        }
+                        _orphans[i] = _orphans.back();
+                        _orphans.pop_back();
+                    } else {
+                        ++i;
+                    }
+                }
+            }
+            _nextOrphanExpiry = expiry;
+            _orphans.push_back(KeyExpiry(newRef.key, expiry));
         }
     }
     disconnect(worker, &ShapeFactory::Worker::submitWork, this, &ShapeManager::acceptWork);

@@ -72,6 +72,7 @@ protected slots:
     void acceptWork(ShapeFactory::Worker* worker);
 
 private:
+    void addToGarbage(uint64_t key);
     bool releaseShapeByKey(uint64_t key);
 
     class ShapeReference {
@@ -82,11 +83,21 @@ private:
         ShapeReference() : refCount(0), shape(nullptr) {}
     };
 
+    using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
+    class KeyExpiry {
+    public:
+        KeyExpiry(uint64_t k, std::chrono::time_point<std::chrono::steady_clock> e) : expiry(e), key(k) {}
+        TimePoint expiry;
+        uint64_t key;
+    };
+
     // btHashMap is required because it supports memory alignment of the btCollisionShapes
     btHashMap<HashKey, ShapeReference> _shapeMap;
     std::vector<uint64_t> _garbageRing;
     std::vector<uint64_t> _pendingMeshShapes;
+    std::vector<KeyExpiry> _orphans;
     ShapeFactory::Worker* _deadWorker { nullptr };
+    TimePoint _nextOrphanExpiry;
     uint32_t _ringIndex { 0 };
 };
 
