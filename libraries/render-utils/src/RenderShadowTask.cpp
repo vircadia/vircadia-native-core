@@ -336,7 +336,7 @@ void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {
 }
 
 void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
-    _bias[cascadeIndex]._slope = value * value * value * 0.01f;
+    _bias[cascadeIndex]._slope = value * value * value * 0.001f;
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {

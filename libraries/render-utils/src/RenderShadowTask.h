@@ -95,8 +95,8 @@ public:
     float constantBias3{ 0.2f };
     float slopeBias0{ 0.6f };
     float slopeBias1{ 0.6f };
-    float slopeBias2{ 0.7f };
-    float slopeBias3{ 0.82f };
+    float slopeBias2{ 0.65f };
+    float slopeBias3{ 0.7f };
 
 signals:
     void dirty();
