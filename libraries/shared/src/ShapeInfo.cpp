@@ -273,18 +273,18 @@ float ShapeInfo::computeVolume() const {
 uint64_t ShapeInfo::getHash() const {
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
     if (_hash64 == 0 && _type != SHAPE_TYPE_NONE) {
-        HashKey hashKey;
+        HashKey::Hasher hasher;
         // The key is not yet cached therefore we must compute it.
 
-        hashKey.hashUint64((uint64_t)_type);
+        hasher.hashUint64((uint64_t)_type);
         if (_type == SHAPE_TYPE_MULTISPHERE) {
             for (auto &sphereData : _sphereCollection) {
-                hashKey.hashVec3(glm::vec3(sphereData));
-                hashKey.hashFloat(sphereData.w);
+                hasher.hashVec3(glm::vec3(sphereData));
+                hasher.hashFloat(sphereData.w);
             }
         } else if (_type != SHAPE_TYPE_SIMPLE_HULL) {
-            hashKey.hashVec3(_halfExtents);
-            hashKey.hashVec3(_offset);
+            hasher.hashVec3(_halfExtents);
+            hasher.hashVec3(_offset);
         } else {
             // TODO: we could avoid hashing all of these points if we were to supply the ShapeInfo with a unique
             // descriptive string.  Shapes that are uniquely described by their type and URL could just put their
@@ -294,7 +294,7 @@ uint64_t ShapeInfo::getHash() const {
             const int numPoints = (int)points.size();
 
             for (int i = 0; i < numPoints; ++i) {
-                hashKey.hashVec3(points[i]);
+                hasher.hashVec3(points[i]);
             }
         }
 
@@ -302,19 +302,19 @@ uint64_t ShapeInfo::getHash() const {
         if (!url.isEmpty()) {
             QByteArray baUrl = url.toLocal8Bit();
             uint32_t urlHash = qChecksum(baUrl.data(), baUrl.size());
-            hashKey.hashUint64((uint64_t)urlHash);
+            hasher.hashUint64((uint64_t)urlHash);
         }
 
         if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_SIMPLE_COMPOUND) {
             uint64_t numHulls = (uint64_t)_pointCollection.size();
-            hashKey.hashUint64(numHulls);
+            hasher.hashUint64(numHulls);
         } else if (_type == SHAPE_TYPE_MULTISPHERE) {
             uint64_t numSpheres = (uint64_t)_sphereCollection.size();
-            hashKey.hashUint64(numSpheres);
+            hasher.hashUint64(numSpheres);
         } else if (_type == SHAPE_TYPE_SIMPLE_HULL) {
-            hashKey.hashUint64(1);
+            hasher.hashUint64(1);
         }
-        _hash64 = hashKey.getHash64();
+        _hash64 = hasher.getHash64();
     }
     return _hash64;
 }
