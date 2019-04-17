@@ -1449,6 +1449,28 @@ QStringList Avatar::getJointNames() const {
     return result;
 }
 
+std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultData() {
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> defaultSkeletonData;
+    if (_skeletonModel->isLoaded()) {
+        auto jointNames = getJointNames();
+        int sizeCount = 0;
+        for (int i = 0; i < min(43, jointNames.size()); i++) {
+            AvatarSkeletonTrait::UnpackedJointData jointData;
+            jointData.jointParent = _skeletonModel->getRig().getJointParentIndex(i);
+            jointData.jointIndex = i;
+            jointData.defaultRotation = getDefaultJointRotation(i);
+            jointData.defaultTranslation = getDefaultJointTranslation(i);
+            jointData.defaultScale = glm::length(getAbsoluteJointScaleInObjectFrame(i));
+            jointData.jointName = jointNames[i];
+            jointData.stringLength = jointNames[i].size();
+            jointData.stringStart = sizeCount;
+            sizeCount += jointNames[i].size();
+            defaultSkeletonData.push_back(jointData);
+        }
+    }
+    return defaultSkeletonData;
+}
+
 glm::vec3 Avatar::getJointPosition(int index) const {
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
@@ -1515,6 +1537,8 @@ void Avatar::rigReady() {
     buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
     buildSpine2SplineRatioCache();
+    setSkeletonData(getSkeletonDefaultData());
+    sendSkeletonData();
 }
 
 // rig has been reset.

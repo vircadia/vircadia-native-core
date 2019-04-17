@@ -145,6 +145,39 @@ const char AVATARDATA_FLAGS_MINIMUM = 0;
 
 using SmallFloat = uint16_t; // a compressed float with less precision, user defined radix
 
+namespace AvatarSkeletonTrait {
+    PACKED_BEGIN struct Header {
+        float maxTranslationDimension;
+        float maxScaleDimension;
+        uint8_t numJoints;
+        uint8_t padding;
+        uint16_t stringTableLength;
+    } PACKED_END;
+
+    PACKED_BEGIN struct JointData {
+        uint16_t stringStart;
+        uint8_t stringLength;
+        uint8_t boneType;
+        uint8_t defaultTranslation[6];
+        uint8_t defaultRotation[6];
+        uint16_t defaultScale;
+        uint16_t jointIndex;
+        uint16_t jointParent;
+    } PACKED_END;
+
+    struct UnpackedJointData {
+        int jointParent;
+        int stringStart;
+        int stringLength;
+        int boneType;
+        glm::vec3 defaultTranslation;
+        glm::quat defaultRotation;
+        float defaultScale;
+        int jointIndex;
+        QString jointName;
+    };
+}
+
 namespace AvatarDataPacket {
 
     // NOTE: every time AvatarData is sent from mixer to client, it also includes the GUIID for the session
@@ -258,6 +291,7 @@ namespace AvatarDataPacket {
     PACKED_BEGIN struct AvatarLocalPosition {
         float localPosition[3];           // parent frame translation of the avatar
     } PACKED_END;
+
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
     static_assert(sizeof(AvatarLocalPosition) == AVATAR_LOCAL_POSITION_SIZE, "AvatarDataPacket::AvatarLocalPosition size doesn't match.");
 
@@ -1419,6 +1453,8 @@ public:
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
     void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
+    void setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData);
+    void sendSkeletonData() const;
 
 signals:
 
@@ -1597,12 +1633,13 @@ protected:
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
+    QByteArray packSkeletonData() const;
     QByteArray packSkeletonModelURL() const;
     QByteArray packAvatarEntityTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID);
     QByteArray packGrabTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID);
 
     void unpackSkeletonModelURL(const QByteArray& data);
-
+    void unpackSkeletonData(const QByteArray& data);
     
     // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
     // Audio Mixer that the replicated avatar is connected to.
@@ -1718,6 +1755,9 @@ protected:
     mutable ReadWriteLockable _avatarGrabsLock;
     AvatarGrabDataMap _avatarGrabData;
     bool _avatarGrabDataChanged { false }; // by network
+
+    mutable ReadWriteLockable _avatarSkeletonDataLock;
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> _avatarSkeletonData;
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };

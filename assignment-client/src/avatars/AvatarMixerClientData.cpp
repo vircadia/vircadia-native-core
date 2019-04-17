@@ -179,7 +179,13 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
-
+                if (traitType == AvatarTraits::SkeletonData) {
+                    qDebug() << "Sending skeleton avatar trait";
+                    auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
+                    AvatarTraits::packVersionedTrait(AvatarTraits::SkeletonData, *packet, packetTraitVersion, *_avatar);
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    nodeList->sendPacket(std::move(packet), sendingNode);
+                }
                 if (traitType == AvatarTraits::SkeletonModelURL) {
                     // special handling for skeleton model URL, since we need to make sure it is in the whitelist
                     checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);

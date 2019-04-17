@@ -1990,9 +1990,96 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
         return QUrl();
     }
 }
+QByteArray AvatarData::packSkeletonData() const {
+    int avatarDataSize = 0;
+    QByteArray avatarDataByteArray;
+    //_avatarSkeletonDataLock.withReadLock([&] {
+        // Add header
+        AvatarSkeletonTrait::Header header;
+        header.maxScaleDimension = 0.0f;
+        header.maxTranslationDimension = 0.0f;
+        header.numJoints = (uint8_t)_avatarSkeletonData.size();
+        header.padding = 0;
+        header.stringTableLength = 0;
+        qDebug() << "Dealing with: " << _avatarSkeletonData.size() << " joints";
+        for (size_t i = 0; i < _avatarSkeletonData.size(); i++) {
+            header.stringTableLength += (uint16_t)_avatarSkeletonData[i].jointName.size();
+            auto &translation = _avatarSkeletonData[i].defaultTranslation;
+            header.maxTranslationDimension = std::max(header.maxTranslationDimension, std::max(std::max(translation.x, translation.y), translation.z));
+            header.maxScaleDimension = std::max(header.maxScaleDimension, _avatarSkeletonData[i].defaultScale);
+        }
+
+        const int byteArraySize = (int)sizeof(AvatarSkeletonTrait::Header) + (int)(header.numJoints * sizeof(AvatarSkeletonTrait::JointData)) + header.stringTableLength;
+        avatarDataByteArray = QByteArray(byteArraySize, 0);
+        unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
+        const unsigned char* const startPosition = destinationBuffer;
+
+        memcpy(destinationBuffer, &header, sizeof(header));
+        destinationBuffer += sizeof(AvatarSkeletonTrait::Header);
+
+        QString stringTable = "";
+        for (size_t i = 0; i < _avatarSkeletonData.size(); i++) {
+            AvatarSkeletonTrait::JointData jdata;
+            jdata.boneType = _avatarSkeletonData[i].boneType;
+            jdata.jointParent = _avatarSkeletonData[i].jointParent;
+            packFloatRatioToTwoByte((uint8_t*)(&jdata.defaultScale), _avatarSkeletonData[i].defaultScale / header.maxScaleDimension);
+            packOrientationQuatToSixBytes(jdata.defaultRotation, _avatarSkeletonData[i].defaultRotation);
+            packFloatVec3ToSignedTwoByteFixed(jdata.defaultTranslation, _avatarSkeletonData[i].defaultTranslation / header.maxTranslationDimension, TRANSLATION_COMPRESSION_RADIX);
+            jdata.jointIndex = (uint16_t)i;
+            jdata.stringStart = (uint16_t)_avatarSkeletonData[i].stringStart;
+            jdata.stringLength = (uint8_t)_avatarSkeletonData[i].stringLength;
+            stringTable += _avatarSkeletonData[i].jointName;
+            memcpy(destinationBuffer, &jdata, sizeof(AvatarSkeletonTrait::JointData));
+            destinationBuffer += sizeof(AvatarSkeletonTrait::JointData);
+        }
+
+        memcpy(destinationBuffer, stringTable.toUtf8(), header.stringTableLength);
+        destinationBuffer += header.stringTableLength;
+
+        avatarDataSize = destinationBuffer - startPosition;
+        qDebug() << "Data size: " << avatarDataSize;
+    //});
+    return avatarDataByteArray.left(avatarDataSize);
+}
 
 QByteArray AvatarData::packSkeletonModelURL() const {
     return getWireSafeSkeletonModelURL().toEncoded();
+}
+
+void AvatarData::unpackSkeletonData(const QByteArray& data) {
+
+    const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(data.data());
+    const unsigned char* endPosition = startPosition + data.size();
+    const unsigned char* sourceBuffer = startPosition;
+    
+    auto header = reinterpret_cast<const AvatarSkeletonTrait::Header*>(sourceBuffer);
+    sourceBuffer += sizeof(const AvatarSkeletonTrait::Header);
+
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> joints;
+    for (uint8_t i = 0; i < header->numJoints; i++) {
+        auto jointData = reinterpret_cast<const AvatarSkeletonTrait::JointData*>(sourceBuffer);
+        sourceBuffer += sizeof(const AvatarSkeletonTrait::JointData);
+        AvatarSkeletonTrait::UnpackedJointData uJointData;
+        uJointData.boneType = (int)jointData->boneType;
+        uJointData.jointIndex = (int)i;
+        uJointData.stringLength = (int)jointData->stringLength;
+        uJointData.stringStart = (int)jointData->stringStart;
+        unpackOrientationQuatFromSixBytes(reinterpret_cast<const unsigned char*>(&jointData->defaultRotation), uJointData.defaultRotation);
+        unpackFloatVec3FromSignedTwoByteFixed(reinterpret_cast<const unsigned char*>(&jointData->defaultTranslation), uJointData.defaultTranslation, TRANSLATION_COMPRESSION_RADIX);
+        unpackFloatScalarFromSignedTwoByteFixed((const int16_t*)(&jointData->defaultScale), &uJointData.defaultScale, TRANSLATION_COMPRESSION_RADIX);
+        uJointData.defaultTranslation *= header->maxTranslationDimension;
+        uJointData.defaultScale *= header->maxScaleDimension;
+        joints.push_back(uJointData);
+    }
+    qDebug() << "_____length: " << header->stringTableLength;
+    QString table = QString::fromUtf8(reinterpret_cast<const char*>(sourceBuffer), (int)header->stringTableLength);
+    for (size_t i = 0; i < joints.size(); i++) {
+        QStringRef subString(&table, joints[i].stringStart, joints[i].stringLength);
+        joints[i].jointName = subString.toString();
+        qDebug() << "_____data: " << joints[i].boneType << " " << joints[i].jointIndex << " " << joints[i].stringLength << " " << joints[i].stringStart << " " << joints[i].defaultRotation << " " << joints[i].defaultScale << joints[i].defaultTranslation;
+        qDebug() << "_____JointNameReveived: " << joints[i].jointName;
+    }
+    setSkeletonData(joints);
 }
 
 void AvatarData::unpackSkeletonModelURL(const QByteArray& data) {
@@ -2030,6 +2117,8 @@ QByteArray AvatarData::packTrait(AvatarTraits::TraitType traitType) const {
     // Call packer function
     if (traitType == AvatarTraits::SkeletonModelURL) {
         traitBinaryData = packSkeletonModelURL();
+    } else if (traitType == AvatarTraits::SkeletonData) {
+        traitBinaryData = packSkeletonData();
     }
 
     return traitBinaryData;
@@ -2051,6 +2140,8 @@ QByteArray AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, Avat
 void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::SkeletonModelURL) {
         unpackSkeletonModelURL(traitBinaryData);
+    } else if (traitType == AvatarTraits::SkeletonData) {
+        unpackSkeletonData(traitBinaryData);
     }
 }
 
@@ -2995,6 +3086,18 @@ AABox AvatarData::computeBubbleBox(float bubbleScale) const {
     size= glm::max(size, MIN_BUBBLE_SCALE);
     box.setScaleStayCentered(size);
     return box;
+}
+
+void AvatarData::setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData) {
+    _avatarSkeletonDataLock.withWriteLock([&] {
+        _avatarSkeletonData = skeletonData;
+    });
+}
+
+void AvatarData::sendSkeletonData() const{
+    if (_clientTraitsHandler) {
+        _clientTraitsHandler->markTraitUpdated(AvatarTraits::SkeletonData);
+    }
 }
 
 AABox AvatarData::getDefaultBubbleBox() const {
