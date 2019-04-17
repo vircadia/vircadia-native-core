@@ -807,7 +807,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                     sortedNodes[i] = nextNode;
                     sortedNodes[j] = currentNode;
                     i++;
-                    break;
+                    currentNode = sortedNodes[i];
                 }
                 j++;
             }
@@ -831,9 +831,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     for (int nodeIndex : sortedNodes) {
         auto& node = _file.nodes[nodeIndex];
 
-        joint.parentIndex = -1;
-        if (!_file.scenes[_file.scene].nodes.contains(nodeIndex)) {
-            joint.parentIndex = originalToNewNodeIndexMap[parents[nodeIndex]];
+        joint.parentIndex = parents[nodeIndex];
+        if (joint.parentIndex != -1) {
+            joint.parentIndex = originalToNewNodeIndexMap[joint.parentIndex];
         }
         joint.transform = node.transforms.first();
         joint.translation = extractTranslation(joint.transform);
@@ -848,10 +848,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
 
     // Build skeleton
-    hfmModel.hasSkeletonJoints = false;
     std::vector<glm::mat4> jointInverseBindTransforms;
     jointInverseBindTransforms.resize(numNodes);
-    if (!_file.skins.isEmpty()) {
+    hfmModel.hasSkeletonJoints = !_file.skins.isEmpty();
+    if (hfmModel.hasSkeletonJoints) {
         hfmModel.hasSkeletonJoints = true;
         std::vector<std::vector<float>> inverseBindValues;
         getSkinInverseBindMatrices(inverseBindValues);
@@ -929,7 +929,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                     }
                 }
                 HFMCluster root; 
-                root.jointIndex = sortedNodes[0];
+                root.jointIndex = 0;
                 root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
                 root.inverseBindTransform = Transform(root.inverseBindMatrix);
                 mesh.clusters.append(root);
