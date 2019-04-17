@@ -48,37 +48,69 @@ namespace image {
             Format_RGBA8888_Premultiplied = QImage::Format_RGBA8888_Premultiplied,
             Format_Grayscale8 = QImage::Format_Grayscale8,
             Format_R11G11B10F = QImage::Format_RGB30,
-            Format_PACKED_FLOAT = Format_R11G11B10F
+            Format_PACKED_FLOAT = Format_R11G11B10F,
+            // RGBA 32 bit single precision float per component
+            Format_RGBAF = 100
         };
 
         using AspectRatioMode = Qt::AspectRatioMode;
         using TransformationMode = Qt::TransformationMode;
 
-        Image() {}
-        Image(int width, int height, Format format) : _data(width, height, (QImage::Format)format) {}
-        Image(const QImage& data) : _data(data) {}
-        void operator=(const QImage& image) {
-            _data = image;
+        Image() : _dims(0,0) {}
+        Image(int width, int height, Format format);
+        Image(const QImage& data) : _packedData(data), _dims(data.width(), data.height()), _format((Format)data.format()) {}
+
+        void operator=(const QImage& other) {
+            _packedData = other;
+            _floatData.clear();
+            _dims.x = other.width();
+            _dims.y = other.height();
+            _format = (Format)other.format();
         }
 
-        bool isNull() const { return _data.isNull(); }
-
-        Format getFormat() const { return (Format)_data.format(); }
-        bool hasAlphaChannel() const { return _data.hasAlphaChannel(); }
-
-        glm::uint32 getWidth() const { return (glm::uint32)_data.width(); }
-        glm::uint32 getHeight() const { return (glm::uint32)_data.height(); }
-        glm::uvec2 getSize() const { return toGlm(_data.size()); }
-        size_t getByteCount() const { return _data.byteCount(); }
-
-        QRgb getPixel(int x, int y) const { return _data.pixel(x, y); }
-        void setPixel(int x, int y, QRgb value) {
-            _data.setPixel(x, y, value);
+        void operator=(const Image& other) {
+            if (&other != this) {
+                _packedData = other._packedData;
+                _floatData = other._floatData;
+                _dims = other._dims;
+                _format = other._format;
+            }
         }
 
-        glm::uint8* editScanLine(int y) { return _data.scanLine(y); }
-        const glm::uint8* getScanLine(int y) const { return _data.scanLine(y); }
-        const glm::uint8* getBits() const { return _data.constBits(); }
+        bool isNull() const { return _packedData.isNull() && _floatData.empty(); }
+
+        Format getFormat() const { return _format; }
+        bool hasAlphaChannel() const { return _packedData.hasAlphaChannel() || _format == Format_RGBAF; }
+        bool hasFloatFormat() const { return _format == Format_R11G11B10F || _format == Format_RGBAF; }
+
+        glm::uint32 getWidth() const { return (glm::uint32)_dims.x; }
+        glm::uint32 getHeight() const { return (glm::uint32)_dims.y; }
+        glm::uvec2 getSize() const { return glm::uvec2(_dims); }
+        size_t getByteCount() const;
+        size_t getBytesPerLineCount() const;
+
+        QRgb getPackedPixel(int x, int y) const {
+            assert(_format != Format_RGBAF);
+            return _packedData.pixel(x, y);
+        }
+        void setPackedPixel(int x, int y, QRgb value) {
+            assert(_format != Format_RGBAF);
+            _packedData.setPixel(x, y, value);
+        }
+
+        glm::vec4 getFloatPixel(int x, int y) const {
+            assert(_format == Format_RGBAF);
+            return _floatData[x + y*_dims.x];
+        }
+        void setFloatPixel(int x, int y, const glm::vec4& value) {
+            assert(_format == Format_RGBAF);
+            _floatData[x + y * _dims.x] = value;
+        }
+
+        glm::uint8* editScanLine(int y);
+        const glm::uint8* getScanLine(int y) const;
+        glm::uint8* editBits();
+        const glm::uint8* getBits() const;
 
         Image getScaled(glm::uvec2 newSize, AspectRatioMode ratioMode, TransformationMode transformationMode = Qt::SmoothTransformation) const;
         Image getConvertedToFormat(Format newFormat) const;
@@ -90,7 +122,13 @@ namespace image {
 
     private:
 
-        QImage _data;
+        using FloatPixels = std::vector<glm::vec4>;
+
+        // For QImage supported formats
+        QImage _packedData;
+        FloatPixels _floatData;
+        glm::ivec2 _dims;
+        Format _format;
     };
 
 } // namespace image

@@ -387,13 +387,13 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(AMBIENT_LIGHT_KEY)) {
                 auto ambientLight = entity[AMBIENT_LIGHT_KEY].toObject();
                 if (ambientLight.contains(AMBIENT_URL_KEY)) {
-                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::AMBIENT_TEXTURE, *it);
                 }
             }
             if (entity.contains(SKYBOX_KEY)) {
                 auto skybox = entity[SKYBOX_KEY].toObject();
                 if (skybox.contains(SKYBOX_URL_KEY)) {
-                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::SKY_TEXTURE, *it);
                 }
             }
 
@@ -412,9 +412,13 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(MATERIAL_URL_KEY)) {
                 addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
             }
+            // FIXME: Disabled for now because relative texture URLs are not supported for embedded materials in material entities
+            //        We need to make texture URLs absolute in this particular case only, keeping in mind that FSTBaker also uses embedded materials
+            /*
             if (entity.contains(MATERIAL_DATA_KEY)) {
                 addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
             }
+            */
         }
     }
 

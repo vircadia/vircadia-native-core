@@ -752,11 +752,11 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
     }
 
-    // every second we're trying to ping this node and we're not getting anywhere - debug that out
-    const int NUM_DEBUG_CONNECTION_ATTEMPTS = 1000 / (UDP_PUNCH_PING_INTERVAL_MS);
+    // every two seconds we're trying to ping this node and we're not getting anywhere - debug that out
+    const int NUM_DEBUG_CONNECTION_ATTEMPTS = 2000 / (UDP_PUNCH_PING_INTERVAL_MS);
 
     if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
-        qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
+        qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last 2 s.";
     }
     
     auto nodeID = node->getUUID();

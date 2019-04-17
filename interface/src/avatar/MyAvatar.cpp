@@ -1199,12 +1199,29 @@ void MyAvatar::overrideAnimation(const QString& url, float fps, bool loop, float
     _skeletonModel->getRig().overrideAnimation(url, fps, loop, firstFrame, lastFrame);
 }
 
+void MyAvatar::overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "overrideHandAnimation", Q_ARG(bool, isLeft), Q_ARG(const QString&, url), Q_ARG(float, fps),
+            Q_ARG(bool, loop), Q_ARG(float, firstFrame), Q_ARG(float, lastFrame));
+        return;
+    }
+    _skeletonModel->getRig().overrideHandAnimation(isLeft, url, fps, loop, firstFrame, lastFrame);
+}
+
 void MyAvatar::restoreAnimation() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "restoreAnimation");
         return;
     }
     _skeletonModel->getRig().restoreAnimation();
+}
+
+void MyAvatar::restoreHandAnimation(bool isLeft) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "restoreHandAnimation", Q_ARG(bool, isLeft));
+        return;
+    }
+    _skeletonModel->getRig().restoreHandAnimation(isLeft);
 }
 
 QStringList MyAvatar::getAnimationRoles() {
@@ -3172,17 +3189,40 @@ int MyAvatar::sendAvatarDataPacket(bool sendAll) {
     return bytesSent;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
-
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
+    if (!_skeletonModel) {
+        return false;
+    }
+
+    // transform cameraPosition into rig coordinates
+    AnimPose rigToWorld = AnimPose(getWorldOrientation() * Quaternions::Y_180, getWorldPosition());
+    AnimPose worldToRig = rigToWorld.inverse();
+    glm::vec3 rigCameraPosition = worldToRig * cameraPosition;
+
+    // use head k-dop shape to determine if camera is inside head.
+    const Rig& rig = _skeletonModel->getRig();
+    int headJointIndex = rig.indexOfJoint("Head");
+    if (headJointIndex >= 0) {
+        const HFMModel& hfmModel = _skeletonModel->getHFMModel();
+        AnimPose headPose;
+        if (rig.getAbsoluteJointPoseInRigFrame(headJointIndex, headPose)) {
+            glm::vec3 displacement;
+            const HFMJointShapeInfo& headShapeInfo = hfmModel.joints[headJointIndex].shapeInfo;
+            return findPointKDopDisplacement(rigCameraPosition, headPose, headShapeInfo, displacement);
+        }
+    }
+
+    // fall back to simple distance check.
+    const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getModelScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
     bool firstPerson = qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON;
+    bool overrideAnim = _skeletonModel ? _skeletonModel->getRig().isPlayingOverrideAnimation() : false;
     bool insideHead = cameraInsideHead(renderArgs->getViewFrustum().getPosition());
-    return !defaultMode || !firstPerson || !insideHead;
+    return !defaultMode || (!firstPerson && !insideHead) || (overrideAnim && !insideHead);
 }
 
 void MyAvatar::setHasScriptedBlendshapes(bool hasScriptedBlendshapes) {
@@ -4798,7 +4838,12 @@ bool MyAvatar::isReadyForPhysics() const {
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    _walkSpeedScalar = sprint ? AVATAR_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    if (qApp->isHMDMode()) {
+        _walkSpeedScalar = sprint ? AVATAR_DESKTOP_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    }
+    else {
+        _walkSpeedScalar = sprint ? AVATAR_HMD_SPRINT_SPEED_SCALAR : AVATAR_WALK_SPEED_SCALAR;
+    }
 }
 
 void MyAvatar::setIsInWalkingState(bool isWalking) {

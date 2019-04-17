@@ -2129,9 +2129,32 @@ var DELETED_ENTITY_MAP = {};
 
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
+    var createEntities = data.createEntities;
+    var deleteEntities = data.deleteEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var selectEdits = createEntities.length === 0 || !data.selectCreated;
     var i, entityID, entityProperties;
+    for (i = 0; i < createEntities.length; i++) {
+        entityID = createEntities[i].entityID;
+        entityProperties = createEntities[i].properties;
+        var newEntityID = Entities.addEntity(entityProperties);
+        recursiveAdd(newEntityID, createEntities[i]);
+        DELETED_ENTITY_MAP[entityID] = newEntityID;
+        if (data.selectCreated) {
+            selectedEntityIDs.push(newEntityID);
+        }
+    }
+    for (i = 0; i < deleteEntities.length; i++) {
+        entityID = deleteEntities[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
+        }
+        Entities.deleteEntity(entityID);
+        var index = selectedEntityIDs.indexOf(entityID);
+        if (index >= 0) {
+            selectedEntityIDs.splice(index, 1);
+        }
+    }
     for (i = 0; i < editEntities.length; i++) {
         entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
@@ -2143,27 +2166,6 @@ function applyEntityProperties(data) {
         }
         if (selectEdits) {
             selectedEntityIDs.push(entityID);
-        }
-    }
-    for (i = 0; i < data.createEntities.length; i++) {
-        entityID = data.createEntities[i].entityID;
-        entityProperties = data.createEntities[i].properties;
-        var newEntityID = Entities.addEntity(entityProperties);
-        recursiveAdd(newEntityID, data.createEntities[i]);
-        DELETED_ENTITY_MAP[entityID] = newEntityID;
-        if (data.selectCreated) {
-            selectedEntityIDs.push(newEntityID);
-        }
-    }
-    for (i = 0; i < data.deleteEntities.length; i++) {
-        entityID = data.deleteEntities[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID];
-        }
-        Entities.deleteEntity(entityID);
-        var index = selectedEntityIDs.indexOf(entityID);
-        if (index >= 0) {
-            selectedEntityIDs.splice(index, 1);
         }
     }
 

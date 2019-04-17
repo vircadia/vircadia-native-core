@@ -1347,12 +1347,16 @@ SelectionDisplay = (function() {
     };
     
     that.updateLastMouseEvent = function(event) {
-        if (activeTool && lastMouseEvent !== null) {            
+        if (activeTool && lastMouseEvent !== null) { 
+            var change = lastMouseEvent.isShifted !== event.isShifted || lastMouseEvent.isMeta !== event.isMeta ||
+                         lastMouseEvent.isControl !== event.isControl || lastMouseEvent.isAlt !== event.isAlt;
             lastMouseEvent.isShifted = event.isShifted; 
             lastMouseEvent.isMeta = event.isMeta;   
             lastMouseEvent.isControl = event.isControl; 
-            lastMouseEvent.isAlt = event.isAlt; 
-            activeTool.onMove(lastMouseEvent);      
+            lastMouseEvent.isAlt = event.isAlt;
+            if (change) {
+                activeTool.onMove(lastMouseEvent);
+            }           
         }
     };
 

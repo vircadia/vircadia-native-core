@@ -1010,7 +1010,7 @@ void DomainGatekeeper::refreshGroupsCache() {
     nodeList->eachNode([this](const SharedNodePointer& node) {
         if (!node->getPermissions().isAssignment) {
             // this node is an agent
-            const QString& verifiedUserName = node->getPermissions().getVerifiedUserName();
+            QString verifiedUserName = node->getPermissions().getVerifiedUserName();
             if (!verifiedUserName.isEmpty()) {
                 getGroupMemberships(verifiedUserName);
             }
