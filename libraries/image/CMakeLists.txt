@@ -3,6 +3,7 @@ setup_hifi_library()
 link_hifi_libraries(shared gpu)
 target_nvtt()
 target_etc2comp()
+target_openexr()
 
 if (UNIX AND NOT APPLE)
   set(THREADS_PREFER_PTHREAD_FLAG ON)

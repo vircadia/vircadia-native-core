@@ -81,7 +81,18 @@ private:
         glm::vec2 spare;
     };
 
-    static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties);
+    void computeTriangles(const hfm::Model& hfmModel);
+    bool _hasComputedTriangles{ false };
+    struct TriangleInfo {
+        std::vector<Triangle> triangles;
+        std::vector<size_t> samplesPerTriangle;
+        size_t totalSamples;
+        glm::mat4 transform;
+    } _triangleInfo;
+
+    static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
+                                      const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                      const TriangleInfo& triangleInfo);
     void stepSimulation();
 
     particle::Properties _particleProperties;
@@ -90,11 +101,16 @@ private:
     CpuParticles _cpuParticles;
     bool _emitting { false };
     uint64_t _timeUntilNextEmit { 0 };
-    BufferPointer _particleBuffer{ std::make_shared<Buffer>() };
+    BufferPointer _particleBuffer { std::make_shared<Buffer>() };
     BufferView _uniformBuffer;
     quint64 _lastSimulated { 0 };
 
     PulsePropertyGroup _pulseProperties;
+    ShapeType _shapeType;
+    QString _compoundShapeURL;
+
+    void fetchGeometryResource();
+    GeometryResource::Pointer _geometryResource;
 
     NetworkTexturePointer _networkTexture;
     ScenePointer _scene;

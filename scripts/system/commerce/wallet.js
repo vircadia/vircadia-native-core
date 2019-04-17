@@ -377,6 +377,9 @@ function deleteSendMoneyParticleEffect() {
 }
 
 function onUsernameChanged() {
+    if (ui.checkIsOpen()) {
+        ui.open(WALLET_QML_SOURCE);
+    }
 }    
 
 var MARKETPLACE_QML_PATH = "hifi/commerce/marketplace/Marketplace.qml";

@@ -588,6 +588,8 @@ void LimitedNodeList::eraseAllNodes() {
     foreach(const SharedNodePointer& killedNode, killedNodes) {
         handleNodeKill(killedNode);
     }
+
+    _delayedNodeAdds.clear();
 }
 
 void LimitedNodeList::reset() {
@@ -677,6 +679,9 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     // If there is a new node with the same socket, this is a reconnection, kill the old node
     removeOldNode(findNodeWithAddr(publicSocket));
     removeOldNode(findNodeWithAddr(localSocket));
+    // If there is an old Connection to the new node's address kill it
+    _nodeSocket.cleanupConnection(publicSocket);
+    _nodeSocket.cleanupConnection(localSocket);
 
     auto it = _connectionIDs.find(uuid);
     if (it == _connectionIDs.end()) {
@@ -752,7 +757,7 @@ void LimitedNodeList::delayNodeAdd(NewNodeInfo info) {
 }
 
 void LimitedNodeList::removeDelayedAdd(QUuid nodeUUID) {
-    auto it = std::find_if(_delayedNodeAdds.begin(), _delayedNodeAdds.end(), [&](auto info) {
+    auto it = std::find_if(_delayedNodeAdds.begin(), _delayedNodeAdds.end(), [&](const auto& info) {
         return info.uuid == nodeUUID;
     });
     if (it != _delayedNodeAdds.end()) {
@@ -761,7 +766,7 @@ void LimitedNodeList::removeDelayedAdd(QUuid nodeUUID) {
 }
 
 bool LimitedNodeList::isDelayedNode(QUuid nodeUUID) {
-    auto it = std::find_if(_delayedNodeAdds.begin(), _delayedNodeAdds.end(), [&](auto info) {
+    auto it = std::find_if(_delayedNodeAdds.begin(), _delayedNodeAdds.end(), [&](const auto& info) {
         return info.uuid == nodeUUID;
     });
     return it != _delayedNodeAdds.end();

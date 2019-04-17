@@ -116,6 +116,7 @@ public:
     void destroyAnimGraph();
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    bool isPlayingOverrideAnimation() const { return _userAnimState.clipNodeEnum != UserAnimState::None; };
     void restoreAnimation();
     
     void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
@@ -336,7 +337,7 @@ protected:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
-    
+
     struct NetworkAnimState {
         enum ClipNodeEnum {
             None = 0,

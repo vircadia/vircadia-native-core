@@ -93,6 +93,8 @@ public:
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
 
+    void fadeOutRenderable(const EntityRendererPointer& renderable);
+
     // event handles which may generate entity related events
     QUuid mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
@@ -255,6 +257,7 @@ private:
     std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
+
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 

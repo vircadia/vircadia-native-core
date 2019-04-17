@@ -152,10 +152,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
         // setup a ModelBaker for this URL, as long as we don't already have one
         bool haveBaker = _modelBakers.contains(bakeableModelURL);
         if (!haveBaker) {
-            auto getWorkerThreadCallback = []() -> QThread* {
-                return Oven::instance().getNextWorkerThread();
-            };
-            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, getWorkerThreadCallback, _contentOutputPath).release(), &Baker::deleteLater);
+            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, _contentOutputPath).release(), &Baker::deleteLater);
             if (baker) {
                 // Hold on to the old url userinfo/query/fragment data so ModelBaker::getFullOutputMappingURL retains that data from the original model URL
                 // Note: The ModelBaker currently doesn't store this in the FST because the equal signs mess up FST parsing.
@@ -275,7 +272,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath, _destinationPath),
+            new MaterialBaker(data, isURL, _contentOutputPath),
             &MaterialBaker::deleteLater
         };
 
@@ -400,6 +397,8 @@ void DomainBaker::enumerateEntities() {
                 }
             }
 
+            // FIXME: disabled for now because it breaks some scripts
+            /*
             // Scripts
             if (entity.contains(SCRIPT_KEY)) {
                 addScriptBaker(SCRIPT_KEY, entity[SCRIPT_KEY].toString(), *it);
@@ -407,14 +406,19 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(SERVER_SCRIPTS_KEY)) {
                 // TODO: serverScripts can be multiple scripts, need to handle that
             }
+            */
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
                 addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
             }
+            // FIXME: Disabled for now because relative texture URLs are not supported for embedded materials in material entities
+            //        We need to make texture URLs absolute in this particular case only, keeping in mind that FSTBaker also uses embedded materials
+            /*
             if (entity.contains(MATERIAL_DATA_KEY)) {
                 addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
             }
+            */
         }
     }
 

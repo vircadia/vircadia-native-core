@@ -265,7 +265,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         if (_procedural.isReady()) {
             outColor = _procedural.getColor(outColor);
             outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
-            _procedural.prepare(batch, _position, _dimensions, _orientation, ProceduralProgramKey(outColor.a < 1.0f));
+            _procedural.prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
             proceduralRender = true;
         }
     });
@@ -281,9 +281,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline;
         if (renderLayer == RenderLayer::WORLD) {
-            pipeline = GeometryCache::getShapePipeline(false, outColor.a < 1.0f, true, false);
+            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         } else {
-            pipeline = GeometryCache::getShapePipeline(false, outColor.a < 1.0f, true, false, false, true);
+            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
         }
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);

@@ -134,15 +134,13 @@ public:
     using Outputs = render::VaryingSet3<render::ItemFilter, ViewFrustumPointer, RenderShadowTask::CullFunctor>;
     using JobModel = render::Job::ModelIO<RenderShadowCascadeSetup, Inputs, Outputs>;
 
-    RenderShadowCascadeSetup(unsigned int cascadeIndex, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) :
-        _cascadeIndex(cascadeIndex), _tagBits(tagBits), _tagMask(tagMask) {}
+    RenderShadowCascadeSetup(unsigned int cascadeIndex, render::ItemFilter filter) : _cascadeIndex(cascadeIndex), _filter(filter) {}
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output);
 
 private:
     unsigned int _cascadeIndex;
-    uint8_t _tagBits { 0x00 };
-    uint8_t _tagMask { 0x00 };
+    render::ItemFilter _filter;
 };
 
 class RenderShadowCascadeTeardown {

@@ -43,7 +43,7 @@
         if (HMD.active) {
             warningOverlayID = Overlays.addOverlay("text3d", {
                 name: "Muted-Warning",
-                localPosition: { x: 0.0, y: -0.5, z: -1.0 },
+                localPosition: { x: 0.0, y: -0.45, z: -1.0 },
                 localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 0.0, z: 0.0, w: 1.0 }),
                 text: warningText,
                 textAlpha: 1,
@@ -57,20 +57,6 @@
                 grabbable: false,
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX")
-            });
-        } else {
-            var textDimensions = { x: 100, y: 50 };
-            warningOverlayID = Overlays.addOverlay("text", {
-                name: "Muted-Warning",
-                font: { size: 36 },
-                text: warningText,
-                x: (Window.innerWidth - textDimensions.x) / 2,
-                y: (Window.innerHeight - textDimensions.y),
-                width: textDimensions.x,
-                height: textDimensions.y,
-                textColor: { red: 226, green: 51, blue: 77 },
-                backgroundAlpha: 0,
-                visible: true
             });
         }
     }

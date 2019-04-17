@@ -176,6 +176,10 @@ void Tracer::serialize(const QString& filename) {
 #endif
 }
 
+int64_t Tracer::now() {
+    return std::chrono::duration_cast<std::chrono::microseconds>(p_high_resolution_clock::now().time_since_epoch()).count();
+}
+
 void Tracer::traceEvent(const QLoggingCategory& category,
     const QString& name, EventType type,
     qint64 timestamp, qint64 processID, qint64 threadID,
@@ -226,9 +230,17 @@ void Tracer::traceEvent(const QLoggingCategory& category,
         return;
     }
 
-    auto timestamp = std::chrono::duration_cast<std::chrono::microseconds>(p_high_resolution_clock::now().time_since_epoch()).count();
+    traceEvent(category, name, type, now(), id, args, extra);
+}
+
+void Tracer::traceEvent(const QLoggingCategory& category, 
+    const QString& name, EventType type, int64_t timestamp, const QString& id, 
+    const QVariantMap& args, const QVariantMap& extra) {
+    if (!_enabled && type != Metadata) {
+        return;
+    }
+
     auto processID = QCoreApplication::applicationPid();
     auto threadID = int64_t(QThread::currentThreadId());
-
     traceEvent(category, name, type, timestamp, processID, threadID, id, args, extra);
 }

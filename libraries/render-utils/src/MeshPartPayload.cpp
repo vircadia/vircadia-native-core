@@ -416,7 +416,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!args) {
+    if (!args || (args->_renderMode == RenderArgs::RenderMode::DEFAULT_RENDER_MODE && _cauterized)) {
         return;
     }
 

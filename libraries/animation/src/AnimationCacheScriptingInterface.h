@@ -25,7 +25,8 @@ class AnimationCacheScriptingInterface : public ScriptableResourceCache, public 
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * API to manage animation cache resources.
+     * The <code>AnimationCache</code> API manages animation cache resources.
+     *
      * @namespace AnimationCache
      *
      * @hifi-interface
@@ -48,10 +49,10 @@ public:
     AnimationCacheScriptingInterface();
 
     /**jsdoc
-     * Returns animation resource for particular animation.
+     * Gets information about an animation resource.
      * @function AnimationCache.getAnimation
-     * @param {string} url - URL to load.
-     * @returns {AnimationObject} animation
+     * @param {string} url - The URL of the animation.
+     * @returns {AnimationObject} An animation object.
      */
     Q_INVOKABLE AnimationPointer getAnimation(const QString& url);
 };

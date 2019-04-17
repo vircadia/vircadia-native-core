@@ -40,7 +40,7 @@ Item {
             }
         }
 
-        HifiAudio.MicBar {
+        HifiAudio.MicBarApplication {
             anchors {
                 left: parent.left
                 leftMargin: 30

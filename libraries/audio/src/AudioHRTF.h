@@ -51,6 +51,12 @@ public:
     void render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
 
     //
+    // Non-spatialized direct mix (accumulates into existing output)
+    //
+    void mixMono(int16_t* input, float* output, float gain, int numFrames);
+    void mixStereo(int16_t* input, float* output, float gain, int numFrames);
+
+    //
     // Fast path when input is known to be silent and state as been flushed
     //
     void setParameterHistory(float azimuth, float distance, float gain) {

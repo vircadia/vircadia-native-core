@@ -224,6 +224,7 @@ void Model::updateRenderItems() {
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
+        bool cauterized = self->isCauterized();
 
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
@@ -237,7 +238,7 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
@@ -261,6 +262,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
+                data.setCauterized(cauterized);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -442,6 +444,19 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             }
         }
 
+        /**jsdoc
+         * Information about a submesh intersection point.
+         * @typedef {object} SubmeshIntersection
+         * @property {Vec3} worldIntersectionPoint - The intersection point in world coordinates.
+         * @property {Vec3} meshIntersectionPoint - The intersection point in model coordinates.
+         * @property {number} partIndex - The index of the intersected mesh part within the submesh.
+         * @property {number} shapeID - The index of the mesh part within the model.
+         * @property {number} subMeshIndex - The index of the intersected submesh within the model.
+         * @property {string} subMeshName - The name of the intersected submesh.
+         * @property {Triangle} subMeshTriangleWorld - The vertices of the intersected mesh part triangle in world coordinates.
+         * @property {Vec3} subMeshNormal - The normal of the intersected mesh part triangle in model coordinates.
+         * @property {Triangle} subMeshTriangle - The vertices of the intersected mesh part triangle in model coordinates.
+         */
         if (intersectedSomething) {
             distance = bestDistance;
             face = bestFace;
@@ -922,6 +937,23 @@ bool Model::isGroupCulled() const {
     return _renderItemKeyGlobalFlags.isSubMetaCulled();
 }
 
+void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
+    if (Model::isCauterized() != cauterized) {
+        _cauterized = cauterized;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+        render::Transaction transaction;
+        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [cauterized](ModelMeshPartPayload& data) {
+                data.setCauterized(cauterized);
+            });
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
     return _renderItemKeyGlobalFlags;
 }
@@ -1289,6 +1321,8 @@ void Model::scaleToFit() {
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a box that size...
     glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    const glm::vec3 MIN_MESH_DIMENSIONS { 1.0e-6f };  // one micrometer
+    meshDimensions = glm::max(meshDimensions, MIN_MESH_DIMENSIONS);
     glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
     setScaleInternal(rescaleDimensions);
     _scaledToFit = true;
@@ -1346,19 +1380,14 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 
 void Model::computeMeshPartLocalBounds() {
-    render::Transaction transaction;
-    auto meshStates = _meshStates;
-    for (auto renderItem : _modelMeshRenderItemIDs) {
-        transaction.updateItem<ModelMeshPartPayload>(renderItem, [this, meshStates](ModelMeshPartPayload& data) {
-            const Model::MeshState& state = meshStates.at(data._meshIndex);
-            if (_useDualQuaternionSkinning) {
-                data.computeAdjustedLocalBound(state.clusterDualQuaternions);
-            } else {
-                data.computeAdjustedLocalBound(state.clusterMatrices);
-            }
-        });
+    for (auto& part : _modelMeshRenderItems) {
+        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
+        if (_useDualQuaternionSkinning) {
+            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
+        } else {
+            part->computeAdjustedLocalBound(state.clusterMatrices);
+        }
     }
-    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 // virtual
@@ -1391,7 +1420,6 @@ void Model::updateClusterMatrices() {
             }
         }
     }
-    computeMeshPartLocalBounds();
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
@@ -1550,18 +1578,40 @@ void Model::applyMaterialMapping() {
             continue;
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+        // This needs to be precomputed before the lambda, since the lambdas could be called out of order
+        std::unordered_map<unsigned int, quint16> priorityMapPerResource;
+        for (auto shapeID : shapeIDs) {
+            priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
+        }
+
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
             if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
             render::Transaction transaction;
-            auto networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+            std::shared_ptr<NetworkMaterial> networkMaterial;
+            {
+                QString url = networkMaterialResource->getURL().toString();
+                bool foundMaterialName = false;
+                if (url.contains("#")) {
+                    auto split = url.split("#");
+                    std::string materialName = split.last().toStdString();
+                    auto networkMaterialIter = networkMaterialResource->parsedMaterials.networkMaterials.find(materialName);
+                    if (networkMaterialIter != networkMaterialResource->parsedMaterials.networkMaterials.end()) {
+                        networkMaterial = networkMaterialIter->second;
+                        foundMaterialName = true;
+                    }
+                }
+                if (!foundMaterialName) {
+                    networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+                }
+            }
             for (auto shapeID : shapeIDs) {
                 if (shapeID < _modelMeshRenderItemIDs.size()) {
                     auto itemID = _modelMeshRenderItemIDs[shapeID];
                     auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
                     bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, ++_priorityMap[shapeID]);
+                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
                     _materialMapping[shapeID].push_back(material);
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
@@ -1648,7 +1698,7 @@ using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUn
 void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
     float len = glm::compMax(glm::abs(unpacked.positionOffset));
     glm::vec3 normalizedPos(unpacked.positionOffset);
-    if (len > 1.0f) {
+    if (len > 0.0f) {
         normalizedPos /= len;
     } else {
         len = 1.0f;

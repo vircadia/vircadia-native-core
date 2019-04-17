@@ -103,6 +103,8 @@ void AudioInjector::finishLocalInjection() {
 
 void AudioInjector::finish() {
     withWriteLock([&] {
+        _state |= AudioInjectorState::LocalInjectionFinished;
+        _state |= AudioInjectorState::NetworkInjectionFinished;
         _state |= AudioInjectorState::Finished;
     });
     emit finished();
@@ -252,7 +254,7 @@ int64_t AudioInjector::injectNextFrame() {
             writeStringToStream(noCodecForInjectors, audioPacketStream);
 
             // pack stream identifier (a generated UUID)
-            audioPacketStream << QUuid::createUuid();
+            audioPacketStream << _streamID;
 
             // pack the stereo/mono type of the stream
             audioPacketStream << options.stereo;
@@ -402,4 +404,17 @@ int64_t AudioInjector::injectNextFrame() {
     int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
 
     return std::max(INT64_C(0), playNextFrameAt - currentTime);
+}
+
+
+void AudioInjector::sendStopInjectorPacket() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (auto audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer)) {
+        // Build packet
+        auto stopInjectorPacket = NLPacket::create(PacketType::StopInjector);
+        stopInjectorPacket->write(_streamID.toRfc4122());
+
+        // Send packet
+        nodeList->sendUnreliablePacket(*stopInjectorPacket, *audioMixer);
+    }
 }

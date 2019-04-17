@@ -1504,7 +1504,8 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
                 _networkAnimState.blendTime += deltaTime;
                 alpha = _computeNetworkAnimation ? (_networkAnimState.blendTime / TOTAL_BLEND_TIME) : (1.0f - (_networkAnimState.blendTime / TOTAL_BLEND_TIME));
                 alpha = glm::clamp(alpha, 0.0f, 1.0f);
-                for (size_t i = 0; i < _networkPoseSet._relativePoses.size(); i++) {
+                size_t numJoints = std::min(_networkPoseSet._relativePoses.size(), _internalPoseSet._relativePoses.size());
+                for (size_t i = 0; i < numJoints; i++) {
                     _networkPoseSet._relativePoses[i].blend(_internalPoseSet._relativePoses[i], alpha);
                 }
             }
@@ -1599,74 +1600,6 @@ void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPos
             _animVars.set("headRotation", headPose.rot());
             _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
         }
-    }
-}
-
-const float INV_SQRT_3 = 1.0f / sqrtf(3.0f);
-const int DOP14_COUNT = 14;
-const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
-    Vectors::UNIT_X,
-    -Vectors::UNIT_X,
-    Vectors::UNIT_Y,
-    -Vectors::UNIT_Y,
-    Vectors::UNIT_Z,
-    -Vectors::UNIT_Z,
-    glm::vec3(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3),
-    -glm::vec3(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3),
-    glm::vec3(INV_SQRT_3, -INV_SQRT_3, INV_SQRT_3),
-    -glm::vec3(INV_SQRT_3, -INV_SQRT_3, INV_SQRT_3),
-    glm::vec3(INV_SQRT_3, INV_SQRT_3, -INV_SQRT_3),
-    -glm::vec3(INV_SQRT_3, INV_SQRT_3, -INV_SQRT_3),
-    glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3),
-    -glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
-};
-
-// returns true if the given point lies inside of the k-dop, specified by shapeInfo & shapePose.
-// if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
-// such that it lies on the surface of the kdop.
-static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const HFMJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
-
-    // transform point into local space of jointShape.
-    glm::vec3 localPoint = shapePose.inverse().xformPoint(point);
-
-    // Only works for 14-dop shape infos.
-    if (shapeInfo.dots.size() != DOP14_COUNT) {
-        return false;
-    }
-
-    glm::vec3 minDisplacement(FLT_MAX);
-    float minDisplacementLen = FLT_MAX;
-    glm::vec3 p = localPoint - shapeInfo.avgPoint;
-    float pLen = glm::length(p);
-    if (pLen > 0.0f) {
-        int slabCount = 0;
-        for (int i = 0; i < DOP14_COUNT; i++) {
-            float dot = glm::dot(p, DOP14_NORMALS[i]);
-            if (dot > 0.0f && dot < shapeInfo.dots[i]) {
-                slabCount++;
-                float distToPlane = pLen * (shapeInfo.dots[i] / dot);
-                float displacementLen = distToPlane - pLen;
-
-                // keep track of the smallest displacement
-                if (displacementLen < minDisplacementLen) {
-                    minDisplacementLen = displacementLen;
-                    minDisplacement = (p / pLen) * displacementLen;
-                }
-            }
-        }
-        if (slabCount == (DOP14_COUNT / 2) && minDisplacementLen != FLT_MAX) {
-            // we are within the k-dop so push the point along the minimum displacement found
-            displacementOut = shapePose.xformVectorFast(minDisplacement);
-            return true;
-        } else {
-            // point is outside of kdop
-            return false;
-        }
-    } else {
-        // point is directly on top of shapeInfo.avgPoint.
-        // push the point out along the x axis.
-        displacementOut = shapePose.xformVectorFast(shapeInfo.points[0]);
-        return true;
     }
 }
 

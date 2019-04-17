@@ -372,13 +372,6 @@ bool Avatar::applyGrabChanges() {
                 target->removeGrab(grab);
                 _avatarGrabs.erase(itr);
                 grabAddedOrRemoved = true;
-                if (isMyAvatar()) {
-                    const EntityItemPointer& entity = std::dynamic_pointer_cast<EntityItem>(target);
-                    if (entity && entity->getEntityHostType() == entity::HostType::AVATAR && entity->getSimulationOwner().getID() == getID()) {
-                        EntityItemProperties properties = entity->getProperties();
-                        sendPacket(entity->getID());
-                    }
-                }
             } else {
                 undeleted.push_back(id);
             }
@@ -516,6 +509,26 @@ void Avatar::relayJointDataToChildren() {
     _reconstructSoftEntitiesJointMap = false;
 }
 
+/**jsdoc
+ * An avatar has different types of data simulated at different rates, in Hz.
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Rate Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"avatar" or ""</code></td><td>The rate at which the avatar is updated even if not in view.</td></tr>
+ *     <tr><td><code>"avatarInView"</code></td><td>The rate at which the avatar is updated if in view.</td></tr>
+ *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no 
+ *       joint data available.</td></tr>
+ *     <tr><td><code>"jointData"</code></td><td>The rate at which joint data are being updated.</td></tr>
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is 
+ *       provided.</td></tr>
+ *   </tbody>
+ * </table>
+ *
+ * @typedef {string} AvatarSimulationRate
+ */
 float Avatar::getSimulationRate(const QString& rateName) const {
     if (rateName == "") {
         return _simulationRate.rate();
@@ -659,9 +672,8 @@ void Avatar::fadeIn(render::ScenePointer scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+void Avatar::fadeOut(render::Transaction& transaction, KillAvatarReason reason) {
     render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
-    render::Transaction transaction;
 
     if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
@@ -669,7 +681,6 @@ void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
         transitionType = render::Transition::BUBBLE_ISECT_OWNER;
     }
     fade(transaction, transitionType);
-    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
@@ -678,19 +689,6 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
             transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
-    }
-    _isFading = true;
-}
-
-void Avatar::updateFadingStatus() {
-    if (_isFading) {
-        render::Transaction transaction;
-        transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-            if (!transition || transition->isFinished) {
-                _isFading = false;
-            }
-        });
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     }
 }
 
@@ -1547,8 +1545,8 @@ void Avatar::rigReset() {
 
 void Avatar::computeMultiSphereShapes() {
     const Rig& rig = getSkeletonModel()->getRig();
-    glm::vec3 scale = extractScale(rig.getGeometryOffsetPose());
     const HFMModel& geometry = getSkeletonModel()->getHFMModel();
+    glm::vec3 geometryScale = extractScale(rig.getGeometryOffsetPose());
     int jointCount = rig.getJointStateCount();
     _multiSphereShapes.clear();
     _multiSphereShapes.reserve(jointCount);
@@ -1557,9 +1555,10 @@ void Avatar::computeMultiSphereShapes() {
         std::vector<btVector3> btPoints;
         int lineCount = (int)shapeInfo.debugLines.size();
         btPoints.reserve(lineCount);
+        glm::vec3 jointScale = rig.getJointPose(i).scale() / extractScale(rig.getGeometryToRigTransform());
         for (int j = 0; j < lineCount; j++) {
             const glm::vec3 &point = shapeInfo.debugLines[j];
-            auto rigPoint = scale * point;
+            auto rigPoint = jointScale * geometryScale * point;
             btVector3 btPoint = glmToBullet(rigPoint);
             btPoints.push_back(btPoint);
         }

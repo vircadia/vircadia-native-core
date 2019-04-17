@@ -282,6 +282,28 @@ function checkEditPermissionsAndUpdate() {
     }
 }
 
+// Copies the properties in `b` into `a`. `a` will be modified.
+function copyProperties(a, b) {
+    for (var key in b) {
+        a[key] = b[key];
+    }
+    return a;
+}
+
+const DEFAULT_DYNAMIC_PROPERTIES = {
+    dynamic: true,
+    damping: 0.39347,
+    angularDamping: 0.39347,
+    gravity: { x: 0, y: -9.8, z: 0 },
+};
+
+const DEFAULT_NON_DYNAMIC_PROPERTIES = {
+    dynamic: false,
+    damping: 0,
+    angularDamping: 0,
+    gravity: { x: 0, y: 0, z: 0 },
+};
+
 const DEFAULT_ENTITY_PROPERTIES = {
     All: {
         description: "",
@@ -299,26 +321,14 @@ const DEFAULT_ENTITY_PROPERTIES = {
             y: 0,
             z: 0
         },
-        damping: 0,
         angularVelocity: {
             x: 0,
             y: 0,
             z: 0
         },
-        angularDamping: 0,
         restitution: 0.5,
         friction: 0.5,
         density: 1000,
-        gravity: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        acceleration: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
         dynamic: false,
     },
     Shape: {
@@ -484,11 +494,6 @@ var toolBar = (function () {
         dialogWindow = null,
         tablet = null;
 
-    function applyProperties(originalProperties, newProperties) {
-        for (var key in newProperties) {
-            originalProperties[key] = newProperties[key];
-        }
-    }
     function createNewEntity(requestedProperties) {
         var dimensions = requestedProperties.dimensions ? requestedProperties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
@@ -496,17 +501,23 @@ var toolBar = (function () {
 
         var properties = {};
 
-        applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
+        copyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
 
         var type = requestedProperties.type;
         if (type === "Box" || type === "Sphere") {
-            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
+            copyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
         } else {
-            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
+            copyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
         }
 
         // We apply the requested properties first so that they take priority over any default properties.
-        applyProperties(properties, requestedProperties);
+        copyProperties(properties, requestedProperties);
+
+        if (properties.dynamic) {
+            copyProperties(properties, DEFAULT_DYNAMIC_PROPERTIES);
+        } else {
+            copyProperties(properties, DEFAULT_NON_DYNAMIC_PROPERTIES);
+        }
 
 
         if (position !== null && position !== undefined) {
@@ -675,7 +686,6 @@ var toolBar = (function () {
                         grabbable: result.grabbable
                     },
                     dynamic: dynamic,
-                    gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
             }
         }
@@ -1620,7 +1630,7 @@ function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
         if (entityHostTypes[i].entityHostType !== entityHostType) {
             if (wantDebug) {
                 console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
-                    entityHostTypes[i].entityHostType);
+                    entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
             }
             continue;
         }
@@ -2119,9 +2129,32 @@ var DELETED_ENTITY_MAP = {};
 
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
+    var createEntities = data.createEntities;
+    var deleteEntities = data.deleteEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var selectEdits = createEntities.length === 0 || !data.selectCreated;
     var i, entityID, entityProperties;
+    for (i = 0; i < createEntities.length; i++) {
+        entityID = createEntities[i].entityID;
+        entityProperties = createEntities[i].properties;
+        var newEntityID = Entities.addEntity(entityProperties);
+        recursiveAdd(newEntityID, createEntities[i]);
+        DELETED_ENTITY_MAP[entityID] = newEntityID;
+        if (data.selectCreated) {
+            selectedEntityIDs.push(newEntityID);
+        }
+    }
+    for (i = 0; i < deleteEntities.length; i++) {
+        entityID = deleteEntities[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
+        }
+        Entities.deleteEntity(entityID);
+        var index = selectedEntityIDs.indexOf(entityID);
+        if (index >= 0) {
+            selectedEntityIDs.splice(index, 1);
+        }
+    }
     for (i = 0; i < editEntities.length; i++) {
         entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
@@ -2133,27 +2166,6 @@ function applyEntityProperties(data) {
         }
         if (selectEdits) {
             selectedEntityIDs.push(entityID);
-        }
-    }
-    for (i = 0; i < data.createEntities.length; i++) {
-        entityID = data.createEntities[i].entityID;
-        entityProperties = data.createEntities[i].properties;
-        var newEntityID = Entities.addEntity(entityProperties);
-        recursiveAdd(newEntityID, data.createEntities[i]);
-        DELETED_ENTITY_MAP[entityID] = newEntityID;
-        if (data.selectCreated) {
-            selectedEntityIDs.push(newEntityID);
-        }
-    }
-    for (i = 0; i < data.deleteEntities.length; i++) {
-        entityID = data.deleteEntities[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID];
-        }
-        Entities.deleteEntity(entityID);
-        var index = selectedEntityIDs.indexOf(entityID);
-        if (index >= 0) {
-            selectedEntityIDs.splice(index, 1);
         }
     }
 
@@ -2511,6 +2523,24 @@ var PropertiesTool = function (opts) {
             emitScriptEvent({
                 type: 'propertyRangeReply',
                 propertyRanges: propertyRanges,
+            });
+        } else if (data.type === "materialTargetRequest") {
+            var parentModelData;
+            var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
+            if (properties.type === "Material" && properties.parentID !== Uuid.NULL) {
+                var parentType = Entities.getEntityProperties(properties.parentID, ["type"]).type;
+                if (parentType === "Model" || Entities.getNestableType(properties.parentID) === "avatar") {
+                    parentModelData = Graphics.getModel(properties.parentID);
+                } else if (parentType === "Shape" || parentType === "Box" || parentType === "Sphere") {
+                    parentModelData = {};
+                    parentModelData.numMeshes = 1;
+                    parentModelData.materialNames = [];
+                }
+            }
+            emitScriptEvent({
+                type: 'materialTargetReply',
+                entityID: data.entityID,
+                materialTargetData: parentModelData,
             });
         }
     };

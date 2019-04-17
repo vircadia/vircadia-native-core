@@ -1052,7 +1052,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
-    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
+    if ((_muted && !_shouldEchoLocally) || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
         return;
     }
 
@@ -1368,7 +1368,9 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
             memset(_localScratchBuffer, 0, bytesToRead);
             if (0 < injectorBuffer->readData((char*)_localScratchBuffer, bytesToRead)) {
 
-                float gain = options.volume;
+                bool isSystemSound = !options.positionSet && !options.ambisonic;
+
+                float gain = options.volume * (isSystemSound ? _systemInjectorGain : _localInjectorGain);
 
                 if (options.ambisonic) {
 
@@ -1395,7 +1397,6 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     // spatialize into mixBuffer
                     injector->getLocalFOA().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
                                                    qw, qx, qy, qz, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
                 } else if (options.stereo) {
 
                     if (options.positionSet) {
@@ -1407,11 +1408,8 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     }
 
                     // direct mix into mixBuffer
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                        mixBuffer[2*i+0] += convertToFloat(_localScratchBuffer[2*i+0]) * gain;
-                        mixBuffer[2*i+1] += convertToFloat(_localScratchBuffer[2*i+1]) * gain;
-                    }
-
+                    injector->getLocalHRTF().mixStereo(_localScratchBuffer, mixBuffer, gain,
+                                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 } else {    // injector is mono
 
                     if (options.positionSet) {
@@ -1429,11 +1427,8 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     } else {
 
                         // direct mix into mixBuffer
-                        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                            float sample = convertToFloat(_localScratchBuffer[i]) * gain;
-                            mixBuffer[2*i+0] += sample;
-                            mixBuffer[2*i+1] += sample;
-                        }
+                        injector->getLocalHRTF().mixMono(_localScratchBuffer, mixBuffer, gain,
+                                                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                     }
                 }
 

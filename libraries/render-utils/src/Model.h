@@ -126,6 +126,9 @@ public:
 
     void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
+    bool isCauterized() const { return _cauterized; }
+    void setCauterized(bool value, const render::ScenePointer& scene);
+
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;
 
@@ -397,7 +400,7 @@ protected:
 
     glm::vec3 _translation; // this is the translation in world coordinates to the model's registration point
     glm::quat _rotation;
-    glm::vec3 _scale;
+    glm::vec3 _scale { 1.0f };
 
     glm::vec3 _overrideTranslation;
     glm::quat _overrideRotation;
@@ -502,6 +505,7 @@ protected:
     //               For this to work, a Meta RI must exists and knows about the RIs of this Model.
     //  
     render::ItemKey _renderItemKeyGlobalFlags;
+    bool _cauterized { false };
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 

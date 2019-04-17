@@ -133,7 +133,7 @@ protected:
     KeyLightPropertyGroup _keyLightProperties;
     AmbientLightPropertyGroup _ambientLightProperties;
 
-    ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
+    ShapeType _shapeType { DEFAULT_SHAPE_TYPE };
     QString _compoundShapeURL;
 
     // The following 3 values are the defaults for zone creation

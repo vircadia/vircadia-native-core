@@ -752,11 +752,11 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
         flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SendAudioPing);
     }
 
-    // every second we're trying to ping this node and we're not getting anywhere - debug that out
-    const int NUM_DEBUG_CONNECTION_ATTEMPTS = 1000 / (UDP_PUNCH_PING_INTERVAL_MS);
+    // every two seconds we're trying to ping this node and we're not getting anywhere - debug that out
+    const int NUM_DEBUG_CONNECTION_ATTEMPTS = 2000 / (UDP_PUNCH_PING_INTERVAL_MS);
 
     if (node->getConnectionAttempts() > 0 && node->getConnectionAttempts() % NUM_DEBUG_CONNECTION_ATTEMPTS == 0) {
-        qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last second.";
+        qCDebug(networking) << "No response to UDP hole punch pings for node" << node->getUUID() << "in last 2 s.";
     }
     
     auto nodeID = node->getUUID();
@@ -1016,6 +1016,14 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         // also send them the current ignore radius state.
         sendIgnoreRadiusStateToNode(newNode);
+
+        // also send the current avatar and injector gains
+        if (_avatarGain != 0.0f) {
+            setAvatarGain(QUuid(), _avatarGain);
+        }
+        if (_injectorGain != 0.0f) {
+            setInjectorGain(_injectorGain);
+        }
     }
     if (newNode->getType() == NodeType::AvatarMixer) {
         // this is a mixer that we just added - it's unlikely it knows who we were previously ignoring in this session,
@@ -1062,13 +1070,17 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
 
             if (nodeID.isNull()) {
                 qCDebug(networking) << "Sending Set MASTER Avatar Gain packet with Gain:" << gain;
-            } else {
-                qCDebug(networking) << "Sending Set Avatar Gain packet with UUID: " << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
-            }
 
-            sendPacket(std::move(setAvatarGainPacket), *audioMixer);
-            QWriteLocker lock{ &_avatarGainMapLock };
-            _avatarGainMap[nodeID] = gain;
+                sendPacket(std::move(setAvatarGainPacket), *audioMixer);
+                _avatarGain = gain;
+
+            } else {
+                qCDebug(networking) << "Sending Set Avatar Gain packet with UUID:" << uuidStringWithoutCurlyBraces(nodeID) << "Gain:" << gain;
+
+                sendPacket(std::move(setAvatarGainPacket), *audioMixer);
+                QWriteLocker lock{ &_avatarGainMapLock };
+                _avatarGainMap[nodeID] = gain;
+            }
 
         } else {
             qWarning() << "Couldn't find audio mixer to send set gain request";
@@ -1079,12 +1091,39 @@ void NodeList::setAvatarGain(const QUuid& nodeID, float gain) {
 }
 
 float NodeList::getAvatarGain(const QUuid& nodeID) {
-    QReadLocker lock{ &_avatarGainMapLock };
-    auto it = _avatarGainMap.find(nodeID);
-    if (it != _avatarGainMap.cend()) {
-        return it->second;
+    if (nodeID.isNull()) {
+        return _avatarGain;
+    } else {
+        QReadLocker lock{ &_avatarGainMapLock };
+        auto it = _avatarGainMap.find(nodeID);
+        if (it != _avatarGainMap.cend()) {
+            return it->second;
+        }
     }
     return 0.0f;
+}
+
+void NodeList::setInjectorGain(float gain) {
+    auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+    if (audioMixer) {
+        // setup the packet
+        auto setInjectorGainPacket = NLPacket::create(PacketType::InjectorGainSet, sizeof(float), true);
+
+        // We need to convert the gain in dB (from the script) to an amplitude before packing it.
+        setInjectorGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.02059991f)));
+
+        qCDebug(networking) << "Sending Set Injector Gain packet with Gain:" << gain;
+
+        sendPacket(std::move(setInjectorGainPacket), *audioMixer);
+        _injectorGain = gain;
+
+    } else {
+        qWarning() << "Couldn't find audio mixer to send set gain request";
+    }
+}
+
+float NodeList::getInjectorGain() {
+    return _injectorGain;
 }
 
 void NodeList::kickNodeBySessionID(const QUuid& nodeID) {

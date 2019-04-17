@@ -72,8 +72,8 @@ protected:
     void internalDeactivate() override;
     void updatePresentPose() override;
 
-    void compositeLayers(const gpu::FramebufferPointer&) override;
-    void hmdPresent(const gpu::FramebufferPointer&) override;
+    void compositeLayers() override;
+    void hmdPresent() override;
     bool isHmdMounted() const override;
     void postPreview() override;
 
