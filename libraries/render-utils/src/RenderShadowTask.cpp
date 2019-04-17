@@ -90,7 +90,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 #endif
     };
 
-    render::VaryingArray<AABox,4> cascadeSceneBBoxes;
+    CascadeBoxes cascadeSceneBBoxes;
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
