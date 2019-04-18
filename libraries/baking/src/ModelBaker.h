@@ -87,6 +87,7 @@ private:
     bool _hasBeenBaked { false };
 
     hfm::Model::Pointer _hfmModel;
+    MaterialMapping _materialMapping;
     QSharedPointer<MaterialBaker> _materialBaker;
 };
 

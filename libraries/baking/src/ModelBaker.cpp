@@ -245,6 +245,7 @@ void ModelBaker::bakeSourceCopy() {
         baker.run();
 
         _hfmModel = baker.getHFMModel();
+        _materialMapping = baker.getMaterialMapping();
         dracoMeshes = baker.getDracoMeshes();
         dracoMaterialLists = baker.getDracoMaterialLists();
     }
