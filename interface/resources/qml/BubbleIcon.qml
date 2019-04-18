@@ -23,15 +23,15 @@ Rectangle {
     property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
 
     function updateOpacity() {
-        if (ignoreRadiusEnabled) {
-            bubbleRect.opacity = 1.0;
-        } else {
-            bubbleRect.opacity = 0.7;
-        }
+        var rectOpacity = ignoreRadiusEnabled ? 1.0 : (mouseArea.containsMouse ? 1.0 : 0.7);
+        bubbleRect.opacity = rectOpacity;
     }
 
     Component.onCompleted: {
         updateOpacity();
+        AvatarInputs.ignoreRadiusEnabledChanged.connect(function() {
+            ignoreRadiusEnabled = AvatarInputs.ignoreRadiusEnabled;
+        });
     }
 
     onIgnoreRadiusEnabledChanged: {
@@ -74,10 +74,10 @@ Rectangle {
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {
-            var rectOpacity = (ignoreRadiusEnabled && containsMouse) ? 1.0 : (containsMouse ? 1.0 : 0.7);
             if (containsMouse) {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }
+            var rectOpacity = ignoreRadiusEnabled ? 1.0 : (mouseArea.containsMouse ? 1.0 : 0.7);
             bubbleRect.opacity = rectOpacity;
         }
     }
