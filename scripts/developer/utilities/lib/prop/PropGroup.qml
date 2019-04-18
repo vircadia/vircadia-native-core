@@ -10,19 +10,35 @@
 
 import QtQuick 2.7
 
-Item {
+//Item {
+PropFolderPanel {    
     Global { id: global }
     id: root
 
-    property var label: "group"
+  //  property var label: "group"
 
-    property alias isUnfold: headerFolderIcon.icon
-    property var indentDepth: 0
+  //  property alias isUnfold: headerFolderIcon.icon
+  //  property var indentDepth: 0
     
-    property alias propItemsPanel: propItemsContainer
+    //property alias propItemsPanel: _panelFrameData
+  // property alias propItemsPanel: propItemsContainer
+   //property var propItemsPanel: propItemsContainer
+
+    panelFrameData: Component { // default is a column
+        id: groupPanelFrameData
+        Column {
+            id: propItemsContainer
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 0
+            anchors.rightMargin: 0
+               
+            clip: true
+        }
+    }
 
     // Panel Header Data Component
-    property Component panelHeaderData: defaultPanelHeaderData  
+/*    property Component panelHeaderData: defaultPanelHeaderData  
     Component { // default is a Label
         id: defaultPanelHeaderData
         PropLabel {
@@ -110,7 +126,7 @@ Item {
     anchors.margins: 0
     anchors.left: parent.left           
     anchors.right: parent.right
-
+*/
     
     // Prop Group is designed to author an array of ProItems, they are defined with an array of the tuplets describing each individual item:
     // [ ..., PropItemInfo, ...]

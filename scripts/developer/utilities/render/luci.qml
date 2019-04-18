@@ -15,6 +15,7 @@ import controlsUit 1.0 as HifiControls
 
 import "../lib/prop" as Prop
 import "../lib/jet/qml" as Jet
+import "luci"
 
 Rectangle {
     anchors.fill: parent 
@@ -31,7 +32,14 @@ Rectangle {
          
         Column {
             width: render.width
-
+            Prop.PropFolderPanel {
+                id: "shadingModel"
+                label: "Shading Model"
+                panelFrameData: Component {
+                    ShadingModel {
+                    }
+                }
+            }
         /*    Prop.PropEnum {
                 label: "Tone Curve"
                 object: render.mainViewTask.getConfig("ToneMapping")
@@ -45,14 +53,6 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right 
             }        */
-            Jet.TaskPropView {
-                id: "lightingModel"
-                jobPath: "RenderMainView.LightingModel"
-                label: "Le LightingModel"
-
-                anchors.left: parent.left
-                anchors.right: parent.right 
-            }
             Jet.TaskPropView {
                 id: "theView"
                 jobPath: "RenderMainView"
@@ -69,20 +69,14 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right 
             }
-          /*  Jet.TaskPropView {
-                jobPath: "RenderMainView.ToneMapping"
-                label: "Le ToneMapping Job"
+            Jet.TaskPropView {
+                id: "le"
+                jobPath: ""
+                label: "Le Render Engine"
 
                 anchors.left: parent.left
                 anchors.right: parent.right 
             }
-            Jet.TaskPropView {
-                jobPath: "RenderMainView.Antialiasing"
-                label: "Le Antialiasing Job"
-
-                anchors.left: parent.left
-                anchors.right: parent.right 
-            }*/
         }
     }
 

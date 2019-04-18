@@ -9,7 +9,6 @@
 //
 
 import QtQuick 2.7
-import controlsUit 1.0 as HifiControls
 
 PropItem {
     Global { id: global }
@@ -21,13 +20,12 @@ PropItem {
         valueVar = root.valueVarGetter();
     }
 
-    HifiControls.CheckBox {
+    PropCheckBox {
         id: checkboxControl
 
         anchors.left: root.splitter.right
         anchors.verticalCenter: root.verticalCenter
         width: root.width * global.valueAreaWidthScale
-        height: global.slimHeight
 
         onCheckedChanged: { root.valueVarSetter(checked); }
     }
