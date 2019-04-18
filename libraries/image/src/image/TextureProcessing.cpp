@@ -29,10 +29,10 @@
 #include "OpenEXRReader.h"
 #endif
 #include "ImageLogging.h"
+#include "CubeMap.h"
 
 using namespace gpu;
 
-#define CPU_MIPMAPS 1
 #include <nvtt/nvtt.h>
 
 #undef _CRT_SECURE_NO_WARNINGS
@@ -111,11 +111,13 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
             return image::TextureUsage::createEmissiveTextureFromImage;
         case LIGHTMAP_TEXTURE:
             return image::TextureUsage::createLightmapTextureFromImage;
-        case CUBE_TEXTURE:
+        case SKY_TEXTURE:
+            return image::TextureUsage::createCubeTextureFromImage;
+        case AMBIENT_TEXTURE:
             if (options.value("generateIrradiance", true).toBool()) {
-                return image::TextureUsage::createCubeTextureFromImage;
+                return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
             } else {
-                return image::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
+                return image::TextureUsage::createAmbientCubeTextureFromImage;
             }
         case BUMP_TEXTURE:
             return image::TextureUsage::createNormalTextureFromBumpImage;
@@ -186,14 +188,24 @@ gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(Image&& srcImag
     return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, target, false, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createCubeTextureFromImage(Image&& srcImage, const std::string& srcImageName,
+gpu::TexturePointer TextureUsage::createCubeTextureAndIrradianceFromImage(Image&& srcImage, const std::string& srcImageName,
                                                              bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, true, abortProcessing);
+    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(Image&& srcImage, const std::string& srcImageName,
-                                                                              bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, false, abortProcessing);
+gpu::TexturePointer TextureUsage::createCubeTextureFromImage(Image&& srcImage, const std::string& srcImageName,
+                                                             bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_DEFAULT, abortProcessing);
+}
+
+gpu::TexturePointer TextureUsage::createAmbientCubeTextureFromImage(Image&& image, const std::string& srcImageName,
+                                                           bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GGX_CONVOLVE, abortProcessing);
+}
+
+gpu::TexturePointer TextureUsage::createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
+                                                                        bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE | CUBE_GGX_CONVOLVE, abortProcessing);
 }
 
 static float denormalize(float value, const float minValue) {
@@ -215,11 +227,17 @@ static uint32 packR11G11B10F(const glm::vec3& color) {
     return glm::packF2x11_1x10(ucolor);
 }
 
+static uint32 packUnorm4x8(const glm::vec3& color) {
+    return glm::packUnorm4x8(glm::vec4(color, 1.0f));
+}
+
 static std::function<uint32(const glm::vec3&)> getHDRPackingFunction(const gpu::Element& format) {
     if (format == gpu::Element::COLOR_RGB9E5) {
         return glm::packF3x9_E1x5;
     } else if (format == gpu::Element::COLOR_R11G11B10) {
         return packR11G11B10F;
+    } else if (format == gpu::Element::COLOR_RGBA_32 || format == gpu::Element::COLOR_SRGBA_32 || format == gpu::Element::COLOR_BGRA_32 || format == gpu::Element::COLOR_SBGRA_32) {
+        return packUnorm4x8;
     } else {
         qCWarning(imagelogging) << "Unknown handler format";
         Q_UNREACHABLE();
@@ -231,16 +249,22 @@ std::function<uint32(const glm::vec3&)> getHDRPackingFunction() {
     return getHDRPackingFunction(GPU_CUBEMAP_HDR_FORMAT);
 }
 
-std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction() {
-    if (GPU_CUBEMAP_HDR_FORMAT == gpu::Element::COLOR_RGB9E5) {
+std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction(const gpu::Element& format) {
+    if (format == gpu::Element::COLOR_RGB9E5) {
         return glm::unpackF3x9_E1x5;
-    } else if (GPU_CUBEMAP_HDR_FORMAT == gpu::Element::COLOR_R11G11B10) {
+    } else if (format == gpu::Element::COLOR_R11G11B10) {
         return glm::unpackF2x11_1x10;
+    } else if (format == gpu::Element::COLOR_RGBA_32 || format == gpu::Element::COLOR_SRGBA_32 || format == gpu::Element::COLOR_BGRA_32 || format == gpu::Element::COLOR_SBGRA_32) {
+        return glm::unpackUnorm4x8;
     } else {
-        qCWarning(imagelogging) << "Unknown HDR encoding format in Image";
+        qCWarning(imagelogging) << "Unknown handler format";
         Q_UNREACHABLE();
         return nullptr;
     }
+}
+
+std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction() {
+    return getHDRUnpackingFunction(GPU_CUBEMAP_HDR_FORMAT);
 }
 
 Image processRawImageData(QIODevice& content, const std::string& filename) {
@@ -490,13 +514,15 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
     }
 };
 
+#if defined(NVTT_API)
 class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
 public:
-    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing) : _abortProcessing(abortProcessing) {};
+    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing = false) : _abortProcessing(abortProcessing) {
+    }
 
     const std::atomic<bool>& _abortProcessing;
 
-    virtual void dispatch(nvtt::Task* task, void* context, int count) override {
+    void dispatch(nvtt::Task* task, void* context, int count) override {
         for (int i = 0; i < count; i++) {
             if (!_abortProcessing.load()) {
                 task(context, i);
@@ -506,108 +532,137 @@ public:
         }
     }
 };
+#endif
 
-void generateHDRMips(gpu::Texture* texture, Image&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face) {
-    // Take a local copy to force move construction
-    // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
-    Image localCopy = std::move(image);
+void convertToFloatFromPacked(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
+                              glm::vec4* output, size_t outputLinePixelStride) {
+    glm::vec4* outputIt;
+    auto unpackFunc = getHDRUnpackingFunction(sourceFormat);
 
-    assert(localCopy.getFormat() == Image::Format_PACKED_FLOAT);
-
-    const int width = localCopy.getWidth(), height = localCopy.getHeight();
-    std::vector<glm::vec4> data;
-    std::vector<glm::vec4>::iterator dataIt;
-    auto mipFormat = texture->getStoredMipFormat();
-    std::function<glm::vec3(uint32)> unpackFunc = getHDRUnpackingFunction();
-
-    nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
-    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
-    nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
-
-    nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setQuality(nvtt::Quality_Production);
-
-    // TODO: gles: generate ETC mips instead?
-    if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
-        compressionOptions.setFormat(nvtt::Format_BC6);
-    } else if (mipFormat == gpu::Element::COLOR_RGB9E5) {
-        compressionOptions.setFormat(nvtt::Format_RGB);
-        compressionOptions.setPixelType(nvtt::PixelType_Float);
-        compressionOptions.setPixelFormat(32, 32, 32, 0);
-    } else if (mipFormat == gpu::Element::COLOR_R11G11B10) {
-        compressionOptions.setFormat(nvtt::Format_RGB);
-        compressionOptions.setPixelType(nvtt::PixelType_Float);
-        compressionOptions.setPixelFormat(32, 32, 32, 0);
-    } else {
-        qCWarning(imagelogging) << "Unknown mip format";
-        Q_UNREACHABLE();
-        return;
-    }
-
-    data.resize(width * height);
-    dataIt = data.begin();
+    outputLinePixelStride -= width;
+    outputIt = output;
     for (auto lineNb = 0; lineNb < height; lineNb++) {
-        const uint32* srcPixelIt = reinterpret_cast<const uint32*>(localCopy.getScanLine(lineNb));
+        const uint32* srcPixelIt = reinterpret_cast<const uint32*>(source + lineNb * srcLineByteStride);
         const uint32* srcPixelEnd = srcPixelIt + width;
 
         while (srcPixelIt < srcPixelEnd) {
-            *dataIt = glm::vec4(unpackFunc(*srcPixelIt), 1.0f);
+            *outputIt = glm::vec4(unpackFunc(*srcPixelIt), 1.0f);
             ++srcPixelIt;
-            ++dataIt;
+            ++outputIt;
         }
+        outputIt += outputLinePixelStride;
     }
-    assert(dataIt == data.end());
+}
 
-    // We're done with the localCopy, free up the memory to avoid bloating the heap
-    localCopy = Image(); // Image doesn't have a clear function, so override it with an empty one.
+void convertToPackedFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+                              const glm::vec4* source, size_t srcLinePixelStride) {
+    const glm::vec4* sourceIt;
+    auto packFunc = getHDRPackingFunction(outputFormat);
+
+    srcLinePixelStride -= width;
+    sourceIt = source;
+    for (auto lineNb = 0; lineNb < height; lineNb++) {
+        uint32* outPixelIt = reinterpret_cast<uint32*>(output + lineNb * outputLineByteStride);
+        uint32* outPixelEnd = outPixelIt + width;
+
+        while (outPixelIt < outPixelEnd) {
+            *outPixelIt = packFunc(*sourceIt);
+            ++outPixelIt;
+            ++sourceIt;
+        }
+        sourceIt += srcLinePixelStride;
+    }
+}
+
+nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressionOptions) {
+    auto outputFormat = outputTexture->getStoredMipFormat();
+    bool useNVTT = false;
+
+    compressionOptions.setQuality(nvtt::Quality_Production);
+
+    if (outputFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
+        useNVTT = true;
+        compressionOptions.setFormat(nvtt::Format_BC6);
+    } else if (outputFormat == gpu::Element::COLOR_RGB9E5) {
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_Float);
+        compressionOptions.setPixelFormat(32, 32, 32, 0);
+    } else if (outputFormat == gpu::Element::COLOR_R11G11B10) {
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_Float);
+        compressionOptions.setPixelFormat(32, 32, 32, 0);
+    } else if (outputFormat == gpu::Element::COLOR_SRGBA_32) {
+        useNVTT = true;
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPixelFormat(8, 8, 8, 0);
+    } else {
+        qCWarning(imagelogging) << "Unknown mip format";
+        Q_UNREACHABLE();
+        return nullptr;
+    }
+
+    if (!useNVTT) {
+        // Don't use NVTT (at least version 2.1) as it outputs wrong RGB9E5 and R11G11B10F values from floats
+        return new PackedFloatOutputHandler(outputTexture, face, outputFormat);
+    } else {
+        return new OutputHandler(outputTexture, face);
+    }
+}
+
+void convertImageToHDRTexture(gpu::Texture* texture, Image&& image, BackendTarget target, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing, int face) {
+    assert(image.hasFloatFormat());
+
+    Image localCopy = image.getConvertedToFormat(Image::Format_RGBAF);
+
+    const int width = localCopy.getWidth();
+    const int height = localCopy.getHeight();
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
-    std::unique_ptr<nvtt::OutputHandler> outputHandler;
+
+    nvtt::CompressionOptions compressionOptions;
+    std::unique_ptr<nvtt::OutputHandler> outputHandler{ getNVTTCompressionOutputHandler(texture, face, compressionOptions) };
+
     MyErrorHandler errorHandler;
     outputOptions.setErrorHandler(&errorHandler);
     nvtt::Context context;
-    int mipLevel = 0;
-
-    if (mipFormat == gpu::Element::COLOR_RGB9E5 || mipFormat == gpu::Element::COLOR_R11G11B10) {
-        // Don't use NVTT (at least version 2.1) as it outputs wrong RGB9E5 and R11G11B10F values from floats
-        outputHandler.reset(new PackedFloatOutputHandler(texture, face, mipFormat));
-    } else {
-        outputHandler.reset(new OutputHandler(texture, face));
-    }
+    int mipLevel = baseMipLevel;
 
     outputOptions.setOutputHandler(outputHandler.get());
 
     nvtt::Surface surface;
-    surface.setImage(inputFormat, width, height, 1, &(*data.begin()));
-    surface.setAlphaMode(alphaMode);
-    surface.setWrapMode(wrapMode);
+    surface.setImage(nvtt::InputFormat_RGBA_32F, width, height, 1, localCopy.getBits());
+    surface.setAlphaMode(nvtt::AlphaMode_None);
+    surface.setWrapMode(nvtt::WrapMode_Mirror);
 
     SequentialTaskDispatcher dispatcher(abortProcessing);
     nvtt::Compressor compressor;
     context.setTaskDispatcher(&dispatcher);
 
     context.compress(surface, face, mipLevel++, compressionOptions, outputOptions);
-    while (surface.canMakeNextMipmap() && !abortProcessing.load()) {
-        surface.buildNextMipmap(nvtt::MipmapFilter_Box);
-        context.compress(surface, face, mipLevel++, compressionOptions, outputOptions);
+    if (buildMips) {
+        while (surface.canMakeNextMipmap() && !abortProcessing.load()) {
+            surface.buildNextMipmap(nvtt::MipmapFilter_Box);
+            context.compress(surface, face, mipLevel++, compressionOptions, outputOptions);
+        }
     }
 }
 
-void generateLDRMips(gpu::Texture* texture, Image&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face) {
+void convertImageToLDRTexture(gpu::Texture* texture, Image&& image, BackendTarget target, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing, int face) {
     // Take a local copy to force move construction
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     Image localCopy = std::move(image);
 
-    assert(localCopy.getFormat() != Image::Format_PACKED_FLOAT);
-    if (localCopy.getFormat() != Image::Format_ARGB32) {
-        localCopy = localCopy.getConvertedToFormat(Image::Format_ARGB32);
-    }
-
     const int width = localCopy.getWidth(), height = localCopy.getHeight();
     auto mipFormat = texture->getStoredMipFormat();
+    int mipLevel = baseMipLevel;
 
     if (target != BackendTarget::GLES32) {
+        if (localCopy.getFormat() != Image::Format_ARGB32) {
+            localCopy = localCopy.getConvertedToFormat(Image::Format_ARGB32);
+        }
+
         const void* data = static_cast<const void*>(localCopy.getBits());
         nvtt::TextureType textureType = nvtt::TextureType_2D;
         nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
@@ -618,22 +673,21 @@ void generateLDRMips(gpu::Texture* texture, Image&& image, BackendTarget target,
         float inputGamma = 2.2f;
         float outputGamma = 2.2f;
 
-        nvtt::InputOptions inputOptions;
-        inputOptions.setTextureLayout(textureType, width, height);
+        nvtt::Surface surface;
+        surface.setImage(inputFormat, width, height, 1, data);
+        surface.setAlphaMode(alphaMode);
+        surface.setWrapMode(wrapMode);
 
-        inputOptions.setMipmapData(data, width, height);
-        // setMipmapData copies the memory, so free up the memory afterward to avoid bloating the heap
+        // Surface copies the memory, so free up the memory afterward to avoid bloating the heap
         data = nullptr;
         localCopy = Image(); // Image doesn't have a clear function, so override it with an empty one.
 
+        nvtt::InputOptions inputOptions;
+        inputOptions.setTextureLayout(textureType, width, height);
+
         inputOptions.setFormat(inputFormat);
         inputOptions.setGamma(inputGamma, outputGamma);
-        inputOptions.setAlphaMode(alphaMode);
-        inputOptions.setWrapMode(wrapMode);
         inputOptions.setRoundMode(roundMode);
-
-        inputOptions.setMipmapGeneration(true);
-        inputOptions.setMipmapFilter(nvtt::MipmapFilter_Box);
 
         nvtt::CompressionOptions compressionOptions;
         compressionOptions.setQuality(nvtt::Quality_Production);
@@ -718,11 +772,22 @@ void generateLDRMips(gpu::Texture* texture, Image&& image, BackendTarget target,
         outputOptions.setErrorHandler(&errorHandler);
 
         SequentialTaskDispatcher dispatcher(abortProcessing);
-        nvtt::Compressor compressor;
-        compressor.setTaskDispatcher(&dispatcher);
-        compressor.process(inputOptions, compressionOptions, outputOptions);
+        nvtt::Compressor context;
+
+        context.compress(surface, face, mipLevel++, compressionOptions, outputOptions);
+        if (buildMips) {
+            while (surface.canMakeNextMipmap() && !abortProcessing.load()) {
+                surface.buildNextMipmap(nvtt::MipmapFilter_Box);
+                context.compress(surface, face, mipLevel++, compressionOptions, outputOptions);
+            }
+        }
     } else {
-        int numMips = 1 + (int)log2(std::max(width, height));
+        int numMips = 1;
+    
+        if (buildMips) {
+            numMips += (int)log2(std::max(width, height)) - baseMipLevel;
+        }
+        assert(numMips > 0);
         Etc::RawImage *mipMaps = new Etc::RawImage[numMips];
         Etc::Image::Format etcFormat = Etc::Image::Format::DEFAULT;
 
@@ -756,23 +821,13 @@ void generateLDRMips(gpu::Texture* texture, Image&& image, BackendTarget target,
         const float effort = 1.0f;
         const int numEncodeThreads = 4;
         int encodingTime;
-        const float MAX_COLOR = 255.0f;
 
-        std::vector<vec4> floatData;
-        floatData.resize(width * height);
-        for (int y = 0; y < height; y++) {
-            QRgb *line = (QRgb *)localCopy.editScanLine(y);
-            for (int x = 0; x < width; x++) {
-                QRgb &pixel = line[x];
-                floatData[x + y * width] = vec4(qRed(pixel), qGreen(pixel), qBlue(pixel), qAlpha(pixel)) / MAX_COLOR;
-            }
+        if (localCopy.getFormat() != Image::Format_RGBAF) {
+            localCopy = localCopy.getConvertedToFormat(Image::Format_RGBAF);
         }
 
-        // free up the memory afterward to avoid bloating the heap
-        localCopy = Image(); // Image doesn't have a clear function, so override it with an empty one.
-
         Etc::EncodeMipmaps(
-            (float *)floatData.data(), width, height,
+            (float *)localCopy.editBits(), width, height,
             etcFormat, errorMetric, effort,
             numEncodeThreads, numEncodeThreads,
             numMips, Etc::FILTER_WRAP_NONE,
@@ -782,9 +837,9 @@ void generateLDRMips(gpu::Texture* texture, Image&& image, BackendTarget target,
         for (int i = 0; i < numMips; i++) {
             if (mipMaps[i].paucEncodingBits.get()) {
                 if (face >= 0) {
-                    texture->assignStoredMipFace(i, face, mipMaps[i].uiEncodingBitsBytes, static_cast<const gpu::Byte*>(mipMaps[i].paucEncodingBits.get()));
+                    texture->assignStoredMipFace(i+baseMipLevel, face, mipMaps[i].uiEncodingBitsBytes, static_cast<const gpu::Byte*>(mipMaps[i].paucEncodingBits.get()));
                 } else {
-                    texture->assignStoredMip(i, mipMaps[i].uiEncodingBitsBytes, static_cast<const gpu::Byte*>(mipMaps[i].paucEncodingBits.get()));
+                    texture->assignStoredMip(i + baseMipLevel, mipMaps[i].uiEncodingBitsBytes, static_cast<const gpu::Byte*>(mipMaps[i].paucEncodingBits.get()));
                 }
             }
         }
@@ -795,22 +850,27 @@ void generateLDRMips(gpu::Texture* texture, Image&& image, BackendTarget target,
 
 #endif
 
-void generateMips(gpu::Texture* texture, Image&& image, BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1) {
-#if CPU_MIPMAPS
-    PROFILE_RANGE(resource_parse, "generateMips");
+void convertImageToTexture(gpu::Texture* texture, Image& image, BackendTarget target, int face, int baseMipLevel, bool buildMips, const std::atomic<bool>& abortProcessing) {
+    PROFILE_RANGE(resource_parse, "convertToTextureWithMips");
 
     if (target == BackendTarget::GLES32) {
-        generateLDRMips(texture, std::move(image), target, abortProcessing, face);
+        convertImageToLDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
     } else {
-        if (image.getFormat() == Image::Format_PACKED_FLOAT) {
-            generateHDRMips(texture, std::move(image), target, abortProcessing, face);
+        if (image.hasFloatFormat()) {
+            convertImageToHDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
         } else {
-            generateLDRMips(texture, std::move(image), target, abortProcessing, face);
+            convertImageToLDRTexture(texture, std::move(image), target, baseMipLevel, buildMips, abortProcessing, face);
         }
     }
-#else
-    texture->setAutoGenerateMips(true);
-#endif
+}
+
+void convertToTextureWithMips(gpu::Texture* texture, Image&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face) {
+    convertImageToTexture(texture, image, target, face, 0, true, abortProcessing);
+}
+
+void convertToTexture(gpu::Texture* texture, Image&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face, int mipLevel) {
+    PROFILE_RANGE(resource_parse, "convertToTexture");
+    convertImageToTexture(texture, image, target, face, mipLevel, false, abortProcessing);
 }
 
 void processTextureAlpha(const Image& srcImage, bool& validAlpha, bool& alphaAsMask) {
@@ -900,7 +960,7 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(Image&& srcImag
         theTexture->setUsage(usage.build());
         theTexture->setStoredMipFormat(formatMip);
         theTexture->assignStoredMip(0, image.getByteCount(), image.getBits());
-        generateMips(theTexture.get(), std::move(image), target, abortProcessing);
+        convertToTextureWithMips(theTexture.get(), std::move(image), target, abortProcessing);
     }
 
     return theTexture;
@@ -944,14 +1004,14 @@ Image processBumpMap(Image&& image) {
             const int jPrevClamped = clampPixelCoordinate(j - 1, height - 1);
 
             // surrounding pixels
-            const QRgb topLeft = localCopy.getPixel(iPrevClamped, jPrevClamped);
-            const QRgb top = localCopy.getPixel(iPrevClamped, j);
-            const QRgb topRight = localCopy.getPixel(iPrevClamped, jNextClamped);
-            const QRgb right = localCopy.getPixel(i, jNextClamped);
-            const QRgb bottomRight = localCopy.getPixel(iNextClamped, jNextClamped);
-            const QRgb bottom = localCopy.getPixel(iNextClamped, j);
-            const QRgb bottomLeft = localCopy.getPixel(iNextClamped, jPrevClamped);
-            const QRgb left = localCopy.getPixel(i, jPrevClamped);
+            const QRgb topLeft = localCopy.getPackedPixel(iPrevClamped, jPrevClamped);
+            const QRgb top = localCopy.getPackedPixel(iPrevClamped, j);
+            const QRgb topRight = localCopy.getPackedPixel(iPrevClamped, jNextClamped);
+            const QRgb right = localCopy.getPackedPixel(i, jNextClamped);
+            const QRgb bottomRight = localCopy.getPackedPixel(iNextClamped, jNextClamped);
+            const QRgb bottom = localCopy.getPackedPixel(iNextClamped, j);
+            const QRgb bottomLeft = localCopy.getPackedPixel(iNextClamped, jPrevClamped);
+            const QRgb left = localCopy.getPackedPixel(i, jPrevClamped);
 
             // take their gray intensities
             // since it's a grayscale image, the value of each component RGB is the same
@@ -974,12 +1034,13 @@ Image processBumpMap(Image&& image) {
 
             // convert to rgb from the value obtained computing the filter
             QRgb qRgbValue = qRgba(mapComponent(v.z), mapComponent(v.y), mapComponent(v.x), 1.0);
-            result.setPixel(i, j, qRgbValue);
+            result.setPackedPixel(i, j, qRgbValue);
         }
     }
 
     return result;
 }
+
 gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(Image&& srcImage, const std::string& srcImageName,
                                                                      bool compress, BackendTarget target, bool isBumpMap,
                                                                      const std::atomic<bool>& abortProcessing) {
@@ -1014,7 +1075,7 @@ gpu::TexturePointer TextureUsage::process2DTextureNormalMapFromImage(Image&& src
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         theTexture->assignStoredMip(0, image.getByteCount(), image.getBits());
-        generateMips(theTexture.get(), std::move(image), target, abortProcessing);
+        convertToTextureWithMips(theTexture.get(), std::move(image), target, abortProcessing);
     }
 
     return theTexture;
@@ -1054,7 +1115,7 @@ gpu::TexturePointer TextureUsage::process2DTextureGrayscaleFromImage(Image&& src
         theTexture->setSource(srcImageName);
         theTexture->setStoredMipFormat(formatMip);
         theTexture->assignStoredMip(0, image.getByteCount(), image.getBits());
-        generateMips(theTexture.get(), std::move(image), target, abortProcessing);
+        convertToTextureWithMips(theTexture.get(), std::move(image), target, abortProcessing);
     }
 
     return theTexture;  
@@ -1416,8 +1477,41 @@ Image convertToHDRFormat(Image&& srcImage, gpu::Element format) {
     return hdrImage;
 }
 
+static bool isLinearTextureFormat(gpu::Element format) {
+    return !((format == gpu::Element::COLOR_SRGBA_32)
+        || (format == gpu::Element::COLOR_SBGRA_32)
+        || (format == gpu::Element::COLOR_SR_8)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGB)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_MASK)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA)
+        || (format == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_HIGH)
+        || (format == gpu::Element::COLOR_COMPRESSED_ETC2_SRGB)
+        || (format == gpu::Element::COLOR_COMPRESSED_ETC2_SRGBA)
+        || (format == gpu::Element::COLOR_COMPRESSED_ETC2_SRGB_PUNCHTHROUGH_ALPHA));
+}
+
+void convolveForGGX(const std::vector<Image>& faces, gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
+    PROFILE_RANGE(resource_parse, "convolveForGGX");
+    CubeMap source(faces, texture->getNumMips(), abortProcessing);
+    CubeMap output(texture->getWidth(), texture->getHeight(), texture->getNumMips());
+
+    if (!faces.front().hasFloatFormat()) {
+        source.applyGamma(2.2f);
+    }
+    source.convolveForGGX(output, abortProcessing);
+    if (!isLinearTextureFormat(texture->getTexelFormat())) {
+        output.applyGamma(1.0f/2.2f);
+    }
+
+    for (int face = 0; face < 6; face++) {
+        for (gpu::uint16 mipLevel = 0; mipLevel < output.getMipCount(); mipLevel++) {
+            convertToTexture(texture, output.getFaceImage(mipLevel, face), target, abortProcessing, face, mipLevel);
+        }
+    }
+}
+
 gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcImage, const std::string& srcImageName,
-                                                                   bool compress, BackendTarget target, bool generateIrradiance,
+                                                                   bool compress, BackendTarget target, int options,
                                                                    const std::atomic<bool>& abortProcessing) {
     PROFILE_RANGE(resource_parse, "processCubeTextureColorFromImage");
 
@@ -1491,7 +1585,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcIm
         theTexture->setStoredMipFormat(formatMip);
 
         // Generate irradiance while we are at it
-        if (generateIrradiance) {
+        if (options & CUBE_GENERATE_IRRADIANCE) {
             PROFILE_RANGE(resource_parse, "generateIrradiance");
             gpu::Element irradianceFormat;
             // TODO: we could locally compress the irradiance texture on Android, but we don't need to
@@ -1513,9 +1607,16 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcIm
             auto irradiance = irradianceTexture->getIrradiance();
             theTexture->overrideIrradiance(irradiance);
         }
-
-        for (uint8 face = 0; face < faces.size(); ++face) {
-            generateMips(theTexture.get(), std::move(faces[face]), target, abortProcessing, face);
+        
+        if (options & CUBE_GGX_CONVOLVE) {
+            // Performs and convolution AND mip map generation
+            convolveForGGX(faces, theTexture.get(), target, abortProcessing);
+        } else {
+            // Create mip maps and compress to final format in one go
+            for (uint8 face = 0; face < faces.size(); ++face) {
+                // Force building the mip maps right now on CPU if we are convolving for GGX later on
+                convertToTextureWithMips(theTexture.get(), std::move(faces[face]), target, abortProcessing, face);
+            }
         }
     }
 
