@@ -24,6 +24,15 @@
 #include "MixerAvatar.h"
 #include "AvatarLogging.h"
 
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/evp.h>
+#include <openssl/aes.h>
+#include <openssl/ecdsa.h>
+
+
 void MixerAvatar::fetchAvatarFST() {
     _verifyState = kNoncertified;
     _certificateIdFromURL.clear();
@@ -137,17 +146,17 @@ bool MixerAvatar::generateFSTHash() {
 
 bool MixerAvatar::validateFSTHash(const QString& publicKey) {
     // Guess we should refactor this stuff into a Authorization namespace ...
-    return EntityItemProperties::verifySignature(publicKey, _certificateHash,
-        QByteArray::fromBase64(_certificateIdFromFST.toUtf8()));
+return EntityItemProperties::verifySignature(publicKey, _certificateHash,
+    QByteArray::fromBase64(_certificateIdFromFST.toUtf8()));
 }
 
 QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
     QStringList fstLines = fstFile.split("\n", QString::SkipEmptyParts);
-    static const QString fstKeywordsReg{
+    static const QString fstKeywordsReg {
         "(marketplaceID|itemDescription|itemCategories|itemArtist|itemLicenseUrl|limitedRun|itemName|"
         "filename|texdir|script|editionNumber|certificateID)"
     };
-    QRegularExpression fstLineRegExp{ QString("^\\s*") + fstKeywordsReg + "\\s*=\\s*(\\S.*)$" };
+    QRegularExpression fstLineRegExp { QString("^\\s*") + fstKeywordsReg + "\\s*=\\s*(\\S.*)$" };
     QStringListIterator fstLineIter(fstLines);
 
     QJsonObject certifiedItems;
@@ -193,7 +202,7 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
 
 void MixerAvatar::processCertifyEvents() {
     QMutexLocker certifyLocker(&_avatarCertifyLock);
-    if (_verifyState != kOwnerResponse) {
+    if (_verifyState != kOwnerResponse && _verifyState != kChallengeResponse) {
         return;
     }
 
@@ -218,7 +227,10 @@ void MixerAvatar::processCertifyEvents() {
                 }
             }
             if (ownerValid && !ownerPublicKey.isEmpty()) {
-                // Challenge owner ...
+                _ownerPublicKey = "-----BEGIN PUBLIC KEY-----\n"
+                    + ownerPublicKey
+                    + "\n-----END PUBLIC KEY-----\n";
+                challengeOwner();
             } else {
                 _verifyState = kError;
             }
@@ -230,5 +242,63 @@ void MixerAvatar::processCertifyEvents() {
         break;
     }
 
+    case kChallengeResponse:
+    {
+        int avatarIDLength;
+        int signedNonceLength;
+        if (_challengeResponse.length() < 8) {
+            _verifyState = kError;
+            break;
+        }
+
+        QDataStream responseStream(_challengeResponse);
+        responseStream.setByteOrder(QDataStream::LittleEndian);
+        responseStream >> avatarIDLength >> signedNonceLength;
+        QByteArray avatarID(_challengeResponse.data() + 2 * sizeof(int), avatarIDLength);
+        QByteArray signedNonce(_challengeResponse.data() + 2 * sizeof(int) + avatarIDLength, signedNonceLength);
+        QCryptographicHash nonceHash(QCryptographicHash::Sha256);
+        nonceHash.addData(_challengeNonce);
+
+        bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, nonceHash.result(),
+            QByteArray::fromBase64(signedNonce));
+        _verifyState = challengeResult ? kVerificationSucceeded : kVerificationFailed;
+        if (_verifyState == kVerificationFailed) {
+            qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
+        }
+    }
+
     }  // close switch
+}
+
+void MixerAvatar::challengeOwner() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    QByteArray avatarID = ("{" + _marketplaceIdFromURL + "}").toUtf8();
+    QByteArray nonce = QUuid::createUuid().toByteArray();
+
+    auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
+        2 * sizeof(int) + nonce.length() + avatarID.length(), true);
+    challengeOwnershipPacket->writePrimitive(avatarID.length());
+    challengeOwnershipPacket->writePrimitive(nonce.length());
+    challengeOwnershipPacket->write(avatarID);
+    challengeOwnershipPacket->write(nonce);
+
+    nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(getSessionUUID())) );
+    _challengeNonce = nonce;
+
+    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
+    _challengeTimeout.setInterval(CHALLENGE_TIMEOUT_MS);
+    _challengeTimeout.connect(&_challengeTimeout, &QTimer::timeout, [this]() {
+        _verifyState = kVerificationFailed;
+        });
+}
+
+void MixerAvatar::handleChallengeResponse(ReceivedMessage * response) {
+    QByteArray avatarID;
+    QByteArray encryptedNonce;
+    QMutexLocker certifyLocker(&_avatarCertifyLock);
+    if (_verifyState == kChallengeClient) {
+        _challengeTimeout.stop();
+        _challengeResponse = response->readAll();
+        _verifyState = kChallengeResponse;
+    }
 }

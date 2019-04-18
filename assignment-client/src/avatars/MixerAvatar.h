@@ -27,13 +27,14 @@ public:
     void fetchAvatarFST();
     bool isCertifyFailed() const { return _verifyState == kVerificationFailed;  }
     void processCertifyEvents();
+    void handleChallengeResponse(ReceivedMessage * response);
 
 private:
     bool _needsHeroCheck{ false };
 
     // Avatar certification/verification:
     enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kOwnerResponse,
-        kChallengeClient, kVerified, kVerificationFailed, kVerificationSucceeded, kError };
+        kChallengeClient, kChallengeResponse, kVerified, kVerificationFailed, kVerificationSucceeded, kError };
     Q_ENUM(VerifyState);
     VerifyState _verifyState { kNoncertified };
     QMutex _avatarCertifyLock;
@@ -44,10 +45,15 @@ private:
     QString _certificateIdFromURL;
     QString _certificateIdFromFST;
     QString _dynamicMarketResponse;
+    QString _ownerPublicKey;
+    QByteArray _challengeNonce;
+    QByteArray _challengeResponse;
+    QTimer _challengeTimeout;
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey);
     QByteArray canonicalJson(const QString fstFile);
+    void challengeOwner();
 
 private slots:
     void fstRequestComplete();
