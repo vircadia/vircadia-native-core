@@ -470,9 +470,13 @@ namespace scriptable {
         // These need to be implemented, but set the fallthrough for now
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM0)) {
             obj.setProperty("texCoordTransform0", FALLTHROUGH);
+        } else {
+            obj.setProperty("texCoordTransform0", mat4toScriptValue(engine, material.texCoordTransforms[0]));
         }
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM1)) {
             obj.setProperty("texCoordTransform1", FALLTHROUGH);
+        } else {
+            obj.setProperty("texCoordTransform1", mat4toScriptValue(engine, material.texCoordTransforms[1]));
         }
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::LIGHTMAP_PARAMS)) {
             obj.setProperty("lightmapParams", FALLTHROUGH);
