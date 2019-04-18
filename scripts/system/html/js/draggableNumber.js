@@ -21,7 +21,7 @@ function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.initialMouseEvent = null;
     this.lastMouseEvent = null;
     this.valueChangeFunction = null;
-    this.multiDiffDragFunction = null;
+    this.multiDiffStepFunction = null;
     this.initialize();
 }
 
@@ -75,8 +75,8 @@ DraggableNumber.prototype = {
             let dragDelta = event.clientX - this.lastMouseEvent.clientX;
             if (dragDelta !== 0) {
                 if (this.multiDiffModeEnabled) {
-                    if (this.multiDiffDragFunction) {
-                        this.multiDiffDragFunction(dragDelta * this.step);
+                    if (this.multiDiffStepFunction) {
+                        this.multiDiffStepFunction(dragDelta * this.step);
                     }
                 } else {
                     if (dragDelta > 0) {
@@ -108,20 +108,32 @@ DraggableNumber.prototype = {
     
     stepUp: function() {
         if (!this.isDisabled()) {
-            this.elInput.value = parseFloat(this.elInput.value) + this.step;
-            this.inputChange();
-            if (this.valueChangeFunction) {
-                this.valueChangeFunction();
+            if (this.multiDiffModeEnabled) {
+                if (this.multiDiffStepFunction) {
+                    this.multiDiffStepFunction(this.step, true);
+                }
+            } else {
+                this.elInput.value = parseFloat(this.elInput.value) + this.step;
+                this.inputChange();
+                if (this.valueChangeFunction) {
+                    this.valueChangeFunction();
+                }
             }
         }
     },
     
     stepDown: function() {
         if (!this.isDisabled()) {
-            this.elInput.value = parseFloat(this.elInput.value) - this.step;
-            this.inputChange();
-            if (this.valueChangeFunction) {
-                this.valueChangeFunction();
+            if (this.multiDiffModeEnabled) {
+                if (this.multiDiffStepFunction) {
+                    this.multiDiffStepFunction(-this.step, true);
+                }
+            } else {
+                this.elInput.value = parseFloat(this.elInput.value) - this.step;
+                this.inputChange();
+                if (this.valueChangeFunction) {
+                    this.valueChangeFunction();
+                }
             }
         }
     },
@@ -158,8 +170,8 @@ DraggableNumber.prototype = {
         this.elInput.addEventListener("change", this.valueChangeFunction);
     },
 
-    setMultiDiffDragFunction: function(multiDiffDragFunction) {
-        this.multiDiffDragFunction = multiDiffDragFunction;
+    setMultiDiffStepFunction: function (multiDiffStepFunction) {
+        this.multiDiffStepFunction = multiDiffStepFunction;
     },
 
     inputChange: function() {

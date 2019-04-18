@@ -2353,21 +2353,25 @@ function updateNumberMinMax(property) {
 
 /**
  *
- * @param {object} property - property update on drag
- * @param {string} [propertyComponent] - propertyComponent to update on drag (e.g. enter 'x' to just update position.x)
+ * @param {object} property - property update on step
+ * @param {string} [propertyComponent] - propertyComponent to update on step (e.g. enter 'x' to just update position.x)
  * @returns {Function}
  */
-function createMultiDiffDragFunction(property, propertyComponent) {
-    return function(dragDelta) {
+function createMultiDiffStepFunction(property, propertyComponent) {
+    return function(step, shouldAddToUndoHistory) {
+        if (shouldAddToUndoHistory === undefined) {
+            shouldAddToUndoHistory = false;
+        }
+
         let propertyMultiValue = getMultiplePropertyValue(property.name);
         if (!propertyMultiValue.isMultiDiffValue) {
-            console.log("setMultiDiffDragFunction is only supposed to be called in MultiDiff mode.");
+            console.log("setMultiDiffStepFunction is only supposed to be called in MultiDiff mode.");
             return;
         }
 
         let multiplier = property.data.multiplier !== undefined ? property.data.multiplier : 1;
 
-        let applyDelta = dragDelta * multiplier;
+        let applyDelta = step * multiplier;
 
         if (selectedEntityIDs.size !== propertyMultiValue.values.length) {
             console.log("selectedEntityIDs and propertyMultiValue got out of sync.");
@@ -2396,7 +2400,7 @@ function createMultiDiffDragFunction(property, propertyComponent) {
             mergeDeep(currentSelections[i].properties, propertiesUpdate);
         }
 
-        updateMultiDiffProperties(updateObjects, true);
+        updateMultiDiffProperties(updateObjects, !shouldAddToUndoHistory);
     }
 }
 
@@ -2419,7 +2423,7 @@ function createNumberDraggableProperty(property, elProperty) {
     let valueChangeFunction = createEmitNumberPropertyUpdateFunction(property);
     elDraggableNumber.setValueChangeFunction(valueChangeFunction);
 
-    elDraggableNumber.setMultiDiffDragFunction(createMultiDiffDragFunction(property));
+    elDraggableNumber.setMultiDiffStepFunction(createMultiDiffStepFunction(property));
     
     elDraggableNumber.elInput.setAttribute("id", elementID);
     elProperty.appendChild(elDraggableNumber.elDiv);
@@ -2465,10 +2469,10 @@ function createRectProperty(property, elProperty) {
     elNumberWidth.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'width'));
     elNumberHeight.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'height'));
 
-    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
-    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
-    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'width'));
-    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'height'));
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'width'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'height'));
 
     let elResult = [];
     elResult[RECT_ELEMENTS.X_NUMBER] = elNumberX;
@@ -2503,9 +2507,9 @@ function createVec3Property(property, elProperty) {
     elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
     elNumberZ.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'z'));
 
-    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
-    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
-    elNumberZ.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'z'));
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
+    elNumberZ.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'z'));
     
     let elResult = [];
     elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
@@ -2532,8 +2536,8 @@ function createVec2Property(property, elProperty) {
     elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
     elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
 
-    elNumberX.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'x'));
-    elNumberY.setMultiDiffDragFunction(createMultiDiffDragFunction(property, 'y'));
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
     
     let elResult = [];
     elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
