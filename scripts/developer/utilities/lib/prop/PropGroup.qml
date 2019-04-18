@@ -63,14 +63,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 fillColor: global.colorOrangeAccent 
                 filled: root.propItemsPanel.height > 4
-
-                MouseArea{
-                    id: mousearea
-                    anchors.fill: parent
-                    onClicked: {
-                        root.isUnfold = !root.isUnfold
-                    }
-                }
+                iconMouseArea.onClicked: { root.isUnfold = !root.isUnfold }
             }
         }
 

@@ -18,39 +18,85 @@ Canvas {
     height: global.iconHeight
 
     property var icon: 0 
+        
+    onIconChanged: function () { //console.log("Icon changed to: " + icon );
+                                 requestPaint()
+                               }
+
     property var filled: true 
-    onIconChanged: function () { requestPaint() }
+    onFilledChanged: function () { //console.log("Filled changed to: " + filled );
+                                   requestPaint()
+                                }
+
     property var fillColor: global.colorBorderHighight 
+    onFillColorChanged: function () { //console.log("fillColor changed to: " + filled );
+                                     requestPaint()
+                                   }
+
+    property alias iconMouseArea: mousearea
 
     contextType: "2d" 
     onPaint: {
         context.reset();
         switch (icon) {
-        case 0:
-        case 1:
-        case 2:
-        default: {
-            if ((icon % 3) == 0) {
+        case false:
+        case 0:{ // Right Arrow
                 context.moveTo(width * 0.25, 0);
                 context.lineTo(width * 0.25, height);
                 context.lineTo(width, height / 2);
-            } else if ((icon % 3) == 1) {
+                context.closePath();
+            } break;
+        case true:
+        case 1:{ // Up Arrow
                 context.moveTo(0, height * 0.25);
                 context.lineTo(width,  height * 0.25);
                 context.lineTo(width / 2, height);    
-            } else {
+                context.closePath();
+            } break;
+        case 2:{ // Down Arrow
                 context.moveTo(0, height * 0.75);
                 context.lineTo(width, height* 0.75);
                 context.lineTo(width / 2, 0);
+                context.closePath();
+            } break;
+        case 3:{ // Left Arrow
+                context.moveTo(width * 0.75, 0);
+                context.lineTo(width * 0.75, height);
+                context.lineTo(0, height / 2);
+                context.closePath();
+            } break;
+        case 4:{ // Square
+                context.moveTo(0,0);
+                context.lineTo(0, height);
+                context.lineTo(width, height);
+                context.lineTo(width, 0);
+                context.closePath();
+            } break;
+        case 5:{ // Small Square
+                context.moveTo(width * 0.25, height * 0.25);
+                context.lineTo(width * 0.25, height * 0.75);
+                context.lineTo(width * 0.75, height * 0.75);
+                context.lineTo(width * 0.75, height * 0.25);
+                context.closePath();
+            } break;
+        default: {// Down Arrow
+               /* context.moveTo(0, height * 0.25);
+                context.lineTo(width,  height * 0.25);
+                context.lineTo(width / 2, height);    
+                context.closePath();*/
             }
-            context.closePath();
-            if (filled) {
-                context.fillStyle = fillColor;
-                context.fill();
-            } else {
-                context.strokeStyle = fillColor;
-                context.stroke();
-            }
-        }}
+        }
+        if (filled) {
+            context.fillStyle = fillColor;
+            context.fill();
+        } else {
+            context.strokeStyle = fillColor;
+            context.stroke();
+        }
+    }
+
+    MouseArea{
+        id: mousearea
+        anchors.fill: parent
     }
 }

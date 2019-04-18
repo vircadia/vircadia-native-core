@@ -32,31 +32,40 @@ Prop.PropGroup {
     property var showSubs: true
     property var jobEnabled: true
 
+   property var toggleJobActivation: function() {
+        console.log("the button has been pressed and jobEnabled is " + jobEnabled )
+        jobEnabled = !jobEnabled;
+        rootConfig.getConfig(jobPath).enabled = jobEnabled;
+    }
+
     // Panel Header Data Component
     panelHeaderData: Component {
         Item {
             id: header
             Prop.PropLabel {
                 text: root.label
-                horizontalAlignment: Text.AlignHCenter
+                //horizontalAlignment: Text.AlignHCenter
                 anchors.left: parent.left
                 anchors.right: enabledIcon.left
                 anchors.verticalCenter: parent.verticalCenter
-            }
+            }          
             Prop.PropCanvasIcon {
                 id: enabledIcon
+                anchors.right: enabledIcon2.left
+                anchors.verticalCenter: parent.verticalCenter
+                filled: root.jobEnabled
+                fillColor: (root.jobEnabled ? global.colorGreenHighlight : global.colorOrangeAccent)
+                icon: 5
+                iconMouseArea.onClicked: { toggleJobActivation() }
+            }
+            Prop.PropCanvasIcon {
+                id: enabledIcon2
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                fillColor: global.colorOrangeAccent 
-                filled: jobEnabled
-
-                MouseArea{
-                    id: mousearea
-                    anchors.fill: parent
-                    onClicked: {
-                        root.jobEnabled = !root.jobEnabled
-                    }
-                }
+                filled: root.jobEnabled
+                fillColor: (root.jobEnabled ? global.colorGreenHighlight : global.colorOrangeAccent)
+                icon: 7
+                iconMouseArea.onClicked: { toggleJobActivation() }
             }
         }
     }
