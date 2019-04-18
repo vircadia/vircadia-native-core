@@ -74,7 +74,7 @@ public:
                                      float left, float right, float bottom, float top, float viewMaxShadowDistance) const;
         };
 
-        Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
+        Shadow(graphics::LightPointer light, unsigned int cascadeCount = 1);
 
         void setLight(graphics::LightPointer light);
 
@@ -104,15 +104,13 @@ public:
         };
     protected:
 
-
         using Cascades = std::vector<Cascade>;
 
         static const glm::mat4 _biasMatrix;
 
         graphics::LightPointer _light;
-        float _maxDistance;
+        float _maxDistance{ 0.0f };
         Cascades _cascades;
-
 
         UniformBufferView _schemaBuffer = nullptr;
     };

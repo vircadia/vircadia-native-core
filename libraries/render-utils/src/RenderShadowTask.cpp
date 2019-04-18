@@ -34,7 +34,6 @@
 #define SHADOW_FRUSTUM_NEAR 1.0f
 #define SHADOW_FRUSTUM_FAR  500.0f
 static const unsigned int SHADOW_CASCADE_COUNT{ 4 };
-static const float SHADOW_MAX_DISTANCE{ 40.0f };
 
 using namespace render;
 
@@ -367,7 +366,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     output.edit2() = _cameraFrustum;
 
     if (!_globalShadowObject) {
-        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), SHADOW_MAX_DISTANCE, SHADOW_CASCADE_COUNT);
+        _globalShadowObject = std::make_shared<LightStage::Shadow>(currentKeyLight, SHADOW_CASCADE_COUNT);
     }
 
     _globalShadowObject->setLight(currentKeyLight);
@@ -378,11 +377,12 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     unsigned int cascadeIndex;
 
     // Adjust each cascade frustum
+    const auto biasScale = currentKeyLight->getShadowsBiasScale();
     for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& bias = _bias[cascadeIndex];
         _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
-                                                SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
-                                                bias._constant, bias._slope);
+                                                       SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
+                                                       bias._constant, bias._slope * biasScale);
     }
 
     _shadowFrameCache->pushShadow(_globalShadowObject);
