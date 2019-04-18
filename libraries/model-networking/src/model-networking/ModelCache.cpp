@@ -498,6 +498,20 @@ bool Geometry::areTexturesLoaded() const {
             material->checkResetOpacityMap();
         }
 
+        for (auto& materialMapping : _materialMapping) {
+            if (materialMapping.second) {
+                for (auto& materialPair : materialMapping.second->parsedMaterials.networkMaterials) {
+                    if (materialPair.second) {
+                        if (materialPair.second->isMissingTexture()) {
+                            return false;
+                        }
+
+                        materialPair.second->checkResetOpacityMap();
+                    }
+                }
+            }
+        }
+
         _areTexturesLoaded = true;
     }
     return true;
