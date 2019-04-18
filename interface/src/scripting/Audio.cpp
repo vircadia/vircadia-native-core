@@ -174,7 +174,7 @@ void Audio::setPTTDesktop(bool enabled) {
             _pttDesktop = enabled;
         }
     });
-    if (!enabled) {
+    if (!enabled && _settingsLoaded) {
         // Set to default behavior (unmuted for Desktop) on Push-To-Talk disable.
         setMutedDesktop(true);
     } else {
@@ -202,7 +202,7 @@ void Audio::setPTTHMD(bool enabled) {
             _pttHMD = enabled;
         }
     });
-    if (!enabled) {
+    if (!enabled && _settingsLoaded) {
         // Set to default behavior (unmuted for HMD) on Push-To-Talk disable.
         setMutedHMD(false);
     } else {
@@ -231,6 +231,7 @@ void Audio::loadData() {
 
     auto client = DependencyManager::get<AudioClient>().data();
     QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted()), Q_ARG(bool, false));
+    _settingsLoaded = true;
 }
 
 bool Audio::getPTTHMD() const {
