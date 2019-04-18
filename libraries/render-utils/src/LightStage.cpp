@@ -162,7 +162,9 @@ void LightStage::Shadow::setLight(graphics::LightPointer light) {
 }
 
 void LightStage::Shadow::setMaxDistance(float value) {
-    value = std::max(1e-3f, value);
+    static const auto MINIMUM_MAXDISTANCE = 1e-3f;
+
+    value = std::max(MINIMUM_MAXDISTANCE, value);
     if (value != _maxDistance) {
         // This overlaping factor isn't really used directly for blending of shadow cascades. It's
         // just there to be sure the cascades do overlap. The blending width used is relative
