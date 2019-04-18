@@ -174,9 +174,11 @@ void Audio::setPTTDesktop(bool enabled) {
             _pttDesktop = enabled;
         }
     });
-    if (!enabled && _settingsLoaded) {
-        // Set to default behavior (unmuted for Desktop) on Push-To-Talk disable.
-        setMutedDesktop(true);
+    if (!enabled) {
+        if (_settingsLoaded) {
+            // Set to default behavior (unmuted for Desktop) on Push-To-Talk disable.
+            setMutedDesktop(true);
+        }
     } else {
         // Should be muted when not pushing to talk while PTT is enabled.
         setMutedDesktop(true);
@@ -202,9 +204,11 @@ void Audio::setPTTHMD(bool enabled) {
             _pttHMD = enabled;
         }
     });
-    if (!enabled && _settingsLoaded) {
-        // Set to default behavior (unmuted for HMD) on Push-To-Talk disable.
-        setMutedHMD(false);
+    if (!enabled) {
+        if (_settingsLoaded) {
+            // Set to default behavior (unmuted for HMD) on Push-To-Talk disable.
+            setMutedHMD(false);
+        }
     } else {
         // Should be muted when not pushing to talk while PTT is enabled.
         setMutedHMD(true);
@@ -358,11 +362,6 @@ void Audio::onContextChanged() {
             changed = true;
         }
     });
-    if (isHMD) {
-        setMuted(getMutedHMD());
-    } else {
-        setMuted(getMutedDesktop());
-    }
     if (changed) {
         emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
     }
