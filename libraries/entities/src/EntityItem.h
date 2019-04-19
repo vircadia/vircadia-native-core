@@ -23,6 +23,7 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <PhysicsCollisionGroups.h>
+#include <SimulationFlags.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -33,11 +34,11 @@
 #include "EntityPropertyFlags.h"
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
-#include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 #include "GrabPropertyGroup.h"
 
 class EntitySimulation;
+using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 class EntityDynamicInterface;

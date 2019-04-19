@@ -18,7 +18,7 @@
 #include <QSet>
 #include <QVector>
 
-#include <EntityItem.h>
+#include <SimulationFlags.h>
 
 #include "ContactInfo.h"
 #include "ShapeManager.h"

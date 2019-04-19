@@ -12,6 +12,7 @@
 #ifndef hifi_EntityMotionState_h
 #define hifi_EntityMotionState_h
 
+#include <EntityItem.h>
 #include <EntityTypes.h>
 #include <AACube.h>
 #include <workload/Region.h>
