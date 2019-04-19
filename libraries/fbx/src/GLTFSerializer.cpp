@@ -1368,8 +1368,8 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
     blobstream.setByteOrder(QDataStream::LittleEndian);
     blobstream.setVersion(QDataStream::Qt_5_9);
     blobstream.setFloatingPointPrecision(QDataStream::FloatingPointPrecision::SinglePrecision);
+    blobstream.skipRawData(byteOffset);
 
-    int dataskipped = blobstream.skipRawData(byteOffset);
     int bufferCount = 0;
     switch (accessorType) {
     case GLTFAccessorType::SCALAR:
