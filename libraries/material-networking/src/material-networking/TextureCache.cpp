@@ -630,11 +630,9 @@ void NetworkTexture::makeLocalRequest() {
 }
 
 bool NetworkTexture::handleFailedRequest(ResourceRequest::Result result) {
-    if (_currentlyLoadingResourceType != ResourceType::KTX
-        && result == ResourceRequest::Result::RedirectFail) {
-
+    if (_shouldFailOnRedirect && result == ResourceRequest::Result::RedirectFail) {
         auto newPath = _request->getRelativePathUrl();
-        if (newPath.fileName().endsWith(".ktx")) {
+        if (newPath.fileName().toLower().endsWith(".ktx")) {
             _currentlyLoadingResourceType = ResourceType::KTX;
             _activeUrl = newPath;
             _shouldFailOnRedirect = false;

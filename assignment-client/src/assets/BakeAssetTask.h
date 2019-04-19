@@ -37,7 +37,7 @@ public slots:
     void abort();
 
 signals:
-    void bakeComplete(QString assetHash, QString assetPath, QString tempOutputDir, QVector<QString> outputFiles);
+    void bakeComplete(QString assetHash, QString assetPath, QString tempOutputDir);
     void bakeFailed(QString assetHash, QString assetPath, QString errors);
     void bakeAborted(QString assetHash, QString assetPath);
     
