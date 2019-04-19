@@ -701,6 +701,8 @@ glm::mat4 mat4FromVariant(const QVariant& object, bool& valid) {
         if (everyConversionValid) {
             valid = true;
         }
+
+        return mat4;
     }
 }
 
