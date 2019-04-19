@@ -16,6 +16,7 @@
 #include <QtCore/QDir>
 #include <QtCore/QUrl>
 #include <QtNetwork/QNetworkReply>
+#include <QJsonArray>
 
 #include "Baker.h"
 #include "MaterialBaker.h"
@@ -80,15 +81,19 @@ protected slots:
     void handleModelNetworkReply();
     virtual void bakeSourceCopy();
     void handleFinishedMaterialBaker();
+    void handleFinishedMaterialMapBaker();
 
 private:
     void outputUnbakedFST();
     void outputBakedFST();
+    void bakeMaterialMap();
 
     bool _hasBeenBaked { false };
 
     hfm::Model::Pointer _hfmModel;
     MaterialMapping _materialMapping;
+    int _materialMapIndex { 0 };
+    QJsonArray _materialMappingJSON;
     QSharedPointer<MaterialBaker> _materialBaker;
 };
 

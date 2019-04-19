@@ -241,9 +241,6 @@ void ModelBaker::bakeSourceCopy() {
         config->getJobConfig("BuildDracoMesh")->setEnabled(true);
         // Do not permit potentially lossy modification of joint data meant for runtime
         ((PrepareJointsConfig*)config->getJobConfig("PrepareJoints"))->passthrough = true;
-        // The resources parsed from this job will not be used for now
-        // TODO: Proper full baking of all materials for a model
-        config->getJobConfig("ParseMaterialMapping")->setEnabled(false);
     
         // Begin hfm baking
         baker.run();
@@ -261,7 +258,7 @@ void ModelBaker::bakeSourceCopy() {
         return;
     }
 
-    if (_hfmModel->materials.size() > 0) {
+    if (!_hfmModel->materials.isEmpty()) {
         _materialBaker = QSharedPointer<MaterialBaker>(
             new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir),
             &MaterialBaker::deleteLater
@@ -270,7 +267,7 @@ void ModelBaker::bakeSourceCopy() {
         connect(_materialBaker.data(), &MaterialBaker::finished, this, &ModelBaker::handleFinishedMaterialBaker);
         _materialBaker->bake();
     } else {
-        outputBakedFST();
+        bakeMaterialMap();
     }
 }
 
@@ -286,26 +283,14 @@ void ModelBaker::handleFinishedMaterialBaker() {
             auto baseName = relativeBakedMaterialURL.left(relativeBakedMaterialURL.lastIndexOf('.'));
             relativeBakedMaterialURL = baseName + BAKED_MATERIAL_EXTENSION;
 
-            // First we add the materials in the model
-            QJsonArray materialMapping;
-            for (auto material : _hfmModel->materials) {
-                QJsonObject json;
-                json["mat::" + material.name] = relativeBakedMaterialURL + "#" + material.name;
-                materialMapping.push_back(json);
-            }
-
-            // The we add any existing mappings from the mapping
-            if (_mapping.contains(MATERIAL_MAPPING_FIELD)) {
-                QByteArray materialMapValue = _mapping[MATERIAL_MAPPING_FIELD].toByteArray();
-                QJsonObject oldMaterialMapping = QJsonDocument::fromJson(materialMapValue).object();
-                for (auto key : oldMaterialMapping.keys()) {
+            auto materialResource = baker->getNetworkMaterialResource();
+            if (materialResource) {
+                for (auto materialName : materialResource->parsedMaterials.names) {
                     QJsonObject json;
-                    json[key] = oldMaterialMapping[key];
-                    materialMapping.push_back(json);
+                    json[QString("mat::" + QString(materialName.c_str()))] = relativeBakedMaterialURL + "#" + materialName.c_str();
+                    _materialMappingJSON.push_back(json);
                 }
             }
-
-            _mapping[MATERIAL_MAPPING_FIELD] = QJsonDocument(materialMapping).toJson(QJsonDocument::Compact);
         } else {
             // this material failed to bake - this doesn't fail the entire bake but we need to add the errors from
             // the material to our warnings
@@ -315,7 +300,62 @@ void ModelBaker::handleFinishedMaterialBaker() {
         handleWarning("Failed to bake the materials for model with URL " + _modelURL.toString());
     }
 
-    outputBakedFST();
+    bakeMaterialMap();
+}
+
+void ModelBaker::bakeMaterialMap() {
+    if (!_materialMapping.empty()) {
+        // TODO:  The existing material map must be baked in order, so we do it all on this thread to preserve the order.
+        // It could be spread over multiple threads if we had a good way of preserving the order once all of the bakers are done
+        _materialBaker = QSharedPointer<MaterialBaker>(
+            new MaterialBaker("materialMap" + QString::number(_materialMapIndex++), true, _bakedOutputDir),
+            &MaterialBaker::deleteLater
+        );
+        _materialBaker->setMaterials(_materialMapping.front().second);
+        connect(_materialBaker.data(), &MaterialBaker::finished, this, &ModelBaker::handleFinishedMaterialMapBaker);
+        _materialBaker->bake();
+    } else {
+        outputBakedFST();
+    }
+}
+
+void ModelBaker::handleFinishedMaterialMapBaker() {
+    auto baker = qobject_cast<MaterialBaker*>(sender());
+
+    if (baker) {
+        if (!baker->hasErrors()) {
+            // this MaterialBaker is done and everything went according to plan
+            qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
+
+            QString materialName;
+            {
+                auto materialResource = baker->getNetworkMaterialResource();
+                if (materialResource) {
+                    auto url = materialResource->getURL();
+                    if (!url.isEmpty()) {
+                        QString urlString = url.toDisplayString();
+                        auto index = urlString.lastIndexOf("#");
+                        if (index != -1) {
+                            materialName = urlString.right(urlString.length() - index);
+                        }
+                    }
+                }
+            }
+
+            QJsonObject json;
+            json[QString(_materialMapping.front().first.c_str())] = baker->getMaterialData() + BAKED_MATERIAL_EXTENSION + materialName;
+            _materialMappingJSON.push_back(json);
+        } else {
+            // this material failed to bake - this doesn't fail the entire bake but we need to add the errors from
+            // the material to our warnings
+            _warningList << baker->getWarnings();
+        }
+    } else {
+        handleWarning("Failed to bake the materialMap for model with URL " + _modelURL.toString() + " and mapping target " + _materialMapping.front().first.c_str());
+    }
+
+    _materialMapping.erase(_materialMapping.begin());
+    bakeMaterialMap();
 }
 
 void ModelBaker::outputUnbakedFST() {
@@ -364,6 +404,9 @@ void ModelBaker::outputBakedFST() {
     outputMapping[FILENAME_FIELD] = _bakedModelURL.fileName();
     outputMapping.remove(TEXDIR_FIELD);
     outputMapping.remove(COMMENT_FIELD);
+    if (!_materialMappingJSON.isEmpty()) {
+        outputMapping[MATERIAL_MAPPING_FIELD] = QJsonDocument(_materialMappingJSON).toJson(QJsonDocument::Compact);
+    }
     hifi::ByteArray fstOut = FSTReader::writeMapping(outputMapping);
 
     QFile fstOutputFile { outputFSTURL };
