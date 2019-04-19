@@ -177,7 +177,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
         material->setModel(modelString);
     }
 
-    std::array<bool, graphics::Material::NUM_TEXCOORD_TRANSFORMS> hasTexcoordTransform;
     std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texcoordTransforms;
 
     if (modelString == HIFI_PBR) {
@@ -378,7 +377,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 } else if (value.isObject()) {
                     auto valueVariant = value.toVariant();
                     glm::mat4 transform = mat4FromVariant(valueVariant);
-                    hasTexcoordTransform[0] = true;
                     texcoordTransforms[0] = transform;
                 }
             } else if (key == "texCoordTransform1") {
@@ -391,7 +389,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 } else if (value.isObject()) {
                     auto valueVariant = value.toVariant();
                     glm::mat4 transform = mat4FromVariant(valueVariant);
-                    hasTexcoordTransform[1] = true;
                     texcoordTransforms[1] = transform;
                 }
             } else if (key == "lightmapParams") {
@@ -423,8 +420,9 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
 
     // Do this after the texture maps are defined, so it overrides the default transforms
     for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
-        if (hasTexcoordTransform[i]) {
-            material->setTexCoordTransform(i, texcoordTransforms[i]);
+        mat4 newTransform = texcoordTransforms[i];
+        if (newTransform != mat4() || newTransform != material->getTexCoordTransform(i)) {
+            material->setTexCoordTransform(i, newTransform);
         }
     }
 
