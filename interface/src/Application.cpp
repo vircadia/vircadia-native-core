@@ -9320,6 +9320,3 @@ void Application::toggleAwayMode(){
 
 
 #endif
-
-
-#include "Application.moc"
