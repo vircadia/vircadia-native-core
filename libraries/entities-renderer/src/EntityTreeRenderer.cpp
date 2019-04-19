@@ -205,8 +205,11 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
         foreach (const EntityItemID& entityID,  entitiesWithEntityScripts) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
 
-            if (entityItem) {
+            if (entityItem && !entityItem->getScript().isEmpty()) {
                 if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
+                    if (entityItem->contains(_avatarPosition)) {
+                        _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                    }
                     _entitiesScriptEngine->unloadEntityScript(entityID, true);
                 }
             }
@@ -534,7 +537,7 @@ void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUp
     _spaceUpdates.emplace_back(proxyUpdate.first, proxyUpdate.second);
 }
 
-bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {
+bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar) {
     bool didUpdate = false;
     float radius = 0.01f; // for now, assume 0.01 meter radius, because we actually check the point inside later
     QVector<QUuid> entityIDs;
@@ -580,9 +583,7 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
                 }
 
                 if ((!hasScript && isZone) || scriptHasLoaded) {
-                    if (entitiesContainingAvatar) {
-                        *entitiesContainingAvatar << entity->getEntityItemID();
-                    }
+                    entitiesContainingAvatar << entity->getEntityItemID();
                 }
             }
         }
@@ -616,36 +617,36 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
         auto movedEnough = glm::distance(avatarPosition, _avatarPosition) > ZONE_CHECK_DISTANCE;
         auto enoughTimeElapsed = (now - _lastZoneCheck) > ZONE_CHECK_INTERVAL;
         
-        if (movedEnough || enoughTimeElapsed) {
+        if (_forceRecheckEntities || movedEnough || enoughTimeElapsed) {
             _avatarPosition = avatarPosition;
             _lastZoneCheck = now;
-            QVector<EntityItemID> entitiesContainingAvatar;
-            didUpdate = findBestZoneAndMaybeContainingEntities(&entitiesContainingAvatar);
-            
+            _forceRecheckEntities = false;
+
+            QSet<EntityItemID> entitiesContainingAvatar;
+            didUpdate = findBestZoneAndMaybeContainingEntities(entitiesContainingAvatar);
+
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
             // EntityItemIDs from here. The callEntityScriptMethod() method is robust against attempting to call scripts
             // for entity IDs that no longer exist.
 
-            // for all of our previous containing entities, if they are no longer containing then send them a leave event
-            foreach(const EntityItemID& entityID, _currentEntitiesInside) {
-                if (!entitiesContainingAvatar.contains(entityID)) {
-                    emit leaveEntity(entityID);
-                    if (_entitiesScriptEngine) {
+            if (_entitiesScriptEngine) {
+                // for all of our previous containing entities, if they are no longer containing then send them a leave event
+                foreach(const EntityItemID& entityID, _currentEntitiesInside) {
+                    if (!entitiesContainingAvatar.contains(entityID)) {
+                        emit leaveEntity(entityID);
                         _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                     }
                 }
-            }
 
-            // for all of our new containing entities, if they weren't previously containing then send them an enter event
-            foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
-                if (!_currentEntitiesInside.contains(entityID)) {
-                    emit enterEntity(entityID);
-                    if (_entitiesScriptEngine) {
+                // for all of our new containing entities, if they weren't previously containing then send them an enter event
+                foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
+                    if (!_currentEntitiesInside.contains(entityID)) {
+                        emit enterEntity(entityID);
                         _entitiesScriptEngine->callEntityScriptMethod(entityID, "enterEntity");
                     }
                 }
+                _currentEntitiesInside = entitiesContainingAvatar;
             }
-            _currentEntitiesInside = entitiesContainingAvatar;
         }
     }
     return didUpdate;
@@ -653,7 +654,7 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
 
 void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
     if (_tree && !_shuttingDown) {
-        QVector<EntityItemID> currentEntitiesInsideToSave;
+        QSet<EntityItemID> currentEntitiesInsideToSave;
         foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
             if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
@@ -662,7 +663,7 @@ void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                 }
             } else {
-                currentEntitiesInsideToSave.push_back(entityID);
+                currentEntitiesInsideToSave.insert(entityID);
             }
         }
 
@@ -687,9 +688,7 @@ void EntityTreeRenderer::leaveAllEntities() {
 }
 
 void EntityTreeRenderer::forceRecheckEntities() {
-    // make sure our "last avatar position" is something other than our current position, 
-    // so that on our next chance, we'll check for enter/leave entity events.
-    _avatarPosition = _viewState->getAvatarPosition() + glm::vec3((float)TREE_SCALE);
+    _forceRecheckEntities = true;
 }
 
 bool EntityTreeRenderer::applyLayeredZones() {
@@ -992,7 +991,10 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
         return;
     }
 
-    if (_tree && !_shuttingDown && _entitiesScriptEngine) {
+    if (_tree && !_shuttingDown && _entitiesScriptEngine && !itr->second->getEntity()->getScript().isEmpty()) {
+        if (itr->second->getEntity()->contains(_avatarPosition)) {
+            _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+        }
         _entitiesScriptEngine->unloadEntityScript(entityID, true);
     }
 
@@ -1038,6 +1040,9 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
         QString scriptUrl = entity->getScript();
         if ((shouldLoad && unloadFirst) || scriptUrl.isEmpty()) {
             if (_entitiesScriptEngine) {
+                if (entity->contains(_avatarPosition)) {
+                    _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                }
                 _entitiesScriptEngine->unloadEntityScript(entityID);
             }
             entity->scriptHasUnloaded();
