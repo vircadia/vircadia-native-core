@@ -55,6 +55,7 @@ const GROUPS = [
                 label: "Parent",
                 type: "string",
                 propertyID: "parentID",
+                onChange: parentIDChanged,
             },
             {
                 label: "Parent Joint Index",
@@ -74,6 +75,25 @@ const GROUPS = [
                 type: "bool",
                 propertyID: "visible",
                 replaceID: "placeholder-property-visible",
+            },
+            {
+                label: "Render Layer",
+                type: "dropdown",
+                options: {
+                    world: "World",
+                    front: "Front",
+                    hud: "HUD"
+                },
+                propertyID: "renderLayer",
+            },
+            {
+                label: "Primitive Mode",
+                type: "dropdown",
+                options: {
+                    solid: "Solid",
+                    lines: "Wireframe",
+                },
+                propertyID: "primitiveMode",
             },
         ]
     },
@@ -520,6 +540,11 @@ const GROUPS = [
                 readOnly: true,
                 hideIfCertified: true,
             },
+            {
+                label: "Group Culled",
+                type: "bool",
+                propertyID: "groupCulled",
+            },
         ]
     },
     {
@@ -578,6 +603,35 @@ const GROUPS = [
                 label: "Source Resolution",
                 type: "number-draggable",
                 propertyID: "dpi",
+            },
+            {
+                label: "Web Color",
+                type: "color",
+                propertyID: "webColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Web Alpha",
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
+                propertyID: "webAlpha",
+                propertyName: "alpha",
+                min: 0,
+                max: 1,
+            },
+            {
+                label: "Max FPS",
+                type: "number-draggable",
+                step: 1,
+                decimals: 0,
+                propertyID: "maxFPS",
+            },
+            {
+                label: "Script URL",
+                type: "string",
+                propertyID: "scriptURL",
+                placeholder: "URL",
             },
         ]
     },
@@ -650,23 +704,10 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
-                label: "Select Submesh",
-                type: "bool",
-                propertyID: "selectSubmesh",
-            },
-            {
-                label: "Submesh to Replace",
-                type: "number-draggable",
-                min: 0,
-                step: 1,
-                propertyID: "submeshToReplace",
-                indentedLabel: true,
-            },
-            {
-                label: "Material to Replace",
-                type: "string",
-                propertyID: "materialNameToReplace",
-                indentedLabel: true,
+                label: "Material Target",
+                type: "dynamic-multiselect",
+                propertyUpdate: materialTargetPropertyUpdate,
+                propertyID: "parentMaterialName",
             },
             {
                 label: "Priority",
@@ -1588,6 +1629,8 @@ function getPropertyInputElement(propertyID) {
             return { red: property.elNumberR.elInput, green: property.elNumberG.elInput, blue: property.elNumberB.elInput };
         case 'icon':
             return property.elLabel;
+        case 'dynamic-multiselect':
+            return property.elDivOptions;
         default:
             return undefined;
     }
@@ -1708,6 +1751,10 @@ function resetProperties() {
             case 'texture': {
                 property.elInput.value = "";
                 property.elInput.imageLoad(property.elInput.value);
+                break;
+            }
+            case 'dynamic-multiselect': {
+                resetDynamicMultiselectProperty(property.elDivOptions);
                 break;
             }
         }
@@ -1963,6 +2010,9 @@ function createStringProperty(property, elProperty) {
 
     
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    if (propertyData.onChange !== undefined) {
+        elInput.addEventListener('change', propertyData.onChange);
+    }
     
     elProperty.appendChild(elInput);
     
@@ -2386,7 +2436,7 @@ function createTextureProperty(property, elProperty) {
     return elResult;
 }
 
-function createButtonsProperty(property, elProperty, elLabel) {
+function createButtonsProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
@@ -2397,6 +2447,43 @@ function createButtonsProperty(property, elProperty, elLabel) {
     }
     
     return elProperty;
+}
+
+function createDynamicMultiselectProperty(property, elProperty) {
+    let elementID = property.elementID;
+    let propertyData = property.data;
+        
+    elProperty.className = "dynamic-multiselect";
+    
+    let elDivOptions = document.createElement('div');
+    elDivOptions.setAttribute("id", elementID + "-options");
+    elDivOptions.style = "overflow-y:scroll;max-height:160px;"
+    
+    let elDivButtons = document.createElement('div');
+    elDivButtons.setAttribute("id", elDivOptions.getAttribute("id") + "-buttons");
+        
+    let elLabel = document.createElement('label');
+    elLabel.innerText = "No Options";
+    elDivOptions.appendChild(elLabel);
+
+    let buttons = [ { id: "selectAll", label: "Select All", className: "black", onClick: selectAllMaterialTarget }, 
+                    { id: "clearAll", label: "Clear All", className: "black", onClick: clearAllMaterialTarget } ];
+    addButtons(elDivButtons, elementID, buttons, false);
+    
+    elProperty.appendChild(elDivOptions);
+    elProperty.appendChild(elDivButtons);
+    
+    return elDivOptions;
+}
+
+function resetDynamicMultiselectProperty(elDivOptions) {
+    let elInputs = elDivOptions.getElementsByTagName("input");
+    while (elInputs.length > 0) {
+        let elDivOption = elInputs[0].parentNode;
+        elDivOption.parentNode.removeChild(elDivOption);
+    }
+    elDivOptions.firstChild.style.display = null; // show "No Options" text
+    elDivOptions.parentNode.lastChild.style.display = "none"; // hide Select/Clear all buttons
 }
 
 function createTupleNumberInput(property, subLabel) {
@@ -2522,6 +2609,10 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             property.elProperty = createButtonsProperty(property, elProperty);
             break;
         }
+        case 'dynamic-multiselect': {
+            property.elDivOptions = createDynamicMultiselectProperty(property, elProperty);
+            break;
+        }
         case 'placeholder':
         case 'sub-header': {
             break;
@@ -2534,6 +2625,17 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
     }
 
     return property;
+}
+
+
+/**
+ * PROPERTY-SPECIFIC CALLBACKS
+ */
+ 
+function parentIDChanged() {
+    if (selectedEntityProperties.type === "Material") {
+        requestMaterialTarget();
+    }
 }
 
 
@@ -3058,7 +3160,7 @@ function setDropdownValue(event) {
 
 
 /**
- * TEXTAREA / PARENT MATERIAL NAME FUNCTIONS
+ * TEXTAREA FUNCTIONS
  */
 
 function setTextareaScrolling(element) {
@@ -3066,16 +3168,144 @@ function setTextareaScrolling(element) {
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 }
 
-function showParentMaterialNameBox(number, elNumber, elString) {
-    if (number) {
-        $('#property-submeshToReplace').parent().show();
-        $('#property-materialNameToReplace').parent().hide();
-        elString.value = "";
-    } else {
-        $('#property-materialNameToReplace').parent().show();
-        $('#property-submeshToReplace').parent().hide();
-        elNumber.value = 0;
+
+/**
+ * MATERIAL TARGET FUNCTIONS
+ */
+
+function requestMaterialTarget() {
+    EventBridge.emitWebEvent(JSON.stringify({ type: 'materialTargetRequest', entityID: selectedEntityProperties.id }));
+}
+ 
+function setMaterialTargetData(materialTargetData) {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");
+    resetDynamicMultiselectProperty(elDivOptions);
+    
+    if (materialTargetData === undefined) {
+        return;
     }
+    
+    elDivOptions.firstChild.style.display = "none"; // hide "No Options" text
+    elDivOptions.parentNode.lastChild.style.display = null; // show Select/Clear all buttons
+
+    let numMeshes = materialTargetData.numMeshes;
+    for (let i = 0; i < numMeshes; ++i) {
+        addMaterialTarget(elDivOptions, i, false);
+    }
+    
+    let materialNames = materialTargetData.materialNames;
+    let materialNamesAdded = [];
+    for (let i = 0; i < materialNames.length; ++i) {
+        let materialName = materialNames[i];
+        if (materialNamesAdded.indexOf(materialName) === -1) {
+            addMaterialTarget(elDivOptions, materialName, true);
+            materialNamesAdded.push(materialName);
+        }
+    }
+    
+    materialTargetPropertyUpdate(elDivOptions.propertyValue);
+}
+
+function addMaterialTarget(elDivOptions, targetID, isMaterialName) {
+    let elementID = elDivOptions.getAttribute("id");
+    elementID += isMaterialName ? "-material-" : "-mesh-";
+    elementID += targetID;
+    
+    let elDiv = document.createElement('div');
+    elDiv.className = "materialTargetDiv";
+    elDiv.onclick = onToggleMaterialTarget;
+    elDivOptions.appendChild(elDiv);
+    
+    let elInput = document.createElement('input');
+    elInput.className = "materialTargetInput";
+    elInput.setAttribute("type", "checkbox");
+    elInput.setAttribute("id", elementID);
+    elInput.setAttribute("targetID", targetID);
+    elInput.setAttribute("isMaterialName", isMaterialName);
+    elDiv.appendChild(elInput);
+    
+    let elLabel = document.createElement('label');
+    elLabel.setAttribute("for", elementID);
+    elLabel.innerText = isMaterialName ? "Material " + targetID : "Mesh Index " + targetID;
+    elDiv.appendChild(elLabel);
+    
+    return elDiv;
+}
+
+function onToggleMaterialTarget(event) {
+    let elTarget = event.target;
+    if (elTarget instanceof HTMLInputElement) {
+        sendMaterialTargetProperty();
+    }
+    event.stopPropagation();
+}
+
+function setAllMaterialTargetInputs(checked) {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");   
+    let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
+    for (let i = 0; i < elInputs.length; ++i) {
+        elInputs[i].checked = checked;
+    }
+}
+
+function selectAllMaterialTarget() {
+    setAllMaterialTargetInputs(true);
+    sendMaterialTargetProperty();
+}
+
+function clearAllMaterialTarget() {
+    setAllMaterialTargetInputs(false);
+    sendMaterialTargetProperty();
+}
+
+function sendMaterialTargetProperty() {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");   
+    let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
+    
+    let materialTargetList = [];
+    for (let i = 0; i < elInputs.length; ++i) {
+        let elInput = elInputs[i];
+        if (elInput.checked) {
+            let targetID = elInput.getAttribute("targetID");
+            if (elInput.getAttribute("isMaterialName") === "true") {
+                materialTargetList.push("mat::" + targetID);
+            } else {
+                materialTargetList.push(targetID);
+            }
+        }
+    }
+    
+    let propertyValue = materialTargetList.join(",");
+    if (propertyValue.length > 1) {
+        propertyValue = "[" + propertyValue + "]";
+    }
+    
+    updateProperty("parentMaterialName", propertyValue, false);
+}
+
+function materialTargetPropertyUpdate(propertyValue) {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");
+    let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
+    
+    if (propertyValue.startsWith('[')) {
+        propertyValue = propertyValue.substring(1, propertyValue.length);
+    }
+    if (propertyValue.endsWith(']')) {
+        propertyValue = propertyValue.substring(0, propertyValue.length - 1);
+    }
+    
+    let materialTargets = propertyValue.split(",");
+    for (let i = 0; i < elInputs.length; ++i) {
+        let elInput = elInputs[i];
+        let targetID = elInput.getAttribute("targetID");
+        let materialTargetName = targetID;
+        if (elInput.getAttribute("isMaterialName") === "true") {
+            materialTargetName = "mat::" + targetID;
+        }
+        elInput.checked = materialTargets.indexOf(materialTargetName) >= 0;
+    }
+    
+    elDivOptions.propertyValue = propertyValue;
 }
 
 
@@ -3167,7 +3397,7 @@ function loaded() {
                 }
 
                 if (elLabel) {
-                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID);
+                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID, propertyName);
                 }
 
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
@@ -3192,7 +3422,7 @@ function loaded() {
                         property.spaceMode = propertySpaceMode;
 
                         let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
-                        createAppTooltip.registerTooltipElement(elLabel, propertyID);
+                        createAppTooltip.registerTooltipElement(elLabel, propertyID, propertyName);
 
                         elWrapper.appendChild(elLabel);
                         
@@ -3273,6 +3503,7 @@ function loaded() {
                                 deleteJSONMaterialEditor();
                             }
                         }
+                        lastEntityID = null;
                         
                         resetProperties();
                         showGroupsForType("None");
@@ -3504,6 +3735,12 @@ function loaded() {
                                     property.elInput.imageLoad(property.elInput.value);
                                     break;
                                 }
+                                case 'dynamic-multiselect': {
+                                    if (property.data.propertyUpdate) {
+                                        property.data.propertyUpdate(propertyValue);
+                                    }
+                                    break;
+                                }
                             }
                             
                             let showPropertyRules = property.showPropertyRules;
@@ -3517,22 +3754,6 @@ function loaded() {
                         }
 
                         updateVisibleSpaceModeProperties();
-
-                        if (selectedEntityProperties.type === "Material") {
-                            let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
-                            let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
-                            let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
-                            let parentMaterialName = selectedEntityProperties.parentMaterialName;
-                            if (parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
-                                elParentMaterialNameString.value = parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
-                                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
-                                elParentMaterialNameCheckbox.checked = false;
-                            } else {
-                                elParentMaterialNameNumber.value = parseInt(parentMaterialName);
-                                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
-                                elParentMaterialNameCheckbox.checked = true;
-                            }
-                        }
                         
                         let json = null;
                         try {
@@ -3578,6 +3799,10 @@ function loaded() {
                             hideMaterialDataTextArea();
                             hideNewJSONMaterialEditorButton();
                             hideMaterialDataSaved();
+                        }
+                        
+                        if (hasSelectedEntityChanged && selectedEntityProperties.type === "Material") {
+                            requestMaterialTarget();
                         }
                         
                         let activeElement = document.activeElement;
@@ -3628,6 +3853,10 @@ function loaded() {
                                     break;
                             }
                         }
+                    }
+                } else if (data.type === 'materialTargetReply') {
+                    if (data.entityID === selectedEntityProperties.id) {
+                        setMaterialTargetData(data.materialTargetData);
                     }
                 }
             });
@@ -3697,26 +3926,6 @@ function loaded() {
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
-        
-        // Special Property Callbacks
-        let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
-        let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
-        let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
-        elParentMaterialNameString.addEventListener('change', function () { 
-            updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value, false); 
-        });
-        elParentMaterialNameNumber.addEventListener('change', function () { 
-            updateProperty("parentMaterialName", this.value, false); 
-        });
-        elParentMaterialNameCheckbox.addEventListener('change', function () {
-            if (this.checked) {
-                updateProperty("parentMaterialName", elParentMaterialNameNumber.value, false);
-                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
-            } else {
-                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value, false);
-                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
-            }
-        });
         
         // Collapsible sections
         let elCollapsible = document.getElementsByClassName("collapse-icon");

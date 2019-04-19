@@ -302,8 +302,11 @@ int main(int argc, const char* argv[]) {
         PROFILE_SYNC_BEGIN(startup, "app full ctor", "");
         Application app(argcExtended, const_cast<char**>(argvExtended.data()), startupTime, runningMarkerExisted);
         PROFILE_SYNC_END(startup, "app full ctor", "");
-        
-        
+
+#if defined(Q_OS_LINUX)
+        app.setWindowIcon(QIcon(PathUtils::resourcesPath() + "images/hifi-logo.svg"));
+#endif
+
         QTimer exitTimer;
         if (traceDuration > 0.0f) {
             exitTimer.setSingleShot(true);

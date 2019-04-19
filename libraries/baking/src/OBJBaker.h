@@ -35,9 +35,7 @@ private:
     void setMaterialNodeProperties(FBXNode& materialNode, QString material,  const hfm::Model::Pointer& hfmModel);
     NodeID nextNodeID() { return _nodeID++; }
 
-
     NodeID _nodeID { 0 };
     std::vector<NodeID> _materialIDs;
-    std::vector<std::pair<NodeID, int>> _mapTextureMaterial;
 };
 #endif // hifi_OBJBaker_h

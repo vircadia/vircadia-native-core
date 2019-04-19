@@ -437,8 +437,8 @@ const QVariantMap Geometry::getTextures() const {
     QVariantMap textures;
     for (const auto& material : _materials) {
         for (const auto& texture : material->_textures) {
-            if (texture.texture) {
-                textures[texture.name] = texture.texture->getURL();
+            if (texture.second.texture) {
+                textures[texture.second.name] = texture.second.texture->getURL();
             }
         }
     }
@@ -467,7 +467,7 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
         for (auto& material : _materials) {
             // Check if any material textures actually changed
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
-                [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.texture && textureMap.contains(it.name); })) { 
+                [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.second.texture && textureMap.contains(it.second.name); })) {
 
                 // FIXME: The Model currently caches the materials (waste of space!)
                 //        so they must be copied in the Geometry copy-ctor

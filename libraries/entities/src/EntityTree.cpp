@@ -1459,7 +1459,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
 
         QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
-        connect(networkReply, &QNetworkReply::finished, this, [this, entityIDs, networkReply, minimumAgeToRemove, &certificateID] {
+        connect(networkReply, &QNetworkReply::finished, this, [this, entityIDs, networkReply, minimumAgeToRemove, certificateID] {
 
             QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
             jsonObject = jsonObject["data"].toObject();

@@ -152,10 +152,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
         // setup a ModelBaker for this URL, as long as we don't already have one
         bool haveBaker = _modelBakers.contains(bakeableModelURL);
         if (!haveBaker) {
-            auto getWorkerThreadCallback = []() -> QThread* {
-                return Oven::instance().getNextWorkerThread();
-            };
-            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, getWorkerThreadCallback, _contentOutputPath).release(), &Baker::deleteLater);
+            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, _contentOutputPath).release(), &Baker::deleteLater);
             if (baker) {
                 // Hold on to the old url userinfo/query/fragment data so ModelBaker::getFullOutputMappingURL retains that data from the original model URL
                 // Note: The ModelBaker currently doesn't store this in the FST because the equal signs mess up FST parsing.
@@ -261,7 +258,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, co
     _entitiesNeedingRewrite.insert(scriptURL, { property, jsonRef });
 }
 
-void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef) {
+void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef, QUrl destinationPath) {
     // grab a clean version of the URL without a query or fragment
     QString materialData;
     if (isURL) {
@@ -275,7 +272,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath, _destinationPath),
+            new MaterialBaker(data, isURL, _contentOutputPath, destinationPath),
             &MaterialBaker::deleteLater
         };
 
@@ -390,16 +387,18 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(AMBIENT_LIGHT_KEY)) {
                 auto ambientLight = entity[AMBIENT_LIGHT_KEY].toObject();
                 if (ambientLight.contains(AMBIENT_URL_KEY)) {
-                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::AMBIENT_TEXTURE, *it);
                 }
             }
             if (entity.contains(SKYBOX_KEY)) {
                 auto skybox = entity[SKYBOX_KEY].toObject();
                 if (skybox.contains(SKYBOX_URL_KEY)) {
-                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::SKY_TEXTURE, *it);
                 }
             }
 
+            // FIXME: disabled for now because it breaks some scripts
+            /*
             // Scripts
             if (entity.contains(SCRIPT_KEY)) {
                 addScriptBaker(SCRIPT_KEY, entity[SCRIPT_KEY].toString(), *it);
@@ -407,13 +406,14 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(SERVER_SCRIPTS_KEY)) {
                 // TODO: serverScripts can be multiple scripts, need to handle that
             }
+            */
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
                 addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
             }
             if (entity.contains(MATERIAL_DATA_KEY)) {
-                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
+                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it, _destinationPath);
             }
         }
     }

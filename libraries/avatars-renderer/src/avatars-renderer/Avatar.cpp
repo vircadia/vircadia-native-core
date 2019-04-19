@@ -509,6 +509,26 @@ void Avatar::relayJointDataToChildren() {
     _reconstructSoftEntitiesJointMap = false;
 }
 
+/**jsdoc
+ * An avatar has different types of data simulated at different rates, in Hz.
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Rate Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"avatar" or ""</code></td><td>The rate at which the avatar is updated even if not in view.</td></tr>
+ *     <tr><td><code>"avatarInView"</code></td><td>The rate at which the avatar is updated if in view.</td></tr>
+ *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no 
+ *       joint data available.</td></tr>
+ *     <tr><td><code>"jointData"</code></td><td>The rate at which joint data are being updated.</td></tr>
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is 
+ *       provided.</td></tr>
+ *   </tbody>
+ * </table>
+ *
+ * @typedef {string} AvatarSimulationRate
+ */
 float Avatar::getSimulationRate(const QString& rateName) const {
     if (rateName == "") {
         return _simulationRate.rate();
@@ -1525,8 +1545,8 @@ void Avatar::rigReset() {
 
 void Avatar::computeMultiSphereShapes() {
     const Rig& rig = getSkeletonModel()->getRig();
-    glm::vec3 scale = extractScale(rig.getGeometryOffsetPose());
     const HFMModel& geometry = getSkeletonModel()->getHFMModel();
+    glm::vec3 geometryScale = extractScale(rig.getGeometryOffsetPose());
     int jointCount = rig.getJointStateCount();
     _multiSphereShapes.clear();
     _multiSphereShapes.reserve(jointCount);
@@ -1535,9 +1555,10 @@ void Avatar::computeMultiSphereShapes() {
         std::vector<btVector3> btPoints;
         int lineCount = (int)shapeInfo.debugLines.size();
         btPoints.reserve(lineCount);
+        glm::vec3 jointScale = rig.getJointPose(i).scale() / extractScale(rig.getGeometryToRigTransform());
         for (int j = 0; j < lineCount; j++) {
             const glm::vec3 &point = shapeInfo.debugLines[j];
-            auto rigPoint = scale * point;
+            auto rigPoint = jointScale * geometryScale * point;
             btVector3 btPoint = glmToBullet(rigPoint);
             btPoints.push_back(btPoint);
         }

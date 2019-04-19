@@ -362,6 +362,7 @@ MeshPointer Mesh::createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numI
         mesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(numIndices * sizeof(uint32_t), (gpu::Byte*) indices), gpu::Element::INDEX_INT32));
     }
 
+    
     std::vector<graphics::Mesh::Part> parts;
     parts.push_back(graphics::Mesh::Part(0, numIndices, 0, graphics::Mesh::TRIANGLES));
     mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(graphics::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));

@@ -48,8 +48,6 @@ public:
 
     void pluginUpdate() override {};
 
-    virtual StencilMode getStencilMaskMode() const override { return StencilMode::PAINT; }
-
 signals:
     void hmdMountedChanged();
     void hmdVisibleChanged(bool visible);

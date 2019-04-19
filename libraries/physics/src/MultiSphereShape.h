@@ -48,6 +48,7 @@ public:
     void extractSphereRegion(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines);
     void extractEdges(bool reverseY = false);
     void translate(const glm::vec3& translation);
+    void scale(float scale);
     void dump(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines);
     const glm::vec3& getDirection() const { return _direction; }
     const std::vector<glm::vec3>& getEdgesX() const { return _edgesX; }
@@ -94,7 +95,7 @@ private:
     void calculateSphereLines(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const glm::vec3& center, const float& radius,
                               const int& subdivisions = DEFAULT_SPHERE_SUBDIVISIONS, const glm::vec3& direction = Vectors::UNIT_Y, 
                               const float& percentage = 1.0f, std::vector<glm::vec3>* edge = nullptr);
-    void calculateChamferBox(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const float& radius, const std::vector<glm::vec3>& axes, const glm::vec3& translation);
+    void calculateChamferBox(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const std::vector<float>& radiuses, const std::vector<glm::vec3>& axes, const glm::vec3& translation);
     void connectEdges(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const std::vector<glm::vec3>& edge1, 
                       const std::vector<glm::vec3>& edge2, bool reverse = false);
     void connectSpheres(int index1, int index2, bool onlyEdges = false);
