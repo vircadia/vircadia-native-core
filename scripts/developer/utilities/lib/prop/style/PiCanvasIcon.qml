@@ -79,12 +79,9 @@ Canvas {
                 context.lineTo(width * 0.75, height * 0.25);
                 context.closePath();
             } break;
-        default: {// Down Arrow
-               /* context.moveTo(0, height * 0.25);
-                context.lineTo(width,  height * 0.25);
-                context.lineTo(width / 2, height);    
-                context.closePath();*/
-            }
+        default: {
+            
+        }
         }
         if (filled) {
             context.fillStyle = fillColor;

@@ -10,123 +10,14 @@
 
 import QtQuick 2.7
 
-//Item {
+// PropGroup is mostly reusing the look and feel of the PropFolderPanel
+// It is populated by calling "updatePropItems"
+// or adding manually new Items to the "propItemsPanel"
 PropFolderPanel {    
     Global { id: global }
     id: root
-
-  //  property var label: "group"
-
-  //  property alias isUnfold: headerFolderIcon.icon
-  //  property var indentDepth: 0
     
-    //property alias propItemsPanel: _panelFrameData
-  // property alias propItemsPanel: propItemsContainer
-   //property var propItemsPanel: propItemsContainer
-
-    panelFrameData: Component { // default is a column
-        id: groupPanelFrameData
-        Column {
-            id: propItemsContainer
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 0
-            anchors.rightMargin: 0
-               
-            clip: true
-        }
-    }
-
-    // Panel Header Data Component
-/*    property Component panelHeaderData: defaultPanelHeaderData  
-    Component { // default is a Label
-        id: defaultPanelHeaderData
-        PropLabel {
-            text: root.label
-            horizontalAlignment: Text.AlignHCenter
-        }
-    }
-
-    // Header Item
-    Rectangle {
-        id: header
-        height: global.slimHeight
-        anchors.left: parent.left           
-        anchors.right: parent.right
-
-        color: global.colorBackShadow // header of group is darker
-
-        // First in the header, some indentation spacer
-        Item {
-            id: indentSpacer
-            width: (headerFolderIcon.width * root.indentDepth) + global.horizontalMargin   // Must be non-zero
-            height: parent.height
-
-            anchors.verticalCenter: parent.verticalCenter
-        }
-
-        // Second, the folder button / indicator
-        Item {
-            id: headerFolder
-            anchors.left: indentSpacer.right
-            width: headerFolderIcon.width * 2
-            anchors.verticalCenter: header.verticalCenter
-            height: parent.height
-            
-            PropCanvasIcon {
-                id: headerFolderIcon
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.verticalCenter: parent.verticalCenter
-                fillColor: global.colorOrangeAccent 
-                filled: root.propItemsPanel.height > 4
-                iconMouseArea.onClicked: { root.isUnfold = !root.isUnfold }
-            }
-        }
-
-        // Next the header container
-        // by default containing a Label showing the root.label
-        Loader { 
-            sourceComponent: panelHeaderData
-            anchors.left: headerFolder.right
-            anchors.right: header.right
-            anchors.verticalCenter: header.verticalCenter
-            height: parent.height
-        }
-    }
-
-    // The Panel container 
-    Rectangle {
-        visible: root.isUnfold
-
-        color: "transparent"
-        border.color: global.colorBorderLight
-        border.width: global.valueBorderWidth
-        radius: global.valueBorderRadius
-
-        anchors.margins: 0
-        anchors.left: parent.left           
-        anchors.right: parent.right
-        anchors.top: header.bottom
-        anchors.bottom: root.bottom  
-
-        Column {
-            id: propItemsContainer
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 0
-            anchors.rightMargin: 0
-               
-            clip: true
-
-            // Where the propItems are added
-        }
-    }
-
-    height: header.height + isUnfold * propItemsContainer.height
-    anchors.margins: 0
-    anchors.left: parent.left           
-    anchors.right: parent.right
-*/
+    property alias propItemsPanel: root.panelFrameContent
     
     // Prop Group is designed to author an array of ProItems, they are defined with an array of the tuplets describing each individual item:
     // [ ..., PropItemInfo, ...]
@@ -134,7 +25,8 @@ PropFolderPanel {
     //    type: "PropXXXX", object: JSobject, property: "propName"      
     // }
     //
-    function updatePropItems(propItemsModel) {
+    function updatePropItems(propItemsContainer, propItemsModel) {
+        root.hasContent = false
         for (var i = 0; i < propItemsModel.length; i++) {
             var proItem = propItemsModel[i];
             // valid object
@@ -191,6 +83,7 @@ PropFolderPanel {
                              })
                         } break;
                     }
+                    root.hasContent = true
                 } else {
                     console.log('Invalid property: ' + JSON.stringify(proItem));
                 }

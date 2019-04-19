@@ -10,17 +10,7 @@
 
 import QtQuick 2.7
 
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
-
-import QtQuick.Controls 1.4
-import QtQuick.Layouts 1.3
-
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
-
 import "../../lib/prop" as Prop
-
 
 Column {
 
@@ -32,9 +22,6 @@ Column {
     anchors.left: parent.left
     anchors.right: parent.right       
     anchors.margins: hifi.dimensions.contentMargin.x  
-    HifiControls.Label {
-                text: "Shading"       
-    }
     Row {
         anchors.left: parent.left
         anchors.right: parent.right 
@@ -54,8 +41,8 @@ Column {
                 ]
                 Prop.PropCheckBox {    
                     text: modelData.split(":")[0]
-                    checked: render.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { render.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                    checked: shadingModel.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
+                    onCheckedChanged: { shadingModel.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
         }
@@ -76,8 +63,8 @@ Column {
                 ]
                 Prop.PropCheckBox {   
                     text: modelData.split(":")[0]
-                    checked: render.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { render.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                    checked: shadingModel.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
+                    onCheckedChanged: { shadingModel.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
         }
@@ -96,8 +83,8 @@ Column {
                 ]
                 Prop.PropCheckBox {
                     text: modelData.split(":")[0]
-                    checked: render.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { render.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                    checked: shadingModel.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
+                    onCheckedChanged: { shadingModel.mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
         }

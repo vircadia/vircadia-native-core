@@ -33,53 +33,43 @@ Rectangle {
         Column {
             width: render.width
             Prop.PropFolderPanel {
-                id: "shadingModel"
                 label: "Shading Model"
                 panelFrameData: Component {
-                    ShadingModel {
-                    }
+                    ShadingModel {}
                 }
             }
-        /*    Prop.PropEnum {
-                label: "Tone Curve"
-                object: render.mainViewTask.getConfig("ToneMapping")
-                property: "curve"
-                enums: [
-                            "RGB",
-                            "SRGB",
-                            "Reinhard",
-                            "Filmic",
-                        ]
-                anchors.left: parent.left
-                anchors.right: parent.right 
-            }        */
-            Jet.TaskPropView {
-                id: "theView"
-                jobPath: "RenderMainView"
-                label: "Le Render Main View"
-
-                anchors.left: parent.left
-                anchors.right: parent.right 
+            Prop.PropFolderPanel {
+                label: "Bounding Boxes"
+                panelFrameData: Component {
+                    BoundingBoxes {}
+                }
             }
-            Jet.TaskPropView {
-                id: "the"
-                jobPath: "RenderMainView.RenderDeferredTask"
-                label: "Le Render Deferred Job"
-
-                anchors.left: parent.left
-                anchors.right: parent.right 
+            Prop.PropFolderPanel {
+                label: "Framebuffer"
+                panelFrameData: Component {
+                    Framebuffer {}
+                }
+            }
+            Prop.PropFolderPanel {
+                label: "Tone Mapping"
+                panelFrameData: Component {
+                    ToneMapping {}
+                }
+            }
+            Prop.PropFolderPanel {
+                label: "Antialiasing"
+                panelFrameData: Component {
+                    Antialiasing {}
+                }
             }
             Jet.TaskPropView {
                 id: "le"
                 jobPath: ""
                 label: "Le Render Engine"
 
-                anchors.left: parent.left
-                anchors.right: parent.right 
+              //  anchors.left: parent.left
+              //  anchors.right: parent.right 
             }
         }
     }
-
-    Component.onCompleted: {
-     }
 }

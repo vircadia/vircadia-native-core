@@ -17,6 +17,7 @@ Item {
     property var label: "panel"
 
     property alias isUnfold: headerFolderIcon.icon
+    property alias hasContent: headerFolderIcon.filled
     property var indentDepth: 0
 
     // Panel Header Data Component
@@ -37,7 +38,7 @@ Item {
         }
     }
 
-    //property alias panelFrameContent: frame._panelFrameData.data
+    property alias panelFrameContent: _panelFrameData.item
 
     // Header Item
     Rectangle {
@@ -45,13 +46,14 @@ Item {
         height: global.slimHeight
         anchors.left: parent.left           
         anchors.right: parent.right
+        anchors.margins: 0
 
         color: global.colorBackShadow // header of group is darker
 
         // First in the header, some indentation spacer
         Item {
             id: indentSpacer
-            width: (headerFolderIcon.width * root.indentDepth) + global.horizontalMargin   // Must be non-zero
+            width: (headerFolderIcon.width * root.indentDepth) + global.horizontalMargin  // Must be non-zero
             height: parent.height
 
             anchors.verticalCenter: parent.verticalCenter
@@ -70,7 +72,6 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
                 fillColor: global.colorOrangeAccent 
-                filled: root.frame.height > 4
                 iconMouseArea.onClicked: { root.isUnfold = !root.isUnfold }
             }
         }
@@ -81,6 +82,7 @@ Item {
             sourceComponent: panelHeaderData
             anchors.left: headerFolder.right
             anchors.right: header.right
+            anchors.rightMargin: global.horizontalMargin * 2
             anchors.verticalCenter: header.verticalCenter
             height: parent.height
         }
@@ -104,29 +106,17 @@ Item {
 
         // Next the panel frame data
         Loader { 
+            id: _panelFrameData
             sourceComponent: panelFrameData
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.leftMargin: 0
             anchors.rightMargin: 0
-            id: _panelFrameData
             clip: true
         }
-
-     /*   Column {
-            id: propItemsContainer
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 0
-            anchors.rightMargin: 0
-               
-            clip: true
-
-            // Where the propItems are added
-        }*/
     }
 
-    height: header.height + isUnfold * _panelFrameData.height
+    height: header.height + isUnfold * _panelFrameData.item.height
     anchors.margins: 0
     anchors.left: parent.left           
     anchors.right: parent.right

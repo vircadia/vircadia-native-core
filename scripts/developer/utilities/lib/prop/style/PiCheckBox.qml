@@ -20,6 +20,4 @@ HifiControls.CheckBox {
     //anchors.verticalCenter: root.verticalCenter
     //width: root.width * global.valueAreaWidthScale
     height: global.slimHeight
-
-    onCheckedChanged: { root.valueVarSetter(checked); }
 }

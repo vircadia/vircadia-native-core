@@ -30,9 +30,10 @@ Prop.PropGroup {
 
     property var showProps: true
     property var showSubs: true
-    property var jobEnabled: true
+    property var jobEnabled: rootConfig.getConfig(jobPath).enabled
+    property var jobCpuTime: rootConfig.getConfig(jobPath).cpuRunTime.toPrecision(3)
 
-   property var toggleJobActivation: function() {
+    property var toggleJobActivation: function() {
         console.log("the button has been pressed and jobEnabled is " + jobEnabled )
         jobEnabled = !jobEnabled;
         rootConfig.getConfig(jobPath).enabled = jobEnabled;
@@ -44,29 +45,31 @@ Prop.PropGroup {
             id: header
             Prop.PropLabel {
                 text: root.label
-                //horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignHCenter
                 anchors.left: parent.left
-                anchors.right: enabledIcon.left
+                anchors.right: cpuTime.left
                 anchors.verticalCenter: parent.verticalCenter
-            }          
+            }  
+            Prop.PropLabel {
+                id: cpuTime
+                visible: root.jobEnabled 
+                width: 50
+                text: jobCpuTime
+                horizontalAlignment: Text.AlignLeft
+                anchors.rightMargin: 5
+                anchors.right:enabledIcon.right
+                anchors.verticalCenter: parent.verticalCenter
+            }         
             Prop.PropCanvasIcon {
                 id: enabledIcon
-                anchors.right: enabledIcon2.left
+                anchors.right:parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 filled: root.jobEnabled
                 fillColor: (root.jobEnabled ? global.colorGreenHighlight : global.colorOrangeAccent)
                 icon: 5
                 iconMouseArea.onClicked: { toggleJobActivation() }
             }
-            Prop.PropCanvasIcon {
-                id: enabledIcon2
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                filled: root.jobEnabled
-                fillColor: (root.jobEnabled ? global.colorGreenHighlight : global.colorOrangeAccent)
-                icon: 7
-                iconMouseArea.onClicked: { toggleJobActivation() }
-            }
+
         }
     }
 
@@ -78,7 +81,7 @@ Prop.PropGroup {
             for (var p in props) {
                 propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
             }
-            root.updatePropItems(propsModel);
+            root.updatePropItems(root.propItemsPanel, propsModel);
         }
         
         if (showSubs) {
