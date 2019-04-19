@@ -82,6 +82,7 @@ protected slots:
     void handleFinishedMaterialBaker();
 
 private:
+    void outputUnbakedFST();
     void outputBakedFST();
 
     bool _hasBeenBaked { false };
