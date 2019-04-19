@@ -93,8 +93,8 @@ public:
     float constantBias1{ 0.15f };
     float constantBias2{ 0.175f };
     float constantBias3{ 0.2f };
-    float slopeBias0{ 0.6f };
-    float slopeBias1{ 0.6f };
+    float slopeBias0{ 0.4f };
+    float slopeBias1{ 0.45f };
     float slopeBias2{ 0.65f };
     float slopeBias3{ 0.7f };
 
