@@ -31,7 +31,15 @@ Prop.PropGroup {
     property var showProps: true
     property var showSubs: true
     property var jobEnabled: rootConfig.getConfig(jobPath).enabled
-    property var jobCpuTime: rootConfig.getConfig(jobPath).cpuRunTime.toPrecision(3)
+    property var jobCpuTime: pullCpuTime()
+
+    function pullCpuTime() {
+        if (jobEnabled) {
+            return rootConfig.getConfig(jobPath).cpuRunTime.toPrecision(3);
+        } else {
+            return '.'
+        }
+    }
 
     property var toggleJobActivation: function() {
         console.log("the button has been pressed and jobEnabled is " + jobEnabled )
@@ -52,7 +60,7 @@ Prop.PropGroup {
             }  
             Prop.PropLabel {
                 id: cpuTime
-                visible: root.jobEnabled 
+                visible: false // root.jobEnabled 
                 width: 50
                 text: jobCpuTime
                 horizontalAlignment: Text.AlignLeft

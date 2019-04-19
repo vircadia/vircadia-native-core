@@ -62,6 +62,31 @@ Rectangle {
                     Antialiasing {}
                 }
             }
+            Prop.PropFolderPanel {
+                label: "Culling"
+                panelFrameData: Component {
+                    Culling {}
+                }
+            }
+            Prop.PropFolderPanel {
+                label: "Tools"
+                panelFrameData: Component {
+                    Row {
+                        HifiControls.Button {
+                            text: "LOD"
+                            onClicked: {
+                                sendToScript({method: "openEngineLODView"}); 
+                            }
+                        }
+                        HifiControls.Button {
+                            text: "Material"
+                            onClicked: {
+                                sendToScript({method: "openMaterialInspectorView"}); 
+                            }
+                        }
+                    }
+                }
+            }
             Jet.TaskPropView {
                 id: "le"
                 jobPath: ""

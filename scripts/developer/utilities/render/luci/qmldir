@@ -4,3 +4,4 @@ ToneMapping 1.0 ToneMapping.qml
 BoundingBoxes 1.0 BoundingBoxes.qml
 Framebuffer 1.0 Framebuffer.qml
 Antialiasing 1.0 Antialiasing.qml
+Culling 1.0 Culling.qml
