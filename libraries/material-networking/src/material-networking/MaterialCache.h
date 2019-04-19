@@ -108,6 +108,7 @@ private:
 
 using NetworkMaterialResourcePointer = QSharedPointer<NetworkMaterialResource>;
 using MaterialMapping = std::vector<std::pair<std::string, NetworkMaterialResourcePointer>>;
+Q_DECLARE_METATYPE(MaterialMapping)
 
 class MaterialCache : public ResourceCache {
 public:
