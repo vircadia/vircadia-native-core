@@ -351,6 +351,13 @@ void Audio::onContextChanged() {
             changed = true;
         }
     });
+    if (_settingsLoaded) {
+        if (isHMD) {
+            setMuted(getMutedHMD());
+        } else {
+            setMuted(getMutedDesktop());
+        }
+    }
     if (changed) {
         emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
     }
