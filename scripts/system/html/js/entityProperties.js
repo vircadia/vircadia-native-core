@@ -2950,7 +2950,7 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
  */
  
 function parentIDChanged() {
-    if (currentSelections.length === 1 && currentSelections[0].type === "Material") {
+    if (currentSelections.length === 1 && currentSelections[0].properties.type === "Material") {
         requestMaterialTarget();
     }
 }
