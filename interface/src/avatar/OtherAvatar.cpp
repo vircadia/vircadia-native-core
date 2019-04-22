@@ -375,7 +375,6 @@ void OtherAvatar::debugJointData() const {
         const float AXIS_LENGTH = 0.1f;
     
         AnimPoseVec jointPoses;
-        glm::quat rotationOffset = Quaternions::IDENTITY;
         std::vector<QString> jointNames;
         AnimPose rigToAvatar = AnimPose(Quaternions::Y_180 * getWorldOrientation(), getWorldPosition());
         for (int i = 0; i < jointData.size(); i++) {

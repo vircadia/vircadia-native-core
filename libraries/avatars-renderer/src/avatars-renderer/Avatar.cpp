@@ -1457,7 +1457,6 @@ std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultDa
         float geometryToRigScale = glm::length(extractScale(rig.getGeometryToRigTransform()));
         QStringList jointNames = getJointNames();
         int sizeCount = 0;
-        int jointCount = 0;
         for (int i = 0; i < jointNames.size(); i++) {
             AvatarSkeletonTrait::UnpackedJointData jointData;
             jointData.jointIndex = i;

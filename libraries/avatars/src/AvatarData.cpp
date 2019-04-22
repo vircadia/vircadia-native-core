@@ -2055,7 +2055,6 @@ QByteArray AvatarData::packSkeletonModelURL() const {
 void AvatarData::unpackSkeletonData(const QByteArray& data) {
 
     const unsigned char* startPosition = reinterpret_cast<const unsigned char*>(data.data());
-    const unsigned char* endPosition = startPosition + data.size();
     const unsigned char* sourceBuffer = startPosition;
     
     auto header = reinterpret_cast<const AvatarSkeletonTrait::Header*>(sourceBuffer);
