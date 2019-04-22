@@ -1041,11 +1041,15 @@ void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeV
     assert(QThread::currentThread() == thread());
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     controller::Pose controllerPose = userInputMapper->getPoseState(poseKey);
-    Transform transform;
-    transform.setTranslation(controllerPose.getTranslation());
-    transform.setRotation(controllerPose.getRotation());
-    glm::mat4 controllerMatrix = transform.getMatrix();
-    matrixCache.set(controllerMatrix);
+    if (controllerPose.isValid()) {
+        Transform transform;
+        transform.setTranslation(controllerPose.getTranslation());
+        transform.setRotation(controllerPose.getRotation());
+        glm::mat4 controllerMatrix = transform.getMatrix();
+        matrixCache.set(controllerMatrix);
+    } else {
+        matrixCache.invalidate();
+    }
 }
 
 // best called at end of main loop, after physics.

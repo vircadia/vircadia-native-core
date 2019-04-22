@@ -164,10 +164,11 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_ADDITIONAL_FLAGS         = 1U << 7;
     const HasFlags PACKET_HAS_PARENT_INFO              = 1U << 8;
     const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION    = 1U << 9;
-    const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 10;
-    const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 11;
-    const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 12;
-    const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 13;
+    const HasFlags PACKET_HAS_HAND_CONTROLLERS         = 1U << 10;
+    const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 11;
+    const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 12;
+    const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 13;
+    const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 14;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -230,7 +231,7 @@ namespace AvatarDataPacket {
         //
         // POTENTIAL SAVINGS - 20 bytes
 
-        SixByteQuat sensorToWorldQuat;     // 6 byte compressed quaternion part of sensor to world matrix
+        SixByteQuat sensorToWorldQuat;    // 6 byte compressed quaternion part of sensor to world matrix
         uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
         float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
                                           // FIXME - sensorToWorldTrans might be able to be better compressed if it was
@@ -273,6 +274,15 @@ namespace AvatarDataPacket {
         PARENT_INFO_SIZE +
         AVATAR_LOCAL_POSITION_SIZE;
 
+    PACKED_BEGIN struct HandControllers {
+        SixByteQuat leftHandRotation;
+        SixByteTrans leftHandTranslation;
+        SixByteQuat rightHandRotation;
+        SixByteTrans rightHandTranslation;
+    } PACKED_END;
+    static const size_t HAND_CONTROLLERS_SIZE = 24;
+    static_assert(sizeof(HandControllers) == HAND_CONTROLLERS_SIZE, "AvatarDataPacket::HandControllers size doesn't match.");
+
 
     // variable length structure follows
 
@@ -303,7 +313,7 @@ namespace AvatarDataPacket {
         SixByteTrans rightHandControllerTranslation;
     };
     */
-    size_t maxJointDataSize(size_t numJoints, bool hasGrabJoints);
+    size_t maxJointDataSize(size_t numJoints);
     size_t minJointDataSize(size_t numJoints);
 
     /*
@@ -327,7 +337,6 @@ namespace AvatarDataPacket {
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
 
     static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
-    static const size_t FAUX_JOINTS_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
 
     struct SendStatus {
         HasFlags itemFlags { 0 };
