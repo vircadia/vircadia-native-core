@@ -439,10 +439,11 @@ function decode_avatar_data_packet(buf, avatar_data_sizes)
   local has_additional_flags = (bit32.band(has_flags, 128) ~= 0)
   local has_parent_info = (bit32.band(has_flags, 256) ~= 0)
   local has_local_position = (bit32.band(has_flags, 512) ~= 0)
-  local has_face_tracker_info = (bit32.band(has_flags, 1024) ~= 0)
-  local has_joint_data = (bit32.band(has_flags, 2048) ~= 0)
-  local has_joint_default_pose_flags = (bit32.band(has_flags, 4096) ~= 0)
-  local has_grab_joints = (bit32.band(has_flags, 8192) ~= 0)
+  local has_hand_controllers = (bit32.band(has_flags, 1024) ~= 0)
+  local has_face_tracker_info = (bit32.band(has_flags, 2048) ~= 0)
+  local has_joint_data = (bit32.band(has_flags, 4096) ~= 0)
+  local has_joint_default_pose_flags = (bit32.band(has_flags, 8192) ~= 0)
+  local has_grab_joints = (bit32.band(has_flags, 16384) ~= 0)
 
   result["has_flags"] = string.format("HasFlags: 0x%x", has_flags)
 
@@ -519,6 +520,12 @@ function decode_avatar_data_packet(buf, avatar_data_sizes)
     result["local_position"] = string.format("Local Position: %.3f, %.3f, %.3f", local_pos[1], local_pos[2], local_pos[3])
   end
 
+  if has_hand_controllers then
+    -- TODO: skip faux joint data
+    i = i + (2 * 12)
+    avatar_data_sizes.joint_data_faux_joints_size = avatar_data_sizes.joint_data_faux_joints_size + (2 * 12)
+  end
+
   if has_face_tracker_info then
     local left_eye_blink = buf(i, 4):le_float()
     i = i + 4
@@ -573,10 +580,6 @@ function decode_avatar_data_packet(buf, avatar_data_sizes)
     -- TODO: skip translations for now
     i = i + (#indices * 6)
     avatar_data_sizes.joint_data_translations_size = avatar_data_sizes.joint_data_translations_size + (#indices * 6)
-
-    -- TODO: skip faux joint data
-    i = i + (2 * 12)
-    avatar_data_sizes.joint_data_faux_joints_size = avatar_data_sizes.joint_data_faux_joints_size + (2 * 12)
 
     avatar_data_sizes.joint_data_size = avatar_data_sizes.joint_data_size + (i - joint_poses_start)
   end
