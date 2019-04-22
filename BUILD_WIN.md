@@ -81,7 +81,7 @@ Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.
 
 #### CMake can't find OpenSSL
 
-Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.  Verify that your VCPKG_ROOT environment variable is set and pointing to the correct location.  Verify that the file `${VCPKG_ROOT}/installed/x64-windows/include/openssl/ssl.h` exists.
+Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.  Verify that your HIFI_VCPKG_BASE environment variable is set and pointing to the correct location.  Verify that the file `${HIFI_VCPKG_BASE}/installed/x64-windows/include/openssl/ssl.h` exists.
 
 #### Qt is throwing an error
 

@@ -171,6 +171,11 @@ endif()
         if not self.args.android:
             print("Installing build dependencies")
             self.run(['install', '--triplet', self.triplet, 'hifi-client-deps'])
+            
+        # If not android, install our Qt build
+        if not self.args.android:
+            print("Installing Qt")
+            self.installQt()
 
     def cleanBuilds(self):
         # Remove temporary build artifacts
@@ -232,3 +237,9 @@ endif()
         print("Not implemented")
 
 
+    def installQt(self):
+        print("install Qt")
+        if not os.path.isdir(os.path.join(self.path, 'installed', 'hifi-qt5')):
+            dest = os.path.join(self.path, 'installed')
+            url = "https://hifi-qa.s3.amazonaws.com/hifi-qt5.tar.gz"
+            hifi_utils.downloadAndExtract(url, dest)
