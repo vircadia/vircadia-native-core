@@ -59,8 +59,8 @@ namespace scriptable {
      * @property {string} occlusionMap
      * @property {string} lightmapMap
      * @property {string} scatteringMap
-     * @property {string} texCoordTransform0
-     * @property {string} texCoordTransform1
+     * @property {Mat4|string} texCoordTransform0
+     * @property {Mat4|string} texCoordTransform1
      * @property {string} lightmapParams
      * @property {string} materialParams
      * @property {boolean} defaultFallthrough
@@ -93,6 +93,7 @@ namespace scriptable {
         QString occlusionMap;
         QString lightmapMap;
         QString scatteringMap;
+        std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texCoordTransforms;
 
         bool defaultFallthrough;
         std::unordered_map<uint, bool> propertyFallthroughs; // not actually exposed to script
