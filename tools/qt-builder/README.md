@@ -122,6 +122,10 @@ cd ..\..\qt5-build
 
 nmake  
 nmake install
+
+Create a tar file called qt5-install.tar from the qt5-install folder (e.g. using 7-zip)  
+Create a gzip file called qt5-install.tar.gz from qt5-install.tar folder (e.g. using 7-zip)  
+Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 ### Linux
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 
@@ -139,6 +143,9 @@ cd qt5-build
 
 make  
 make install
+
+tar -zcvf qt5-install.tar.gz qt5-install
+Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/
 ### Mac
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 
@@ -156,5 +163,8 @@ cd ../qt5-build
 
 make  
 make install
+
+tar -zcvf qt5-install.tar.gz qt5-install
+Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Mac/
 ## Problems
 *configure* errors, if any, may be viewed in **config.log** and **config.summary**
