@@ -755,18 +755,21 @@ bool RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
     });
 
     // For shadows, we only need opacity mask information
-    if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE || multiMaterial.getMaterialKey().isOpacityMaskMap()) {
+    auto key = multiMaterial.getMaterialKey();
+    if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE || key.isOpacityMaskMap()) {
         auto& schemaBuffer = multiMaterial.getSchemaBuffer();
         batch.setUniformBuffer(gr::Buffer::Material, schemaBuffer);
         if (enableTextures) {
             batch.setResourceTextureTable(multiMaterial.getTextureTable());
         } else {
-            auto key = multiMaterial.getMaterialKey();
-            if (key.isLightmapMap()) {
-                defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
-            } else if (key.isEmissiveMap()) {
-                defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
+            if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+                if (key.isLightmapMap()) {
+                    defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
+                } else if (key.isEmissiveMap()) {
+                    defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
+                }
             }
+
             batch.setResourceTextureTable(defaultMaterialTextures);
         }
         return true;
