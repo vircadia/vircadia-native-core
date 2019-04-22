@@ -1,5 +1,7 @@
 # General
-This document describes the process to build Qt 5.12.3
+This document describes the process to build Qt 5.12.3.  
+Note that there are two patches.  The first (to qfloat16.h) is needed to compiel QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
+The second patch is to OpenSL ES audio.
 ## Requirements
 ### Windows
 1.  Visual Studio 2017  
@@ -7,13 +9,16 @@ This document describes the process to build Qt 5.12.3
 Install with defaults
 
 1.  python 2.7.16  
+Check if needed running `python --version` - should return python 2.7.x  
 Install from https://www.python.org/ftp/python/2.7.16/python-2.7.16.amd64.msi  
 Add path to python executable to PATH.  
-Verify that python runs python 2.7 (run “python --version”)
 
-NOTE:  our regular build uses python 3.  This will still work, because HIFI_PYTHON_EXEC points to the python 3 executable.
+NOTE:  REMOVE python 3 from PATH.  Our regular build uses python 3.  This will still work, because HIFI_PYTHON_EXEC points to the python 3 executable.
 
+Verify that python runs python 2.7 (run “python --version”)  
 1.  git >= 1.6  
+Check if needed `git --version`  
+Download from https://git-scm.com/download/win  
 Verify by entering `git --version`
 1.  perl >= 5.14  
 Install from Strawberry Perl - http://strawberryperl.com/ - 5.28.1.1 64 bit to C:\Strawberry\  
@@ -37,47 +42,50 @@ edit /etc/apt/sources.list (edit as root)
 replace all *# deb-src* with *deb-src* (in vi `1,$s/# deb-src/deb-src/`)  
 `sudo apt-get update -y`  
 `sudo apt-get upgrade -y`  
-`sudo apt-get build-dep qt5-default`
+`sudo apt-get build-dep qt5-default -y`
 1.  git >= 1.6  
-Verify if needed entering `git --version`
-`sudo apt-get install -y git`  
+Check if needed `git --version`
+`sudo apt-get install git -y`  
 Verify again
 1.  python   
-Verify if needed running `python --version` - should return python 2.7.x
-`sudo apt-get install -y python` (not python 3!)  
+Check if needed `python --version` - should return python 2.7.x
+`sudo apt-get install python -y` (not python 3!)  
 Verify again
 1.  gperf  
-Verify if needed running gperf --version
-`sudo apt-get install -y gperf`  
+Check if needed `gperf --version`
+`sudo apt-get install gperf -y`  
 Verify again
 1.  bison and flex  
-Verify if needed running `flex --version`  
-Verify if needed running `bison --version`
-`sudo apt-get install -y flex bison`  
+Check if needed `flex --version`  and `bison --version`  
+`sudo apt-get install flex bison -y`  
 Verify again
 1.  pkg-config (needed for qtwebengine)  
-Verify if needed running `pkg-config --version`
-`sudo apt-get install -y pkg-config`
+Check if needed `pkg-config --version`  
+`sudo apt-get install pkg-config -y`
 Verify again
 1.  OpenGL  
-Verify (first install mesa-utils - `sudo apt install -y mesa-utils`) by `glxinfo | grep "OpenGL version"`
-`sudo apt-get install -y libgl1-mesa-dev`    
+Verify (first install mesa-utils - `sudo apt install mesa-utils -y`) by `glxinfo | grep "OpenGL version"`
+`sudo apt-get install libgl1-mesa-dev -y`  
 `sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.346.35 /usr/lib/x86_64-linux-gnu/libGL.so.1.2.0`  
 Verify again 
 1.  make  
-Verify by running `make --version`
-`sudo apt-get install -y make`  
+Check if needed `make --version`
+`sudo apt-get install make -y`  
+Verify again  
 1.  g++  
-Verify by running `g++ --version`
-`sudo apt-get install -y g++`
+Check if needed  
+ `g++ --version`
+`sudo apt-get install g++ -y`
 Verify again
 1.  dbus-1 (needed for qtwebengine)  
-`sudo apt-get install -y libdbus-glib-1-dev`  
+`sudo apt-get install libdbus-glib-1-dev -y`  
 1.  nss (needed for qtwebengine)  
-`sudo apt-get install -y libnss3-dev`
+`sudo apt-get install libnss3-dev -y`
 ### Mac
 1.  git >= 1.6  
-Verify by entering git --version
+Check if needed `git --version`  
+Install from https://git-scm.com/download/mac  
+Verify again
 1.  pkg-config  
 brew fontconfig dbus-glib stall pkg-config
 1.  dbus-1  
@@ -120,7 +128,6 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 *  Copy the **patches** folder to qt5  
 *   Apply the two patches to Qt  
 cd qt5  
-git apply --ignore-space-change --ignore-whitespace patches/qfloat16.patch  
 git apply --ignore-space-change --ignore-whitespace patches/aec.patch  
 cd ..
 
@@ -138,7 +145,6 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 *  Copy the **patches** folder to qt5  
 *  Apply the two patches to Qt  
 cd qt5  
-git apply --ignore-space-change --ignore-whitespace patches/qfloat16.patch
 git apply --ignore-space-change --ignore-whitespace patches/aec.patch
 cd ..
 
