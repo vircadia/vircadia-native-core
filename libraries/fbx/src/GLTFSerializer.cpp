@@ -872,7 +872,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             // collect transforms for a node's parents, grandparents, etc.
             _file.nodes[nodecount].transforms.push_back(getModelTransform(parentNode));
             parentIndex = parents[parentIndex];
-            }
+        }
         nodecount++;
     }
 
@@ -900,10 +900,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     sortedNodes[j] = currentNode;
                     i++;
                     currentNode = sortedNodes[i];
-    }
+                }
                 j++;
-    }
-    }
+            }
+        }
     }
 
 
@@ -931,7 +931,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         joint.translation = extractTranslation(joint.transform);
         joint.rotation = glmExtractRotation(joint.transform);
         glm::vec3 scale = extractScale(joint.transform);
-        joint.postTransform = glm::scale(glm::mat4(), scale);        
+        joint.postTransform = glm::scale(glm::mat4(), scale);
 
         joint.name = node.name;
         joint.isSkeletonJoint = false;
@@ -982,7 +982,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     QString unknown = "Default";
     int ukcount = 0;
     foreach(auto material, _file.materials) {
-        if (!(material.defined["name"])) {
+        if (!material.defined["name"]) {
             QString name = unknown + QString::number(ukcount++);
             material.name = name;
             material.defined.insert("name", true);
@@ -1017,8 +1017,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 cluster.inverseBindMatrix = glm::mat4();
                 cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
                 mesh.clusters.append(cluster);
-                } else { // skinned model
-                    for (int j = 0; j < numNodes; j++) {
+            } else { // skinned model
+                for (int j = 0; j < numNodes; j++) {
                     HFMCluster cluster;
                     cluster.jointIndex = j;
                     cluster.inverseBindMatrix = jointInverseBindTransforms[j];
@@ -1026,7 +1026,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.clusters.append(cluster);
                 }
             }
-            HFMCluster root; 
+            HFMCluster root;
             root.jointIndex = 0;
             root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
             root.inverseBindTransform = Transform(root.inverseBindMatrix);
