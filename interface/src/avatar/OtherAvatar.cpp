@@ -374,7 +374,7 @@ void OtherAvatar::debugJointData() const {
         const vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
         const float AXIS_LENGTH = 0.1f;
     
-        std::vector<AnimPose> jointPoses;
+        AnimPoseVec jointPoses;
         glm::quat rotationOffset = Quaternions::IDENTITY;
         std::vector<QString> jointNames;
         AnimPose rigToAvatar = AnimPose(Quaternions::Y_180 * getWorldOrientation(), getWorldPosition());
@@ -389,7 +389,7 @@ void OtherAvatar::debugJointData() const {
             jointNames.push_back(skeletonData[i].jointName);
         }
         QVector<AnimPose> worldFramePoses;
-        for (size_t i = 0; i < jointPoses.size(); i++) {
+        for (int i = 0; i < (int)jointPoses.size(); i++) {
             auto &jointPose = jointPoses[i];
             int parentIndex = skeletonData[i].parentIndex;
             if (parentIndex < worldFramePoses.size()) {

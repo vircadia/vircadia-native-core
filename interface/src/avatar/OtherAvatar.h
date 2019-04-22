@@ -66,7 +66,7 @@ public:
     void setCollisionWithOtherAvatarsFlags() override;
 
     void simulate(float deltaTime, bool inView) override;
-    void OtherAvatar::debugJointData() const;
+    void debugJointData() const;
     friend AvatarManager;
 
 protected:
