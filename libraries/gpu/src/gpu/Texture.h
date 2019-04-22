@@ -646,11 +646,9 @@ typedef std::vector< TexturePointer > Textures;
 class TextureView {
 public:
     typedef Resource::Size Size;
-    
-    static const uint16 UNDEFINED_SUBRESOURCE { uint16(-1) };
 
     TexturePointer _texture = TexturePointer(NULL);
-    uint16 _subresource = UNDEFINED_SUBRESOURCE;
+    uint16 _subresource = 0;
     Element _element = Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
 
     TextureView() {};
@@ -662,7 +660,7 @@ public:
     // create the TextureView and own the Texture
     TextureView(Texture* newTexture, const Element& element) :
         _texture(newTexture),
-        _subresource(UNDEFINED_SUBRESOURCE),
+        _subresource(0),
         _element(element)
     {};
     TextureView(const TexturePointer& texture, uint16 subresource, const Element& element) :
@@ -684,8 +682,6 @@ public:
     bool operator !() const { return (!_texture); }
 
     bool isValid() const { return bool(_texture); }
-
-    bool isSubresource() const { return (_subresource != UNDEFINED_SUBRESOURCE); }
 };
 typedef std::vector<TextureView> TextureViews;
 

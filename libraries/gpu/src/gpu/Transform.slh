@@ -168,17 +168,10 @@ TransformObject getTransformObject() {
         vec2 eyeOffsetScale = vec2(-0.5, +0.5);
         uint eyeIndex = uint(_stereoSide);
 #if !defined(GPU_GLES) || (defined(HAVE_EXT_clip_cull_distance) && !defined(VULKAN))
-#ifdef GPU_GL450
-      /*  gl_ViewportIndex = _stereoSide + 1;
-      //  gl_ViewportIndex = 2 - _stereoSide;
-        */// THIs is the layered version
-        gl_Layer = _stereoSide;
-#else
         gl_ClipDistance[0] = dot(<$clipPos$>, eyeClipEdge[eyeIndex]);
 #endif
-#endif
-     //   float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
-     //   <$clipPos$>.x = newClipPosX;
+        float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
+        <$clipPos$>.x = newClipPosX;
 #endif
 
 #else

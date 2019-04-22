@@ -26,8 +26,6 @@ bool DebugHmdDisplayPlugin::isSupported() const {
 
 void DebugHmdDisplayPlugin::resetSensors() {
     _currentRenderFrameInfo.renderPose = glm::mat4(); // identity
-    _currentRenderFrameInfo.renderPose = glm::translate(glm::mat4(), glm::vec3(0.0f, 1.76f, 0.0f));
-
 }
 
 bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
@@ -37,8 +35,6 @@ bool DebugHmdDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     // FIXME simulate head movement
     //_currentRenderFrameInfo.renderPose = ;
     //_currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
-    _currentRenderFrameInfo.renderPose = glm::translate(glm::mat4(), glm::vec3(0.0f, 1.76f, 0.0f));
-    _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
 
     withNonPresentThreadLock([&] {
         _frameInfos[frameIndex] = _currentRenderFrameInfo;
@@ -78,7 +74,6 @@ bool DebugHmdDisplayPlugin::internalActivate() {
     // uncomment to capture a quarter size frame
     //_renderTargetSize /= 2;
     _cullingProjection = _eyeProjections[0];
-
     // This must come after the initialization, so that the values calculated
     // above are available during the customizeContext call (when not running
     // in threaded present mode)

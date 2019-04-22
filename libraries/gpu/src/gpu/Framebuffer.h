@@ -27,7 +27,6 @@ public:
     uint16 getWidth() const { return _width; }
     uint16 getHeight() const { return _height; }
     uint16 getNumSamples() const { return _numSamples; }
-    uint16 getNumLayers() const { return _numLayers; }
 
     bool hasDepthStencil() const { return _hasDepthStencil; }
     bool isFullscreen() const { return _isFullscreen; }
@@ -55,7 +54,6 @@ protected:
     uint16 _width = 1;
     uint16 _height = 1;
     uint16 _numSamples = 1;
-    uint16 _numLayers = 1;
     uint16 _swapInterval = 0;
 
     bool _hasDepthStencil = false;
@@ -117,6 +115,7 @@ public:
     uint32 getDepthStencilBufferSubresource() const;
     Format getDepthStencilBufferFormat() const;
 
+
     // Properties
     Masks getBufferMask() const { return _bufferMask; }
     bool isEmpty() const { return (_bufferMask == 0); }
@@ -131,10 +130,6 @@ public:
     uint16 getWidth() const;
     uint16 getHeight() const;
     uint16 getNumSamples() const;
-
-    uint16 getNumLayers() const;
-    bool isLayered() const { return getNumLayers() > 1; }
-
     const std::string& getName() const { return _name; }
     void setName(const std::string& name) { _name = name; }
 
@@ -175,9 +170,7 @@ protected:
     uint16 _height = 0;
     uint16 _numSamples = 0;
 
-    uint16 _numLayers = 0;
-
-    void updateSize(const TexturePointer& texture, uint32 subresource);
+    void updateSize(const TexturePointer& texture);
     bool assignDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource);
 
     friend class Serializer;

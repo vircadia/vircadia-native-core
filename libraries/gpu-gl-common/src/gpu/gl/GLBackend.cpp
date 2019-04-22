@@ -447,24 +447,20 @@ void GLBackend::render(const Batch& batch) {
         renderPassTransfer(batch);
     }
 
-//#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-#ifdef GPU_STEREO_VIEWPORT_CLIPPED
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
     if (_stereo.isStereo()) {
         glEnable(GL_CLIP_DISTANCE0);
     }
 #endif
-//#endif
     {
         GL_PROFILE_RANGE(render_gpu_gl_detail, _stereo.isStereo() ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
-//#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-#ifdef GPU_STEREO_VIEWPORT_CLIPPED
+#ifdef GPU_STEREO_DRAWCALL_INSTANCED
     if (_stereo.isStereo()) {
         glDisable(GL_CLIP_DISTANCE0);
     }
 #endif
-//#endif
 
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;

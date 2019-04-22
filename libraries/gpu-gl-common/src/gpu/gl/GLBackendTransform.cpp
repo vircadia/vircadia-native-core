@@ -39,48 +39,6 @@ void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) 
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
     {
-    #ifdef GPU_STEREO_MULTI_VIEWPORT
-        ivec4& vp = _transform._viewport;
-        auto sideWidth = vp.z / 2;
-
-        vec4 leftRight[3];
-
-        // Mono
-        leftRight[0] = vp;
-        // adding this here as im doing Layered, force the first viewport here to be half of it
-        leftRight[0].x = 0; 
-        leftRight[0].z = sideWidth;
-
-        // Left side
-        leftRight[1] = vp;
-        leftRight[1].x = 0;
-        leftRight[1].z = sideWidth;
-
-        // right side        
-        leftRight[2] = vp;
-        leftRight[2].x = sideWidth;
-        leftRight[2].z = sideWidth;
-
-        glViewportArrayv(0, 3, (float*)leftRight);
-
-        // Where we assign the GL viewport
-        if (_stereo.isStereo()) {
-            
-        //    ivec4 leftRight[3];
-        //    leftRight[0] = vp;
-            vp.z /= 2;
-         /*   leftRight[1] = vp; // left side
-            leftRight[2] = vp; // right side
-            leftRight[2].x += vp.z;
-            glViewportArrayv(0, 3, (float*) leftRight);
-*/
-            if (_stereo._pass) {
-                vp.x += vp.z;
-            }
-        } else {
-      //      glViewport(vp.x, vp.y, vp.z, vp.w);
-        }
-    #else
         ivec4& vp = _transform._viewport;
         glViewport(vp.x, vp.y, vp.z, vp.w);
 
@@ -91,7 +49,6 @@ void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) 
                 vp.x += vp.z;
             }
         }
-    #endif
     }
 #else
     if (!_inRenderTransferPass && !isStereo()) {
@@ -166,7 +123,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
 
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
-        Vec2 finalJitter = _projectionJitter / Vec2(framebufferSize);
+		Vec2 finalJitter = _projectionJitter / Vec2(framebufferSize);
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
 
         if (stereo.isStereo()) {

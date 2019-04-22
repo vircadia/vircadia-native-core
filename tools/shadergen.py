@@ -215,10 +215,6 @@ def processCommand(line):
         if (dialect == '310es'): spirvCrossDialect = '320es'
         spirvCrossArgs = [spirvCrossExec, '--output', glslFile, spirvFile, '--version', spirvCrossDialect]
         if (dialect == '410'): spirvCrossArgs.append('--no-420pack-extension')
-        if (dialect == '450'): 
-            spirvCrossArgs.append('--extension')
-            spirvCrossArgs.append('GL_ARB_shader_viewport_layer_array')
-            
         executeSubprocess(spirvCrossArgs)
     else:
         # This logic is necessary because cmake will agressively keep re-executing the shadergen 
