@@ -627,6 +627,8 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableDebugDrawAnimPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawPosition, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawPosition(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawOtherSkeletons, 0, false,
+        avatarManager.data(), SLOT(setEnableDebugDrawOtherSkeletons(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
         avatar.get(), SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);

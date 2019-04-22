@@ -213,6 +213,15 @@ public slots:
      */
     void updateAvatarRenderStatus(bool shouldRenderAvatars);
 
+    /**jsdoc
+    * Displays other avatars skeletons debug graphics.
+    * @function AvatarManager.setEnableDebugDrawOtherSkeletons
+    * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
+    */
+    void setEnableDebugDrawOtherSkeletons(bool isEnabled) {
+        _drawOtherAvatarSkeletons = isEnabled;
+    }
+
 protected:
     AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
 
@@ -250,6 +259,7 @@ private:
     workload::SpacePointer _space;
 
     AvatarTransit::TransitConfig  _transitConfig;
+    bool _drawOtherAvatarSkeletons { false };
 };
 
 #endif // hifi_AvatarManager_h

@@ -146,11 +146,17 @@ const char AVATARDATA_FLAGS_MINIMUM = 0;
 using SmallFloat = uint16_t; // a compressed float with less precision, user defined radix
 
 namespace AvatarSkeletonTrait {
+    enum BoneType {
+        SkeletonRoot = 0,
+        SkeletonChild,
+        NonSkeletonRoot,
+        NonSkeletonChild
+    };
+
     PACKED_BEGIN struct Header {
         float maxTranslationDimension;
         float maxScaleDimension;
         uint8_t numJoints;
-        uint8_t padding;
         uint16_t stringTableLength;
     } PACKED_END;
 
@@ -162,11 +168,10 @@ namespace AvatarSkeletonTrait {
         uint8_t defaultRotation[6];
         uint16_t defaultScale;
         uint16_t jointIndex;
-        uint16_t jointParent;
+        uint16_t parentIndex;
     } PACKED_END;
 
     struct UnpackedJointData {
-        int jointParent;
         int stringStart;
         int stringLength;
         int boneType;
@@ -174,6 +179,7 @@ namespace AvatarSkeletonTrait {
         glm::quat defaultRotation;
         float defaultScale;
         int jointIndex;
+        int parentIndex;
         QString jointName;
     };
 }
@@ -1454,7 +1460,9 @@ public:
     bool getIsNewAvatar() { return _isNewAvatar; }
     void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
     void setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData);
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
     void sendSkeletonData() const;
+    QVector<JointData> getJointData() const;
 
 signals:
 

@@ -33,6 +33,7 @@ namespace MenuOption {
     const QString AnimDebugDrawBaseOfSupport = "Debug Draw Base of Support";
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
+    const QString AnimDebugDrawOtherSkeletons = "Debug Draw Other Skeletons";
     const QString AskToResetSettings = "Ask To Reset Settings on Start";
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";

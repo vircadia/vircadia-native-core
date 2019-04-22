@@ -1452,15 +1452,25 @@ QStringList Avatar::getJointNames() const {
 std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultData() {
     std::vector<AvatarSkeletonTrait::UnpackedJointData> defaultSkeletonData;
     if (_skeletonModel->isLoaded()) {
-        auto jointNames = getJointNames();
+        auto &model = _skeletonModel->getHFMModel();
+        auto &rig = _skeletonModel->getRig();
+        float geometryToRigScale = glm::length(extractScale(rig.getGeometryToRigTransform()));
+        QStringList jointNames = getJointNames();
         int sizeCount = 0;
-        for (int i = 0; i < min(43, jointNames.size()); i++) {
+        int jointCount = 0;
+        for (int i = 0; i < jointNames.size(); i++) {
             AvatarSkeletonTrait::UnpackedJointData jointData;
-            jointData.jointParent = _skeletonModel->getRig().getJointParentIndex(i);
             jointData.jointIndex = i;
-            jointData.defaultRotation = getDefaultJointRotation(i);
+            jointData.parentIndex = rig.getJointParentIndex(i);
+            if (jointData.parentIndex == -1) {
+                jointData.boneType = model.joints[i].isSkeletonJoint ? AvatarSkeletonTrait::BoneType::SkeletonRoot : AvatarSkeletonTrait::BoneType::NonSkeletonRoot;
+            } else {
+                jointData.boneType = model.joints[i].isSkeletonJoint ? AvatarSkeletonTrait::BoneType::SkeletonChild : AvatarSkeletonTrait::BoneType::NonSkeletonChild;
+            }
+            jointData.defaultRotation = rig.getAbsoluteDefaultPose(i).rot();
             jointData.defaultTranslation = getDefaultJointTranslation(i);
-            jointData.defaultScale = glm::length(getAbsoluteJointScaleInObjectFrame(i));
+            float jointLocalScale = glm::length(extractScale(model.joints[i].transform));
+            jointData.defaultScale = jointLocalScale / geometryToRigScale;
             jointData.jointName = jointNames[i];
             jointData.stringLength = jointNames[i].size();
             jointData.stringStart = sizeCount;

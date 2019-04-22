@@ -16,6 +16,7 @@
 #include "Application.h"
 #include "AvatarMotionState.h"
 #include "DetailedMotionState.h"
+#include "DebugDraw.h"
 
 const float DISPLAYNAME_FADE_TIME = 0.5f;
 const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
@@ -355,6 +356,62 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
     {
         PROFILE_RANGE(simulation, "grabs");
         applyGrabChanges();
+    }
+}
+
+void OtherAvatar::debugJointData() const {
+    // Get a copy of the joint data
+    auto jointData = getJointData();
+    auto skeletonData = getSkeletonData();
+    if ((int)skeletonData.size() == jointData.size() && jointData.size() != 0) {
+        const vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+        const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+        const vec4 LIGHT_RED(1.0f, 0.5f, 0.5f, 1.0f);
+        const vec4 LIGHT_GREEN(0.5f, 1.0f, 0.5f, 1.0f);
+        const vec4 LIGHT_BLUE(0.5f, 0.5f, 1.0f, 1.0f);
+        const vec4 GREY(0.3f, 0.3f, 0.3f, 1.0f);
+        const vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+        const float AXIS_LENGTH = 0.1f;
+    
+        std::vector<AnimPose> jointPoses;
+        glm::quat rotationOffset = Quaternions::IDENTITY;
+        std::vector<QString> jointNames;
+        AnimPose rigToAvatar = AnimPose(Quaternions::Y_180 * getWorldOrientation(), getWorldPosition());
+        for (int i = 0; i < jointData.size(); i++) {
+            float jointScale = skeletonData[i].defaultScale * getTargetScale();
+            auto jointRotation = rigToAvatar.rot() * (jointData[i].rotationIsDefaultPose ? skeletonData[i].defaultRotation : jointData[i].rotation);
+            auto jointTranslation = jointScale * (jointData[i].translationIsDefaultPose ? skeletonData[i].defaultTranslation : jointData[i].translation);
+            if (skeletonData[i].jointName == "Hips") { 
+                jointTranslation = glm::vec3(0.0f);
+            }
+            jointPoses.push_back(AnimPose(jointRotation, jointTranslation));
+            jointNames.push_back(skeletonData[i].jointName);
+        }
+        QVector<AnimPose> worldFramePoses;
+        for (size_t i = 0; i < jointPoses.size(); i++) {
+            auto &jointPose = jointPoses[i];
+            int parentIndex = skeletonData[i].parentIndex;
+            if (parentIndex < worldFramePoses.size()) {
+                glm::vec3 xAxis = jointPose.rot() * Vectors::UNIT_X;
+                glm::vec3 yAxis = jointPose.rot() * Vectors::UNIT_Y;
+                glm::vec3 zAxis = jointPose.rot() * Vectors::UNIT_Z;
+
+                auto parentRotation = parentIndex > -1 ? jointPoses[parentIndex].rot() : Quaternions::IDENTITY;
+                auto parentPosition = parentIndex > -1 ? worldFramePoses[parentIndex].trans() : rigToAvatar.trans();
+                auto jointPosition = parentPosition + parentRotation * (jointPose.trans() * METERS_PER_CENTIMETER);
+                worldFramePoses.push_back(AnimPose(jointPose.rot(), jointPosition));
+
+                DebugDraw::getInstance().drawRay(jointPosition, jointPosition + AXIS_LENGTH * xAxis, jointData[i].rotationIsDefaultPose ? LIGHT_RED : RED);
+                DebugDraw::getInstance().drawRay(jointPosition, jointPosition + AXIS_LENGTH * yAxis, jointData[i].rotationIsDefaultPose ? LIGHT_GREEN : GREEN);
+                DebugDraw::getInstance().drawRay(jointPosition, jointPosition + AXIS_LENGTH * zAxis, jointData[i].rotationIsDefaultPose ? LIGHT_BLUE : BLUE);
+                // draw line to parent
+                if (parentIndex != -1) {
+                    DebugDraw::getInstance().drawRay(jointPosition, parentPosition, jointData[i].translationIsDefaultPose ? WHITE : GREY);
+                }
+            }
+        }
+
     }
 }
 
