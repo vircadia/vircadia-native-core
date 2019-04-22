@@ -258,7 +258,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, co
     _entitiesNeedingRewrite.insert(scriptURL, { property, jsonRef });
 }
 
-void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef) {
+void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef, QUrl destinationPath) {
     // grab a clean version of the URL without a query or fragment
     QString materialData;
     if (isURL) {
@@ -272,7 +272,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath),
+            new MaterialBaker(data, isURL, _contentOutputPath, destinationPath),
             &MaterialBaker::deleteLater
         };
 
@@ -412,13 +412,9 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(MATERIAL_URL_KEY)) {
                 addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
             }
-            // FIXME: Disabled for now because relative texture URLs are not supported for embedded materials in material entities
-            //        We need to make texture URLs absolute in this particular case only, keeping in mind that FSTBaker also uses embedded materials
-            /*
             if (entity.contains(MATERIAL_DATA_KEY)) {
-                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
+                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it, _destinationPath);
             }
-            */
         }
     }
 
