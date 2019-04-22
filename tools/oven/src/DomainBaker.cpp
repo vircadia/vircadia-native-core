@@ -194,9 +194,10 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
         // grab a clean version of the URL without a query or fragment
         QUrl textureURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+        TextureKey key = { textureURL, type };
 
         // setup a texture baker for this URL, as long as we aren't baking a texture already
-        if (!_textureBakers.contains(textureURL)) {
+        if (!_textureBakers.contains(key)) {
 
             // setup a baker for this texture
             QSharedPointer<TextureBaker> textureBaker {
@@ -208,7 +209,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
             connect(textureBaker.data(), &TextureBaker::finished, this, &DomainBaker::handleFinishedTextureBaker);
 
             // insert it into our bakers hash so we hold a strong pointer to it
-            _textureBakers.insert(textureURL, textureBaker);
+            _textureBakers.insert(key, textureBaker);
 
             // move the baker to a worker thread and kickoff the bake
             textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
@@ -557,7 +558,7 @@ void DomainBaker::handleFinishedTextureBaker() {
         _entitiesNeedingRewrite.remove(baker->getTextureURL());
 
         // drop our shared pointer to this baker so that it gets cleaned up
-        _textureBakers.remove(baker->getTextureURL());
+        _textureBakers.remove({ baker->getTextureURL(), baker->getTextureType() });
 
         // emit progress to tell listeners how many textures we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
