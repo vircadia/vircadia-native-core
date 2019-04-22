@@ -241,5 +241,12 @@ endif()
         print("install Qt")
         if not os.path.isdir(os.path.join(self.path, 'installed', 'hifi-qt5')):
             dest = os.path.join(self.path, 'installed')
-            url = "https://hifi-qa.s3.amazonaws.com/hifi-qt5.tar.gz"
+            if platform.system() == 'Windows':
+                # url = "https://hifi-qa.s3.amazonaws.com/qt5/Windows/qt5-install.zip"
+                url = "https://hifi-qa.s3.amazonaws.com/qt5/Windows/hifi-qt5.tar.gz"
+            elif platform.system() == 'Darwin':
+                url = "https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.zip"
+            elif platform.system() == 'Linux':
+                url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/qt5-install.zip"
+            
             hifi_utils.downloadAndExtract(url, dest)
