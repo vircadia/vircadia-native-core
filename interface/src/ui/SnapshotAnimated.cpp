@@ -86,7 +86,7 @@ void SnapshotAnimated::captureFrames() {
                     SnapshotAnimated::snapshotAnimatedTimerRunning = false;
                 }
             }
-        }, SnapshotAnimated::aspectRatio });
+        }, SnapshotAnimated::aspectRatio, true });
     } else {
         // Notify the user that we're processing the snapshot
         // This also pops up the "Share" dialog. The unprocessed GIF will be visualized as a loading icon until processingGifCompleted() is called.

@@ -168,7 +168,7 @@ void Snapshot::takeNextSnapshot() {
     if (_taking360Snapshot) {
         if (!_waitingOnSnapshot) {
             _waitingOnSnapshot = true;
-            qApp->addSecondarySnapshotOperator([this](const QImage& snapshot) {
+            qApp->addSnapshotOperator({ [this](const QImage& snapshot) {
                 // Order is:
                 // 0. Down
                 // 1. Front
@@ -202,7 +202,7 @@ void Snapshot::takeNextSnapshot() {
 
                 _waitingOnSnapshot = false;
                 _snapshotIndex++;
-            });
+            }, 0, false });
         }
     } else {
         _snapshotTimer.stop();

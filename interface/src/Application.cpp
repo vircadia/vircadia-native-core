@@ -8441,23 +8441,15 @@ void Application::loadAvatarBrowser() const {
 void Application::addSnapshotOperator(const SnapshotOperator& snapshotOperator) {
     std::lock_guard<std::mutex> lock(_snapshotMutex);
     _snapshotOperators.push(snapshotOperator);
+    _hasPrimarySnapshot |= std::get<2>(snapshotOperator);
 }
 
 bool Application::takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators) {
     std::lock_guard<std::mutex> lock(_snapshotMutex);
+    bool hasPrimarySnapshot = _hasPrimarySnapshot;
+    _hasPrimarySnapshot = false;
     _snapshotOperators.swap(snapshotOperators);
-    return !snapshotOperators.empty();
-}
-
-void Application::addSecondarySnapshotOperator(const SecondarySnapshotOperator& snapshotOperator) {
-    std::lock_guard<std::mutex> lock(_snapshotMutex);
-    _secondarySnapshotOperators.push(snapshotOperator);
-}
-
-bool Application::takeSecondarySnapshotOperators(std::queue<SecondarySnapshotOperator>& snapshotOperators) {
-    std::lock_guard<std::mutex> lock(_snapshotMutex);
-    _secondarySnapshotOperators.swap(snapshotOperators);
-    return !snapshotOperators.empty();
+    return hasPrimarySnapshot;
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
@@ -8476,15 +8468,15 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
                 SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, DependencyManager::get<WindowScriptingInterface>());
             });
         }
-    }, aspectRatio });
+    }, aspectRatio, true });
 }
 
 void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
-    addSecondarySnapshotOperator([notify, filename](const QImage& snapshot) {
+    addSnapshotOperator({ [notify, filename](const QImage& snapshot) {
         QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
-    });
+    }, 0, false });
 }
 
 void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {

@@ -245,7 +245,6 @@ void GraphicsEngine::render_performFrame() {
     }
 
     std::queue<Application::SnapshotOperator> snapshotOperators;
-    std::queue<Application::SecondarySnapshotOperator> secondarySnapshotOperators;
     if (!_programsCompiled.load()) {
         gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
             batch.setFramebuffer(finalFramebuffer);
@@ -274,7 +273,6 @@ void GraphicsEngine::render_performFrame() {
             renderArgs._hudOperator = displayPlugin->getHUDOperator();
             renderArgs._hudTexture = qApp->getApplicationOverlay().getOverlayTexture();
             renderArgs._takingSnapshot = qApp->takeSnapshotOperators(snapshotOperators);
-            qApp->takeSecondarySnapshotOperators(secondarySnapshotOperators);
             renderArgs._blitFramebuffer = finalFramebuffer;
             render_runRenderFrame(&renderArgs);
         }
@@ -290,7 +288,6 @@ void GraphicsEngine::render_performFrame() {
         }
     };
     frame->snapshotOperators = snapshotOperators;
-    frame->secondarySnapshotOperators = secondarySnapshotOperators;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");

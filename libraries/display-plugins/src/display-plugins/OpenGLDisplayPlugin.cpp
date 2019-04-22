@@ -725,17 +725,12 @@ void OpenGLDisplayPlugin::present() {
             PROFILE_RANGE_EX(render, "snapshotOperators", 0xffff00ff, frameId)
             while (!_currentFrame->snapshotOperators.empty()) {
                 auto& snapshotOperator = _currentFrame->snapshotOperators.front();
-                snapshotOperator.first(getScreenshot(snapshotOperator.second));
+                if (std::get<2>(snapshotOperator)) {
+                    std::get<0>(snapshotOperator)(getScreenshot(std::get<1>(snapshotOperator)));
+                } else {
+                    std::get<0>(snapshotOperator)(getSecondaryCameraScreenshot());
+                }
                 _currentFrame->snapshotOperators.pop();
-            }
-        }
-
-        { // If we have any secondary camera snapshots this frame, handle them
-            PROFILE_RANGE_EX(render, "secondarySnapshotOperators", 0x00ff00ff, frameId)
-            while (!_currentFrame->secondarySnapshotOperators.empty()) {
-                auto& snapshotOperator = _currentFrame->secondarySnapshotOperators.front();
-                snapshotOperator(getSecondaryCameraScreenshot());
-                _currentFrame->secondarySnapshotOperators.pop();
             }
         }
 

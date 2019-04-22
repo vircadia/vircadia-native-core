@@ -42,8 +42,7 @@ namespace gpu {
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
 
-        std::queue<std::pair<std::function<void(const QImage&)>, float>> snapshotOperators;
-        std::queue<std::function<void(const QImage&)>> secondarySnapshotOperators;
+        std::queue<std::tuple<std::function<void(const QImage&)>, float, bool>> snapshotOperators;
 
     protected:
         friend class Deserializer;
