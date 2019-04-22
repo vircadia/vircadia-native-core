@@ -24,30 +24,22 @@
 #include "MixerAvatar.h"
 #include "AvatarLogging.h"
 
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/pem.h>
-#include <openssl/evp.h>
-#include <openssl/aes.h>
-#include <openssl/ecdsa.h>
-
-
 void MixerAvatar::fetchAvatarFST() {
     _verifyState = kNoncertified;
     _certificateIdFromURL.clear();
     _certificateIdFromFST.clear();
     _marketplaceIdFromURL.clear();
+    _marketplaceIdFromFST.clear();
     auto resourceManager = DependencyManager::get<ResourceManager>();
     QUrl avatarURL = getSkeletonModelURL();
     if (avatarURL.isEmpty()) {
         return;
     }
 
-    auto avatarURLString = avatarURL.toDisplayString();
-    // Match UUID + version
+    //auto avatarURLString = avatarURL.toDisplayString();
+    // Match UUID + (optionally) URL cert
     static const QRegularExpression marketIdRegex{
-        "^https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36}).*?(certificate_id=([\\w/+%]+)).*$"
+        "^https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36})(.*?certificate_id=([\\w/+%]+)|.*).*$"
     };
     auto marketIdMatch = marketIdRegex.match(avatarURL.toDisplayString());
     if (marketIdMatch.hasMatch()) {
@@ -86,45 +78,6 @@ void MixerAvatar::fstRequestComplete() {
         } else {
             _avatarFSTContents = fstRequest->getData();
             _verifyState = kReceivedFST;
-            generateFSTHash();
-            QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
-            bool staticVerification = validateFSTHash(marketplacePublicKey);
-            _verifyState = staticVerification ? kStaticValidation : kVerificationFailed;
-
-            if (_verifyState == kStaticValidation) {
-                static const QString POP_MARKETPLACE_API{ "/api/v1/commerce/proof_of_purchase_status/transfer" };
-                auto& networkAccessManager = NetworkAccessManager::getInstance();
-                QNetworkRequest networkRequest;
-                networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-                networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
-                requestURL.setPath(POP_MARKETPLACE_API);
-                networkRequest.setUrl(requestURL);
-
-                QJsonObject request;
-                request["certificate_id"] = _certificateIdFromFST;
-                _verifyState = kRequestingOwner;
-                QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-                networkReply->setParent(this);
-                connect(networkReply, &QNetworkReply::finished, [this, networkReply]() {
-                    QMutexLocker certifyLocker(&_avatarCertifyLock);
-                    if (networkReply->error() == QNetworkReply::NoError) {
-                        _dynamicMarketResponse = networkReply->readAll();
-                        _verifyState = kOwnerResponse;
-                    } else {
-                        auto jsonData = QJsonDocument::fromJson(networkReply->readAll())["data"];
-                        if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
-                            qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
-                                             << jsonData.toObject()["message"].toString();
-                            _verifyState = kError;
-                        }
-                    }
-                    networkReply->deleteLater();
-                });
-            } else {
-                _verifyState = kVerificationFailed;
-                qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
-            }
         }
         _avatarRequest->deleteLater();
         _avatarRequest = nullptr;
@@ -184,6 +137,9 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
                 scripts.append(lineMatch.captured(2).trimmed());
             } else {
                 certifiedItems[key] = QJsonValue(lineMatch.captured(2));
+                if (key == "marketplaceID") {
+                    _marketplaceIdFromFST = lineMatch.captured(2);
+                }
             }
         }
     }
@@ -207,10 +163,53 @@ void MixerAvatar::processCertifyEvents() {
     }
 
     switch (_verifyState) {
+
+    case kReceivedFST:
+    {
+        generateFSTHash();
+        QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
+        bool staticVerification = validateFSTHash(marketplacePublicKey);
+        _verifyState = staticVerification ? kStaticValidation : kVerificationFailed;
+
+        if (_verifyState == kStaticValidation) {
+            static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
+            auto& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkRequest networkRequest;
+            networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+            networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+            QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+            requestURL.setPath(POP_MARKETPLACE_API);
+            networkRequest.setUrl(requestURL);
+
+            QJsonObject request;
+            request["certificate_id"] = _certificateIdFromFST;
+            _verifyState = kRequestingOwner;
+            QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+            networkReply->setParent(this);
+            connect(networkReply, &QNetworkReply::finished, [this, networkReply]() {
+                QMutexLocker certifyLocker(&_avatarCertifyLock);
+                if (networkReply->error() == QNetworkReply::NoError) {
+                    _dynamicMarketResponse = networkReply->readAll();
+                    _verifyState = kOwnerResponse;
+                } else {
+                    auto jsonData = QJsonDocument::fromJson(networkReply->readAll())["data"];
+                    if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
+                        qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
+                            << jsonData.toObject()["message"].toString();
+                        _verifyState = kError;
+                    }
+                }
+                networkReply->deleteLater();
+            });
+        } else {
+            _verifyState = kVerificationFailedPending;
+            qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
+        }
+    }
+
     case kOwnerResponse:
     {
         QJsonDocument responseJson = QJsonDocument::fromJson(_dynamicMarketResponse.toUtf8());
-        _verifyState = kChallengeClient;
         QString ownerPublicKey;
         bool ownerValid = false;
         qCDebug(avatars) << "Marketplace response for avatar" << getDisplayName() << ":" << _dynamicMarketResponse;
@@ -227,10 +226,15 @@ void MixerAvatar::processCertifyEvents() {
                 }
             }
             if (ownerValid && !ownerPublicKey.isEmpty()) {
-                _ownerPublicKey = "-----BEGIN PUBLIC KEY-----\n"
-                    + ownerPublicKey
-                    + "\n-----END PUBLIC KEY-----\n";
-                challengeOwner();
+                if (ownerPublicKey.startsWith("-----BEGIN ")){
+                    _ownerPublicKey = ownerPublicKey;
+                } else {
+                    _ownerPublicKey = "-----BEGIN PUBLIC KEY-----\n"
+                        + ownerPublicKey
+                        + "\n-----END PUBLIC KEY-----\n";
+                }
+                sendOwnerChallenge();
+                _verifyState = kChallengeClient;
             } else {
                 _verifyState = kError;
             }
@@ -244,35 +248,37 @@ void MixerAvatar::processCertifyEvents() {
 
     case kChallengeResponse:
     {
-        int avatarIDLength;
-        int signedNonceLength;
         if (_challengeResponse.length() < 8) {
             _verifyState = kError;
             break;
         }
 
-        QDataStream responseStream(_challengeResponse);
-        responseStream.setByteOrder(QDataStream::LittleEndian);
-        responseStream >> avatarIDLength >> signedNonceLength;
+        int avatarIDLength;
+        int signedNonceLength;
+        {
+            QDataStream responseStream(_challengeResponse);
+            responseStream.setByteOrder(QDataStream::LittleEndian);
+            responseStream >> avatarIDLength >> signedNonceLength;
+        }
         QByteArray avatarID(_challengeResponse.data() + 2 * sizeof(int), avatarIDLength);
         QByteArray signedNonce(_challengeResponse.data() + 2 * sizeof(int) + avatarIDLength, signedNonceLength);
-        QCryptographicHash nonceHash(QCryptographicHash::Sha256);
-        nonceHash.addData(_challengeNonce);
 
-        bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, nonceHash.result(),
+        bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, _challengeNonceHash,
             QByteArray::fromBase64(signedNonce));
-        _verifyState = challengeResult ? kVerificationSucceeded : kVerificationFailed;
-        if (_verifyState == kVerificationFailed) {
+        _verifyState = challengeResult ? kVerificationSucceeded : kVerificationFailedPending;
+        if (_verifyState == kVerificationFailedPending) {
             qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
+        } else {
+            qCDebug(avatars) << "Dynamic verification SUCCEEDED for " << getDisplayName() << getSessionUUID();
         }
     }
 
     }  // close switch
 }
 
-void MixerAvatar::challengeOwner() {
+void MixerAvatar::sendOwnerChallenge() {
     auto nodeList = DependencyManager::get<NodeList>();
-    QByteArray avatarID = ("{" + _marketplaceIdFromURL + "}").toUtf8();
+    QByteArray avatarID = ("{" + _marketplaceIdFromFST + "}").toUtf8();
     QByteArray nonce = QUuid::createUuid().toByteArray();
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
@@ -283,7 +289,9 @@ void MixerAvatar::challengeOwner() {
     challengeOwnershipPacket->write(nonce);
 
     nodeList->sendPacket(std::move(challengeOwnershipPacket), *(nodeList->nodeWithUUID(getSessionUUID())) );
-    _challengeNonce = nonce;
+    QCryptographicHash nonceHash(QCryptographicHash::Sha256);
+    nonceHash.addData(nonce);
+    _challengeNonceHash = nonceHash.result();
 
     static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
     _challengeTimeout.setInterval(CHALLENGE_TIMEOUT_MS);
