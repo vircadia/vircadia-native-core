@@ -165,7 +165,7 @@ public slots:
 
     /**jsdoc
      * Check whether all textures have been loaded.
-     * @function Entities.areTexturesLoaded
+     * @function Entities.isTextureLoadingComplete
      * @returns {boolean} <code>true</code> texture memory usage is not increasing <code>false</code>.
      */
     Q_INVOKABLE bool isTextureLoadingComplete();
