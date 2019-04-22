@@ -594,13 +594,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         }
     }
 
-    // AJT: hand controller section
     IF_AVATAR_SPACE(PACKET_HAS_HAND_CONTROLLERS, AvatarDataPacket::HAND_CONTROLLERS_SIZE) {
-
-        qDebug() << "AJT: sending hand controllers!";
-
-        // AJT: TODO
-        //auto startSection = destinationBuffer;
+        auto startSection = destinationBuffer;
 
         Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
@@ -610,12 +605,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(), HAND_CONTROLLER_COMPRESSION_RADIX);
 
-        /* AJT: TODO
         int numBytes = destinationBuffer - startSection;
         if (outboundDataRateOut) {
             outboundDataRateOut->handControllersRate.increment(numBytes);
         }
-        */
     }
 
     const auto& blendshapeCoefficients = _headData->getBlendshapeCoefficients();
@@ -1244,21 +1237,15 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _localPositionUpdateRate.increment();
     }
 
-    // AJT: hand controller section
     if (hasHandControllers) {
-
-        qDebug() << "AJT: received hand controllers!";
-
-        // AJT: TODO
-        // auto startSection = sourceBuffer;
+        auto startSection = sourceBuffer;
 
         sourceBuffer = unpackHandController(sourceBuffer, _controllerLeftHandMatrixCache);
         sourceBuffer = unpackHandController(sourceBuffer, _controllerRightHandMatrixCache);
 
-        // AJT: TODO
-        // int numBytesRead = sourceBuffer - startSection;
-        // _handControllerUpdateRate.increment(numBytesRead);
-        // _handControllerUpdateRate.increment();
+        int numBytesRead = sourceBuffer - startSection;
+        _handControllersRate.increment(numBytesRead);
+        _handControllersUpdateRate.increment();
     } else {
         _controllerLeftHandMatrixCache.invalidate();
         _controllerRightHandMatrixCache.invalidate();
@@ -1465,6 +1452,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
  *   <tbody>
  *     <tr><td><code>"globalPosition"</code></td><td>Incoming global position.</td></tr>
  *     <tr><td><code>"localPosition"</code></td><td>Incoming local position.</td></tr>
+ *     <tr><td><code>"handControllers"</code></td><td>Incoming hand controllers.</td></tr>
  *     <tr><td><code>"avatarBoundingBox"</code></td><td>Incoming avatar bounding box.</td></tr>
  *     <tr><td><code>"avatarOrientation"</code></td><td>Incoming avatar orientation.</td></tr>
  *     <tr><td><code>"avatarScale"</code></td><td>Incoming avatar scale.</td></tr>
@@ -1503,6 +1491,8 @@ float AvatarData::getDataRate(const QString& rateName) const {
         return _globalPositionRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "localPosition") {
         return _localPositionRate.rate() / BYTES_PER_KILOBIT;
+    } else if (rateName == "handControllers") {
+        return _handControllersRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarBoundingBox") {
         return _avatarBoundingBoxRate.rate() / BYTES_PER_KILOBIT;
     } else if (rateName == "avatarOrientation") {
@@ -1567,6 +1557,7 @@ float AvatarData::getDataRate(const QString& rateName) const {
  *   <tbody>
  *     <tr><td><code>"globalPosition"</code></td><td>Global position.</td></tr>
  *     <tr><td><code>"localPosition"</code></td><td>Local position.</td></tr>
+ *     <tr><td><code>"handControllers"</code></td><td>Hand controller positions and orientations.</td></tr>
  *     <tr><td><code>"avatarBoundingBox"</code></td><td>Avatar bounding box.</td></tr>
  *     <tr><td><code>"avatarOrientation"</code></td><td>Avatar orientation.</td></tr>
  *     <tr><td><code>"avatarScale"</code></td><td>Avatar scale.</td></tr>
@@ -1591,6 +1582,8 @@ float AvatarData::getUpdateRate(const QString& rateName) const {
         return _globalPositionUpdateRate.rate();
     } else if (rateName == "localPosition") {
         return _localPositionUpdateRate.rate();
+    } else if (rateName == "handControllers") {
+        return _handControllersUpdateRate.rate();
     } else if (rateName == "avatarBoundingBox") {
         return _avatarBoundingBoxUpdateRate.rate();
     } else if (rateName == "avatarOrientation") {

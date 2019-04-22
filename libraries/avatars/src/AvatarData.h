@@ -413,6 +413,7 @@ class AvatarDataRate {
 public:
     RateCounter<> globalPositionRate;
     RateCounter<> localPositionRate;
+    RateCounter<> handControllersRate;
     RateCounter<> avatarBoundingBoxRate;
     RateCounter<> avatarOrientationRate;
     RateCounter<> avatarScaleRate;
@@ -1680,6 +1681,7 @@ protected:
     RateCounter<> _parseBufferRate;
     RateCounter<> _globalPositionRate;
     RateCounter<> _localPositionRate;
+    RateCounter<> _handControllersRate;
     RateCounter<> _avatarBoundingBoxRate;
     RateCounter<> _avatarOrientationRate;
     RateCounter<> _avatarScaleRate;
@@ -1697,6 +1699,7 @@ protected:
     RateCounter<> _parseBufferUpdateRate;
     RateCounter<> _globalPositionUpdateRate;
     RateCounter<> _localPositionUpdateRate;
+    RateCounter<> _handControllersUpdateRate;
     RateCounter<> _avatarBoundingBoxUpdateRate;
     RateCounter<> _avatarOrientationUpdateRate;
     RateCounter<> _avatarScaleUpdateRate;
