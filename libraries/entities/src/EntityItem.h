@@ -303,6 +303,9 @@ public:
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
+    void setCauterized(bool value);
+    bool getCauterized() const;
+
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
 
@@ -529,9 +532,6 @@ public:
 
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
-
-    void setCauterized(bool value) { _cauterized = value; }
-    bool getCauterized() const { return _cauterized; }
 
     float getBoundingRadius() const { return _boundingRadius; }
     void setSpaceIndex(int32_t index);

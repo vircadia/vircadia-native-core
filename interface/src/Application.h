@@ -1,4 +1,4 @@
-//
+﻿//
 //  Application.h
 //  interface/src
 //
@@ -156,6 +156,7 @@ public:
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void resizeGL();
 
+    bool notify(QObject *, QEvent *) override;
     bool event(QEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
 
@@ -817,5 +818,8 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
+    bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
 };
 #endif // hifi_Application_h

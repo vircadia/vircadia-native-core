@@ -177,6 +177,8 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
         material->setModel(modelString);
     }
 
+    std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texcoordTransforms;
+
     if (modelString == HIFI_PBR) {
         const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {
@@ -184,6 +186,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 auto nameJSON = materialJSON.value(key);
                 if (nameJSON.isString()) {
                     name = nameJSON.toString().toStdString();
+                    material->setName(name);
                 }
             } else if (key == "model") {
                 auto modelJSON = materialJSON.value(key);
@@ -371,8 +374,11 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                     if (valueString == FALLTHROUGH) {
                         material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::TEXCOORDTRANSFORM0);
                     }
+                } else if (value.isObject()) {
+                    auto valueVariant = value.toVariant();
+                    glm::mat4 transform = mat4FromVariant(valueVariant);
+                    texcoordTransforms[0] = transform;
                 }
-                // TODO: implement texCoordTransform0
             } else if (key == "texCoordTransform1") {
                 auto value = materialJSON.value(key);
                 if (value.isString()) {
@@ -380,8 +386,11 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                     if (valueString == FALLTHROUGH) {
                         material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::TEXCOORDTRANSFORM1);
                     }
+                } else if (value.isObject()) {
+                    auto valueVariant = value.toVariant();
+                    glm::mat4 transform = mat4FromVariant(valueVariant);
+                    texcoordTransforms[1] = transform;
                 }
-                // TODO: implement texCoordTransform1
             } else if (key == "lightmapParams") {
                 auto value = materialJSON.value(key);
                 if (value.isString()) {
@@ -408,6 +417,15 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
             }
         }
     }
+
+    // Do this after the texture maps are defined, so it overrides the default transforms
+    for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
+        mat4 newTransform = texcoordTransforms[i];
+        if (newTransform != mat4() || newTransform != material->getTexCoordTransform(i)) {
+            material->setTexCoordTransform(i, newTransform);
+        }
+    }
+
     return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, material);
 }
 

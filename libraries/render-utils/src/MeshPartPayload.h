@@ -107,6 +107,7 @@ public:
     void render(RenderArgs* args) override;
 
     void setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning);
+    void setCauterized(bool cauterized) { _cauterized = cauterized; }
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -138,6 +139,8 @@ private:
     gpu::BufferPointer _meshBlendshapeBuffer;
     int _meshNumVertices;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+    bool _cauterized { false };
+
 };
 
 namespace render {

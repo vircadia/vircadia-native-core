@@ -104,13 +104,15 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
     int meshIndex = 0;
     for (FBXNode& rootChild : _rootNode.children) {
         if (rootChild.name == "Objects") {
-            for (auto object = rootChild.children.begin(); object != rootChild.children.end(); object++) {
+            auto object = rootChild.children.begin();
+            while (object != rootChild.children.end()) {
                 if (object->name == "Geometry") {
                     if (object->properties.at(2) == "Mesh") {
                         int meshNum = meshIndexToRuntimeOrder[meshIndex];
                         replaceMeshNodeWithDraco(*object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
                         meshIndex++;
                     }
+                    object++;
                 } else if (object->name == "Model") {
                     for (FBXNode& modelChild : object->children) {
                         if (modelChild.name == "Properties60" || modelChild.name == "Properties70") {
@@ -136,9 +138,33 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
                             meshIndex++;
                         }
                     }
+                    object++;
                 } else if (object->name == "Texture" || object->name == "Video") {
                     // this is an embedded texture, we need to remove it from the FBX
                     object = rootChild.children.erase(object);
+                } else if (object->name == "Material") {
+                    for (FBXNode& materialChild : object->children) {
+                        if (materialChild.name == "Properties60" || materialChild.name == "Properties70") {
+                            // This is a properties node
+                            // Remove the material texture scale because that is now included in the material JSON
+                            // Texture nodes are removed, so their texture scale is effectively gone already
+                            static const QVariant MAYA_UV_SCALE = hifi::ByteArray("Maya|uv_scale");
+                            static const QVariant MAYA_UV_OFFSET = hifi::ByteArray("Maya|uv_offset");
+                            for (int i = 0; i < materialChild.children.size(); i++) {
+                                const auto& prop = materialChild.children[i];
+                                const auto& propertyName = prop.properties.at(0);
+                                if (propertyName == MAYA_UV_SCALE ||
+                                    propertyName == MAYA_UV_OFFSET) {
+                                    materialChild.children.removeAt(i);
+                                    --i;
+                                }
+                            }
+                        }
+                    }
+
+                    object++;
+                } else {
+                    object++;
                 }
 
                 if (hasErrors()) {
