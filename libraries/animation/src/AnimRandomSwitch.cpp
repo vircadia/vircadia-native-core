@@ -104,18 +104,21 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
             _prevPoses.clear();
             _nextPoses.clear();
         }
-        if (_duringInterp) {
-            // hack: add previoius state to debug alpha map, with parens around it's name.
-            context.setDebugAlpha(QString("(%1)").arg(_previousState->getID()), 1.0f - _alpha, AnimNodeType::Clip);
-        }
-    }else {
+    }
+
+    if (!_duringInterp){
         context.setDebugAlpha(_currentState->getID(), parentDebugAlpha, _children[_currentState->getChildIndex()]->getType());
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
 
     _framesActive = context.getFramesAnimatedThisSession();
     processOutputJoints(triggersOut);
+
     context.addStateMachineInfo(_id, _currentState->getID(), _previousState->getID(), _duringInterp, _alpha);
+    if (_duringInterp) {
+        // hack: add previoius state to debug alpha map, with parens around it's name.
+        context.setDebugAlpha(QString("(%1)").arg(_previousState->getID()), 1.0f - _alpha, AnimNodeType::Clip);
+    }
 
     return _poses;
 }
