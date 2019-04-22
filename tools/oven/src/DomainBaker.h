@@ -12,6 +12,7 @@
 #ifndef hifi_DomainBaker_h
 #define hifi_DomainBaker_h
 
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
@@ -59,6 +60,7 @@ private:
     QString _originalOutputPath;
     QUrl _destinationPath;
 
+    QJsonDocument _json;
     QJsonArray _entities;
 
     QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
