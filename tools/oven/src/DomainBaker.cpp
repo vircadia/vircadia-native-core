@@ -15,7 +15,6 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
-#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
 #include "Gzip.h"
@@ -132,10 +131,10 @@ void DomainBaker::loadLocalFile() {
     }
 
     // read the file contents to a JSON document
-    auto jsonDocument = QJsonDocument::fromJson(fileContents);
+    _json = QJsonDocument::fromJson(fileContents);
 
     // grab the entities object from the root JSON object
-    _entities = jsonDocument.object()[ENTITIES_OBJECT_KEY].toArray();
+    _entities = _json.object()[ENTITIES_OBJECT_KEY].toArray();
 
     if (_entities.isEmpty()) {
         // add an error to our list stating that the models file was empty
@@ -749,15 +748,10 @@ void DomainBaker::writeNewEntitiesFile() {
     // time to write out a main models.json.gz file
 
     // first setup a document with the entities array below the entities key
-    QJsonDocument entitiesDocument;
-
-    QJsonObject rootObject;
-    rootObject[ENTITIES_OBJECT_KEY] = _entities;
-
-    entitiesDocument.setObject(rootObject);
+    _json.object()[ENTITIES_OBJECT_KEY] = _entities;
 
     // turn that QJsonDocument into a byte array ready for compression
-    QByteArray jsonByteArray = entitiesDocument.toJson();
+    QByteArray jsonByteArray = _json.toJson();
 
     // compress the json byte array using gzip
     QByteArray compressedJson;
