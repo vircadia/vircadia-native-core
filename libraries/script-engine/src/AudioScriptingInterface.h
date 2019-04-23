@@ -41,7 +41,7 @@ public:
     }
 
     /**jsdoc
-     * Adds avatars to the audio solo list. If the audio solo list is non-empty, only audio from the avatars in the list is 
+     * Adds avatars to the audio solo list. If the audio solo list is not empty, only audio from the avatars in the list is 
      * played.
      * @function Audio.addToSoloList
      * @param {Uuid[]} ids - Avatar IDs to add to the solo list.
@@ -78,7 +78,7 @@ public:
     }
 
     /**jsdoc
-     * Removes avatars from the audio solo list. If the audio solo list is non-empty, only audio from the avatars in the list 
+     * Removes avatars from the audio solo list. If the audio solo list is not empty, only audio from the avatars in the list 
      * is played.
      * @function Audio.removeFromSoloList
      * @param {Uuid[]} ids - Avatar IDs to remove from the solo list.
@@ -96,8 +96,8 @@ public:
     }
 
     /**jsdoc
-     * Gets whether echoing microphone audio back to you from the server is enabled. When enabled, microphone audio is echoed 
-     * only if you're unmuted or are pushing-to-talk.
+     * Gets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed only 
+     * if you're unmuted or are using push-to-talk.
      * @function Audio.getServerEcho
      * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the server is enabled, 
      *     <code>false</code> if it isn't.
@@ -105,8 +105,8 @@ public:
     Q_INVOKABLE bool getServerEcho();
 
     /**jsdoc
-     * Sets whether echoing microphone audio back to you from the server is enabled. When enabled, microphone audio is echoed 
-     * only if you're unmuted or are pushing-to-talk.
+     * Sets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed 
+     * only if you're unmuted or are using push-to-talk.
      * @function Audio.setServerEcho
      * @parm {boolean} serverEcho - <code>true</code> to enable echoing microphone back to you from the server, 
      *     <code>false<code> to disable.
@@ -115,14 +115,14 @@ public:
 
     /**jsdoc
      * Toggles the echoing of microphone audio back to you from the server. When enabled, microphone audio is echoed only if 
-     * you're unmuted or are pushing-to-talk.
+     * you're unmuted or are using push-to-talk.
      * @function Audio.toggleServerEcho
      */
     Q_INVOKABLE void toggleServerEcho();
 
     /**jsdoc
-     * Gets whether echoing microphone audio back to you by the client is enabled. When enabled, microphone audio is echoed 
-     * even if you're muted or not pushing-to-talk.
+     * Gets whether your microphone audio is echoed back to you by the client. When enabled, microphone audio is echoed 
+     * even if you're muted or not using push-to-talk.
      * @function Audio.getLocalEcho
      * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the client is enabled, 
      *     <code>false</code> if it isn't.
@@ -130,8 +130,8 @@ public:
     Q_INVOKABLE bool getLocalEcho();
 
     /**jsdoc
-     * Sets whether echoing microphone audio back to you by the client is enabled. When enabled, microphone audio is echoed 
-     * even if you're muted or not pushing-to-talk.
+     * Sets whether your microphone audio is echoed back to you by the client. When enabled, microphone audio is echoed 
+     * even if you're muted or not using push-to-talk.
      * @function Audio.setLocalEcho
      * @parm {boolean} localEcho - <code>true</code> to enable echoing microphone audio back to you from the client, 
      *     <code>false</code> to disable.
@@ -144,8 +144,8 @@ public:
     Q_INVOKABLE void setLocalEcho(bool localEcho);
 
     /**jsdoc
-     * Toggles the echoing of microphone audio back to you from the client. When enabled, microphone audio is echoed even if 
-     * you're muted or not pushing-to-talk.
+     * Toggles the echoing of microphone audio back to you by the client. When enabled, microphone audio is echoed even if 
+     * you're muted or not using push-to-talk.
      * @function Audio.toggleLocalEcho
      */
     Q_INVOKABLE void toggleLocalEcho();
@@ -157,7 +157,7 @@ protected:
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
     /**jsdoc
-     * Starts playing &mdash; "injecting" &mdash; the content of an audio file. The sound is played globally (sent to the audio 
+     * Starts playing or "injecting" the content of an audio file. The sound is played globally (sent to the audio 
      * mixer) so that everyone hears it, unless the <code>injectorOptions</code> has <code>localOnly</code> set to 
      * <code>true</code> in which case only the client hears the sound played. No sound is played if sent to the audio mixer 
      * but the client is not connected to an audio mixer. The {@link AudioInjector} object returned by the function can be used 
@@ -165,7 +165,8 @@ protected:
      * @function Audio.playSound
      * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
      * {@link SoundObject} for supported formats.
-     * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - Audio injector configuration.
+     * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - Configures where and how the audio injector plays the 
+     *     audio file.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      * @example <caption>Play a sound.</caption>
      * var sound = SoundCache.getSound(Script.resourcesPath() + "sounds/sample.wav");
@@ -181,11 +182,11 @@ protected:
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
     /**jsdoc
-     * Starts playing the content of an audio file, locally (isn't sent to the audio mixer). This is the same as calling 
+     * Starts playing the content of an audio file locally (isn't sent to the audio mixer). This is the same as calling 
      * {@link Audio.playSound} with {@link AudioInjector.AudioInjectorOptions} <code>localOnly</code> set <code>true</code> and 
      * the specified <code>position</code>.
      * @function Audio.playSystemSound
-     * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
+     * @param {SoundObject} sound - The content of an audio file, which is loaded using {@link SoundCache.getSound}. See 
      * {@link SoundObject} for supported formats.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      */
@@ -210,7 +211,7 @@ signals:
 
     /**jsdoc
      * Triggered when the client is muted by the mixer because their loudness value for the noise background has reached the 
-     * threshold set for the domain in the server settings.
+     * threshold set for the domain (in the server settings).
      * @function Audio.mutedByMixer
      * @returns {Signal} 
      */
@@ -239,7 +240,7 @@ signals:
     void disconnected();
 
     /**jsdoc
-     * Triggered when the noise gate is opened: the input audio signal is no longer blocked (fully attenuated) because it has 
+     * Triggered when the noise gate is opened. The input audio signal is no longer blocked (fully attenuated) because it has 
      * risen above an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
      * <code>true</code>.
      * @function Audio.noiseGateOpened
@@ -248,7 +249,7 @@ signals:
     void noiseGateOpened();
 
     /**jsdoc
-     * Triggered when the noise gate is closed: the input audio signal is blocked (fully attenuated) because it has fallen 
+     * Triggered when the noise gate is closed. The input audio signal is blocked (fully attenuated) because it has fallen 
      * below an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
      * <code>true</code>.
      * @function Audio.noiseGateClosed

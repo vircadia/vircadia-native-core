@@ -45,12 +45,12 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} mutedDesktop - <code>true</code> if desktop audio input is muted, otherwise <code>false</code>.
      * @property {boolean} mutedHMD - <code>true</code> if the HMD input is muted, otherwise <code>false</code>.
      * @property {boolean} warnWhenMuted - <code>true</code> if the "muted" warning is enabled, otherwise <code>false</code>.
-     *     When enabled, a "muted" warning is displayed when you try to speak while your microphone is muted.
+     *     When enabled, if you speak while your microphone is muted, "muted" is displayed on the screen as a warning.
      * @property {boolean} noiseReduction - <code>true</code> if noise reduction is enabled, otherwise <code>false</code>. When
      *     enabled, the input audio signal is blocked (fully attenuated) when it falls below an adaptive threshold set just
      *     above the noise floor.
-     * @property {number} inputVolume - Adjusts the volume of the input audio; range <code>0.0</code> &ndash; <code>1.0</code>.
-     *     If set to a value, the resulting value depends on the input device: for example, the volume can't be changed on some
+     * @property {number} inputVolume - Adjusts the volume of the input audio, range <code>0.0</code> &ndash; <code>1.0</code>. 
+     *     If set to a value, the resulting value depends on the input device: for example, the volume can't be changed on some 
      *     devices, and others might only support values of <code>0.0</code> and <code>1.0</code>.
      * @property {number} inputLevel - The loudness of the audio input, range <code>0.0</code> (no sound) &ndash;
      *     <code>1.0</code> (the onset of clipping). <em>Read-only.</em>
@@ -64,7 +64,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} pushToTalkDesktop - <code>true</code> if desktop push-to-talk is enabled, otherwise 
      *     <code>false</code>.
      * @property {boolean} pushToTalkHMD - <code>true</code> if HMD push-to-talk is enabled, otherwise <code>false</code>.
-     * @property {boolean} pushingToTalk - <code>true</code> if the user is currently pushing to talk, otherwise 
+     * @property {boolean} pushingToTalk - <code>true</code> if the user is currently pushing-to-talk, otherwise 
      *     <code>false</code>.
      *
      * @comment The following properties are from AudioScriptingInterface.h.
@@ -147,8 +147,8 @@ public:
     Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
     /**jsdoc
-     * Enables or disables reverberation. Reverberation is done by the client, on the post-mix audio. The reverberation options
-     * come from either the domain's audio zone if used &mdash; configured on the server &mdash; or as scripted by
+     * Enables or disables reverberation. Reverberation is done by the client on the post-mix audio. The reverberation options
+     * come from either the domain's audio zone configured on the server or settings scripted by
      * {@link Audio.setReverbOptions|setReverbOptions}.
      * @function Audio.setReverb
      * @param {boolean} enable - <code>true</code> to enable reverberation, <code>false</code> to disable.
@@ -207,44 +207,44 @@ public:
     Q_INVOKABLE float getAvatarGain();
 
     /**jsdoc
-     * Sets the gain (relative volume) that the environment is played at, for sounds from the server.
+     * Sets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.setInjectorGain
      * @param {number} Injector gain (dB) at the server.
      */
     Q_INVOKABLE void setInjectorGain(float gain);
 
     /**jsdoc
-     * Gets the gain (relative volume) that the environment is played at, for sounds from the server.
+     * Gets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.getInjectorGain
      * @returns {number} Injector gain (dB) at the server.
      */
     Q_INVOKABLE float getInjectorGain();
 
     /**jsdoc
-     * Sets the gain (relative volume) that the environment is played at, for sounds from the client.
+     * Sets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.setLocalInjectorGain
-     * @param {number} Local injector gain (dB) in the client.
+     * @param {number} Injector gain (dB) in the client.
      */
     Q_INVOKABLE void setLocalInjectorGain(float gain);
 
     /**jsdoc
-     * Gets the gain (relative volume) that the environment is played at, for sounds from the client.
+     * Gets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.getLocalInjectorGain
-     * @returns {number} Local injector gain (dB) in the client.
+     * @returns {number} Injector gain (dB) in the client.
      */
     Q_INVOKABLE float getLocalInjectorGain();
 
     /**jsdoc
      * Sets the gain (relative volume) that system sounds are played at.
      * @function Audio.setSystemInjectorGain
-     * @param {number} System injector gain (dB) in the client.
+     * @param {number} Injector gain (dB) in the client.
      */
     Q_INVOKABLE void setSystemInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that system sounds are played at.
      * @function Audio.getSystemInjectorGain
-     * @returns {number} System injector gain (dB) in the client.
+     * @returns {number} Injector gain (dB) in the client.
     */
     Q_INVOKABLE float getSystemInjectorGain();
 
@@ -372,8 +372,8 @@ signals:
      * Triggered when the input audio volume changes.
      * @function Audio.inputVolumeChanged
      * @param {number} volume - The requested volume to be applied to the audio input, range <code>0.0</code> &ndash;
-     *     <code>1.0</code>. The resulting value of <code>Audio.inputVolume</code> depends on the capabilities of the device:
-     *     for example, the volume can't be changed on some devices, and others might only support values of <code>0.0</code>
+     *     <code>1.0</code>. The resulting value of <code>Audio.inputVolume</code> depends on the capabilities of the device.
+     *     For example, the volume can't be changed on some devices, while others might only support values of <code>0.0</code>
      *     and <code>1.0</code>.
      * @returns {Signal}
      */
@@ -405,9 +405,9 @@ signals:
     void contextChanged(const QString& context);
 
     /**jsdoc
-     * Triggered when pushing-to-talk changes.
+     * Triggered when the user starts or stops push-to-talk.
      * @function Audio.pushingToTalkChanged
-     * @param {boolean} talking - <code>true</code> if started pushing to talk, <code>false</code> if stopped pushing to talk.
+     * @param {boolean} talking - <code>true</code> if started push-to-talk, <code>false</code> if stopped push-to-talk.
      * @returns {Signal}
      */
     void pushingToTalkChanged(bool talking);

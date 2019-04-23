@@ -17,7 +17,7 @@
 #include <AudioInjectorManager.h>
 
 /**jsdoc
- * Plays &mdash; "injects" &mdash; the content of an audio file.
+ * Plays or "injects" the content of an audio file.
  *
  * <p>Create using {@link Audio} API methods.</p>
  *
@@ -47,7 +47,7 @@ public:
 public slots:
 
     /**jsdoc
-     * Stops current playback, if any, and start playing from the beginning.
+     * Stops current playback, if any, and starts playing from the beginning.
      * @function AudioInjector.restart
      */
     void restart() { DependencyManager::get<AudioInjectorManager>()->restart(_injector); }
