@@ -60,7 +60,7 @@ void SnapshotAnimated::saveSnapshotAnimated(QString pathStill, float aspectRatio
 
 void SnapshotAnimated::captureFrames() {
     if (SnapshotAnimated::snapshotAnimatedTimerRunning) {
-        qApp->addSnapshotOperator({ [](const QImage& snapshot) {
+        qApp->addSnapshotOperator(std::make_tuple([](const QImage& snapshot) {
             // Get a screenshot from the display, then scale the screenshot down,
             // then convert it to the image format the GIF library needs,
             // then save all that to the QImage named "frame"
@@ -86,7 +86,7 @@ void SnapshotAnimated::captureFrames() {
                     SnapshotAnimated::snapshotAnimatedTimerRunning = false;
                 }
             }
-        }, SnapshotAnimated::aspectRatio, true });
+        }, SnapshotAnimated::aspectRatio, true));
     } else {
         // Notify the user that we're processing the snapshot
         // This also pops up the "Share" dialog. The unprocessed GIF will be visualized as a loading icon until processingGifCompleted() is called.
