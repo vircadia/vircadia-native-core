@@ -389,7 +389,7 @@ void OtherAvatar::debugJointData() const {
         }
         QVector<AnimPose> worldFramePoses;
         for (int i = 0; i < (int)jointPoses.size(); i++) {
-            auto &jointPose = jointPoses[i];
+            auto& jointPose = jointPoses[i];
             int parentIndex = skeletonData[i].parentIndex;
             if (parentIndex < worldFramePoses.size()) {
                 glm::vec3 xAxis = jointPose.rot() * Vectors::UNIT_X;

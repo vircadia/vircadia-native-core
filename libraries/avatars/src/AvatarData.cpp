@@ -2011,7 +2011,7 @@ QByteArray AvatarData::packSkeletonData() const {
 
         for (size_t i = 0; i < _avatarSkeletonData.size(); i++) {
             header.stringTableLength += (uint16_t)_avatarSkeletonData[i].jointName.size();
-            auto &translation = _avatarSkeletonData[i].defaultTranslation;
+            auto& translation = _avatarSkeletonData[i].defaultTranslation;
             header.maxTranslationDimension = std::max(header.maxTranslationDimension, std::max(std::max(translation.x, translation.y), translation.z));
             header.maxScaleDimension = std::max(header.maxScaleDimension, _avatarSkeletonData[i].defaultScale);
         }

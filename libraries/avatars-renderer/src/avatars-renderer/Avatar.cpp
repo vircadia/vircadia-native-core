@@ -1452,8 +1452,8 @@ QStringList Avatar::getJointNames() const {
 std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultData() {
     std::vector<AvatarSkeletonTrait::UnpackedJointData> defaultSkeletonData;
     if (_skeletonModel->isLoaded()) {
-        auto &model = _skeletonModel->getHFMModel();
-        auto &rig = _skeletonModel->getRig();
+        auto& model = _skeletonModel->getHFMModel();
+        auto& rig = _skeletonModel->getRig();
         float geometryToRigScale = glm::length(extractScale(rig.getGeometryToRigTransform()));
         QStringList jointNames = getJointNames();
         int sizeCount = 0;
