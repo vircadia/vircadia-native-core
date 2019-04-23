@@ -49,6 +49,7 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         if (itr == _pendingMeshShapes.end()) {
             // start a worker
             _pendingMeshShapes.push_back(hash);
+            ++_workRequestCount;
             // try to recycle old deadWorker
             ShapeFactory::Worker* worker = _deadWorker;
             if (!worker) {
@@ -74,6 +75,22 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         }
     }
     return shape;
+}
+
+const btCollisionShape* ShapeManager::getShapeByKey(uint64_t key) {
+    HashKey hashKey(key);
+    ShapeReference* shapeRef = _shapeMap.find(hashKey);
+    if (shapeRef) {
+        shapeRef->refCount++;
+        return shapeRef->shape;
+    }
+    return nullptr;
+}
+
+bool ShapeManager::hasShapeWithKey(uint64_t key) const {
+    HashKey hashKey(key);
+    const ShapeReference* shapeRef = _shapeMap.find(hashKey);
+    return (bool)shapeRef;
 }
 
 void ShapeManager::addToGarbage(uint64_t key) {
@@ -249,4 +266,5 @@ void ShapeManager::acceptWork(ShapeFactory::Worker* worker) {
     worker->shapeInfo.clear();
     worker->shape = nullptr;
     _deadWorker = worker;
+    ++_workDeliveryCount;
 }

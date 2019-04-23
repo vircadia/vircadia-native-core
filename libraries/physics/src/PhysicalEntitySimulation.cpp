@@ -230,19 +230,16 @@ void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) 
 const VectorOfMotionStates& PhysicalEntitySimulation::getObjectsToRemoveFromPhysics() {
     QMutexLocker lock(&_mutex);
     for (auto entity: _entitiesToRemoveFromPhysics) {
-        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        assert(motionState);
-      // TODO CLEan this, just a n extra check to avoid the crash that shouldn;t happen
-      if (motionState) {
-            _entitiesToAddToPhysics.remove(entity);
-            if (entity->isDead() && entity->getElement()) {
-                _deadEntities.insert(entity);
-            }
+        _entitiesToAddToPhysics.remove(entity);
+        if (entity->isDead() && entity->getElement()) {
+            _deadEntities.insert(entity);
+        }
 
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
             _incomingChanges.remove(motionState);
             removeOwnershipData(motionState);
             _physicalObjects.remove(motionState);
-
             // remember this motionState and delete it later (after removing its RigidBody from the PhysicsEngine)
             _objectsToDelete.push_back(motionState);
         }
@@ -264,7 +261,75 @@ void PhysicalEntitySimulation::deleteObjectsRemovedFromPhysics() {
 
 void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
     result.clear();
+
+    // this lambda for when we decide to actually build the motionState
+    auto buildMotionState = [&](btCollisionShape* shape, EntityItemPointer entity) {
+        EntityMotionState* motionState = new EntityMotionState(shape, entity);
+        entity->setPhysicsInfo(static_cast<void*>(motionState));
+        motionState->setRegion(_space->getRegion(entity->getSpaceIndex()));
+        _physicalObjects.insert(motionState);
+        result.push_back(motionState);
+    };
+
+    // TODO:
+    // (1) make all changes to MotionState in "managers" (PhysicalEntitySimulation and AvatarManager)
+    // (2) store relevant change-flags on MotionState (maybe just EASY or HARD?)
+    // (3) remove knowledge of PhysicsEngine from ObjectMotionState
+    // (4) instead PhysicsEngine gets list of changed MotionStates, reads change-flags and applies changes accordingly
+
     QMutexLocker lock(&_mutex);
+    uint32_t deliveryCount = ObjectMotionState::getShapeManager()->getWorkDeliveryCount();
+    if (deliveryCount != _lastWorkDeliveryCount) {
+        // new off-thread shapes have arrived --> find adds whose shapes have arrived
+        _lastWorkDeliveryCount = deliveryCount;
+        ShapeRequests::iterator requestItr = _shapeRequests.begin();
+        while (requestItr != _shapeRequests.end()) {
+            EntityItemPointer entity = requestItr->entity;
+            EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+            if (!motionState) {
+                // this is an ADD because motionState doesn't exist yet
+                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShapeByKey(requestItr->shapeHash));
+                if (shape) {
+                    // shape is ready at last!
+                    // But the entity's desired shape might have changed since last requested
+                    // --> rebuild the ShapeInfo to verify hash
+                    // TODO? is there a better way to do this?
+                    ShapeInfo shapeInfo;
+                    entity->computeShapeInfo(shapeInfo);
+                    if (shapeInfo.getHash() != requestItr->shapeHash) {
+                        // bummer, the hashes are different and we no longer want the shape we've received
+                        ObjectMotionState::getShapeManager()->releaseShape(shape);
+                        // try again
+                        shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                        if (shape) {
+                            buildMotionState(shape, entity);
+                            requestItr = _shapeRequests.erase(requestItr);
+                        } else {
+                            requestItr->shapeHash = shapeInfo.getHash();
+                            ++requestItr;
+                        }
+                    } else {
+                        buildMotionState(shape, entity);
+                        requestItr = _shapeRequests.erase(requestItr);
+                    }
+                } else {
+                    // shape not ready
+                    ++requestItr;
+                }
+            } else {
+                // this is a CHANGE because motionState already exists
+                if (ObjectMotionState::getShapeManager()->hasShapeWithKey(requestItr->shapeHash)) {
+                    // TODO? reset DIRTY_SHAPE flag?
+                    _incomingChanges.insert(motionState);
+                    requestItr = _shapeRequests.erase(requestItr);
+                } else {
+                    // shape not ready
+                    ++requestItr;
+                }
+            }
+        }
+    }
+
     SetOfEntities::iterator entityItr = _entitiesToAddToPhysics.begin();
     while (entityItr != _entitiesToAddToPhysics.end()) {
         EntityItemPointer entity = (*entityItr);
@@ -282,30 +347,25 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
                 }
             }
         } else if (entity->isReadyToComputeShape()) {
-            ShapeInfo shapeInfo;
-            entity->computeShapeInfo(shapeInfo);
-            int numPoints = shapeInfo.getLargestSubshapePointCount();
-            if (shapeInfo.getType() == SHAPE_TYPE_COMPOUND) {
-                if (numPoints > MAX_HULL_POINTS) {
-                    qWarning() << "convex hull with" << numPoints
-                        << "points for entity" << entity->getName()
-                        << "at" << entity->getWorldPosition() << " will be reduced";
+            // check to see if we're waiting for a shape
+            ShapeRequest shapeRequest(entity);
+            ShapeRequests::iterator  requestItr = _shapeRequests.find(shapeRequest);
+            if (requestItr == _shapeRequests.end()) {
+                ShapeInfo shapeInfo;
+                entity->computeShapeInfo(shapeInfo);
+                uint32_t requestCount = ObjectMotionState::getShapeManager()->getWorkRequestCount();
+                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                if (shape) {
+                    buildMotionState(shape, entity);
+                } else if (requestCount != ObjectMotionState::getShapeManager()->getWorkRequestCount()) {
+                    // shape doesn't exist but a new worker has been spawned to build it --> add to shapeRequests and wait
+                    shapeRequest.shapeHash = shapeInfo.getHash();
+                    _shapeRequests.insert(shapeRequest);
+                } else {
+                    // failed to build shape --> will not be added
                 }
             }
-            btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-            if (shape) {
-                EntityMotionState* motionState = new EntityMotionState(shape, entity);
-                entity->setPhysicsInfo(static_cast<void*>(motionState));
-                _physicalObjects.insert(motionState);
-                result.push_back(motionState);
-                entityItr = _entitiesToAddToPhysics.erase(entityItr);
-
-                // make sure the motionState's region is up-to-date before it is actually added to physics
-                motionState->setRegion(_space->getRegion(entity->getSpaceIndex()));
-            } else {
-                //qWarning() << "Failed to generate new shape for entity." << entity->getName();
-                ++entityItr;
-            }
+            entityItr = _entitiesToAddToPhysics.erase(entityItr);
         } else {
             ++entityItr;
         }

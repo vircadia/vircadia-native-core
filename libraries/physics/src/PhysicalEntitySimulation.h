@@ -13,6 +13,7 @@
 #define hifi_PhysicalEntitySimulation_h
 
 #include <stdint.h>
+#include <map>
 
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
@@ -98,6 +99,15 @@ public:
     void sendOwnedUpdates(uint32_t numSubsteps);
 
 private:
+    class ShapeRequest {
+    public:
+        ShapeRequest() : entity(), shapeHash(0) {}
+        ShapeRequest(const EntityItemPointer& e) : entity(e), shapeHash(0) {}
+        bool operator<(const ShapeRequest& other) const { return entity.get() < other.entity.get(); }
+        bool operator==(const ShapeRequest& other) const { return entity.get() == other.entity.get(); }
+        EntityItemPointer entity;
+        mutable uint64_t shapeHash;
+    };
     SetOfEntities _entitiesToAddToPhysics;
     SetOfEntities _entitiesToRemoveFromPhysics;
 
@@ -108,6 +118,9 @@ private:
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
 
+    using ShapeRequests = std::set<ShapeRequest>;
+    ShapeRequests _shapeRequests;
+
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
@@ -117,6 +130,7 @@ private:
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
+    uint32_t _lastWorkDeliveryCount { 0 };
 };
 
 

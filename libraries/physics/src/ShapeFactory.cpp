@@ -433,6 +433,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             }
         }
         break;
+        default:
+        break;
     }
     if (shape) {
         if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {

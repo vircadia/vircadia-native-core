@@ -12,6 +12,7 @@
 #ifndef hifi_ShapeManager_h
 #define hifi_ShapeManager_h
 
+#include <atomic>
 #include <vector>
 
 #include <QObject>
@@ -55,6 +56,8 @@ public:
 
     /// \return pointer to shape
     const btCollisionShape* getShape(const ShapeInfo& info);
+    const btCollisionShape* getShapeByKey(uint64_t key);
+    bool hasShapeWithKey(uint64_t key) const;
 
     /// \return true if shape was found and released
     bool releaseShape(const btCollisionShape* shape);
@@ -67,6 +70,8 @@ public:
     int getNumReferences(const ShapeInfo& info) const;
     int getNumReferences(const btCollisionShape* shape) const;
     bool hasShape(const btCollisionShape* shape) const;
+    uint32_t getWorkRequestCount() const { return _workRequestCount; }
+    uint32_t getWorkDeliveryCount() const { return _workDeliveryCount; }
 
 protected slots:
     void acceptWork(ShapeFactory::Worker* worker);
@@ -99,6 +104,8 @@ private:
     ShapeFactory::Worker* _deadWorker { nullptr };
     TimePoint _nextOrphanExpiry;
     uint32_t _ringIndex { 0 };
+    std::atomic_uint32_t _workRequestCount { 0 };
+    std::atomic_uint32_t _workDeliveryCount { 0 };
 };
 
 #endif // hifi_ShapeManager_h
