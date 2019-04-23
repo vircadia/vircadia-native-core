@@ -908,8 +908,6 @@
 																						    "alpha": 1.0,
                                                                                             "alphaVar": "idleOverlayAlpha",
                                                                                             "boneSet": "upperBody"
-																													  
-																													 
                                                                                         },
                                                                                         "children": [
 																						    {
@@ -1101,7 +1099,7 @@
 																												    }
 																											    ]
 																										    }
-																										]       
+																										]
 																									}
 																								]
 																							},
@@ -1138,7 +1136,8 @@
                                                                                                                 { "var": "movement4OnDone", "randomSwitchState": "masterIdle" },
 																												{ "var": "movement5OnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "movement6OnDone", "randomSwitchState": "masterIdle" },
-																												{ "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
+																												{ "var": "movement7OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "alt2ToMasterIdleOnDone", "randomSwitchState": "masterIdle" }
                                                                                                             ]
                                                                                                         }
@@ -1253,7 +1252,7 @@
                                                                                                                         "id": "movement1",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_once_slownod.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_slownod.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 91.0,
                                                                                                                             "timeScale": 1.0,
@@ -1265,7 +1264,7 @@
                                                                                                                         "id": "movement2",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_once_headtilt.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 154,
                                                                                                                             "timeScale": 1.0,
@@ -1277,7 +1276,7 @@
                                                                                                                         "id": "movement3",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_once_checkwatch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_checkwatch.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 430,
                                                                                                                             "timeScale": 1.0,
@@ -1289,7 +1288,7 @@
                                                                                                                         "id": "movement4",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_once_armstretch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_armstretch.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 283,
                                                                                                                             "timeScale": 1.0,
@@ -1301,7 +1300,7 @@
                                                                                                                         "id": "movement5",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_once_bigstretch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_bigstretch.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 120,
                                                                                                                             "timeScale": 1.0,
@@ -1313,7 +1312,7 @@
                                                                                                                         "id": "movement6",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_once_neckstretch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_neckstretch.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 169,
                                                                                                                             "timeScale": 1.0,
@@ -1325,7 +1324,7 @@
                                                                                                                         "id": "movement7",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idleWS.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idleWS.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 1126,
                                                                                                                             "timeScale": 1.0,
@@ -1408,7 +1407,7 @@
                                                                                                                         "id": "transitionToAltIdle1",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_LFF_all.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 55,
                                                                                                                             "timeScale": 1.0,
@@ -1420,7 +1419,7 @@
                                                                                                                         "id": "transitionToAltIdle2",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_RFF_all.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
                                                                                                                             "startFrame": 1,
                                                                                                                             "endFrame": 56,
                                                                                                                             "timeScale": 1.0,
@@ -1432,7 +1431,7 @@
                                                                                                                         "id": "altIdle1",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_LFF_all.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
                                                                                                                             "startFrame": 55,
                                                                                                                             "endFrame": 389,
                                                                                                                             "timeScale": 1.0,
@@ -1444,7 +1443,7 @@
                                                                                                                         "id": "altIdle2",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_RFF_all.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
                                                                                                                             "startFrame": 56,
                                                                                                                             "endFrame": 390,
                                                                                                                             "timeScale": 1.0,
@@ -1456,7 +1455,7 @@
                                                                                                                         "id": "alt1ToMasterIdle",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_LFF_all.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
                                                                                                                             "startFrame": 389,
                                                                                                                             "endFrame": 472,
                                                                                                                             "timeScale": 1.0,
@@ -1468,7 +1467,7 @@
                                                                                                                         "id": "alt2ToMasterIdle",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "animations/idle_RFF_all.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
                                                                                                                             "startFrame": 390,
                                                                                                                             "endFrame": 453,
                                                                                                                             "timeScale": 1.0,
@@ -1484,7 +1483,6 @@
 
                                                                                                 ]
                                                                                             }
-                                                                                            
                                                                                         ]
                                                                                     },
                                                                                     {
