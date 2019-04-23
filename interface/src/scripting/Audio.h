@@ -57,8 +57,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} clipping - <code>true</code> if the audio input is clipping, otherwise <code>false</code>.
      * @property {string} context - The current context of the audio: either <code>"Desktop"</code> or <code>"HMD"</code>.
      *     <em>Read-only.</em>
-     * @property {object} devices <em>Read-only.</em> <strong>Deprecated:</strong> This property is deprecated and will be
-     *     removed.
+     * @property {object} devices - <em>Read-only.</em>
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.
      * @property {boolean} pushToTalk - <code>true</code> if push-to-talk is enabled for the current user context (desktop or 
      *     HMD), otherwise <code>false</code>.
      * @property {boolean} pushToTalkDesktop - <code>true</code> if desktop push-to-talk is enabled, otherwise 
@@ -189,7 +189,7 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.setAvatarGain
-     * @param {number} Avatar gain (dB) at the server.
+     * @param {number} gain - Avatar gain (dB) at the server.
      */
     Q_INVOKABLE void setAvatarGain(float gain);
 
@@ -209,7 +209,7 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.setInjectorGain
-     * @param {number} Injector gain (dB) at the server.
+     * @param {number} gain - Injector gain (dB) at the server.
      */
     Q_INVOKABLE void setInjectorGain(float gain);
 
@@ -223,7 +223,7 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.setLocalInjectorGain
-     * @param {number} Injector gain (dB) in the client.
+     * @param {number} gain - Injector gain (dB) in the client.
      */
     Q_INVOKABLE void setLocalInjectorGain(float gain);
 
@@ -237,7 +237,7 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that system sounds are played at.
      * @function Audio.setSystemInjectorGain
-     * @param {number} Injector gain (dB) in the client.
+     * @param {number} gain - Injector gain (dB) in the client.
      */
     Q_INVOKABLE void setSystemInjectorGain(float gain);
 

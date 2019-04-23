@@ -63,8 +63,8 @@ QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInje
  *     <code>0</code>.
  * @property {boolean} localOnly=false - If <code>true</code>, the sound is played back locally on the client rather than to
  *     others via the audio mixer.
- * @property {boolean} ignorePenumbra=false - <strong>Deprecated:</strong> This property is deprecated and will be
- *     removed.
+ * @property {boolean} ignorePenumbra=false - <p class="important">Deprecated: This property is deprecated and will be
+ *     removed.</p>
  */
 void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOptions& injectorOptions) {
     if (!object.isObject()) {
