@@ -158,7 +158,7 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
 
 void MixerAvatar::processCertifyEvents() {
     QMutexLocker certifyLocker(&_avatarCertifyLock);
-    if (_verifyState != kOwnerResponse && _verifyState != kChallengeResponse) {
+    if (_verifyState != kReceivedFST && _verifyState != kOwnerResponse && _verifyState != kChallengeResponse && _verifyState != kRequestingOwner) {
         return;
     }
 
@@ -185,8 +185,8 @@ void MixerAvatar::processCertifyEvents() {
             request["certificate_id"] = _certificateIdFromFST;
             _verifyState = kRequestingOwner;
             QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-            networkReply->setParent(this);
-            connect(networkReply, &QNetworkReply::finished, [this, networkReply]() {
+            //networkReply->setParent(this);
+            connect(networkReply, &QNetworkReply::readyRead, [this, networkReply]() {
                 QMutexLocker certifyLocker(&_avatarCertifyLock);
                 if (networkReply->error() == QNetworkReply::NoError) {
                     _dynamicMarketResponse = networkReply->readAll();
@@ -205,6 +205,7 @@ void MixerAvatar::processCertifyEvents() {
             _verifyState = kVerificationFailedPending;
             qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
         }
+        break;
     }
 
     case kOwnerResponse:
@@ -271,6 +272,15 @@ void MixerAvatar::processCertifyEvents() {
         } else {
             qCDebug(avatars) << "Dynamic verification SUCCEEDED for " << getDisplayName() << getSessionUUID();
         }
+
+        break;
+    }
+
+    case kRequestingOwner:
+    {
+        certifyLocker.unlock();
+        QCoreApplication::processEvents();
+        break;
     }
 
     }  // close switch

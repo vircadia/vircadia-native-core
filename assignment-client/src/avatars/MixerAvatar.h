@@ -25,7 +25,7 @@ public:
     void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
 
     void fetchAvatarFST();
-    bool isCertifyFailed() const { return _verifyState == kVerificationFailed || _verifyState == kVerificationFailedPending;  }
+    virtual bool isCertifyFailed() const override { return _verifyState == kVerificationFailed || _verifyState == kVerificationFailedPending;  }
     void processCertifyEvents();
     void handleChallengeResponse(ReceivedMessage * response);
 

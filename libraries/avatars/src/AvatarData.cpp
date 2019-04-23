@@ -1935,8 +1935,7 @@ void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identity
         >> identity.attachmentData
         >> identity.displayName
         >> identity.sessionDisplayName
-        >> identity.isReplicated
-        >> identity.lookAtSnappingEnabled
+        >> identity.identityFlags
         ;
 
     if (incomingSequenceNumber > _identitySequenceNumber) {
@@ -1951,8 +1950,22 @@ void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identity
         }
         maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
 
-        if (identity.isReplicated != _isReplicated) {
-            _isReplicated = identity.isReplicated;
+        bool flagValue;
+        flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::isReplicated);
+        if ( flagValue != _isReplicated) {
+            _isReplicated = flagValue;
+            identityChanged = true;
+        }
+
+        flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::lookAtSnapping);
+        if ( flagValue != _lookAtSnappingEnabled) {
+            setProperty("lookAtSnappingEnabled", flagValue);
+            identityChanged = true;
+        }
+
+        flagValue = identity.identityFlags.testFlag(AvatarDataPacket::IdentityFlag::verificationFailed);
+        if (flagValue != _verificationFailed) {
+            _verificationFailed = flagValue;
             identityChanged = true;
         }
 
@@ -1960,11 +1973,6 @@ void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identity
             setAttachmentData(identity.attachmentData);
             identityChanged = true;
         }
-
-    if (identity.lookAtSnappingEnabled != _lookAtSnappingEnabled) {
-        setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
-        identityChanged = true;
-    }
 
 #ifdef WANT_DEBUG
         qCDebug(avatars) << __FUNCTION__
@@ -2084,17 +2092,27 @@ void AvatarData::prepareResetTraitInstances() {
 QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
+    using namespace AvatarDataPacket;
 
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
+    IdentityFlags identityFlags = IdentityFlag::none;
+    if (_isReplicated || setIsReplicated) {
+        identityFlags.setFlag(IdentityFlag::isReplicated);
+    }
+    if (_lookAtSnappingEnabled) {
+        identityFlags.setFlag(IdentityFlag::lookAtSnapping);
+    }
+    if (isCertifyFailed()) {
+        identityFlags.setFlag(IdentityFlag::verificationFailed);
+    }
 
     identityStream << getSessionUUID()
         << (udt::SequenceNumber::Type) _identitySequenceNumber
         << _attachmentData
         << _displayName
         << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-        << (_isReplicated || setIsReplicated)
-        << _lookAtSnappingEnabled;
+        << identityFlags;
 
     return identityData;
 }

@@ -329,6 +329,10 @@ namespace AvatarDataPacket {
     static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
     static const size_t FAUX_JOINTS_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
 
+    // AvatarIdentity packet:
+    enum class IdentityFlag: quint32 {none, isReplicated = 0x1, lookAtSnapping = 0x2, verificationFailed = 0x4};
+    Q_DECLARE_FLAGS(IdentityFlags, IdentityFlag)
+
     struct SendStatus {
         HasFlags itemFlags { 0 };
         bool sendUUID { false };
@@ -1132,6 +1136,7 @@ public:
         QString sessionDisplayName;
         bool isReplicated;
         bool lookAtSnappingEnabled;
+        AvatarDataPacket::IdentityFlags identityFlags;
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
@@ -1163,6 +1168,7 @@ public:
         _sessionDisplayName = sessionDisplayName;
         markIdentityDataChanged();
     }
+    virtual bool isCertifyFailed() const { return _verificationFailed; }
 
     /**jsdoc
      * Gets information about the models currently attached to your avatar.
@@ -1639,6 +1645,7 @@ protected:
     QString _displayName;
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
+    bool _verificationFailed { false };
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
 
