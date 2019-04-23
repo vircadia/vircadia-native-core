@@ -122,7 +122,7 @@ cd ..\..\qt5-build
 
 nmake  
 nmake install
-
+#### Uploading 
 Create a tar file called qt5-install.tar from the qt5-install folder (e.g. using 7-zip)  
 Create a gzip file called qt5-install.tar.gz from qt5-install.tar folder (e.g. using 7-zip)  
 Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
@@ -142,10 +142,22 @@ cd qt5-build
 ../qt5/configure -opensource -confirm-license -platform linux-g++-64 -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install
 
 make  
-make install
+make install  
+#### Uploading 
+1.  Return to the home folder  
+`cd ..`
+  
+1.  Open a python 3 shell  
+`python3`  
 
-tar -zcvf qt5-install.tar.gz qt5-install
-Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/
+1.  Run the following snippet:  
+`import os`  
+`import tarfile`  
+`filename=tarfile.open("qt5-install.tar.gz", "w:gz"))`  
+`filename.add("qt5-install", os.path.basename("qt5-install"))`  
+`exit()`  
+  
+1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/
 ### Mac
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 
@@ -163,7 +175,7 @@ cd ../qt5-build
 
 make  
 make install
-
+#### Uploading 
 tar -zcvf qt5-install.tar.gz qt5-install
 Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Mac/
 ## Problems
