@@ -34,7 +34,7 @@
 #include <gl/GLHelpers.h>
 #include <gpu/Batch.h>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
@@ -224,9 +224,13 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
         return getResourceTexture(url);
     }
     auto modifiedUrl = url;
-    if (type == image::TextureUsage::CUBE_TEXTURE) {
+    if (type == image::TextureUsage::SKY_TEXTURE) {
         QUrlQuery query { url.query() };
         query.addQueryItem("skybox", "");
+        modifiedUrl.setQuery(query.toString());
+    } else if (type == image::TextureUsage::AMBIENT_TEXTURE) {
+        QUrlQuery query{ url.query() };
+        query.addQueryItem("ambient", "");
         modifiedUrl.setQuery(query.toString());
     }
     TextureExtra extra = { type, content, maxNumPixels, sourceChannel };
@@ -283,7 +287,8 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
         case image::TextureUsage::BUMP_TEXTURE:
         case image::TextureUsage::SPECULAR_TEXTURE:
         case image::TextureUsage::GLOSS_TEXTURE:
-        case image::TextureUsage::CUBE_TEXTURE:
+        case image::TextureUsage::SKY_TEXTURE:
+        case image::TextureUsage::AMBIENT_TEXTURE:
         case image::TextureUsage::STRICT_TEXTURE:
         default:
             break;
@@ -408,7 +413,7 @@ void NetworkTexture::setExtra(void* extra) {
 
     _shouldFailOnRedirect = _currentlyLoadingResourceType != ResourceType::KTX;
 
-    if (_type == image::TextureUsage::CUBE_TEXTURE) {
+    if (_type == image::TextureUsage::SKY_TEXTURE) {
         setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
     } else if (_currentlyLoadingResourceType == ResourceType::KTX) {
         setLoadPriority(this, HIGH_MIPS_LOAD_PRIORITY);

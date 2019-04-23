@@ -98,7 +98,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::RequestsDomainListData,
             PacketType::PerAvatarGainSet,
             PacketType::InjectorGainSet,
-            PacketType::AudioSoloRequest },
+            PacketType::AudioSoloRequest,
+            PacketType::StopInjector },
             this, "queueAudioPacket");
 
     // packets whose consequences are global should be processed on the main thread
@@ -246,7 +247,8 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
 
     if (injectorClientData) {
         // stage the removal of this stream, workers handle when preparing mixes for listeners
-        _workerSharedData.removedStreams.emplace_back(injectorClientData->getNodeID(), injectorClientData->getNodeLocalID(),
+        _workerSharedData.removedStreams.emplace_back(injectorClientData->getNodeID(),
+                                                      injectorClientData->getNodeLocalID(),
                                                       streamID);
     }
 }
@@ -586,8 +588,8 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
         // check the payload to see if we have asked for dynamicJitterBuffer support
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
         bool enableDynamicJitterBuffer = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (enableDynamicJitterBuffer) {
-            qCDebug(audio) << "Enabling dynamic jitter buffers.";
+        if (!enableDynamicJitterBuffer) {
+            qCDebug(audio) << "Disabling dynamic jitter buffers.";
 
             bool ok;
             const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
@@ -597,7 +599,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             }
             qCDebug(audio) << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
-            qCDebug(audio) << "Disabling dynamic jitter buffers.";
+            qCDebug(audio) << "Enabling dynamic jitter buffers.";
             _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
         }
 

@@ -94,6 +94,7 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+            batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
             if (_opaquePass) {
                 renderStateSortShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
@@ -126,8 +127,8 @@ void CompositeHUD::run(const RenderContextPointer& renderContext, const gpu::Fra
         if (inputs) {
             batch.setFramebuffer(inputs);
         }
-        if (renderContext->args->_hudOperator && renderContext->args->_blitFramebuffer) {
-            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_blitFramebuffer, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
+        if (renderContext->args->_hudOperator) {
+            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
     });
 #endif

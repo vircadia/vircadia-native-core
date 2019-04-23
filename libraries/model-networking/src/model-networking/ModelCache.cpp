@@ -282,8 +282,16 @@ void GeometryReader::run() {
                 hfmModel->scripts.push_back(script.toString());
             }
         }
+
+        // Do processing on the model
+        baker::Baker modelBaker(hfmModel, _mapping.second, _mapping.first);
+        modelBaker.run();
+
+        auto processedHFMModel = modelBaker.getHFMModel();
+        auto materialMapping = modelBaker.getMaterialMapping();
+
         QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(HFMModel::Pointer, hfmModel), Q_ARG(GeometryMappingPair, _mapping));
+                Q_ARG(HFMModel::Pointer, processedHFMModel), Q_ARG(MaterialMapping, materialMapping));
     } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
@@ -317,7 +325,7 @@ public:
     void setExtra(void* extra) override;
 
 protected:
-    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping);
+    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, const MaterialMapping& materialMapping);
 
 private:
     ModelLoader _modelLoader;
@@ -340,14 +348,10 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
     QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mapping, data, _combineParts, _request->getWebMediaType()));
 }
 
-void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
-    // Do processing on the model
-    baker::Baker modelBaker(hfmModel, mapping.second, mapping.first);
-    modelBaker.run();
-
+void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const MaterialMapping& materialMapping) {
     // Assume ownership of the processed HFMModel
-    _hfmModel = modelBaker.getHFMModel();
-    _materialMapping = modelBaker.getMaterialMapping();
+    _hfmModel = hfmModel;
+    _materialMapping = materialMapping;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
@@ -437,8 +441,8 @@ const QVariantMap Geometry::getTextures() const {
     QVariantMap textures;
     for (const auto& material : _materials) {
         for (const auto& texture : material->_textures) {
-            if (texture.texture) {
-                textures[texture.name] = texture.texture->getURL();
+            if (texture.second.texture) {
+                textures[texture.second.name] = texture.second.texture->getURL();
             }
         }
     }
@@ -467,7 +471,7 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
         for (auto& material : _materials) {
             // Check if any material textures actually changed
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
-                [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.texture && textureMap.contains(it.name); })) { 
+                [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.second.texture && textureMap.contains(it.second.name); })) {
 
                 // FIXME: The Model currently caches the materials (waste of space!)
                 //        so they must be copied in the Geometry copy-ctor
@@ -496,6 +500,20 @@ bool Geometry::areTexturesLoaded() const {
             }
 
             material->checkResetOpacityMap();
+        }
+
+        for (auto& materialMapping : _materialMapping) {
+            if (materialMapping.second) {
+                for (auto& materialPair : materialMapping.second->parsedMaterials.networkMaterials) {
+                    if (materialPair.second) {
+                        if (materialPair.second->isMissingTexture()) {
+                            return false;
+                        }
+
+                        materialPair.second->checkResetOpacityMap();
+                    }
+                }
+            }
         }
 
         _areTexturesLoaded = true;

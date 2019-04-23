@@ -18,9 +18,8 @@
 
 #include <FSTReader.h>
 
-FSTBaker::FSTBaker(const QUrl& inputMappingURL, TextureBakerThreadGetter inputTextureThreadGetter,
-        const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
-        ModelBaker(inputMappingURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
+FSTBaker::FSTBaker(const QUrl& inputMappingURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+        ModelBaker(inputMappingURL, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
     if (hasBeenBaked) {
         // Look for the original model file one directory higher. Perhaps this is an oven output directory.
         QUrl originalRelativePath = QUrl("../original/" + inputMappingURL.fileName().replace(BAKED_FST_EXTENSION, FST_EXTENSION));
@@ -70,7 +69,7 @@ void FSTBaker::bakeSourceCopy() {
         return;
     }
 
-    auto baker = getModelBakerWithOutputDirectories(bakeableModelURL, _textureThreadGetter, _bakedOutputDir, _originalOutputDir);
+    auto baker = getModelBakerWithOutputDirectories(bakeableModelURL, _bakedOutputDir, _originalOutputDir);
     _modelBaker = std::unique_ptr<ModelBaker>(dynamic_cast<ModelBaker*>(baker.release()));
     if (!_modelBaker) {
         handleError("The model url '" + bakeableModelURL.toString() + "' from the FST file '" + _originalOutputModelPath + "' (property: '" + FILENAME_FIELD + "') could not be used to initialize a valid model baker");

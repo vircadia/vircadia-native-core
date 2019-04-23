@@ -68,19 +68,28 @@ const QUuid SpatiallyNestable::getParentID() const {
 
 void SpatiallyNestable::setParentID(const QUuid& parentID) {
     bumpAncestorChainRenderableVersion();
+    bool success = false;
+    auto parent = getParentPointer(success);
+    bool parentChanged = false;
     _idLock.withWriteLock([&] {
         if (_parentID != parentID) {
+            parentChanged = true;
             _parentID = parentID;
             _parentKnowsMe = false;
         }
     });
 
+    if (parentChanged && success && parent) {
+        parent->recalculateChildCauterization();
+    }
+
     if (!_parentKnowsMe) {
-        bool success = false;
-        auto parent = getParentPointer(success);
+        success = false;
+        parent = getParentPointer(success);
         if (success && parent) {
             bumpAncestorChainRenderableVersion();
             parent->updateQueryAACube();
+            parent->recalculateChildCauterization();
         }
     }
 }
@@ -175,8 +184,9 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
-    auto parent = _parent.lock();
-    if (parent) {
+    bool success = false;
+    auto parent = getParentPointer(success);
+    if (success && parent) {
         parent->recalculateChildCauterization();
     }
 }

@@ -100,6 +100,7 @@ private:
     int64_t injectNextFrame();
     bool inject(bool(AudioInjectorManager::*injection)(const AudioInjectorPointer&));
     bool injectLocally();
+    void sendStopInjectorPacket();
 
     static AbstractAudioInterface* _localAudioInterface;
 
@@ -120,6 +121,9 @@ private:
     // when the injector is local, we need this
     AudioHRTF _localHRTF;
     AudioFOA _localFOA;
+
+    QUuid _streamID { QUuid::createUuid() };
+
     friend class AudioInjectorManager;
 };
 

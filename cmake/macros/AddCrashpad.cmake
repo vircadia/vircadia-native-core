@@ -53,10 +53,5 @@ macro(add_crashpad)
       POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy ${CRASHPAD_HANDLER_EXE_PATH} "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
     )
-    install(
-      PROGRAMS ${CRASHPAD_HANDLER_EXE_PATH}
-      DESTINATION ${INTERFACE_INSTALL_DIR}
-      COMPONENT ${CLIENT_COMPONENT}
-    )
   endif ()
 endmacro()

@@ -2,12 +2,6 @@
 
 #include <NumericalConstants.h>
 
-
-const DisplayPlugin::HUDOperator DisplayPlugin::DEFAULT_HUD_OPERATOR{ std::function<void(gpu::Batch&, const gpu::TexturePointer&, const gpu::FramebufferPointer&, bool mirror)>() };
-
-DisplayPlugin::DisplayPlugin() : _hudOperator{ DEFAULT_HUD_OPERATOR } {
-}
-
 int64_t DisplayPlugin::getPaintDelayUsecs() const {
     std::lock_guard<std::mutex> lock(_paintDelayMutex);
     return _paintDelayTimer.isValid() ? _paintDelayTimer.nsecsElapsed() / NSECS_PER_USEC : 0;
@@ -41,8 +35,8 @@ void DisplayPlugin::waitForPresent() {
     }
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, const gpu::FramebufferPointer& compositeFramebuffer, bool mirror)> DisplayPlugin::getHUDOperator() {
-    HUDOperator hudOperator;
+std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> DisplayPlugin::getHUDOperator() {
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> hudOperator;
     {
         QMutexLocker locker(&_presentMutex);
         hudOperator = _hudOperator;
@@ -54,5 +48,3 @@ glm::mat4 HmdDisplay::getEyeToHeadTransform(Eye eye) const {
     static const glm::mat4 xform;
     return xform;
 }
-
-

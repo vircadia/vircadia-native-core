@@ -16,7 +16,7 @@
 #include <QtCore/QFile>
 #include <QtNetwork/QNetworkReply>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 #include <ktx/KTX.h>
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
@@ -131,7 +131,10 @@ void TextureBaker::handleTextureNetworkReply() {
 void TextureBaker::processTexture() {
     // the baked textures need to have the source hash added for cache checks in Interface
     // so we add that to the processed texture before handling it off to be serialized
-    auto hashData = QCryptographicHash::hash(_originalTexture, QCryptographicHash::Md5);
+    QCryptographicHash hasher(QCryptographicHash::Md5);
+    hasher.addData(_originalTexture);
+    hasher.addData((const char*)&_textureType, sizeof(_textureType));
+    auto hashData = hasher.result();
     std::string hash = hashData.toHex().toStdString();
 
     TextureMeta meta;
@@ -206,7 +209,7 @@ void TextureBaker::processTexture() {
     }
 
     // Uncompressed KTX
-    if (_textureType == image::TextureUsage::Type::CUBE_TEXTURE) {
+    if (_textureType == image::TextureUsage::Type::SKY_TEXTURE || _textureType == image::TextureUsage::Type::AMBIENT_TEXTURE) {
         buffer->reset();
         auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(), image::ColorChannel::NONE,
                                                     ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);

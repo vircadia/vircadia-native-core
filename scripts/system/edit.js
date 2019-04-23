@@ -1630,7 +1630,7 @@ function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
         if (entityHostTypes[i].entityHostType !== entityHostType) {
             if (wantDebug) {
                 console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
-                    entityHostTypes[i].entityHostType);
+                    entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
             }
             continue;
         }
@@ -2129,9 +2129,32 @@ var DELETED_ENTITY_MAP = {};
 
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
+    var createEntities = data.createEntities;
+    var deleteEntities = data.deleteEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var selectEdits = createEntities.length === 0 || !data.selectCreated;
     var i, entityID, entityProperties;
+    for (i = 0; i < createEntities.length; i++) {
+        entityID = createEntities[i].entityID;
+        entityProperties = createEntities[i].properties;
+        var newEntityID = Entities.addEntity(entityProperties);
+        recursiveAdd(newEntityID, createEntities[i]);
+        DELETED_ENTITY_MAP[entityID] = newEntityID;
+        if (data.selectCreated) {
+            selectedEntityIDs.push(newEntityID);
+        }
+    }
+    for (i = 0; i < deleteEntities.length; i++) {
+        entityID = deleteEntities[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID];
+        }
+        Entities.deleteEntity(entityID);
+        var index = selectedEntityIDs.indexOf(entityID);
+        if (index >= 0) {
+            selectedEntityIDs.splice(index, 1);
+        }
+    }
     for (i = 0; i < editEntities.length; i++) {
         entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
@@ -2143,27 +2166,6 @@ function applyEntityProperties(data) {
         }
         if (selectEdits) {
             selectedEntityIDs.push(entityID);
-        }
-    }
-    for (i = 0; i < data.createEntities.length; i++) {
-        entityID = data.createEntities[i].entityID;
-        entityProperties = data.createEntities[i].properties;
-        var newEntityID = Entities.addEntity(entityProperties);
-        recursiveAdd(newEntityID, data.createEntities[i]);
-        DELETED_ENTITY_MAP[entityID] = newEntityID;
-        if (data.selectCreated) {
-            selectedEntityIDs.push(newEntityID);
-        }
-    }
-    for (i = 0; i < data.deleteEntities.length; i++) {
-        entityID = data.deleteEntities[i].entityID;
-        if (DELETED_ENTITY_MAP[entityID] !== undefined) {
-            entityID = DELETED_ENTITY_MAP[entityID];
-        }
-        Entities.deleteEntity(entityID);
-        var index = selectedEntityIDs.indexOf(entityID);
-        if (index >= 0) {
-            selectedEntityIDs.splice(index, 1);
         }
     }
 
@@ -2361,41 +2363,62 @@ var PropertiesTool = function (opts) {
         }
         var i, properties, dY, diff, newPosition;
         if (data.type === "update") {
-            if (selectionManager.selections.length > 1) {
-                for (i = 0; i < selectionManager.selections.length; i++) {
-                    Entities.editEntity(selectionManager.selections[i], data.properties);
+
+            if (data.properties || data.propertiesMap) {
+                var propertiesMap = data.propertiesMap;
+                if (propertiesMap === undefined) {
+                    propertiesMap = [{
+                        entityIDs: data.ids,
+                        properties: data.properties,
+                    }];
                 }
-            } else if (data.properties) {
-                if (data.properties.dynamic === false) {
-                    // this object is leaving dynamic, so we zero its velocities
-                    data.properties.localVelocity = Vec3.ZERO;
-                    data.properties.localAngularVelocity = Vec3.ZERO;
-                }
-                if (data.properties.rotation !== undefined) {
-                    data.properties.rotation = Quat.fromVec3Degrees(data.properties.rotation);
-                }
-                if (data.properties.localRotation !== undefined) {
-                    data.properties.localRotation = Quat.fromVec3Degrees(data.properties.localRotation);
-                }
-                if (data.properties.emitOrientation !== undefined) {
-                    data.properties.emitOrientation = Quat.fromVec3Degrees(data.properties.emitOrientation);
-                }
-                if (data.properties.keyLight !== undefined && data.properties.keyLight.direction !== undefined) {
-                    var currentKeyLightDirection = Vec3.toPolar(Entities.getEntityProperties(selectionManager.selections[0], ['keyLight.direction']).keyLight.direction);
-                    if (data.properties.keyLight.direction.x === undefined) {
-                        data.properties.keyLight.direction.x = currentKeyLightDirection.x;
+
+                var sendListUpdate = false;
+                propertiesMap.forEach(function(propertiesObject) {
+                    var properties = propertiesObject.properties;
+                    var updateEntityIDs = propertiesObject.entityIDs;
+                    if (properties.dynamic === false) {
+                        // this object is leaving dynamic, so we zero its velocities
+                        properties.localVelocity = Vec3.ZERO;
+                        properties.localAngularVelocity = Vec3.ZERO;
                     }
-                    if (data.properties.keyLight.direction.y === undefined) {
-                        data.properties.keyLight.direction.y = currentKeyLightDirection.y;
+                    if (properties.rotation !== undefined) {
+                        properties.rotation = Quat.fromVec3Degrees(properties.rotation);
                     }
-                    data.properties.keyLight.direction = Vec3.fromPolar(data.properties.keyLight.direction.x, data.properties.keyLight.direction.y);
-                }
-                Entities.editEntity(selectionManager.selections[0], data.properties);
-                if (data.properties.name !== undefined || data.properties.modelURL !== undefined || data.properties.materialURL !== undefined ||
-                    data.properties.visible !== undefined || data.properties.locked !== undefined) {
+                    if (properties.localRotation !== undefined) {
+                        properties.localRotation = Quat.fromVec3Degrees(properties.localRotation);
+                    }
+                    if (properties.emitOrientation !== undefined) {
+                        properties.emitOrientation = Quat.fromVec3Degrees(properties.emitOrientation);
+                    }
+                    if (properties.keyLight !== undefined && properties.keyLight.direction !== undefined) {
+                        var currentKeyLightDirection = Vec3.toPolar(Entities.getEntityProperties(selectionManager.selections[0], ['keyLight.direction']).keyLight.direction);
+                        if (properties.keyLight.direction.x === undefined) {
+                            properties.keyLight.direction.x = currentKeyLightDirection.x;
+                        }
+                        if (properties.keyLight.direction.y === undefined) {
+                            properties.keyLight.direction.y = currentKeyLightDirection.y;
+                        }
+                        properties.keyLight.direction = Vec3.fromPolar(properties.keyLight.direction.x, properties.keyLight.direction.y);
+                    }
+
+                    updateEntityIDs.forEach(function (entityID) {
+                        Entities.editEntity(entityID, properties);
+                    });
+
+                    if (properties.name !== undefined || properties.modelURL !== undefined || properties.materialURL !== undefined ||
+                        properties.visible !== undefined || properties.locked !== undefined) {
+
+                        sendListUpdate = true;
+                    }
+
+                });
+                if (sendListUpdate) {
                     entityListTool.sendUpdate();
                 }
             }
+
+
             if (data.onlyUpdateEntities) {
                 blockPropertyUpdates = true;
             } else {
@@ -2405,9 +2428,9 @@ var PropertiesTool = function (opts) {
             selectionManager._update(false, this);
             blockPropertyUpdates = false;
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
-            //the event bridge and json parsing handle our avatar id string differently.
-            var actualID = data.id.split('"')[1];
-            Entities.editEntity(actualID, data.properties);
+            data.ids.forEach(function(entityID) {
+                Entities.editEntity(entityID, data.properties);
+            });
         } else if (data.type === "showMarketplace") {
             showMarketplace();
         } else if (data.type === "action") {
@@ -2521,6 +2544,24 @@ var PropertiesTool = function (opts) {
             emitScriptEvent({
                 type: 'propertyRangeReply',
                 propertyRanges: propertyRanges,
+            });
+        } else if (data.type === "materialTargetRequest") {
+            var parentModelData;
+            var properties = Entities.getEntityProperties(data.entityID, ["type", "parentID"]);
+            if (properties.type === "Material" && properties.parentID !== Uuid.NULL) {
+                var parentType = Entities.getEntityProperties(properties.parentID, ["type"]).type;
+                if (parentType === "Model" || Entities.getNestableType(properties.parentID) === "avatar") {
+                    parentModelData = Graphics.getModel(properties.parentID);
+                } else if (parentType === "Shape" || parentType === "Box" || parentType === "Sphere") {
+                    parentModelData = {};
+                    parentModelData.numMeshes = 1;
+                    parentModelData.materialNames = [];
+                }
+            }
+            emitScriptEvent({
+                type: 'materialTargetReply',
+                entityID: data.entityID,
+                materialTargetData: parentModelData,
             });
         }
     };

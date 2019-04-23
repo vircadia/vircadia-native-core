@@ -15,7 +15,7 @@
 #include "GraphicsScriptingUtil.h"
 #include "ScriptableMesh.h"
 #include "graphics/Material.h"
-#include "image/Image.h"
+#include "image/TextureProcessing.h"
 
 // #define SCRIPTABLE_MESH_DEBUG 1
 
@@ -118,6 +118,10 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         map = material->getTextureMap(graphics::Material::MapChannel::SCATTERING_MAP);
         if (map && map->getTextureSource()) {
             scatteringMap = map->getTextureSource()->getUrl().toString();
+        }
+
+        for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
+            texCoordTransforms[i] = material->getTexCoordTransform(i);
         }
     }
 }

@@ -14,7 +14,7 @@
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 #include <DependencyManager.h>
 #include <StatTracker.h>

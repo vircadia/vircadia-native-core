@@ -1,11 +1,14 @@
 {
     "name": "Standard to Action",
     "channels": [
-        { "from": "Standard.LY", "to": "Actions.TranslateZ" },
+        { "from": "Standard.LY",
+		  "when": ["Application.RightHandDominant", "!Standard.RY"],
+		  "to": "Actions.TranslateZ"
+        },
 
         { "from": "Standard.LX",
           "when": [
-            "Application.InHMD", "!Application.AdvancedMovement",
+            "Application.InHMD", "!Application.AdvancedMovement", "Application.RightHandDominant",
             "Application.SnapTurn", "!Standard.RX"
           ],
           "to": "Actions.StepYaw",
@@ -18,14 +21,14 @@
             ]
         },
         { "from": "Standard.LX", "to": "Actions.TranslateX",
-          "when": [ "Application.AdvancedMovement" ]
+          "when": [ "Application.AdvancedMovement", "Application.StrafeEnabled", "Application.RightHandDominant" ]
         },
         { "from": "Standard.LX", "to": "Actions.Yaw",
-          "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn" ]
+          "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn", "Application.RightHandDominant" ]
         },
 
         { "from": "Standard.RX",
-          "when": [ "Application.SnapTurn" ],
+          "when": [ "Application.SnapTurn", "Application.RightHandDominant" ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -36,20 +39,69 @@
             ]
         },
         { "from": "Standard.RX", "to": "Actions.Yaw",
-          "when": [ "!Application.SnapTurn" ]
+          "when": [ "!Application.SnapTurn", "Application.RightHandDominant" ]
         },
 
+        { "from": "Standard.LeftSecondaryThumb",
+          "when": [ "Application.Grounded", "Application.LeftHandDominant" ],
+          "to": "Actions.Up"
+        },
+
+        { "from": "Standard.LeftSecondaryThumb",
+		  "when": "Application.LeftHandDominant",
+		  "to": "Actions.Up"
+        },
+		
         { "from": "Standard.RY",
-          "when": "Application.Grounded",
-          "to": "Actions.Up",
+		  "when": ["Application.LeftHandDominant", "!Standard.LY"],
+		  "to": "Actions.TranslateZ"
+        },
+
+        { "from": "Standard.RX",
+          "when": [
+            "Application.InHMD", "!Application.AdvancedMovement", "Application.LeftHandDominant",
+            "Application.SnapTurn", "!Standard.RX"
+          ],
+          "to": "Actions.StepYaw",
           "filters":
             [
-                { "type": "deadZone", "min": 0.6 },
-                "invert"
+                { "type": "deadZone", "min": 0.15 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.25 },
+                { "type": "scale", "scale": 22.5 }
             ]
         },
+        { "from": "Standard.RX", "to": "Actions.TranslateX",
+          "when": [ "Application.AdvancedMovement", "Application.StrafeEnabled", "Application.LeftHandDominant" ]
+        },
+        { "from": "Standard.RX", "to": "Actions.Yaw",
+          "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn", "Application.LeftHandDominant" ]
+        },
 
-        { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"},
+        { "from": "Standard.LX",
+          "when": [ "Application.SnapTurn", "Application.LeftHandDominant" ],
+          "to": "Actions.StepYaw",
+          "filters":
+            [
+                { "type": "deadZone", "min": 0.15 },
+                "constrainToInteger",
+                { "type": "pulse", "interval": 0.25 },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+        { "from": "Standard.LX", "to": "Actions.Yaw",
+          "when": [ "!Application.SnapTurn", "Application.LeftHandDominant" ]
+        },
+
+        { "from": "Standard.RightSecondaryThumb",
+          "when": [ "Application.Grounded", "Application.RightHandDominant" ],
+          "to": "Actions.Up"
+        },
+
+        { "from": "Standard.RightSecondaryThumb",
+		  "when": "Application.RightHandDominant",
+		  "to": "Actions.Up"
+        },
 
         { "from": "Standard.Back", "to": "Actions.CycleCamera" },
         { "from": "Standard.Start", "to": "Actions.ContextMenu" },

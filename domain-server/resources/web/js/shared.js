@@ -481,3 +481,15 @@ function prepareAccessTokenPrompt(callback) {
     swal.close();
   });
 }
+
+function getMetaverseUrl(callback) {
+    $.ajax('/api/metaverse_info', {
+      success: function(data) {
+        callback(data.metaverse_url);
+      },
+      error: function() {
+        callback(URLs.METAVERSE_URL);
+      }
+    });
+}
+
