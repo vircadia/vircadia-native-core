@@ -352,11 +352,11 @@ void Audio::onContextChanged() {
         }
     });
     if (_settingsLoaded) {
-        if (isHMD) {
-            setMuted(getMutedHMD());
-        } else {
-            setMuted(getMutedDesktop());
-        }
+        bool isMuted = isHMD ? getMutedHMD() : getMutedDesktop();
+        setMuted(isMuted);
+        // always set audio client muted state on context changed - sometimes setMuted does not catch it.
+        auto client = DependencyManager::get<AudioClient>().data();
+        QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
     }
     if (changed) {
         emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
