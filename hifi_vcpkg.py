@@ -19,6 +19,7 @@ get_filename_component(CMAKE_TOOLCHAIN_FILE "{}" ABSOLUTE CACHE)
 get_filename_component(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}" ABSOLUTE)
 set(VCPKG_INSTALL_ROOT "{}")
 set(VCPKG_TOOLS_DIR "{}")
+set(QT_CMAKE_PREFIX_PATH "{}")
 """
 
     CMAKE_TEMPLATE_NON_ANDROID = """
@@ -217,6 +218,7 @@ endif()
         cmakeScript = os.path.join(self.path, 'scripts/buildsystems/vcpkg.cmake')
         installPath = os.path.join(self.path, 'installed', self.triplet)
         toolsPath = os.path.join(self.path, 'installed', self.hostTriplet, 'tools')
+        cmakePrefixPath  = os.path.join(self.path, 'installed', 'qt5-install/lib/cmake')
         cmakeTemplate = VcpkgRepo.CMAKE_TEMPLATE
         if not self.args.android:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
@@ -226,7 +228,7 @@ endif()
             cmakeTemplate += 'set(HIFI_ANDROID_PRECOMPILED "{}")\n'.format(precompiled)
             cmakeTemplate += 'set(QT_CMAKE_PREFIX_PATH "{}")\n'.format(qtCmakePrefix)
 
-        cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath).replace('\\', '/')
+        cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath, cmakePrefixPath).replace('\\', '/')
         with open(self.configFilePath, 'w') as f:
             f.write(cmakeConfig)
 
@@ -238,7 +240,8 @@ endif()
 
 
     def installQt(self):
-        if True or not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
+        if not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
+        #if True or not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
             print ("Downloading Qt from AWS")
             dest = os.path.join(self.path, 'installed')
             if platform.system() == 'Windows':
@@ -248,10 +251,6 @@ endif()
             elif platform.system() == 'Linux':
                 url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/qt5-install.zip"
             
-            print("+++++++++++++++++++++++")
-            print(dest)
-            print(url)
-            print("+++++++++++++++++++++++")
             hifi_utils.downloadAndExtract(url, dest)
         else:
             print ("Qt has already been downloaded")
