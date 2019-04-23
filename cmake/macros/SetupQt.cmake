@@ -24,7 +24,7 @@ macro(setup_qt)
             set(QT_CMAKE_PREFIX_PATH "/tmp/hifi/vcpkg/installed/qt5-install/lib/cmake")
         endif()
     endif()
-set(QT_CMAKE_PREFIX_PATH "C:\Windows\TEMP\hifi\vcpkg\cb433fd7\installed/lib/cmake")
+set(QT_CMAKE_PREFIX_PATH "C:/Windows/TEMP/hifi/vcpkg/cb433fd7/installed/lib/cmake")
 
     # figure out where the qt dir is
     get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
