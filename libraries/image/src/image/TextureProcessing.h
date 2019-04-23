@@ -76,7 +76,7 @@ enum Type {
 };
 
 using TextureLoader = std::function<gpu::TexturePointer(Image&&, const std::string&, bool, gpu::BackendTarget, const std::atomic<bool>&)>;
-TextureLoader getTextureLoaderForType(Type type, const QVariantMap& options = QVariantMap());
+TextureLoader getTextureLoaderForType(Type type);
 
 gpu::TexturePointer create2DTextureFromImage(Image&& image, const std::string& srcImageName,
                                              bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);

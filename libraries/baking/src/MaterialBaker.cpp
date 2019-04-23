@@ -138,7 +138,7 @@ void MaterialBaker::processMaterial() {
                             auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
                             QSharedPointer<TextureBaker> textureBaker {
-                                new TextureBaker(textureURL, type, _textureOutputDir, "", baseTextureFileName, content),
+                                new TextureBaker(textureURL, type, _textureOutputDir, baseTextureFileName, content),
                                 &TextureBaker::deleteLater
                             };
                             textureBaker->setMapChannel(mapChannel);

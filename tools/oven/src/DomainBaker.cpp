@@ -198,10 +198,11 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
         // setup a texture baker for this URL, as long as we aren't baking a texture already
         if (!_textureBakers.contains(key)) {
+            auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
             // setup a baker for this texture
             QSharedPointer<TextureBaker> textureBaker {
-                new TextureBaker(textureURL, type, _contentOutputPath),
+                new TextureBaker(textureURL, type, _contentOutputPath, baseTextureFileName),
                 &TextureBaker::deleteLater
             };
 
@@ -221,7 +222,8 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
         // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
         // to the baked version once the baker is complete
-        _entitiesNeedingRewrite.insert(textureURL, { property, jsonRef });
+        // it doesn't really matter what this key is as long as it's consistent
+        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + type, { property, jsonRef });
     } else {
         qDebug() << "Texture extension not supported: " << extension;
     }
@@ -498,9 +500,11 @@ void DomainBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
+        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + baker->getTextureType();
+
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan
-            qDebug() << "Re-writing entity references to" << baker->getTextureURL();
+            qDebug() << "Re-writing entity references to" << baker->getTextureURL() << "with usage" << baker->getTextureType();
 
             // setup a new URL using the prefix we were passed
             auto relativeTextureFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getMetaTextureFileName());
@@ -511,7 +515,7 @@ void DomainBaker::handleFinishedTextureBaker() {
 
             // enumerate the QJsonRef values for the URL of this texture from our multi hash of
             // entity objects needing a URL re-write
-            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(baker->getTextureURL())) {
+            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(rewriteKey)) {
                 QString property = propertyEntityPair.first;
                 // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
                 auto entity = propertyEntityPair.second.toObject();
@@ -555,7 +559,7 @@ void DomainBaker::handleFinishedTextureBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-        _entitiesNeedingRewrite.remove(baker->getTextureURL());
+        _entitiesNeedingRewrite.remove(rewriteKey);
 
         // drop our shared pointer to this baker so that it gets cleaned up
         _textureBakers.remove({ baker->getTextureURL(), baker->getTextureType() });

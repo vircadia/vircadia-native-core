@@ -103,7 +103,7 @@ gpu::Element getHDRTextureFormatForTarget(BackendTarget target, bool compressed)
     }
 }
 
-TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
+TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type) {
     switch (type) {
         case ALBEDO_TEXTURE:
             return image::TextureUsage::createAlbedoTextureFromImage;
@@ -114,7 +114,7 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
         case SKY_TEXTURE:
             return image::TextureUsage::createCubeTextureFromImage;
         case AMBIENT_TEXTURE:
-            if (options.value("generateIrradiance", true).toBool()) {
+            if (Texture::_generateIrradiance) {
                 return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
             } else {
                 return image::TextureUsage::createAmbientCubeTextureFromImage;
@@ -388,7 +388,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     if (sourceChannel != ColorChannel::NONE) {
         mapToRedChannel(image, sourceChannel);
     }
-    
+
     auto loader = TextureUsage::getTextureLoaderForType(textureType);
     auto texture = loader(std::move(image), filename, compress, target, abortProcessing);
 

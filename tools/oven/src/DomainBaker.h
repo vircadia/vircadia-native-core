@@ -63,6 +63,7 @@ private:
 
     QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
     QHash<TextureKey, QSharedPointer<TextureBaker>> _textureBakers;
+    TextureFileNamer _textureFileNamer;
     QHash<QUrl, QSharedPointer<JSBaker>> _scriptBakers;
     QHash<QUrl, QSharedPointer<MaterialBaker>> _materialBakers;
     
