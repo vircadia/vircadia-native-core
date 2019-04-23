@@ -196,6 +196,12 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
+
+if (WIN32)
+    # Deal with fakakta Visual Studo 2017 bug
+    add_definitions(-DQT_NO_FLOAT16_OPERATORS)
+endif()
+
 if (HIFI_USE_OPTIMIZED_IK)
   MESSAGE(STATUS "SET THE USE IK DEFINITION ")
   add_definitions(-DHIFI_USE_OPTIMIZED_IK)
