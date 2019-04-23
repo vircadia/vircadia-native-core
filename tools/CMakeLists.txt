@@ -31,7 +31,7 @@ if (BUILD_TOOLS)
             ac-client
             skeleton-dump
             atp-client
-            oven
+            # oven
         )
     else()
         set(ALL_TOOLS
@@ -44,7 +44,7 @@ if (BUILD_TOOLS)
             ac-client
             skeleton-dump
             atp-client
-            oven
+            # oven
             nitpick
         )
     endif()
