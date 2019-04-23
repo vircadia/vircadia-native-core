@@ -11,16 +11,8 @@ macro(setup_qt)
     # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
     # then use it,
     # otherwise, use the vcpkg'ed version
-    if (RELEASE_TYPE STREQUAL "DEV")
-        if (DEFINED ENV{QT_CMAKE_PREFIX_PATH} )
-            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
-        endif()
-###    else ()
-###        if (WIN32)
-###            set(QT_CMAKE_PREFIX_PATH "C:/Windows/TEMP/hifi/vcpkg/installed/qt5-install/lib/cmake")
-###        else ()
-###            set(QT_CMAKE_PREFIX_PATH "/tmp/hifi/vcpkg/installed/qt5-install/lib/cmake")
-###        endif()
+    if (RELEASE_TYPE STREQUAL "DEV" AND DEFINED ENV{QT_CMAKE_PREFIX_PATH} )
+        set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
     endif()
 
     # figure out where the qt dir is
