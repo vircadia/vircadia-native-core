@@ -248,6 +248,10 @@ endif()
             elif platform.system() == 'Linux':
                 url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/qt5-install.zip"
             
+            print("+++++++++++++++++++++++")
+            print(dest)
+            print(url)
+            print("+++++++++++++++++++++++")
             hifi_utils.downloadAndExtract(url, dest)
         else:
             print ("Qt has already been downloaded")
