@@ -164,6 +164,13 @@ public slots:
     Q_INVOKABLE int getOtherAvatarsReplicaCount();
 
     /**jsdoc
+     * Set number of cycles texture size is required to be stable
+     * @function Entities.setMinimumGPUTextureMemStabilityCount
+    * @param {number} count - Number of cycles to wait
+     */
+    Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int count);
+
+    /**jsdoc
      * Check whether all textures have been loaded.
      * @function Entities.isTextureLoadingComplete
      * @returns {boolean} <code>true</code> texture memory usage is not increasing <code>false</code>.
