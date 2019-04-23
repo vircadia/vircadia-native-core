@@ -8,9 +8,12 @@
 # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
 # Also enables CMAKE_AUTOMOC and CMAKE_AUTORCC
 macro(setup_qt)
-    # if QT_CMAKE_PREFIX_PATH was not specified before hand,
-    # try to use the environment variable
-    if (NOT DEFINED ENV{QT_CMAKE_PREFIX_PATH} )
+    # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
+    # then use it,
+    # otherwise, use the vcpkg'ed version
+    if ((RELEASE_TYPE STREQUAL "DEV") AND DEFINED ENV{QT_CMAKE_PREFIX_PATH} )
+        set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+    else ()
         set(QT_CMAKE_PREFIX_PATH $ENV{HIFI_VCPKG_BASE_VERSION} "/installed/qt5-install/lib/cmake")
     endif()
 
