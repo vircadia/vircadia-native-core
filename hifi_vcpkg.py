@@ -247,9 +247,9 @@ endif()
             if platform.system() == 'Windows':
                 url = "https://hifi-qa.s3.amazonaws.com/qt5/Windows/qt5-install.tar.gz"
             elif platform.system() == 'Darwin':
-                url = "https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.zip"
+                url = "https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.tar.gz"
             elif platform.system() == 'Linux':
-                url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/qt5-install.zip"
+                url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/qt5-install.tar.gz"
             
             hifi_utils.downloadAndExtract(url, dest)
         else:
