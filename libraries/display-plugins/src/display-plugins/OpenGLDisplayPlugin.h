@@ -60,8 +60,6 @@ public:
 
     virtual bool setDisplayTexture(const QString& name) override;
     virtual bool onDisplayTextureReset() { return false; };
-    QImage getScreenshot(float aspectRatio = 0.0f) const override;
-    QImage getSecondaryCameraScreenshot() const override;
 
     float presentRate() const override;
 
@@ -185,5 +183,8 @@ protected:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
+
+    QImage getScreenshot(float aspectRatio);
+    QImage getSecondaryCameraScreenshot();
 };
 

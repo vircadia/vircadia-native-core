@@ -6723,6 +6723,11 @@ void Application::updateRenderArgs(float deltaTime) {
             }
         }
 
+        appRenderArgs._renderArgs._stencilMaskMode = getActiveDisplayPlugin()->getStencilMaskMode();
+        if (appRenderArgs._renderArgs._stencilMaskMode == StencilMaskMode::MESH) {
+            appRenderArgs._renderArgs._stencilMaskOperator = getActiveDisplayPlugin()->getStencilMaskMeshOperator();
+        }
+
         {
             QMutexLocker viewLocker(&_viewMutex);
             _myCamera.loadViewFrustum(_displayViewFrustum);
@@ -8410,11 +8415,23 @@ void Application::loadAvatarBrowser() const {
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
 }
 
+void Application::addSnapshotOperator(const SnapshotOperator& snapshotOperator) {
+    std::lock_guard<std::mutex> lock(_snapshotMutex);
+    _snapshotOperators.push(snapshotOperator);
+    _hasPrimarySnapshot = _hasPrimarySnapshot || std::get<2>(snapshotOperator);
+}
+
+bool Application::takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators) {
+    std::lock_guard<std::mutex> lock(_snapshotMutex);
+    bool hasPrimarySnapshot = _hasPrimarySnapshot;
+    _hasPrimarySnapshot = false;
+    _snapshotOperators.swap(snapshotOperators);
+    return hasPrimarySnapshot;
+}
+
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
-    postLambdaEvent([notify, includeAnimated, aspectRatio, filename, this] {
-        // Get a screenshot and save it
-        QString path = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio), filename,
-                                              TestScriptingInterface::getInstance()->getTestResultsLocation());
+    addSnapshotOperator(std::make_tuple([notify, includeAnimated, aspectRatio, filename](const QImage& snapshot) {
+        QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         // If we're not doing an animated snapshot as well...
         if (!includeAnimated) {
@@ -8423,19 +8440,20 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
                 emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
             }
         } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
-            // Get an animated GIF snapshot and save it
-            SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
+            qApp->postLambdaEvent([path, aspectRatio] {
+                // Get an animated GIF snapshot and save it
+                SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, DependencyManager::get<WindowScriptingInterface>());
+            });
         }
-    });
+    }, aspectRatio, true));
 }
 
 void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
-    postLambdaEvent([notify, filename, this] {
-        QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot(), filename,
-                                                      TestScriptingInterface::getInstance()->getTestResultsLocation());
+    addSnapshotOperator(std::make_tuple([notify, filename](const QImage& snapshot) {
+        QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
         emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
-    });
+    }, 0.0f, false));
 }
 
 void Application::takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat, const bool& notify, const QString& filename) {
