@@ -2026,7 +2026,6 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         if (_talkIdleInterpTime < 1.0f) {
             _talkIdleInterpTime += dt / TOTAL_EASE_IN_TIME;
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? (4.0f * _talkIdleInterpTime * _talkIdleInterpTime * _talkIdleInterpTime) : (4.0f * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f)) + 1.0f;
-            //float talkAlpha = glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
             _animVars.set("idleOverlayAlpha", easeOutInValue);
         } else {
             _animVars.set("idleOverlayAlpha", 1.0f);
@@ -2035,7 +2034,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         if (_talkIdleInterpTime < 1.0f) {
             _talkIdleInterpTime += dt / TOTAL_EASE_OUT_TIME;
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? (4.0f * _talkIdleInterpTime * _talkIdleInterpTime * _talkIdleInterpTime) : (4.0f * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f)) + 1.0f;
-            float talkAlpha = 1.0f - easeOutInValue;// glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
+            float talkAlpha = 1.0f - easeOutInValue;
             _animVars.set("idleOverlayAlpha", talkAlpha);
         } else {
             _animVars.set("idleOverlayAlpha", 0.0f);
