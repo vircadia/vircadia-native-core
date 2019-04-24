@@ -170,7 +170,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
                 // move the baker to the baker thread
                 // and kickoff the bake
                 baker->moveToThread(Oven::instance().getNextWorkerThread());
-                QMetaObject::invokeMethod(baker.data(), "bake");
+                QMetaObject::invokeMethod(baker.data(), "bake", Qt::QueuedConnection);
 
                 // keep track of the total number of baking entities
                 ++_totalNumberOfSubBakes;
@@ -211,7 +211,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
             // move the baker to a worker thread and kickoff the bake
             textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
-            QMetaObject::invokeMethod(textureBaker.data(), "bake");
+            QMetaObject::invokeMethod(textureBaker.data(), "bake", Qt::QueuedConnection);
 
             // keep track of the total number of baking entities
             ++_totalNumberOfSubBakes;
@@ -246,7 +246,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, co
 
         // move the baker to a worker thread and kickoff the bake
         scriptBaker->moveToThread(Oven::instance().getNextWorkerThread());
-        QMetaObject::invokeMethod(scriptBaker.data(), "bake");
+        QMetaObject::invokeMethod(scriptBaker.data(), "bake", Qt::QueuedConnection);
 
         // keep track of the total number of baking entities
         ++_totalNumberOfSubBakes;
@@ -271,7 +271,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath, destinationPath),
+            new MaterialBaker(materialData, isURL, _contentOutputPath, destinationPath),
             &MaterialBaker::deleteLater
         };
 
@@ -283,7 +283,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // move the baker to a worker thread and kickoff the bake
         materialBaker->moveToThread(Oven::instance().getNextWorkerThread());
-        QMetaObject::invokeMethod(materialBaker.data(), "bake");
+        QMetaObject::invokeMethod(materialBaker.data(), "bake", Qt::QueuedConnection);
 
         // keep track of the total number of baking entities
         ++_totalNumberOfSubBakes;
