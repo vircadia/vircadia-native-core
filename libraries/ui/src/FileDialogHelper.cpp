@@ -111,7 +111,15 @@ QStringList FileDialogHelper::drives() {
 }
 
 void FileDialogHelper::openDirectory(const QString& path) {
-    QDesktopServices::openUrl(path);
+    QString dirPath = path;
+    const QString FILE_SCHEME = "file://";
+    if (dirPath.startsWith(FILE_SCHEME)) {
+        dirPath.remove(0, FILE_SCHEME.length());
+    }
+    QFileInfo fileInfo(dirPath);
+    if (fileInfo.isDir()) {
+        QDesktopServices::openUrl(path);
+    }
 }
 
 QList<QUrl> FileDialogHelper::urlToList(const QUrl& url) {

@@ -2443,6 +2443,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
 
+    QDesktopServices::setUrlHandler("file", this, "showUrlHandler");
+    QDesktopServices::setUrlHandler("", this, "showUrlHandler");
+    auto drives = QDir::drives();
+    for (auto drive : drives) {
+        QDesktopServices::setUrlHandler(QUrl(drive.absolutePath()).scheme(), this, "showUrlHandler");
+    }
+
     _pendingIdleEvent = false;
     _graphicsEngine.startup();
 
@@ -8259,19 +8266,6 @@ void Application::packageModel() {
     ModelPackager::package();
 }
 
-void Application::openUrl(const QUrl& url) const {
-    if (!url.isEmpty()) {
-        if (url.scheme() == URL_SCHEME_HIFI) {
-            DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
-        } else if (url.scheme() == URL_SCHEME_HIFIAPP) {
-            DependencyManager::get<QmlCommerce>()->openSystemApp(url.path());
-        } else {
-            // address manager did not handle - ask QDesktopServices to handle
-            QDesktopServices::openUrl(url);
-        }
-    }
-}
-
 void Application::loadDialog() {
     ModalDialogListener* dlg = OffscreenUi::getOpenFileNameAsync(_glWidget, tr("Open Script"),
                                                                  getPreviousScriptLocation(),
@@ -9140,7 +9134,7 @@ void Application::readArgumentsFromLocalSocket() const {
 
     // If we received a message, try to open it as a URL
     if (message.length() > 0) {
-        qApp->openUrl(QString::fromUtf8(message));
+        DependencyManager::get<WindowScriptingInterface>()->openUrl(QString::fromUtf8(message));
     }
 }
 
@@ -9255,6 +9249,24 @@ void Application::copyToClipboard(const QString& text) {
 
 QString Application::getGraphicsCardType() {
     return GPUIdent::getInstance()->getName();
+}
+
+void Application::showUrlHandler(const QUrl& url) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "showUrlHandler", Q_ARG(const QUrl&, url));
+        return;
+    }
+
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Confirm openUrl", "Do you recognize this path or code and want to open or execute it: " + url.toDisplayString());
+    QObject::connect(dlg, &ModalDialogListener::response, this, [=](QVariant answer) {
+        QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+        if (QMessageBox::Yes == static_cast<QMessageBox::StandardButton>(answer.toInt())) {
+            // Unset the handler, open the URL, and the reset the handler
+            QDesktopServices::unsetUrlHandler(url.scheme());
+            QDesktopServices::openUrl(url);
+            QDesktopServices::setUrlHandler(url.scheme(), this, "showUrlHandler");
+        }
+    });
 }
 
 #if defined(Q_OS_ANDROID)

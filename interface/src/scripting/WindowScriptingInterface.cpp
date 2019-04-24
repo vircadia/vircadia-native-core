@@ -27,6 +27,7 @@
 #include "MainWindow.h"
 #include "Menu.h"
 #include "OffscreenUi.h"
+#include "commerce/QmlCommerce.h"
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 static const QString LAST_BROWSE_LOCATION_SETTING = "LastBrowseLocation";
@@ -134,15 +135,17 @@ void WindowScriptingInterface::disconnectedFromDomain() {
 
 void WindowScriptingInterface::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
-        if (url.scheme() == URL_SCHEME_HIFI) {
+        auto scheme = url.scheme();
+        if (scheme == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else if (scheme == URL_SCHEME_HIFIAPP) {
+            DependencyManager::get<QmlCommerce>()->openSystemApp(url.path());
         } else {
 #if defined(Q_OS_ANDROID)
             QMap<QString, QString> args;
             args["url"] = url.toString();
             AndroidHelper::instance().requestActivity("WebView", true, args);
 #else
-            // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
 #endif
         }
