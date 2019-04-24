@@ -409,7 +409,10 @@ void DomainBaker::enumerateEntities() {
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
-                addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
+                QString materialURL = entity[MATERIAL_URL_KEY].toString();
+                if (!materialURL.startsWith("materialData")) {
+                    addMaterialBaker(MATERIAL_URL_KEY, materialURL, true, *it);
+                }
             }
             if (entity.contains(MATERIAL_DATA_KEY)) {
                 addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it, _destinationPath);
