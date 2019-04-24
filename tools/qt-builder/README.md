@@ -44,43 +44,43 @@ replace all *# deb-src* with *deb-src* (in vi `1,$s/# deb-src/deb-src/`)
 `sudo apt-get upgrade -y`  
 `sudo apt-get build-dep qt5-default -y`
 1.  git >= 1.6  
-Check if needed `git --version`
+Check if needed `git --version`  
 `sudo apt-get install git -y`  
-Verify again
+Verify again  
 1.  python   
-Check if needed `python --version` - should return python 2.7.x
+Check if needed `python --version` - should return python 2.7.x  
 `sudo apt-get install python -y` (not python 3!)  
-Verify again
+Verify again  
 1.  gperf  
-Check if needed `gperf --version`
+Check if needed `gperf --version`  
 `sudo apt-get install gperf -y`  
-Verify again
+Verify again  
 1.  bison and flex  
 Check if needed `flex --version`  and `bison --version`  
 `sudo apt-get install flex bison -y`  
-Verify again
+Verify again  
 1.  pkg-config (needed for qtwebengine)  
 Check if needed `pkg-config --version`  
-`sudo apt-get install pkg-config -y`
-Verify again
+`sudo apt-get install pkg-config -y`  
+Verify again  
 1.  OpenGL  
 Verify (first install mesa-utils - `sudo apt install mesa-utils -y`) by `glxinfo | grep "OpenGL version"`
 `sudo apt-get install libgl1-mesa-dev -y`  
 `sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.346.35 /usr/lib/x86_64-linux-gnu/libGL.so.1.2.0`  
-Verify again 
+Verify again  
 1.  make  
-Check if needed `make --version`
+Check if needed `make --version`  
 `sudo apt-get install make -y`  
 Verify again  
 1.  g++  
 Check if needed  
- `g++ --version`
-`sudo apt-get install g++ -y`
-Verify again
+ `g++ --version`  
+`sudo apt-get install g++ -y`  
+Verify again  
 1.  dbus-1 (needed for qtwebengine)  
 `sudo apt-get install libdbus-glib-1-dev -y`  
 1.  nss (needed for qtwebengine)  
-`sudo apt-get install libnss3-dev -y`
+`sudo apt-get install libnss3-dev -y`  
 ### Mac
 1.  git >= 1.6  
 Check if needed `git --version`  
