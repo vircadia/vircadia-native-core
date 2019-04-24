@@ -404,8 +404,6 @@ public slots:
 
     static void packageModel();
 
-    void openUrl(const QUrl& url) const;
-
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
 
@@ -471,6 +469,8 @@ public slots:
     void changeViewAsNeeded(float boomLength);
 
     QString getGraphicsCardType();
+
+    void showUrlHandler(const QUrl& url);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
