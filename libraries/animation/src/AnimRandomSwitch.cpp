@@ -52,23 +52,30 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
             }
         }
         _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
+        _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
 
     } else {
 
         // here we are checking to see if we want a temporary movement
         // evaluate currentState transitions
-        auto desiredState = evaluateTransitions(animVars);
-        if (desiredState != _currentState) {
+        auto transitionState = evaluateTransitions(animVars);
+        if (transitionState != _currentState) {
             _duringInterp = true;
-            switchRandomState(animVars, context, desiredState, _duringInterp);
+            switchRandomState(animVars, context, transitionState, _duringInterp);
             _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
+            _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
         }
     }
 
     _triggerTime -= dt;
-    if (_triggerTime < 0.0f) {
+    if ((_triggerTime < 0.0f) && (_triggerTimeMin > 0.0f) && (_triggerTimeMax > 0.0f)) {
         _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
         triggersOut.setTrigger(_transitionVar);
+    }
+    _randomSwitchTime -= dt;
+    if ((_randomSwitchTime < 0.0f) && (_randomSwitchTimeMin > 0.0f) &&  (_randomSwitchTimeMax > 0.0f)) {
+        _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
+        triggersOut.setTrigger(_triggerRandomSwitchVar);
     }
 
     assert(_currentState);

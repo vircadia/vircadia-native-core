@@ -949,7 +949,7 @@
                                                                                                         "type": "clip",
                                                                                                         "data": {
                                                                                                             "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                            "startFrame": 0.0,
+                                                                                                            "startFrame": 1.0,
                                                                                                             "endFrame": 800.0,
                                                                                                             "timeScale": 1.0,
                                                                                                             "loopFlag": true
@@ -1011,7 +1011,7 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                                            "startFrame": 0.0,
+                                                                                                                            "startFrame": 1.0,
                                                                                                                             "endFrame": 800.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": true
@@ -1066,7 +1066,7 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                                            "startFrame": 0.0,
+                                                                                                                            "startFrame": 1.0,
                                                                                                                             "endFrame": 800.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": true
@@ -1078,7 +1078,7 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                                            "startFrame": 0.0,
+                                                                                                                            "startFrame": 1.0,
                                                                                                                             "endFrame": 800.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": true
@@ -1090,7 +1090,7 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                                            "startFrame": 0.0,
+                                                                                                                            "startFrame": 1.0,
                                                                                                                             "endFrame": 800.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": true

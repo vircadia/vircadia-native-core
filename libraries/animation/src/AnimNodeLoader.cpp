@@ -806,10 +806,13 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
     assert(smNode);
 
     READ_STRING(currentState, jsonObj, nodeId, jsonUrl, false);
+    READ_OPTIONAL_FLOAT(randomSwitchTimeMin, jsonObj, -1.0f);
+    READ_OPTIONAL_FLOAT(randomSwitchTimeMax, jsonObj, -1.0f);
     READ_STRING(triggerRandomSwitch, jsonObj, nodeId, jsonUrl, false);
-    READ_OPTIONAL_FLOAT(triggerTimeMin, jsonObj, 1.0f);
-    READ_OPTIONAL_FLOAT(triggerTimeMax, jsonObj, 1.0f);
+    READ_OPTIONAL_FLOAT(triggerTimeMin, jsonObj, -1.0f);
+    READ_OPTIONAL_FLOAT(triggerTimeMax, jsonObj, -1.0f);
     READ_OPTIONAL_STRING(transitionVar, jsonObj);
+
 
 
     auto statesValue = jsonObj.value("states");
@@ -921,6 +924,8 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
         qCCritical(animation) << "AnimNodeLoader, bad currentState =" << currentState << "could not find child node" << "id =" << nodeId;
     }
     smNode->setCurrentState(iter->second);
+    smNode->setRandomSwitchTimeMin(randomSwitchTimeMin);
+    smNode->setRandomSwitchTimeMax(randomSwitchTimeMax);
     smNode->setTriggerRandomSwitchVar(triggerRandomSwitch);
     smNode->setTriggerTimeMin(triggerTimeMin);
     smNode->setTriggerTimeMax(triggerTimeMax);

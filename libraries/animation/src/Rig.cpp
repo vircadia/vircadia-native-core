@@ -2011,11 +2011,25 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         return;
     }
 
+    const float OVERLAY_RAMP_RATE = 8.0f;
     if (params.isTalking) {
-        _animVars.set("idleOverlayAlpha", 1.0f);
+        if (_talkIdleInterpTime < 1.0f) {
+            _talkIdleInterpTime += dt;
+            _talkIdleOverlayAlpha = glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
+            //_talkIdleOverlayAlpha = glm::clamp(_talkIdleOverlayAlpha + OVERLAY_RAMP_RATE * dt, 0.0f, 1.0f);
+        } else {
+            _talkIdleInterpTime = 1.0f;
+        }
     } else {
-        _animVars.set("idleOverlayAlpha", 0.0f);
+        if (_talkIdleOverlayAlpha > 0.0f) {
+            _talkIdleInterpTime += dt;
+            _talkIdleOverlayAlpha = glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
+           // _talkIdleOverlayAlpha = glm::clamp(_talkIdleOverlayAlpha - OVERLAY_RAMP_RATE * dt, 0.0f, 1.0f);
+        } else {
+            _talkIdleInterpTime = 0.0f;
+        }
     }
+    _animVars.set("idleOverlayAlpha", _talkIdleOverlayAlpha);
 
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;

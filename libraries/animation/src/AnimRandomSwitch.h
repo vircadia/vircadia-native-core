@@ -133,6 +133,8 @@ protected:
 
 	void setCurrentState(RandomSwitchState::Pointer randomState);
     void setTriggerRandomSwitchVar(const QString& triggerRandomSwitchVar) { _triggerRandomSwitchVar = triggerRandomSwitchVar; }
+    void setRandomSwitchTimeMin(float randomSwitchTimeMin) { _randomSwitchTimeMin = randomSwitchTimeMin; }
+    void setRandomSwitchTimeMax(float randomSwitchTimeMax) { _randomSwitchTimeMax = randomSwitchTimeMax; }
     void setTransitionVar(const QString& transitionVar) { _transitionVar = transitionVar; }
     void setTriggerTimeMin(float triggerTimeMin) { _triggerTimeMin = triggerTimeMin; }
     void setTriggerTimeMax(float triggerTimeMax) { _triggerTimeMax = triggerTimeMax; }
@@ -168,6 +170,9 @@ protected:
     float _triggerTimeMin { 10.0f };
     float _triggerTimeMax { 20.0f };
     float _triggerTime { 0.0f };
+    float _randomSwitchTimeMin { 10.0f };
+    float _randomSwitchTimeMax { 20.0f };
+    float _randomSwitchTime { 0.0f };
 
 private:
 	// no copies
