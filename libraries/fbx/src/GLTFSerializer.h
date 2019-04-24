@@ -784,6 +784,7 @@ private:
 
     void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
+    void glTFDebugDump();
     void hfmDebugDump(const HFMModel& hfmModel);
 };
 
