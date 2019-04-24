@@ -1630,7 +1630,9 @@ void MyAvatar::handleChangedAvatarEntityData() {
         if (!skip) {
             sanitizeAvatarEntityProperties(properties);
             entityTree->withWriteLock([&] {
-                entityTree->updateEntity(id, properties);
+                if (entityTree->updateEntity(id, properties)) {
+                    packetSender->queueEditAvatarEntityMessage(entityTree, id);
+                }
             });
         }
     }
