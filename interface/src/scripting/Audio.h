@@ -409,6 +409,7 @@ protected:
 
 private:
 
+    bool _settingsLoaded { false };
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
     float _localInjectorGain { 0.0f };  // in dB
