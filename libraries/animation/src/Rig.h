@@ -422,8 +422,8 @@ protected:
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
-    float _talkIdleOverlayAlpha { 0.0f };
     float _talkIdleInterpTime { 0.0f };
+    bool _previousIsTalking { false };
 
     SimpleMovingAverage _averageForwardSpeed { 10 };
     SimpleMovingAverage _averageLateralSpeed { 10 };
