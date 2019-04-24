@@ -32,9 +32,23 @@ Verify by running `flex --version`
 Verify by running `bison --version`
 1.  gperf  
 Install from http://gnuwin32.sourceforge.net/downlinks/gperf.php  
-Install  
 Add C:\Program Files (x86)\GnuWin32\bin to PATH  
 Verify by running `gperf --version`
+1.  7-zip
+Download from https://www.7-zip.org/download.html  
+1.  Bash shell
+From *Settings* select *Update & Security*  
+Select *For Developers*  
+Enable *Developer mode*  
+Restart PC  
+Open Control Panel and select *Programs and Features*  
+Select *Turn Windows features on or off*  
+Check *Windows Subsystem for Linux*  
+Click *Restart now*
+Download from the Microsoft Store - Search for *bash* and choose the latest Ubuntu version
+[First run will take a few minutes]  
+Enter a user name - all small letters (this is not required for later use)  
+Choose a password  
 ### Linux
 Tested on Ubuntu 18.04  
 1.  qt5 requirements  
@@ -100,7 +114,7 @@ Before running configure, make sure that the qt5-build folder is empty.
 **Only run the patches once!!!**
 ### Windows
 Before building, verify that **HIFI_VCPKG_BASE_VERSION** points to a *vcpkg* folder containing *packages\openssl-windows_x64-windows*. If not, follow https://github.com/highfidelity/vcpkg to install *vcpkg* and then *openssl*.   
-
+#### Preparing source files 
 `git clone --recursive https://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch`  
 
 *  Copy the **patches** folder to qt5  
@@ -109,8 +123,8 @@ Before building, verify that **HIFI_VCPKG_BASE_VERSION** points to a *vcpkg* fol
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/qfloat16.patch`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
-
 `cd ..`  
+#### Configuring
 `mkdir qt5-install`  
 `mkdir qt5-build`  
 `cd qt5-build`  
@@ -119,14 +133,21 @@ run `..\qt5\qt5vars.bat`
 `cd ..\..\qt5-build`  
 
 `..\qt5\configure -opensource -confirm-license -opengl desktop -platform win32-msvc -openssl-linked  OPENSSL_LIBS="-lssleay32 -llibeay32"  -I %HIFI_VCPKG_BASE_VERSION%\packages\openssl-windows_x64-windows\include -L %HIFI_VCPKG_BASE_VERSION%\packages\openssl-windows_x64-windows\lib -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ..\qt5-install`  
-
+#### Make
 `nmake`  
 `nmake install`  
+#### Fixing
+The *.prl* files have an absolute path that needs to be removed  
+1.  Open a bash terminal
+1.  `cd` to the *qt5-install* folder (e.g. `cd /mnt/d/qt5-install/`)  
+1.  Run the following command (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
+` find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 #### Uploading 
 Create a tar file called qt5-install.tar from the qt5-install folder (e.g. using 7-zip)  
-Create a gzip file called qt5-install.tar.gz from qt5-install.tar folder (e.g. using 7-zip)  
+Create a gzip file called qt5-install.tar.gz from the qt5-install.tar file just created (e.g. using 7-zip)  
 Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 ### Linux
+#### Preparing source files 
 `git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch`  
 
 *  Copy the **patches** folder to qt5  
@@ -134,15 +155,17 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
 `cd ..`  
+#### Configuring
 
 `mkdir qt5-install`  
 `mkdir qt5-build`  
 `cd qt5-build`  
 
 `../qt5/configure -opensource -confirm-license -platform linux-g++-64 -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`  
-
+#### Make
 `make`  
 `make install`  
+#### Fixing
 #### Uploading 
 1.  Return to the home folder  
 `cd ..`
@@ -159,22 +182,24 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
   
 1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/
 ### Mac
+#### Preparing source files 
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 
 *  Copy the **patches** folder to qt5  
-*  Apply the two patches to Qt  
+*   Apply one patch to Qt  
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
 `cd ..`  
-
+#### Configuring
 `mkdir qt5-install`  
 `mkdir qt5-build`  
 `cd ../qt5-build`  
 
 `../qt5/configure -opensource -confirm-license -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors  -no-pch -prefix ../qt5-install`  
-
+#### Make
 `make`  
 `make install`  
+#### Fixing
 #### Uploading 
 `tar -zcvf qt5-install.tar.gz qt5-install`  
 Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Mac/
