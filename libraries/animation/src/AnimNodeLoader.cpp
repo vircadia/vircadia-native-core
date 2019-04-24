@@ -808,7 +808,7 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
     READ_STRING(currentState, jsonObj, nodeId, jsonUrl, false);
     READ_OPTIONAL_FLOAT(randomSwitchTimeMin, jsonObj, -1.0f);
     READ_OPTIONAL_FLOAT(randomSwitchTimeMax, jsonObj, -1.0f);
-    READ_STRING(triggerRandomSwitch, jsonObj, nodeId, jsonUrl, false);
+    READ_OPTIONAL_STRING(triggerRandomSwitch, jsonObj, nodeId, jsonUrl, false);
     READ_OPTIONAL_FLOAT(triggerTimeMin, jsonObj, -1.0f);
     READ_OPTIONAL_FLOAT(triggerTimeMax, jsonObj, -1.0f);
     READ_OPTIONAL_STRING(transitionVar, jsonObj);

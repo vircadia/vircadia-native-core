@@ -2012,23 +2012,30 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     }
 
     if (_previousIsTalking != params.isTalking) {
-        _talkIdleInterpTime = 0.0f;
+        if (_talkIdleInterpTime < 1.0f) {
+            _talkIdleInterpTime = 1.0f - _talkIdleInterpTime;
+        } else {
+            _talkIdleInterpTime = 0.0f;
+        }
     }
     _previousIsTalking = params.isTalking;
 
-    const float TOTAL_INTERP_TIME = 1.5f;
+    const float TOTAL_EASE_IN_TIME = 0.35f;
+    const float TOTAL_EASE_OUT_TIME = 1.5f;
     if (params.isTalking) {
         if (_talkIdleInterpTime < 1.0f) {
-            _talkIdleInterpTime += dt / TOTAL_INTERP_TIME;
-            float talkAlpha = glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
-            _animVars.set("idleOverlayAlpha", talkAlpha);
+            _talkIdleInterpTime += dt / TOTAL_EASE_IN_TIME;
+            float easeOutInValue = _talkIdleInterpTime < 0.5f ? (4.0f * _talkIdleInterpTime * _talkIdleInterpTime * _talkIdleInterpTime) : (4.0f * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f)) + 1.0f;
+            //float talkAlpha = glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
+            _animVars.set("idleOverlayAlpha", easeOutInValue);
         } else {
             _animVars.set("idleOverlayAlpha", 1.0f);
         }
     } else {
         if (_talkIdleInterpTime < 1.0f) {
-            _talkIdleInterpTime += dt / TOTAL_INTERP_TIME;
-            float talkAlpha = 1.0f - glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
+            _talkIdleInterpTime += dt / TOTAL_EASE_OUT_TIME;
+            float easeOutInValue = _talkIdleInterpTime < 0.5f ? (4.0f * _talkIdleInterpTime * _talkIdleInterpTime * _talkIdleInterpTime) : (4.0f * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f) * (_talkIdleInterpTime - 1.0f)) + 1.0f;
+            float talkAlpha = 1.0f - easeOutInValue;// glm::clamp((_talkIdleInterpTime*_talkIdleInterpTime*_talkIdleInterpTime), 0.0f, 1.0f);
             _animVars.set("idleOverlayAlpha", talkAlpha);
         } else {
             _animVars.set("idleOverlayAlpha", 0.0f);

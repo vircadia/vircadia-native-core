@@ -1077,7 +1077,7 @@
 																									                    "id": "altTalkIdle1",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/talk.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/talk_righthand.fbx",
                                                                                                                             "startFrame": 1.0,
                                                                                                                             "endFrame": 800.0,
                                                                                                                             "timeScale": 1.0,
