@@ -163,98 +163,107 @@ public slots:
 
     /**jsdoc
      * @function RayPick.PICK_ENTITIES
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Raypick.PICK_ENTITIES</code> property instead.
      * @returns {number}
      */
     static unsigned int PICK_ENTITIES() { return PickScriptingInterface::PICK_ENTITIES(); }
 
     /**jsdoc
      * @function RayPick.PICK_OVERLAYS
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_OVERLAYS</code> property instead.
      * @returns {number}
      */
     static unsigned int PICK_OVERLAYS() { return PickScriptingInterface::PICK_OVERLAYS(); }
 
     /**jsdoc
      * @function RayPick.PICK_AVATARS
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_AVATARS</code> property instead.
      * @returns {number}
      */
     static unsigned int PICK_AVATARS() { return PickScriptingInterface::PICK_AVATARS(); }
 
     /**jsdoc
      * @function RayPick.PICK_HUD
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_HUD</code> property instead.
      * @returns {number}
      */
     static unsigned int PICK_HUD() { return PickScriptingInterface::PICK_HUD(); }
 
     /**jsdoc
      * @function RayPick.PICK_COARSE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_COARSE</code> property instead.
      * @returns {number}
      */
     static unsigned int PICK_COARSE() { return PickScriptingInterface::PICK_COARSE(); }
 
     /**jsdoc
      * @function RayPick.PICK_INCLUDE_INVISIBLE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_INCLUDE_INVISIBLE</code> 
+     *     property instead.
      * @returns {number}
      */
     static unsigned int PICK_INCLUDE_INVISIBLE() { return PickScriptingInterface::PICK_INCLUDE_INVISIBLE(); }
 
     /**jsdoc
      * @function RayPick.PICK_INCLUDE_NONCOLLIDABLE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_INCLUDE_NONCOLLIDABLE</code> 
+     *     property instead.
      * @returns {number}
      */
     static unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE(); }
 
     /**jsdoc
      * @function RayPick.PICK_ALL_INTERSECTIONS
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.PICK_ALL_INTERSECTIONS</code> 
+     *     property instead.
      * @returns {number}
      */
     static unsigned int PICK_ALL_INTERSECTIONS() { return PickScriptingInterface::PICK_ALL_INTERSECTIONS(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_NONE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.INTERSECTED_NONE</code> property 
+     *     instead.
      * @returns {number}
      */
     static unsigned int INTERSECTED_NONE() { return PickScriptingInterface::INTERSECTED_NONE(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_ENTITY
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.INTERSECTED_ENTITY</code> property 
+     *     instead.
      * @returns {number}
      */
     static unsigned int INTERSECTED_ENTITY() { return PickScriptingInterface::INTERSECTED_ENTITY(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_OVERLAY
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.INTERSECTED_LOCAL_ENTITY</code> 
+     *     property instead.
      * @returns {number}
      */
     static unsigned int INTERSECTED_LOCAL_ENTITY() { return PickScriptingInterface::INTERSECTED_LOCAL_ENTITY(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_OVERLAY
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.INTERSECTED_OVERLAY</code> property 
+     *     instead.
      * @returns {number}
      */
     static unsigned int INTERSECTED_OVERLAY() { return PickScriptingInterface::INTERSECTED_LOCAL_ENTITY(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_AVATAR
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.INTERSECTED_AVATAR</code> property 
+     *     instead.
      * @returns {number}
      */
     static unsigned int INTERSECTED_AVATAR() { return PickScriptingInterface::INTERSECTED_AVATAR(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_HUD
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>RayPick.INTERSECTED_HUD</code> property 
+     *     instead.
      * @returns {number}
      */
     static unsigned int INTERSECTED_HUD() { return PickScriptingInterface::INTERSECTED_HUD(); }

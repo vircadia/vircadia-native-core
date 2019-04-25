@@ -32,10 +32,11 @@
  * @property {FilterFlags} PICK_HUD - Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
  *
  * @property {FilterFlags} PICK_ENTITIES - Include domain and avatar entities when intersecting. <em>Read-only.</em>
- *     <p class="important"><strong>Deprecated:</strong> Use <code>PICK_DOMAIN_ENTITIES | PICK_AVATAR_ENTITIES</code> 
- *     instead.</p>
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>PICK_DOMAIN_ENTITIES | 
+ *     PICK_AVATAR_ENTITIES</code> instead.</p>
  * @property {FilterFlags} PICK_OVERLAYS - Include local entities when intersecting. <em>Read-only.</em>
- *     <p class="important"><strong>Deprecated:</strong> Use <code>PICK_LOCAL_ENTITIES</code> instead.</p>
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>PICK_LOCAL_ENTITIES</code> 
+ *     instead.</p>
  *
  * @property {FilterFlags} PICK_INCLUDE_VISIBLE - Include visible objects when intersecting. <em>Read-only.</em>
  *     <p><strong>Warning:</strong> Is currently always enabled by default but may not be in the future.</p>
@@ -57,7 +58,8 @@
  * @property {IntersectionType} INTERSECTED_LOCAL_ENTITY - Intersected a local entity. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_OVERLAY - Intersected a local entity. (3D overlays no longer exist.) 
  *     <em>Read-only.</em>
- *     <p class="important"><strong>Deprecated:</strong> Use <code>INTERSECTED_LOCAL_ENTITY</code> instead.</p>
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use 
+ *     <code>INTERSECTED_LOCAL_ENTITY</code> instead.</p>
  * @property {IntersectionType} INTERSECTED_AVATAR - Intersected an avatar. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD sphere. <em>Read-only.</em>
  *
@@ -253,14 +255,16 @@ public slots:
 
     /**jsdoc
      * @function Picks.PICK_ENTITIES
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_DOMAIN_ENTITIES | 
+     *     Picks.PICK_AVATAR_ENTITIES</cpode> properties expression instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }
 
     /**jsdoc
      * @function Picks.PICK_OVERLAYS
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_LOCAL_ENTITIES</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES); }
@@ -268,35 +272,39 @@ public slots:
 
     /**jsdoc
      * @function Picks.PICK_DOMAIN_ENTITIES
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_DOMAIN_ENTITIES</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_DOMAIN_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES); }
 
     /**jsdoc
      * @function Picks.PICK_AVATAR_ENTITIES
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_AVATAR_ENTITIES</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_AVATAR_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }
 
     /**jsdoc
      * @function Picks.PICK_LOCAL_ENTITIES
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_LOCAL_ENTITIES</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_LOCAL_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES); }
 
     /**jsdoc
      * @function Picks.PICK_AVATARS
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_AVATARS</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::AVATARS); }
 
     /**jsdoc
      * @function Picks.PICK_HUD
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_HUD</code> property instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::HUD); }
@@ -304,14 +312,16 @@ public slots:
 
     /**jsdoc
      * @function Picks.PICK_INCLUDE_VISIBLE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_VISIBLE</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_INCLUDE_VISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE); }
 
     /**jsdoc
      * @function Picks.PICK_INCLUDE_INVISIBLE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_INVISIBLE</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::INVISIBLE); }
@@ -319,14 +329,16 @@ public slots:
 
     /**jsdoc
      * @function Picks.PICK_INCLUDE_COLLIDABLE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_COLLIDABLE</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_INCLUDE_COLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE); }
 
     /**jsdoc
      * @function Picks.PICK_INCLUDE_NONCOLLIDABLE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_INCLUDE_NONCOLLIDABLE</code> 
+     *     property instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::NONCOLLIDABLE); }
@@ -334,14 +346,14 @@ public slots:
 
     /**jsdoc
      * @function Picks.PICK_PRECISE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_PRECISE</code> property instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_PRECISE() { return PickFilter::getBitMask(PickFilter::FlagBit::PRECISE); }
 
     /**jsdoc
      * @function Picks.PICK_COARSE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_COARSE</code> property instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::COARSE); }
@@ -349,49 +361,56 @@ public slots:
 
     /**jsdoc
      * @function Picks.PICK_ALL_INTERSECTIONS
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.PICK_ALL_INTERSECTIONS</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int PICK_ALL_INTERSECTIONS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
 
     /**jsdoc
      * @function Picks.INTERSECTED_NONE
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_NONE</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
 
     /**jsdoc
      * @function Picks.INTERSECTED_ENTITY
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_ENTITY</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
 
     /**jsdoc
      * @function Picks.INTERSECTED_LOCAL_ENTITY
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_LOCAL_ENTITY</code> 
+     *     property instead.
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_LOCAL_ENTITY() { return IntersectionType::LOCAL_ENTITY; }
 
     /**jsdoc
      * @function Picks.INTERSECTED_OVERLAY
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_LOCAL_ENTITY</code> 
+     *     property instead.
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_OVERLAY() { return INTERSECTED_LOCAL_ENTITY(); }
 
     /**jsdoc
      * @function Picks.INTERSECTED_AVATAR
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_AVATAR</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
 
     /**jsdoc
      * @function Picks.INTERSECTED_HUD
-     * @deprecated This function is deprecated and will be removed. Use the property of the same name instead.
+     * @deprecated This function is deprecated and will be removed. Use the <code>Picks.INTERSECTED_HUD</code> property 
+     *     instead.
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
