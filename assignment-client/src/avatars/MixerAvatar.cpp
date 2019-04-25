@@ -291,6 +291,10 @@ void MixerAvatar::processCertifyEvents() {
         break;
     }
 
+    default:
+        qCDebug(avatars) << "Unexpected verify state" << _verifyState;
+        break;
+
     }  // close switch
 }
 
