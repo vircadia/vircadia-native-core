@@ -11,8 +11,11 @@ macro(setup_qt)
     # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
     # then use it,
     # otherwise, use the vcpkg'ed version
-    if (RELEASE_TYPE STREQUAL "DEV" AND DEFINED ENV{QT_CMAKE_PREFIX_PATH} )
+    if (RELEASE_TYPE STREQUAL "DEV" AND DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+        message("Development build and QT_CMAKE_PREFIX_PATH is defined in environment - using this path for Qt")
         set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+    else()
+        message(" Using vcpkg'ed version of Qt")
     endif()
 
     # figure out where the qt dir is
