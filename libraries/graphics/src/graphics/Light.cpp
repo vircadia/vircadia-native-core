@@ -73,6 +73,22 @@ bool Light::getCastShadows() const {
     return _castShadows;
 }
 
+void Light::setShadowsMaxDistance(const float maxDistance) {
+    _shadowsMaxDistance = std::max(0.0f, maxDistance);
+}
+
+float Light::getShadowsMaxDistance() const {
+    return _shadowsMaxDistance;
+}
+
+void Light::setShadowsBiasScale(const float scale) {
+    _shadowsBiasScale = std::max(0.0f, scale);
+}
+
+float Light::getShadowsBiasScale() const {
+    return _shadowsBiasScale;
+}
+
 void Light::setColor(const Color& color) {
     _lightSchemaBuffer.edit().irradiance.color = color;
     updateLightRadius();

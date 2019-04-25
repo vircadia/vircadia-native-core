@@ -13,8 +13,8 @@
 (function () {
 
     var APP_NAME = "RECORD",
-        APP_ICON_INACTIVE = "icons/tablet-icons/avatar-record-i.svg",
-        APP_ICON_ACTIVE = "icons/tablet-icons/avatar-record-a.svg",
+        APP_ICON_INACTIVE = Script.resolvePath("assets/avatar-record-i.svg"),
+        APP_ICON_ACTIVE = Script.resolvePath("assets/avatar-record-a.svg"),
         APP_URL = Script.resolvePath("html/record.html"),
         isDialogDisplayed = false,
         tablet,

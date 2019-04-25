@@ -39,6 +39,18 @@ class ModelItemID;
 class MyHead;
 class DetailedMotionState;
 
+enum LocomotionControlsMode {
+    CONTROLS_DEFAULT = 0,
+    CONTROLS_ANALOG,
+    CONTROLS_ANALOG_PLUS
+};
+
+enum LocomotionRelativeMovementMode {
+    MOVEMENT_HMD_RELATIVE = 0,
+    MOVEMENT_HAND_RELATIVE,
+    MOVEMENT_HAND_RELATIVE_LEVELED
+};
+
 enum eyeContactTarget {
     LEFT_EYE,
     RIGHT_EYE,
@@ -371,6 +383,13 @@ class MyAvatar : public Avatar {
     using Clock = std::chrono::system_clock;
     using TimePoint = Clock::time_point;
 
+    const float DEFAULT_GEAR_1 = 0.2f;
+    const float DEFAULT_GEAR_2 = 0.4f;
+    const float DEFAULT_GEAR_3 = 0.8f;
+    const float DEFAULT_GEAR_4 = 0.9f;
+    const float DEFAULT_GEAR_5 = 1.0f;
+
+    const bool DEFAULT_STRAFE_ENABLED = true;
 public:
 
     /**jsdoc
@@ -579,6 +598,26 @@ public:
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
     /**jsdoc
+     * <code>overrideHandAnimation()</code> Gets the overrides the default hand poses that are triggered with controller buttons.
+     * use {@link MyAvatar.restoreHandAnimation}.</p> to restore the default poses.
+     * @function MyAvatar.overrideHandAnimation
+     * @param isLeft {boolean} Set true if using the left hand
+     * @param url {string} The URL to the animation file. Animation files need to be FBX format, but only need to contain the
+     * avatar skeleton and animation data.
+     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
+     * @param loop {boolean} Set to true if the animation should loop.
+     * @param firstFrame {number} The frame the animation should start at.
+     * @param lastFrame {number} The frame the animation should end at
+     * @example <caption> Override left hand animation for three seconds. </caption>
+     * // Override the left hand pose then restore the default pose.
+     * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
+     * Script.setTimeout(function () {
+     *     MyAvatar.restoreHandAnimation();
+     * }, 3000);
+     */
+    Q_INVOKABLE void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+
+    /**jsdoc
      * Restores the default animations.
      * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended 
      * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will 
@@ -595,6 +634,24 @@ public:
      * }, 3000);
      */
     Q_INVOKABLE void restoreAnimation();
+
+    /**jsdoc
+     * Restores the default hand animation state machine that is driven by the state machine in the avatar-animation json.
+     * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
+     * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will
+     * override the  default animations. <code>restoreHandAnimation()</code> is used to restore the default hand poses
+     * If you aren't currently playing an override hand
+     * animation, this function has no effect.</p>
+     * @function MyAvatar.restoreHandAnimation
+     * @param isLeft {boolean} Set to true if using the left hand
+     * @example <caption> Override left hand animation for three seconds. </caption>
+     * // Override the left hand pose then restore the default pose.
+     * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
+     * Script.setTimeout(function () {
+     *     MyAvatar.restoreHandAnimation();
+     * }, 3000);
+     */
+    Q_INVOKABLE void restoreHandAnimation(bool isLeft);
 
     /**jsdoc
      * Gets the current animation roles.
@@ -729,7 +786,17 @@ public:
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
 
+    /**
+     * @function MyAvatar.getControlScheme
+     * @returns {number}
+    */
+    Q_INVOKABLE int getControlScheme() const { return _controlSchemeIndex; }
 
+    /**
+     * @function MyAvatar.setControlScheme
+     * @param {number} index
+    */
+    Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
     /**jsdoc
      * Sets the avatar's dominant hand.
      * @function MyAvatar.setDominantHand
@@ -744,7 +811,16 @@ public:
      * @returns {string} <code>"left"</code> for the left hand, <code>"right"</code> for the right hand.
      */
     Q_INVOKABLE QString getDominantHand() const;
-
+    /**jsdoc
+    * @function MyAVatar.setStrafeEnabled
+    * @param {bool} enabled
+    */
+    Q_INVOKABLE void setStrafeEnabled(bool enabled);
+    /**jsdoc
+    * @function MyAvatar.getStrafeEnabled
+    * @returns {bool}
+    */
+    Q_INVOKABLE bool getStrafeEnabled() const;
     /**jsdoc
      * @function MyAvatar.setHmdAvatarAlignmentType
      * @param {string} type - <code>"head"</code> to align your head and your avatar's head, <code>"eyes"</code> to align your 
@@ -1235,6 +1311,7 @@ public:
     controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
     controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
     controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
+    glm::quat getOffHandRotation() const;
 
     bool hasDriveInput() const;
 
@@ -1316,6 +1393,106 @@ public:
      *     <code>false</code>.
      */
     Q_INVOKABLE bool getFlyingHMDPref();
+
+    /**jsdoc
+     * Set your preference for hand-relative movement.
+     * @function MyAvatar.setHandRelativeMovement
+     * @param {number} enabled - Set <code>true</code> if you want to enable hand-relative movement, otherwise set to <code>false</code>.
+     *
+    */
+    Q_INVOKABLE void setMovementReference(int enabled);
+
+    /**jsdoc
+     * Get your preference for hand-relative movement.
+     * @function MyAvatar.getHandRelativeMovement
+     * @returns {number} <code>true</code> if your preference is for user locomotion to be relative to the direction your
+     * controller is pointing, otherwise <code>false</code>.
+    */
+    Q_INVOKABLE int getMovementReference();
+
+    /**jsdoc
+     * Set the first 'shifting point' for acceleration step function.
+     * @function MyAvatar.setDriveGear1
+     * @param {number} shiftPoint - Set the first shift point for analog movement acceleration step function, between [0.0, 1.0]. Must be less than or equal to Gear 2.
+    */
+    Q_INVOKABLE void setDriveGear1(float shiftPoint);
+
+    /**jsdoc
+     * Get the first 'shifting point' for acceleration step function.
+     * @function MyAvatar.getDriveGear1
+     * @returns {number} Value between [0.0, 1.0].
+    */
+    Q_INVOKABLE float getDriveGear1();
+
+    /**jsdoc
+    * Set the second 'shifting point' for acceleration step function.
+    * @function MyAvatar.setDriveGear2
+    * @param {number} shiftPoint - Defines the second shift point for analog movement acceleration step function, between [0, 1]. Must be greater than or equal to Gear 1 and less than or equal to Gear 2.
+    */
+    Q_INVOKABLE void setDriveGear2(float shiftPoint);
+
+    /**jsdoc
+    * Get the second 'shifting point' for acceleration step function.
+    * @function MyAvatar.getDriveGear2
+    * @returns {number} Value between [0.0, 1.0].
+    */
+    Q_INVOKABLE float getDriveGear2();
+
+    /**jsdoc
+    * Set the third 'shifting point' for acceleration step function.
+    * @function MyAvatar.setDriveGear3
+    * @param {number} shiftPoint - Defines the third shift point for analog movement acceleration step function, between [0, 1]. Must be greater than or equal to Gear 2 and less than or equal to Gear 4.
+    */
+    Q_INVOKABLE void setDriveGear3(float shiftPoint);
+
+    /**jsdoc
+    * Get the third 'shifting point' for acceleration step function.
+    * @function MyAvatar.getDriveGear3
+    * @returns {number} Value between [0.0, 1.0].
+    */
+    Q_INVOKABLE float getDriveGear3();
+
+    /**jsdoc
+    * Set the fourth 'shifting point' for acceleration step function.
+    * @function MyAvatar.setDriveGear4
+    * @param {number} shiftPoint - Defines the fourth shift point for analog movement acceleration step function, between [0, 1]. Must be greater than Gear 3 and less than Gear 5.
+    */
+    Q_INVOKABLE void setDriveGear4(float shiftPoint);
+
+    /**jsdoc
+    * Get the fourth 'shifting point' for acceleration step function.
+    * @function MyAvatar.getDriveGear4
+    * @returns {number} Value between [0.0, 1.0].
+    */
+    Q_INVOKABLE float getDriveGear4();
+
+    /**jsdoc
+    * Set the fifth 'shifting point' for acceleration step function.
+    * @function MyAvatar.setDriveGear5
+    * @param {number} shiftPoint - Defines the fifth shift point for analog movement acceleration step function, between [0, 1]. Must be greater than or equal to Gear 4.
+    */
+    Q_INVOKABLE void setDriveGear5(float shiftPoint);
+
+    /**jsdoc
+    * Get the fifth 'shifting point' for acceleration step function.
+    * @function MyAvatar.getDriveGear5
+    * @returns {number} Value between [0.0, 1.0].
+    */
+    Q_INVOKABLE float getDriveGear5();
+
+    /**jsdoc
+     * Choose the control scheme.
+     * @function MyAvatar.setControlSchemeIndex
+     * @param {number} Choose the control scheme to be used.
+     */
+    void setControlSchemeIndex(int index);
+
+    /**jsdoc
+     * Check what control scheme is in use.
+     * @function MyAvatar.getControlSchemeIndex
+     * @returns {number} Returns the index associated with a given control scheme.
+     */
+    int getControlSchemeIndex();
 
     /**jsdoc
      * Gets the target scale of the avatar. The target scale is the desired scale of the avatar without any restrictions on
@@ -1490,6 +1667,14 @@ public:
     float getWalkBackwardSpeed() const;
     void setSprintSpeed(float value);
     float getSprintSpeed() const;
+    void setAnalogWalkSpeed(float value);
+    float getAnalogWalkSpeed() const;
+    void setAnalogSprintSpeed(float value);
+    float getAnalogSprintSpeed() const;
+    void setAnalogPlusWalkSpeed(float value);
+    float getAnalogPlusWalkSpeed() const;
+    void setAnalogPlusSprintSpeed(float value);
+    float getAnalogPlusSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
     float getSitStandStateChange() const;
     void updateSitStandState(float newHeightReading, float dt);
@@ -2230,6 +2415,13 @@ private:
     float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec
     float _pitchSpeed; // degrees/sec
+    float _driveGear1 { DEFAULT_GEAR_1 };
+    float _driveGear2 { DEFAULT_GEAR_2 };
+    float _driveGear3 { DEFAULT_GEAR_3 };
+    float _driveGear4 { DEFAULT_GEAR_4 };
+    float _driveGear5 { DEFAULT_GEAR_5 };
+    int _controlSchemeIndex { CONTROLS_DEFAULT };
+    int _movementReference{ 0 };
 
     glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
@@ -2270,6 +2462,9 @@ private:
 
     // private methods
     void updateOrientation(float deltaTime);
+    glm::vec3 calculateScaledDirection();
+    float calculateGearedSpeed(const float driveKey);
+    glm::vec3 scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right);
     void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
     void updateViewBoom();
@@ -2287,6 +2482,7 @@ private:
     bool _useSnapTurn { true };
     ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
     ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
+    ThreadSafeValueCache<bool> _strafeEnabled{ DEFAULT_STRAFE_ENABLED };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
     const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
@@ -2438,9 +2634,16 @@ private:
     ThreadSafeValueCache<bool> _lockSitStandState { false };
 
     // max unscaled forward movement speed
-    ThreadSafeValueCache<float> _walkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
-    ThreadSafeValueCache<float> _walkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };
-    ThreadSafeValueCache<float> _sprintSpeed { AVATAR_SPRINT_SPEED_SCALAR };
+    ThreadSafeValueCache<float> _defaultWalkSpeed { DEFAULT_AVATAR_MAX_WALKING_SPEED };
+    ThreadSafeValueCache<float> _defaultWalkBackwardSpeed { DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED };
+    ThreadSafeValueCache<float> _defaultSprintSpeed { DEFAULT_AVATAR_MAX_SPRINT_SPEED };
+    ThreadSafeValueCache<float> _analogWalkSpeed { ANALOG_AVATAR_MAX_WALKING_SPEED };
+    ThreadSafeValueCache<float> _analogWalkBackwardSpeed { ANALOG_AVATAR_MAX_WALKING_BACKWARD_SPEED };
+    ThreadSafeValueCache<float> _analogSprintSpeed { ANALOG_AVATAR_MAX_SPRINT_SPEED };
+    ThreadSafeValueCache<float> _analogPlusWalkSpeed { ANALOG_PLUS_AVATAR_MAX_WALKING_SPEED };
+    ThreadSafeValueCache<float> _analogPlusWalkBackwardSpeed { ANALOG_PLUS_AVATAR_MAX_WALKING_BACKWARD_SPEED };
+    ThreadSafeValueCache<float> _analogPlusSprintSpeed { ANALOG_PLUS_AVATAR_MAX_SPRINT_SPEED };
+
     float _walkSpeedScalar { AVATAR_WALK_SPEED_SCALAR };
     bool _isInWalkingState { false };
     ThreadSafeValueCache<bool> _isInSittingState { false };
@@ -2460,6 +2663,7 @@ private:
     TimePoint _nextTraitsSendWindow;
 
     Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<bool> _strafeEnabledSetting;
     Setting::Handle<QString> _hmdAvatarAlignmentTypeSetting;
     Setting::Handle<float> _headPitchSetting;
     Setting::Handle<float> _scaleSetting;
@@ -2473,8 +2677,17 @@ private:
     Setting::Handle<bool> _useSnapTurnSetting;
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
+    Setting::Handle<int> _movementReferenceSetting;
     Setting::Handle<int> _avatarEntityCountSetting;
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
+    Setting::Handle<float> _driveGear1Setting;
+    Setting::Handle<float> _driveGear2Setting;
+    Setting::Handle<float> _driveGear3Setting;
+    Setting::Handle<float> _driveGear4Setting;
+    Setting::Handle<float> _driveGear5Setting;
+    Setting::Handle<float> _analogWalkSpeedSetting;
+    Setting::Handle<float> _analogPlusWalkSpeedSetting;
+    Setting::Handle<int> _controlSchemeIndexSetting;
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
     Setting::Handle<QString> _userRecenterModelSetting;

@@ -1734,7 +1734,7 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
         f.write(data);
         OctreeUtils::RawEntityData entityData;
         if (entityData.readOctreeDataInfoFromData(data)) {
-            qCDebug(domain_server) << "Wrote new entities file" << entityData.id << entityData.version;
+            qCDebug(domain_server) << "Wrote new entities file" << entityData.id << entityData.dataVersion;
         } else {
             qCDebug(domain_server) << "Failed to read new octree data info";
         }
@@ -1916,6 +1916,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_SETTINGS = "/settings";
     const QString URI_CONTENT_UPLOAD = "/content/upload";
     const QString URI_RESTART = "/restart";
+    const QString URI_API_METAVERSE_INFO = "/api/metaverse_info";
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
     const QString URI_API_DOMAINS_ID = "/api/domains/";
@@ -2164,6 +2165,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         } else if (url.path() == URI_RESTART) {
             connection->respond(HTTPConnection::StatusCode200);
             restart();
+            return true;
+        } else if (url.path() == URI_API_METAVERSE_INFO) {
+            QJsonObject rootJSON {
+                { "metaverse_url", NetworkingConstants::METAVERSE_SERVER_URL().toString() }
+            };
+
+            QJsonDocument docJSON{ rootJSON };
+            connectionPtr->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+
             return true;
         } else if (url.path() == URI_API_DOMAINS) {
             return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "");

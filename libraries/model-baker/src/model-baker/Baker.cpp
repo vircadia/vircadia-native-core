@@ -113,6 +113,7 @@ namespace baker {
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
             hfmModelOut->flowData = input.get5();
+            hfmModelOut->computeKdops();
             output = hfmModelOut;
         }
     };

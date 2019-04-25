@@ -109,7 +109,6 @@ public:
         Q_ASSERT(_context);
         _context->makeCurrent();
         CHECK_GL_ERROR();
-        _context->doneCurrent();
         while (!_shutdown) {
             if (_pendingOtherThreadOperation) {
                 PROFILE_RANGE(render, "MainThreadOp")
@@ -129,6 +128,7 @@ public:
                     Lock lock(_mutex);
                     _condition.wait(lock, [&] { return _finishedOtherThreadOperation; });
                 }
+                _context->makeCurrent();
             }
 
             // Check for a new display plugin
@@ -140,18 +140,16 @@ public:
                     if (newPlugin != currentPlugin) {
                         // Deactivate the old plugin
                         if (currentPlugin != nullptr) {
-                            _context->makeCurrent();
                             currentPlugin->uncustomizeContext();
                             CHECK_GL_ERROR();
-                            _context->doneCurrent();
+                            // Force completion of all pending GL commands
+                            glFinish();
                         }
 
                         if (newPlugin) {
                             bool hasVsync = true;
                             QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
-                            _context->makeCurrent();
-                            CHECK_GL_ERROR();
 #if defined(Q_OS_MAC)
                             newPlugin->swapBuffers();
 #endif
@@ -163,7 +161,8 @@ public:
                             newPlugin->setVsyncEnabled(hasVsync);
                             newPlugin->customizeContext();
                             CHECK_GL_ERROR();
-                            _context->doneCurrent();
+                            // Force completion of all pending GL commands
+                            glFinish();
                         }
                         currentPlugin = newPlugin;
                         _newPluginQueue.pop();
@@ -180,7 +179,6 @@ public:
             }
 
             // Execute the frame and present it to the display device.
-            _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
                 gl::globalLock();
@@ -188,9 +186,9 @@ public:
                 gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
-            _context->doneCurrent();
         }
 
+        _context->doneCurrent();
         Lock lock(_mutex);
         _context->moveToThread(qApp->thread());
         _shutdown = false;
@@ -383,64 +381,42 @@ void OpenGLDisplayPlugin::customizeContext() {
 #ifdef Q_OS_ANDROID
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaLinearToSRGB);
 #else
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+#endif 
+           _simplePipeline = gpu::Pipeline::create(program, scissorState);
+        }
+        {
+#ifdef Q_OS_ANDROID
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaLinearToSRGB);
+#else
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaSRGBToLinear);
 #endif
             _presentPipeline = gpu::Pipeline::create(program, scissorState);
         }
 
-        
-        // HUD operator
         {
-            gpu::PipelinePointer hudPipeline;
-            {
-                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
-                hudPipeline = gpu::Pipeline::create(program, blendState);
-            }
-
-            gpu::PipelinePointer hudMirrorPipeline;
-            {
-                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
-                hudMirrorPipeline = gpu::Pipeline::create(program, blendState);
-            }
-
-
-            _hudOperator = [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, const gpu::FramebufferPointer& compositeFramebuffer, bool mirror) {
-                auto hudStereo = isStereo();
-                auto hudCompositeFramebufferSize = compositeFramebuffer->getSize();
-                std::array<glm::ivec4, 2> hudEyeViewports;
-                for_each_eye([&](Eye eye) {
-                    hudEyeViewports[eye] = eyeViewport(eye);
-                });
-                if (hudPipeline && hudTexture) {
-                    batch.enableStereo(false);
-                    batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
-                    batch.setResourceTexture(0, hudTexture);
-                    if (hudStereo) {
-                        for_each_eye([&](Eye eye) {
-                            batch.setViewportTransform(hudEyeViewports[eye]);
-                            batch.draw(gpu::TRIANGLE_STRIP, 4);
-                        });
-                    } else {
-                        batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
-                        batch.draw(gpu::TRIANGLE_STRIP, 4);
-                    }
-                }
-            };
-
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+            _hudPipeline = gpu::Pipeline::create(program, blendState);
         }
-
+        {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
+            _mirrorHUDPipeline = gpu::Pipeline::create(program, blendState);
+        }
 
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTransformedTexture);
             _cursorPipeline = gpu::Pipeline::create(program, blendState);
         }
     }
+    updateCompositeFramebuffer();
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
     _presentPipeline.reset();
     _cursorPipeline.reset();
-    _hudOperator = DEFAULT_HUD_OPERATOR;
+    _hudPipeline.reset();
+    _mirrorHUDPipeline.reset();
+    _compositeFramebuffer.reset();
     withPresentThreadLock([&] {
         _currentFrame.reset();
         _lastFrame = nullptr;
@@ -532,16 +508,24 @@ void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
     });
 }
 
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor) {
+    renderFromTexture(batch, texture, viewport, scissor, nullptr);
+}
 
-void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& destFbo, const gpu::FramebufferPointer& copyFbo /*=gpu::FramebufferPointer()*/) {
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& copyFbo /*=gpu::FramebufferPointer()*/) {
+    auto fbo = gpu::FramebufferPointer();
     batch.enableStereo(false);
     batch.resetViewTransform();
-    batch.setFramebuffer(destFbo);
+    batch.setFramebuffer(fbo);
     batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     batch.setStateScissorRect(scissor);
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
+#ifndef USE_GLES
     batch.setPipeline(_presentPipeline);
+#else
+    batch.setPipeline(_simplePipeline);
+#endif
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
         gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
@@ -567,7 +551,7 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
         batch.setViewportTransform(copyFboRect);
         batch.setStateScissorRect(copyFboRect);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, {0.0f, 0.0f, 0.0f, 1.0f});
-        batch.blit(destFbo, sourceRect, copyFbo, copyRect);
+        batch.blit(fbo, sourceRect, copyFbo, copyRect);
     }
 }
 
@@ -595,14 +579,41 @@ void OpenGLDisplayPlugin::updateFrameData() {
     });
 }
 
-void OpenGLDisplayPlugin::compositePointer(const gpu::FramebufferPointer& compositeFramebuffer) {
+std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
+    auto hudPipeline = _hudPipeline;
+    auto hudMirrorPipeline = _mirrorHUDPipeline;
+    auto hudStereo = isStereo();
+    auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
+    std::array<glm::ivec4, 2> hudEyeViewports;
+    for_each_eye([&](Eye eye) {
+        hudEyeViewports[eye] = eyeViewport(eye);
+    });
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+        if (hudPipeline && hudTexture) {
+            batch.enableStereo(false);
+            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
+            batch.setResourceTexture(0, hudTexture);
+            if (hudStereo) {
+                for_each_eye([&](Eye eye) {
+                    batch.setViewportTransform(hudEyeViewports[eye]);
+                    batch.draw(gpu::TRIANGLE_STRIP, 4);
+                });
+            } else {
+                batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            }
+        }
+    };
+}
+
+void OpenGLDisplayPlugin::compositePointer() {
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto cursorTransform = DependencyManager::get<CompositorHelper>()->getReticleTransform(glm::mat4());
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
-        batch.setFramebuffer(compositeFramebuffer);
+        batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
@@ -613,13 +624,34 @@ void OpenGLDisplayPlugin::compositePointer(const gpu::FramebufferPointer& compos
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             });
         } else {
-            batch.setViewportTransform(ivec4(uvec2(0), compositeFramebuffer->getSize()));
+            batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
 }
 
-void OpenGLDisplayPlugin::compositeLayers(const gpu::FramebufferPointer& compositeFramebuffer) {
+void OpenGLDisplayPlugin::compositeScene() {
+    render([&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setViewportTransform(ivec4(uvec2(), _compositeFramebuffer->getSize()));
+        batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
+        batch.resetViewTransform();
+        batch.setProjectionTransform(mat4());
+        batch.setPipeline(_simplePipeline);
+        batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
+}
+
+void OpenGLDisplayPlugin::compositeLayers() {
+    updateCompositeFramebuffer();
+
+    {
+        PROFILE_RANGE_EX(render_detail, "compositeScene", 0xff0077ff, (uint64_t)presentCount())
+        compositeScene();
+    }
+
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
     if (false) // do not draw the HUD if running nsight debug
 #endif
@@ -633,35 +665,23 @@ void OpenGLDisplayPlugin::compositeLayers(const gpu::FramebufferPointer& composi
 
     {
         PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
-        compositeExtra(compositeFramebuffer);
+        compositeExtra();
     }
 
     // Draw the pointer last so it's on top of everything
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     if (compositorHelper->getReticleVisible()) {
         PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
-            compositePointer(compositeFramebuffer);
+            compositePointer();
     }
 }
 
-void OpenGLDisplayPlugin::internalPresent(const gpu::FramebufferPointer& compositeFramebuffer) {
+void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         // Note: _displayTexture must currently be the same size as the display.
         uvec2 dims = _displayTexture ? uvec2(_displayTexture->getDimensions()) : getSurfacePixels();
         auto viewport = ivec4(uvec2(0),  dims);
-
-        gpu::TexturePointer finalTexture;
-        if (_displayTexture) {
-            finalTexture = _displayTexture;
-        } else if (compositeFramebuffer) {
-            finalTexture = compositeFramebuffer->getRenderBuffer(0);
-        } else {
-            qCWarning(displayPlugins) << "No valid texture for output";
-        }
-            
-        if (finalTexture) {
-            renderFromTexture(batch, finalTexture, viewport, viewport);
-        } 
+        renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
      });
     swapBuffers();
     _presentRate.increment();
@@ -678,7 +698,7 @@ void OpenGLDisplayPlugin::present() {
     }
     incrementPresentCount();
 
-    if (_currentFrame && _currentFrame->framebuffer) {
+    if (_currentFrame) {
         auto correction = getViewCorrection();
         getGLBackend()->setCameraCorrection(correction, _prevRenderView);
         _prevRenderView = correction * _currentFrame->view;
@@ -698,18 +718,31 @@ void OpenGLDisplayPlugin::present() {
         // Write all layers to a local framebuffer
         {
             PROFILE_RANGE_EX(render, "composite", 0xff00ffff, frameId)
-            compositeLayers(_currentFrame->framebuffer);
+            compositeLayers();
+        }
+
+        { // If we have any snapshots this frame, handle them
+            PROFILE_RANGE_EX(render, "snapshotOperators", 0xffff00ff, frameId)
+            while (!_currentFrame->snapshotOperators.empty()) {
+                auto& snapshotOperator = _currentFrame->snapshotOperators.front();
+                if (std::get<2>(snapshotOperator)) {
+                    std::get<0>(snapshotOperator)(getScreenshot(std::get<1>(snapshotOperator)));
+                } else {
+                    std::get<0>(snapshotOperator)(getSecondaryCameraScreenshot());
+                }
+                _currentFrame->snapshotOperators.pop();
+            }
         }
 
         // Take the composite framebuffer and send it to the output device
         {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
-            internalPresent(_currentFrame->framebuffer);
+            internalPresent();
         }
 
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
     } else if (alwaysPresent()) {
-        internalPresent(nullptr);
+        internalPresent();
     }
     _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }
@@ -765,13 +798,8 @@ bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
     return !!_displayTexture;
 }
 
-QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
-    if (!_currentFrame || !_currentFrame->framebuffer) {
-        return QImage();
-    }
-
-    auto compositeFramebuffer = _currentFrame->framebuffer;
-    auto size = compositeFramebuffer->getSize();
+QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) {
+    auto size = _compositeFramebuffer->getSize();
     if (isHmd()) {
         size.x /= 2;
     }
@@ -786,24 +814,18 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
         corner.x = round((size.x - bestSize.x) / 2.0f);
         corner.y = round((size.y - bestSize.y) / 2.0f);
     }
-    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
-    withOtherThreadContext([&] {
-        glBackend->downloadFramebuffer(compositeFramebuffer, ivec4(corner, bestSize), screenshot);
-    });
+    getGLBackend()->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
     return screenshot.mirrored(false, true);
 }
 
-QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() const {
+QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() {
     auto textureCache = DependencyManager::get<TextureCache>();
     auto secondaryCameraFramebuffer = textureCache->getSpectatorCameraFramebuffer();
     gpu::Vec4i region(0, 0, secondaryCameraFramebuffer->getWidth(), secondaryCameraFramebuffer->getHeight());
 
-    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(region.z, region.w, QImage::Format_ARGB32);
-    withOtherThreadContext([&] {
-        glBackend->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
-    });
+    getGLBackend()->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
     return screenshot.mirrored(false, true);
 }
 
@@ -841,7 +863,7 @@ bool OpenGLDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
 }
 
 ivec4 OpenGLDisplayPlugin::eyeViewport(Eye eye) const {
-    auto vpSize = glm::uvec2(getRecommendedRenderSize());
+    uvec2 vpSize = _compositeFramebuffer->getSize();
     vpSize.x /= 2;
     uvec2 vpPos;
     if (eye == Eye::Right) {
@@ -872,6 +894,14 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 }
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
+}
+
+void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
+    auto renderSize = glm::uvec2(getRecommendedRenderSize());
+    if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+       // _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
+    }
 }
 
 void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {

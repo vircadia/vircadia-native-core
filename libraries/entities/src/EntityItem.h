@@ -303,6 +303,9 @@ public:
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
+    void setCauterized(bool value);
+    bool getCauterized() const;
+
     inline bool isVisible() const { return getVisible(); }
     inline bool isInvisible() const { return !getVisible(); }
 
@@ -448,7 +451,7 @@ public:
     bool clearActions(EntitySimulationPointer simulation);
     void setDynamicData(QByteArray dynamicData);
     const QByteArray getDynamicData() const;
-    bool hasActions() const { return !_objectActions.empty(); }
+    bool hasActions() const { return !_objectActions.empty() || !_grabActions.empty(); }
     QList<QUuid> getActionIDs() const { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
@@ -529,9 +532,6 @@ public:
 
     static QString _marketplacePublicKey;
     static void retrieveMarketplacePublicKey();
-
-    void setCauterized(bool value) { _cauterized = value; }
-    bool getCauterized() const { return _cauterized; }
 
     float getBoundingRadius() const { return _boundingRadius; }
     void setSpaceIndex(int32_t index);

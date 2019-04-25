@@ -26,11 +26,10 @@ QUrl getBakeableModelURL(const QUrl& url) {
         GLTF_EXTENSION
     };
 
-    QUrl cleanURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
-    QString cleanURLString = cleanURL.fileName();
+    QString filename = url.fileName();
     for (auto& extension : extensionsToBake) {
-        if (cleanURLString.endsWith(extension, Qt::CaseInsensitive)) {
-            return cleanURL;
+        if (filename.endsWith(extension, Qt::CaseInsensitive)) {
+            return url;
         }
     }
 
@@ -45,7 +44,7 @@ bool isModelBaked(const QUrl& bakeableModelURL) {
     return beforeModelExtension.endsWith(".baked");
 }
 
-std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& contentOutputPath) {
+std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, const QString& contentOutputPath) {
     auto filename = bakeableModelURL.fileName();
 
     // Output in a sub-folder with the name of the model, potentially suffixed by a number to make it unique
@@ -59,20 +58,20 @@ std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureB
     QString bakedOutputDirectory = contentOutputPath + subDirName + "/baked";
     QString originalOutputDirectory = contentOutputPath + subDirName + "/original";
 
-    return getModelBakerWithOutputDirectories(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
+    return getModelBakerWithOutputDirectories(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory);
 }
 
-std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& bakedOutputDirectory, const QString& originalOutputDirectory) {
+std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakeableModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory) {
     auto filename = bakeableModelURL.fileName();
 
     std::unique_ptr<ModelBaker> baker;
 
     if (filename.endsWith(FST_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<FSTBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
+        baker = std::make_unique<FSTBaker>(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<FBXBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive));
+        baker = std::make_unique<FBXBaker>(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<OBJBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
+        baker = std::make_unique<OBJBaker>(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory);
     //} else if (filename.endsWith(GLTF_EXTENSION, Qt::CaseInsensitive)) {
         //baker = std::make_unique<GLTFBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
     } else {

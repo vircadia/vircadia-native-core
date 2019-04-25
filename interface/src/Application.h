@@ -1,4 +1,4 @@
-//
+﻿//
 //  Application.h
 //  interface/src
 //
@@ -156,6 +156,7 @@ public:
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
     void resizeGL();
 
+    bool notify(QObject *, QEvent *) override;
     bool event(QEvent* event) override;
     bool eventFilter(QObject* object, QEvent* event) override;
 
@@ -330,6 +331,9 @@ public:
     void createLoginDialog();
     void updateLoginDialogPosition();
 
+    void createAvatarInputsBar();
+    void destroyAvatarInputsBar();
+
     // Check if a headset is connected
     bool hasRiftControllers();
     bool hasViveControllers();
@@ -340,6 +344,12 @@ public:
     void enterForeground();
     void toggleAwayMode();
     #endif
+
+    using SnapshotOperator = std::tuple<std::function<void(const QImage&)>, float, bool>;
+    void addSnapshotOperator(const SnapshotOperator& snapshotOperator);
+    bool takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators);
+
+    void openDirectory(const QString& path);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -399,8 +409,6 @@ public slots:
     void readArgumentsFromLocalSocket() const;
 
     static void packageModel();
-
-    void openUrl(const QUrl& url) const;
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
@@ -469,6 +477,7 @@ public slots:
     QString getGraphicsCardType();
 
     bool gpuTextureMemSizeStable();
+    void showUrlHandler(const QUrl& url);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -705,12 +714,14 @@ private:
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
     bool _interstitialModeEnabled{ false };
 
-    bool _loginDialogPoppedUp = false;
+    bool _loginDialogPoppedUp{ false };
+    bool _desktopRootItemCreated{ false };
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
     CameraMode _previousCameraMode;
     QUuid _loginDialogID;
+    QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;
@@ -784,6 +795,9 @@ private:
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
     SharedSoundPointer _sampleSound;
+    std::mutex _snapshotMutex;
+    std::queue<SnapshotOperator> _snapshotOperators;
+    bool _hasPrimarySnapshot { false };
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
@@ -803,5 +817,8 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
+    bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
 };
 #endif // hifi_Application_h

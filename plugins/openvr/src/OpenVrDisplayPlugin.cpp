@@ -511,13 +511,13 @@ void OpenVrDisplayPlugin::customizeContext() {
     Parent::customizeContext();
 
     if (_threadedSubmit) {
-//        _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
+        _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
         for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
-//            if (0 != i) {
+            if (0 != i) {
                 _compositeInfos[i].texture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x,
                                                                               _renderTargetSize.y, gpu::Texture::SINGLE_MIP,
                                                                               gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT));
-//            }
+            }
             _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture);
         }
         _submitThread->_canvas = _submitCanvas;
@@ -613,17 +613,17 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     return Parent::beginFrameRender(frameIndex);
 }
 
-void OpenVrDisplayPlugin::compositeLayers(const gpu::FramebufferPointer& compositeFramebuffer) {
+void OpenVrDisplayPlugin::compositeLayers() {
     if (_threadedSubmit) {
         ++_renderingIndex;
         _renderingIndex %= COMPOSITING_BUFFER_SIZE;
 
         auto& newComposite = _compositeInfos[_renderingIndex];
         newComposite.pose = _currentPresentFrameInfo.presentPose;
-        compositeFramebuffer->setRenderBuffer(0, newComposite.texture);
+        _compositeFramebuffer->setRenderBuffer(0, newComposite.texture);
     }
 
-    Parent::compositeLayers(compositeFramebuffer);
+    Parent::compositeLayers();
 
     if (_threadedSubmit) {
         auto& newComposite = _compositeInfos[_renderingIndex];
@@ -645,13 +645,13 @@ void OpenVrDisplayPlugin::compositeLayers(const gpu::FramebufferPointer& composi
     }
 }
 
-void OpenVrDisplayPlugin::hmdPresent(const gpu::FramebufferPointer& compositeFramebuffer) {
+void OpenVrDisplayPlugin::hmdPresent() {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     if (_threadedSubmit) {
         _submitThread->waitForPresent();
     } else {
-        GLuint glTexId = getGLBackend()->getTextureID(compositeFramebuffer->getRenderBuffer(0));
+        GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
         vr::Texture_t vrTexture{ (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
         vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);
@@ -783,4 +783,49 @@ QRectF OpenVrDisplayPlugin::getPlayAreaRect() {
     glm::vec2 dimensions = glm::vec2(maxXZ.x - minXZ.x, maxXZ.z - minXZ.z);
 
     return QRectF(center.x, center.y, dimensions.x, dimensions.y);
+}
+
+DisplayPlugin::StencilMaskMeshOperator OpenVrDisplayPlugin::getStencilMaskMeshOperator() {
+    if (_system) {
+        if (!_stencilMeshesInitialized) {
+            _stencilMeshesInitialized = true;
+            for (auto eye : VR_EYES) {
+                vr::HiddenAreaMesh_t stencilMesh = _system->GetHiddenAreaMesh(eye);
+                if (stencilMesh.pVertexData && stencilMesh.unTriangleCount > 0) {
+                    std::vector<glm::vec3> vertices;
+                    std::vector<uint32_t> indices;
+
+                    const int NUM_INDICES_PER_TRIANGLE = 3;
+                    int numIndices = stencilMesh.unTriangleCount * NUM_INDICES_PER_TRIANGLE;
+                    vertices.reserve(numIndices);
+                    indices.reserve(numIndices);
+                    for (int i = 0; i < numIndices; i++) {
+                        vr::HmdVector2_t vertex2D = stencilMesh.pVertexData[i];
+                        // We need the vertices in clip space
+                        vertices.emplace_back(vertex2D.v[0] - (1.0f - (float)eye), 2.0f * vertex2D.v[1] - 1.0f, 0.0f);
+                        indices.push_back(i);
+                    }
+
+                    _stencilMeshes[eye] = graphics::Mesh::createIndexedTriangles_P3F((uint32_t)vertices.size(), (uint32_t)indices.size(), vertices.data(), indices.data());
+                } else {
+                    _stencilMeshesInitialized = false;
+                }
+            }
+        }
+
+        if (_stencilMeshesInitialized) {
+            return [&](gpu::Batch& batch) {
+                for (auto& mesh : _stencilMeshes) {
+                    batch.setIndexBuffer(mesh->getIndexBuffer());
+                    batch.setInputFormat((mesh->getVertexFormat()));
+                    batch.setInputStream(0, mesh->getVertexStream());
+
+                    // Draw
+                    auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
+                    batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+                }
+            };
+        }
+    }
+    return nullptr;
 }

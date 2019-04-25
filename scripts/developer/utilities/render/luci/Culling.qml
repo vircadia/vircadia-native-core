@@ -9,11 +9,16 @@
 //
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import "configSlider"
+
+import "../../lib/prop" as Prop
 
 Column {
     id: root
     spacing: 8
+
+    anchors.left: parent.left;
+    anchors.right: parent.right;
+
     property var sceneOctree: Render.getConfig("RenderMainView.DrawSceneOctree");
     property var itemSelection: Render.getConfig("RenderMainView.DrawItemSelection");
 
@@ -36,6 +41,10 @@ Column {
 
     GroupBox {
         title: "Culling"
+        
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+
         Row {
             spacing: 8
             Column {
@@ -91,6 +100,7 @@ Column {
                 }
             }
         }
+      
     }
 
     GroupBox {
@@ -103,13 +113,14 @@ Column {
             anchors.right: parent.right;
             Repeater {
                 model: [ "Opaque:RenderMainView.DrawOpaqueDeferred", "Transparent:RenderMainView.DrawTransparentDeferred", "Light:RenderMainView.DrawLight",
-                        "Opaque Overlays:RenderMainView.DrawOverlay3DOpaque", "Transparent Overlays:RenderMainView.DrawOverlay3DTransparent" ]
-                ConfigSlider {
+                        "Opaque InFront:RenderMainView.DrawInFrontOpaque", "Transparent InFront:RenderMainView.DrawInFrontTransparent",
+                        "Opaque HUD:RenderMainView.DrawHUDOpaque", "Transparent HUD:RenderMainView.DrawHUDTransparent" ]
+                Prop.PropScalar {
                     label: qsTr(modelData.split(":")[0])
                     integral: true
-                    config: Render.getConfig(modelData.split(":")[1])
+                    object: Render.getConfig(modelData.split(":")[1])
                     property: "maxDrawn"
-                    max: config.numDrawn
+                    max: object.numDrawn
                     min: -1
                 }
             }

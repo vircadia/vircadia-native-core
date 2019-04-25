@@ -163,7 +163,7 @@ ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
                                                  const QString& scriptContents,
                                                  const QString& fileNameString) {
     ScriptEngine* engine = new ScriptEngine(context, scriptContents, fileNameString);
-    ScriptEnginePointer engineSP = ScriptEnginePointer(engine);
+    ScriptEnginePointer engineSP = ScriptEnginePointer(engine, &QObject::deleteLater);
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     scriptEngines->addScriptEngine(qSharedPointerCast<ScriptEngine>(engineSP));
     engine->setScriptEngines(scriptEngines);
@@ -267,7 +267,7 @@ void ScriptEngine::disconnectNonEssentialSignals() {
     QThread* workerThread;
     // Ensure the thread should be running, and does exist
     if (_isRunning && _isThreaded && (workerThread = thread())) {
-        connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+        connect(this, &QObject::destroyed, workerThread, &QThread::quit);
         connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
     }
 }
@@ -381,7 +381,7 @@ void ScriptEngine::runInThread() {
     // the script engine, make sure to add code to "reconnect" them to the
     // disconnectNonEssentialSignals() method
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
-    connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+    connect(this, &QObject::destroyed, workerThread, &QThread::quit);
     connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
 
     workerThread->start();
@@ -579,6 +579,8 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
 }
 
 /**jsdoc
+ * The <code>Resource</code> API provides values that define the possible loading states of a resource.
+ *
  * @namespace Resource
  *
  * @hifi-interface
@@ -587,7 +589,7 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {Resource.State} State
+ * @property {Resource.State} State - The possible loading states of a resource. <em>Read-only.</em>
  */
 static QScriptValue createScriptableResourcePrototype(ScriptEnginePointer engine) {
     auto prototype = engine->newObject();

@@ -13,7 +13,6 @@
 
 #include <glm/gtx/transform.hpp>
 #include <QDebug>
-#include <QUrlQuery>
 
 #include <ByteCountCoding.h>
 
@@ -353,7 +352,7 @@ bool ZoneEntityItem::contains(const glm::vec3& point) const {
 
             Extents meshExtents = hfmModel.getMeshExtents();
             glm::vec3 meshExtentsDiagonal = meshExtents.maximum - meshExtents.minimum;
-            glm::vec3 offset = -meshExtents.minimum- (meshExtentsDiagonal * getRegistrationPoint());
+            glm::vec3 offset = -meshExtents.minimum - (meshExtentsDiagonal * getRegistrationPoint());
             glm::vec3 scale(getScaledDimensions() / meshExtentsDiagonal);
 
             glm::mat4 hfmToEntityMatrix = glm::scale(scale) * glm::translate(offset);
@@ -463,9 +462,6 @@ void ZoneEntityItem::fetchCollisionGeometryResource() {
     if (hullURL.isEmpty()) {
         _shapeResource.reset();
     } else {
-        QUrlQuery queryArgs(hullURL);
-        queryArgs.addQueryItem("collision-hull", "");
-        hullURL.setQuery(queryArgs);
         _shapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
 }

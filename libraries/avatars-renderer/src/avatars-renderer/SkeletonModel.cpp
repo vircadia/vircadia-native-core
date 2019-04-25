@@ -270,28 +270,19 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
         getJointPosition(_rig.indexOfJoint("RightEye"), secondEyePosition)) {
         return true;
     }
-    // no eye joints; try to estimate based on head/neck joints
-    glm::vec3 neckPosition, headPosition;
-    if (getJointPosition(_rig.indexOfJoint("Neck"), neckPosition) &&
-        getJointPosition(_rig.indexOfJoint("Head"), headPosition)) {
-        const float EYE_PROPORTION = 0.6f;
-        glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
+
+    int headJointIndex = _rig.indexOfJoint("Head");
+    glm::vec3 headPosition;
+    if (getJointPosition(headJointIndex, headPosition)) {
+
+        // get head joint rotation.
         glm::quat headRotation;
-        getJointRotation(_rig.indexOfJoint("Head"), headRotation);
-        const float EYES_FORWARD = 0.25f;
-        const float EYE_SEPARATION = 0.1f;
-        float headHeight = glm::distance(neckPosition, headPosition);
-        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
-        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
-        return true;
-    } else if (getJointPosition(_rig.indexOfJoint("Head"), headPosition)) {
-        glm::vec3 baseEyePosition = headPosition;
-        glm::quat headRotation;
-        getJointRotation(_rig.indexOfJoint("Head"), headRotation);
-        const float EYES_FORWARD_HEAD_ONLY = 0.30f;
-        const float EYE_SEPARATION = 0.1f;
-        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
-        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
+        getJointRotation(headJointIndex, headRotation);
+
+        float heightRatio = _rig.getUnscaledEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
+        glm::vec3 ipdOffset = glm::vec3(DEFAULT_AVATAR_IPD / 2.0f, 0.0f, 0.0f);
+        firstEyePosition = headPosition + headRotation * heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET + ipdOffset);
+        secondEyePosition = headPosition + headRotation * heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET - ipdOffset);
         return true;
     }
     return false;

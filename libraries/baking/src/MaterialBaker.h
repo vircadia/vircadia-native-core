@@ -24,16 +24,22 @@ static const QString BAKED_MATERIAL_EXTENSION = ".baked.json";
 class MaterialBaker : public Baker {
     Q_OBJECT
 public:
-    MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, const QUrl& destinationPath);
+    MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, QUrl destinationPath = QUrl());
 
     QString getMaterialData() const { return _materialData; }
     bool isURL() const { return _isURL; }
     QString getBakedMaterialData() const { return _bakedMaterialData; }
 
+    void setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL);
+    void setMaterials(const NetworkMaterialResourcePointer& materialResource);
+
+    NetworkMaterialResourcePointer getNetworkMaterialResource() const { return _materialResource; }
+
     static void setNextOvenWorkerThreadOperator(std::function<QThread*()> getNextOvenWorkerThreadOperator) { _getNextOvenWorkerThreadOperator = getNextOvenWorkerThreadOperator; }
 
 public slots:
     virtual void bake() override;
+    virtual void abort() override;
 
 signals:
     void originalMaterialLoaded();
@@ -48,6 +54,7 @@ private:
 
     QString _materialData;
     bool _isURL;
+    QUrl _destinationPath;
 
     NetworkMaterialResourcePointer _materialResource;
 
@@ -57,11 +64,18 @@ private:
     QString _bakedOutputDir;
     QString _textureOutputDir;
     QString _bakedMaterialData;
-    QUrl _destinationPath;
 
     QScriptEngine _scriptEngine;
     static std::function<QThread*()> _getNextOvenWorkerThreadOperator;
     TextureFileNamer _textureFileNamer;
+
+    void addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture);
+    struct TextureUsageHash {
+        std::size_t operator()(image::TextureUsage::Type textureUsage) const {
+            return static_cast<std::size_t>(textureUsage);
+        }
+    };
+    std::unordered_map<std::string, std::unordered_map<image::TextureUsage::Type, std::pair<QByteArray, QString>, TextureUsageHash>> _textureContentMap;
 };
 
 #endif // !hifi_MaterialBaker_h

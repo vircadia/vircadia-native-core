@@ -307,10 +307,6 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
-    // because the caching system only allows one Geometry per url, and because this url might also be used
-    // as a visual model, we need to change this url in some way.  We add a "collision-hull" query-arg so it
-    // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
-    // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
     if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
@@ -1070,13 +1066,6 @@ ItemKey ModelEntityRenderer::getKey() {
     return _itemKey;
 }
 
-render::hifi::Tag ModelEntityRenderer::getTagMask() const {
-    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
-    return _cauterized ?
-        (_isVisibleInSecondaryCamera ? render::hifi::TAG_SECONDARY_VIEW : render::hifi::TAG_NONE) :
-        Parent::getTagMask(); // calculate which views to be shown in
-}
-
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
     if (_model) {
         auto metaSubItems = _model->fetchRenderItemIDs();
@@ -1411,6 +1400,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     if (model->isVisible() != _visible) {
         model->setVisibleInScene(_visible, scene);
+    }
+
+    if (model->isCauterized() != _cauterized) {
+        model->setCauterized(_cauterized, scene);
     }
 
     render::hifi::Tag tagMask = getTagMask();

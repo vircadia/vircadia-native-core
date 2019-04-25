@@ -882,14 +882,16 @@ static void convertInput_ref(int16_t* src, float *dst[4], float gain, int numFra
 
 #endif
 
-// in-place rotation of the soundfield
-// crossfade between old and new rotation, to prevent artifacts
-static void rotate_3x3_ref(float* buf[4], const float m0[3][3], const float m1[3][3], const float* win, int numFrames) {
+// in-place rotation and scaling of the soundfield
+// crossfade between old and new matrix, to prevent artifacts
+static void rotate_4x4_ref(float* buf[4], const float m0[4][4], const float m1[4][4], const float* win, int numFrames) {
 
-    const float md[3][3] = { 
-        { m0[0][0] - m1[0][0], m0[0][1] - m1[0][1], m0[0][2] - m1[0][2] },
-        { m0[1][0] - m1[1][0], m0[1][1] - m1[1][1], m0[1][2] - m1[1][2] },
-        { m0[2][0] - m1[2][0], m0[2][1] - m1[2][1], m0[2][2] - m1[2][2] },
+    // matrix difference
+    const float md[4][4] = { 
+        { m0[0][0] - m1[0][0], m0[0][1] - m1[0][1], m0[0][2] - m1[0][2], m0[0][3] - m1[0][3] },
+        { m0[1][0] - m1[1][0], m0[1][1] - m1[1][1], m0[1][2] - m1[1][2], m0[1][3] - m1[1][3] },
+        { m0[2][0] - m1[2][0], m0[2][1] - m1[2][1], m0[2][2] - m1[2][2], m0[2][3] - m1[2][3] },
+        { m0[3][0] - m1[3][0], m0[3][1] - m1[3][1], m0[3][2] - m1[3][2], m0[3][3] - m1[3][3] },
     };
 
     for (int i = 0; i < numFrames; i++) {
@@ -898,22 +900,27 @@ static void rotate_3x3_ref(float* buf[4], const float m0[3][3], const float m1[3
 
         // interpolate the matrix
         float m00 = m1[0][0] + frac * md[0][0];
-        float m10 = m1[1][0] + frac * md[1][0];
-        float m20 = m1[2][0] + frac * md[2][0];
 
-        float m01 = m1[0][1] + frac * md[0][1];
         float m11 = m1[1][1] + frac * md[1][1];
         float m21 = m1[2][1] + frac * md[2][1];
+        float m31 = m1[3][1] + frac * md[3][1];
 
-        float m02 = m1[0][2] + frac * md[0][2];
         float m12 = m1[1][2] + frac * md[1][2];
         float m22 = m1[2][2] + frac * md[2][2];
+        float m32 = m1[3][2] + frac * md[3][2];
+
+        float m13 = m1[1][3] + frac * md[1][3];
+        float m23 = m1[2][3] + frac * md[2][3];
+        float m33 = m1[3][3] + frac * md[3][3];
 
         // matrix multiply
-        float x = m00 * buf[1][i] + m01 * buf[2][i] + m02 * buf[3][i];
-        float y = m10 * buf[1][i] + m11 * buf[2][i] + m12 * buf[3][i];
-        float z = m20 * buf[1][i] + m21 * buf[2][i] + m22 * buf[3][i];
+        float w = m00 * buf[0][i];
 
+        float x = m11 * buf[1][i] + m12 * buf[2][i] + m13 * buf[3][i];
+        float y = m21 * buf[1][i] + m22 * buf[2][i] + m23 * buf[3][i];
+        float z = m31 * buf[1][i] + m32 * buf[2][i] + m33 * buf[3][i];
+
+        buf[0][i] = w;
         buf[1][i] = x;
         buf[2][i] = y;
         buf[3][i] = z;
@@ -932,7 +939,7 @@ void rfft512_AVX2(float buf[512]);
 void rifft512_AVX2(float buf[512]);
 void rfft512_cmadd_1X2_AVX2(const float src[512], const float coef0[512], const float coef1[512], float dst0[512], float dst1[512]);
 void convertInput_AVX2(int16_t* src, float *dst[4], float gain, int numFrames);
-void rotate_3x3_AVX2(float* buf[4], const float m0[3][3], const float m1[3][3], const float* win, int numFrames);
+void rotate_4x4_AVX2(float* buf[4], const float m0[4][4], const float m1[4][4], const float* win, int numFrames);
 
 static void rfft512(float buf[512]) {
     static auto f = cpuSupportsAVX2() ? rfft512_AVX2 : rfft512_ref;
@@ -954,8 +961,8 @@ static void convertInput(int16_t* src, float *dst[4], float gain, int numFrames)
     (*f)(src, dst, gain, numFrames);  // dispatch
 }
 
-static void rotate_3x3(float* buf[4], const float m0[3][3], const float m1[3][3], const float* win, int numFrames) {
-    static auto f = cpuSupportsAVX2() ? rotate_3x3_AVX2 : rotate_3x3_ref;
+static void rotate_4x4(float* buf[4], const float m0[4][4], const float m1[4][4], const float* win, int numFrames) {
+    static auto f = cpuSupportsAVX2() ? rotate_4x4_AVX2 : rotate_4x4_ref;
     (*f)(buf, m0, m1, win, numFrames);  // dispatch
 }
 
@@ -965,7 +972,7 @@ static auto& rfft512 = rfft512_ref;
 static auto& rifft512 = rifft512_ref;
 static auto& rfft512_cmadd_1X2 = rfft512_cmadd_1X2_ref;
 static auto& convertInput = convertInput_ref;
-static auto& rotate_3x3 = rotate_3x3_ref;
+static auto& rotate_4x4 = rotate_4x4_ref;
 
 #endif
 
@@ -1007,8 +1014,8 @@ ALIGN32 static const float crossfadeTable[FOA_BLOCK] = {
     0.0020975362f, 0.0015413331f, 0.0010705384f, 0.0006852326f, 0.0003854819f, 0.0001713375f, 0.0000428362f, 0.0000000000f, 
 };
 
-// convert quaternion to a column-major 3x3 rotation matrix
-static void quatToMatrix_3x3(float w, float x, float y, float z, float m[3][3]) {
+// convert quaternion to a column-major 4x4 rotation matrix
+static void quatToMatrix_4x4(float w, float x, float y, float z, float m[4][4]) {
 
     float xx = x * (x + x);
     float xy = x * (y + y);
@@ -1022,17 +1029,33 @@ static void quatToMatrix_3x3(float w, float x, float y, float z, float m[3][3]) 
     float wy = w * (y + y);
     float wz = w * (z + z);
 
-    m[0][0] = 1.0f - (yy + zz);
-    m[0][1] = xy - wz;
-    m[0][2] = xz + wy;
+    m[0][0] = 1.0f;
+    m[0][1] = 0.0f;
+    m[0][2] = 0.0f;
+    m[0][3] = 0.0f;
 
-    m[1][0] = xy + wz;
-    m[1][1] = 1.0f - (xx + zz);
-    m[1][2] = yz - wx;
+    m[1][0] = 0.0f;
+    m[1][1] = 1.0f - (yy + zz);
+    m[1][2] = xy - wz;
+    m[1][3] = xz + wy;
 
-    m[2][0] = xz - wy;
-    m[2][1] = yz + wx;
-    m[2][2] = 1.0f - (xx + yy);
+    m[2][0] = 0.0f;
+    m[2][1] = xy + wz;
+    m[2][2] = 1.0f - (xx + zz);
+    m[2][3] = yz - wx;
+
+    m[3][0] = 0.0f;
+    m[3][1] = xz - wy;
+    m[3][2] = yz + wx;
+    m[3][3] = 1.0f - (xx + yy);
+}
+
+static void scaleMatrix_4x4(float scale, float m[4][4]) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            m[i][j] *= scale;
+        }
+    }
 }
 
 // Ambisonic to binaural render
@@ -1047,18 +1070,26 @@ void AudioFOA::render(int16_t* input, float* output, int index, float qw, float 
     ALIGN32 float inBuffer[4][FOA_BLOCK];       // deinterleaved input buffers
 
     float* in[4] = { inBuffer[0], inBuffer[1], inBuffer[2], inBuffer[3] };
-    float rotation[3][3];
+    float rotation[4][4];
 
     // convert input to deinterleaved float
-    convertInput(input, in, FOA_GAIN * gain, FOA_BLOCK);
+    convertInput(input, in, FOA_GAIN, FOA_BLOCK);
 
-    // convert quaternion to 3x3 rotation
-    quatToMatrix_3x3(qw, qx, qy, qz, rotation);
+    // convert quaternion to 4x4 rotation
+    quatToMatrix_4x4(qw, qx, qy, qz, rotation);
 
-    // rotate the soundfield
-    rotate_3x3(in, _rotationState, rotation, crossfadeTable, FOA_BLOCK);
+    // apply gain as uniform scale
+    scaleMatrix_4x4(gain, rotation);
 
-    // rotation history update
+    // disable interpolation from reset state
+    if (_resetState) {
+        memcpy(_rotationState, rotation, sizeof(_rotationState));
+    }
+
+    // rotate and scale the soundfield
+    rotate_4x4(in, _rotationState, rotation, crossfadeTable, FOA_BLOCK);
+
+    // new parameters become old
     memcpy(_rotationState, rotation, sizeof(_rotationState));
 
     //
@@ -1093,4 +1124,6 @@ void AudioFOA::render(int16_t* input, float* output, int index, float qw, float 
         output[2*i+0] += accBuffer[0][i + FOA_OVERLAP];
         output[2*i+1] += accBuffer[1][i + FOA_OVERLAP];
     }
+
+    _resetState = false;
 }

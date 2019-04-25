@@ -16,6 +16,7 @@
 
 #include <GLMHelpers.h>
 #include <ViewFrustum.h>
+#include <StencilMaskMode.h>
 
 #include <gpu/Forward.h>
 #include "Forward.h"
@@ -61,7 +62,7 @@ namespace render {
 
     class Args {
     public:
-        enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE, SECONDARY_CAMERA_RENDER_MODE };
+        enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE, SECONDARY_CAMERA_RENDER_MODE };
         enum DisplayMode { MONO, STEREO_MONITOR, STEREO_HMD };
         enum DebugFlags {
             RENDER_DEBUG_NONE = 0,
@@ -131,8 +132,12 @@ namespace render {
         render::ScenePointer _scene;
         int8_t _cameraMode { -1 };
 
-        std::function<void(gpu::Batch&, const gpu::TexturePointer&, const gpu::FramebufferPointer&, bool mirror)> _hudOperator;
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator;
         gpu::TexturePointer _hudTexture;
+
+        bool _takingSnapshot { false };
+        StencilMaskMode _stencilMaskMode { StencilMaskMode::NONE };
+        std::function<void(gpu::Batch&)> _stencilMaskOperator;
     };
 
 }

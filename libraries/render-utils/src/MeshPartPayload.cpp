@@ -154,8 +154,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
@@ -416,7 +415,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!args) {
+    if (!args || (args->_renderMode == RenderArgs::RenderMode::DEFAULT_RENDER_MODE && _cauterized)) {
         return;
     }
 
@@ -434,8 +433,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 

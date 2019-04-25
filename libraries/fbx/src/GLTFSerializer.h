@@ -712,6 +712,7 @@ private:
     hifi::ByteArray _glbBinary;
 
     glm::mat4 getModelTransform(const GLTFNode& node);
+    void getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues);
 
     bool buildGeometry(HFMModel& hfmModel, const hifi::URL& url);
     bool parseGLTF(const hifi::ByteArray& data);
@@ -783,6 +784,7 @@ private:
 
     void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
+    void glTFDebugDump();
     void hfmDebugDump(const HFMModel& hfmModel);
 };
 

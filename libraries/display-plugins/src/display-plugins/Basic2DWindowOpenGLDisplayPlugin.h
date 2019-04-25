@@ -33,7 +33,7 @@ public:
 
     virtual bool isThrottled() const override;
 
-    virtual void compositeExtra(const gpu::FramebufferPointer&) override;
+    virtual void compositeExtra() override;
 
     virtual void pluginUpdate() override {};
 

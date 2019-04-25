@@ -261,7 +261,7 @@ public:
                 qCDebug(animation) << "    " << pair.first << "=" << pair.second.getString();
                 break;
             default:
-                assert(("invalid AnimVariant::Type", false));
+                assert(false);
             }
         }
     }

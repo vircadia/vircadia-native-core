@@ -336,6 +336,8 @@ Rectangle {
                         case Qt.Key_Return: 
                         case Qt.Key_Enter: 
                             event.accepted = true;
+                            keypressTimer.stop();
+                            root.searchString = searchField.text;
                             searchField.text = "";
 
                             getMarketplaceItems();
@@ -950,7 +952,7 @@ Rectangle {
                     text: "LOG IN"
 
                     onClicked: {
-                        sendToScript({method: 'needsLogIn_loginClicked'});
+                        sendToScript({method: 'marketplace_loginClicked'});
                     }
                 }
 

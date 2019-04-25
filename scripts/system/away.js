@@ -171,7 +171,7 @@ function goAway(fromStartup) {
     if (!previousBubbleState) {
         Users.toggleIgnoreRadius();
     }
-    UserActivityLogger.bubbleToggled(Users.getIgnoreRadiusEnabled());
+    UserActivityLogger.privacyShieldToggled(Users.getIgnoreRadiusEnabled());
     UserActivityLogger.toggledAway(true);
     MyAvatar.isAway = true;
 }
@@ -186,7 +186,7 @@ function goActive() {
 
     if (Users.getIgnoreRadiusEnabled() !== previousBubbleState) {
         Users.toggleIgnoreRadius();
-        UserActivityLogger.bubbleToggled(Users.getIgnoreRadiusEnabled());
+        UserActivityLogger.privacyShieldToggled(Users.getIgnoreRadiusEnabled());
     }
 
     if (!Window.hasFocus()) {

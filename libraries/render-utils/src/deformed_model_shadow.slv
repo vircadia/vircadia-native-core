@@ -18,9 +18,15 @@
 <$declareMeshDeformer(_SCRIBE_NULL, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
 <$declareMeshDeformerActivation(1, 1)$>
 
+<@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+
+<$declareMaterialTexMapArrayBuffer()$>
+
 <@include render-utils/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 void main(void) {
     vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
@@ -33,5 +39,14 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, deformedPosition, gl_Position)$>
     <$transformModelToWorldPos(obj, deformedPosition, _positionWS)$>
+
+    Material mat = getMaterial();
+    BITFIELD matKey = getMaterialKey(mat);
+    _texCoord01 = vec4(0.0, 0.0, 0.0, 0.0);
+    // If we have an opacity mask than we need the first tex coord
+    if ((matKey & OPACITY_MASK_MAP_BIT) != 0) {
+        TexMapArray texMapArray = getTexMapArray();
+        <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _positionWS, _texCoord01.xy)$>
+    }
 }
 
