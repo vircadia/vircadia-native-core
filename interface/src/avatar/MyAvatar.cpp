@@ -1630,7 +1630,9 @@ void MyAvatar::handleChangedAvatarEntityData() {
         if (!skip) {
             sanitizeAvatarEntityProperties(properties);
             entityTree->withWriteLock([&] {
-                entityTree->updateEntity(id, properties);
+                if (entityTree->updateEntity(id, properties)) {
+                    packetSender->queueEditAvatarEntityMessage(entityTree, id);
+                }
             });
         }
     }
@@ -5811,12 +5813,19 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
 }
 
 void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "addAvatarHandsToFlow",
+            Q_ARG(const std::shared_ptr<Avatar>&, otherAvatar));
+        return;
+    }
     auto &flow = _skeletonModel->getRig().getFlow();
-    for (auto &handJointName : HAND_COLLISION_JOINTS) {
-        int jointIndex = otherAvatar->getJointIndex(handJointName);
-        if (jointIndex != -1) {
-            glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
-            flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+    if (otherAvatar != nullptr && flow.getActive()) {
+        for (auto &handJointName : HAND_COLLISION_JOINTS) {
+            int jointIndex = otherAvatar->getJointIndex(handJointName);
+            if (jointIndex != -1) {
+                glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
+                flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+            }
         }
     }
 }

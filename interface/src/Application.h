@@ -345,6 +345,10 @@ public:
     void toggleAwayMode();
     #endif
 
+    using SnapshotOperator = std::tuple<std::function<void(const QImage&)>, float, bool>;
+    void addSnapshotOperator(const SnapshotOperator& snapshotOperator);
+    bool takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators);
+
     void openDirectory(const QString& path);
 
 signals:
@@ -791,6 +795,9 @@ private:
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
     SharedSoundPointer _sampleSound;
+    std::mutex _snapshotMutex;
+    std::queue<SnapshotOperator> _snapshotOperators;
+    bool _hasPrimarySnapshot { false };
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;

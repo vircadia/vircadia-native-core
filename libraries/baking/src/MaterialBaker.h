@@ -31,6 +31,9 @@ public:
     QString getBakedMaterialData() const { return _bakedMaterialData; }
 
     void setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL);
+    void setMaterials(const NetworkMaterialResourcePointer& materialResource);
+
+    NetworkMaterialResourcePointer getNetworkMaterialResource() const { return _materialResource; }
 
     static void setNextOvenWorkerThreadOperator(std::function<QThread*()> getNextOvenWorkerThreadOperator) { _getNextOvenWorkerThreadOperator = getNextOvenWorkerThreadOperator; }
 
