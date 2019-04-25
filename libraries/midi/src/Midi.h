@@ -59,7 +59,7 @@ signals:
     /**jsdoc
      * Triggered when a connected device sends an output.
      * @function Midi.midiNote
-     * @param {MidiMessage} message - The MIDI message.
+     * @param {Midi.MidiMessage} message - The MIDI message.
      * @returns {Signal}
      * @deprecated This signal is deprecated and will be removed. Use {@link Midi.midiMessage|midiMessage} instead.
      */
@@ -68,7 +68,7 @@ signals:
     /**jsdoc
      * Triggered when a connected device sends an output.
      * @function Midi.midiMessage
-     * @param {MidiMessage} message - The MIDI message.
+     * @param {Midi.MidiMessage} message - The MIDI message.
      * @returns {Signal}
      */
     void midiMessage(QVariantMap eventData);
