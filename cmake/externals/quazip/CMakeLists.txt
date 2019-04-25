@@ -11,8 +11,6 @@ set(QUAZIP_CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
     -DZLIB_ROOT=${VCPKG_INSTALL_ROOT}
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
-message("=========================================================================Quazip CMakeList")
-message(${QT_CMAKE_PREFIX_PATH})
 
 if (NOT APPLE)
   set(QUAZIP_CMAKE_ARGS ${QUAZIP_CMAKE_ARGS} -DCMAKE_CXX_STANDARD=11)
