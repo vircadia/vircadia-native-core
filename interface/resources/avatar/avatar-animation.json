@@ -916,8 +916,8 @@
                                                                                                 "data": {
                                                                                                     "currentState": "idleTalk1",
 																									"triggerRandomSwitch": "idleTalkSwitch",
-																									"randomSwitchTimeMin": 10.0,
-																									"randomSwitchTimeMax": 20.0,
+																									"randomSwitchTimeMin": 5.0,
+																									"randomSwitchTimeMax": 10.0,
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "idleTalk1",
@@ -990,8 +990,8 @@
                                                                                                 "data": {
                                                                                                     "currentState": "masterIdle",
 																									"triggerRandomSwitch": "idleSwitch",
-																									"triggerTimeMin": 45.0,
-																									"triggerTimeMax": 500.0,
+																									"triggerTimeMin": 10.0,
+																									"triggerTimeMax": 40.0,
 																									"transitionVar": "timeToFidget",
                                                                                                     "states": [
                                                                                                         {
@@ -1032,8 +1032,8 @@
                                                                                                         "data": {
                                                                                                             "currentState": "masterIdle1",
                                                                                                             "triggerRandomSwitch": "masterIdleSwitch",
-                                                                                                            "randomSwitchTimeMin": 45.0,
-                                                                                                            "randomSwitchTimeMax": 500.0,
+                                                                                                            "randomSwitchTimeMin": 10.0,
+                                                                                                            "randomSwitchTimeMax": 40.0,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "masterIdle1",
@@ -1305,7 +1305,7 @@
                                                                                                                     "currentState": "transitionToAltIdle1",
                                                                                                                     "triggerRandomSwitch": "altIdleSwitch",
                                                                                                                     "triggerTimeMin": 10.0,
-                                                                                                                    "triggerTimeMax": 20.0,
+                                                                                                                    "triggerTimeMax": 40.0,
                                                                                                                     "transitionVar": "finishAltIdle2",
                                                                                                                     "states": [
                                                                                                                         {
