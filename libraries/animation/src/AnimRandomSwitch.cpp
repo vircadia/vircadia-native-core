@@ -27,6 +27,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
     AnimRandomSwitch::RandomSwitchState::Pointer desiredState = _currentState;
     if (abs(_framesActive - context.getFramesAnimatedThisSession()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
         // get a random number and decide which motion to choose.
+        bool currentStateHasPriority = false;
         float dice = randFloatInRange(0.0f, 1.0f);
         float lowerBound = 0.0f;
         for (const RandomSwitchState::Pointer& randState : _randomStates) {
@@ -38,17 +39,22 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
                 } else {
                     lowerBound = upperBound;
                 }
+                // this indicates if the curent state is one that can be selected randomly, or is one that was transitioned to by the random duration timer.
+                currentStateHasPriority = currentStateHasPriority || (_currentState == randState);
             }
         }
         if (abs(_framesActive - context.getFramesAnimatedThisSession()) > 1) {
             _duringInterp = false;
             switchRandomState(animVars, context, desiredState, _duringInterp);
         } else {
-            if (desiredState->getID() != _currentState->getID()) {
-                _duringInterp = true;
-                switchRandomState(animVars, context, desiredState, _duringInterp);
-            } else {
-                _duringInterp = false;
+            // firing a random switch, be sure that we aren't completing a previously triggered transition
+            if (currentStateHasPriority) {
+                if (desiredState->getID() != _currentState->getID()) {
+                    _duringInterp = true;
+                    switchRandomState(animVars, context, desiredState, _duringInterp);
+                } else {
+                    _duringInterp = false;
+                }
             }
         }
         _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
@@ -72,9 +78,12 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
         triggersOut.setTrigger(_transitionVar);
     }
+
     _randomSwitchTime -= dt;
-    if ((_randomSwitchTime < 0.0f) && (_randomSwitchTimeMin > 0.0f) &&  (_randomSwitchTimeMax > 0.0f)) {
+    if ((_randomSwitchTime < 0.0f) && (_randomSwitchTimeMin > 0.0f) && (_randomSwitchTimeMax > 0.0f)) {
         _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
+        // restart the trigger timer if it is also enabled
+        _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
         triggersOut.setTrigger(_triggerRandomSwitchVar);
     }
 
@@ -106,7 +115,6 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
             }
             context.setDebugAlpha(_currentState->getID(), _alpha * parentDebugAlpha, _children[_currentState->getChildIndex()]->getType());
         } else {
-            AnimPoseVec checkNodes = currentStateNode->evaluate(animVars, context, dt, triggersOut);
             _duringInterp = false;
             _prevPoses.clear();
             _nextPoses.clear();
