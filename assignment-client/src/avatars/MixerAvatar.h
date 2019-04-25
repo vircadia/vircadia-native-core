@@ -29,21 +29,15 @@ public:
     bool needsIdentityUpdate() const { return _needsIdentityUpdate; }
     void clearIdentityUpdate() { _needsIdentityUpdate = false; }
 
-
-    //bool isPendingCertifyFailed() const { return _verifyState == kVerificationFailedPending; }
-    //void advanceCertifyFailed() {
-    //    if (isPendingCertifyFailed()) { _verifyState = kVerificationFailed; }
-    //}
     void processCertifyEvents();
     void handleChallengeResponse(ReceivedMessage * response);
 
 private:
-    bool _needsHeroCheck{ false };
+    bool _needsHeroCheck { false };
 
     // Avatar certification/verification:
     enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kOwnerResponse,
-        kChallengeClient, kChallengeResponse, kVerified, kVerificationFailed,
-        kVerificationSucceeded, kError };
+        kChallengeClient, kChallengeResponse, kVerified, kVerificationFailed, kVerificationSucceeded, kError };
     Q_ENUM(VerifyState);
     VerifyState _verifyState { kNoncertified };
     std::atomic<bool> _pendingEvent { false };

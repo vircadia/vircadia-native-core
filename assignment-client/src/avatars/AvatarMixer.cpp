@@ -370,9 +370,8 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
 
     MixerAvatar& avatar = nodeData->getAvatar();
     bool sendIdentity = avatar.needsIdentityUpdate();
-    if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
-        MixerAvatar& avatar = nodeData->getAvatar();
-        const QString& existingBaseDisplayName = nodeData->getAvatar().getSessionDisplayName();
+    if (nodeData->getAvatarSessionDisplayNameMustChange()) {
+        const QString& existingBaseDisplayName = avatar.getSessionDisplayName();
         if (!existingBaseDisplayName.isEmpty()) {
             SessionDisplayName existingDisplayName { existingBaseDisplayName };
 

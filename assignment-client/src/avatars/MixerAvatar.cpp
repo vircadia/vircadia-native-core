@@ -12,7 +12,7 @@
 #include <QRegularExpression>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QJSonDocument>
+#include <QJsonDocument>
 #include <QNetworkReply>
 #include <QCryptographicHash>
 #include <QApplication>
@@ -208,7 +208,7 @@ void MixerAvatar::processCertifyEvents() {
             QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
             connect(networkReply, &QNetworkReply::finished, this, &MixerAvatar::ownerRequestComplete);
         } else {
-            _verifyState = kVerificationFailed;
+            _needsIdentityUpdate = true;
             _pendingEvent = false;
             qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
         }
