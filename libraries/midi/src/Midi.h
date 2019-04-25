@@ -61,7 +61,7 @@ signals:
      * @function Midi.midiNote
      * @param {MidiMessage} message - The MIDI message.
      * @returns {Signal}
-     * @deprecated Use {@link Midi.midiMessage|midiMessage} instead.
+     * @deprecated This signal is deprecated and will be removed. Use {@link Midi.midiMessage|midiMessage} instead.
      */
     void midiNote(QVariantMap eventData);
 
