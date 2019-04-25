@@ -43,5 +43,7 @@ macro(setup_qt)
     if (WIN32)
         add_paths_to_fixup_libs("${QT_DIR}/bin")
     endif ()
+message("=========================================================================SetupQtMake")
+message(${QT_CMAKE_PREFIX_PATH})
 
 endmacro()

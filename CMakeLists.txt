@@ -192,7 +192,8 @@ set_packaging_parameters()
 # Locate the required Qt build on the filesystem
 setup_qt()
 list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
-
+message("=========================================================================TOP CMakeLists")
+message(${QT_CMAKE_PREFIX_PATH})
 find_package( Threads )
 
 add_definitions(-DGLM_FORCE_RADIANS)

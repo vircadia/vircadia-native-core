@@ -219,6 +219,8 @@ endif()
         installPath = os.path.join(self.path, 'installed', self.triplet)
         toolsPath = os.path.join(self.path, 'installed', self.hostTriplet, 'tools')
         cmakePrefixPath  = os.path.join(self.path, 'installed', 'qt5-install/lib/cmake')
+        print("==========================================================hifi_vcpkg")
+        print(cmakePrefixPath)
         cmakeTemplate = VcpkgRepo.CMAKE_TEMPLATE
         if not self.args.android:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
