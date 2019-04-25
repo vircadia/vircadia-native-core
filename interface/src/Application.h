@@ -476,6 +476,7 @@ public slots:
 
     QString getGraphicsCardType();
 
+    bool gpuTextureMemSizeStable();
     void showUrlHandler(const QUrl& url);
 
 private slots:
@@ -572,7 +573,6 @@ private:
     bool importFromZIP(const QString& filePath);
     bool importImage(const QString& urlString);
 
-    bool gpuTextureMemSizeStable();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
 
