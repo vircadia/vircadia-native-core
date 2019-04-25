@@ -942,7 +942,8 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
  *     It is unique among all avatars present in the domain at the time.
  * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
  *     domain.
- * @property {boolean} isReplicated - <strong>Deprecated.</strong>
+ * @property {boolean} isReplicated - <span class="important">Deprecated: This property is deprecated and will be 
+ *     removed.</span>
  * @property {Vec3} position - The position of the avatar.
  * @property {number} palOrbOffset - The vertical offset from the avatar's position that an overlay orb should be displayed at.
  */

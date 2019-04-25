@@ -467,8 +467,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
      * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
      *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
      * @property {string} skeletonModelURL - The avatar's FST file.
-     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
-     *     <strong>Deprecated:</strong> Use avatar entities instead.
+     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
      * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
      * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
      * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the
@@ -1076,7 +1076,7 @@ public:
      * Gets information about the models currently attached to your avatar.
      * @function Avatar.getAttachmentsVariant
      * @returns {AttachmentData[]} Information about all models attached to your avatar.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE virtual QVariantList getAttachmentsVariant() const;
@@ -1087,7 +1087,7 @@ public:
      * update your avatar's attachments per the changed data.
      * @function Avatar.setAttachmentsVariant
      * @param {AttachmentData[]} variant - The attachment data defining the models to have attached to your avatar.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE virtual void setAttachmentsVariant(const QVariantList& variant);
@@ -1168,7 +1168,7 @@ public:
      * Gets information about the models currently attached to your avatar.
      * @function Avatar.getAttachmentData
      * @returns {AttachmentData[]} Information about all models attached to your avatar.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Report the URLs of all current attachments.</caption>
      * var attachments = MyAvatar.getaAttachmentData();
      * for (var i = 0; i < attachments.length; i++) {
@@ -1186,7 +1186,7 @@ public:
      * @function Avatar.setAttachmentData
      * @param {AttachmentData[]} attachmentData - The attachment data defining the models to have attached to your avatar. Use
      *     <code>null</code> to remove all attachments.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
      * var hatURL = "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx";
      * var attachments = MyAvatar.getAttachmentData();
@@ -1223,7 +1223,7 @@ public:
      * @param {boolean} [allowDuplicates=false] - If <code>true</code> then more than one copy of any particular model may be 
      *     attached to the same joint; if <code>false</code> then the same model cannot be attached to the same joint.
      * @param {boolean} [useSaved=true] - <em>Not used.</em>
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Attach a cowboy hat to your avatar's head.</caption>
      * var attachment = {
      *     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
@@ -1254,7 +1254,7 @@ public:
      * @param {string} modelURL - The URL of the model to detach.
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the most 
      *     recently attached model is removed from which ever joint it was attached to.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     Q_INVOKABLE virtual void detachOne(const QString& modelURL, const QString& jointName = QString());
 
@@ -1264,7 +1264,7 @@ public:
      * @param {string} modelURL - The URL of the model to detach.
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the model is 
      *     detached from all joints.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     Q_INVOKABLE virtual void detachAll(const QString& modelURL, const QString& jointName = QString());
 
