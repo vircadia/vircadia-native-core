@@ -2443,6 +2443,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
 
+    FileDialogHelper::setOpenDirectoryOperator([this](const QString& path) { openDirectory(path); });
     QDesktopServices::setUrlHandler("file", this, "showUrlHandler");
     QDesktopServices::setUrlHandler("", this, "showUrlHandler");
     auto drives = QDir::drives();
@@ -9270,6 +9271,26 @@ void Application::copyToClipboard(const QString& text) {
 
 QString Application::getGraphicsCardType() {
     return GPUIdent::getInstance()->getName();
+}
+
+void Application::openDirectory(const QString& path) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "openDirectory", Q_ARG(const QString&, path));
+        return;
+    }
+
+    QString dirPath = path;
+    const QString FILE_SCHEME = "file:///";
+    if (dirPath.startsWith(FILE_SCHEME)) {
+        dirPath.remove(0, FILE_SCHEME.length());
+    }
+    QFileInfo fileInfo(dirPath);
+    if (fileInfo.isDir()) {
+        auto scheme = QUrl(path).scheme();
+        QDesktopServices::unsetUrlHandler(scheme);
+        QDesktopServices::openUrl(path);
+        QDesktopServices::setUrlHandler(scheme, this, "showUrlHandler");
+    }
 }
 
 void Application::showUrlHandler(const QUrl& url) {
