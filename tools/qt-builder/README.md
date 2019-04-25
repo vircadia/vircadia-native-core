@@ -134,7 +134,7 @@ run `..\qt5\qt5vars.bat`
 
 `..\qt5\configure -opensource -confirm-license -opengl desktop -platform win32-msvc -openssl-linked  OPENSSL_LIBS="-lssleay32 -llibeay32"  -I %HIFI_VCPKG_BASE_VERSION%\packages\openssl-windows_x64-windows\include -L %HIFI_VCPKG_BASE_VERSION%\packages\openssl-windows_x64-windows\lib -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ..\qt5-install`
 #### Make
-`nmake`
+`nmake`  
 `nmake install`
 #### Fixing
 The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)
@@ -163,7 +163,7 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 
 `../qt5/configure -opensource -confirm-license -platform linux-g++-64 -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`
 #### Make
-`make`
+`make`  
 `make install`
 #### Fixing
 The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)
@@ -176,12 +176,12 @@ The *.prl* files have an absolute path that needs to be removed (see http://www.
 1.  Open a python 3 shell
 `python3`
 
-1.  Run the following snippet:
-`import os`
-`import tarfile`
-`filename=tarfile.open("qt5-install.tar.gz", "w:gz")`
-`filename.add("qt5-install", os.path.basename("qt5-install"))`
-`exit()`
+1.  Run the following snippet:  
+`import os`  
+`import tarfile`  
+`filename=tarfile.open("qt5-install.tar.gz", "w:gz")`  
+`filename.add("qt5-install", os.path.basename("qt5-install"))`  
+`exit()`  
 
 1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/
 ### Mac
@@ -200,11 +200,11 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 
 `../qt5/configure -opensource -confirm-license -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors  -no-pch -prefix ../qt5-install`
 #### Make
-`make`
+`make`  
 `make install`
 #### Fixing
 #### Uploading
-`tar -zcvf qt5-install.tar.gz qt5-install`
+`tar -zcvf qt5-install.tar.gz qt5-install`  
 Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Mac/
 ## Problems
 *configure* errors, if any, may be viewed in **config.log** and **config.summary**
