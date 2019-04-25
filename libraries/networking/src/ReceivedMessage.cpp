@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 #include "ReceivedMessage.h"
+
+#include <algorithm>
 
 #include "QSharedPointer"
 
@@ -83,20 +84,26 @@ void ReceivedMessage::appendPacket(NLPacket& packet) {
 }
 
 qint64 ReceivedMessage::peek(char* data, qint64 size) {
-    memcpy(data, _data.constData() + _position, size);
-    return size;
+    size_t bytesLeft = _data.size() - _position;
+    size_t sizeRead = std::min((size_t)size, bytesLeft);
+    memcpy(data, _data.constData() + _position, sizeRead);
+    return sizeRead;
 }
 
 qint64 ReceivedMessage::read(char* data, qint64 size) {
-    memcpy(data, _data.constData() + _position, size);
-    _position += size;
-    return size;
+    size_t bytesLeft = _data.size() - _position;
+    size_t sizeRead = std::min((size_t)size, bytesLeft);
+    memcpy(data, _data.constData() + _position, sizeRead);
+    _position += sizeRead;
+    return sizeRead;
 }
 
 qint64 ReceivedMessage::readHead(char* data, qint64 size) {
-    memcpy(data, _headData.constData() + _position, size);
-    _position += size;
-    return size;
+    size_t bytesLeft = _headData.size() - _position;
+    size_t sizeRead = std::min((size_t)size, bytesLeft);
+    memcpy(data, _headData.constData() + _position, sizeRead);
+    _position += sizeRead;
+    return sizeRead;
 }
 
 QByteArray ReceivedMessage::peek(qint64 size) {
