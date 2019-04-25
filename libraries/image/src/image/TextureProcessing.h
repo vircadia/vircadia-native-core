@@ -98,10 +98,6 @@ gpu::TexturePointer createMetallicTextureFromImage(Image&& image, const std::str
                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createCubeTextureFromImage(Image&& image, const std::string& srcImageName,
                                                bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
-gpu::TexturePointer createCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
-                                                            bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
-gpu::TexturePointer createAmbientCubeTextureFromImage(Image&& image, const std::string& srcImageName,
-                                                      bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
                                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createLightmapTextureFromImage(Image&& image, const std::string& srcImageName,

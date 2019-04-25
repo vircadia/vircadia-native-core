@@ -114,11 +114,7 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type) {
         case SKY_TEXTURE:
             return image::TextureUsage::createCubeTextureFromImage;
         case AMBIENT_TEXTURE:
-            if (Texture::_generateIrradiance) {
-                return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
-            } else {
-                return image::TextureUsage::createAmbientCubeTextureFromImage;
-            }
+            return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
         case BUMP_TEXTURE:
             return image::TextureUsage::createNormalTextureFromBumpImage;
         case NORMAL_TEXTURE:
@@ -188,19 +184,9 @@ gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(Image&& srcImag
     return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, target, false, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createCubeTextureAndIrradianceFromImage(Image&& srcImage, const std::string& srcImageName,
-                                                             bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE, abortProcessing);
-}
-
 gpu::TexturePointer TextureUsage::createCubeTextureFromImage(Image&& srcImage, const std::string& srcImageName,
                                                              bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
     return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_DEFAULT, abortProcessing);
-}
-
-gpu::TexturePointer TextureUsage::createAmbientCubeTextureFromImage(Image&& image, const std::string& srcImageName,
-                                                           bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GGX_CONVOLVE, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,

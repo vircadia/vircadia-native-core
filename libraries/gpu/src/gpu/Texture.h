@@ -583,8 +583,6 @@ public:
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);
     static bool getCompressedFormat(khronos::gl::texture::InternalFormat format, Element& elFormat);
 
-    static bool _generateIrradiance;
-
 protected:
     const TextureUsageType _usageType;
 

@@ -189,7 +189,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
 void DomainBaker::addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef) {
     QString cleanURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
     auto idx = cleanURL.lastIndexOf('.');
-    auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
+    auto extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
         // grab a clean version of the URL without a query or fragment
@@ -223,7 +223,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
         // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
         // to the baked version once the baker is complete
         // it doesn't really matter what this key is as long as it's consistent
-        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + type, { property, jsonRef });
+        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + "^" + type, { property, jsonRef });
     } else {
         qDebug() << "Texture extension not supported: " << extension;
     }
@@ -500,7 +500,7 @@ void DomainBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
-        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + baker->getTextureType();
+        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + "^" + baker->getTextureType();
 
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan

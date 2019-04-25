@@ -52,9 +52,6 @@ Oven::Oven() {
         modelFormatRegistry->addFormat(FBXSerializer());
         modelFormatRegistry->addFormat(OBJSerializer());
     }
-
-    // We only need to generate irradiance at runtime
-    gpu::Texture::_generateIrradiance = false;
 }
 
 Oven::~Oven() {
