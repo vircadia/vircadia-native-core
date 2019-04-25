@@ -137,7 +137,7 @@ Item {
                 width: parent.width/2 - anchors.leftMargin*2;
                 text: "Cancel"
                 onClicked: {
-                    sendToScript({method: 'needsLogIn_cancelClicked'});
+                    sendToScript({method: 'passphrasePopup_cancelClicked'});
                 }
             }
 
@@ -155,7 +155,7 @@ Item {
                 width: parent.width/2 - anchors.rightMargin*2;
                 text: "Log In"
                 onClicked: {
-                    sendToScript({method: 'needsLogIn_loginClicked'});
+                    sendToScript({method: 'marketplace_loginClicked'});
                 }
             }
         }

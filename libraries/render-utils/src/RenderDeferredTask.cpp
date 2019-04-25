@@ -364,7 +364,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
             sprintf(jobName, "DrawShadowFrustum%d", i);
             task.addJob<DrawFrustum>(jobName, shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
             if (!renderShadowTaskOut.isNull()) {
-                const auto& shadowCascadeSceneBBoxes = renderShadowTaskOut;
+                const auto& shadowCascadeSceneBBoxes = renderShadowTaskOut.get<RenderShadowTask::CascadeBoxes>();
                 const auto shadowBBox = shadowCascadeSceneBBoxes[ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i];
                 sprintf(jobName, "DrawShadowBBox%d", i);
                 task.addJob<DrawAABox>(jobName, shadowBBox, glm::vec3(1.0f, tint, 0.0f));

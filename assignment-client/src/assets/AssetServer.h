@@ -62,12 +62,10 @@ enum class ScriptBakeVersion : BakeVersion {
 };
 
 struct AssetMeta {
-    AssetMeta() {
-    }
-
     BakeVersion bakeVersion { INITIAL_BAKE_VERSION };
     bool failedLastBake { false };
     QString lastBakeErrors;
+    QString redirectTarget;
 };
 
 class BakeAssetTask;
@@ -139,8 +137,7 @@ private:
     void bakeAsset(const AssetUtils::AssetHash& assetHash, const AssetUtils::AssetPath& assetPath, const QString& filePath);
 
     /// Move baked content for asset to baked directory and update baked status
-    void handleCompletedBake(QString originalAssetHash, QString assetPath, QString bakedTempOutputDir,
-                             QVector<QString> bakedFilePaths);
+    void handleCompletedBake(QString originalAssetHash, QString assetPath, QString bakedTempOutputDir);
     void handleFailedBake(QString originalAssetHash, QString assetPath, QString errors);
     void handleAbortedBake(QString originalAssetHash, QString assetPath);
 

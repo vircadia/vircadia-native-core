@@ -9,13 +9,18 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
+<@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
+
+<$declareMaterialTextures(ALBEDO, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
 
 layout(location=0) out vec4 _fragColor;
 
@@ -23,6 +28,14 @@ void main(void) {
     FadeObjectParams fadeParams;
     <$fetchFadeObjectParams(fadeParams)$>
     applyFadeClip(fadeParams, _positionWS.xyz);
+
+    Material mat = getMaterial();
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
 
     // pass-through to set z-buffer
     _fragColor = vec4(1.0, 1.0, 1.0, 0.0);

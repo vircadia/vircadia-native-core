@@ -1,0 +1,14 @@
+Module Prop
+Global 1.0 style/Global.qml
+PropText 1.0 style/PiText.qml
+PropLabel 1.0 style/PiLabel.qml
+PropSplitter 1.0 style/PiSplitter.qml
+PropComboBox 1.0 style/PiComboBox.qml
+PropCanvasIcon 1.0 style/PiCanvasIcon.qml
+PropCheckBox 1.0 style/PiCheckBox.qml
+PropFolderPanel 1.0 style/PiFolderPanel.qml
+
+PropItem  1.0 PropItem.qml
+PropScalar 1.0 PropScalar.qml
+PropEnum 1.0 PropEnum.qml
+PropColor 1.0 PropColor.qml

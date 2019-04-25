@@ -277,3 +277,7 @@ void MaterialBaker::setMaterials(const QHash<QString, hfm::Material>& materials,
         addTexture(material.name, image::TextureUsage::LIGHTMAP_TEXTURE, material.lightmapTexture);
     }
 }
+
+void MaterialBaker::setMaterials(const NetworkMaterialResourcePointer& materialResource) {
+    _materialResource = materialResource;
+}
