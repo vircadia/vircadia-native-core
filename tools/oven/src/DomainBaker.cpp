@@ -222,7 +222,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
         // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
         // to the baked version once the baker is complete
         // it doesn't really matter what this key is as long as it's consistent
-        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + "^" + type, { property, jsonRef });
+        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + "^" + QString::number(type), { property, jsonRef });
     } else {
         qDebug() << "Texture extension not supported: " << extension;
     }
@@ -502,7 +502,7 @@ void DomainBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
-        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + "^" + baker->getTextureType();
+        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + "^" + QString::number(baker->getTextureType());
 
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan
@@ -756,10 +756,11 @@ void DomainBaker::writeNewEntitiesFile() {
     // time to write out a main models.json.gz file
 
     // first setup a document with the entities array below the entities key
-    _json.object()[ENTITIES_OBJECT_KEY] = _entities;
+    QJsonObject json = _json.object();
+    json[ENTITIES_OBJECT_KEY] = _entities;
 
     // turn that QJsonDocument into a byte array ready for compression
-    QByteArray jsonByteArray = _json.toJson();
+    QByteArray jsonByteArray = QJsonDocument(json).toJson();
 
     // compress the json byte array using gzip
     QByteArray compressedJson;
