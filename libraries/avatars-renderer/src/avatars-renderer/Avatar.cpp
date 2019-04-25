@@ -1454,7 +1454,7 @@ std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultDa
     if (_skeletonModel->isLoaded()) {
         auto& model = _skeletonModel->getHFMModel();
         auto& rig = _skeletonModel->getRig();
-        float geometryToRigScale = glm::length(extractScale(rig.getGeometryToRigTransform()));
+        float geometryToRigScale = extractScale(rig.getGeometryToRigTransform())[0];
         QStringList jointNames = getJointNames();
         int sizeCount = 0;
         for (int i = 0; i < jointNames.size(); i++) {
@@ -1468,7 +1468,7 @@ std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultDa
             }
             jointData.defaultRotation = rig.getAbsoluteDefaultPose(i).rot();
             jointData.defaultTranslation = getDefaultJointTranslation(i);
-            float jointLocalScale = glm::length(extractScale(model.joints[i].transform));
+            float jointLocalScale = extractScale(model.joints[i].transform)[0];
             jointData.defaultScale = jointLocalScale / geometryToRigScale;
             jointData.jointName = jointNames[i];
             jointData.stringLength = jointNames[i].size();

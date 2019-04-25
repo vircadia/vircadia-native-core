@@ -374,43 +374,40 @@ void OtherAvatar::debugJointData() const {
         const vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
         const float AXIS_LENGTH = 0.1f;
     
-        AnimPoseVec jointPoses;
-        std::vector<QString> jointNames;
+        AnimPoseVec absoluteJointPoses;
         AnimPose rigToAvatar = AnimPose(Quaternions::Y_180 * getWorldOrientation(), getWorldPosition());
+        bool drawBones = false;
         for (int i = 0; i < jointData.size(); i++) {
-            float jointScale = skeletonData[i].defaultScale * getTargetScale();
-            auto jointRotation = rigToAvatar.rot() * (jointData[i].rotationIsDefaultPose ? skeletonData[i].defaultRotation : jointData[i].rotation);
-            auto jointTranslation = jointScale * (jointData[i].translationIsDefaultPose ? skeletonData[i].defaultTranslation : jointData[i].translation);
-            if (skeletonData[i].jointName == "Hips") { 
-                jointTranslation = glm::vec3(0.0f);
+            float jointScale = skeletonData[i].defaultScale * getTargetScale() * METERS_PER_CENTIMETER;
+            auto absoluteRotation = jointData[i].rotationIsDefaultPose ? skeletonData[i].defaultRotation : jointData[i].rotation;
+            auto localJointTranslation = jointScale * (jointData[i].translationIsDefaultPose ? skeletonData[i].defaultTranslation : jointData[i].translation);
+            bool isHips = skeletonData[i].jointName == "Hips";
+            if (isHips) { 
+                localJointTranslation = glm::vec3(0.0f);
+                drawBones = true;
             }
-            jointPoses.push_back(AnimPose(jointRotation, jointTranslation));
-            jointNames.push_back(skeletonData[i].jointName);
-        }
-        QVector<AnimPose> worldFramePoses;
-        for (int i = 0; i < (int)jointPoses.size(); i++) {
-            auto& jointPose = jointPoses[i];
+            AnimPose absoluteParentPose;
             int parentIndex = skeletonData[i].parentIndex;
-            if (parentIndex < worldFramePoses.size()) {
+            if (parentIndex != -1 && parentIndex < (int)absoluteJointPoses.size()) {
+                absoluteParentPose = absoluteJointPoses[parentIndex];
+            }
+            AnimPose absoluteJointPose = AnimPose(absoluteRotation, absoluteParentPose.trans() + absoluteParentPose.rot() * localJointTranslation);
+            auto jointPose = rigToAvatar * absoluteJointPose;
+            auto parentPose = rigToAvatar * absoluteParentPose;
+            if (drawBones) {
                 glm::vec3 xAxis = jointPose.rot() * Vectors::UNIT_X;
                 glm::vec3 yAxis = jointPose.rot() * Vectors::UNIT_Y;
                 glm::vec3 zAxis = jointPose.rot() * Vectors::UNIT_Z;
 
-                auto parentRotation = parentIndex > -1 ? jointPoses[parentIndex].rot() : Quaternions::IDENTITY;
-                auto parentPosition = parentIndex > -1 ? worldFramePoses[parentIndex].trans() : rigToAvatar.trans();
-                auto jointPosition = parentPosition + parentRotation * (jointPose.trans() * METERS_PER_CENTIMETER);
-                worldFramePoses.push_back(AnimPose(jointPose.rot(), jointPosition));
-
-                DebugDraw::getInstance().drawRay(jointPosition, jointPosition + AXIS_LENGTH * xAxis, jointData[i].rotationIsDefaultPose ? LIGHT_RED : RED);
-                DebugDraw::getInstance().drawRay(jointPosition, jointPosition + AXIS_LENGTH * yAxis, jointData[i].rotationIsDefaultPose ? LIGHT_GREEN : GREEN);
-                DebugDraw::getInstance().drawRay(jointPosition, jointPosition + AXIS_LENGTH * zAxis, jointData[i].rotationIsDefaultPose ? LIGHT_BLUE : BLUE);
-                // draw line to parent
-                if (parentIndex != -1) {
-                    DebugDraw::getInstance().drawRay(jointPosition, parentPosition, jointData[i].translationIsDefaultPose ? WHITE : GREY);
+                DebugDraw::getInstance().drawRay(jointPose.trans(), jointPose.trans() + AXIS_LENGTH * xAxis, jointData[i].rotationIsDefaultPose ? LIGHT_RED : RED);
+                DebugDraw::getInstance().drawRay(jointPose.trans(), jointPose.trans() + AXIS_LENGTH * yAxis, jointData[i].rotationIsDefaultPose ? LIGHT_GREEN : GREEN);
+                DebugDraw::getInstance().drawRay(jointPose.trans(), jointPose.trans() + AXIS_LENGTH * zAxis, jointData[i].rotationIsDefaultPose ? LIGHT_BLUE : BLUE);
+                if (!isHips) {
+                    DebugDraw::getInstance().drawRay(jointPose.trans(), parentPose.trans(), jointData[i].translationIsDefaultPose ? WHITE : GREY);
                 }
             }
+            absoluteJointPoses.push_back(absoluteJointPose);
         }
-
     }
 }
 
