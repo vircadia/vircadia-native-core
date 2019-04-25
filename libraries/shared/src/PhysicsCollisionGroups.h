@@ -72,7 +72,7 @@ const int32_t BULLET_COLLISION_MASK_DETAILED_RAY = BULLET_COLLISION_GROUP_DETAIL
 const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
 
 /**jsdoc
- * <p>An entity may collide with the following types of items:</p>
+ * <p>A collision may be with the following types of items:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th>
@@ -88,7 +88,7 @@ const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
  * </table>
  * <p>The values for the collision types that are enabled are added together to give the CollisionMask value. For example, a
  * value of <code>31</code> means that an entity will collide with all item types.</p>
- * @typedef {number} Entities.CollisionMask
+ * @typedef {number} CollisionMask
  */
 
 // The USER collision groups are exposed to script and can be used to generate per-object collision masks.

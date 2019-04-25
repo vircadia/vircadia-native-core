@@ -801,7 +801,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @property {boolean} collisionless=false - Whether or not the entity should collide with items per its 
  *     <code>collisionMask<code> property. If <code>true</code> then the entity does not collide. A synonym is <code>ignoreForCollisions</code>.
- * @property {Entities.CollisionMask} collisionMask=31 - What types of items the entity should collide with.
+ * @property {CollisionMask} collisionMask=31 - What types of items the entity should collide with.
  * @property {string} collidesWith="static,dynamic,kinematic,myAvatar,otherAvatar," - Synonym for <code>collisionMask</code>,
  *     in text format.
  * @property {string} collisionSoundURL="" - The sound to play when the entity experiences a collision. Valid file formats are

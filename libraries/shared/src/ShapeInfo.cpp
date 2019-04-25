@@ -39,6 +39,8 @@
  *         sub-meshes.</td></tr>
  *     <tr><td><code>"static-mesh"</code></td><td>The exact shape of the model.</td></tr>
  *     <tr><td><code>"plane"</code></td><td>A plane.</td></tr>
+ *     <tr><td><code>"ellipsoid"</code></td><td>An ellipsoid.</td></tr>
+ *     <tr><td><code>"circle"</code></td><td>A circle.</td></tr>
  *     <tr><td><code>"multisphere"</code></td><td>A convex hull generated from a set of spheres.</td></tr>
  *   </tbody>
  * </table>
