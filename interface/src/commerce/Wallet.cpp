@@ -126,7 +126,7 @@ namespace {
         }
 
         QFile file(filename);
-        if (!file.open(QIODevice::WriteOnly)) {
+        if (file.open(QIODevice::WriteOnly)) {
             const char* bio_data;
             long bio_size = BIO_get_mem_data(bio, &bio_data);
 
