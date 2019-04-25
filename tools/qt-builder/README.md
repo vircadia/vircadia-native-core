@@ -125,9 +125,9 @@ Before building, verify that **HIFI_VCPKG_BASE_VERSION** points to a *vcpkg* fol
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`
 `cd ..`
 #### Configuring
-`mkdir qt5-install`
-`mkdir qt5-build`
-`cd qt5-build`
+`mkdir qt5-install`  
+`mkdir qt5-build`  
+`cd qt5-build`  
 
 run `..\qt5\qt5vars.bat`
 `cd ..\..\qt5-build`
