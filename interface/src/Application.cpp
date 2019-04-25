@@ -3368,6 +3368,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
     surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
     if (setAdditionalContextProperties) {
+        qDebug() << "setting additional context properties!";
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 

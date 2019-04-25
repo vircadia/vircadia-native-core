@@ -368,9 +368,10 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         return;
     }
 
-    bool sendIdentity = false;
+    MixerAvatar& avatar = nodeData->getAvatar();
+    bool sendIdentity = avatar.needsIdentityUpdate();
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
-        AvatarData& avatar = nodeData->getAvatar();
+        MixerAvatar& avatar = nodeData->getAvatar();
         const QString& existingBaseDisplayName = nodeData->getAvatar().getSessionDisplayName();
         if (!existingBaseDisplayName.isEmpty()) {
             SessionDisplayName existingDisplayName { existingBaseDisplayName };
@@ -415,10 +416,11 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
         // it needs a new sequence number
-        nodeData->getAvatar().pushIdentitySequenceNumber();
+        avatar.pushIdentitySequenceNumber();
 
         // tell node whose name changed about its new session display name or avatar.
         sendIdentityPacket(nodeData, node);
+        avatar.clearIdentityUpdate();
     }
 }
 

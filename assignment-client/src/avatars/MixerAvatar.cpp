@@ -15,6 +15,7 @@
 #include <QJSonDocument>
 #include <QNetworkReply>
 #include <QCryptographicHash>
+#include <QApplication>
 
 #include <ResourceManager.h>
 #include <NetworkAccessManager.h>
@@ -78,6 +79,7 @@ void MixerAvatar::fstRequestComplete() {
         } else {
             _avatarFSTContents = fstRequest->getData();
             _verifyState = kReceivedFST;
+            _pendingEvent = true;
         }
         _avatarRequest->deleteLater();
         _avatarRequest = nullptr;
@@ -156,12 +158,31 @@ QByteArray MixerAvatar::canonicalJson(const QString fstFile) {
     return jsonDocCertifiedItems.toJson(QJsonDocument::Compact);
 }
 
-void MixerAvatar::processCertifyEvents() {
+void MixerAvatar::ownerRequestComplete() {
     QMutexLocker certifyLocker(&_avatarCertifyLock);
-    if (_verifyState != kReceivedFST && _verifyState != kOwnerResponse && _verifyState != kChallengeResponse && _verifyState != kRequestingOwner) {
+    QNetworkReply* networkReply = static_cast<QNetworkReply*>(QObject::sender());
+
+    if (networkReply->error() == QNetworkReply::NoError) {
+        _dynamicMarketResponse = networkReply->readAll();
+        _verifyState = kOwnerResponse;
+        _pendingEvent = true;
+    } else {
+        auto jsonData = QJsonDocument::fromJson(networkReply->readAll())["data"];
+        if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
+            qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
+                << jsonData.toObject()["message"].toString();
+            _verifyState = kError;
+        }
+    }
+    networkReply->deleteLater();
+}
+
+void MixerAvatar::processCertifyEvents() {
+    if (!_pendingEvent) {
         return;
     }
 
+    QMutexLocker certifyLocker(&_avatarCertifyLock);
     switch (_verifyState) {
 
     case kReceivedFST:
@@ -185,24 +206,10 @@ void MixerAvatar::processCertifyEvents() {
             request["certificate_id"] = _certificateIdFromFST;
             _verifyState = kRequestingOwner;
             QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-            //networkReply->setParent(this);
-            connect(networkReply, &QNetworkReply::readyRead, [this, networkReply]() {
-                QMutexLocker certifyLocker(&_avatarCertifyLock);
-                if (networkReply->error() == QNetworkReply::NoError) {
-                    _dynamicMarketResponse = networkReply->readAll();
-                    _verifyState = kOwnerResponse;
-                } else {
-                    auto jsonData = QJsonDocument::fromJson(networkReply->readAll())["data"];
-                    if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
-                        qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
-                            << jsonData.toObject()["message"].toString();
-                        _verifyState = kError;
-                    }
-                }
-                networkReply->deleteLater();
-            });
+            connect(networkReply, &QNetworkReply::finished, this, &MixerAvatar::ownerRequestComplete);
         } else {
-            _verifyState = kVerificationFailedPending;
+            _verifyState = kVerificationFailed;
+            _pendingEvent = false;
             qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
         }
         break;
@@ -244,6 +251,7 @@ void MixerAvatar::processCertifyEvents() {
                 "message:" << responseJson["message"].toString();
             _verifyState = kError;
         }
+        _pendingEvent = false;
         break;
     }
 
@@ -266,19 +274,19 @@ void MixerAvatar::processCertifyEvents() {
 
         bool challengeResult = EntityItemProperties::verifySignature(_ownerPublicKey, _challengeNonceHash,
             QByteArray::fromBase64(signedNonce));
-        _verifyState = challengeResult ? kVerificationSucceeded : kVerificationFailedPending;
-        if (_verifyState == kVerificationFailedPending) {
+        _verifyState = challengeResult ? kVerificationSucceeded : kVerificationFailed;
+        _needsIdentityUpdate = true;
+        if (_verifyState == kVerificationFailed) {
             qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
         } else {
             qCDebug(avatars) << "Dynamic verification SUCCEEDED for " << getDisplayName() << getSessionUUID();
         }
-
+        _pendingEvent = false;
         break;
     }
 
     case kRequestingOwner:
-    {
-        certifyLocker.unlock();
+    {   // Qt networking done on this thread:
         QCoreApplication::processEvents();
         break;
     }
@@ -307,6 +315,7 @@ void MixerAvatar::sendOwnerChallenge() {
     _challengeTimeout.setInterval(CHALLENGE_TIMEOUT_MS);
     _challengeTimeout.connect(&_challengeTimeout, &QTimer::timeout, [this]() {
         _verifyState = kVerificationFailed;
+        _needsIdentityUpdate = true;
         });
 }
 
@@ -318,5 +327,6 @@ void MixerAvatar::handleChallengeResponse(ReceivedMessage * response) {
         _challengeTimeout.stop();
         _challengeResponse = response->readAll();
         _verifyState = kChallengeResponse;
+        _pendingEvent = true;
     }
 }

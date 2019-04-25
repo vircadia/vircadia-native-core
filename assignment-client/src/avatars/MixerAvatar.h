@@ -25,7 +25,15 @@ public:
     void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
 
     void fetchAvatarFST();
-    virtual bool isCertifyFailed() const override { return _verifyState == kVerificationFailed || _verifyState == kVerificationFailedPending;  }
+    virtual bool isCertifyFailed() const override { return _verifyState == kVerificationFailed; }
+    bool needsIdentityUpdate() const { return _needsIdentityUpdate; }
+    void clearIdentityUpdate() { _needsIdentityUpdate = false; }
+
+
+    //bool isPendingCertifyFailed() const { return _verifyState == kVerificationFailedPending; }
+    //void advanceCertifyFailed() {
+    //    if (isPendingCertifyFailed()) { _verifyState = kVerificationFailed; }
+    //}
     void processCertifyEvents();
     void handleChallengeResponse(ReceivedMessage * response);
 
@@ -34,10 +42,11 @@ private:
 
     // Avatar certification/verification:
     enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kOwnerResponse,
-        kChallengeClient, kChallengeResponse, kVerified, kVerificationFailedPending, kVerificationFailed,
+        kChallengeClient, kChallengeResponse, kVerified, kVerificationFailed,
         kVerificationSucceeded, kError };
     Q_ENUM(VerifyState);
     VerifyState _verifyState { kNoncertified };
+    std::atomic<bool> _pendingEvent { false };
     QMutex _avatarCertifyLock;
     ResourceRequest* _avatarRequest { nullptr };
     QString _marketplaceIdFromURL;
@@ -51,6 +60,7 @@ private:
     QByteArray _challengeNonceHash;
     QByteArray _challengeResponse;
     QTimer _challengeTimeout;
+    bool _needsIdentityUpdate { false };
 
     bool generateFSTHash();
     bool validateFSTHash(const QString& publicKey);
@@ -59,6 +69,7 @@ private:
 
 private slots:
     void fstRequestComplete();
+    void ownerRequestComplete();
 };
 
 using MixerAvatarSharedPointer = std::shared_ptr<MixerAvatar>;
