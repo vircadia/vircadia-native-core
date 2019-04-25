@@ -324,6 +324,7 @@ public:
     void setModel(const std::string& model) { _model = model; }
 
     glm::mat4 getTexCoordTransform(uint i) const { return _texcoordTransforms[i]; }
+    void setTexCoordTransform(uint i, const glm::mat4& mat4) { _texcoordTransforms[i] = mat4; }
     glm::vec2 getLightmapParams() const { return _lightmapParams; }
     glm::vec2 getMaterialParams() const { return _materialParams; }
 

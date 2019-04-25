@@ -52,7 +52,7 @@ std::vector<hifi::ByteArray> createMaterialList(const hfm::Mesh& mesh) {
 }
 
 std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::vector<glm::vec3>& normals, const std::vector<glm::vec3>& tangents, const std::vector<hifi::ByteArray>& materialList) {
-    Q_ASSERT(normals.size() == 0 || normals.size() == mesh.vertices.size());
+    Q_ASSERT(normals.size() == 0 || (int)normals.size() == mesh.vertices.size());
     Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
     Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
 

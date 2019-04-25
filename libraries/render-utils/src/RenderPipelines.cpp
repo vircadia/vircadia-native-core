@@ -373,10 +373,10 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state, con
         gpu::Shader::createProgram(deformed_model_shadow_fade_dq), state, extraBatchSetter, itemSetter);
 }
 
-void RenderPipelines::bindMaterial(graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures) {
+bool RenderPipelines::bindMaterial(graphics::MaterialPointer& material, gpu::Batch& batch, render::Args::RenderMode renderMode, bool enableTextures) {
     graphics::MultiMaterial multiMaterial;
     multiMaterial.push(graphics::MaterialLayer(material, 0));
-    bindMaterials(multiMaterial, batch, enableTextures);
+    return bindMaterials(multiMaterial, batch, renderMode, enableTextures);
 }
 
 void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial) {
@@ -730,7 +730,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     multiMaterial.setInitialized();
 }
 
-void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
+bool RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, render::Args::RenderMode renderMode, bool enableTextures) {
     if (multiMaterial.shouldUpdate()) {
         updateMultiMaterial(multiMaterial);
     }
@@ -738,8 +738,13 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
     auto textureCache = DependencyManager::get<TextureCache>();
 
     static gpu::TextureTablePointer defaultMaterialTextures = std::make_shared<gpu::TextureTable>();
+    static gpu::BufferView defaultMaterialSchema;
+
     static std::once_flag once;
     std::call_once(once, [textureCache] {
+        graphics::MultiMaterial::Schema schema;
+        defaultMaterialSchema = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(schema), (const gpu::Byte*) &schema, sizeof(schema)));
+
         defaultMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());
         defaultMaterialTextures->setTexture(gr::Texture::MaterialMetallic, textureCache->getBlackTexture());
         defaultMaterialTextures->setTexture(gr::Texture::MaterialRoughness, textureCache->getWhiteTexture());
@@ -749,17 +754,29 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
         // MaterialEmissiveLightmap has to be set later
     });
 
-    auto& schemaBuffer = multiMaterial.getSchemaBuffer();
-    batch.setUniformBuffer(gr::Buffer::Material, schemaBuffer);
-    if (enableTextures) {
-        batch.setResourceTextureTable(multiMaterial.getTextureTable());
-    } else {
-        auto key = multiMaterial.getMaterialKey();
-        if (key.isLightmapMap()) {
-            defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
-        } else if (key.isEmissiveMap()) {
-            defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
+    // For shadows, we only need opacity mask information
+    auto key = multiMaterial.getMaterialKey();
+    if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE || key.isOpacityMaskMap()) {
+        auto& schemaBuffer = multiMaterial.getSchemaBuffer();
+        batch.setUniformBuffer(gr::Buffer::Material, schemaBuffer);
+        if (enableTextures) {
+            batch.setResourceTextureTable(multiMaterial.getTextureTable());
+        } else {
+            if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
+                if (key.isLightmapMap()) {
+                    defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
+                } else if (key.isEmissiveMap()) {
+                    defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
+                }
+            }
+
+            batch.setResourceTextureTable(defaultMaterialTextures);
         }
+        return true;
+    } else {
         batch.setResourceTextureTable(defaultMaterialTextures);
+        batch.setUniformBuffer(gr::Buffer::Material, defaultMaterialSchema);
+        return false;
     }
 }
+

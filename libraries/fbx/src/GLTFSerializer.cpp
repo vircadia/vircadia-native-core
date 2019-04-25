@@ -909,7 +909,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         auto& node = _file.nodes[nodeIndex];
 
         if (node.defined["mesh"]) {
-            qCDebug(modelformat) << "node_transforms" << node.transforms;
             foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
                 hfmModel.meshes.append(HFMMesh());
                 HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
@@ -1276,7 +1275,6 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
 
         QString fname = hifi::URL(url).fileName();
         hifi::URL textureUrl = _url.resolved(url);
-        qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
         
@@ -1370,10 +1368,7 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
     blobstream.setByteOrder(QDataStream::LittleEndian);
     blobstream.setVersion(QDataStream::Qt_5_9);
     blobstream.setFloatingPointPrecision(QDataStream::FloatingPointPrecision::SinglePrecision);
-
-    qCDebug(modelformat) << "size1: " << count;
-    int dataskipped = blobstream.skipRawData(byteOffset);
-    qCDebug(modelformat) << "dataskipped: " << dataskipped;
+    blobstream.skipRawData(byteOffset);
 
     int bufferCount = 0;
     switch (accessorType) {
@@ -1465,6 +1460,38 @@ void GLTFSerializer::retriangulate(const QVector<int>& inIndices, const QVector<
         outIndices.push_back(i+1);
         outIndices.push_back(i+2);
     }
+}
+
+void GLTFSerializer::glTFDebugDump() {
+    qCDebug(modelformat) << "---------------- Nodes ----------------";
+    for (GLTFNode node : _file.nodes) {
+        if (node.defined["mesh"]) {
+            qCDebug(modelformat) << "\n";
+            qCDebug(modelformat) << "    node_transforms" << node.transforms;
+            qCDebug(modelformat) << "\n";
+        }
+    }
+
+    qCDebug(modelformat) << "---------------- Accessors ----------------";
+    for (GLTFAccessor accessor : _file.accessors) {
+        qCDebug(modelformat) << "\n";
+        qCDebug(modelformat) << "count: " << accessor.count;
+        qCDebug(modelformat) << "byteOffset: " << accessor.byteOffset;
+        qCDebug(modelformat) << "\n";
+    }
+
+    qCDebug(modelformat) << "---------------- Textures ----------------";
+    for (GLTFTexture texture : _file.textures) {
+        if (texture.defined["source"]) {
+            qCDebug(modelformat) << "\n";
+            QString url = _file.images[texture.source].uri;
+            QString fname = hifi::URL(url).fileName();
+            qCDebug(modelformat) << "fname: " << fname;
+            qCDebug(modelformat) << "\n";
+        }
+    }
+
+    qCDebug(modelformat) << "\n";
 }
 
 void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
@@ -1606,6 +1633,9 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    bindTransformFoundInCluster" << joint.geometricScaling;
         qCDebug(modelformat) << "\n";
     }
+
+    qCDebug(modelformat) << "---------------- GLTF Model ----------------";
+    glTFDebugDump();
 
     qCDebug(modelformat) << "\n";
 }

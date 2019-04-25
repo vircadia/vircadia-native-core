@@ -576,6 +576,7 @@ Resource::Resource(const Resource& other) :
 
 Resource::Resource(const QUrl& url) :
     _url(url),
+    _effectiveBaseURL(url),
     _activeUrl(url),
     _requestID(++requestID) {
     init();

@@ -119,6 +119,10 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         if (map && map->getTextureSource()) {
             scatteringMap = map->getTextureSource()->getUrl().toString();
         }
+
+        for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
+            texCoordTransforms[i] = material->getTexCoordTransform(i);
+        }
     }
 }
 

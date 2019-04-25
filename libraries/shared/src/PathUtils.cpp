@@ -185,6 +185,30 @@ QString PathUtils::generateTemporaryDir() {
     return "";
 }
 
+bool PathUtils::deleteMyTemporaryDir(QString dirName) {
+    QDir rootTempDir = QDir::tempPath();
+
+    QString appName = qApp->applicationName();
+    QRegularExpression re { "^" + QRegularExpression::escape(appName) + "\\-(?<pid>\\d+)\\-(?<timestamp>\\d+)$" };
+
+    auto match = re.match(dirName);
+    auto pid = match.capturedRef("pid").toLongLong();
+
+    if (match.hasMatch() && rootTempDir.exists(dirName) && pid == qApp->applicationPid()) {
+        auto absoluteDirPath = QDir(rootTempDir.absoluteFilePath(dirName));
+
+        bool success = absoluteDirPath.removeRecursively();
+        if (success) {
+            qDebug() << "  Removing temporary directory: " << absoluteDirPath.absolutePath();
+        } else {
+            qDebug() << "  Failed to remove temporary directory: " << absoluteDirPath.absolutePath();
+        }
+        return success;
+    }
+
+    return false;
+}
+
 // Delete all temporary directories for an application
 int PathUtils::removeTemporaryApplicationDirs(QString appName) {
     if (appName.isNull()) {

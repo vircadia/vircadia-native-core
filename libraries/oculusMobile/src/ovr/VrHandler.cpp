@@ -28,7 +28,7 @@
 
 static AAssetManager* ASSET_MANAGER = nullptr;
 
-#define USE_BLIT_PRESENT 0
+#define USE_BLIT_PRESENT 1
 
 #if !USE_BLIT_PRESENT
 
