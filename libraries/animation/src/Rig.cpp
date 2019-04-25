@@ -2020,7 +2020,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     }
     _previousIsTalking = params.isTalking;
 
-    const float TOTAL_EASE_IN_TIME = 0.35f;
+    const float TOTAL_EASE_IN_TIME = 0.75f;
     const float TOTAL_EASE_OUT_TIME = 1.5f;
     if (params.isTalking) {
         if (_talkIdleInterpTime < 1.0f) {

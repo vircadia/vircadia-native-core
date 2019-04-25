@@ -916,8 +916,8 @@
                                                                                                 "data": {
                                                                                                     "currentState": "idleTalk1",
 																									"triggerRandomSwitch": "idleTalkSwitch",
-																									"randomSwitchTimeMin": 5.0,
-																									"randomSwitchTimeMax": 10.0,
+																									"randomSwitchTimeMin": 10.0,
+																									"randomSwitchTimeMax": 20.0,
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "idleTalk1",
@@ -990,14 +990,14 @@
                                                                                                 "data": {
                                                                                                     "currentState": "masterIdle",
 																									"triggerRandomSwitch": "idleSwitch",
-																									"triggerTimeMin": 3.0,
-																									"triggerTimeMax": 6.0,
+																									"triggerTimeMin": 45.0,
+																									"triggerTimeMax": 500.0,
 																									"transitionVar": "timeToFidget",
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "masterIdle",
-                                                                                                            "interpTarget": 16,
-                                                                                                            "interpDuration": 15,
+                                                                                                            "interpTarget": 21,
+                                                                                                            "interpDuration": 20,
 																											"priority": 1.0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1032,8 +1032,8 @@
                                                                                                         "data": {
                                                                                                             "currentState": "masterIdle1",
                                                                                                             "triggerRandomSwitch": "masterIdleSwitch",
-                                                                                                            "randomSwitchTimeMin": 5.0,
-                                                                                                            "randomSwitchTimeMax": 10.0,
+                                                                                                            "randomSwitchTimeMin": 45.0,
+                                                                                                            "randomSwitchTimeMax": 500.0,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "masterIdle1",
@@ -1228,9 +1228,9 @@
                                                                                                                         "id": "movement3",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_checkwatch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
                                                                                                                             "startFrame": 1,
-                                                                                                                            "endFrame": 133,
+                                                                                                                            "endFrame": 154,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1240,9 +1240,9 @@
                                                                                                                         "id": "movement4",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_armstretch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idleWS.fbx",
                                                                                                                             "startFrame": 1,
-                                                                                                                            "endFrame": 240,
+                                                                                                                            "endFrame": 1314,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1252,9 +1252,9 @@
                                                                                                                         "id": "movement5",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_bigstretch.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
                                                                                                                             "startFrame": 1,
-                                                                                                                            "endFrame": 120,
+                                                                                                                            "endFrame": 324,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1304,8 +1304,8 @@
                                                                                                                 "data": {
                                                                                                                     "currentState": "transitionToAltIdle1",
                                                                                                                     "triggerRandomSwitch": "altIdleSwitch",
-                                                                                                                    "triggerTimeMin": 3.0,
-                                                                                                                    "triggerTimeMax": 6.0,
+                                                                                                                    "triggerTimeMin": 10.0,
+                                                                                                                    "triggerTimeMax": 20.0,
                                                                                                                     "transitionVar": "finishAltIdle2",
                                                                                                                     "states": [
                                                                                                                         {
