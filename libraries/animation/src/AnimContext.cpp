@@ -11,12 +11,12 @@
 #include "AnimContext.h"
 
 AnimContext::AnimContext(bool enableDebugDrawIKTargets, bool enableDebugDrawIKConstraints, bool enableDebugDrawIKChains,
-                         const glm::mat4& geometryToRigMatrix, const glm::mat4& rigToWorldMatrix, int framesAnimatedThisSession) :
+                         const glm::mat4& geometryToRigMatrix, const glm::mat4& rigToWorldMatrix, int evaluationCount) :
     _enableDebugDrawIKTargets(enableDebugDrawIKTargets),
     _enableDebugDrawIKConstraints(enableDebugDrawIKConstraints),
     _enableDebugDrawIKChains(enableDebugDrawIKChains),
     _geometryToRigMatrix(geometryToRigMatrix),
     _rigToWorldMatrix(rigToWorldMatrix),
-    _framesAnimatedThisSession(framesAnimatedThisSession)
+    _evaluationCount(evaluationCount)
 {
 }

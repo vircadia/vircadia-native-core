@@ -989,7 +989,6 @@
                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                 "data": {
                                                                                                     "currentState": "masterIdle",
-																									"triggerRandomSwitch": "idleSwitch",
 																									"triggerTimeMin": 10.0,
 																									"triggerTimeMax": 40.0,
 																									"transitionVar": "timeToFidget",
@@ -1105,7 +1104,6 @@
                                                                                                         "type": "randomSwitchStateMachine",
                                                                                                         "data": {
                                                                                                             "currentState": "movement",
-                                                                                                            "triggerRandomSwitch": "fidgetSwitch",
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "movement",
@@ -1131,7 +1129,6 @@
                                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                                 "data": {
                                                                                                                     "currentState": "movement1",
-                                                                                                                    "triggerRandomSwitch": "movementSwitch",
                                                                                                                     "states": [
                                                                                                                         {
                                                                                                                             "id": "movement1",
@@ -1303,7 +1300,6 @@
                                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                                 "data": {
                                                                                                                     "currentState": "transitionToAltIdle1",
-                                                                                                                    "triggerRandomSwitch": "altIdleSwitch",
                                                                                                                     "triggerTimeMin": 10.0,
                                                                                                                     "triggerTimeMax": 40.0,
                                                                                                                     "transitionVar": "finishAltIdle2",

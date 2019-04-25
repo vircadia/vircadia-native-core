@@ -35,103 +35,104 @@
 // * priority - this number represents how likely this Random Switch State will be chosen.
 //   the priority for each Random Switch State will be normalized, so their relative size is what is important
 // * resume - if resume is false then if this state is chosen twice in a row it will remember what frame it was playing on.
-//   * SnapshotBoth: Stores two snapshots, the previous animation before interpolation begins and the target state at the
-//     interTarget frame.  Then during the interpolation period the two snapshots are interpolated to produce smooth motion between them.
-//   * SnapshotPrev: Stores a snapshot of the previous animation before interpolation begins.  However the target state is
-//     evaluated dynamically.  During the interpolation period the previous snapshot is interpolated with the target pose
-//     to produce smooth motion between them.  This mode is useful for interping into a blended animation where the actual
-//     blend factor is not known at the start of the interp or is might change dramatically during the interp.
+// * SnapshotBoth: Stores two snapshots, the previous animation before interpolation begins and the target state at the
+//   interTarget frame.  Then during the interpolation period the two snapshots are interpolated to produce smooth motion between them.
+// * SnapshotPrev: Stores a snapshot of the previous animation before interpolation begins.  However the target state is
+//   evaluated dynamically.  During the interpolation period the previous snapshot is interpolated with the target pose
+//   to produce smooth motion between them.  This mode is useful for interping into a blended animation where the actual
+//   blend factor is not known at the start of the interp or is might change dramatically during the interp.
+//
 
 class AnimRandomSwitch : public AnimNode {
 public:
-	friend class AnimNodeLoader;
-	friend bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
+    friend class AnimNodeLoader;
+    friend bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
 
-	enum class InterpType {
-		SnapshotBoth = 0,
-		SnapshotPrev,
-		NumTypes
-	};
+    enum class InterpType {
+        SnapshotBoth = 0,
+        SnapshotPrev,
+        NumTypes
+    };
 
 protected:
 
-	class RandomSwitchState {
-	public:
-		friend AnimRandomSwitch;
-		friend bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
+    class RandomSwitchState {
+    public:
+        friend AnimRandomSwitch;
+        friend bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& nodeId, const QUrl& jsonUrl);
 
-		using Pointer = std::shared_ptr<RandomSwitchState>;
-		using ConstPointer = std::shared_ptr<const RandomSwitchState>;
+        using Pointer = std::shared_ptr<RandomSwitchState>;
+        using ConstPointer = std::shared_ptr<const RandomSwitchState>;
 
-		class Transition {
-		public:
-			friend AnimRandomSwitch;
-			Transition(const QString& var, RandomSwitchState::Pointer randomState) : _var(var), _randomSwitchState(randomState) {}
-		protected:
-			QString _var;
-			RandomSwitchState::Pointer _randomSwitchState;
-		};
+        class Transition {
+        public:
+            friend AnimRandomSwitch;
+            Transition(const QString& var, RandomSwitchState::Pointer randomState) : _var(var), _randomSwitchState(randomState) {}
+        protected:
+            QString _var;
+            RandomSwitchState::Pointer _randomSwitchState;
+        };
 
-		RandomSwitchState(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType, float priority, bool resume) :
-			_id(id),
-			_childIndex(childIndex),
-			_interpTarget(interpTarget),
-			_interpDuration(interpDuration),
-			_interpType(interpType),
+        RandomSwitchState(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType, float priority, bool resume) :
+            _id(id),
+            _childIndex(childIndex),
+            _interpTarget(interpTarget),
+            _interpDuration(interpDuration),
+            _interpType(interpType),
             _priority(priority),
             _resume(resume){
-		}
+        }
 
-		void setInterpTargetVar(const QString& interpTargetVar) { _interpTargetVar = interpTargetVar; }
-		void setInterpDurationVar(const QString& interpDurationVar) { _interpDurationVar = interpDurationVar; }
-		void setInterpTypeVar(const QString& interpTypeVar) { _interpTypeVar = interpTypeVar; }
+        void setInterpTargetVar(const QString& interpTargetVar) { _interpTargetVar = interpTargetVar; }
+        void setInterpDurationVar(const QString& interpDurationVar) { _interpDurationVar = interpDurationVar; }
+        void setInterpTypeVar(const QString& interpTypeVar) { _interpTypeVar = interpTypeVar; }
 
-		int getChildIndex() const { return _childIndex; }
+        int getChildIndex() const { return _childIndex; }
         float getPriority() const { return _priority; }
         bool getResume() const { return _resume; }
-		const QString& getID() const { return _id; }
+        const QString& getID() const { return _id; }
 
-	protected:
+    protected:
 
-		void setInterpTarget(float interpTarget) { _interpTarget = interpTarget; }
-		void setInterpDuration(float interpDuration) { _interpDuration = interpDuration; }
+        void setInterpTarget(float interpTarget) { _interpTarget = interpTarget; }
+        void setInterpDuration(float interpDuration) { _interpDuration = interpDuration; }
         void setPriority(float priority) { _priority = priority; }
         void setResumeFlag(bool resume) { _resume = resume; }
 
-		void addTransition(const Transition& transition) { _transitions.push_back(transition); }
+        void addTransition(const Transition& transition) { _transitions.push_back(transition); }
 
-		QString _id;
-		int _childIndex;
-		float _interpTarget;  // frames
-		float _interpDuration; // frames
-		InterpType _interpType;
+        QString _id;
+        int _childIndex;
+        float _interpTarget;  // frames
+        float _interpDuration; // frames
+        InterpType _interpType;
         float _priority {0.0f};
         bool _resume {false};
 
-		QString _interpTargetVar;
-		QString _interpDurationVar;
-		QString _interpTypeVar;
+        QString _interpTargetVar;
+        QString _interpDurationVar;
+        QString _interpTypeVar;
 
-		std::vector<Transition> _transitions;
+        std::vector<Transition> _transitions;
 
-	private:
-		// no copies
-		RandomSwitchState(const RandomSwitchState&) = delete;
-		RandomSwitchState& operator=(const RandomSwitchState&) = delete;
-	};
+    private:
+        // no copies
+        RandomSwitchState(const RandomSwitchState&) = delete;
+        RandomSwitchState& operator=(const RandomSwitchState&) = delete;
+    };
 
 public:
 
-	explicit AnimRandomSwitch(const QString& id);
-	virtual ~AnimRandomSwitch() override;
+    explicit AnimRandomSwitch(const QString& id);
+    virtual ~AnimRandomSwitch() override;
 
-	virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
+    virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
 
-	void setCurrentStateVar(QString& currentStateVar) { _currentStateVar = currentStateVar; }
+    void setCurrentStateVar(QString& currentStateVar) { _currentStateVar = currentStateVar; }
 
 protected:
 
-	void setCurrentState(RandomSwitchState::Pointer randomState);
+    void setCurrentState(RandomSwitchState::Pointer randomState);
     void setTriggerRandomSwitchVar(const QString& triggerRandomSwitchVar) { _triggerRandomSwitchVar = triggerRandomSwitchVar; }
     void setRandomSwitchTimeMin(float randomSwitchTimeMin) { _randomSwitchTimeMin = randomSwitchTimeMin; }
     void setRandomSwitchTimeMax(float randomSwitchTimeMax) { _randomSwitchTimeMax = randomSwitchTimeMax; }
@@ -140,31 +141,31 @@ protected:
     void setTriggerTimeMax(float triggerTimeMax) { _triggerTimeMax = triggerTimeMax; }
     void addToPrioritySum(float priority) { _totalPriorities += priority; }
 
-	void addState(RandomSwitchState::Pointer randomState);
+    void addState(RandomSwitchState::Pointer randomState);
 
-	void switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp);
-	RandomSwitchState::Pointer evaluateTransitions(const AnimVariantMap& animVars) const;
+    void switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp);
+    RandomSwitchState::Pointer evaluateTransitions(const AnimVariantMap& animVars) const;
 
-	// for AnimDebugDraw rendering
-	virtual const AnimPoseVec& getPosesInternal() const override;
+    // for AnimDebugDraw rendering
+    virtual const AnimPoseVec& getPosesInternal() const override;
 
-	AnimPoseVec _poses;
+    AnimPoseVec _poses;
 
-    int _framesActive { 0 };
-	// interpolation state
-	bool _duringInterp = false;
-	InterpType _interpType{ InterpType::SnapshotPrev };
-	float _alphaVel = 0.0f;
-	float _alpha = 0.0f;
-	AnimPoseVec _prevPoses;
-	AnimPoseVec _nextPoses;
+    int _randomSwitchEvaluationCount { 0 };
+    // interpolation state
+    bool _duringInterp = false;
+    InterpType _interpType{ InterpType::SnapshotPrev };
+    float _alphaVel = 0.0f;
+    float _alpha = 0.0f;
+    AnimPoseVec _prevPoses;
+    AnimPoseVec _nextPoses;
     float _totalPriorities { 0.0f };
 
-	RandomSwitchState::Pointer _currentState;
-	RandomSwitchState::Pointer _previousState;
-	std::vector<RandomSwitchState::Pointer> _randomStates;
+    RandomSwitchState::Pointer _currentState;
+    RandomSwitchState::Pointer _previousState;
+    std::vector<RandomSwitchState::Pointer> _randomStates;
 
-	QString _currentStateVar;
+    QString _currentStateVar;
     QString _triggerRandomSwitchVar;
     QString _transitionVar;
     float _triggerTimeMin { 10.0f };
@@ -175,9 +176,9 @@ protected:
     float _randomSwitchTime { 0.0f };
 
 private:
-	// no copies
-	AnimRandomSwitch(const AnimRandomSwitch&) = delete;
-	AnimRandomSwitch& operator=(const AnimRandomSwitch&) = delete;
+    // no copies
+    AnimRandomSwitch(const AnimRandomSwitch&) = delete;
+    AnimRandomSwitch& operator=(const AnimRandomSwitch&) = delete;
 };
 
 #endif // hifi_AnimRandomSwitch_h

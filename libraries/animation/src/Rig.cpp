@@ -1480,7 +1480,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     if (_animNode && _enabledAnimations) {
         DETAILED_PERFORMANCE_TIMER("handleTriggers");
 
-        ++_framesAnimatedThisSession;
+        ++_evaluationCount;
 
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
@@ -1488,7 +1488,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
             _networkVars.setRigToGeometryTransform(_rigToGeometryTransform);
         }
         AnimContext context(_enableDebugDrawIKTargets, _enableDebugDrawIKConstraints, _enableDebugDrawIKChains,
-                            getGeometryToRigTransform(), rigToWorldTransform, _framesAnimatedThisSession);
+                            getGeometryToRigTransform(), rigToWorldTransform, _evaluationCount);
 
         // evaluate the animation
         AnimVariantMap triggersOut;

@@ -25,7 +25,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
     float parentDebugAlpha = context.getDebugAlpha(_id);
 
     AnimRandomSwitch::RandomSwitchState::Pointer desiredState = _currentState;
-    if (abs(_framesActive - context.getFramesAnimatedThisSession()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
+    if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
         // get a random number and decide which motion to choose.
         bool currentStateHasPriority = false;
         float dice = randFloatInRange(0.0f, 1.0f);
@@ -43,7 +43,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
                 currentStateHasPriority = currentStateHasPriority || (_currentState == randState);
             }
         }
-        if (abs(_framesActive - context.getFramesAnimatedThisSession()) > 1) {
+        if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1) {
             _duringInterp = false;
             switchRandomState(animVars, context, desiredState, _duringInterp);
         } else {
@@ -126,7 +126,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
 
-    _framesActive = context.getFramesAnimatedThisSession();
+    _randomSwitchEvaluationCount = context.getEvaluationCount();
     processOutputJoints(triggersOut);
 
     context.addStateMachineInfo(_id, _currentState->getID(), _previousState->getID(), _duringInterp, _alpha);
