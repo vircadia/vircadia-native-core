@@ -727,7 +727,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     boxHit._distance = FLT_MAX;
 
                     for (size_t i = 0; i < hit._boundJoints.size(); i++) {
-                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        assert(hit._boundJoints[i] < (int)multiSpheres.size());
                         auto &mSphere = multiSpheres[hit._boundJoints[i]];
                         if (mSphere.isValid()) {
                             float boundDistance = FLT_MAX;
