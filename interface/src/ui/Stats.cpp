@@ -224,7 +224,11 @@ void Stats::updateStats(bool force) {
     if (_expanded || force) {
         RefreshRateManager& refreshRateManager = qApp->getRefreshRateManager();
         std::string refreshRateMode = RefreshRateManager::refreshRateProfileToString(refreshRateManager.getRefreshRateProfile());
+        std::string refreshRateRegime = RefreshRateManager::refreshRateRegimeToString(refreshRateManager.getRefreshRateRegime());
+        std::string uxMode = RefreshRateManager::uxModeToString(refreshRateManager.getUXMode());
         STAT_UPDATE(refreshRateMode, QString::fromStdString(refreshRateMode));
+        STAT_UPDATE(refreshRateRegime, QString::fromStdString(refreshRateRegime));
+        STAT_UPDATE(uxMode, QString::fromStdString(uxMode));
         STAT_UPDATE(refreshRateTarget, refreshRateManager.getActiveRefreshRate());
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {

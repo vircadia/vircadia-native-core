@@ -128,7 +128,7 @@ protected:
 
     void withOtherThreadContext(std::function<void()> f) const;
 
-    void present();
+    void present(const std::shared_ptr<RefreshRateController>& refreshRateController);
     virtual void swapBuffers();
     ivec4 eyeViewport(Eye eye) const;
 

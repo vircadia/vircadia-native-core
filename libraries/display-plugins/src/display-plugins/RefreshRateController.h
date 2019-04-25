@@ -24,17 +24,16 @@ public:
     RefreshRateController() = default;
     ~RefreshRateController() = default;
 
-    void setRefreshRateLimit(int refreshRateLimiti);
-    int getRefreshRateLimit() const;
+    void setRefreshRateLimitPeriod(int refreshRateLimit);
+    int getRefreshRateLimitPeriod() const;
 
-    void clockStartTime() { _startTime = std::chrono::system_clock::now(); }
-    void clockEndTime() { _endTime = std::chrono::system_clock::now(); }
-    void sleepThreadIfNeeded(QThread* thread);
+    void clockStartTime() { _startTime = std::chrono::high_resolution_clock::now(); }
+    void clockEndTime() { _endTime = std::chrono::high_resolution_clock::now(); }
+    void sleepThreadIfNeeded(QThread* thread, bool isHmd);
 private:
-
-    std::chrono::time_point<std::chrono::system_clock> _startTime { std::chrono::system_clock::now() };
-    std::chrono::time_point<std::chrono::system_clock> _endTime { std::chrono::system_clock::now() };
-    std::atomic_int _refreshRateLimit { 50 }; // milliseconds
+    std::chrono::time_point<std::chrono::high_resolution_clock> _startTime { std::chrono::high_resolution_clock::now() };
+    std::chrono::time_point<std::chrono::high_resolution_clock> _endTime { std::chrono::high_resolution_clock::now() };
+    std::atomic<int64_t> _refreshRateLimitPeriod { 50 };
 
 };
 

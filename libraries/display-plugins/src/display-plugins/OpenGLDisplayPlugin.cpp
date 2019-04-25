@@ -183,18 +183,14 @@ public:
             }
 
             // Execute the frame and present it to the display device.
-            _refreshRateController->clockStartTime();
             {
                 PROFILE_RANGE(render, "PluginPresent")
                 gl::globalLock();
-                currentPlugin->present();
+                currentPlugin->present(_refreshRateController);
                 gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
-            // stop time
-            _refreshRateController->clockEndTime();
-            _refreshRateController->sleepThreadIfNeeded(this);
-            // sleep if needed
+            _refreshRateController->sleepThreadIfNeeded(this, currentPlugin->isHmd());
         }
 
         _context->doneCurrent();
@@ -697,7 +693,7 @@ void OpenGLDisplayPlugin::internalPresent() {
     _presentRate.increment();
 }
 
-void OpenGLDisplayPlugin::present() {
+void OpenGLDisplayPlugin::present(const std::shared_ptr<RefreshRateController>& refreshRateController) {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
@@ -708,6 +704,7 @@ void OpenGLDisplayPlugin::present() {
     }
     incrementPresentCount();
 
+    refreshRateController->clockStartTime();
     if (_currentFrame) {
         auto correction = getViewCorrection();
         getGLBackend()->setCameraCorrection(correction, _prevRenderView);
@@ -745,6 +742,7 @@ void OpenGLDisplayPlugin::present() {
         }
 
         // Take the composite framebuffer and send it to the output device
+        refreshRateController->clockEndTime();
         {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
             internalPresent();
@@ -752,7 +750,10 @@ void OpenGLDisplayPlugin::present() {
 
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
     } else if (alwaysPresent()) {
+        refreshRateController->clockEndTime();
         internalPresent();
+    } else {
+        refreshRateController->clockEndTime();
     }
     _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }
@@ -772,7 +773,7 @@ float OpenGLDisplayPlugin::presentRate() const {
 std::function<void(int)>  OpenGLDisplayPlugin::getRefreshRateOperator() {
     return [](int targetRefreshRate) {
         auto refreshRateController = DependencyManager::get<PresentThread>()->getRefreshRateController();
-        refreshRateController->setRefreshRateLimit(targetRefreshRate);
+        refreshRateController->setRefreshRateLimitPeriod(targetRefreshRate);
     };
 }
 

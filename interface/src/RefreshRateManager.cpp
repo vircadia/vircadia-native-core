@@ -84,9 +84,20 @@ void RefreshRateManager::setRefreshRateProfile(RefreshRateManager::RefreshRatePr
 }
 
 RefreshRateManager::RefreshRateProfile RefreshRateManager::getRefreshRateProfile() const {
-    return (RefreshRateManager::RefreshRateProfile) _refreshRateModeLock.resultWithReadLock<int>([&] {
-        return _refreshRateMode.get();
-    });
+    RefreshRateManager::RefreshRateProfile profile = RefreshRateManager::RefreshRateProfile::REALTIME;
+
+    if (getUXMode() != RefreshRateManager::UXMode::HMD) {
+        profile =(RefreshRateManager::RefreshRateProfile) _refreshRateModeLock.resultWithReadLock<int>([&] {
+            return _refreshRateMode.get();
+        });
+    }
+
+    return profile;
+}
+
+RefreshRateManager::RefreshRateRegime RefreshRateManager::getRefreshRateRegime() const {
+    return getUXMode() == RefreshRateManager::UXMode::HMD ? RefreshRateManager::RefreshRateRegime::RUNNING :
+        _refreshRateRegime;
 }
 
 void RefreshRateManager::setRefreshRateRegime(RefreshRateManager::RefreshRateRegime refreshRateRegime) {

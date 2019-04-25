@@ -12,31 +12,32 @@
 #include "RefreshRateController.h"
 
 #include <QtCore/QThread>
+#include <NumericalConstants.h>
 
-int refreshRateConverter(int refreshRate) {
-    const float ONE_SECOND_IN_MILLISECONDS = 1000.0f;
-    const float ONE_TIME_UNIT = 1.0f;
-    float frameInOneTimeUnit = ONE_TIME_UNIT / (float) refreshRate;
-    float convertedRefreshRate = frameInOneTimeUnit * ONE_SECOND_IN_MILLISECONDS;
-    return (int) convertedRefreshRate;
+long int hzToDurationNanoseconds(int refreshRate) {
+    return (int64_t) (NSECS_PER_SECOND / (quint64) refreshRate);
 }
 
-void RefreshRateController::setRefreshRateLimit(int refreshRateLimit) {
-    _refreshRateLimit = refreshRateConverter(refreshRateLimit);
+int durationNanosecondsToHz(int64_t refreshRateLimitPeriod) {
+    return (int) (NSECS_PER_SECOND / (quint64) refreshRateLimitPeriod);
 }
 
-int RefreshRateController::getRefreshRateLimit() const {
-    return refreshRateConverter(_refreshRateLimit);
+void RefreshRateController::setRefreshRateLimitPeriod(int refreshRateLimit) {
+    _refreshRateLimitPeriod = hzToDurationNanoseconds(refreshRateLimit);
 }
 
-void RefreshRateController::sleepThreadIfNeeded(QThread* thread) {
-    auto startTimeFromEpoch = _startTime.time_since_epoch();
-    auto endTimeFromEpoch = _endTime.time_since_epoch();
+int RefreshRateController::getRefreshRateLimitPeriod() const {
+    return durationNanosecondsToHz(_refreshRateLimitPeriod);
+}
 
-    auto startMs = std::chrono::duration_cast<std::chrono::milliseconds>(startTimeFromEpoch).count();
-    auto endMs = std::chrono::duration_cast<std::chrono::milliseconds>(endTimeFromEpoch).count();
-    auto duration = endMs - startMs;
-    if (duration < _refreshRateLimit) {
-        thread->msleep(_refreshRateLimit - duration);
+void RefreshRateController::sleepThreadIfNeeded(QThread* thread, bool isHmd) {
+    if (!isHmd) {
+        static const std::chrono::nanoseconds EPSILON = std::chrono::milliseconds(1);
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(_endTime - _startTime);
+        auto refreshRateLimitPeriod = std::chrono::nanoseconds(_refreshRateLimitPeriod);
+        auto sleepDuration = refreshRateLimitPeriod - (duration + EPSILON);
+        if (sleepDuration.count() > 0) {
+            thread->msleep(std::chrono::duration_cast<std::chrono::milliseconds>(sleepDuration).count());
+        }
     }
 }

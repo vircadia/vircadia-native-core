@@ -81,7 +81,9 @@ Item {
                         visible: root.expanded
                         text: "  RefreshRateController:\n    " +
                             "refreshRateTarget:\t " + root.refreshRateTarget + "\n    " +
-                            "refreshRateMode:\t " + root.refreshRateMode ;
+                            "refreshRateMode:\t " + root.refreshRateMode + "\n    " +
+                            "refreshRateRegime:\t " + root.refreshRateRegime + "\n   " +
+                            "uxMode:\t " + root.uxMode;
                     }
                     StatText {
                         visible: root.expanded

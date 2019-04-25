@@ -49,7 +49,7 @@ public:
     RefreshRateProfile getRefreshRateProfile() const;
 
     void setRefreshRateRegime(RefreshRateRegime refreshRateRegime);
-    RefreshRateRegime getRefreshRateRegime() const { return _refreshRateRegime; }
+    RefreshRateRegime getRefreshRateRegime() const;
 
     void setUXMode(UXMode uxMode);
     UXMode getUXMode() const { return _uxMode; }
