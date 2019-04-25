@@ -152,10 +152,12 @@ public:
             _cachedArgsPointer->_viewport = args->_viewport;
             _cachedArgsPointer->_displayMode = args->_displayMode;
             _cachedArgsPointer->_renderMode = args->_renderMode;
+            _cachedArgsPointer->_stencilMaskMode = args->_stencilMaskMode;
             args->_blitFramebuffer = destFramebuffer;
             args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
             args->_displayMode = RenderArgs::MONO;
             args->_renderMode = RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE;
+            args->_stencilMaskMode = StencilMaskMode::NONE;
 
             gpu::doInBatch("SecondaryCameraJob::run", args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
@@ -255,10 +257,11 @@ public:
     void run(const render::RenderContextPointer& renderContext, const RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
         if (cachedArgs) {
-        args->_blitFramebuffer = cachedArgs->_blitFramebuffer;
-        args->_viewport = cachedArgs->_viewport;
-        args->_displayMode = cachedArgs->_displayMode;
-        args->_renderMode = cachedArgs->_renderMode;
+            args->_blitFramebuffer = cachedArgs->_blitFramebuffer;
+            args->_viewport = cachedArgs->_viewport;
+            args->_displayMode = cachedArgs->_displayMode;
+            args->_renderMode = cachedArgs->_renderMode;
+            args->_stencilMaskMode = cachedArgs->_stencilMaskMode;
         }
         args->popViewFrustum();
 

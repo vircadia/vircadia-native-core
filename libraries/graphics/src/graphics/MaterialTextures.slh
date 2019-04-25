@@ -149,7 +149,6 @@ float fetchScatteringMap(vec2 uv) {
 
 <@endfunc@>
 
-
 <@func fetchMaterialTexturesCoord0(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, scattering)@>
     if (getTexMapArray()._materialParams.y != 1.0 && clamp(<$texcoord0$>, vec2(0.0), vec2(1.0)) != <$texcoord0$>) {
         discard;

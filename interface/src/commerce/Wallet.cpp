@@ -41,326 +41,246 @@
 #include "ui/SecurityImageProvider.h"
 #include "scripting/HMDScriptingInterface.h"
 
-static const char* KEY_FILE = "hifikey";
-static const char* INSTRUCTIONS_FILE = "backup_instructions.html";
-static const char* IMAGE_HEADER = "-----BEGIN SECURITY IMAGE-----\n";
-static const char* IMAGE_FOOTER = "-----END SECURITY IMAGE-----\n";
+namespace {
+    const char* KEY_FILE = "hifikey";
+    const char* INSTRUCTIONS_FILE = "backup_instructions.html";
+    const char* IMAGE_HEADER = "-----BEGIN SECURITY IMAGE-----\n";
+    const char* IMAGE_FOOTER = "-----END SECURITY IMAGE-----\n";
 
-void initialize() {
-    static bool initialized = false;
-    if (!initialized) {
-        SSL_load_error_strings();
-        SSL_library_init();
-        OpenSSL_add_all_algorithms();
-        initialized = true;
-    }
-}
-
-QString keyFilePath() {
-    auto accountManager = DependencyManager::get<AccountManager>();
-    return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
-}
-bool Wallet::copyKeyFileFrom(const QString& pathname) {
-    QString existing = getKeyFilePath();
-    qCDebug(commerce) << "Old keyfile" << existing;
-    if (!existing.isEmpty()) {
-        QString backup = QString(existing).insert(existing.indexOf(KEY_FILE) - 1,
-            QDateTime::currentDateTime().toString(Qt::ISODate).replace(":", ""));
-        qCDebug(commerce) << "Renaming old keyfile to" << backup;
-        if (!QFile::rename(existing, backup)) {
-            qCCritical(commerce) << "Unable to backup" << existing << "to" << backup;
-            return false;
+    void initialize() {
+        static bool initialized = false;
+        if (!initialized) {
+            SSL_load_error_strings();
+            SSL_library_init();
+            OpenSSL_add_all_algorithms();
+            initialized = true;
         }
     }
-    QString destination = keyFilePath();
-    bool result = QFile::copy(pathname, destination);
-    qCDebug(commerce) << "copy" << pathname << "to" << destination << "=>" << result;
-    return result;
-}
 
-// use the cached _passphrase if it exists, otherwise we need to prompt
-int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
-    // just return a hardcoded pwd for now
-    auto wallet = DependencyManager::get<Wallet>();
-    auto passphrase = wallet->getPassphrase();
-    if (passphrase && !passphrase->isEmpty()) {
-        QString saltedPassphrase(*passphrase);
-        saltedPassphrase.append(wallet->getSalt());
-        strcpy(password, saltedPassphrase.toUtf8().constData());
-        return static_cast<int>(passphrase->size());
-    } else {
-        // this shouldn't happen - so lets log it to tell us we have
-        // a problem with the flow...
-        qCCritical(commerce) << "no cached passphrase while decrypting!";
-        return 0;
+    QString keyFilePath() {
+        auto accountManager = DependencyManager::get<AccountManager>();
+        return PathUtils::getAppDataFilePath(QString("%1.%2").arg(accountManager->getAccountInfo().getUsername(), KEY_FILE));
     }
-}
 
-EC_KEY* readKeys(QString filename) {
-    QFile file(filename);
-    EC_KEY* key = NULL;
-    if (file.open(QFile::ReadOnly)) {
-        // file opened successfully
-        qCDebug(commerce) << "opened key file" << filename;
+    // use the cached _passphrase if it exists, otherwise we need to prompt
+    int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
+        // just return a hardcoded pwd for now
+        auto wallet = DependencyManager::get<Wallet>();
+        auto passphrase = wallet->getPassphrase();
+        if (passphrase && !passphrase->isEmpty()) {
+            QString saltedPassphrase(*passphrase);
+            saltedPassphrase.append(wallet->getSalt());
+            strcpy(password, saltedPassphrase.toUtf8().constData());
+            return static_cast<int>(passphrase->size());
+        } else {
+            // this shouldn't happen - so lets log it to tell us we have
+            // a problem with the flow...
+            qCCritical(commerce) << "no cached passphrase while decrypting!";
+            return 0;
+        }
+    }
 
-        QByteArray pemKeyBytes = file.readAll();
-        BIO* bufio = BIO_new_mem_buf((void*)pemKeyBytes.constData(), pemKeyBytes.length());
-        if ((key = PEM_read_bio_EC_PUBKEY(bufio, NULL, NULL, NULL))) {
-            // now read private key
+    EC_KEY* readKeys(QString filename) {
+        QFile file(filename);
+        EC_KEY* key = NULL;
+        if (file.open(QFile::ReadOnly)) {
+            // file opened successfully
+            qCDebug(commerce) << "opened key file" << filename;
 
-            qCDebug(commerce) << "read public key";
+            QByteArray pemKeyBytes = file.readAll();
+            BIO* bufio = BIO_new_mem_buf((void*)pemKeyBytes.constData(), pemKeyBytes.length());
+            if ((key = PEM_read_bio_EC_PUBKEY(bufio, NULL, NULL, NULL))) {
+                // now read private key
 
-            if ((key = PEM_read_bio_ECPrivateKey(bufio, &key, passwordCallback, NULL))) {
-                qCDebug(commerce) << "read private key";
-                BIO_free(bufio);
-                file.close();
+                qCDebug(commerce) << "read public key";
+
+                if ((key = PEM_read_bio_ECPrivateKey(bufio, &key, passwordCallback, NULL))) {
+                    qCDebug(commerce) << "read private key";
+                } else {
+                    qCDebug(commerce) << "failed to read private key";
+                }
             } else {
-                qCDebug(commerce) << "failed to read private key";
+                qCDebug(commerce) << "failed to read public key";
             }
-        } else {
-            qCDebug(commerce) << "failed to read public key";
-        }
-        BIO_free(bufio);
-        file.close();
-    } else {
-        qCDebug(commerce) << "failed to open key file" << filename;
-    }
-    return key;
-}
-
-bool Wallet::writeBackupInstructions() {
-    QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
-    QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
-    QFile inputFile(inputFilename);
-    QFile outputFile(outputFilename);
-    bool retval = false;
-
-    if (getKeyFilePath().isEmpty()) {
-        return false;
-    }
-
-    if (QFile::exists(inputFilename) && inputFile.open(QIODevice::ReadOnly)) {
-        if (outputFile.open(QIODevice::ReadWrite)) {
-            // Read the data from the original file, then close it
-            QByteArray fileData = inputFile.readAll();
-            inputFile.close();
-
-            // Translate the data from the original file into a QString
-            QString text(fileData);
-
-            // Replace the necessary string
-            text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
-
-            // Write the new text back to the file
-            outputFile.write(text.toUtf8());
-
-            // Close the output file
-            outputFile.close();
-
-            retval = true;
-            qCDebug(commerce) << "wrote html file successfully";
-        } else {
-            qCDebug(commerce) << "failed to open output html file" << outputFilename;
-        }
-    } else {
-        qCDebug(commerce) << "failed to open input html file" << inputFilename;
-    }
-    return retval;
-}
-
-bool writeKeys(QString filename, EC_KEY* keys) {
-    BIO* bio = BIO_new(BIO_s_mem());
-    bool retval = false;
-    if (!PEM_write_bio_EC_PUBKEY(bio, keys)) {
-        BIO_free(bio);
-        qCCritical(commerce) << "failed to write public key";
-        return retval;
-    }
-
-    if (!PEM_write_bio_ECPrivateKey(bio, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
-        BIO_free(bio);
-        qCCritical(commerce) << "failed to write private key";
-        return retval;
-    }
-
-    QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly)) {
-        const char* bio_data;
-        long bio_size = BIO_get_mem_data(bio, &bio_data);
-
-        QByteArray keyBytes(bio_data, bio_size);
-        file.write(keyBytes);
-        retval = true;
-        qCDebug(commerce) << "wrote keys successfully";
-        file.close();
-    } else {
-        qCDebug(commerce) << "failed to open key file" << filename;
-    }
-    BIO_free(bio);
-    return retval;
-}
-
-bool Wallet::setWallet(const QByteArray& wallet) {
-    QFile file(keyFilePath());
-    if (!file.open(QIODevice::WriteOnly)) {
-        qCCritical(commerce) << "Unable to open wallet for write in" << keyFilePath();
-        return false;
-    }
-    if (file.write(wallet) != wallet.count()) {
-        qCCritical(commerce) << "Unable to write wallet in" << keyFilePath();
-        return false;
-    }
-    file.close();
-    return true;
-}
-QByteArray Wallet::getWallet() {
-    QFile file(keyFilePath());
-    if (!file.open(QIODevice::ReadOnly)) {
-        qCInfo(commerce) << "No existing wallet in" << keyFilePath();
-        return QByteArray();
-    }
-    QByteArray wallet = file.readAll();
-    file.close();
-    return wallet;
-}
-
-QPair<QByteArray*, QByteArray*> generateECKeypair() {
-    EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
-    QPair<QByteArray*, QByteArray*> retval{};
-
-    EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
-    if (!EC_KEY_generate_key(keyPair)) {
-        qCDebug(commerce) << "Error generating EC Keypair -" << ERR_get_error();
-        return retval;
-    }
-
-    // grab the public key and private key from the file
-    unsigned char* publicKeyDER = NULL;
-    int publicKeyLength = i2d_EC_PUBKEY(keyPair, &publicKeyDER);
-
-    unsigned char* privateKeyDER = NULL;
-    int privateKeyLength = i2d_ECPrivateKey(keyPair, &privateKeyDER);
-
-    if (publicKeyLength <= 0 || privateKeyLength <= 0) {
-        qCDebug(commerce) << "Error getting DER public or private key from EC struct -" << ERR_get_error();
-
-        // cleanup the EC struct
-        EC_KEY_free(keyPair);
-
-        // cleanup the public and private key DER data, if required
-        if (publicKeyLength > 0) {
-            OPENSSL_free(publicKeyDER);
-        }
-
-        if (privateKeyLength > 0) {
-            OPENSSL_free(privateKeyDER);
-        }
-
-        return retval;
-    }
-
-    if (!writeKeys(keyFilePath(), keyPair)) {
-        qCDebug(commerce) << "couldn't save keys!";
-        return retval;
-    }
-
-    EC_KEY_free(keyPair);
-
-    // prepare the return values.  TODO: Fix this - we probably don't really even want the
-    // private key at all (better to read it when we need it?).  Or maybe we do, when we have
-    // multiple keys?
-    retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength);
-    retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
-
-    // cleanup the publicKeyDER and publicKeyDER data
-    OPENSSL_free(publicKeyDER);
-    OPENSSL_free(privateKeyDER);
-    return retval;
-}
-// END copied code (which will soon change)
-
-// the public key can just go into a byte array
-QByteArray readPublicKey(QString filename) {
-    QByteArray retval;
-    QFile file(filename);
-    if (file.open(QIODevice::ReadOnly)) {
-        // file opened successfully
-        qCDebug(commerce) << "opened key file" << filename;
-
-        QByteArray pemKeyBytes = file.readAll();
-        BIO* bufio = BIO_new_mem_buf((void*)pemKeyBytes.constData(), pemKeyBytes.length());
-
-        EC_KEY* key = PEM_read_bio_EC_PUBKEY(bufio, NULL, NULL, NULL);
-        if (key) {
-            // file read successfully
-            unsigned char* publicKeyDER = NULL;
-            int publicKeyLength = i2d_EC_PUBKEY(key, &publicKeyDER);
-            // TODO: check for 0 length?
-
-            // cleanup
-            EC_KEY_free(key);
-
-            qCDebug(commerce) << "parsed public key file successfully";
-
-            QByteArray retval((char*)publicKeyDER, publicKeyLength);
-            OPENSSL_free(publicKeyDER);
             BIO_free(bufio);
             file.close();
+        } else {
+            qCDebug(commerce) << "failed to open key file" << filename;
+        }
+        return key;
+    }
+
+    bool writeKeys(QString filename, EC_KEY* keys) {
+        BIO* bio = BIO_new(BIO_s_mem());
+        bool retval = false;
+        if (!PEM_write_bio_EC_PUBKEY(bio, keys)) {
+            BIO_free(bio);
+            qCCritical(commerce) << "failed to write public key";
             return retval;
-        } else {
-            qCDebug(commerce) << "couldn't parse" << filename;
         }
-        BIO_free(bufio);
-        file.close();
-    } else {
-        qCDebug(commerce) << "couldn't open" << filename;
-    }
-    return QByteArray();
-}
 
-// the private key should be read/copied into heap memory.  For now, we need the EC_KEY struct
-// so I'll return that.
-EC_KEY* readPrivateKey(QString filename) {
-    QFile file(filename);
-    EC_KEY* key = NULL;
-    if (file.open(QIODevice::ReadOnly)) {
-        // file opened successfully
-        qCDebug(commerce) << "opened key file" << filename;
-
-        QByteArray pemKeyBytes = file.readAll();
-        BIO* bufio = BIO_new_mem_buf((void*)pemKeyBytes.constData(), pemKeyBytes.length());
-
-        if ((key = PEM_read_bio_ECPrivateKey(bufio, &key, passwordCallback, NULL))) {
-            qCDebug(commerce) << "parsed private key file successfully";
-
-        } else {
-            qCDebug(commerce) << "couldn't parse" << filename;
-            // if the passphrase is wrong, then let's not cache it
-            DependencyManager::get<Wallet>()->setPassphrase("");
+        if (!PEM_write_bio_ECPrivateKey(bio, keys, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
+            BIO_free(bio);
+            qCCritical(commerce) << "failed to write private key";
+            return retval;
         }
-        BIO_free(bufio);
-        file.close();
-    } else {
-        qCDebug(commerce) << "couldn't open" << filename;
-    }
-    return key;
-}
 
-// QT's QByteArray will convert to Base64 without any embedded newlines.  This just
-// writes it with embedded newlines, which is more readable.
-void outputBase64WithNewlines(QFile& file, const QByteArray& b64Array) {
-    for (int i = 0; i < b64Array.size(); i += 64) {
-        file.write(b64Array.mid(i, 64));
-        file.write("\n");
-    }
-}
+        QFile file(filename);
+        if (file.open(QIODevice::WriteOnly)) {
+            const char* bio_data;
+            long bio_size = BIO_get_mem_data(bio, &bio_data);
 
-void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
-    // use the ones in the wallet
-    auto wallet = DependencyManager::get<Wallet>();
-    memcpy(ivec, wallet->getIv(), 16);
-    memcpy(ckey, wallet->getCKey(), 32);
-}
+            QByteArray keyBytes(bio_data, bio_size);
+            file.write(keyBytes);
+            retval = true;
+            qCDebug(commerce) << "wrote keys successfully";
+            file.close();
+        } else {
+            qCDebug(commerce) << "failed to open key file" << filename;
+        }
+        BIO_free(bio);
+        return retval;
+    }
+
+    QPair<QByteArray*, QByteArray*> generateECKeypair() {
+        EC_KEY* keyPair = EC_KEY_new_by_curve_name(NID_secp256k1);
+        QPair<QByteArray*, QByteArray*> retval {};
+
+        EC_KEY_set_asn1_flag(keyPair, OPENSSL_EC_NAMED_CURVE);
+        if (!EC_KEY_generate_key(keyPair)) {
+            qCDebug(commerce) << "Error generating EC Keypair -" << ERR_get_error();
+            return retval;
+        }
+
+        // grab the public key and private key from the file
+        unsigned char* publicKeyDER = NULL;
+        int publicKeyLength = i2d_EC_PUBKEY(keyPair, &publicKeyDER);
+
+        unsigned char* privateKeyDER = NULL;
+        int privateKeyLength = i2d_ECPrivateKey(keyPair, &privateKeyDER);
+
+        if (publicKeyLength <= 0 || privateKeyLength <= 0) {
+            qCDebug(commerce) << "Error getting DER public or private key from EC struct -" << ERR_get_error();
+
+            // cleanup the EC struct
+            EC_KEY_free(keyPair);
+
+            // cleanup the public and private key DER data, if required
+            if (publicKeyLength > 0) {
+                OPENSSL_free(publicKeyDER);
+            }
+
+            if (privateKeyLength > 0) {
+                OPENSSL_free(privateKeyDER);
+            }
+
+            return retval;
+        }
+
+        if (!writeKeys(keyFilePath(), keyPair)) {
+            qCDebug(commerce) << "couldn't save keys!";
+            return retval;
+        }
+
+        EC_KEY_free(keyPair);
+
+        // prepare the return values.  TODO: Fix this - we probably don't really even want the
+        // private key at all (better to read it when we need it?).  Or maybe we do, when we have
+        // multiple keys?
+        retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength);
+        retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
+
+        // cleanup the publicKeyDER and publicKeyDER data
+        OPENSSL_free(publicKeyDER);
+        OPENSSL_free(privateKeyDER);
+        return retval;
+    }
+    // END copied code (which will soon change)
+
+    // the public key can just go into a byte array
+    QByteArray readPublicKey(QString filename) {
+        QByteArray retval;
+        QFile file(filename);
+        if (file.open(QIODevice::ReadOnly)) {
+            // file opened successfully
+            qCDebug(commerce) << "opened key file" << filename;
+
+            QByteArray pemKeyBytes = file.readAll();
+            BIO* bufio = BIO_new_mem_buf((void*)pemKeyBytes.constData(), pemKeyBytes.length());
+
+            EC_KEY* key = PEM_read_bio_EC_PUBKEY(bufio, NULL, NULL, NULL);
+            if (key) {
+                // file read successfully
+                unsigned char* publicKeyDER = NULL;
+                int publicKeyLength = i2d_EC_PUBKEY(key, &publicKeyDER);
+                // TODO: check for 0 length?
+
+                // cleanup
+                EC_KEY_free(key);
+
+                qCDebug(commerce) << "parsed public key file successfully";
+
+                QByteArray retval((char*)publicKeyDER, publicKeyLength);
+                OPENSSL_free(publicKeyDER);
+                BIO_free(bufio);
+                file.close();
+                return retval;
+            } else {
+                qCDebug(commerce) << "couldn't parse" << filename;
+            }
+            BIO_free(bufio);
+            file.close();
+        } else {
+            qCDebug(commerce) << "couldn't open" << filename;
+        }
+        return QByteArray();
+    }
+
+    // the private key should be read/copied into heap memory.  For now, we need the EC_KEY struct
+    // so I'll return that.
+    EC_KEY* readPrivateKey(QString filename) {
+        QFile file(filename);
+        EC_KEY* key = NULL;
+        if (file.open(QIODevice::ReadOnly)) {
+            // file opened successfully
+            qCDebug(commerce) << "opened key file" << filename;
+
+            QByteArray pemKeyBytes = file.readAll();
+            BIO* bufio = BIO_new_mem_buf((void*)pemKeyBytes.constData(), pemKeyBytes.length());
+
+            if ((key = PEM_read_bio_ECPrivateKey(bufio, &key, passwordCallback, NULL))) {
+                qCDebug(commerce) << "parsed private key file successfully";
+
+            } else {
+                qCDebug(commerce) << "couldn't parse" << filename;
+                // if the passphrase is wrong, then let's not cache it
+                DependencyManager::get<Wallet>()->setPassphrase("");
+            }
+            BIO_free(bufio);
+            file.close();
+        } else {
+            qCDebug(commerce) << "couldn't open" << filename;
+        }
+        return key;
+    }
+
+    // QT's QByteArray will convert to Base64 without any embedded newlines.  This just
+    // writes it with embedded newlines, which is more readable.
+    void outputBase64WithNewlines(QFile& file, const QByteArray& b64Array) {
+        for (int i = 0; i < b64Array.size(); i += 64) {
+            file.write(b64Array.mid(i, 64));
+            file.write("\n");
+        }
+    }
+
+    void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
+        // use the ones in the wallet
+        auto wallet = DependencyManager::get<Wallet>();
+        memcpy(ivec, wallet->getIv(), 16);
+        memcpy(ckey, wallet->getCKey(), 32);
+    }
+
+}  // close unnamed namespace
 
 Wallet::Wallet() {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -421,6 +341,88 @@ Wallet::~Wallet() {
     if (_passphrase) {
         delete _passphrase;
     }
+}
+
+bool Wallet::setWallet(const QByteArray& wallet) {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::WriteOnly)) {
+        qCCritical(commerce) << "Unable to open wallet for write in" << keyFilePath();
+        return false;
+    }
+    if (file.write(wallet) != wallet.count()) {
+        qCCritical(commerce) << "Unable to write wallet in" << keyFilePath();
+        return false;
+    }
+    file.close();
+    return true;
+}
+QByteArray Wallet::getWallet() {
+    QFile file(keyFilePath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCInfo(commerce) << "No existing wallet in" << keyFilePath();
+        return QByteArray();
+    }
+    QByteArray wallet = file.readAll();
+    file.close();
+    return wallet;
+}
+
+bool Wallet::copyKeyFileFrom(const QString& pathname) {
+    QString existing = getKeyFilePath();
+    qCDebug(commerce) << "Old keyfile" << existing;
+    if (!existing.isEmpty()) {
+        QString backup = QString(existing).insert(existing.indexOf(KEY_FILE) - 1,
+            QDateTime::currentDateTime().toString(Qt::ISODate).replace(":", ""));
+        qCDebug(commerce) << "Renaming old keyfile to" << backup;
+        if (!QFile::rename(existing, backup)) {
+            qCCritical(commerce) << "Unable to backup" << existing << "to" << backup;
+            return false;
+        }
+    }
+    QString destination = keyFilePath();
+    bool result = QFile::copy(pathname, destination);
+    qCDebug(commerce) << "copy" << pathname << "to" << destination << "=>" << result;
+    return result;
+}
+
+bool Wallet::writeBackupInstructions() {
+    QString inputFilename(PathUtils::resourcesPath() + "html/commerce/backup_instructions.html");
+    QString outputFilename = PathUtils::getAppDataFilePath(INSTRUCTIONS_FILE);
+    QFile inputFile(inputFilename);
+    QFile outputFile(outputFilename);
+    bool retval = false;
+
+    if (getKeyFilePath().isEmpty()) {
+        return false;
+    }
+
+    if (QFile::exists(inputFilename) && inputFile.open(QIODevice::ReadOnly)) {
+        if (outputFile.open(QIODevice::ReadWrite)) {
+            // Read the data from the original file, then close it
+            QByteArray fileData = inputFile.readAll();
+            inputFile.close();
+
+            // Translate the data from the original file into a QString
+            QString text(fileData);
+
+            // Replace the necessary string
+            text.replace(QString("HIFIKEY_PATH_REPLACEME"), keyFilePath());
+
+            // Write the new text back to the file
+            outputFile.write(text.toUtf8());
+
+            // Close the output file
+            outputFile.close();
+
+            retval = true;
+            qCDebug(commerce) << "wrote html file successfully";
+        } else {
+            qCDebug(commerce) << "failed to open output html file" << outputFilename;
+        }
+    } else {
+        qCDebug(commerce) << "failed to open input html file" << inputFilename;
+    }
+    return retval;
 }
 
 bool Wallet::setPassphrase(const QString& passphrase) {

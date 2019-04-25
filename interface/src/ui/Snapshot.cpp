@@ -159,47 +159,57 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition,
     secondaryCameraRenderConfig->setOrientation(CAMERA_ORIENTATION_DOWN);
 
     _snapshotIndex = 0;
+    _taking360Snapshot = true;
 
     _snapshotTimer.start(SNAPSHOT_360_TIMER_INTERVAL);
 }
 
 void Snapshot::takeNextSnapshot() {
-    SecondaryCameraJobConfig* config =
-        static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+    if (_taking360Snapshot) {
+        if (!_waitingOnSnapshot) {
+            _waitingOnSnapshot = true;
+            qApp->addSnapshotOperator(std::make_tuple([this](const QImage& snapshot) {
+                // Order is:
+                // 0. Down
+                // 1. Front
+                // 2. Left
+                // 3. Back
+                // 4. Right
+                // 5. Up
+                if (_snapshotIndex < 6) {
+                    _imageArray[_snapshotIndex] = snapshot;
+                }
 
-    // Order is:
-    // 0. Down
-    // 1. Front
-    // 2. Left
-    // 3. Back
-    // 4. Right
-    // 5. Up
-    if (_snapshotIndex < 6) {
-        _imageArray[_snapshotIndex] = qApp->getActiveDisplayPlugin()->getSecondaryCameraScreenshot();
-    }
+                SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+                if (_snapshotIndex == 0) {
+                    // Setup for Front Image capture
+                    config->setOrientation(CAMERA_ORIENTATION_FRONT);
+                } else if (_snapshotIndex == 1) {
+                    // Setup for Left Image capture
+                    config->setOrientation(CAMERA_ORIENTATION_LEFT);
+                } else if (_snapshotIndex == 2) {
+                    // Setup for Back Image capture
+                    config->setOrientation(CAMERA_ORIENTATION_BACK);
+                } else if (_snapshotIndex == 3) {
+                    // Setup for Right Image capture
+                    config->setOrientation(CAMERA_ORIENTATION_RIGHT);
+                } else if (_snapshotIndex == 4) {
+                    // Setup for Up Image capture
+                    config->setOrientation(CAMERA_ORIENTATION_UP);
+                } else if (_snapshotIndex == 5) {
+                    _taking360Snapshot = false;
+                }
 
-    if (_snapshotIndex == 0) {
-        // Setup for Front Image capture
-        config->setOrientation(CAMERA_ORIENTATION_FRONT);
-    } else if (_snapshotIndex == 1) {
-        // Setup for Left Image capture
-        config->setOrientation(CAMERA_ORIENTATION_LEFT);
-    } else if (_snapshotIndex == 2) {
-        // Setup for Back Image capture
-        config->setOrientation(CAMERA_ORIENTATION_BACK);
-    } else if (_snapshotIndex == 3) {
-        // Setup for Right Image capture
-        config->setOrientation(CAMERA_ORIENTATION_RIGHT);
-    } else if (_snapshotIndex == 4) {
-        // Setup for Up Image capture
-        config->setOrientation(CAMERA_ORIENTATION_UP);
-    } else if (_snapshotIndex > 5) {
+                _waitingOnSnapshot = false;
+                _snapshotIndex++;
+            }, 0.0f, false));
+        }
+    } else {
         _snapshotTimer.stop();
 
         // Reset secondary camera render config
-        static_cast<ToneMappingConfig*>(
-            qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))
-            ->setCurve(1);
+        SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
+        static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))->setCurve(1);
         config->resetSizeSpectatorCamera(qApp->getWindow()->geometry().width(), qApp->getWindow()->geometry().height());
         config->setProperty("attachedEntityId", _oldAttachedEntityId);
         config->setProperty("vFoV", _oldvFoV);
@@ -217,8 +227,6 @@ void Snapshot::takeNextSnapshot() {
             QtConcurrent::run([this]() { convertToEquirectangular(); });
         }
     }
-
-    _snapshotIndex++;
 }
 
 void Snapshot::convertToCubemap() {

@@ -15,7 +15,6 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
-#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
 #include "Gzip.h"
@@ -132,10 +131,10 @@ void DomainBaker::loadLocalFile() {
     }
 
     // read the file contents to a JSON document
-    auto jsonDocument = QJsonDocument::fromJson(fileContents);
+    _json = QJsonDocument::fromJson(fileContents);
 
     // grab the entities object from the root JSON object
-    _entities = jsonDocument.object()[ENTITIES_OBJECT_KEY].toArray();
+    _entities = _json.object()[ENTITIES_OBJECT_KEY].toArray();
 
     if (_entities.isEmpty()) {
         // add an error to our list stating that the models file was empty
@@ -171,7 +170,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
                 // move the baker to the baker thread
                 // and kickoff the bake
                 baker->moveToThread(Oven::instance().getNextWorkerThread());
-                QMetaObject::invokeMethod(baker.data(), "bake");
+                QMetaObject::invokeMethod(baker.data(), "bake", Qt::QueuedConnection);
 
                 // keep track of the total number of baking entities
                 ++_totalNumberOfSubBakes;
@@ -214,7 +213,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
             // move the baker to a worker thread and kickoff the bake
             textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
-            QMetaObject::invokeMethod(textureBaker.data(), "bake");
+            QMetaObject::invokeMethod(textureBaker.data(), "bake", Qt::QueuedConnection);
 
             // keep track of the total number of baking entities
             ++_totalNumberOfSubBakes;
@@ -250,7 +249,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, co
 
         // move the baker to a worker thread and kickoff the bake
         scriptBaker->moveToThread(Oven::instance().getNextWorkerThread());
-        QMetaObject::invokeMethod(scriptBaker.data(), "bake");
+        QMetaObject::invokeMethod(scriptBaker.data(), "bake", Qt::QueuedConnection);
 
         // keep track of the total number of baking entities
         ++_totalNumberOfSubBakes;
@@ -275,7 +274,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath, destinationPath),
+            new MaterialBaker(materialData, isURL, _contentOutputPath, destinationPath),
             &MaterialBaker::deleteLater
         };
 
@@ -287,7 +286,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // move the baker to a worker thread and kickoff the bake
         materialBaker->moveToThread(Oven::instance().getNextWorkerThread());
-        QMetaObject::invokeMethod(materialBaker.data(), "bake");
+        QMetaObject::invokeMethod(materialBaker.data(), "bake", Qt::QueuedConnection);
 
         // keep track of the total number of baking entities
         ++_totalNumberOfSubBakes;
@@ -413,7 +412,10 @@ void DomainBaker::enumerateEntities() {
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
-                addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
+                QString materialURL = entity[MATERIAL_URL_KEY].toString();
+                if (!materialURL.startsWith("materialData")) {
+                    addMaterialBaker(MATERIAL_URL_KEY, materialURL, true, *it);
+                }
             }
             if (entity.contains(MATERIAL_DATA_KEY)) {
                 addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it, _destinationPath);
@@ -754,15 +756,10 @@ void DomainBaker::writeNewEntitiesFile() {
     // time to write out a main models.json.gz file
 
     // first setup a document with the entities array below the entities key
-    QJsonDocument entitiesDocument;
-
-    QJsonObject rootObject;
-    rootObject[ENTITIES_OBJECT_KEY] = _entities;
-
-    entitiesDocument.setObject(rootObject);
+    _json.object()[ENTITIES_OBJECT_KEY] = _entities;
 
     // turn that QJsonDocument into a byte array ready for compression
-    QByteArray jsonByteArray = entitiesDocument.toJson();
+    QByteArray jsonByteArray = _json.toJson();
 
     // compress the json byte array using gzip
     QByteArray compressedJson;

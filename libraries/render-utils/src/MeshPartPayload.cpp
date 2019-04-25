@@ -154,8 +154,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
@@ -434,8 +433,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
