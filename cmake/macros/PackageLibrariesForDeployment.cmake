@@ -36,13 +36,6 @@ macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
     endif ()
 
     # add a post-build command to call windeployqt to copy Qt plugins
-message("+++++++++++++++++++++++++++++++++++++")
-message(STATUS ${TARGET_NAME})
-message(STATUS ${QT_DIR})
-message(STATUS ${TARGET_FILE})
-message(STATUS ${WINDEPLOYQT_COMMAND})
-message(STATUS ${EXTRA_DEPLOY_OPTIONS})
-message("-------------------------------------")
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
