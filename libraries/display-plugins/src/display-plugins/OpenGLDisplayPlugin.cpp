@@ -178,6 +178,9 @@ public:
                 continue;
             }
 
+#if defined(Q_OS_MAC)
+            _context->makeCurrent();
+#endif
             // Execute the frame and present it to the display device.
             {
                 PROFILE_RANGE(render, "PluginPresent")
@@ -186,6 +189,9 @@ public:
                 gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
+#if defined(Q_OS_MAC)
+            _context->doneCurrent();
+#endif
         }
 
         _context->doneCurrent();
