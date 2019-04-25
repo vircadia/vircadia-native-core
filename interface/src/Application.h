@@ -344,6 +344,8 @@ public:
     void toggleAwayMode();
     #endif
 
+    void openDirectory(const QString& path);
+
 signals:
     void svoImportRequested(const QString& url);
 

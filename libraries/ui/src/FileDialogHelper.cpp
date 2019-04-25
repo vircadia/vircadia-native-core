@@ -17,6 +17,7 @@
 #include <QtCore/QRegularExpression>
 #include <QDesktopServices>
 
+std::function<void(const QString&)> FileDialogHelper::_openDiretoryOperator = nullptr;
 
 QUrl FileDialogHelper::home() {
     return pathToUrl(QStandardPaths::standardLocations(QStandardPaths::HomeLocation)[0]);
@@ -111,14 +112,8 @@ QStringList FileDialogHelper::drives() {
 }
 
 void FileDialogHelper::openDirectory(const QString& path) {
-    QString dirPath = path;
-    const QString FILE_SCHEME = "file://";
-    if (dirPath.startsWith(FILE_SCHEME)) {
-        dirPath.remove(0, FILE_SCHEME.length());
-    }
-    QFileInfo fileInfo(dirPath);
-    if (fileInfo.isDir()) {
-        QDesktopServices::openUrl(path);
+    if (_openDiretoryOperator) {
+        _openDiretoryOperator(path);
     }
 }
 
