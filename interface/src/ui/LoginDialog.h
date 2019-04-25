@@ -80,8 +80,6 @@ protected slots:
 
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
-    Q_INVOKABLE void openUrl(const QString& url) const;
-
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 };
 
