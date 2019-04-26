@@ -143,6 +143,7 @@ The *.prl* files have an absolute path that needs to be removed (see http://www.
 1.  `cd` to the *qt5-install* folder (e.g. `cd /mnt/d/qt5-install/`)  
 1.  Run the following command  
 ` find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
+1.   Copy *qt.conf* to *qt5-install\bin*  
 #### Uploading
 Create a tar file called qt5-install.tar from the qt5-install folder (e.g. using 7-zip)  
 Create a gzip file called qt5-install.tar.gz from the qt5-install.tar file just created (e.g. using 7-zip)  
@@ -161,7 +162,7 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 `mkdir qt5-build`  
 `cd qt5-build`  
 
-`../qt5/configure -opensource -confirm-license -platform linux-g++-64 -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`  
+`../qt5/configure -opensource -confirm-license -platform linux-g++-64 -qt-zlib -qt-libjpeg -qt=libpng -qt-xcb -qt-freetype [qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`  
 #### Make
 `make`  
 `make install`  
