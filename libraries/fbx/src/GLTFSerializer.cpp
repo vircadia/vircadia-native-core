@@ -1200,7 +1200,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         float weight = 0.1f;
                         int indexFromMapping = weightedIndex;
                         int targetIndex = weightedIndex;
-                        hfmModel.blendshapeChannelNames.push_back("target_" + weightedIndex);
+                        hfmModel.blendshapeChannelNames.push_back("target_" + QString::number(weightedIndex));
 
                         if (!names.isEmpty()) {
                             targetIndex = names.indexOf(keys[weightedIndex]);
