@@ -262,6 +262,18 @@ public slots:
     void refresh();
 };
 
+class SwitchConfig : public TaskConfig {
+    Q_OBJECT
+    Q_PROPERTY(bool switchIndex READ getSwitchIndex WRITE setSwitchIndex NOTIFY dirtyEnabled)
+
+public:
+    uint8_t getSwitchIndex() const { return _switchIndex; }
+    void setSwitchIndex(uint8_t index);
+
+protected:
+    uint8_t _switchIndex { 0 };
+};
+
 }
 
 #endif // hifi_task_Config_h

@@ -133,3 +133,11 @@ JobConfig* TaskConfig::getJobConfig(const std::string& jobPath) const {
         return found;
     }
 }
+
+void SwitchConfig::setSwitchIndex(uint8_t index) {
+    if (_switchIndex != index) {
+        _switchIndex = index;
+        // We can re-use this signal here
+        emit dirtyEnabled();
+    }
+}

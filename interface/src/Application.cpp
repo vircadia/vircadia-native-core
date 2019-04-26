@@ -243,10 +243,7 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
 
-
 #include "AboutUtil.h"
-
-#include <DisableDeferred.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -2979,7 +2976,7 @@ void Application::initializeDisplayPlugins() {
 void Application::initializeRenderEngine() {
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
-        _graphicsEngine.initializeRender(DISABLE_DEFERRED);
+        _graphicsEngine.initializeRender();
         DependencyManager::get<Keyboard>()->registerKeyboardHighlighting();
     });
 }

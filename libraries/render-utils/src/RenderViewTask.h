@@ -19,11 +19,12 @@
 class RenderViewTask {
 public:
     using Input = RenderFetchCullSortTask::Output;
-    using JobModel = render::Task::ModelI<RenderViewTask, Input>;
+    using JobModel = render::Task::ModelIS<RenderViewTask, Input>;
 
     RenderViewTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
+    void configure(const render::SwitchConfig& configuration) {}
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
 
 };
 
