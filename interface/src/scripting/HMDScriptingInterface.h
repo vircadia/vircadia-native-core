@@ -1,4 +1,4 @@
-
+//
 //  HMDScriptingInterface.h
 //  interface/src/scripting
 //
@@ -197,7 +197,7 @@ public:
      * Checks whether there is an HMD available.
      * @function HMD.isHMDAvailable
      * @param {string} [name=""] - The name of the HMD to check for, e.g., <code>"Oculus Rift"</code>. The name is the same as 
-     *     may be displayed in Interface's "Display" menu. If no name is specified then any HMD matches.
+     *     may be displayed in Interface's "Display" menu. If no name is specified, then any HMD matches.
      * @returns {boolean} <code>true</code> if an HMD of the specified <code>name</code> is available, otherwise 
      *     <code>false</code>.
      * @example <caption>Report on HMD availability.</caption>
@@ -211,7 +211,7 @@ public:
      * Checks whether there is an HMD head controller available.
      * @function HMD.isHeadControllerAvailable
      * @param {string} [name=""] - The name of the HMD head controller to check for, e.g., <code>"Oculus"</code>. If no name is 
-     *     specified then any HMD head controller matches.
+     *     specified, then any HMD head controller matches.
      * @returns {boolean} <code>true</code> if an HMD head controller of the specified <code>name</code> is available, 
      *     otherwise <code>false</code>.
      * @example <caption>Report HMD head controller availability.</caption>
@@ -225,7 +225,7 @@ public:
      * Checks whether there are HMD hand controllers available.
      * @function HMD.isHandControllerAvailable
      * @param {string} [name=""] - The name of the HMD hand controller to check for, e.g., <code>"Oculus"</code>. If no name is 
-     *     specified then any HMD hand controller matches.
+     *     specified, then any HMD hand controller matches.
      * @returns {boolean} <code>true</code> if an HMD hand controller of the specified <code>name</code> is available, 
      *     otherwise <code>false</code>.
      * @example <caption>Report HMD hand controller availability.</caption>
@@ -293,7 +293,7 @@ public:
 
     /**jsdoc
      * Suppresses the activation of the HMD-provided keyboard, if any. Successful calls should be balanced with a call to 
-     * {@link HMD.unspressKeyboard|unspressKeyboard} within a reasonable amount of time.
+     * {@link HMD.unsuppressKeyboard|unsuppressKeyboard} within a reasonable amount of time.
      * @function HMD.suppressKeyboard
      * @returns {boolean} <code>true</code> if the current HMD provides a keyboard and it was successfully suppressed (e.g., it 
      * isn't being displayed), otherwise <code>false</code>. 
