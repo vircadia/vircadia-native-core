@@ -58,6 +58,7 @@
 #include "gpu/Context.h"
 #include "LoginStateManager.h"
 #include "Menu.h"
+#include "RefreshRateManager.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -203,6 +204,7 @@ public:
     CompositorHelper& getApplicationCompositor() const;
 
     Overlays& getOverlays() { return _overlays; }
+    RefreshRateManager& getRefreshRateManager() { return _refreshRateManager; }
 
     size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
     float getRenderLoopRate() const { return _graphicsEngine.getRenderLoopRate(); }
@@ -723,6 +725,7 @@ private:
     QUuid _loginDialogID;
     QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
+    RefreshRateManager _refreshRateManager;
 
     quint64 _lastFaceTrackerUpdate;
 
@@ -820,5 +823,6 @@ private:
 
     bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
     bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
+    bool _startUpFinished { false };
 };
 #endif // hifi_Application_h
