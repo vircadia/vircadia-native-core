@@ -38,10 +38,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FBXJointOrderChange);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerSection);
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FBXJointOrderChange);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerSection);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets

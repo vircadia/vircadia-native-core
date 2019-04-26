@@ -206,6 +206,10 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, gameLoopRate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, refreshRateTarget, 0)
+    STATS_PROPERTY(QString, refreshRateMode, QString())
+    STATS_PROPERTY(QString, refreshRateRegime, QString())
+    STATS_PROPERTY(QString, uxMode, QString())
     STATS_PROPERTY(int, heroAvatarCount, 0)
     STATS_PROPERTY(int, physicsObjectCount, 0)
     STATS_PROPERTY(int, updatedAvatarCount, 0)
@@ -1066,6 +1070,15 @@ signals:
      * @returns {Signal}
      */
     void decimatedTextureCountChanged();
+
+
+    void refreshRateTargetChanged();
+
+    void refreshRateModeChanged();
+
+    void refreshRateRegimeChanged();
+
+    void uxModeChanged();
 
     // QQuickItem signals.
 
