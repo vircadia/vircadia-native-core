@@ -120,6 +120,8 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+
+    setEnableDebugDrawOtherSkeletons(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawOtherSkeletons));
 }
 
 void AvatarManager::setSpace(workload::SpacePointer& space ) {
@@ -334,9 +336,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
                     _myAvatar->addAvatarHandsToFlow(avatar);
                 }
+                if (_drawOtherAvatarSkeletons) {
+                    avatar->debugJointData();
+                }
+                avatar->setEnableMeshVisible(!_drawOtherAvatarSkeletons);
                 avatar->updateRenderItem(renderTransaction);
                 avatar->updateSpaceProxy(workloadTransaction);
                 avatar->setLastRenderUpdateTime(startTime);
+
             } else {
                 // we've spent our time budget for this priority bucket
                 // let's deal with the reminding avatars if this pass and BREAK from the for loop

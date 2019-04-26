@@ -16,6 +16,7 @@
 #include "Application.h"
 #include "AvatarMotionState.h"
 #include "DetailedMotionState.h"
+#include "DebugDraw.h"
 
 const float DISPLAYNAME_FADE_TIME = 0.5f;
 const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
@@ -355,6 +356,58 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
     {
         PROFILE_RANGE(simulation, "grabs");
         applyGrabChanges();
+    }
+}
+
+void OtherAvatar::debugJointData() const {
+    // Get a copy of the joint data
+    auto jointData = getJointData();
+    auto skeletonData = getSkeletonData();
+    if ((int)skeletonData.size() == jointData.size() && jointData.size() != 0) {
+        const vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+        const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+        const vec4 LIGHT_RED(1.0f, 0.5f, 0.5f, 1.0f);
+        const vec4 LIGHT_GREEN(0.5f, 1.0f, 0.5f, 1.0f);
+        const vec4 LIGHT_BLUE(0.5f, 0.5f, 1.0f, 1.0f);
+        const vec4 GREY(0.3f, 0.3f, 0.3f, 1.0f);
+        const vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+        const float AXIS_LENGTH = 0.1f;
+    
+        AnimPoseVec absoluteJointPoses;
+        AnimPose rigToAvatar = AnimPose(Quaternions::Y_180 * getWorldOrientation(), getWorldPosition());
+        bool drawBones = false;
+        for (int i = 0; i < jointData.size(); i++) {
+            float jointScale = skeletonData[i].defaultScale * getTargetScale() * METERS_PER_CENTIMETER;
+            auto absoluteRotation = jointData[i].rotationIsDefaultPose ? skeletonData[i].defaultRotation : jointData[i].rotation;
+            auto localJointTranslation = jointScale * (jointData[i].translationIsDefaultPose ? skeletonData[i].defaultTranslation : jointData[i].translation);
+            bool isHips = skeletonData[i].jointName == "Hips";
+            if (isHips) { 
+                localJointTranslation = glm::vec3(0.0f);
+                drawBones = true;
+            }
+            AnimPose absoluteParentPose;
+            int parentIndex = skeletonData[i].parentIndex;
+            if (parentIndex != -1 && parentIndex < (int)absoluteJointPoses.size()) {
+                absoluteParentPose = absoluteJointPoses[parentIndex];
+            }
+            AnimPose absoluteJointPose = AnimPose(absoluteRotation, absoluteParentPose.trans() + absoluteParentPose.rot() * localJointTranslation);
+            auto jointPose = rigToAvatar * absoluteJointPose;
+            auto parentPose = rigToAvatar * absoluteParentPose;
+            if (drawBones) {
+                glm::vec3 xAxis = jointPose.rot() * Vectors::UNIT_X;
+                glm::vec3 yAxis = jointPose.rot() * Vectors::UNIT_Y;
+                glm::vec3 zAxis = jointPose.rot() * Vectors::UNIT_Z;
+
+                DebugDraw::getInstance().drawRay(jointPose.trans(), jointPose.trans() + AXIS_LENGTH * xAxis, jointData[i].rotationIsDefaultPose ? LIGHT_RED : RED);
+                DebugDraw::getInstance().drawRay(jointPose.trans(), jointPose.trans() + AXIS_LENGTH * yAxis, jointData[i].rotationIsDefaultPose ? LIGHT_GREEN : GREEN);
+                DebugDraw::getInstance().drawRay(jointPose.trans(), jointPose.trans() + AXIS_LENGTH * zAxis, jointData[i].rotationIsDefaultPose ? LIGHT_BLUE : BLUE);
+                if (!isHips) {
+                    DebugDraw::getInstance().drawRay(jointPose.trans(), parentPose.trans(), jointData[i].translationIsDefaultPose ? WHITE : GREY);
+                }
+            }
+            absoluteJointPoses.push_back(absoluteJointPose);
+        }
     }
 }
 

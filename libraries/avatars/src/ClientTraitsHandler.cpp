@@ -107,8 +107,7 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
 
             if (initialSend || *simpleIt == Updated) {
                 bytesWritten += AvatarTraits::packTrait(traitType, *traitsPacketList, *_owningAvatar);
-
-
+                
                 if (traitType == AvatarTraits::SkeletonModelURL) {
                     // keep track of our skeleton version in case we get an override back
                     _currentSkeletonVersion = _currentTraitVersion;
