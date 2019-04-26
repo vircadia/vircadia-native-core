@@ -56,6 +56,7 @@ public:
     static QString getAppLocalDataFilePath(const QString& filename);
 
     static QString generateTemporaryDir();
+    static bool deleteMyTemporaryDir(QString dirName);
 
     static int removeTemporaryApplicationDirs(QString appName = QString::null);
 

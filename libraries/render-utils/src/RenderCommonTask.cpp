@@ -94,6 +94,7 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
 
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+            batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
             if (_opaquePass) {
                 renderStateSortShapes(renderContext, _shapePlumber, inItems, _maxDrawn);

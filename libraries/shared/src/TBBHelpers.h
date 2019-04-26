@@ -20,6 +20,7 @@
 #include <tbb/concurrent_unordered_set.h>
 #include <tbb/concurrent_vector.h>
 #include <tbb/parallel_for.h>
+#include <tbb/blocked_range2d.h>
 
 #ifdef _WIN32
 #pragma warning( pop )

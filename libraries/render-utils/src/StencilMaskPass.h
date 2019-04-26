@@ -15,11 +15,11 @@
 #include <render/Engine.h>
 #include <gpu/Pipeline.h>
 #include <graphics/Geometry.h>
-#include <StencilMode.h>
+#include <StencilMaskMode.h>
 
 class PrepareStencilConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(StencilMode maskMode MEMBER maskMode NOTIFY dirty)
+    Q_PROPERTY(StencilMaskMode maskMode MEMBER maskMode NOTIFY dirty)
 
 public:
     PrepareStencilConfig(bool enabled = true) : JobConfig(enabled) {}
@@ -27,7 +27,7 @@ public:
     // -1 -> don't force drawing (fallback to render args mode)
     // 0 -> force draw without mesh
     // 1 -> force draw with mesh
-    StencilMode maskMode { StencilMode::NONE };
+    StencilMaskMode maskMode { StencilMaskMode::NONE };
 
 signals:
     void dirty();
@@ -68,7 +68,7 @@ private:
     graphics::MeshPointer _mesh;
     graphics::MeshPointer getMesh();
 
-    StencilMode _maskMode { StencilMode::NONE };
+    StencilMaskMode _maskMode { StencilMaskMode::NONE };
 };
 
 

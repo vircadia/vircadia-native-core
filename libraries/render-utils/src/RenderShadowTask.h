@@ -52,8 +52,9 @@ class RenderShadowTask {
 public:
 
     // There is one AABox per shadow cascade
+    using CascadeBoxes = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
     using Input = render::VaryingSet2<LightStage::FramePointer, LightingModelPointer>;
-    using Output = render::VaryingSet2<render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>, LightStage::ShadowFramePointer>;
+    using Output = render::VaryingSet2<CascadeBoxes, LightStage::ShadowFramePointer>;
     using Config = RenderShadowTaskConfig;
     using JobModel = render::Task::ModelIO<RenderShadowTask, Input, Output, Config>;
 
@@ -92,10 +93,10 @@ public:
     float constantBias1{ 0.15f };
     float constantBias2{ 0.175f };
     float constantBias3{ 0.2f };
-    float slopeBias0{ 0.6f };
-    float slopeBias1{ 0.6f };
-    float slopeBias2{ 0.7f };
-    float slopeBias3{ 0.82f };
+    float slopeBias0{ 0.4f };
+    float slopeBias1{ 0.45f };
+    float slopeBias2{ 0.65f };
+    float slopeBias3{ 0.7f };
 
 signals:
     void dirty();
@@ -134,15 +135,13 @@ public:
     using Outputs = render::VaryingSet3<render::ItemFilter, ViewFrustumPointer, RenderShadowTask::CullFunctor>;
     using JobModel = render::Job::ModelIO<RenderShadowCascadeSetup, Inputs, Outputs>;
 
-    RenderShadowCascadeSetup(unsigned int cascadeIndex, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) :
-        _cascadeIndex(cascadeIndex), _tagBits(tagBits), _tagMask(tagMask) {}
+    RenderShadowCascadeSetup(unsigned int cascadeIndex, render::ItemFilter filter) : _cascadeIndex(cascadeIndex), _filter(filter) {}
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output);
 
 private:
     unsigned int _cascadeIndex;
-    uint8_t _tagBits { 0x00 };
-    uint8_t _tagMask { 0x00 };
+    render::ItemFilter _filter;
 };
 
 class RenderShadowCascadeTeardown {

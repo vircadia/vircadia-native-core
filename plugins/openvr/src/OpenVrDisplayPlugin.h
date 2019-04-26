@@ -69,7 +69,7 @@ public:
 
     QRectF getPlayAreaRect() override;
 
-    virtual StencilMode getStencilMaskMode() const override{ return StencilMode::MESH; }
+    virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::MESH; }
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() override;
 
 protected:

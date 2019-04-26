@@ -251,6 +251,7 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;

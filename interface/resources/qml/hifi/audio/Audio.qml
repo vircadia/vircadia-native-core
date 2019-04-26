@@ -254,7 +254,7 @@ Rectangle {
                     switchWidth: root.switchWidth;
                     anchors.top: parent.top
                     anchors.left: parent.left
-                    labelTextOn: qsTr("Warn when muted in HMD");
+                    labelTextOn: qsTr("HMD Mute Warning");
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.warnWhenMuted;

@@ -785,7 +785,6 @@ QRectF OpenVrDisplayPlugin::getPlayAreaRect() {
     return QRectF(center.x, center.y, dimensions.x, dimensions.y);
 }
 
-
 DisplayPlugin::StencilMaskMeshOperator OpenVrDisplayPlugin::getStencilMaskMeshOperator() {
     if (_system) {
         if (!_stencilMeshesInitialized) {

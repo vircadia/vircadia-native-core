@@ -199,6 +199,8 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonDefaultData();
+
     /**jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.
      * <p>For information on the joint hierarchy used, see
@@ -501,8 +503,8 @@ public:
 
     /**jsdoc
      * @function MyAvatar.getSimulationRate
-     * @param {string} [rateName=""] - Rate name.
-     * @returns {number} Simulation rate.
+     * @param {AvatarSimulationRate} [rateName=""] - Rate name.
+     * @returns {number} Simulation rate in Hz.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;

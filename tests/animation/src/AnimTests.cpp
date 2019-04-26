@@ -72,7 +72,7 @@ static float framesToSec(float secs) {
 }
 
 void AnimTests::testClipEvaulate() {
-    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
     QString id = "myClipNode";
     QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;
@@ -109,7 +109,7 @@ void AnimTests::testClipEvaulate() {
 }
 
 void AnimTests::testClipEvaulateWithVars() {
-    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
     QString id = "myClipNode";
     QString url = "https://hifi-public.s3.amazonaws.com/ozan/support/FightClubBotTest1/Animations/standard_idle.fbx";
     float startFrame = 2.0f;

@@ -364,7 +364,7 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
             sprintf(jobName, "DrawShadowFrustum%d", i);
             task.addJob<DrawFrustum>(jobName, shadowFrustum, glm::vec3(0.0f, tint, 1.0f));
             if (!renderShadowTaskOut.isNull()) {
-                const auto& shadowCascadeSceneBBoxes = renderShadowTaskOut;
+                const auto& shadowCascadeSceneBBoxes = renderShadowTaskOut.get<RenderShadowTask::CascadeBoxes>();
                 const auto shadowBBox = shadowCascadeSceneBBoxes[ExtractFrustums::SHADOW_CASCADE0_FRUSTUM + i];
                 sprintf(jobName, "DrawShadowBBox%d", i);
                 task.addJob<DrawAABox>(jobName, shadowBBox, glm::vec3(1.0f, tint, 0.0f));
@@ -471,6 +471,7 @@ void RenderTransparentDeferred::run(const RenderContextPointer& renderContext, c
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
         // Set the light
         deferredLightingEffect->setupKeyLightBatch(args, batch, *lightFrame);
@@ -536,6 +537,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
         // Setup lighting model for all items;
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;

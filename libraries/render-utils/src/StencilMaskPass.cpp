@@ -64,7 +64,11 @@ gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
 void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     RenderArgs* args = renderContext->args;
 
-    StencilMode maskMode = _maskMode;
+    if (args->_takingSnapshot) {
+        return;
+    }
+
+    StencilMaskMode maskMode = _maskMode;
     std::function<void(gpu::Batch&)> maskOperator = [this](gpu::Batch& batch) {
         auto mesh = getMesh();
         batch.setIndexBuffer(mesh->getIndexBuffer());
@@ -76,23 +80,24 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
         batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
     };
 
-    if (maskMode == StencilMode::NONE) {
-        maskMode = args->_stencilMode;
+    if (maskMode == StencilMaskMode::NONE) {
+        maskMode = args->_stencilMaskMode;
         maskOperator = args->_stencilMaskOperator;
     }
 
-    if (maskMode == StencilMode::NONE || (maskMode == StencilMode::MESH && !maskOperator)) {
+    if (maskMode == StencilMaskMode::NONE || (maskMode == StencilMaskMode::MESH && !maskOperator)) {
         return;
     }
 
     doInBatch("PrepareStencil::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
+
         batch.setViewportTransform(args->_viewport);
 
-        if (maskMode == StencilMode::PAINT) {
+        if (maskMode == StencilMaskMode::PAINT) {
             batch.setPipeline(getPaintStencilPipeline());
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        } else if (maskMode == StencilMode::MESH) {
+        } else if (maskMode == StencilMaskMode::MESH) {
             batch.setPipeline(getMeshStencilPipeline());
             maskOperator(batch);
         }

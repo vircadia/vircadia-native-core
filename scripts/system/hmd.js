@@ -40,9 +40,6 @@ function updateControllerDisplay() {
 var button;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-// Independent and Entity mode make people sick; disable them in hmd.
-var desktopOnlyViews = ['Independent Mode', 'Entity Mode'];
-
 var switchToVR = "ENTER VR";
 var switchToDesktop = "EXIT VR";
 
@@ -59,9 +56,6 @@ function onHmdChanged(isHmd) {
             text: switchToVR
         });
     }
-    desktopOnlyViews.forEach(function (view) {
-        Menu.setMenuEnabled("View>" + view, !isHmd);
-    });
     updateControllerDisplay();
 }
 

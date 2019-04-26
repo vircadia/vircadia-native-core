@@ -509,6 +509,26 @@ void Avatar::relayJointDataToChildren() {
     _reconstructSoftEntitiesJointMap = false;
 }
 
+/**jsdoc
+ * An avatar has different types of data simulated at different rates, in Hz.
+ *
+ * <table>
+ *   <thead>
+ *     <tr><th>Rate Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"avatar" or ""</code></td><td>The rate at which the avatar is updated even if not in view.</td></tr>
+ *     <tr><td><code>"avatarInView"</code></td><td>The rate at which the avatar is updated if in view.</td></tr>
+ *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no 
+ *       joint data available.</td></tr>
+ *     <tr><td><code>"jointData"</code></td><td>The rate at which joint data are being updated.</td></tr>
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is 
+ *       provided.</td></tr>
+ *   </tbody>
+ * </table>
+ *
+ * @typedef {string} AvatarSimulationRate
+ */
 float Avatar::getSimulationRate(const QString& rateName) const {
     if (rateName == "") {
         return _simulationRate.rate();
@@ -1449,6 +1469,37 @@ QStringList Avatar::getJointNames() const {
     return result;
 }
 
+std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultData() {
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> defaultSkeletonData;
+    if (_skeletonModel->isLoaded()) {
+        auto& model = _skeletonModel->getHFMModel();
+        auto& rig = _skeletonModel->getRig();
+        float geometryToRigScale = extractScale(rig.getGeometryToRigTransform())[0];
+        QStringList jointNames = getJointNames();
+        int sizeCount = 0;
+        for (int i = 0; i < jointNames.size(); i++) {
+            AvatarSkeletonTrait::UnpackedJointData jointData;
+            jointData.jointIndex = i;
+            jointData.parentIndex = rig.getJointParentIndex(i);
+            if (jointData.parentIndex == -1) {
+                jointData.boneType = model.joints[i].isSkeletonJoint ? AvatarSkeletonTrait::BoneType::SkeletonRoot : AvatarSkeletonTrait::BoneType::NonSkeletonRoot;
+            } else {
+                jointData.boneType = model.joints[i].isSkeletonJoint ? AvatarSkeletonTrait::BoneType::SkeletonChild : AvatarSkeletonTrait::BoneType::NonSkeletonChild;
+            }
+            jointData.defaultRotation = rig.getAbsoluteDefaultPose(i).rot();
+            jointData.defaultTranslation = getDefaultJointTranslation(i);
+            float jointLocalScale = extractScale(model.joints[i].transform)[0];
+            jointData.defaultScale = jointLocalScale / geometryToRigScale;
+            jointData.jointName = jointNames[i];
+            jointData.stringLength = jointNames[i].size();
+            jointData.stringStart = sizeCount;
+            sizeCount += jointNames[i].size();
+            defaultSkeletonData.push_back(jointData);
+        }
+    }
+    return defaultSkeletonData;
+}
+
 glm::vec3 Avatar::getJointPosition(int index) const {
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
@@ -1515,6 +1566,8 @@ void Avatar::rigReady() {
     buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
     buildSpine2SplineRatioCache();
+    setSkeletonData(getSkeletonDefaultData());
+    sendSkeletonData();
 }
 
 // rig has been reset.

@@ -206,7 +206,7 @@ SelectionManager = (function() {
             if (entityHostTypes[i].entityHostType !== entityHostType) {
                 if (wantDebug) {
                     console.log("Skipping addition of entity " + childID + " with conflicting entityHostType: " +
-                        entityHostTypes[i].entityHostType);
+                        entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
                 }
                 continue;
             }
@@ -398,15 +398,15 @@ SelectionManager = (function() {
 
                 if (entityHostTypes[i].entityHostType !== entityHostType) {
                     if (wantDebug) {
-                        console.warn("Skipping deletion of entity " + id + " with conflicting entityHostType: " +
-                            entityHostTypes[i].entityHostType);
+                        console.warn("Skipping addition of entity " + id + " with conflicting entityHostType: " +
+                            entityHostTypes[i].entityHostType + ", expected: " + entityHostType);
                     }
                     continue;
                 }
 
                 if (!(id in entities)) {
                     entities[id] = Entities.getEntityProperties(id); 
-                    appendChildren(id, entities);
+                    appendChildren(id, entities, entityHostType);
                 }
             }
         }
@@ -1347,12 +1347,16 @@ SelectionDisplay = (function() {
     };
     
     that.updateLastMouseEvent = function(event) {
-        if (activeTool && lastMouseEvent !== null) {            
+        if (activeTool && lastMouseEvent !== null) { 
+            var change = lastMouseEvent.isShifted !== event.isShifted || lastMouseEvent.isMeta !== event.isMeta ||
+                         lastMouseEvent.isControl !== event.isControl || lastMouseEvent.isAlt !== event.isAlt;
             lastMouseEvent.isShifted = event.isShifted; 
             lastMouseEvent.isMeta = event.isMeta;   
             lastMouseEvent.isControl = event.isControl; 
-            lastMouseEvent.isAlt = event.isAlt; 
-            activeTool.onMove(lastMouseEvent);      
+            lastMouseEvent.isAlt = event.isAlt;
+            if (change) {
+                activeTool.onMove(lastMouseEvent);
+            }           
         }
     };
 

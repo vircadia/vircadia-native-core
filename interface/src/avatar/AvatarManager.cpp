@@ -120,6 +120,8 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+
+    setEnableDebugDrawOtherSkeletons(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawOtherSkeletons));
 }
 
 void AvatarManager::setSpace(workload::SpacePointer& space ) {
@@ -334,9 +336,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
                     _myAvatar->addAvatarHandsToFlow(avatar);
                 }
+                if (_drawOtherAvatarSkeletons) {
+                    avatar->debugJointData();
+                }
+                avatar->setEnableMeshVisible(!_drawOtherAvatarSkeletons);
                 avatar->updateRenderItem(renderTransaction);
                 avatar->updateSpaceProxy(workloadTransaction);
                 avatar->setLastRenderUpdateTime(startTime);
+
             } else {
                 // we've spent our time budget for this priority bucket
                 // let's deal with the reminding avatars if this pass and BREAK from the for loop
@@ -497,9 +504,11 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // it might not fire until after we create a new instance for the same remote avatar, which creates a race
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == KillAvatarReason::NoReason) {
-        emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
-        emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+    if (removalReason != KillAvatarReason::AvatarDisconnected) {
+        if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+            emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
+            emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+        }
 
         workload::Transaction workloadTransaction;
         workloadTransaction.remove(avatar->getSpaceIndex());
@@ -509,7 +518,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         render::Transaction transaction;
         avatar->removeFromScene(avatar, scene, transaction);
         scene->enqueueTransaction(transaction);
-    } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
+    } else {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
@@ -725,7 +734,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     boxHit._distance = FLT_MAX;
 
                     for (size_t i = 0; i < hit._boundJoints.size(); i++) {
-                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        assert(hit._boundJoints[i] < (int)multiSpheres.size());
                         auto &mSphere = multiSpheres[hit._boundJoints[i]];
                         if (mSphere.isValid()) {
                             float boundDistance = FLT_MAX;
@@ -932,6 +941,19 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
+/**jsdoc
+ * PAL (People Access List) data for an avatar.
+ * @typedef {object} AvatarManager.PalData
+ * @property {Uuid} sessionUUID - The avatar's session ID. <code>""</code> if the avatar is your own.
+ * @property {string} sessionDisplayName - The avatar's display name, sanitized and versioned, as defined by the avatar mixer. 
+ *     It is unique among all avatars present in the domain at the time.
+ * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
+ *     domain.
+ * @property {boolean} isReplicated - <span class="important">Deprecated: This property is deprecated and will be 
+ *     removed.</span>
+ * @property {Vec3} position - The position of the avatar.
+ * @property {number} palOrbOffset - The vertical offset from the avatar's position that an overlay orb should be displayed at.
+ */
 QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifiers) {
     QJsonArray palData;
 

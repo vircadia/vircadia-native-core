@@ -33,7 +33,7 @@ OvenCLIApplication::OvenCLIApplication(int argc, char* argv[]) :
     parser.addOptions({
         { CLI_INPUT_PARAMETER, "Path to file that you would like to bake.", "input" },
         { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" },
-        { CLI_TYPE_PARAMETER, "Type of asset. [model|material|js]", "type" },
+        { CLI_TYPE_PARAMETER, "Type of asset. [model|material]"/*|js]"*/, "type" },
         { CLI_DISABLE_TEXTURE_COMPRESSION_PARAMETER, "Disable texture compression." }
     });
 

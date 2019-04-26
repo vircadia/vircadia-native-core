@@ -145,6 +145,45 @@ const char AVATARDATA_FLAGS_MINIMUM = 0;
 
 using SmallFloat = uint16_t; // a compressed float with less precision, user defined radix
 
+namespace AvatarSkeletonTrait {
+    enum BoneType {
+        SkeletonRoot = 0,
+        SkeletonChild,
+        NonSkeletonRoot,
+        NonSkeletonChild
+    };
+
+    PACKED_BEGIN struct Header {
+        float maxTranslationDimension;
+        float maxScaleDimension;
+        uint8_t numJoints;
+        uint16_t stringTableLength;
+    } PACKED_END;
+
+    PACKED_BEGIN struct JointData {
+        uint16_t stringStart;
+        uint8_t stringLength;
+        uint8_t boneType;
+        uint8_t defaultTranslation[6];
+        uint8_t defaultRotation[6];
+        uint16_t defaultScale;
+        uint16_t jointIndex;
+        uint16_t parentIndex;
+    } PACKED_END;
+
+    struct UnpackedJointData {
+        int stringStart;
+        int stringLength;
+        int boneType;
+        glm::vec3 defaultTranslation;
+        glm::quat defaultRotation;
+        float defaultScale;
+        int jointIndex;
+        int parentIndex;
+        QString jointName;
+    };
+}
+
 namespace AvatarDataPacket {
 
     // NOTE: every time AvatarData is sent from mixer to client, it also includes the GUIID for the session
@@ -164,10 +203,11 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_ADDITIONAL_FLAGS         = 1U << 7;
     const HasFlags PACKET_HAS_PARENT_INFO              = 1U << 8;
     const HasFlags PACKET_HAS_AVATAR_LOCAL_POSITION    = 1U << 9;
-    const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 10;
-    const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 11;
-    const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 12;
-    const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 13;
+    const HasFlags PACKET_HAS_HAND_CONTROLLERS         = 1U << 10;
+    const HasFlags PACKET_HAS_FACE_TRACKER_INFO        = 1U << 11;
+    const HasFlags PACKET_HAS_JOINT_DATA               = 1U << 12;
+    const HasFlags PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS = 1U << 13;
+    const HasFlags PACKET_HAS_GRAB_JOINTS              = 1U << 14;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
     using SixByteQuat = uint8_t[6];
@@ -230,7 +270,7 @@ namespace AvatarDataPacket {
         //
         // POTENTIAL SAVINGS - 20 bytes
 
-        SixByteQuat sensorToWorldQuat;     // 6 byte compressed quaternion part of sensor to world matrix
+        SixByteQuat sensorToWorldQuat;    // 6 byte compressed quaternion part of sensor to world matrix
         uint16_t sensorToWorldScale;      // uniform scale of sensor to world matrix
         float sensorToWorldTrans[3];      // fourth column of sensor to world matrix
                                           // FIXME - sensorToWorldTrans might be able to be better compressed if it was
@@ -258,6 +298,7 @@ namespace AvatarDataPacket {
     PACKED_BEGIN struct AvatarLocalPosition {
         float localPosition[3];           // parent frame translation of the avatar
     } PACKED_END;
+
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
     static_assert(sizeof(AvatarLocalPosition) == AVATAR_LOCAL_POSITION_SIZE, "AvatarDataPacket::AvatarLocalPosition size doesn't match.");
 
@@ -272,6 +313,15 @@ namespace AvatarDataPacket {
         ADDITIONAL_FLAGS_SIZE +
         PARENT_INFO_SIZE +
         AVATAR_LOCAL_POSITION_SIZE;
+
+    PACKED_BEGIN struct HandControllers {
+        SixByteQuat leftHandRotation;
+        SixByteTrans leftHandTranslation;
+        SixByteQuat rightHandRotation;
+        SixByteTrans rightHandTranslation;
+    } PACKED_END;
+    static const size_t HAND_CONTROLLERS_SIZE = 24;
+    static_assert(sizeof(HandControllers) == HAND_CONTROLLERS_SIZE, "AvatarDataPacket::HandControllers size doesn't match.");
 
 
     // variable length structure follows
@@ -303,7 +353,7 @@ namespace AvatarDataPacket {
         SixByteTrans rightHandControllerTranslation;
     };
     */
-    size_t maxJointDataSize(size_t numJoints, bool hasGrabJoints);
+    size_t maxJointDataSize(size_t numJoints);
     size_t minJointDataSize(size_t numJoints);
 
     /*
@@ -327,7 +377,6 @@ namespace AvatarDataPacket {
     static_assert(sizeof(FarGrabJoints) == FAR_GRAB_JOINTS_SIZE, "AvatarDataPacket::FarGrabJoints size doesn't match.");
 
     static const size_t MIN_BULK_PACKET_SIZE = NUM_BYTES_RFC4122_UUID + HEADER_SIZE;
-    static const size_t FAUX_JOINTS_SIZE = 2 * (sizeof(SixByteQuat) + sizeof(SixByteTrans));
 
     struct SendStatus {
         HasFlags itemFlags { 0 };
@@ -404,6 +453,7 @@ class AvatarDataRate {
 public:
     RateCounter<> globalPositionRate;
     RateCounter<> localPositionRate;
+    RateCounter<> handControllersRate;
     RateCounter<> avatarBoundingBoxRate;
     RateCounter<> avatarOrientationRate;
     RateCounter<> avatarScaleRate;
@@ -467,8 +517,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
      * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
      *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
      * @property {string} skeletonModelURL - The avatar's FST file.
-     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
-     *     <strong>Deprecated:</strong> Use avatar entities instead.
+     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
      * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
      * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
      * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the
@@ -479,7 +529,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     avatar. <em>Read-only.</em>
      * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
      *     size in the virtual world. <em>Read-only.</em>
-     * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
+     * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't. 
+     *     <em>Read-only.</em>
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -1075,7 +1126,7 @@ public:
      * Gets information about the models currently attached to your avatar.
      * @function Avatar.getAttachmentsVariant
      * @returns {AttachmentData[]} Information about all models attached to your avatar.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE virtual QVariantList getAttachmentsVariant() const;
@@ -1086,7 +1137,7 @@ public:
      * update your avatar's attachments per the changed data.
      * @function Avatar.setAttachmentsVariant
      * @param {AttachmentData[]} variant - The attachment data defining the models to have attached to your avatar.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE virtual void setAttachmentsVariant(const QVariantList& variant);
@@ -1167,7 +1218,7 @@ public:
      * Gets information about the models currently attached to your avatar.
      * @function Avatar.getAttachmentData
      * @returns {AttachmentData[]} Information about all models attached to your avatar.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Report the URLs of all current attachments.</caption>
      * var attachments = MyAvatar.getaAttachmentData();
      * for (var i = 0; i < attachments.length; i++) {
@@ -1185,7 +1236,7 @@ public:
      * @function Avatar.setAttachmentData
      * @param {AttachmentData[]} attachmentData - The attachment data defining the models to have attached to your avatar. Use
      *     <code>null</code> to remove all attachments.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Remove a hat attachment if your avatar is wearing it.</caption>
      * var hatURL = "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx";
      * var attachments = MyAvatar.getAttachmentData();
@@ -1222,7 +1273,7 @@ public:
      * @param {boolean} [allowDuplicates=false] - If <code>true</code> then more than one copy of any particular model may be 
      *     attached to the same joint; if <code>false</code> then the same model cannot be attached to the same joint.
      * @param {boolean} [useSaved=true] - <em>Not used.</em>
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      * @example <caption>Attach a cowboy hat to your avatar's head.</caption>
      * var attachment = {
      *     modelURL: "https://s3.amazonaws.com/hifi-public/tony/cowboy-hat.fbx",
@@ -1253,7 +1304,7 @@ public:
      * @param {string} modelURL - The URL of the model to detach.
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the most 
      *     recently attached model is removed from which ever joint it was attached to.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     Q_INVOKABLE virtual void detachOne(const QString& modelURL, const QString& jointName = QString());
 
@@ -1263,7 +1314,7 @@ public:
      * @param {string} modelURL - The URL of the model to detach.
      * @param {string} [jointName=""] - The name of the joint to detach the model from. If <code>""</code>, then the model is 
      *     detached from all joints.
-     * @deprecated Use avatar entities instead.
+     * @deprecated This function is deprecated and will be removed. Use avatar entities instead.
      */
     Q_INVOKABLE virtual void detachAll(const QString& modelURL, const QString& jointName = QString());
 
@@ -1419,6 +1470,10 @@ public:
     void setIsNewAvatar(bool isNewAvatar) { _isNewAvatar = isNewAvatar; }
     bool getIsNewAvatar() { return _isNewAvatar; }
     void setIsClientAvatar(bool isClientAvatar) { _isClientAvatar = isClientAvatar; }
+    void setSkeletonData(const std::vector<AvatarSkeletonTrait::UnpackedJointData>& skeletonData);
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonData() const;
+    void sendSkeletonData() const;
+    QVector<JointData> getJointData() const;
 
 signals:
 
@@ -1597,12 +1652,13 @@ protected:
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
+    QByteArray packSkeletonData() const;
     QByteArray packSkeletonModelURL() const;
     QByteArray packAvatarEntityTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID);
     QByteArray packGrabTraitInstance(AvatarTraits::TraitInstanceID traitInstanceID);
 
     void unpackSkeletonModelURL(const QByteArray& data);
-
+    void unpackSkeletonData(const QByteArray& data);
     
     // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
     // Audio Mixer that the replicated avatar is connected to.
@@ -1670,6 +1726,7 @@ protected:
     RateCounter<> _parseBufferRate;
     RateCounter<> _globalPositionRate;
     RateCounter<> _localPositionRate;
+    RateCounter<> _handControllersRate;
     RateCounter<> _avatarBoundingBoxRate;
     RateCounter<> _avatarOrientationRate;
     RateCounter<> _avatarScaleRate;
@@ -1687,6 +1744,7 @@ protected:
     RateCounter<> _parseBufferUpdateRate;
     RateCounter<> _globalPositionUpdateRate;
     RateCounter<> _localPositionUpdateRate;
+    RateCounter<> _handControllersUpdateRate;
     RateCounter<> _avatarBoundingBoxUpdateRate;
     RateCounter<> _avatarOrientationUpdateRate;
     RateCounter<> _avatarScaleUpdateRate;
@@ -1718,6 +1776,9 @@ protected:
     mutable ReadWriteLockable _avatarGrabsLock;
     AvatarGrabDataMap _avatarGrabData;
     bool _avatarGrabDataChanged { false }; // by network
+
+    mutable ReadWriteLockable _avatarSkeletonDataLock;
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> _avatarSkeletonData;
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
@@ -1751,14 +1812,11 @@ protected:
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
-        int index = getFauxJointIndex(name);
         QReadLocker readLock(&_jointDataLock);
-
-        // The first conditional is superfluous, but illustrative
-        if (index == -1 || index < _jointData.size()) {
+        int index = getJointIndex(name);
+        if (index == -1) {
             return defaultValue;
         }
-
         return f(index);
     }
 
@@ -1769,8 +1827,8 @@ protected:
 
     template <typename F>
     void writeLockWithNamedJointIndex(const QString& name, F f) {
-        int index = getFauxJointIndex(name);
         QWriteLocker writeLock(&_jointDataLock);
+        int index = getJointIndex(name);
         if (index == -1) {
             return;
         }

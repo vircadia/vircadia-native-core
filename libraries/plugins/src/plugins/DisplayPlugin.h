@@ -27,7 +27,7 @@
 #include <SimpleMovingAverage.h>
 #include <gpu/Forward.h>
 #include "Plugin.h"
-#include "StencilMode.h"
+#include "StencilMaskMode.h"
 
 class QOpenGLFramebufferObject;
 
@@ -90,6 +90,7 @@ public:
 // HMD display functionality
 // TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when
 // displayPlugin->isHmd returns true
+class RefreshRateController;
 class HmdDisplay : public StereoDisplay {
 public:
     // HMD specific methods
@@ -128,6 +129,7 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
+
     virtual float getTargetFrameRate() const { return 1.0f; }
     virtual bool hasAsyncReprojection() const { return false; }
 
@@ -172,10 +174,6 @@ public:
         auto recommendedSize = getRecommendedUiSize() - glm::uvec2(DESKTOP_SCREEN_PADDING);
         return QRect(0, 0, recommendedSize.x, recommendedSize.y);
     }
-
-    // Fetch the most recently displayed image as a QImage
-    virtual QImage getScreenshot(float aspectRatio = 0.0f) const = 0;
-    virtual QImage getSecondaryCameraScreenshot() const = 0;
 
     // will query the underlying hmd api to compute the most recent head pose
     virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
@@ -222,7 +220,7 @@ public:
     // for updating plugin-related commands. Mimics the input plugin.
     virtual void pluginUpdate() = 0;
 
-    virtual StencilMode getStencilMaskMode() const { return StencilMode::NONE; }
+    virtual StencilMaskMode getStencilMaskMode() const { return StencilMaskMode::NONE; }
     using StencilMaskMeshOperator = std::function<void(gpu::Batch&)>;
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() { return nullptr; }
 

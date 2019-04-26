@@ -791,7 +791,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
     // calculate hasGrab once outside the lambda rather than calling it every time inside
     bool hasGrab = stillHasGrabAction();
-    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection, hasGrab](quint64 updatedTimestamp, bool valueChanged) {
+    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection, hasGrab](quint64 updatedTimestamp, bool valueChanged) {
         if (hasGrab) {
             return false;
         }
@@ -2999,6 +2999,26 @@ void EntityItem::setPrimitiveMode(PrimitiveMode value) {
         if (_primitiveMode != value) {
             changed = true;
             _primitiveMode = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+bool EntityItem::getCauterized() const {
+    return resultWithReadLock<bool>([&] {
+        return _cauterized;
+    });
+}
+
+void EntityItem::setCauterized(bool value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_cauterized != value) {
+            changed = true;
+            _cauterized = value;
         }
     });
 

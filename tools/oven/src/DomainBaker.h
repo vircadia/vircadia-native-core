@@ -12,6 +12,7 @@
 #ifndef hifi_DomainBaker_h
 #define hifi_DomainBaker_h
 
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
@@ -59,10 +60,12 @@ private:
     QString _originalOutputPath;
     QUrl _destinationPath;
 
+    QJsonDocument _json;
     QJsonArray _entities;
 
     QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
-    QHash<QUrl, QSharedPointer<TextureBaker>> _textureBakers;
+    QHash<TextureKey, QSharedPointer<TextureBaker>> _textureBakers;
+    TextureFileNamer _textureFileNamer;
     QHash<QUrl, QSharedPointer<JSBaker>> _scriptBakers;
     QHash<QUrl, QSharedPointer<MaterialBaker>> _materialBakers;
     
@@ -76,7 +79,7 @@ private:
     void addModelBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
     void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef);
     void addScriptBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
-    void addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef);
+    void addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef, QUrl destinationPath = QUrl());
 };
 
 #endif // hifi_DomainBaker_h

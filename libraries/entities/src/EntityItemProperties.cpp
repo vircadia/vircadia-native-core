@@ -976,7 +976,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * by setting the <code>entityHostType</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.
  * Material entities render as non-scalable spheres if they don't have their parent set.
  * @typedef {object} Entities.EntityProperties-Material
- * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
+ * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>#name</code> to the URL, the 
  *     material with that name in the {@link MaterialResource} will be applied to the entity. <br />
  *     Alternatively, set the property value to <code>"materialData"</code> to use the <code>materialData</code> property  
  *     for the {@link MaterialResource} values.
@@ -2630,11 +2630,11 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
                                        ENTITY_ITEM_MIN_FRICTION, ENTITY_ITEM_MAX_FRICTION);
         ADD_PROPERTY_TO_MAP(PROP_LIFETIME, Lifetime, lifetime, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
-        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, unused);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, bool); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, bool); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, bool);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
 
