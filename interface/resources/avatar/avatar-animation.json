@@ -197,100 +197,260 @@
                                                                         "id": "rightHandStateMachine",
                                                                         "type": "stateMachine",
                                                                         "data": {
-                                                                            "currentState": "rightHandAnimNone",
+                                                                            "currentState": "rightHandGrasp",
                                                                             "states": [
                                                                                 {
-                                                                                    "id": "rightHandAnimNone",
-                                                                                    "interpTarget": 1,
+                                                                                    "id": "rightHandGrasp",
+                                                                                    "interpTarget": 3,
                                                                                     "interpDuration": 3,
                                                                                     "transitions": [
-                                                                                        { "var": "rightHandAnimA", "state": "rightHandAnimA" },
-                                                                                        { "var": "rightHandAnimB", "state": "rightHandAnimB" }
+                                                                                        { "var": "isRightIndexPoint", "state": "rightIndexPoint" },
+                                                                                        { "var": "isRightThumbRaise", "state": "rightThumbRaise" },
+                                                                                        { "var": "isRightIndexPointAndThumbRaise", "state": "rightIndexPointAndThumbRaise" }
                                                                                     ]
                                                                                 },
                                                                                 {
-                                                                                    "id": "rightHandAnimA",
-                                                                                    "interpTarget": 1,
+                                                                                    "id": "rightIndexPoint",
+                                                                                    "interpTarget": 15,
                                                                                     "interpDuration": 3,
                                                                                     "transitions": [
-                                                                                        { "var": "rightHandAnimNone", "state": "rightHandAnimNone" },
-                                                                                        { "var": "rightHandAnimB", "state": "rightHandAnimB" }
+                                                                                        { "var": "isRightHandGrasp", "state": "rightHandGrasp" },
+                                                                                        { "var": "isRightThumbRaise", "state": "rightThumbRaise" },
+                                                                                        { "var": "isRightIndexPointAndThumbRaise", "state": "rightIndexPointAndThumbRaise" }
                                                                                     ]
                                                                                 },
                                                                                 {
-                                                                                    "id": "rightHandAnimB",
-                                                                                    "interpTarget": 1,
+                                                                                    "id": "rightThumbRaise",
+                                                                                    "interpTarget": 15,
                                                                                     "interpDuration": 3,
                                                                                     "transitions": [
-                                                                                        { "var": "rightHandAnimNone", "state": "rightHandAnimNone" },
-                                                                                        { "var": "rightHandAnimA", "state": "rightHandAnimA" }
+                                                                                        { "var": "isRightHandGrasp", "state": "rightHandGrasp" },
+                                                                                        { "var": "isRightIndexPoint", "state": "rightIndexPoint" },
+                                                                                        { "var": "isRightIndexPointAndThumbRaise", "state": "rightIndexPointAndThumbRaise" }
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "id": "rightIndexPointAndThumbRaise",
+                                                                                    "interpTarget": 15,
+                                                                                    "interpDuration": 3,
+                                                                                    "transitions": [
+                                                                                        { "var": "isRightHandGrasp", "state": "rightHandGrasp" },
+                                                                                        { "var": "isRightIndexPoint", "state": "rightIndexPoint" },
+                                                                                        { "var": "isRightThumbRaise", "state": "rightThumbRaise" }
                                                                                     ]
                                                                                 }
                                                                             ]
                                                                         },
                                                                         "children": [
                                                                             {
-                                                                                "id": "rightHandAnimNone",
+                                                                                "id": "rightHandGrasp",
+                                                                                "type": "blendLinear",
+                                                                                "data": {
+                                                                                    "alpha": 0.0,
+                                                                                    "alphaVar": "rightHandGraspAlpha"
+                                                                                },
+                                                                                "children": [
+                                                                                    {
+                                                                                        "id": "rightHandGraspOpen",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/hydra_pose_open_right.fbx",
+                                                                                            "startFrame": 0.0,
+                                                                                            "endFrame": 0.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    },
+                                                                                    {
+                                                                                        "id": "rightHandGraspClosed",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/hydra_pose_closed_right.fbx",
+                                                                                            "startFrame": 0.0,
+                                                                                            "endFrame": 0.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "id": "rightIndexPoint",
+                                                                                "type": "blendLinear",
+                                                                                "data":  {
+                                                                                    "alpha": 0.0,
+                                                                                    "alphaVar": "rightHandGraspAlpha"
+                                                                                },
+                                                                                "children": [
+                                                                                    {
+                                                                                        "id": "rightIndexPointOpen",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/touch_point_open_right.fbx",
+                                                                                            "startFrame": 15.0,
+                                                                                            "endFrame": 15.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    },
+                                                                                    {
+                                                                                        "id": "rightIndexPointClosed",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/touch_point_closed_right.fbx",
+                                                                                            "startFrame": 15.0,
+                                                                                            "endFrame": 15.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "id": "rightThumbRaise",
+                                                                                "type": "blendLinear",
+                                                                                "data":  {
+                                                                                    "alpha": 0.0,
+                                                                                    "alphaVar": "rightHandGraspAlpha"
+                                                                                },
+                                                                                "children": [
+                                                                                    {
+                                                                                        "id": "rightThumbRaiseOpen",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/touch_thumb_open_right.fbx",
+                                                                                            "startFrame": 15.0,
+                                                                                            "endFrame": 15.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    },
+                                                                                    {
+                                                                                        "id": "rightThumbRaiseClosed",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/touch_thumb_closed_right.fbx",
+                                                                                            "startFrame": 15.0,
+                                                                                            "endFrame": 15.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            {
+                                                                                "id": "rightIndexPointAndThumbRaise",
+                                                                                "type": "blendLinear",
+                                                                                "data":  {
+                                                                                    "alpha": 0.0,
+                                                                                    "alphaVar": "rightHandGraspAlpha"
+                                                                                },
+                                                                                "children": [
+                                                                                    {
+                                                                                        "id": "rightIndexPointAndThumbRaiseOpen",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/touch_thumb_point_open_right.fbx",
+                                                                                            "startFrame": 15.0,
+                                                                                            "endFrame": 15.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    },
+                                                                                    {
+                                                                                        "id": "rightIndexPointAndThumbRaiseClosed",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/touch_thumb_point_closed_right.fbx",
+                                                                                            "startFrame": 15.0,
+                                                                                            "endFrame": 15.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    {
+                                                                        "id": "leftHandOverlay",
+                                                                        "type": "overlay",
+                                                                        "data": {
+                                                                            "alpha": 0.0,
+                                                                            "boneSet": "leftHand",
+                                                                            "alphaVar": "leftHandOverlayAlpha"
+                                                                        },
+                                                                        "children": [
+                                                                            {
+                                                                                "id": "leftHandStateMachine",
                                                                                 "type": "stateMachine",
                                                                                 "data": {
-                                                                                    "currentState": "rightHandGrasp",
+                                                                                    "currentState": "leftHandGrasp",
                                                                                     "states": [
                                                                                         {
-                                                                                            "id": "rightHandGrasp",
+                                                                                            "id": "leftHandGrasp",
                                                                                             "interpTarget": 3,
                                                                                             "interpDuration": 3,
                                                                                             "transitions": [
-                                                                                                { "var": "isRightIndexPoint", "state": "rightIndexPoint" },
-                                                                                                { "var": "isRightThumbRaise", "state": "rightThumbRaise" },
-                                                                                                { "var": "isRightIndexPointAndThumbRaise", "state": "rightIndexPointAndThumbRaise" }
+                                                                                                { "var": "isLeftIndexPoint", "state": "leftIndexPoint" },
+                                                                                                { "var": "isLeftThumbRaise", "state": "leftThumbRaise" },
+                                                                                                { "var": "isLeftIndexPointAndThumbRaise", "state": "leftIndexPointAndThumbRaise" }
                                                                                             ]
                                                                                         },
                                                                                         {
-                                                                                            "id": "rightIndexPoint",
+                                                                                            "id": "leftIndexPoint",
                                                                                             "interpTarget": 15,
                                                                                             "interpDuration": 3,
                                                                                             "transitions": [
-                                                                                                { "var": "isRightHandGrasp", "state": "rightHandGrasp" },
-                                                                                                { "var": "isRightThumbRaise", "state": "rightThumbRaise" },
-                                                                                                { "var": "isRightIndexPointAndThumbRaise", "state": "rightIndexPointAndThumbRaise" }
+                                                                                                { "var": "isLeftHandGrasp", "state": "leftHandGrasp" },
+                                                                                                { "var": "isLeftThumbRaise", "state": "leftThumbRaise" },
+                                                                                                { "var": "isLeftIndexPointAndThumbRaise", "state": "leftIndexPointAndThumbRaise" }
                                                                                             ]
                                                                                         },
                                                                                         {
-                                                                                            "id": "rightThumbRaise",
+                                                                                            "id": "leftThumbRaise",
                                                                                             "interpTarget": 15,
                                                                                             "interpDuration": 3,
                                                                                             "transitions": [
-                                                                                                { "var": "isRightHandGrasp", "state": "rightHandGrasp" },
-                                                                                                { "var": "isRightIndexPoint", "state": "rightIndexPoint" },
-                                                                                                { "var": "isRightIndexPointAndThumbRaise", "state": "rightIndexPointAndThumbRaise" }
+                                                                                                { "var": "isLeftHandGrasp", "state": "leftHandGrasp" },
+                                                                                                { "var": "isLeftIndexPoint", "state": "leftIndexPoint" },
+                                                                                                { "var": "isLeftIndexPointAndThumbRaise", "state": "leftIndexPointAndThumbRaise" }
                                                                                             ]
                                                                                         },
                                                                                         {
-                                                                                            "id": "rightIndexPointAndThumbRaise",
+                                                                                            "id": "leftIndexPointAndThumbRaise",
                                                                                             "interpTarget": 15,
                                                                                             "interpDuration": 3,
                                                                                             "transitions": [
-                                                                                                { "var": "isRightHandGrasp", "state": "rightHandGrasp" },
-                                                                                                { "var": "isRightIndexPoint", "state": "rightIndexPoint" },
-                                                                                                { "var": "isRightThumbRaise", "state": "rightThumbRaise" }
+                                                                                                { "var": "isLeftHandGrasp", "state": "leftHandGrasp" },
+                                                                                                { "var": "isLeftIndexPoint", "state": "leftIndexPoint" },
+                                                                                                { "var": "isLeftThumbRaise", "state": "leftThumbRaise" }
                                                                                             ]
                                                                                         }
                                                                                     ]
                                                                                 },
                                                                                 "children": [
                                                                                     {
-                                                                                        "id": "rightHandGrasp",
+                                                                                        "id": "leftHandGrasp",
                                                                                         "type": "blendLinear",
                                                                                         "data": {
                                                                                             "alpha": 0.0,
-                                                                                            "alphaVar": "rightHandGraspAlpha"
+                                                                                            "alphaVar": "leftHandGraspAlpha"
                                                                                         },
                                                                                         "children": [
                                                                                             {
-                                                                                                "id": "rightHandGraspOpen",
+                                                                                                "id": "leftHandGraspOpen",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/hydra_pose_open_right.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/hydra_pose_open_left.fbx",
                                                                                                     "startFrame": 0.0,
                                                                                                     "endFrame": 0.0,
                                                                                                     "timeScale": 1.0,
@@ -299,12 +459,12 @@
                                                                                                 "children": []
                                                                                             },
                                                                                             {
-                                                                                                "id": "rightHandGraspClosed",
+                                                                                                "id": "leftHandGraspClosed",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/hydra_pose_closed_right.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 0.0,
+                                                                                                    "url": "qrc:///avatar/animations/hydra_pose_closed_left.fbx",
+                                                                                                    "startFrame": 10.0,
+                                                                                                    "endFrame": 10.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -313,18 +473,18 @@
                                                                                         ]
                                                                                     },
                                                                                     {
-                                                                                        "id": "rightIndexPoint",
+                                                                                        "id": "leftIndexPoint",
                                                                                         "type": "blendLinear",
-                                                                                        "data": {
+                                                                                        "data":  {
                                                                                             "alpha": 0.0,
-                                                                                            "alphaVar": "rightHandGraspAlpha"
+                                                                                            "alphaVar": "leftHandGraspAlpha"
                                                                                         },
                                                                                         "children": [
                                                                                             {
-                                                                                                "id": "rightIndexPointOpen",
+                                                                                                "id": "leftIndexPointOpen",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/touch_point_open_right.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/touch_point_open_left.fbx",
                                                                                                     "startFrame": 15.0,
                                                                                                     "endFrame": 15.0,
                                                                                                     "timeScale": 1.0,
@@ -333,44 +493,10 @@
                                                                                                 "children": []
                                                                                             },
                                                                                             {
-                                                                                                "id": "rightIndexPointClosed",
+                                                                                                "id": "leftIndexPointClosed",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/touch_point_closed_right.fbx",
-                                                                                                    "startFrame": 15.0,
-                                                                                                    "endFrame": 15.0,
-                                                                                                    "timeScale": 1.0,
-                                                                                                    "loopFlag": true
-                                                                                                },
-                                                                                                "children": []
-                                                                                            }
-                                                                                        ]
-                                                                                    },
-                                                                                    {
-                                                                                        "id": "rightThumbRaise",
-                                                                                        "type": "blendLinear",
-                                                                                        "data": {
-                                                                                            "alpha": 0.0,
-                                                                                            "alphaVar": "rightHandGraspAlpha"
-                                                                                        },
-                                                                                        "children": [
-                                                                                            {
-                                                                                                "id": "rightThumbRaiseOpen",
-                                                                                                "type": "clip",
-                                                                                                "data": {
-                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_open_right.fbx",
-                                                                                                    "startFrame": 15.0,
-                                                                                                    "endFrame": 15.0,
-                                                                                                    "timeScale": 1.0,
-                                                                                                    "loopFlag": true
-                                                                                                },
-                                                                                                "children": []
-                                                                                            },
-                                                                                            {
-                                                                                                "id": "rightThumbRaiseClosed",
-                                                                                                "type": "clip",
-                                                                                                "data": {
-                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_closed_right.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/touch_point_closed_left.fbx",
                                                                                                     "startFrame": 15.0,
                                                                                                     "endFrame": 15.0,
                                                                                                     "timeScale": 1.0,
@@ -381,18 +507,18 @@
                                                                                         ]
                                                                                     },
                                                                                     {
-                                                                                        "id": "rightIndexPointAndThumbRaise",
+                                                                                        "id": "leftThumbRaise",
                                                                                         "type": "blendLinear",
-                                                                                        "data": {
+                                                                                        "data":  {
                                                                                             "alpha": 0.0,
-                                                                                            "alphaVar": "rightHandGraspAlpha"
+                                                                                            "alphaVar": "leftHandGraspAlpha"
                                                                                         },
                                                                                         "children": [
                                                                                             {
-                                                                                                "id": "rightIndexPointAndThumbRaiseOpen",
+                                                                                                "id": "leftThumbRaiseOpen",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_point_open_right.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_open_left.fbx",
                                                                                                     "startFrame": 15.0,
                                                                                                     "endFrame": 15.0,
                                                                                                     "timeScale": 1.0,
@@ -401,10 +527,44 @@
                                                                                                 "children": []
                                                                                             },
                                                                                             {
-                                                                                                "id": "rightIndexPointAndThumbRaiseClosed",
+                                                                                                "id": "leftThumbRaiseClosed",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_point_closed_right.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_closed_left.fbx",
+                                                                                                    "startFrame": 15.0,
+                                                                                                    "endFrame": 15.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true
+                                                                                                },
+                                                                                                "children": []
+                                                                                            }
+                                                                                        ]
+                                                                                    },
+                                                                                    {
+                                                                                        "id": "leftIndexPointAndThumbRaise",
+                                                                                        "type": "blendLinear",
+                                                                                        "data":  {
+                                                                                            "alpha": 0.0,
+                                                                                            "alphaVar": "leftHandGraspAlpha"
+                                                                                        },
+                                                                                        "children": [
+                                                                                            {
+                                                                                                "id": "leftIndexPointAndThumbRaiseOpen",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_point_open_left.fbx",
+                                                                                                    "startFrame": 15.0,
+                                                                                                    "endFrame": 15.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "leftIndexPointAndThumbRaiseClosed",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/touch_thumb_point_closed_left.fbx",
                                                                                                     "startFrame": 15.0,
                                                                                                     "endFrame": 15.0,
                                                                                                     "timeScale": 1.0,
@@ -417,290 +577,6 @@
                                                                                 ]
                                                                             },
                                                                             {
-                                                                                "id": "rightHandAnimA",
-                                                                                "type": "clip",
-                                                                                "data": {
-                                                                                    "url": "qrc:///avatar/animations/touch_thumb_point_open_right.fbx",
-                                                                                    "startFrame": 15.0,
-                                                                                    "endFrame": 15.0,
-                                                                                    "timeScale": 1.0,
-                                                                                    "loopFlag": true
-                                                                                },
-                                                                                "children": []
-                                                                            },
-                                                                            {
-                                                                                "id": "rightHandAnimB",
-                                                                                "type": "clip",
-                                                                                "data": {
-                                                                                    "url": "qrc:///avatar/animations/touch_thumb_point_open_right.fbx",
-                                                                                    "startFrame": 15.0,
-                                                                                    "endFrame": 15.0,
-                                                                                    "timeScale": 1.0,
-                                                                                    "loopFlag": true
-                                                                                },
-                                                                                "children": []
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                        {
-                                                                            "id": "leftHandOverlay",
-                                                                            "type": "overlay",
-                                                                            "data": {
-                                                                                "alpha": 0.0,
-                                                                                "boneSet": "leftHand",
-                                                                                "alphaVar": "leftHandOverlayAlpha"
-                                                                            },
-                                                                            "children": [
-                                                                                {
-                                                                                    "id": "leftHandStateMachine",
-                                                                                    "type": "stateMachine",
-                                                                                    "data": {
-                                                                                        "currentState": "leftHandAnimNone",
-                                                                                        "states": [
-                                                                                            {
-                                                                                                "id": "leftHandAnimNone",
-                                                                                                "interpTarget": 1,
-                                                                                                "interpDuration": 3,
-                                                                                                "transitions": [
-                                                                                                    { "var": "leftHandAnimA", "state": "leftHandAnimA" },
-                                                                                                    { "var": "leftHandAnimB", "state": "leftHandAnimB" }
-                                                                                                ]
-                                                                                            },
-                                                                                            {
-                                                                                                "id": "leftHandAnimA",
-                                                                                                "interpTarget": 1,
-                                                                                                "interpDuration": 3,
-                                                                                                "transitions": [
-                                                                                                    { "var": "leftHandAnimNone", "state": "leftHandAnimNone" },
-                                                                                                    { "var": "leftHandAnimB", "state": "leftHandAnimB" }
-                                                                                                ]
-                                                                                            },
-                                                                                            {
-                                                                                                "id": "leftHandAnimB",
-                                                                                                "interpTarget": 1,
-                                                                                                "interpDuration": 3,
-                                                                                                "transitions": [
-                                                                                                    { "var": "leftHandAnimNone", "state": "leftHandAnimNone" },
-                                                                                                    { "var": "leftHandAnimA", "state": "leftHandAnimA" }
-                                                                                                ]
-                                                                                            }
-                                                                                        ]
-                                                                                    },
-                                                                                    "children": [
-                                                                                        {
-                                                                                            "id": "leftHandAnimNone",
-                                                                                            "type": "stateMachine",
-                                                                                            "data": {
-                                                                                                "currentState": "leftHandGrasp",
-                                                                                                "states": [
-                                                                                                    {
-                                                                                                        "id": "leftHandGrasp",
-                                                                                                        "interpTarget": 3,
-                                                                                                        "interpDuration": 3,
-                                                                                                        "transitions": [
-                                                                                                            { "var": "isLeftIndexPoint", "state": "leftIndexPoint" },
-                                                                                                            { "var": "isLeftThumbRaise", "state": "leftThumbRaise" },
-                                                                                                            { "var": "isLeftIndexPointAndThumbRaise", "state": "leftIndexPointAndThumbRaise" }
-                                                                                                        ]
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "leftIndexPoint",
-                                                                                                        "interpTarget": 15,
-                                                                                                        "interpDuration": 3,
-                                                                                                        "transitions": [
-                                                                                                            { "var": "isLeftHandGrasp", "state": "leftHandGrasp" },
-                                                                                                            { "var": "isLeftThumbRaise", "state": "leftThumbRaise" },
-                                                                                                            { "var": "isLeftIndexPointAndThumbRaise", "state": "leftIndexPointAndThumbRaise" }
-                                                                                                        ]
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "leftThumbRaise",
-                                                                                                        "interpTarget": 15,
-                                                                                                        "interpDuration": 3,
-                                                                                                        "transitions": [
-                                                                                                            { "var": "isLeftHandGrasp", "state": "leftHandGrasp" },
-                                                                                                            { "var": "isLeftIndexPoint", "state": "leftIndexPoint" },
-                                                                                                            { "var": "isLeftIndexPointAndThumbRaise", "state": "leftIndexPointAndThumbRaise" }
-                                                                                                        ]
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "leftIndexPointAndThumbRaise",
-                                                                                                        "interpTarget": 15,
-                                                                                                        "interpDuration": 3,
-                                                                                                        "transitions": [
-                                                                                                            { "var": "isLeftHandGrasp", "state": "leftHandGrasp" },
-                                                                                                            { "var": "isLeftIndexPoint", "state": "leftIndexPoint" },
-                                                                                                            { "var": "isLeftThumbRaise", "state": "leftThumbRaise" }
-                                                                                                        ]
-                                                                                                    }
-                                                                                                ]
-                                                                                            },
-                                                                                            "children": [
-                                                                                                {
-                                                                                                    "id": "leftHandGrasp",
-                                                                                                    "type": "blendLinear",
-                                                                                                    "data": {
-                                                                                                        "alpha": 0.0,
-                                                                                                        "alphaVar": "leftHandGraspAlpha"
-                                                                                                    },
-                                                                                                    "children": [
-                                                                                                        {
-                                                                                                            "id": "leftHandGraspOpen",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/hydra_pose_open_left.fbx",
-                                                                                                                "startFrame": 0.0,
-                                                                                                                "endFrame": 0.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "leftHandGraspClosed",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/hydra_pose_closed_left.fbx",
-                                                                                                                "startFrame": 10.0,
-                                                                                                                "endFrame": 10.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        }
-                                                                                                    ]
-                                                                                                },
-                                                                                                {
-                                                                                                    "id": "leftIndexPoint",
-                                                                                                    "type": "blendLinear",
-                                                                                                    "data": {
-                                                                                                        "alpha": 0.0,
-                                                                                                        "alphaVar": "leftHandGraspAlpha"
-                                                                                                    },
-                                                                                                    "children": [
-                                                                                                        {
-                                                                                                            "id": "leftIndexPointOpen",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/touch_point_open_left.fbx",
-                                                                                                                "startFrame": 15.0,
-                                                                                                                "endFrame": 15.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "leftIndexPointClosed",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/touch_point_closed_left.fbx",
-                                                                                                                "startFrame": 15.0,
-                                                                                                                "endFrame": 15.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        }
-                                                                                                    ]
-                                                                                                },
-                                                                                                {
-                                                                                                    "id": "leftThumbRaise",
-                                                                                                    "type": "blendLinear",
-                                                                                                    "data": {
-                                                                                                        "alpha": 0.0,
-                                                                                                        "alphaVar": "leftHandGraspAlpha"
-                                                                                                    },
-                                                                                                    "children": [
-                                                                                                        {
-                                                                                                            "id": "leftThumbRaiseOpen",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/touch_thumb_open_left.fbx",
-                                                                                                                "startFrame": 15.0,
-                                                                                                                "endFrame": 15.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "leftThumbRaiseClosed",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/touch_thumb_closed_left.fbx",
-                                                                                                                "startFrame": 15.0,
-                                                                                                                "endFrame": 15.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        }
-                                                                                                    ]
-                                                                                                },
-                                                                                                {
-                                                                                                    "id": "leftIndexPointAndThumbRaise",
-                                                                                                    "type": "blendLinear",
-                                                                                                    "data": {
-                                                                                                        "alpha": 0.0,
-                                                                                                        "alphaVar": "leftHandGraspAlpha"
-                                                                                                    },
-                                                                                                    "children": [
-                                                                                                        {
-                                                                                                            "id": "leftIndexPointAndThumbRaiseOpen",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/touch_thumb_point_open_left.fbx",
-                                                                                                                "startFrame": 15.0,
-                                                                                                                "endFrame": 15.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "leftIndexPointAndThumbRaiseClosed",
-                                                                                                            "type": "clip",
-                                                                                                            "data": {
-                                                                                                                "url": "qrc:///avatar/animations/touch_thumb_point_closed_left.fbx",
-                                                                                                                "startFrame": 15.0,
-                                                                                                                "endFrame": 15.0,
-                                                                                                                "timeScale": 1.0,
-                                                                                                                "loopFlag": true
-                                                                                                            },
-                                                                                                            "children": []
-                                                                                                        }
-                                                                                                    ]
-                                                                                                }
-                                                                                            ]
-                                                                                        },
-                                                                                        {
-                                                                                            "id": "leftHandAnimA",
-                                                                                            "type": "clip",
-                                                                                            "data": {
-                                                                                                "url": "qrc:///avatar/animations/touch_thumb_point_open_left.fbx",
-                                                                                                "startFrame": 15.0,
-                                                                                                "endFrame": 15.0,
-                                                                                                "timeScale": 1.0,
-                                                                                                "loopFlag": true
-                                                                                            },
-                                                                                            "children": []
-                                                                                        },
-                                                                                        {
-                                                                                            "id": "leftHandAnimB",
-                                                                                            "type": "clip",
-                                                                                            "data": {
-                                                                                                "url": "qrc:///avatar/animations/touch_thumb_point_open_left.fbx",
-                                                                                                "startFrame": 15.0,
-                                                                                                "endFrame": 15.0,
-                                                                                                "timeScale": 1.0,
-                                                                                                "loopFlag": true
-                                                                                            },
-                                                                                            "children": []
-                                                                                        }
-                                                                                    ]
-                                                                                },
-                                                                                {
                                                                                 "id": "mainStateMachine",
                                                                                 "type": "stateMachine",
                                                                                 "data": {
@@ -1027,52 +903,557 @@
                                                                                 "children": [
                                                                                     {
                                                                                         "id": "idle",
-                                                                                        "type": "stateMachine",
+                                                                                        "type": "overlay",
                                                                                         "data": {
-                                                                                            "currentState": "idleStand",
-                                                                                            "states": [
-                                                                                                {
-                                                                                                    "id": "idleStand",
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpDuration": 10,
-                                                                                                    "transitions": [
-                                                                                                        { "var": "isTalking", "state": "idleTalk" }
-                                                                                                    ]
-                                                                                                },
-                                                                                                {
-                                                                                                    "id": "idleTalk",
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpDuration": 10,
-                                                                                                    "transitions": [
-                                                                                                        { "var": "notIsTalking", "state": "idleStand" }
-                                                                                                    ]
-                                                                                                }
-                                                                                            ]
+																						    "alpha": 1.0,
+                                                                                            "alphaVar": "idleOverlayAlpha",
+                                                                                            "boneSet": "upperBody"
                                                                                         },
                                                                                         "children": [
+																						    {
+																							    "id": "idleTalk",
+                                                                                                "type": "randomSwitchStateMachine",
+                                                                                                "data": {
+                                                                                                    "currentState": "idleTalk1",
+																									"triggerRandomSwitch": "idleTalkSwitch",
+																									"randomSwitchTimeMin": 5.0,
+																									"randomSwitchTimeMax": 10.0,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "id": "idleTalk1",
+                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 15,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "idleTalk2",
+                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 15,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "idleTalk3",
+                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 15,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "id": "idleTalk1",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 800.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "idleTalk2",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk_righthand.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 501.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "idleTalk3",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk04.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 499.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    }
+                                                                                                ]
+																							},
                                                                                             {
                                                                                                 "id": "idleStand",
-                                                                                                "type": "clip",
+                                                                                                "type": "randomSwitchStateMachine",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/idle.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 300.0,
-                                                                                                    "timeScale": 1.0,
-                                                                                                    "loopFlag": true
+                                                                                                    "currentState": "masterIdle",
+																									"triggerTimeMin": 10.0,
+																									"triggerTimeMax": 60.0,
+																									"transitionVar": "timeToFidget",
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "id": "masterIdle",
+                                                                                                            "interpTarget": 21,
+                                                                                                            "interpDuration": 20,
+																											"priority": 1.0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                { "var": "timeToFidget", "randomSwitchState": "fidget" }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "fidget",
+                                                                                                            "interpTarget": 21,
+                                                                                                            "interpDuration": 20,
+																											"priority": -1.0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                { "var": "movement1OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "movement2OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "movement3OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "movement4OnDone", "randomSwitchState": "masterIdle" },
+																												{ "var": "movement5OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "movement6OnDone", "randomSwitchState": "masterIdle" },
+																												{ "var": "movement7OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "movement8OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "alt2ToMasterIdleOnDone", "randomSwitchState": "masterIdle" }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
                                                                                                 },
-                                                                                                "children": []
-                                                                                            },
-                                                                                            {
-                                                                                                "id": "idleTalk",
-                                                                                                "type": "clip",
-                                                                                                "data": {
-                                                                                                    "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 800.0,
-                                                                                                    "timeScale": 1.0,
-                                                                                                    "loopFlag": true
-                                                                                                },
-                                                                                                "children": []
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "id": "masterIdle",
+                                                                                                        "type": "randomSwitchStateMachine",
+                                                                                                        "data": {
+                                                                                                            "currentState": "masterIdle1",
+                                                                                                            "triggerRandomSwitch": "masterIdleSwitch",
+                                                                                                            "randomSwitchTimeMin": 10.0,
+                                                                                                            "randomSwitchTimeMax": 60.0,
+                                                                                                            "states": [
+                                                                                                                {
+                                                                                                                    "id": "masterIdle1",
+                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.33,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "masterIdle2",
+                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.33,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "masterIdle3",
+                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.33,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        "children": [
+                                                                                                            {
+                                                                                                                "id": "masterIdle1",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/idle.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 300.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "masterIdle2",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/idleWS_all.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 1620.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "masterIdle3",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/idle_lookaround01.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 901.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            }
+                                                                                                        ]
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "fidget",
+                                                                                                        "type": "randomSwitchStateMachine",
+                                                                                                        "data": {
+                                                                                                            "currentState": "movement",
+                                                                                                            "states": [
+                                                                                                                {
+                                                                                                                    "id": "movement",
+                                                                                                                    "interpTarget": 17,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "priority": 0.8,
+                                                                                                                    "resume": false,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "alternateIdle",
+                                                                                                                    "interpTarget": 17,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "priority": 0.2,
+                                                                                                                    "resume": false,
+                                                                                                                    "transitions": []
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        "children": [
+                                                                                                            {
+                                                                                                                "id": "movement",
+                                                                                                                "type": "randomSwitchStateMachine",
+                                                                                                                "data": {
+                                                                                                                    "currentState": "movement1",
+                                                                                                                    "states": [
+                                                                                                                        {
+                                                                                                                            "id": "movement1",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement2",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement3",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement4",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement5",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement6",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement7",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "movement8",
+                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 20,
+                                                                                                                            "priority": 0.2,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                "children": [
+                                                                                                                    {
+                                                                                                                        "id": "movement1",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_slownod.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 91.0,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement2",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 154,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement3",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 154,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement4",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idleWS_all.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 1620,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement5",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 324,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement6",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_neckstretch.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 169,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement7",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idleWS_all.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 1620,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "movement8",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 324,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    }
+                                                                                                                ]
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "alternateIdle",
+                                                                                                                "type": "randomSwitchStateMachine",
+                                                                                                                "data": {
+                                                                                                                    "currentState": "transitionToAltIdle1",
+                                                                                                                    "triggerTimeMin": 10.0,
+                                                                                                                    "triggerTimeMax": 60.0,
+                                                                                                                    "transitionVar": "finishAltIdle2",
+                                                                                                                    "states": [
+                                                                                                                        {
+                                                                                                                            "id": "transitionToAltIdle1",
+                                                                                                                            "interpTarget": 11,
+                                                                                                                            "interpDuration": 10,
+                                                                                                                            "priority": 0.5,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "var": "transitionToAltIdle1OnDone",
+                                                                                                                                    "randomSwitchState": "altIdle1"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "transitionToAltIdle2",
+                                                                                                                            "interpTarget": 11,
+                                                                                                                            "interpDuration": 10,
+                                                                                                                            "priority": 0.5,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "var": "transitionToAltIdle2OnDone",
+                                                                                                                                    "randomSwitchState": "altIdle2"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "altIdle1",
+                                                                                                                            "interpTarget": 11,
+                                                                                                                            "interpDuration": 10,
+                                                                                                                            "priority": -1.0,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "var": "finishAltIdle2",
+                                                                                                                                    "randomSwitchState": "alt1ToMasterIdle"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "altIdle2",
+                                                                                                                            "interpTarget": 11,
+                                                                                                                            "interpDuration": 10,
+                                                                                                                            "priority": -1.0,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": [
+                                                                                                                                {
+                                                                                                                                    "var": "finishAltIdle2",
+                                                                                                                                    "randomSwitchState": "alt2ToMasterIdle"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "alt1ToMasterIdle",
+                                                                                                                            "interpTarget": 11,
+                                                                                                                            "interpDuration": 10,
+                                                                                                                            "priority": -1.0,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "id": "alt2ToMasterIdle",
+                                                                                                                            "interpTarget": 11,
+                                                                                                                            "interpDuration": 10,
+                                                                                                                            "priority": -1.0,
+                                                                                                                            "resume": false,
+                                                                                                                            "transitions": []
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                "children": [
+                                                                                                                    {
+                                                                                                                        "id": "transitionToAltIdle1",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 55,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "transitionToAltIdle2",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
+                                                                                                                            "startFrame": 1,
+                                                                                                                            "endFrame": 56,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "altIdle1",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
+                                                                                                                            "startFrame": 55,
+                                                                                                                            "endFrame": 389,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": true
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "altIdle2",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
+                                                                                                                            "startFrame": 56,
+                                                                                                                            "endFrame": 390,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": true
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "alt1ToMasterIdle",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
+                                                                                                                            "startFrame": 389,
+                                                                                                                            "endFrame": 472,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "alt2ToMasterIdle",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
+                                                                                                                            "startFrame": 390,
+                                                                                                                            "endFrame": 453,
+                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "loopFlag": false
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    }
+                                                                                                                ]
+                                                                                                            }
+
+                                                                                                        ]
+                                                                                                    }
+
+                                                                                                ]
                                                                                             }
                                                                                         ]
                                                                                     },

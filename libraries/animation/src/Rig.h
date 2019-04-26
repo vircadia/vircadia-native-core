@@ -418,9 +418,12 @@ protected:
     HandAnimState _rightHandAnimState;
     HandAnimState _leftHandAnimState;
     std::map<QString, RoleAnimState> _roleAnimStates;
+    int _evaluationCount{ 0 };
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
+    float _talkIdleInterpTime { 0.0f };
+    bool _previousIsTalking { false };
 
     SimpleMovingAverage _averageForwardSpeed { 10 };
     SimpleMovingAverage _averageLateralSpeed { 10 };
