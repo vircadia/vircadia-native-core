@@ -52,6 +52,9 @@ else()
   set(MOBILE 0)
 endif()
 
+# Use default time server if none defined in environment
+set_from_env(TIMESERVER_URL TIMESERVER_URL "http://sha256timestamp.ws.symantec.com/sha256/timestamp")
+
 set(HIFI_USE_OPTIMIZED_IK OFF)
 set(BUILD_CLIENT_OPTION ON)
 set(BUILD_SERVER_OPTION ON)

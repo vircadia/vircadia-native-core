@@ -40,6 +40,7 @@ int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
 int voidLambdaType = qRegisterMetaType<std::function<void()>>();
 int variantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+int stencilModeMetaTypeId = qRegisterMetaType<StencilMaskMode>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec2ToScriptValue, vec2FromScriptValue);
@@ -64,6 +65,8 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
+
+    qScriptRegisterMetaType(engine, stencilMaskModeToScriptValue, stencilMaskModeFromScriptValue);
 }
 
 QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
@@ -634,6 +637,81 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4) {
     mat4[3][1] = object.property("r1c3").toVariant().toFloat();
     mat4[3][2] = object.property("r2c3").toVariant().toFloat();
     mat4[3][3] = object.property("r3c3").toVariant().toFloat();
+}
+
+QVariant mat4ToVariant(const glm::mat4& mat4) {
+    if (mat4 != mat4) {
+        // NaN
+        return QVariant();
+    }
+    QVariantMap object;
+
+    object["r0c0"] = mat4[0][0];
+    object["r1c0"] = mat4[0][1];
+    object["r2c0"] = mat4[0][2];
+    object["r3c0"] = mat4[0][3];
+    object["r0c1"] = mat4[1][0];
+    object["r1c1"] = mat4[1][1];
+    object["r2c1"] = mat4[1][2];
+    object["r3c1"] = mat4[1][3];
+    object["r0c2"] = mat4[2][0];
+    object["r1c2"] = mat4[2][1];
+    object["r2c2"] = mat4[2][2];
+    object["r3c2"] = mat4[2][3];
+    object["r0c3"] = mat4[3][0];
+    object["r1c3"] = mat4[3][1];
+    object["r2c3"] = mat4[3][2];
+    object["r3c3"] = mat4[3][3];
+
+    return object;
+}
+
+glm::mat4 mat4FromVariant(const QVariant& object, bool& valid) {
+    glm::mat4 mat4;
+    valid = false;
+    if (!object.isValid() || object.isNull()) {
+        return mat4;
+    } else {
+        const static auto getElement = [](const QVariantMap& map, const char * key, float& value, bool& everyConversionValid) {
+            auto variantValue = map[key];
+            if (variantValue.canConvert<float>()) {
+                value = variantValue.toFloat();
+            } else {
+                everyConversionValid = false;
+            }
+        };
+
+        auto map = object.toMap();
+        bool everyConversionValid = true;
+
+        getElement(map, "r0c0", mat4[0][0], everyConversionValid);
+        getElement(map, "r1c0", mat4[0][1], everyConversionValid);
+        getElement(map, "r2c0", mat4[0][2], everyConversionValid);
+        getElement(map, "r3c0", mat4[0][3], everyConversionValid);
+        getElement(map, "r0c1", mat4[1][0], everyConversionValid);
+        getElement(map, "r1c1", mat4[1][1], everyConversionValid);
+        getElement(map, "r2c1", mat4[1][2], everyConversionValid);
+        getElement(map, "r3c1", mat4[1][3], everyConversionValid);
+        getElement(map, "r0c2", mat4[2][0], everyConversionValid);
+        getElement(map, "r1c2", mat4[2][1], everyConversionValid);
+        getElement(map, "r2c2", mat4[2][2], everyConversionValid);
+        getElement(map, "r3c2", mat4[2][3], everyConversionValid);
+        getElement(map, "r0c3", mat4[3][0], everyConversionValid);
+        getElement(map, "r1c3", mat4[3][1], everyConversionValid);
+        getElement(map, "r2c3", mat4[3][2], everyConversionValid);
+        getElement(map, "r3c3", mat4[3][3], everyConversionValid);
+
+        if (everyConversionValid) {
+            valid = true;
+        }
+
+        return mat4;
+    }
+}
+
+glm::mat4 mat4FromVariant(const QVariant& object) {
+    bool valid = false;
+    return mat4FromVariant(object, valid);
 }
 
 QScriptValue qVectorVec3ColorToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector) {
@@ -1283,4 +1361,12 @@ QVariantMap parseTexturesToMap(QString newTextures, const QVariantMap& defaultTe
     }
 
     return toReturn;
+}
+
+QScriptValue stencilMaskModeToScriptValue(QScriptEngine* engine, const StencilMaskMode& stencilMode) {
+    return engine->newVariant((int)stencilMode);
+}
+
+void stencilMaskModeFromScriptValue(const QScriptValue& object, StencilMaskMode& stencilMode) {
+    stencilMode = StencilMaskMode(object.toVariant().toInt());
 }

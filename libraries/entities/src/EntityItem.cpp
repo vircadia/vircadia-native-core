@@ -791,7 +791,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
     // calculate hasGrab once outside the lambda rather than calling it every time inside
     bool hasGrab = stillHasGrabAction();
-    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection, hasGrab](quint64 updatedTimestamp, bool valueChanged) {
+    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection, hasGrab](quint64 updatedTimestamp, bool valueChanged) {
         if (hasGrab) {
             return false;
         }

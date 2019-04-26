@@ -284,7 +284,7 @@ public slots:
      * Disable default Interface actions for a joystick.
      * @function Controller.captureJoystick
      * @param {number} joystickID - The integer ID of the joystick.
-     * @deprecated This function no longer has any effect.
+     * @deprecated This function is deprecated and will be removed. It no longer has any effect.
      */
     virtual void captureJoystick(int joystickIndex);
 
@@ -293,7 +293,7 @@ public slots:
      * {@link Controller.captureJoystick|captureJoystick}.
      * @function Controller.releaseJoystick
      * @param {number} joystickID - The integer ID of the joystick.
-     * @deprecated This function no longer has any effect.
+     * @deprecated This function is deprecated and will be removed. It no longer has any effect.
      */
     virtual void releaseJoystick(int joystickIndex);
 

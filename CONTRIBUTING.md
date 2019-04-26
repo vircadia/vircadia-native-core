@@ -16,7 +16,7 @@ Contributing
   git checkout -b new_branch_name 
   ```
 4. Code
-  * Follow the [coding standard](https://docs.highfidelity.com/build-guide/coding-standards)
+  * Follow the [coding standard](CODING_STANDARD.md)
 5. Commit
   * Use [well formed commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
 6. Update your branch

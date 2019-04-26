@@ -27,9 +27,10 @@ std::function<QThread*()> MaterialBaker::_getNextOvenWorkerThreadOperator;
 
 static int materialNum = 0;
 
-MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir) :
+MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, QUrl destinationPath) :
     _materialData(materialData),
     _isURL(isURL),
+    _destinationPath(destinationPath),
     _bakedOutputDir(bakedOutputDir),
     _textureOutputDir(bakedOutputDir + "/materialTextures/" + QString::number(materialNum++))
 {
@@ -132,19 +133,24 @@ void MaterialBaker::processMaterial() {
                     QString extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
                     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
-                        QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, type);
+                        TextureKey textureKey(textureURL, type);
                         if (!_textureBakers.contains(textureKey)) {
                             auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
                             QSharedPointer<TextureBaker> textureBaker {
-                                new TextureBaker(textureURL, type, _textureOutputDir, "", baseTextureFileName, content),
+                                new TextureBaker(textureURL, type, _textureOutputDir, baseTextureFileName, content),
                                 &TextureBaker::deleteLater
                             };
                             textureBaker->setMapChannel(mapChannel);
                             connect(textureBaker.data(), &TextureBaker::finished, this, &MaterialBaker::handleFinishedTextureBaker);
                             _textureBakers.insert(textureKey, textureBaker);
                             textureBaker->moveToThread(_getNextOvenWorkerThreadOperator ? _getNextOvenWorkerThreadOperator() : thread());
-                            QMetaObject::invokeMethod(textureBaker.data(), "bake");
+                            // By default, Qt will invoke this bake immediately if the TextureBaker is on the same worker thread as this MaterialBaker.
+                            // We don't want that, because threads may be waiting for work while this thread is stuck processing a TextureBaker.
+                            // On top of that, _textureBakers isn't fully populated.
+                            // So, use Qt::QueuedConnection.
+                            // TODO: Better thread utilization at the top level, not just the MaterialBaker level
+                            QMetaObject::invokeMethod(textureBaker.data(), "bake", Qt::QueuedConnection);
                         }
                         _materialsNeedingRewrite.insert(textureKey, networkMaterial.second);
                     } else {
@@ -164,13 +170,17 @@ void MaterialBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
-        QPair<QUrl, image::TextureUsage::Type> textureKey = { baker->getTextureURL(), baker->getTextureType() };
+        TextureKey textureKey = { baker->getTextureURL(), baker->getTextureType() };
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan
             qCDebug(material_baking) << "Re-writing texture references to" << baker->getTextureURL();
 
             auto newURL = QUrl(_textureOutputDir).resolved(baker->getMetaTextureFileName());
             auto relativeURL = QDir(_bakedOutputDir).relativeFilePath(newURL.toString());
+
+            if (!_destinationPath.isEmpty()) {
+                relativeURL = _destinationPath.resolved(relativeURL).toDisplayString();
+            }
 
             // Replace the old texture URLs
             for (auto networkMaterial : _materialsNeedingRewrite.values(textureKey)) {
@@ -266,4 +276,8 @@ void MaterialBaker::setMaterials(const QHash<QString, hfm::Material>& materials,
         addTexture(material.name, image::TextureUsage::SCATTERING_TEXTURE, material.scatteringTexture);
         addTexture(material.name, image::TextureUsage::LIGHTMAP_TEXTURE, material.lightmapTexture);
     }
+}
+
+void MaterialBaker::setMaterials(const NetworkMaterialResourcePointer& materialResource) {
+    _materialResource = materialResource;
 }

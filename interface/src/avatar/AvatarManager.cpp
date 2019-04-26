@@ -120,6 +120,8 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+
+    setEnableDebugDrawOtherSkeletons(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawOtherSkeletons));
 }
 
 void AvatarManager::setSpace(workload::SpacePointer& space ) {
@@ -334,9 +336,14 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
                     _myAvatar->addAvatarHandsToFlow(avatar);
                 }
+                if (_drawOtherAvatarSkeletons) {
+                    avatar->debugJointData();
+                }
+                avatar->setEnableMeshVisible(!_drawOtherAvatarSkeletons);
                 avatar->updateRenderItem(renderTransaction);
                 avatar->updateSpaceProxy(workloadTransaction);
                 avatar->setLastRenderUpdateTime(startTime);
+
             } else {
                 // we've spent our time budget for this priority bucket
                 // let's deal with the reminding avatars if this pass and BREAK from the for loop
@@ -498,8 +505,10 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
     if (removalReason != KillAvatarReason::AvatarDisconnected) {
-        emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
-        emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+        if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+            emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
+            emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+        }
 
         workload::Transaction workloadTransaction;
         workloadTransaction.remove(avatar->getSpaceIndex());
@@ -725,7 +734,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     boxHit._distance = FLT_MAX;
 
                     for (size_t i = 0; i < hit._boundJoints.size(); i++) {
-                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        assert(hit._boundJoints[i] < (int)multiSpheres.size());
                         auto &mSphere = multiSpheres[hit._boundJoints[i]];
                         if (mSphere.isValid()) {
                             float boundDistance = FLT_MAX;
@@ -940,7 +949,8 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
  *     It is unique among all avatars present in the domain at the time.
  * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
  *     domain.
- * @property {boolean} isReplicated - <strong>Deprecated.</strong>
+ * @property {boolean} isReplicated - <span class="important">Deprecated: This property is deprecated and will be 
+ *     removed.</span>
  * @property {Vec3} position - The position of the avatar.
  * @property {number} palOrbOffset - The vertical offset from the avatar's position that an overlay orb should be displayed at.
  */

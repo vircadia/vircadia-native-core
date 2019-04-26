@@ -152,6 +152,7 @@ public:
 
         template <class... A>
         static std::shared_ptr<Model> create(const std::string& name, const Varying& input, A&&... args) {
+            assert(input.canCast<I>());
             return std::make_shared<Model>(name, input, std::make_shared<C>(), std::forward<A>(args)...);
         }
 
