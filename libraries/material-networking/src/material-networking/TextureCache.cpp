@@ -311,13 +311,13 @@ gpu::BackendTarget getBackendTarget() {
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type) {
     QImage image = QImage(path);
     if (image.isNull()) {
         qCWarning(networking) << "Unable to load required resource texture" << path;
         return nullptr;
     }
-    auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
+    auto loader = image::TextureUsage::getTextureLoaderForType(type);
 
 #ifdef USE_GLES
     constexpr bool shouldCompress = true;
@@ -635,11 +635,9 @@ void NetworkTexture::makeLocalRequest() {
 }
 
 bool NetworkTexture::handleFailedRequest(ResourceRequest::Result result) {
-    if (_currentlyLoadingResourceType != ResourceType::KTX
-        && result == ResourceRequest::Result::RedirectFail) {
-
+    if (_shouldFailOnRedirect && result == ResourceRequest::Result::RedirectFail) {
         auto newPath = _request->getRelativePathUrl();
-        if (newPath.fileName().endsWith(".ktx")) {
+        if (newPath.fileName().toLower().endsWith(".ktx")) {
             _currentlyLoadingResourceType = ResourceType::KTX;
             _activeUrl = newPath;
             _shouldFailOnRedirect = false;

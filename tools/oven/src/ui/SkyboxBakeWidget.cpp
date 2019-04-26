@@ -202,7 +202,7 @@ void SkyboxBakeWidget::bakeButtonClicked() {
             ambientMapBaseFilename = QUrl(urlParts.front()).fileName();
 
             // we need to bake the corresponding ambient map too
-            addBaker(new TextureBaker(skyboxToBakeURL, image::TextureUsage::AMBIENT_TEXTURE, outputDirectory.absolutePath(), QString(), ambientMapBaseFilename),
+            addBaker(new TextureBaker(skyboxToBakeURL, image::TextureUsage::AMBIENT_TEXTURE, outputDirectory.absolutePath(), ambientMapBaseFilename),
                      outputDirectory);
         }
     }

@@ -16,6 +16,7 @@
 #include <QtCore/QStringList>
 #include <QtCore/QUrl>
 
+#include <functional>
 
 class FileDialogHelper : public QObject {
     Q_OBJECT
@@ -62,6 +63,7 @@ public:
     Q_INVOKABLE QUrl saveHelper(const QString& saveText, const QUrl& currentFolder, const QStringList& selectionFilters);
     Q_INVOKABLE QList<QUrl> urlToList(const QUrl& url);
 
+    static void setOpenDirectoryOperator(std::function<void(const QString&)> openDirectoryOperator) { _openDirectoryOperator = openDirectoryOperator; }
     Q_INVOKABLE void openDirectory(const QString& path);
 
     Q_INVOKABLE void monitorDirectory(const QString& path);
@@ -72,6 +74,7 @@ signals:
 private:
     QFileSystemWatcher _fsWatcher;
     QString _fsWatcherPath;
+    static std::function<void(const QString&)> _openDirectoryOperator;
 };
 
 

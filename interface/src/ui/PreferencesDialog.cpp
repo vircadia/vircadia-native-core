@@ -82,6 +82,28 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Show Shadows", getterShadow, setterShadow));
     }
 
+    {
+        auto getter = []()->QString {
+            RefreshRateManager::RefreshRateProfile refreshRateProfile = qApp->getRefreshRateManager().getRefreshRateProfile();
+            return QString::fromStdString(RefreshRateManager::refreshRateProfileToString(refreshRateProfile));
+        };
+
+        auto setter = [](QString value) {
+            std::string profileName = value.toStdString();
+            RefreshRateManager::RefreshRateProfile refreshRateProfile = RefreshRateManager::refreshRateProfileFromString(profileName);
+            qApp->getRefreshRateManager().setRefreshRateProfile(refreshRateProfile);
+        };
+
+        auto preference = new ComboBoxPreference(GRAPHICS_QUALITY, "Refresh Rate", getter, setter);
+        QStringList refreshRateProfiles
+            { QString::fromStdString(RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile::ECO)),
+              QString::fromStdString(RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile::INTERACTIVE)),
+              QString::fromStdString(RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile::REALTIME)) };
+
+        preference->setItems(refreshRateProfiles);
+        preferences->addPreference(preference);
+    }
+
     // UI
     static const QString UI_CATEGORY { "User Interface" };
     {

@@ -179,7 +179,6 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
-
                 if (traitType == AvatarTraits::SkeletonModelURL) {
                     // special handling for skeleton model URL, since we need to make sure it is in the whitelist
                     checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);

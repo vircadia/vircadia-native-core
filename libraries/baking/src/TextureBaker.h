@@ -32,8 +32,8 @@ class TextureBaker : public Baker {
 
 public:
     TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                 const QDir& outputDirectory, const QString& metaTexturePathPrefix = "",
-                 const QString& baseFilename = QString(), const QByteArray& textureContent = QByteArray());
+                 const QDir& outputDirectory, const QString& baseFilename = QString(),
+                 const QByteArray& textureContent = QByteArray());
 
     const QByteArray& getOriginalTexture() const { return _originalTexture; }
 
@@ -74,7 +74,6 @@ private:
     QString _baseFilename;
     QDir _outputDirectory;
     QString _metaTextureFileName;
-    QString _metaTexturePathPrefix;
     QUrl _originalCopyFilePath;
 
     std::atomic<bool> _abortProcessing { false };

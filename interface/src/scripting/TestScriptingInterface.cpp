@@ -199,3 +199,13 @@ void TestScriptingInterface::setOtherAvatarsReplicaCount(int count) {
 int TestScriptingInterface::getOtherAvatarsReplicaCount() {
     return qApp->getOtherAvatarsReplicaCount();
 }
+
+void TestScriptingInterface::setMinimumGPUTextureMemStabilityCount(int count) {
+    QMetaObject::invokeMethod(qApp, "setMinimumGPUTextureMemStabilityCount", Qt::DirectConnection, Q_ARG(int, count));
+}
+
+bool TestScriptingInterface::isTextureLoadingComplete() {
+    bool result;
+    QMetaObject::invokeMethod(qApp, "gpuTextureMemSizeStable", Qt::DirectConnection, Q_RETURN_ARG(bool, result));
+    return result;
+}

@@ -90,6 +90,7 @@ public:
 // HMD display functionality
 // TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when
 // displayPlugin->isHmd returns true
+class RefreshRateController;
 class HmdDisplay : public StereoDisplay {
 public:
     // HMD specific methods
@@ -128,6 +129,7 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
+
     virtual float getTargetFrameRate() const { return 1.0f; }
     virtual bool hasAsyncReprojection() const { return false; }
 
