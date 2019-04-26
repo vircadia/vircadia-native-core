@@ -58,6 +58,14 @@ Item {
                         text: "Avatars: " + root.avatarCount
                     }
                     StatText {
+                        visible: true
+                        text: "Refresh: " + root.refreshRateRegime + " - " + root.refreshRateTarget
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text:"    " + root.refreshRateMode + " - " + root.uxMode;
+                    }
+                    StatText {
                         text: "Game Rate: " + root.gameLoopRate
                     }
                     StatText {
@@ -76,14 +84,6 @@ Item {
                     StatText {
                         visible: root.expanded
                         text: "    Present New Rate: " + root.presentnewrate.toFixed(2);
-                    }
-                    StatText {
-                        visible: root.expanded
-                        text: "  RefreshRateController:\n    " +
-                            "refreshRateTarget:\t " + root.refreshRateTarget + "\n    " +
-                            "refreshRateMode:\t " + root.refreshRateMode + "\n    " +
-                            "refreshRateRegime:\t " + root.refreshRateRegime + "\n   " +
-                            "uxMode:\t " + root.uxMode;
                     }
                     StatText {
                         visible: root.expanded

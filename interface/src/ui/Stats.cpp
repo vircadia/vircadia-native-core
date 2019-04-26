@@ -132,6 +132,14 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(notUpdatedAvatarCount, avatarManager->getNumAvatarsNotUpdated());
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE_FLOAT(renderrate, qApp->getRenderLoopRate(), 0.1f);
+    RefreshRateManager& refreshRateManager = qApp->getRefreshRateManager();
+    std::string refreshRateMode = RefreshRateManager::refreshRateProfileToString(refreshRateManager.getRefreshRateProfile());
+    std::string refreshRateRegime = RefreshRateManager::refreshRateRegimeToString(refreshRateManager.getRefreshRateRegime());
+    std::string uxMode = RefreshRateManager::uxModeToString(refreshRateManager.getUXMode());
+    STAT_UPDATE(refreshRateMode, QString::fromStdString(refreshRateMode));
+    STAT_UPDATE(refreshRateRegime, QString::fromStdString(refreshRateRegime));
+    STAT_UPDATE(uxMode, QString::fromStdString(uxMode));
+    STAT_UPDATE(refreshRateTarget, refreshRateManager.getActiveRefreshRate());
     if (qApp->getActiveDisplayPlugin()) {
         auto displayPlugin = qApp->getActiveDisplayPlugin();
         auto stats = displayPlugin->getHardwareStats();
@@ -222,14 +230,6 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
     if (_expanded || force) {
-        RefreshRateManager& refreshRateManager = qApp->getRefreshRateManager();
-        std::string refreshRateMode = RefreshRateManager::refreshRateProfileToString(refreshRateManager.getRefreshRateProfile());
-        std::string refreshRateRegime = RefreshRateManager::refreshRateRegimeToString(refreshRateManager.getRefreshRateRegime());
-        std::string uxMode = RefreshRateManager::uxModeToString(refreshRateManager.getUXMode());
-        STAT_UPDATE(refreshRateMode, QString::fromStdString(refreshRateMode));
-        STAT_UPDATE(refreshRateRegime, QString::fromStdString(refreshRateRegime));
-        STAT_UPDATE(uxMode, QString::fromStdString(uxMode));
-        STAT_UPDATE(refreshRateTarget, refreshRateManager.getActiveRefreshRate());
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
             STAT_UPDATE(avatarMixerInKbps, (int)roundf(avatarMixer->getInboundKbps()));

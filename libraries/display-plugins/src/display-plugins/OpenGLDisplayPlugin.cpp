@@ -697,14 +697,13 @@ void OpenGLDisplayPlugin::present(const std::shared_ptr<RefreshRateController>& 
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
-
+    refreshRateController->clockStartTime();
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
         updateFrameData();
     }
     incrementPresentCount();
 
-    refreshRateController->clockStartTime();
     if (_currentFrame) {
         auto correction = getViewCorrection();
         getGLBackend()->setCameraCorrection(correction, _prevRenderView);
