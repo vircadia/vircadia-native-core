@@ -162,7 +162,7 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 `mkdir qt5-build`  
 `cd qt5-build`  
 
-`../qt5/configure -opensource -confirm-license -platform linux-g++-64 -qt-zlib -qt-libjpeg -qt=libpng -qt-xcb -qt-freetype [qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`  
+`../qt5/configure -opensource -confirm-license -platform linux-g++-64 -qt-zlib -qt-libjpeg -qt-libpng -qt-xcb -qt-freetype -qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`  
 #### Make
 `make`  
 `make install`  
