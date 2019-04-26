@@ -990,7 +990,7 @@
                                                                                                 "data": {
                                                                                                     "currentState": "masterIdle",
 																									"triggerTimeMin": 10.0,
-																									"triggerTimeMax": 40.0,
+																									"triggerTimeMax": 60.0,
 																									"transitionVar": "timeToFidget",
                                                                                                     "states": [
                                                                                                         {
@@ -1032,7 +1032,7 @@
                                                                                                             "currentState": "masterIdle1",
                                                                                                             "triggerRandomSwitch": "masterIdleSwitch",
                                                                                                             "randomSwitchTimeMin": 10.0,
-                                                                                                            "randomSwitchTimeMax": 40.0,
+                                                                                                            "randomSwitchTimeMax": 60.0,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "masterIdle1",
@@ -1079,7 +1079,7 @@
                                                                                                                 "data": {
                                                                                                                     "url": "qrc:///avatar/animations/idleWS_all.fbx",
                                                                                                                     "startFrame": 1.0,
-                                                                                                                    "endFrame": 1313.0,
+                                                                                                                    "endFrame": 1620.0,
                                                                                                                     "timeScale": 1.0,
                                                                                                                     "loopFlag": true
                                                                                                                 },
@@ -1237,9 +1237,9 @@
                                                                                                                         "id": "movement4",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idleWS.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idleWS_all.fbx",
                                                                                                                             "startFrame": 1,
-                                                                                                                            "endFrame": 1314,
+                                                                                                                            "endFrame": 1620,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1273,9 +1273,9 @@
                                                                                                                         "id": "movement7",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idleWS.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idleWS_all.fbx",
                                                                                                                             "startFrame": 1,
-                                                                                                                            "endFrame": 1314,
+                                                                                                                            "endFrame": 1620,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1301,7 +1301,7 @@
                                                                                                                 "data": {
                                                                                                                     "currentState": "transitionToAltIdle1",
                                                                                                                     "triggerTimeMin": 10.0,
-                                                                                                                    "triggerTimeMax": 40.0,
+                                                                                                                    "triggerTimeMax": 60.0,
                                                                                                                     "transitionVar": "finishAltIdle2",
                                                                                                                     "states": [
                                                                                                                         {

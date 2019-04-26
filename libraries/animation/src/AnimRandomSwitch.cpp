@@ -26,6 +26,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
 
     AnimRandomSwitch::RandomSwitchState::Pointer desiredState = _currentState;
     if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
+
         // get a random number and decide which motion to choose.
         bool currentStateHasPriority = false;
         float dice = randFloatInRange(0.0f, 1.0f);
@@ -35,10 +36,9 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
                 float upperBound = lowerBound + (randState->getPriority() / _totalPriorities);
                 if ((dice > lowerBound) && (dice < upperBound)) {
                     desiredState = randState;
-                    break;
-                } else {
-                    lowerBound = upperBound;
                 }
+                lowerBound = upperBound;
+
                 // this indicates if the curent state is one that can be selected randomly, or is one that was transitioned to by the random duration timer.
                 currentStateHasPriority = currentStateHasPriority || (_currentState == randState);
             }
