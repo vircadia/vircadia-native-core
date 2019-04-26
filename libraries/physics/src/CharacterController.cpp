@@ -754,7 +754,11 @@ void CharacterController::updateState() {
         switch (_state) {
             case State::Ground:
                 if (!rayHasHit && !_hasSupport) {
-                    SET_STATE(State::Hover, "no ground detected");
+                    if (_hoverWhenUnsupported) {
+                       SET_STATE(State::Hover, "no ground detected");
+                    } else {
+                       SET_STATE(State::InAir, "falling");
+                    }
                 } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
                     _takeoffJumpButtonID = _jumpButtonDownCount;
                     _takeoffToInAirStartTime = now;
@@ -764,7 +768,7 @@ void CharacterController::updateState() {
                 }
                 break;
             case State::Takeoff:
-                if (!rayHasHit && !_hasSupport) {
+                if (_hoverWhenUnsupported && (!rayHasHit && !_hasSupport)) {
                     SET_STATE(State::Hover, "no ground");
                 } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
                     SET_STATE(State::InAir, "takeoff done");
@@ -791,7 +795,7 @@ void CharacterController::updateState() {
                         SET_STATE(State::Hover, "double jump button");
                     } else if (_comfortFlyingAllowed && (jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
                         SET_STATE(State::Hover, "jump button held");
-                    } else if ((!rayHasHit && !_hasSupport) || _floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT) {
+                    } else if (_hoverWhenUnsupported && ((!rayHasHit && !_hasSupport) || _floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT)) {
                         // Transition to hover if there's no ground beneath us or we are above the fall threshold, regardless of _comfortFlyingAllowed
                         SET_STATE(State::Hover, "above fall threshold");
                     }

@@ -798,6 +798,18 @@ public:
      * @param {number} index
     */
     Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
+    
+    /**jsdoc
+     * @function MyAvatar.hoverWhenUnsupported
+     * @returns {boolean} 
+     */
+    Q_INVOKABLE bool hoverWhenUnsupported() const { return _hoverWhenUnsupported; }
+    /**jsdoc
+     * @function MyAvatar.setHoverWhenUnsupported
+     * @param {boolean} on
+     */
+    Q_INVOKABLE void setHoverWhenUnsupported(bool on) { _hoverWhenUnsupported = on; }
+
     /**jsdoc
      * Sets the avatar's dominant hand.
      * @function MyAvatar.setDominantHand
@@ -2484,6 +2496,7 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
+    bool _hoverWhenUnsupported{ true };
     ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
     ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
     ThreadSafeValueCache<bool> _strafeEnabled{ DEFAULT_STRAFE_ENABLED };
@@ -2679,6 +2692,7 @@ private:
     Setting::Handle<QString> _displayNameSetting;
     Setting::Handle<QUrl> _collisionSoundURLSetting;
     Setting::Handle<bool> _useSnapTurnSetting;
+    Setting::Handle<bool> _hoverWhenUnsupportedSetting;
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
     Setting::Handle<int> _movementReferenceSetting;

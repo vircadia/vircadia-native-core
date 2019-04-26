@@ -301,6 +301,12 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]() -> bool { return myAvatar->hoverWhenUnsupported(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setHoverWhenUnsupported(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Hover When Unsupported", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
         auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
         auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
         //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
