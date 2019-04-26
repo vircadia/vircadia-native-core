@@ -26,7 +26,7 @@ class MenuItemProperties;
  * <p>A "grouping" provides a way to group a set of menus or menu items together so that they can all be set visible or invisible 
  * as a group.</p> There is currently only one available group: <code>"Developer"</code>. This grouping can be toggled in the 
  * "Settings" menu.</p>
- * <p>If a menu item doesn't belong to a group it is always displayed.</p>
+ * <p>If a menu item doesn't belong to a group, it is always displayed.</p>
  *
  * @namespace Menu
  *
@@ -85,7 +85,7 @@ public slots:
     /**jsdoc
      * Checks whether a top-level menu exists.
      * @function Menu.menuExists
-     * @param {string} menuName - Name of the menu to check for existence.
+     * @param {string} menuName - Name of the menu to check exists.
      * @returns {boolean} <code>true</code> if the menu exists, otherwise <code>false</code>.
      * @example <caption>Check if the "Developer" menu exists.</caption>
      * if (Menu.menuExists("Developer")) {
@@ -98,7 +98,7 @@ public slots:
      * Adds a separator with an unclickable label below it. The separator will be placed at the bottom of the menu. To add a 
      * separator at a specific point in the menu, use {@link Menu.addMenuItem} with {@link Menu.MenuItemProperties} instead.
      * @function Menu.addSeparator
-     * @param {string} menuName - Name of the menu to add a separator to.
+     * @param {string} menuName - Name of the menu to add the separator to.
      * @param {string} separatorName - Name of the separator that will be displayed as the label below the separator line.
      * @example <caption>Add a separator.</caption>
      * Menu.addSeparator("Developer", "Test Separator");
@@ -119,7 +119,7 @@ public slots:
      * Adds a new menu item to a menu. The menu item is specified using {@link Menu.MenuItemProperties}.
      * @function Menu.addMenuItem
      * @param {Menu.MenuItemProperties} properties - Properties of the menu item to create.
-     * @example <caption>Add a menu item at a particular position in the "Develope"r menu.</caption>
+     * @example <caption>Add a menu item at a particular position in the "Developer" menu.</caption>
      * Menu.addMenuItem({
      *     menuName:     "Developer",
      *     menuItemName: "Test",
@@ -133,7 +133,7 @@ public slots:
      * Adds a new menu item to a menu. The new item is added at the end of the menu.
      * @function Menu.addMenuItem
      * @variation 0
-     * @param {string} menuName - Name of the menu to add a menu item to.
+     * @param {string} menuName - Name of the menu to add the menu item to.
      * @param {string} menuItem - Name of the menu item. This is what will be displayed in the menu.
      * @param {string} [shortcutKey] A shortcut key that can be used to trigger the menu item.
      * @example <caption>Add a menu item to the end of the "Developer" menu.</caption>
@@ -147,6 +147,7 @@ public slots:
      * @function Menu.removeMenuItem
      * @param {string} menuName - Name of the menu to remove a menu item from.
      * @param {string} menuItem - Name of the menu item to remove.
+     * @example <caption>Remove a menu item from the "Developer" menu.</caption>
      * Menu.removeMenuItem("Developer", "Test");
      */
     void removeMenuItem(const QString& menuName, const QString& menuitem);

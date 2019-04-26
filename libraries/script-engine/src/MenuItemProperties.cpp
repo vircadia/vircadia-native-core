@@ -53,11 +53,11 @@ QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuIt
 /**jsdoc
  * A set of properties that can be passed to {@link Menu.addMenuItem} to create a new menu item.
  *
- * If none of <code>position</code>, <code>beforeItem</code>, <code>afterItem</code>, or <code>grouping</code> are specified, 
- * the menu item will be placed at the end of the menu.
+ * If none of the properties, <code>position</code>, <code>beforeItem</code>, <code>afterItem</code>, or <code>grouping</code> 
+ * are specified, the menu item will be placed at the end of the menu.
  *
  * @typedef {object} Menu.MenuItemProperties
- * @property {string} menuName - Name of the menu. Nested menus can be described using the ">" symbol.
+ * @property {string} menuName - Name of the menu. Nested menus can be described using the ">" character.
  * @property {string} menuItemName - Name of the menu item.
  * @property {boolean} [isCheckable=false] - Whether or not the menu item is checkable.
  * @property {boolean} [isChecked=false] - Whether or not the menu item is checked.
