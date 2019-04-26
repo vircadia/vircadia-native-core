@@ -13,6 +13,7 @@
 #define hifi_EntitySimulation_h
 
 #include <limits>
+#include <unordered_set>
 
 #include <QtCore/QObject>
 #include <QSet>
@@ -82,13 +83,15 @@ public:
     /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
     virtual void prepareEntityForDelete(EntityItemPointer entity);
 
+    void processChangedEntities();
+
 protected:
     // These pure virtual methods are protected because they are not to be called will-nilly. The base class
     // calls them in the right places.
     virtual void updateEntitiesInternal(uint64_t now) = 0;
     virtual void addEntityInternal(EntityItemPointer entity) = 0;
     virtual void removeEntityInternal(EntityItemPointer entity);
-    virtual void changeEntityInternal(EntityItemPointer entity) = 0;
+    virtual void processChangedEntity(const EntityItemPointer& entity);
     virtual void clearEntitiesInternal() = 0;
 
     void expireMortalEntities(uint64_t now);
@@ -114,10 +117,10 @@ private:
 
     // We maintain multiple lists, each for its distinct purpose.
     // An entity may be in more than one list.
+    std::unordered_set<EntityItemPointer> _changedEntities; // all changes this frame
     SetOfEntities _allEntities; // tracks all entities added the simulation
     SetOfEntities _mortalEntities; // entities that have an expiry
     uint64_t _nextExpiry;
-
 
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
 };

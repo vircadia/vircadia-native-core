@@ -72,7 +72,7 @@ protected: // only called by EntitySimulation
     virtual void updateEntitiesInternal(uint64_t now) override;
     virtual void addEntityInternal(EntityItemPointer entity) override;
     virtual void removeEntityInternal(EntityItemPointer entity) override;
-    virtual void changeEntityInternal(EntityItemPointer entity) override;
+    void processChangedEntity(const EntityItemPointer& entity) override;
     virtual void clearEntitiesInternal() override;
 
     void removeOwnershipData(EntityMotionState* motionState);

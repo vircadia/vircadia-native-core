@@ -6399,6 +6399,8 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
 
+        getEntities()->preUpdate();
+
         if (_physicsEnabled) {
             auto t0 = std::chrono::high_resolution_clock::now();
             auto t1 = t0;

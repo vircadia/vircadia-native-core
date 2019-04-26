@@ -176,17 +176,26 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
 void EntitySimulation::changeEntity(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
-    if (!entity->isSimulated()) {
-        // This entity was either never added to the simulation or has been removed
-        // (probably for pending delete), so we don't want to keep a pointer to it
-        // on any internal lists.
-        return;
-    }
+    _changedEntities.insert(entity);
+}
 
+void EntitySimulation::processChangedEntities() {
+    QMutexLocker lock(&_mutex);
+    PROFILE_RANGE_EX(simulation_physics, "processChangedEntities", 0xffff00ff, (uint64_t)_changedEntities.size());
+    for (auto& entity : _changedEntities) {
+        if (entity->isSimulated()) {
+            processChangedEntity(entity);
+        }
+    }
+    _changedEntities.clear();
+}
+
+void EntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
+    uint32_t dirtyFlags = entity->getDirtyFlags();
+    /* TODO? maybe add to _entitiesToSort when DIRTY_POSITION is set?
     // Although it is not the responsibility of the EntitySimulation to sort the tree for EXTERNAL changes
     // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence
     // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
-    uint32_t dirtyFlags = entity->getDirtyFlags();
     if (dirtyFlags & Simulation::DIRTY_POSITION) {
         AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
         bool success;
@@ -198,25 +207,29 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
             return;
         }
     }
+    */
 
-    if (dirtyFlags & Simulation::DIRTY_LIFETIME) {
-        if (entity->isMortal()) {
-            _mortalEntities.insert(entity);
-            uint64_t expiry = entity->getExpiry();
-            if (expiry < _nextExpiry) {
-                _nextExpiry = expiry;
+    if (dirtyFlags & (Simulation::DIRTY_LIFETIME | Simulation::DIRTY_UPDATEABLE)) {
+        if (dirtyFlags & Simulation::DIRTY_LIFETIME) {
+            if (entity->isMortal()) {
+                _mortalEntities.insert(entity);
+                uint64_t expiry = entity->getExpiry();
+                if (expiry < _nextExpiry) {
+                    _nextExpiry = expiry;
+                }
+            } else {
+                _mortalEntities.remove(entity);
             }
-        } else {
-            _mortalEntities.remove(entity);
         }
-        entity->clearDirtyFlags(Simulation::DIRTY_LIFETIME);
+        if (dirtyFlags & Simulation::DIRTY_UPDATEABLE) {
+            if (entity->needsToCallUpdate()) {
+                _entitiesToUpdate.insert(entity);
+            } else {
+                _entitiesToUpdate.remove(entity);
+            }
+        }
+        entity->clearDirtyFlags(Simulation::DIRTY_LIFETIME | Simulation::DIRTY_UPDATEABLE);
     }
-    if (entity->needsToCallUpdate()) {
-        _entitiesToUpdate.insert(entity);
-    } else {
-        _entitiesToUpdate.remove(entity);
-    }
-    changeEntityInternal(entity);
 }
 
 void EntitySimulation::clearEntities() {

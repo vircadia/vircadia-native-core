@@ -131,10 +131,10 @@ void PhysicalEntitySimulation::takeDeadAvatarEntities(SetOfEntities& deadEntitie
     _deadAvatarEntities.clear();
 }
 
-void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
+void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
+    EntitySimulation::processChangedEntity(entity);
+
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
-    QMutexLocker lock(&_mutex);
-    assert(entity);
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
     uint8_t region = _space->getRegion(entity->getSpaceIndex());
     bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();

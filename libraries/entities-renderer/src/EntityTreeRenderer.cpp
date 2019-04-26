@@ -474,6 +474,12 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     }
 }
 
+void EntityTreeRenderer::preUpdate() {
+    if (_tree && !_shuttingDown) {
+        _tree->preUpdate();
+    }
+}
+
 void EntityTreeRenderer::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "ETR::update");
     PerformanceTimer perfTimer("ETRupdate");
