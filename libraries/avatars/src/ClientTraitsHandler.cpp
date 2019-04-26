@@ -146,7 +146,16 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
 void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (sendingNode->getType() == NodeType::AvatarMixer) {
         Lock lock(_traitLock);
-        while (message->getBytesLeftToRead()) {
+
+        while (message->getBytesLeftToRead() > 0) {
+            // Trying to read more bytes than available, bail
+            if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitType) +
+                                                       sizeof(AvatarTraits::TraitVersion) +
+                                                       sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Malformed trait override packet, bailling";
+                return;
+            }
+
             AvatarTraits::TraitType traitType;
             message->readPrimitive(&traitType);
 
@@ -155,6 +164,12 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
 
             AvatarTraits::TraitWireSize traitBinarySize;
             message->readPrimitive(&traitBinarySize);
+
+            // Trying to read more bytes than available, bail
+            if (traitBinarySize < -1 || message->getBytesLeftToRead() < traitBinarySize) {
+                qWarning() << "Malformed trait override packet, bailling";
+                return;
+            }
 
             // only accept an override if this is for a trait type we override
             // and the version matches what we last sent for skeleton

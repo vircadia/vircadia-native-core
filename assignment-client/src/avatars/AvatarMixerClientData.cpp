@@ -155,6 +155,12 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
 void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                                                     const SlaveSharedData& slaveSharedData,
                                                     Node& sendingNode) {
+    // Trying to read more bytes than available, bail
+    if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitVersion))) {
+        qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+        return;
+    }
+
     // pull the trait version from the message
     AvatarTraits::TraitVersion packetTraitVersion;
     message.readPrimitive(&packetTraitVersion);
@@ -164,10 +170,22 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     while (message.getBytesLeftToRead() > 0) {
         // for each trait in the packet, apply it if the trait version is newer than what we have
 
+        // Trying to read more bytes than available, bail
+        if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitType))) {
+            qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+            return;
+        }
+
         AvatarTraits::TraitType traitType;
         message.readPrimitive(&traitType);
 
         if (AvatarTraits::isSimpleTrait(traitType)) {
+            // Trying to read more bytes than available, bail
+            if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+                return;
+            }
+
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
@@ -189,12 +207,14 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                 message.seek(message.getPosition() + traitSize);
             }
         } else {
-            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-            if (message.getBytesLeftToRead() == 0) {
-                qWarning() << "Received an instanced trait with no size from" << message.getSenderSockAddr();
-                break;
+            // Trying to read more bytes than available, bail
+            if (message.getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                       sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+                return;
             }
+
+            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
