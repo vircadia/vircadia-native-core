@@ -180,7 +180,7 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 
     static AvatarCertifyBanner theftBanner;
     if (_myAvatar->isCertifyFailed()) {
-        theftBanner.show(_myAvatar->getSessionUUID(), _myAvatar->getJointIndex("_CAMERA_MATRIX"));
+        theftBanner.show(_myAvatar->getSessionUUID());
     } else {
         theftBanner.clear();
     }

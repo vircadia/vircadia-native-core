@@ -25,21 +25,21 @@ public:
     void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
 
     void fetchAvatarFST();
-    virtual bool isCertifyFailed() const override { return _verifyState == kVerificationFailed; }
+    virtual bool isCertifyFailed() const override { return _verifyState == verificationFailed; }
     bool needsIdentityUpdate() const { return _needsIdentityUpdate; }
     void clearIdentityUpdate() { _needsIdentityUpdate = false; }
 
     void processCertifyEvents();
-    void handleChallengeResponse(ReceivedMessage * response);
+    void handleChallengeResponse(ReceivedMessage* response);
 
 private:
     bool _needsHeroCheck { false };
 
     // Avatar certification/verification:
-    enum VerifyState { kNoncertified, kRequestingFST, kReceivedFST, kStaticValidation, kRequestingOwner, kOwnerResponse,
-        kChallengeClient, kChallengeResponse, kVerified, kVerificationFailed, kVerificationSucceeded, kError };
+    enum VerifyState { nonCertified, requestingFST, receivedFST, staticValidation, requestingOwner, ownerResponse,
+        challengeClient, challengeResponse, verified, verificationFailed, verificationSucceeded, error };
     Q_ENUM(VerifyState);
-    VerifyState _verifyState { kNoncertified };
+    VerifyState _verifyState { nonCertified };
     std::atomic<bool> _pendingEvent { false };
     QMutex _avatarCertifyLock;
     ResourceRequest* _avatarRequest { nullptr };
@@ -60,6 +60,8 @@ private:
     bool validateFSTHash(const QString& publicKey);
     QByteArray canonicalJson(const QString fstFile);
     void sendOwnerChallenge();
+
+    static const QString VERIFY_FAIL_MODEL;
 
 private slots:
     void fstRequestComplete();

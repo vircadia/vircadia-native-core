@@ -9,45 +9,49 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtGui/QDesktopServices>
-
-#include "OffscreenQmlElement.h"
-#include "EntityTreeRenderer.h"
 #include "AvatarCertifyBanner.h"
 
-static const QUrl AVATAR_THEFT_DIALOG = PathUtils::qmlUrl("AvatarTheftSettings.qml");
-static const QUrl AVATAR_THEFT_BANNER_IMAGE = PathUtils::resourcesUrl("images/AvatarTheftBanner.png");
+#include <QtGui/QDesktopServices>
 
-AvatarCertifyBanner::AvatarCertifyBanner(QQuickItem* parent) {
+#include "ui/TabletScriptingInterface.h"
+#include "EntityTreeRenderer.h"
 
+namespace {
+    const QUrl AVATAR_THEFT_BANNER_IMAGE = PathUtils::resourcesUrl("images/AvatarTheftBanner.png");
+    const QString AVATAR_THEFT_BANNER_SCRIPT { "/system/clickToAvatarApp.js" };
 }
 
-AvatarCertifyBanner::~AvatarCertifyBanner()
-{ }
+AvatarCertifyBanner::AvatarCertifyBanner(QQuickItem* parent) {
+}
 
-void AvatarCertifyBanner::show(const QUuid& avatarID, int jointIndex) {
+void AvatarCertifyBanner::show(const QUuid& avatarID) {
     if (!_active) {
         auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = entityTreeRenderer->getTree();
         if (!entityTree) {
             return;
         }
-        glm::vec3 position { 0.0f, 0.0f, -0.7f };
+        const bool tabletShown = DependencyManager::get<TabletScriptingInterface>()->property("tabletShown").toBool();
+        const auto& position = tabletShown ? glm::vec3(0.0f, 0.0f, -1.8f) : glm::vec3(0.0f, 0.0f, -0.7f);
+        const float scaleFactor = tabletShown ? 2.6f : 1.0f;
+
         EntityItemProperties entityProperties;
         entityProperties.setType(EntityTypes::Image);
         entityProperties.setImageURL(AVATAR_THEFT_BANNER_IMAGE.toString());
-        entityProperties.setName("hifi-avatar-theft-banner");
+        entityProperties.setName("hifi-avatar-notification-banner");
         entityProperties.setParentID(avatarID);
         entityProperties.setParentJointIndex(CAMERA_MATRIX_INDEX);
         entityProperties.setLocalPosition(position);
-        entityProperties.setDimensions({ 1.0f, 1.0f, 0.3f });
-        entityProperties.setRenderLayer(RenderLayer::WORLD);
+        entityProperties.setDimensions(glm::vec3(1.0f, 1.0f, 0.3f) * scaleFactor);
+        entityProperties.setRenderLayer(tabletShown ? RenderLayer::WORLD : RenderLayer::FRONT);
         entityProperties.getGrab().setGrabbable(false);
+        QString scriptPath = QUrl(PathUtils::defaultScriptsLocation("")).toString() + AVATAR_THEFT_BANNER_SCRIPT;
+        entityProperties.setScript(scriptPath);
         entityProperties.setVisible(true);
 
         entityTree->withWriteLock([&] {
             auto entityTreeItem = entityTree->addEntity(_bannerID, entityProperties);
-            entityTreeItem->setLocalPosition(position);  // ?!
+            entityTreeItem->setLocalPosition(position);
         });
 
         _active = true;

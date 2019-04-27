@@ -12,13 +12,18 @@
 #ifndef hifi_AvatarCertifyBanner_h
 #define hifi_AvatarCertifyBanner_h
 
+#include <QUuid>
+#include "OffscreenQmlElement.h"
+#include "EntityItemID.h"
+
+class EntityItemID;
+
 class AvatarCertifyBanner : QObject {
     Q_OBJECT
     HIFI_QML_DECL
 public:
     AvatarCertifyBanner(QQuickItem* parent = nullptr);
-    ~AvatarCertifyBanner();
-    void show(const QUuid& avatarID, int jointIndex);
+    void show(const QUuid& avatarID);
     void clear();
 
 private:
