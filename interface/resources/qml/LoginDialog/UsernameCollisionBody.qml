@@ -234,7 +234,7 @@ Item {
                 lineHeight: 1
                 lineHeightMode: Text.ProportionalHeight
 
-                onLinkActivated: loginDialog.openUrl(link);
+                onLinkActivated: Window.openUrl(link);
 
                 Component.onCompleted: {
                     if (termsTextMetrics.width > root.bannerWidth) {

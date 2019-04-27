@@ -116,8 +116,8 @@ class MyAvatar : public Avatar {
      * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
      *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
      * @property {string} skeletonModelURL - The avatar's FST file.
-     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
-     *     <strong>Deprecated:</strong> Use avatar entities instead.
+     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
      * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
      * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
      * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the
@@ -198,7 +198,7 @@ class MyAvatar : public Avatar {
      * @property {Pose} rightHandTipPose - The right hand's pose as determined by the hand controllers, relative to the avatar, 
      *     with the position adjusted by 0.3m along the direction of the palm. <em>Read-only.</em>
      *
-     * @property {number} energy - <strong>Deprecated:</strong> This property will be removed from the API.
+     * @property {number} energy - <span class="important">Deprecated: This property will be removed.</span>
      * @property {boolean} isAway - <code>true</code> if your avatar is away (i.e., inactive), <code>false</code> if it is 
      *     active.
      *
@@ -213,8 +213,9 @@ class MyAvatar : public Avatar {
      *     was set <code>false</code> because the zone may disallow collisionless avatars.
      * @property {boolean} otherAvatarsCollisionsEnabled - Set to <code>true</code> to enable the avatar to collide with other 
      *     avatars, <code>false</code> to disable collisions with other avatars.
-     * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>.<br />
-     *     <strong>Deprecated:</strong> Use <code>collisionsEnabled</code> instead.
+     * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>collisionsEnabled</code> 
+     *     instead.</p>
      * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
      *     Controls > Walking. Note: Setting the value has no effect unless Interface is restarted.
      * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Controls > Show room 
@@ -797,6 +798,18 @@ public:
      * @param {number} index
     */
     Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
+    
+    /**jsdoc
+     * @function MyAvatar.hoverWhenUnsupported
+     * @returns {boolean} 
+     */
+    Q_INVOKABLE bool hoverWhenUnsupported() const { return _hoverWhenUnsupported; }
+    /**jsdoc
+     * @function MyAvatar.setHoverWhenUnsupported
+     * @param {boolean} on
+     */
+    Q_INVOKABLE void setHoverWhenUnsupported(bool on) { _hoverWhenUnsupported = on; }
+
     /**jsdoc
      * Sets the avatar's dominant hand.
      * @function MyAvatar.setDominantHand
@@ -1557,14 +1570,14 @@ public:
      * @function MyAvatar.setCharacterControllerEnabled
      * @param {boolean} enabled - <code>true</code> to enable the avatar to collide with entities, <code>false</code> to
      *     disable.
-     * @deprecated Use {@link MyAvatar.setCollisionsEnabled} instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar.setCollisionsEnabled} instead.
      */
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
 
     /**jsdoc
      * @function MyAvatar.getCharacterControllerEnabled
      * @returns {boolean} <code>true</code> if the avatar will currently collide with entities, <code>false</code> if it won't.
-     * @deprecated Use {@link MyAvatar.getCollisionsEnabled} instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar.getCollisionsEnabled} instead.
      */
     Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
@@ -1910,7 +1923,7 @@ public slots:
 
     /**jsdoc
      * @function MyAvatar.clearScaleRestriction
-     * @deprecated This function is deprecated and will be removed from the API.
+     * @deprecated This function is deprecated and will be removed.
      */
     void clearScaleRestriction();
 
@@ -1919,7 +1932,8 @@ public slots:
      * Adds a thrust to your avatar's current thrust to be applied for a short while.
      * @function MyAvatar.addThrust
      * @param {Vec3} thrust - The thrust direction and magnitude.
-     * @deprecated Use {@link MyAvatar|MyAvatar.motorVelocity} and related properties instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related 
+     *     properties instead.
      */
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -1928,7 +1942,8 @@ public slots:
      * Gets the thrust currently being applied to your avatar.
      * @function MyAvatar.getThrust
      * @returns {Vec3} The thrust currently being applied to your avatar.
-     * @deprecated Use {@link MyAvatar|MyAvatar.motorVelocity} and related properties instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related 
+     *     properties instead.
      */
     glm::vec3 getThrust() { return _thrust; };
 
@@ -1936,7 +1951,8 @@ public slots:
      * Sets the thrust to be applied to your avatar for a short while.
      * @function MyAvatar.setThrust
      * @param {Vec3} thrust - The thrust direction and magnitude.
-     * @deprecated Use {@link MyAvatar|MyAvatar.motorVelocity} and related properties instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link MyAvatar|MyAvatar.motorVelocity} and related 
+     *     properties instead.
      */
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
@@ -2281,7 +2297,7 @@ signals:
      * {@link MyAvatar.setAttachmentData|setAttachmentData}.
      * @function MyAvatar.attachmentsChanged
      * @returns {Signal} 
-     * @deprecated Use avatar entities instead.
+     * @deprecated This signal is deprecated and will be removed. Use avatar entities instead.
      */
     void attachmentsChanged();
 
@@ -2480,6 +2496,7 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
+    bool _hoverWhenUnsupported{ true };
     ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
     ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
     ThreadSafeValueCache<bool> _strafeEnabled{ DEFAULT_STRAFE_ENABLED };
@@ -2675,6 +2692,7 @@ private:
     Setting::Handle<QString> _displayNameSetting;
     Setting::Handle<QUrl> _collisionSoundURLSetting;
     Setting::Handle<bool> _useSnapTurnSetting;
+    Setting::Handle<bool> _hoverWhenUnsupportedSetting;
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
     Setting::Handle<int> _movementReferenceSetting;

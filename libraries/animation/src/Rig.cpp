@@ -1480,13 +1480,15 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     if (_animNode && _enabledAnimations) {
         DETAILED_PERFORMANCE_TIMER("handleTriggers");
 
+        ++_evaluationCount;
+
         updateAnimationStateHandlers();
         _animVars.setRigToGeometryTransform(_rigToGeometryTransform);
         if (_networkNode) {
             _networkVars.setRigToGeometryTransform(_rigToGeometryTransform);
         }
         AnimContext context(_enableDebugDrawIKTargets, _enableDebugDrawIKConstraints, _enableDebugDrawIKChains,
-                            getGeometryToRigTransform(), rigToWorldTransform);
+                            getGeometryToRigTransform(), rigToWorldTransform, _evaluationCount);
 
         // evaluate the animation
         AnimVariantMap triggersOut;
@@ -2009,8 +2011,35 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
         return;
     }
 
-    _animVars.set("isTalking", params.isTalking);
-    _animVars.set("notIsTalking", !params.isTalking);
+    if (_previousIsTalking != params.isTalking) {
+        if (_talkIdleInterpTime < 1.0f) {
+            _talkIdleInterpTime = 1.0f - _talkIdleInterpTime;
+        } else {
+            _talkIdleInterpTime = 0.0f;
+        }
+    }
+    _previousIsTalking = params.isTalking;
+
+    const float TOTAL_EASE_IN_TIME = 0.75f;
+    const float TOTAL_EASE_OUT_TIME = 1.5f;
+    if (params.isTalking) {
+        if (_talkIdleInterpTime < 1.0f) {
+            _talkIdleInterpTime += dt / TOTAL_EASE_IN_TIME;
+            float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
+            _animVars.set("idleOverlayAlpha", easeOutInValue);
+        } else {
+            _animVars.set("idleOverlayAlpha", 1.0f);
+        }
+    } else {
+        if (_talkIdleInterpTime < 1.0f) {
+            _talkIdleInterpTime += dt / TOTAL_EASE_OUT_TIME;
+            float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
+            float talkAlpha = 1.0f - easeOutInValue;
+            _animVars.set("idleOverlayAlpha", talkAlpha);
+        } else {
+            _animVars.set("idleOverlayAlpha", 0.0f);
+        }
+    }
 
     _headEnabled = params.primaryControllerFlags[PrimaryControllerType_Head] & (uint8_t)ControllerFlags::Enabled;
     bool leftHandEnabled = params.primaryControllerFlags[PrimaryControllerType_LeftHand] & (uint8_t)ControllerFlags::Enabled;

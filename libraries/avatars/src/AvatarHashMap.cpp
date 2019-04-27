@@ -337,6 +337,12 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     AvatarTraits::TraitMessageSequence seq;
 
+    // Trying to read more bytes than available, bail
+    if (message->getBytesLeftToRead() < (qint64)sizeof(AvatarTraits::TraitMessageSequence)) {
+        qWarning() << "Malformed bulk trait packet, bailling";
+        return;
+    }
+
     message->readPrimitive(&seq);
 
     auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
@@ -349,7 +355,14 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
     }
 
-    while (message->getBytesLeftToRead()) {
+    while (message->getBytesLeftToRead() > 0) {
+        // Trying to read more bytes than available, bail
+        if (message->getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                   sizeof(AvatarTraits::TraitType))) {
+            qWarning() << "Malformed bulk trait packet, bailling";
+            return;
+        }
+
         // read the avatar ID to figure out which avatar this is for
         auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -365,6 +378,12 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         auto& lastProcessedVersions = _processedTraitVersions[avatarID];
 
         while (traitType != AvatarTraits::NullTrait && message->getBytesLeftToRead() > 0) {
+            // Trying to read more bytes than available, bail
+            if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitVersion))) {
+                qWarning() << "Malformed bulk trait packet, bailling";
+                return;
+            }
+
             AvatarTraits::TraitVersion packetTraitVersion;
             message->readPrimitive(&packetTraitVersion);
 
@@ -372,7 +391,19 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
             bool skipBinaryTrait = false;
 
             if (AvatarTraits::isSimpleTrait(traitType)) {
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitWireSize))) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
+
                 message->readPrimitive(&traitBinarySize);
+
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < traitBinarySize) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
 
                 // check if this trait version is newer than what we already have for this avatar
                 if (packetTraitVersion > lastProcessedVersions[traitType]) {
@@ -384,10 +415,23 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                     skipBinaryTrait = true;
                 }
             } else {
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                           sizeof(AvatarTraits::TraitWireSize))) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
+
                 AvatarTraits::TraitInstanceID traitInstanceID =
                     QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
                 message->readPrimitive(&traitBinarySize);
+
+                // Trying to read more bytes than available, bail
+                if (traitBinarySize < -1 || message->getBytesLeftToRead() < traitBinarySize) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
 
                 auto& processedInstanceVersion = lastProcessedVersions.getInstanceValueRef(traitType, traitInstanceID);
                 if (packetTraitVersion > processedInstanceVersion) {

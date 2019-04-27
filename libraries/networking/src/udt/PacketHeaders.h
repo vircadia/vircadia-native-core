@@ -332,6 +332,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FasterAvatarEntities,
     SendMaxTranslationDimension,
     FBXJointOrderChange,
+    HandControllerSection,
     SendVerificationFailed
 };
 
