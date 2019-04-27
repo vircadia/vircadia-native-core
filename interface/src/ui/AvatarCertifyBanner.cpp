@@ -37,6 +37,7 @@ void AvatarCertifyBanner::show(const QUuid& avatarID) {
 
         EntityItemProperties entityProperties;
         entityProperties.setType(EntityTypes::Image);
+        entityProperties.setEntityHostType(entity::HostType::LOCAL);
         entityProperties.setImageURL(AVATAR_THEFT_BANNER_IMAGE.toString());
         entityProperties.setName("hifi-avatar-notification-banner");
         entityProperties.setParentID(avatarID);

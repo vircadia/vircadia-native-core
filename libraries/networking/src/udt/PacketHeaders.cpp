@@ -41,7 +41,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendVerificationFailed);
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::HandControllerSection);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendVerificationFailed);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
