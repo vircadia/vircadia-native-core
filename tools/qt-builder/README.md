@@ -167,9 +167,10 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 `make`  
 `make install`  
 #### Fixing
-The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
+1.  The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
 `cd ../qt5-install`  
 ` find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
+1.   Copy *qt.conf* to *qt5-install\bin*  
 #### Uploading
 1.  Return to the home folder  
 `cd ..`  
@@ -201,6 +202,11 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 #### Make
 `make`  
 `make install`  
+#### Fixing
+1.  The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
+`cd ../qt5-install`  
+` find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
+1.   Copy *qt.conf* to *qt5-install\bin*  
 #### Uploading
 `tar -zcvf qt5-install.tar.gz qt5-install`  
 Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Mac/  
