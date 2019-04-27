@@ -812,32 +812,16 @@ glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
 void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues) {
     for (auto &skin : _file.skins) {
         GLTFAccessor& indicesAccessor = _file.accessors[skin.inverseBindMatrices];
-        GLTFBufferView& indicesBufferview = _file.bufferviews[indicesAccessor.bufferView];
-        GLTFBuffer& indicesBuffer = _file.buffers[indicesBufferview.buffer];
-        int accBoffset = indicesAccessor.defined["byteOffset"] ? indicesAccessor.byteOffset : 0;
         QVector<float> matrices;
-        addArrayOfType(indicesBuffer.blob, 
-            indicesBufferview.byteOffset + accBoffset, 
-            indicesAccessor.count, 
-            matrices,
-            indicesAccessor.type, 
-            indicesAccessor.componentType);
+        addArrayOfFromAccessor(indicesAccessor, matrices);
         inverseBindMatrixValues.push_back(matrices.toStdVector());
     }
 }
 
 void GLTFSerializer::generateTargetData(int index, float weight, QVector<glm::vec3>& returnVector) {
     GLTFAccessor& accessor = _file.accessors[index];
-    GLTFBufferView& bufferview = _file.bufferviews[accessor.bufferView];
-    GLTFBuffer& buffer = _file.buffers[bufferview.buffer];
-    int accBoffset = accessor.defined["byteOffset"] ? accessor.byteOffset : 0;
     QVector<float> storedValues;
-    addArrayOfType(buffer.blob, 
-        bufferview.byteOffset + accBoffset, 
-        accessor.count, 
-        storedValues,
-        accessor.type,
-        accessor.componentType);
+    addArrayOfFromAccessor(accessor, storedValues);
     for (int n = 0; n < storedValues.size(); n = n + 3) {
         returnVector.push_back(glm::vec3(weight * storedValues[n], weight * storedValues[n + 1], weight * storedValues[n + 2]));
     }
