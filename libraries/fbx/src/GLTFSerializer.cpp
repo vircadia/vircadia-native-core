@@ -1262,15 +1262,20 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 // Build weights (adapted from FBXSerializer.cpp)
                 if (hfmModel.hasSkeletonJoints) {
-                    int numClusterIndices = clusterJoints.size();
+                    int prevMeshClusterIndexCount = mesh.clusterIndices.count();
+                    int prevMeshClusterWeightCount = mesh.clusterWeights.count();
                     const int WEIGHTS_PER_VERTEX = 4;
                     const float ALMOST_HALF = 0.499f;
-                    int numVertices = mesh.vertices.size();
-                    mesh.clusterIndices.fill(mesh.clusters.size() - 1, numClusterIndices);
-                    mesh.clusterWeights.fill(0, numClusterIndices);
+                    int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
+
+                    // Append new cluster indices and weights for this mesh part
+                    for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; i++) {
+                        mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
+                        mesh.clusterWeights.push_back(0);
+                    }
 
                     for (int c = 0; c < clusterJoints.size(); c++) {
-                        mesh.clusterIndices[c] = originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
+                        mesh.clusterIndices[prevMeshClusterIndexCount+c] = originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
                     }
 
                     // normalize and compress to 16-bits
@@ -1284,10 +1289,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         if (totalWeight > 0.0f) {
                             float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                             for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                                mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
+                                mesh.clusterWeights[prevMeshClusterWeightCount+k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
                             }
                         } else {
-                            mesh.clusterWeights[j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
+                            mesh.clusterWeights[prevMeshClusterWeightCount+j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
                         }
                     }
                 }
