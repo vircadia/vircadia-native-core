@@ -38,7 +38,7 @@ void JobConfig::setPresetList(const QJsonObject& object) {
     }
 }
 
-void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::string& name) {
+void JobConfig::connectChildConfig(std::shared_ptr<JobConfig> childConfig, const std::string& name) {
     childConfig->setParent(this);
     childConfig->setObjectName(name.c_str());
 
@@ -52,7 +52,7 @@ void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::strin
     }
 }
 
-void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
+void JobConfig::transferChildrenConfigs(std::shared_ptr<JobConfig> source) {
     if (!source) {
         return;
     }
@@ -70,13 +70,13 @@ void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
     }
 }
 
-void TaskConfig::refresh() {
+void JobConfig::refresh() {
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(this, "refresh");
         return;
     }
 
-    _task->applyConfiguration();
+    _jobConcept->applyConfiguration();
 }
 
 TaskConfig* TaskConfig::getRootConfig(const std::string& jobPath, std::string& jobName) const {
@@ -134,9 +134,9 @@ JobConfig* TaskConfig::getJobConfig(const std::string& jobPath) const {
     }
 }
 
-void SwitchConfig::setSwitchIndex(uint8_t index) {
-    if (_switchIndex != index) {
-        _switchIndex = index;
+void SwitchConfig::setBranch(uint8_t branch) {
+    if (_branch != branch) {
+        _branch = branch;
         // We can re-use this signal here
         emit dirtyEnabled();
     }

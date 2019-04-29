@@ -154,6 +154,11 @@ public:
      */
     Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
+    void connectChildConfig(std::shared_ptr<JobConfig> childConfig, const std::string& name);
+    void transferChildrenConfigs(std::shared_ptr<JobConfig> source);
+
+    JobConcept* _jobConcept;
+
 public slots:
 
     /**jsdoc
@@ -161,6 +166,11 @@ public slots:
      * @param {object} map
      */
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
+
+    /**jsdoc
+     * @function Render.refresh
+     */
+    void refresh();
 
 signals:
 
@@ -248,30 +258,18 @@ public:
         auto subs = getSubConfigs();
         return ((i < 0 || i >= subs.size()) ? nullptr : subs[i]);
     }
-
-    void connectChildConfig(QConfigPointer childConfig, const std::string& name);
-    void transferChildrenConfigs(QConfigPointer source);
-
-    JobConcept* _task;
-
-public slots:
-
-    /**jsdoc
-     * @function Render.refresh
-     */
-    void refresh();
 };
 
-class SwitchConfig : public TaskConfig {
+class SwitchConfig : public JobConfig {
     Q_OBJECT
-    Q_PROPERTY(bool switchIndex READ getSwitchIndex WRITE setSwitchIndex NOTIFY dirtyEnabled)
+    Q_PROPERTY(bool branch READ getBranch WRITE setBranch NOTIFY dirtyEnabled)
 
 public:
-    uint8_t getSwitchIndex() const { return _switchIndex; }
-    void setSwitchIndex(uint8_t index);
+    uint8_t getBranch() const { return _branch; }
+    void setBranch(uint8_t index);
 
 protected:
-    uint8_t _switchIndex { 0 };
+    uint8_t _branch { 0 };
 };
 
 }
