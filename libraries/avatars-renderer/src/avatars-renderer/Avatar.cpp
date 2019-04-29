@@ -2111,6 +2111,7 @@ void Avatar::updateAttachmentRenderIDs() {
 
 void Avatar::updateDescendantRenderIDs() {
     _subItemLock.withWriteLock([&] {
+        auto oldDescendantRenderIDs = _descendantRenderIDs;
         _descendantRenderIDs.clear();
         auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -2125,13 +2126,29 @@ void Avatar::updateDescendantRenderIDs() {
                                 render::ItemIDs renderableSubItems;
                                 uint32_t numRenderableSubItems = renderer->metaFetchMetaSubItems(renderableSubItems);
                                 if (numRenderableSubItems > 0) {
-                                    _descendantRenderIDs.insert(_descendantRenderIDs.end(), renderableSubItems.begin(), renderableSubItems.end());
+                                    for (auto& renderID : renderableSubItems) {
+                                        _descendantRenderIDs.insert(renderID);
+                                        oldDescendantRenderIDs.erase(renderID);
+                                    }
                                 }
                             }
                         }
                     }
                 });
             });
+
+            render::Transaction transaction;
+            for (auto& oldDescendantRenderID : oldDescendantRenderIDs) {
+                transaction.updateItem<render::PayloadProxyInterface>(oldDescendantRenderID, [](render::PayloadProxyInterface& self) {
+                    self.setOverrideSubMetaCulled(false);
+                });
+            }
+            for (auto& descendantRenderIDs : _descendantRenderIDs) {
+                transaction.updateItem<render::PayloadProxyInterface>(descendantRenderIDs, [](render::PayloadProxyInterface& self) {
+                    self.setOverrideSubMetaCulled(true);
+                });
+            }
+            AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
         }
     });
 }

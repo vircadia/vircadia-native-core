@@ -776,7 +776,7 @@ protected:
     void updateAttachmentRenderIDs();
     render::ItemIDs _attachmentRenderIDs;
     void updateDescendantRenderIDs();
-    render::ItemIDs _descendantRenderIDs;
+    render::ItemIDSet _descendantRenderIDs;
     uint32_t _lastAncestorChainRenderableVersion { 0 };
 };
 
