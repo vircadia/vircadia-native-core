@@ -38,6 +38,7 @@
 #include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
 
+#include <CursorManager.h>
 #include <FramebufferCache.h>
 #include <shared/NsightHelpers.h>
 #include <ui-plugins/PluginContainer.h>
@@ -681,11 +682,14 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeExtra();
     }
 
-    // Draw the pointer last so it's on top of everything
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    if (compositorHelper->getReticleVisible()) {
-        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
+     auto& cursorManager = Cursor::Manager::instance();
+    if (isHmd() || cursorManager.getCursor()->getIcon() == Cursor::RETICLE ) {
+        auto compositorHelper = DependencyManager::get<CompositorHelper>();
+        // Draw the pointer last so it's on top of everything
+        if (compositorHelper->getReticleVisible()) {
+            PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
             compositePointer();
+        }
     }
 }
 
