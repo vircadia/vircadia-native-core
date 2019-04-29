@@ -614,7 +614,13 @@ public:
     virtual ShapeKey getShapeKey() = 0;
     virtual Item::Bound getBound() = 0;
     virtual void render(RenderArgs* args) = 0;
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const = 0;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) = 0;
+
+    bool overrideSubMetaCulled() const { return _overrideSubMetaCulled; }
+    void setOverrideSubMetaCulled(bool overrideSubMetaCulled) { _overrideSubMetaCulled = overrideSubMetaCulled; }
+
+protected:
+    bool _overrideSubMetaCulled { false };
 };
 
 template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload);
