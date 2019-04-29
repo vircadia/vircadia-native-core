@@ -168,6 +168,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _displayNameSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "displayName", ""),
     _collisionSoundURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "collisionSoundURL", QUrl(_collisionSoundURL)),
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
+    _hoverWhenUnsupportedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "hoverWhenUnsupported", _hoverWhenUnsupported),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
     _movementReferenceSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "movementReference", _movementReference),
@@ -948,6 +949,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         bool collisionlessAllowed = zoneInteractionProperties.second;
         _characterController.setZoneFlyingAllowed(zoneAllowsFlying || !isPhysicsEnabled);
         _characterController.setComfortFlyingAllowed(_enableFlying);
+        _characterController.setHoverWhenUnsupported(_hoverWhenUnsupported);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
@@ -1041,11 +1043,15 @@ void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeV
     assert(QThread::currentThread() == thread());
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     controller::Pose controllerPose = userInputMapper->getPoseState(poseKey);
-    Transform transform;
-    transform.setTranslation(controllerPose.getTranslation());
-    transform.setRotation(controllerPose.getRotation());
-    glm::mat4 controllerMatrix = transform.getMatrix();
-    matrixCache.set(controllerMatrix);
+    if (controllerPose.isValid()) {
+        Transform transform;
+        transform.setTranslation(controllerPose.getTranslation());
+        transform.setRotation(controllerPose.getRotation());
+        glm::mat4 controllerMatrix = transform.getMatrix();
+        matrixCache.set(controllerMatrix);
+    } else {
+        matrixCache.invalidate();
+    }
 }
 
 // best called at end of main loop, after physics.
@@ -1305,6 +1311,7 @@ void MyAvatar::saveData() {
     _displayNameSetting.set(_displayName);
     _collisionSoundURLSetting.set(_collisionSoundURL);
     _useSnapTurnSetting.set(_useSnapTurn);
+    _hoverWhenUnsupportedSetting.set(_hoverWhenUnsupported);
     _userHeightSetting.set(getUserHeight());
     _flyingHMDSetting.set(getFlyingHMDPref());
     _movementReferenceSetting.set(getMovementReference());
@@ -1909,6 +1916,7 @@ void MyAvatar::loadData() {
     setDisplayName(_displayNameSetting.get());
     setCollisionSoundURL(_collisionSoundURLSetting.get(QUrl(DEFAULT_AVATAR_COLLISION_SOUND_URL)).toString());
     setSnapTurn(_useSnapTurnSetting.get());
+    setHoverWhenUnsupported(_hoverWhenUnsupportedSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
     setStrafeEnabled(_strafeEnabledSetting.get(DEFAULT_STRAFE_ENABLED));
     setHmdAvatarAlignmentType(_hmdAvatarAlignmentTypeSetting.get(DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE).toLower());

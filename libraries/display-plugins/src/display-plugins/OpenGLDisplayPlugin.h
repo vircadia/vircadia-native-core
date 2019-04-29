@@ -29,6 +29,8 @@ namespace gpu {
     }
 }
 
+class RefreshRateController;
+
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
     Q_PROPERTY(float hudAlpha MEMBER _hudAlpha)
@@ -41,6 +43,9 @@ public:
     ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
+
+    static std::function<void(int)> getRefreshRateOperator();
+
     bool activate() override final;
     void deactivate() override final;
     bool startStandBySession() override final;
@@ -123,7 +128,7 @@ protected:
 
     void withOtherThreadContext(std::function<void()> f) const;
 
-    void present();
+    void present(const std::shared_ptr<RefreshRateController>& refreshRateController);
     virtual void swapBuffers();
     ivec4 eyeViewport(Eye eye) const;
 

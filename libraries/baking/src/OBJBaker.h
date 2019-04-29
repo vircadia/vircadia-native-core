@@ -13,12 +13,8 @@
 #define hifi_OBJBaker_h
 
 #include "Baker.h"
-#include "TextureBaker.h"
 #include "ModelBaker.h"
-
 #include "ModelBakingLoggingCategory.h"
-
-using TextureBakerThreadGetter = std::function<QThread*()>;
 
 using NodeID = qlonglong;
 

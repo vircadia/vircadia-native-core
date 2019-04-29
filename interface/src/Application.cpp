@@ -150,6 +150,7 @@
 #include <Preferences.h>
 #include <display-plugins/CompositorHelper.h>
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
+#include <display-plugins/RefreshRateController.h>
 #include <trackers/EyeTracker.h>
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
@@ -192,6 +193,7 @@
 #include "scripting/WalletScriptingInterface.h"
 #include "scripting/TTSScriptingInterface.h"
 #include "scripting/KeyboardScriptingInterface.h"
+#include "scripting/RefreshRateScriptingInterface.h"
 
 
 
@@ -820,7 +822,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         audioDLLPath += "/audioWin7";
     }
     QCoreApplication::addLibraryPath(audioDLLPath);
-#endif
+#endif 
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -1813,6 +1815,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
 
+    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::STARTUP);
+
     // Setup the _keyboardMouseDevice, _touchscreenDevice, _touchscreenVirtualPadDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
     // if the _touchscreenDevice is not supported it will not be registered
@@ -2621,6 +2625,8 @@ void Application::onAboutToQuit() {
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
+
+    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::SHUTDOWN);
 }
 
 void Application::cleanupBeforeQuit() {
@@ -3230,6 +3236,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     surfaceContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    surfaceContext->setContextProperty("RefreshRate", new RefreshRateScriptingInterface());
     _fileDownload = new FileScriptingInterface(engine);
     surfaceContext->setContextProperty("File", _fileDownload);
     connect(_fileDownload, &FileScriptingInterface::unzipResult, this, &Application::handleUnzip);
@@ -3378,6 +3385,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
 
         surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("RefreshRate", new RefreshRateScriptingInterface());
 
         surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
@@ -4049,6 +4057,9 @@ bool Application::event(QEvent* event) {
         case QEvent::KeyRelease:
             keyReleaseEvent(static_cast<QKeyEvent*>(event));
             return true;
+        case QEvent::FocusIn:
+            focusInEvent(static_cast<QFocusEvent*>(event));
+            return true;
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
@@ -4107,6 +4118,12 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
         if (_controllerScriptingInterface->isKeyCaptured(static_cast<QKeyEvent*>(event))) {
             event->accept();
             return true;
+        }
+    }
+
+    if (event->type() == QEvent::WindowStateChange) {
+        if (getWindow()->windowState() == Qt::WindowMinimized) {
+            getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::MINIMIZED);
         }
     }
 
@@ -4396,6 +4413,13 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
 }
 
+void Application::focusInEvent(QFocusEvent* event) {
+    if (!_aboutToQuit && _startUpFinished) {
+        getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
+    }
+}
+
+
 void Application::focusOutEvent(QFocusEvent* event) {
     auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
@@ -4404,6 +4428,9 @@ void Application::focusOutEvent(QFocusEvent* event) {
         }
     }
 
+    if (!_aboutToQuit && _startUpFinished) {
+        getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::UNFOCUS);
+    }
 // FIXME spacemouse code still needs cleanup
 #if 0
     //SpacemouseDevice::getInstance().focusOutEvent();
@@ -5571,6 +5598,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("Developer")->setVisible(_developerMenuVisible);
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
+    _startUpFinished = true;
+    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -7353,6 +7382,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
 
     scriptEngine->registerGlobalObject("Keyboard", DependencyManager::get<KeyboardScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("RefreshRate", new RefreshRateScriptingInterface);
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 
@@ -8753,6 +8783,7 @@ void Application::updateDisplayMode() {
     auto displayPlugins = getDisplayPlugins();
 
     // Default to the first item on the list, in case none of the menu items match
+
     DisplayPluginPointer newDisplayPlugin = displayPlugins.at(0);
     auto menu = getPrimaryMenu();
     if (menu) {
@@ -8842,6 +8873,14 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
         if (desktop) {
             desktop->setProperty("repositionLocked", wasRepositionLocked);
         }
+
+        RefreshRateManager& refreshRateManager = getRefreshRateManager();
+        refreshRateManager.setRefreshRateOperator(OpenGLDisplayPlugin::getRefreshRateOperator());
+        bool isHmd = newDisplayPlugin->isHmd();
+        RefreshRateManager::UXMode uxMode = isHmd ? RefreshRateManager::UXMode::HMD :
+            RefreshRateManager::UXMode::DESKTOP;
+
+        refreshRateManager.setUXMode(uxMode);
     }
 
     bool isHmd = _displayPlugin->isHmd();

@@ -62,8 +62,8 @@
  * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
  *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
  * @property {string} skeletonModelURL - The avatar's FST file.
- * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
- *     <strong>Deprecated:</strong> Use avatar entities instead.
+ * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments. 
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
  * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
  * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
  * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the

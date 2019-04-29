@@ -33,14 +33,13 @@ const QString BAKED_META_TEXTURE_SUFFIX = ".texmeta.json";
 bool TextureBaker::_compressionEnabled = true;
 
 TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                           const QDir& outputDirectory, const QString& metaTexturePathPrefix,
-                           const QString& baseFilename, const QByteArray& textureContent) :
+                           const QDir& outputDirectory, const QString& baseFilename,
+                           const QByteArray& textureContent) :
     _textureURL(textureURL),
     _originalTexture(textureContent),
     _textureType(textureType),
     _baseFilename(baseFilename),
-    _outputDirectory(outputDirectory),
-    _metaTexturePathPrefix(metaTexturePathPrefix)
+    _outputDirectory(outputDirectory)
 {
     if (baseFilename.isEmpty()) {
         // figure out the baked texture filename
@@ -151,7 +150,7 @@ void TextureBaker::processTexture() {
         // IMPORTANT: _originalTexture is empty past this point
         _originalTexture.clear();
         _outputFiles.push_back(originalCopyFilePath);
-        meta.original = _metaTexturePathPrefix + _originalCopyFilePath.fileName();
+        meta.original = _originalCopyFilePath.fileName();
     }
 
     // Load the copy of the original file from the baked output directory. New images will be created using the original as the source data.
@@ -204,7 +203,7 @@ void TextureBaker::processTexture() {
                 return;
             }
             _outputFiles.push_back(filePath);
-            meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = _metaTexturePathPrefix + fileName;
+            meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = fileName;
         }
     }
 
@@ -240,7 +239,7 @@ void TextureBaker::processTexture() {
             return;
         }
         _outputFiles.push_back(filePath);
-        meta.uncompressed = _metaTexturePathPrefix + fileName;
+        meta.uncompressed = fileName;
     } else {
         buffer.reset();
     }
