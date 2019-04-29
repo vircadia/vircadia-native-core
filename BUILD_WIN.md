@@ -1,7 +1,6 @@
-This is a stand-alone guide for creating your first High Fidelity build for Windows 64-bit.
-
+This is a stand-alone guide for creating your first High Fidelity build for Windows 64-bit.  
 ## Building High Fidelity
-Note: We are now using Visual Studio 2017 and Qt 5.10.1. If you are upgrading from Visual Studio 2013 and Qt 5.6.2, do a clean uninstall of those versions before going through this guide.
+Note: We are now using Visual Studio 2017 and Qt 5.10.1. If you are upgrading from Visual Studio 2013 and Qt 5.6.2, do a clean uninstall of those versions before going through this guide.  
 
 Note: The prerequisites will require about 10 GB of space on your drive. You will also need a system with at least 8GB of main memory.
 
@@ -22,19 +21,6 @@ If you do not wish to use the Python installation bundled with Visual Studio, yo
 Download and install the latest version of CMake 3.9.
 
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
-
-### Step 3. Installing Qt
-
-Download and install the [Qt Open Source Online Installer](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea). While installing, you only need to have the following components checked under Qt 5.10.1: "msvc2017 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
-
-Note: Installing the Sources is optional but recommended if you have room for them (~2GB).
-
-### Step 4. Setting Qt Environment Variable
-
-Go to `Control Panel > System > Advanced System Settings > Environment Variables > New...` (or search “Environment Variables” in Start Search).
-* Set "Variable name": `QT_CMAKE_PREFIX_PATH`
-* Set "Variable value": `C:\Qt\5.10.1\msvc2017_64\lib\cmake`
-
 ### Step 5. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:

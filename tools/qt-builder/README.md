@@ -1,6 +1,6 @@
 # General
 This document describes the process to build Qt 5.12.3.
-Note that there are two patches.  The first (to qfloat16.h) is needed to compiel QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
+Note that there are two patches.  The first (to qfloat16.h) is needed to compile QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
 The second patch is to OpenSL ES audio.
 ## Requirements
 ### Windows

@@ -19,23 +19,19 @@ sudo apt-get update
 ```
 
 ### Prepare environment
-Install Qt 5.10.1:
-```bash
-wget http://debian.highfidelity.com/pool/h/hi/hifiqt5.10.1_5.10.1_amd64.deb
-sudo dpkg -i hifiqt5.10.1_5.10.1_amd64.deb
-```
-
-Install build dependencies:
+Add the following line to *.bash_profile*  
+`export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/`
+#### Install build dependencies:
 ```bash
 sudo apt-get install libasound2 libxmu-dev libxi-dev freeglut3-dev libasound2-dev libjack0 libjack-dev libxrandr-dev libudev-dev libssl-dev zlib1g-dev
 ```
 
-To compile interface in a server you must install:
+#### To compile interface in a server you must install:
 ```bash
 sudo apt-get -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 libxcomposite1 libxtst6 libxslt1.1
 ```
 
-Install build tools:
+#### Install build tools:
 ```bash
 # For Ubuntu 18.04
 sudo apt-get install cmake
@@ -46,14 +42,11 @@ wget https://cmake.org/files/v3.9/cmake-3.9.5-Linux-x86_64.sh
 sudo sh cmake-3.9.5-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 ```
 
-Install Python 3:
+#### Install Python 3:
 ```bash
-sudo apt-get install python3.6
+sudo apt-get install python3
 ```
-
-
 ### Get code and checkout the tag you need
-
 Clone this repository:
 ```bash
 git clone https://github.com/highfidelity/hifi.git
@@ -80,7 +73,7 @@ cd hifi/build
 
 Prepare makefiles:
 ```bash
-cmake -DQT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10.1/gcc_64/lib/cmake ..
+cmake ..
 ```
 
 Start compilation of the server and get a cup of coffee:

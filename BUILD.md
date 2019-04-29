@@ -8,7 +8,7 @@
 ### Dependencies
 
 - [cmake](https://cmake.org/download/):  3.9
-- [Qt](https://www.qt.io/download-open-source):   5.10.1
+- [Qt](https://www.qt.io/download-open-source):   5.12.3
 - [Python](https://www.python.org/downloads/): 3.6 or higher
 
 ### CMake External Project Dependencies
@@ -36,16 +36,14 @@ These are not placed in your normal build tree when doing an out of source build
 Hifi uses CMake to generate build files and project files for your platform.
 
 #### Qt
+CMake will download Qt 5.12.3 using vcpkg.  
 
-In order for CMake to find the Qt5 find modules, you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt installation.
+To override this (i.e. use an installed Qt configuration - you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt **lib/cmake** folder.
+This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).  The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
 
-This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
-
-The path it needs to be set to will depend on where and how Qt5 was installed. e.g.
-
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.10.1/5.10.1/gcc_64/lib/cmake
-    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.10.1/clang_64/lib/cmake/
-    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.10.1/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Qt5.12.3/gcc_64/lib/cmake
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.12.3/clang_64/lib/cmake/
+    export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.12.3/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
 #### Vcpkg
@@ -68,13 +66,13 @@ Create a build directory in the root of your checkout and then run the CMake bui
     cd build
     cmake ..
 
-If cmake gives you the same error message repeatedly after the build fails (e.g. you had a typo in the QT_CMAKE_PREFIX_PATH that you fixed but the `.cmake` files still cannot be found), try removing `CMakeCache.txt`.
+If cmake gives you the same error message repeatedly after the build fails, try removing `CMakeCache.txt`.
 
 #### Variables
 
 Any variables that need to be set for CMake to find dependencies can be set as ENV variables in your shell profile, or passed directly to CMake with a `-D` flag appended to the `cmake ..` command.
 
-For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
+For example, to pass the QT_CMAKE_PREFIX_PATH variable (if not using the vcpkg'ed version) during build file generation:
 
     cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.10.1/lib/cmake
 
