@@ -1252,10 +1252,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     const float ALMOST_HALF = 0.499f;
                     int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
 
-                    mesh.clusterIndices.resize(mesh.clusterIndices.size()
-                        + numVertices * WEIGHTS_PER_VERTEX);
-                    mesh.clusterWeights.resize(mesh.clusterWeights.size()
-                        + numVertices * WEIGHTS_PER_VERTEX);
+                    // Append new cluster indices and weights for this mesh part
+                    for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; i++) {
+                        mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
+                        mesh.clusterWeights.push_back(0);
+                    }
+
+                    for (int c = 0; c < clusterJoints.size(); c++) {
+                        mesh.clusterIndices[prevMeshClusterIndexCount + c] =
+                            originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
+                    }
 
                     // normalize and compress to 16-bits
                     for (int i = 0; i < numVertices; ++i) {
@@ -1263,9 +1269,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                         float totalWeight = 0.0f;
                         for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                            mesh.clusterIndices[prevMeshClusterIndexCount + k] =
-                                originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[k]]];
-
                             totalWeight += clusterWeights[k];
                         }
                         if (totalWeight > 0.0f) {
@@ -1275,9 +1278,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             }
                         } else {
                             mesh.clusterWeights[prevMeshClusterWeightCount + j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
-                            for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                                mesh.clusterWeights[prevMeshClusterWeightCount + k] = 0;
-                            }
                         }
                     }
                 }
