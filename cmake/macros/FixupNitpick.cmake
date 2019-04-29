@@ -25,7 +25,7 @@ macro(fixup_nitpick)
         endif ()
 
         add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-            COMMAND ${MACDEPLOYQT_COMMAND}\${CMAKE_INSTALL_PREFIX}/${_NITPICK_INSTALL_PATH}/ -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
+            COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:${TARGET_NAME}>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
         )
     endif ()
 endmacro()
