@@ -5042,7 +5042,10 @@ void Application::idle() {
     }
 #endif
 
-    checkChangeCursor();
+    
+    if((displayPlugin && displayPlugin->isHmd()) ||  _preferredCursor.get() ==  Cursor::Manager::ICON_NAMES[Cursor::Icon::RETICLE]){
+        checkChangeCursor();
+    }
 
 #if !defined(DISABLE_QML)
     auto stats = Stats::getInstance();
