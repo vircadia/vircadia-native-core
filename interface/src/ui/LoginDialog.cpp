@@ -279,10 +279,6 @@ void LoginDialog::createAccountFromSteam(QString username) {
     }
 }
 
-void LoginDialog::openUrl(const QString& url) const {
-    QDesktopServices::openUrl(QUrl(url));
-}
-
 void LoginDialog::linkCompleted(QNetworkReply* reply) {
     emit handleLinkCompleted();
 }

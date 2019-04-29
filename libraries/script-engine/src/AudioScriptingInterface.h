@@ -41,25 +41,54 @@ public:
     }
 
     /**jsdoc
-     * Add nodes to the audio solo list
+     * Adds avatars to the audio solo list. If the audio solo list is not empty, only audio from the avatars in the list is 
+     * played.
      * @function Audio.addToSoloList
-     * @param {Uuid[]} uuidList - List of node UUIDs to add to the solo list.
+     * @param {Uuid[]} ids - Avatar IDs to add to the solo list.
+
+     * @example <caption>Listen to a single nearby avatar for a short while.</caption>
+     * // Find nearby avatars.
+     * var RANGE = 100; // m
+     * var nearbyAvatars = AvatarList.getAvatarsInRange(MyAvatar.position, RANGE);
+     * 
+     * // Remove own avatar from list.
+     * var myAvatarIndex = nearbyAvatars.indexOf(MyAvatar.sessionUUID);
+     * if (myAvatarIndex !== -1) {
+     *     nearbyAvatars.splice(myAvatarIndex, 1);
+     * }
+     * 
+     * if (nearbyAvatars.length > 0) {
+     *     // Listen to only one of the nearby avatars.
+     *     var avatarName = AvatarList.getAvatar(nearbyAvatars[0]).displayName;
+     *     print("Listening only to " + avatarName);
+     *     Audio.addToSoloList([nearbyAvatars[0]]);
+     * 
+     *     // Stop listening to only the one avatar after a short while.
+     *     Script.setTimeout(function () {
+     *         print("Finished listening only to " + avatarName);
+     *         Audio.resetSoloList();
+     *     }, 10000); // 10s
+     * 
+     * } else {
+     *     print("No nearby avatars");
+     * }
      */
     Q_INVOKABLE void addToSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
     }
 
     /**jsdoc
-     * Remove nodes from the audio solo list
+     * Removes avatars from the audio solo list. If the audio solo list is not empty, only audio from the avatars in the list 
+     * is played.
      * @function Audio.removeFromSoloList
-     * @param {Uuid[]} uuidList - List of node UUIDs to remove from the solo list.
+     * @param {Uuid[]} ids - Avatar IDs to remove from the solo list.
      */
     Q_INVOKABLE void removeFromSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().removeUUIDs(uuidList);
     }
 
     /**jsdoc
-     * Reset the list of soloed nodes.
+     * Clears the audio solo list.
      * @function Audio.resetSoloList
      */
     Q_INVOKABLE void resetSoloList() {
@@ -67,33 +96,56 @@ public:
     }
 
     /**jsdoc
+     * Gets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed only 
+     * if you're unmuted or are using push-to-talk.
      * @function Audio.getServerEcho
+     * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the server is enabled, 
+     *     <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool getServerEcho();
 
     /**jsdoc
+     * Sets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed 
+     * only if you're unmuted or are using push-to-talk.
      * @function Audio.setServerEcho
-     * @parm {boolean} serverEcho
+     * @parm {boolean} serverEcho - <code>true</code> to enable echoing microphone back to you from the server, 
+     *     <code>false<code> to disable.
      */
     Q_INVOKABLE void setServerEcho(bool serverEcho);
 
     /**jsdoc
+     * Toggles the echoing of microphone audio back to you from the server. When enabled, microphone audio is echoed only if 
+     * you're unmuted or are using push-to-talk.
      * @function Audio.toggleServerEcho
      */
     Q_INVOKABLE void toggleServerEcho();
 
     /**jsdoc
+     * Gets whether your microphone audio is echoed back to you by the client. When enabled, microphone audio is echoed 
+     * even if you're muted or not using push-to-talk.
      * @function Audio.getLocalEcho
+     * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the client is enabled, 
+     *     <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool getLocalEcho();
 
     /**jsdoc
+     * Sets whether your microphone audio is echoed back to you by the client. When enabled, microphone audio is echoed 
+     * even if you're muted or not using push-to-talk.
      * @function Audio.setLocalEcho
-     * @parm {boolean} localEcho
+     * @parm {boolean} localEcho - <code>true</code> to enable echoing microphone audio back to you from the client, 
+     *     <code>false</code> to disable.
+     * @example <caption>Echo local audio for a few seconds.</caption>
+     * Audio.setLocalEcho(true);
+     * Script.setTimeout(function () {
+     *     Audio.setLocalEcho(false);
+     * }, 3000); // 3s
      */
     Q_INVOKABLE void setLocalEcho(bool localEcho);
 
     /**jsdoc
+     * Toggles the echoing of microphone audio back to you by the client. When enabled, microphone audio is echoed even if 
+     * you're muted or not using push-to-talk.
      * @function Audio.toggleLocalEcho
      */
     Q_INVOKABLE void toggleLocalEcho();
@@ -105,7 +157,7 @@ protected:
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
     /**jsdoc
-     * Starts playing &mdash; "injecting" &mdash; the content of an audio file. The sound is played globally (sent to the audio 
+     * Starts playing or "injecting" the content of an audio file. The sound is played globally (sent to the audio 
      * mixer) so that everyone hears it, unless the <code>injectorOptions</code> has <code>localOnly</code> set to 
      * <code>true</code> in which case only the client hears the sound played. No sound is played if sent to the audio mixer 
      * but the client is not connected to an audio mixer. The {@link AudioInjector} object returned by the function can be used 
@@ -113,7 +165,8 @@ protected:
      * @function Audio.playSound
      * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
      * {@link SoundObject} for supported formats.
-     * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - Audio injector configuration.
+     * @param {AudioInjector.AudioInjectorOptions} [injectorOptions={}] - Configures where and how the audio injector plays the 
+     *     audio file.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      * @example <caption>Play a sound.</caption>
      * var sound = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/ken/samples/forest_ambiX.wav");
@@ -139,26 +192,26 @@ protected:
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
     /**jsdoc
-     * Start playing the content of an audio file, locally (isn't sent to the audio mixer). This is the same as calling 
+     * Starts playing the content of an audio file locally (isn't sent to the audio mixer). This is the same as calling 
      * {@link Audio.playSound} with {@link AudioInjector.AudioInjectorOptions} <code>localOnly</code> set <code>true</code> and 
      * the specified <code>position</code>.
      * @function Audio.playSystemSound
-     * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
+     * @param {SoundObject} sound - The content of an audio file, which is loaded using {@link SoundCache.getSound}. See 
      * {@link SoundObject} for supported formats.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      */
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound);
 
     /**jsdoc
-     * Set whether or not the audio input should be used in stereo. If the audio input does not support stereo then setting a 
-     * value of <code>true</code> has no effect.
+     * Sets whether the audio input should be used in stereo. If the audio input doesn't support stereo then setting a value 
+     * of <code>true</code> has no effect.
      * @function Audio.setStereoInput
      * @param {boolean} stereo - <code>true</code> if the audio input should be used in stereo, otherwise <code>false</code>.
      */
     Q_INVOKABLE void setStereoInput(bool stereo);
 
     /**jsdoc
-     * Get whether or not the audio input is used in stereo.
+     * Gets whether the audio input is used in stereo.
      * @function Audio.isStereoInput
      * @returns {boolean} <code>true</code> if the audio input is used in stereo, otherwise <code>false</code>. 
      */
@@ -168,7 +221,7 @@ signals:
 
     /**jsdoc
      * Triggered when the client is muted by the mixer because their loudness value for the noise background has reached the 
-     * threshold set for the domain in the server settings.
+     * threshold set for the domain (in the server settings).
      * @function Audio.mutedByMixer
      * @returns {Signal} 
      */
@@ -197,7 +250,7 @@ signals:
     void disconnected();
 
     /**jsdoc
-     * Triggered when the noise gate is opened: the input audio signal is no longer blocked (fully attenuated) because it has 
+     * Triggered when the noise gate is opened. The input audio signal is no longer blocked (fully attenuated) because it has 
      * risen above an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
      * <code>true</code>.
      * @function Audio.noiseGateOpened
@@ -206,7 +259,7 @@ signals:
     void noiseGateOpened();
 
     /**jsdoc
-     * Triggered when the noise gate is closed: the input audio signal is blocked (fully attenuated) because it has fallen 
+     * Triggered when the noise gate is closed. The input audio signal is blocked (fully attenuated) because it has fallen 
      * below an adaptive threshold set just above the noise floor. Only occurs if <code>Audio.noiseReduction</code> is 
      * <code>true</code>.
      * @function Audio.noiseGateClosed

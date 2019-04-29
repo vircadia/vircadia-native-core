@@ -29,7 +29,7 @@ namespace AvatarTraits {
 
         // Simple traits
         SkeletonModelURL = 0,
-
+        SkeletonData,
         // Instanced traits
         FirstInstancedTrait,
         AvatarEntity = FirstInstancedTrait,

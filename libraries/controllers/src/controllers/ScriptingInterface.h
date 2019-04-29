@@ -76,7 +76,7 @@ namespace controller {
          * Get a list of all available actions.
          * @function Controller.getAllActions
          * @returns {Action[]} All available actions.
-         * @deprecated This function no longer works.
+         * @deprecated This function is deprecated and will be removed. It no longer works.
          */
         // FIXME: This function causes a JavaScript crash: https://highfidelity.manuscript.com/f/cases/edit/13921
         Q_INVOKABLE QVector<Action> getAllActions();
@@ -86,7 +86,7 @@ namespace controller {
          * @function Controller.getAvailableInputs
          * @param {number} deviceID - Integer ID of the hardware device.
          * @returns {NamedPair[]} All available inputs for the device.
-         * @deprecated This function no longer works.
+         * @deprecated This function is deprecated and will be removed. It no longer works.
          */
         // FIXME: This function causes a JavaScript crash: https://highfidelity.manuscript.com/f/cases/edit/13922
         Q_INVOKABLE QVector<Input::NamedPair> getAvailableInputs(unsigned int device);

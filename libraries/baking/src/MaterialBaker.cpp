@@ -133,12 +133,12 @@ void MaterialBaker::processMaterial() {
                     QString extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
                     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
-                        QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, type);
+                        TextureKey textureKey(textureURL, type);
                         if (!_textureBakers.contains(textureKey)) {
                             auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
                             QSharedPointer<TextureBaker> textureBaker {
-                                new TextureBaker(textureURL, type, _textureOutputDir, "", baseTextureFileName, content),
+                                new TextureBaker(textureURL, type, _textureOutputDir, baseTextureFileName, content),
                                 &TextureBaker::deleteLater
                             };
                             textureBaker->setMapChannel(mapChannel);
@@ -170,7 +170,7 @@ void MaterialBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
-        QPair<QUrl, image::TextureUsage::Type> textureKey = { baker->getTextureURL(), baker->getTextureType() };
+        TextureKey textureKey = { baker->getTextureURL(), baker->getTextureType() };
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan
             qCDebug(material_baking) << "Re-writing texture references to" << baker->getTextureURL();
