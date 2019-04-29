@@ -813,7 +813,7 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
     for (auto &skin : _file.skins) {
         GLTFAccessor& indicesAccessor = _file.accessors[skin.inverseBindMatrices];
         QVector<float> matrices;
-        addArrayOfFromAccessor(indicesAccessor, matrices);
+        addArrayFromAccessor(indicesAccessor, matrices);
         inverseBindMatrixValues.push_back(matrices.toStdVector());
     }
 }
@@ -821,7 +821,7 @@ void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>&
 void GLTFSerializer::generateTargetData(int index, float weight, QVector<glm::vec3>& returnVector) {
     GLTFAccessor& accessor = _file.accessors[index];
     QVector<float> storedValues;
-    addArrayOfFromAccessor(accessor, storedValues);
+    addArrayFromAccessor(accessor, storedValues);
     for (int n = 0; n < storedValues.size(); n = n + 3) {
         returnVector.push_back(glm::vec3(weight * storedValues[n], weight * storedValues[n + 1], weight * storedValues[n + 2]));
     }
@@ -849,7 +849,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     nodecount = 0;
     foreach(auto &node, _file.nodes) {
         // collect node transform
-        _file.nodes[nodecount].transforms.push_back(getModelTransform(node)); 
+        _file.nodes[nodecount].transforms.push_back(getModelTransform(node));
         int parentIndex = parents[nodecount];
         while (parentIndex != -1) {
             const auto& parentNode = _file.nodes[parentIndex];
@@ -1038,7 +1038,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 QVector<float> weights;
                 int weightStride = 0;
 
-                bool success = addArrayOfFromAccessor(indicesAccessor, indices);
+                bool success = addArrayFromAccessor(indicesAccessor, indices);
 
                 if (!success) {
                     qWarning(modelformat) << "There was a problem reading glTF INDICES data for model " << _url;
@@ -1058,7 +1058,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     GLTFAccessor& accessor = _file.accessors[accessorIdx];
 
                     if (key == "POSITION") {
-                        success = addArrayOfFromAccessor(accessor, vertices);
+                        success = addArrayFromAccessor(accessor, vertices);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF POSITION data for model " << _url;
                             continue;
@@ -1069,7 +1069,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "NORMAL") {
-                        success = addArrayOfFromAccessor(accessor, normals);
+                        success = addArrayFromAccessor(accessor, normals);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF NORMAL data for model " << _url;
                             continue;
@@ -1080,7 +1080,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "TANGENT") {
-                        success = addArrayOfFromAccessor(accessor, tangents);
+                        success = addArrayFromAccessor(accessor, tangents);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
                             continue;
@@ -1095,7 +1095,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "TEXCOORD_0") {
-                        success = addArrayOfFromAccessor(accessor, texcoords);
+                        success = addArrayFromAccessor(accessor, texcoords);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_0 data for model " << _url;
                             continue;
@@ -1106,7 +1106,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "TEXCOORD_1") {
-                        success = addArrayOfFromAccessor(accessor, texcoords2);
+                        success = addArrayFromAccessor(accessor, texcoords2);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF TEXCOORD_1 data for model " << _url;
                             continue;
@@ -1117,7 +1117,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "COLOR_0") {
-                        success = addArrayOfFromAccessor(accessor, colors);
+                        success = addArrayFromAccessor(accessor, colors);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
                             continue;
@@ -1132,7 +1132,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "JOINTS_0") {
-                        success = addArrayOfFromAccessor(accessor, joints);
+                        success = addArrayFromAccessor(accessor, joints);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF JOINTS_0 data for model " << _url;
                             continue;
@@ -1151,7 +1151,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "WEIGHTS_0") {
-                        success = addArrayOfFromAccessor(accessor, weights);
+                        success = addArrayFromAccessor(accessor, weights);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
                             continue;
@@ -1252,15 +1252,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     const float ALMOST_HALF = 0.499f;
                     int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
 
-                    // Append new cluster indices and weights for this mesh part
-                    for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; i++) {
-                        mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
-                        mesh.clusterWeights.push_back(0);
-                    }
-
-                    for (int c = 0; c < clusterJoints.size(); c++) {
-                        mesh.clusterIndices[prevMeshClusterIndexCount+c] = originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
-                    }
+                    mesh.clusterIndices.resize(mesh.clusterIndices.size()
+                        + numVertices * WEIGHTS_PER_VERTEX);
+                    mesh.clusterWeights.resize(mesh.clusterWeights.size()
+                        + numVertices * WEIGHTS_PER_VERTEX);
 
                     // normalize and compress to 16-bits
                     for (int i = 0; i < numVertices; ++i) {
@@ -1268,15 +1263,21 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                         float totalWeight = 0.0f;
                         for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                            mesh.clusterIndices[prevMeshClusterIndexCount + k] =
+                                originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[k]]];
+
                             totalWeight += clusterWeights[k];
                         }
                         if (totalWeight > 0.0f) {
                             float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                             for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
-                                mesh.clusterWeights[prevMeshClusterWeightCount+k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
+                                mesh.clusterWeights[prevMeshClusterWeightCount + k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
                             }
                         } else {
-                            mesh.clusterWeights[prevMeshClusterWeightCount+j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
+                            mesh.clusterWeights[prevMeshClusterWeightCount + j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
+                            for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                                mesh.clusterWeights[prevMeshClusterWeightCount + k] = 0;
+                            }
                         }
                     }
                 }
@@ -1678,7 +1679,7 @@ bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin, int byteOffset, 
 }
 
 template <typename T>
-bool GLTFSerializer::addArrayOfFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray) {
+bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray) {
     bool success = true;
 
     if (accessor.defined["bufferView"]) {

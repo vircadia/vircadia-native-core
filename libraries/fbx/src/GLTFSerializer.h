@@ -841,7 +841,7 @@ private:
                         QVector<T>& outarray, int accessorType, int componentType);
 
     template <typename T>
-    bool addArrayOfFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray);
+    bool addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& outarray);
 
     void retriangulate(const QVector<int>& in_indices, const QVector<glm::vec3>& in_vertices, 
                        const QVector<glm::vec3>& in_normals, QVector<int>& out_indices, 
