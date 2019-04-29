@@ -28,16 +28,18 @@ class ScriptEngine;
 /**jsdoc
  * The <code>Controller</code> API provides facilities to interact with computer and controller hardware.
  *
- * <h4>Facilities</h4>
+ * <h3>Facilities</h3>
  *
- * <p>Properties</p>
+ * <h4>Properties</h4>
+ * <p>Get <code>Controller</code> property trees.</p>
  * <ul>
  *   <li>{@link Controller.getActions|getActions}</li>
  *   <li>{@link Controller.getHardware|getHardware}</li>
  *   <li>{@link Controller.getStandard|getStandard}</li>
  * </ul>
  *
- * <p>Mappings</p>
+ * <h4>Mappings</h4>
+ * <p>Create and enable or disable <code>Controller</code> mappings.</p>
  * <ul>
  *   <li>{@link Controller.disableMapping|disableMapping}</li>
  *   <li>{@link Controller.enableMapping|enableMapping}</li>
@@ -46,7 +48,8 @@ class ScriptEngine;
  *   <li>{@link Controller.parseMapping|parseMapping}</li>
  * </ul>
  *
- * <p>Input, Hardware, and Action Reflection</p>
+ * <h4>Input, Hardware, and Action Reflection</h4>
+ * <p>Information on the devices and actions available.</p>
  * <ul>
  *   <li>{@link Controller.findAction|findAction}</li>
  *   <li>{@link Controller.findDevice|findDevice}</li>
@@ -58,7 +61,8 @@ class ScriptEngine;
  *   <li>{@link Controller.getRunningInputDevices|getRunningInputDevices}</li>
  * </ul>
  *
- * <p>Input, Hardware, and Action Signals</p>
+ * <h4>Input, Hardware, and Action Signals</h4>
+ * <p>Notifications of device and action events.</p>
  * <ul>
  *   <li>{@link Controller.actionEvent|actionEvent}</li>
  *   <li>{@link Controller.hardwareChanged|hardwareChanged}</li>
@@ -66,7 +70,8 @@ class ScriptEngine;
  *   <li>{@link Controller.inputEvent|inputEvent}</li>
  * </ul>
  *
- * <p>Mouse, Keyboard, and Touch Signals</p>
+ * <h4>Mouse, Keyboard, and Touch Signals</h4>
+ * <p>Notifications of mouse, keyboard, and touch events.</p>
  * <ul>
  *   <li>{@link Controller.keyPressEvent|keyPressEvent}</li>
  *   <li>{@link Controller.keyReleaseEvent|keyReleaseEvent}</li>
@@ -80,29 +85,32 @@ class ScriptEngine;
  *   <li>{@link Controller.wheelEvent|wheelEvent}</li>
  * </ul>
  *
- * <p>Control Capturing</p>
+ * <h4>Control Capturing</h4>
+ * <p>Disable and enable the processing of mouse and touch events.</p>
  * <ul>
  *   <li>{@link Controller.captureMouseEvents|captureMouseEvents}</li>
- *   <li>{@link Controller.captureTouchEvents|captureTouchEvents}</li>
  *   <li>{@link Controller.captureWheelEvents|captureWheelEvents}</li>
+ *   <li>{@link Controller.captureTouchEvents|captureTouchEvents}</li>
  *   <li>{@link Controller.releaseMouseEvents|releaseMouseEvents}</li>
- *   <li>{@link Controller.releaseTouchEvents|releaseTouchEvents}</li>
  *   <li>{@link Controller.releaseWheelEvents|releaseWheelEvents}</li>
+ *   <li>{@link Controller.releaseTouchEvents|releaseTouchEvents}</li>
  * </ul>
  *
- * <p>Action Capturing</p>
+ * <h4>Action Capturing</h4>
+ * <p>Disable and enable controller actions.</p>
  * <ul>
  *   <li>{@link Controller.captureActionEvents|captureActionEvents}</li>
- *   <li>{@link Controller.captureEntityClickEvents|captureEntityClickEvents}</li>
- *   <li>{@link Controller.captureJoystick|captureJoystick}</li>
  *   <li>{@link Controller.captureKeyEvents|captureKeyEvents}</li>
+ *   <li>{@link Controller.captureJoystick|captureJoystick}</li>
+ *   <li>{@link Controller.captureEntityClickEvents|captureEntityClickEvents}</li>
  *   <li>{@link Controller.releaseActionEvents|releaseActionEvents}</li>
- *   <li>{@link Controller.releaseEntityClickEvents|releaseEntityClickEvents}</li>
- *   <li>{@link Controller.releaseJoystick|releaseJoystick}</li>
  *   <li>{@link Controller.releaseKeyEvents|releaseKeyEvents}</li>
+ *   <li>{@link Controller.releaseJoystick|releaseJoystick}</li>
+ *   <li>{@link Controller.releaseEntityClickEvents|releaseEntityClickEvents}</li>
  * </ul>
  *
- * <p>Controller and Action Values</p>
+ * <h4>Controller and Action Values</h4>
+ * <p>Get the current value of controller outputs and actions.</p>
  * <ul>
  *   <li>{@link Controller.getValue|getValue}</li>
  *   <li>{@link Controller.getAxisValue|getAxisValue}</li>
@@ -110,7 +118,8 @@ class ScriptEngine;
  *   <li>{@link Controller.getActionValue|getActionValue}</li>
  * </ul>
  *
- * <p>Haptics</p>
+ * <h4>Haptics</h4>
+ * <p>Trigger haptic pulses.</p>
  * <ul>
  *   <li>{@link Controller.triggerHapticPulse|triggerHapticPulse}</li>
  *   <li>{@link Controller.triggerHapticPulseOnDevice|triggerHapticPulseOnDevice}</li>
@@ -118,20 +127,23 @@ class ScriptEngine;
  *   <li>{@link Controller.triggerShortHapticPulseOnDevice|triggerShortHapticPulseOnDevice}</li>
  * </ul>
  *
- * <p>Display Information</p>
+ * <h4>Display Information</h4>
+ * <p>Get information on the display.</p>
  * <ul>
  *   <li>{@link Controller.getViewportDimensions|getViewportDimensions}</li>
  *   <li>{@link Controller.getRecommendedHUDRect|getRecommendedHUDRect}</li>
  * </ul>
  *
- * <p>Virtual Game Pad</p>
+ * <h4>Virtual Game Pad</h4>
+ * <p>Use the virtual game pad which is available on some devices.</p>
  * <ul>
  *   <li>{@link Controller.setVPadEnabled|setVPadEnabled}</li>
  *   <li>{@link Controller.setVPadHidden|setVPadHidden}</li>
  *   <li>{@link Controller.setVPadExtraBottomMargin|setVPadExtraBottomMargin}</li>
  * </ul>
  *
- * <p>Input Recordings</p>
+ * <h4>Input Recordings</h4>
+ * <p>Create and play input recordings.</p>
  * <ul>
  *   <li>{@link Controller.startInputRecording|startInputRecording}</li>
  *   <li>{@link Controller.stopInputRecording|stopInputRecording}</li>
@@ -142,7 +154,7 @@ class ScriptEngine;
  *   <li>{@link Controller.stopInputPlayback|stopInputPlayback}</li>
  * </ul>
  *
- * <h4>Entity Methods</h4>
+ * <h3>Entity Methods</h3>
  *
  * <p>The default scripts implement hand controller actions that use {@link Entities.callEntityMethod} to call entity script 
  * methods, if present, in the entity being interacted with.</p>
