@@ -7,6 +7,8 @@ import sys
 import urllib.request
 import urllib.parse
 
+print("Running python script to upload to BackTrace")
+
 post_headers = {}
 post_headers['Content-Type'] = 'application/json'
 post_headers['Expect'] = ''
@@ -18,7 +20,7 @@ try:
 except:
     print('file ' + sys.argv[2] + ' not found')
     exit()
-
+    
 try:
     post_request = urllib.request.Request(post_url, post_data, post_headers)
 except:
@@ -31,4 +33,4 @@ except:
     print('urllib.request.urlopen failed')
     exit()
 
-print("No errors")
+print("Upload to BackTrace completed without errors")
