@@ -64,6 +64,32 @@ const std::string TextureCache::KTX_DIRNAME{ "ktx_cache" };
 #endif
 const std::string TextureCache::KTX_EXT { "ktx" };
 
+/**jsdoc
+ * <p>The views that may be displayed on the PC display.</p>
+ * <table>
+ *   <thead>
+ *     <tr>
+ *       <th>Value</th>
+ *       <th>View Displayed</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td><code>""</code></td>
+ *       <td>Normal view.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>"resource://hmdPreviewFrame"</code></td>
+ *       <td>HMD preview.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>"resource://spectatorCameraFrame"</code></td>
+ *       <td>Entity camera view.</td>
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Window.DisplayTexture
+ */
 static const QString RESOURCE_SCHEME = "resource";
 static const QUrl SPECTATOR_CAMERA_FRAME_URL("resource://spectatorCameraFrame");
 static const QUrl HMD_PREVIEW_FRAME_URL("resource://hmdPreviewFrame");
