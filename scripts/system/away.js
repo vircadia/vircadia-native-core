@@ -223,7 +223,7 @@ function setAwayProperties() {
 
 function setActiveProperties() {
     isAway = false;
-    if ((Audio.muted === true) && (wasMuted === false)) {
+    if (Audio.muted && !wasMuted) {
         Audio.muted = false;
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
