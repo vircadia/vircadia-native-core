@@ -168,19 +168,20 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
 }
 
 ItemKey EntityRenderer::getKey() {
-    ItemKey::Builder builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
-
+    auto builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     if (isTransparent()) {
         builder.withTransparent();
-    } else if (_canCastShadow) {
+    }
+
+    if (_canCastShadow) {
         builder.withShadowCaster();
     }
 
-    if (!_visible) {
-        builder.withInvisible();
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
     }
 
-    return builder;
+    return builder.build();
 }
 
 uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
@@ -419,6 +420,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         setRenderLayer(entity->getRenderLayer());
         setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
+        setCullWithParent(entity->getCullWithParent());
         _cauterized = entity->getCauterized();
         entity->setNeedsRenderUpdate(false);
     });

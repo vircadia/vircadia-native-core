@@ -123,11 +123,7 @@ namespace render {
         if (!payload) {
             return ItemKey::Builder::opaqueShape().withTypeMeta();
         }
-        if (payload->overrideSubMetaCulled()) {
-            return ItemKey::Builder(payload->getKey()).withSubMetaCulled();
-        } else {
-            return payload->getKey();
-        }
+        return payload->getKey();
     }
 
     template <> const ShapeKey shapeGetShapeKey(const PayloadProxyInterface::Pointer& payload) {

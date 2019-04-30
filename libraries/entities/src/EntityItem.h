@@ -305,6 +305,9 @@ public:
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
+    bool getCullWithParent() const;
+    void setCullWithParent(bool value);
+
     void setCauterized(bool value);
     bool getCauterized() const;
 
@@ -762,7 +765,7 @@ protected:
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
 
-    mutable bool _needsRenderUpdate { false };
+    bool _cullWithParent { false };
 
 private:
     static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> _getBillboardRotationOperator;
