@@ -682,7 +682,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeExtra();
     }
 
-     auto& cursorManager = Cursor::Manager::instance();
+    auto& cursorManager = Cursor::Manager::instance();
     if (isHmd() || cursorManager.getCursor()->getIcon() == Cursor::RETICLE) {
         auto compositorHelper = DependencyManager::get<CompositorHelper>();
         // Draw the pointer last so it's on top of everything
