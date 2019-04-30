@@ -8,11 +8,12 @@ Please read the [general build guide](BUILD.md) for information on dependencies 
 
 ### Python 3
 
-Download an install Python 3.6.6 or higher from [here](https://www.python.org/downloads/).  Execute the `Update Shell Profile.command` script that is provided with the installer.
+Download an install Python 3.6.6 or higher from [here](https://www.python.org/downloads/).  
+Execute the `Update Shell Profile.command` script that is provided with the installer.
 
 ### OpenSSL
 
-Assuming you've installed OpenSSL using the homebrew instructions above, you'll need to set OPENSSL_ROOT_DIR so CMake can find your installations.
+Assuming you've installed OpenSSL using the homebrew instructions above, you'll need to set OPENSSL_ROOT_DIR so CMake can find your installations.  
 For OpenSSL installed via homebrew, set OPENSSL_ROOT_DIR:
 
     export OPENSSL_ROOT_DIR=/usr/local/Cellar/openssl/1.0.2l
