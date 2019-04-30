@@ -32,11 +32,11 @@ const QString INDEX_PATH = "/";
 const QString GET_PLACE = "/api/v1/places/%1";
 
 /**jsdoc
- * The location API provides facilities related to your current location in the metaverse.
+ * The <code>location</code> API provides facilities related to your current location in the metaverse.
  *
- * <h5>Getter/Setter</h5>
+ * <h3>Getter/Setter</h3>
  * <p>You can get and set your current metaverse address by directly reading a string value from and writing a string value to 
- * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or this object's
+ * the <code>location</code> object. This is an alternative to using the <code>location.href</code> property or other object
  * functions.</p>
  *
  * @namespace location
@@ -186,19 +186,19 @@ public:
 
 public slots:
     /**jsdoc
-     * Go to a specified metaverse address.
+     * Takes you to a specified metaverse address.
      * @function location.handleLookupString
      * @param {string} address - The address to go to: a <code>"hifi://"<code> address, an IP address (e.g., 
      * <code>"127.0.0.1"</code> or <code>"localhost"</code>), a domain name, a named path on a domain (starts with 
      * <code>"/"</code>), a position or position and orientation, or a user (starts with <code>"@"</code>).
-     * @param {boolean} fromSuggestions=false - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
+     * @param {boolean} [fromSuggestions=false] - Set to <code>true</code> if the address is obtained from the "Goto" dialog.
      *    Helps ensure that user's location history is correctly maintained.
      */
     void handleLookupString(const QString& lookupString, bool fromSuggestions = false);
 
     /**jsdoc
-     * Go to a position and orientation resulting from a lookup for a named path in the domain (set in the domain server's 
-     * settings).
+     * Takes you to a position and orientation resulting from a lookup for a named path in the domain (set in the domain 
+     * server's settings).
      * @function location.goToViewpointForPath
      * @param {string} path - The position and orientation corresponding to the named path.
      * @param {string} namedPath - The named path that was looked up on the server.
@@ -212,29 +212,29 @@ public slots:
         { return handleViewpoint(viewpointString, false, DomainPathResponse, false, pathString); }
 
     /**jsdoc
-     * Go back to the previous location in your navigation history, if there is one.
+     * Takes you back to the previous location in your navigation history, if there is one.
      * @function location.goBack
      */
     void goBack();
 
     /**jsdoc
-     * Go forward to the next location in your navigation history, if there is one.
+     * Takes you forward to the next location in your navigation history, if there is one.
      * @function location.goForward
      */
     void goForward();
 
     /**jsdoc
-     * Go to the local Sandbox server that's running on the same PC as Interface.
+     * Takes you to the local Sandbox server that's running on the same PC as Interface.
      * @function location.goToLocalSandbox
-     * @param {string} path="" - The position and orientation to go to (e.g., <code>"/0,0,0"</code>).
-     * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
+     * @param {string} [path=""] - The position and orientation to go to (e.g., <code>"/0,0,0"</code>).
+     * @param {location.LookupTrigger} [trigger=StartupFromSettings] - The reason for the function call. Helps ensure that user's
      *     location history is correctly maintained.
      */
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) {
         handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
 
     /**jsdoc
-     * Go to the default "welcome" metaverse address.
+     * Takes you to the default "welcome" metaverse address.
      * @function location.goToEntry
      * @param {location.LookupTrigger} trigger=StartupFromSettings - The reason for the function call. Helps ensure that user's
      *     location history is correctly maintained.
@@ -242,28 +242,28 @@ public slots:
     void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
 
     /**jsdoc
-     * Go to the specified user's location.
+     * Takes you to the specified user's location.
      * @function location.goToUser
      * @param {string} username - The user's username.
-     * @param {boolean} matchOrientation=true - If <code>true</code> then go to a location just in front of the user and turn to face
+     * @param {boolean} [matchOrientation=true] - If <code>true</code> then go to a location just in front of the user and turn to face
      *     them, otherwise go to the user's exact location and orientation.
      */
     void goToUser(const QString& username, bool shouldMatchOrientation = true);
 
     /**jsdoc
-    * Go to the last address tried.  This will be the last URL tried from location.handleLookupString
+    * Takes you to the last address tried.  This will be the last URL tried from location.handleLookupString
     * @function location.goToLastAddress
     */
     void goToLastAddress() { handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh); }
 
     /**jsdoc
-    * Returns if going back is possible.
+    * Checks if going back is possible.
     * @function location.canGoBack
     */
     bool canGoBack() const;
 
     /**jsdoc
-     * Refresh the current address, e.g., after connecting to a domain in order to position the user to the desired location.
+     * Refreshes the current address, e.g., after connecting to a domain in order to position the user to the desired location.
      * @function location.refreshPreviousLookup
      * @deprecated This function is deprecated and will be removed.
      */
@@ -272,27 +272,27 @@ public slots:
     void refreshPreviousLookup();
 
     /**jsdoc
-     * Update your current metaverse location in Interface's {@link Settings} file as your last-known address. This can be used
+     * Updates your current metaverse location in Interface's {@link Settings} file as your last-known address. This can be used
      * to ensure that you start up at that address if you exit Interface without a later address automatically being saved.
      * @function location.storeCurrentAddress
      */
     void storeCurrentAddress();
 
     /**jsdoc
-     * Copy your current metaverse address (i.e., <code>location.href</code> property value) to the OS clipboard.
+     * Copies your current metaverse address (i.e., <code>location.href</code> property value) to the OS clipboard.
      * @function location.copyAddress
      */
     void copyAddress();
 
     /**jsdoc
-     * Copy your current metaverse location and orientation (i.e., <code>location.pathname</code> property value) to the OS 
+     * Copies your current metaverse location and orientation (i.e., <code>location.pathname</code> property value) to the OS 
      * clipboard.
      * @function location.copyPath
      */
     void copyPath();
 
     /**jsdoc
-     * Retrieve and remember the place name for the given domain ID if the place name is not already known.
+     * Retrieves and remembers the place name for the given domain ID if the place name is not already known.
      * @function location.lookupShareableNameForDomainID
      * @param {Uuid} domainID - The UUID of the domain.
      * @deprecated This function is deprecated and will be removed.
