@@ -4064,9 +4064,6 @@ bool Application::event(QEvent* event) {
         case QEvent::KeyRelease:
             keyReleaseEvent(static_cast<QKeyEvent*>(event));
             return true;
-        case QEvent::FocusIn:
-            focusInEvent(static_cast<QFocusEvent*>(event));
-            return true;
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
@@ -4107,6 +4104,17 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
         return true;
+    }
+
+    auto eventType = event->type();
+    if (eventType == QEvent::KeyPress || eventType == QEvent::KeyRelease || eventType == QEvent::MouseMove) {
+        RefreshRateManager& refreshRateManager = getRefreshRateManager();
+        auto refreshRateRegime = refreshRateManager.getRefreshRateRegime();
+
+        if (refreshRateRegime == RefreshRateManager::RefreshRateRegime::RUNNING ||
+            refreshRateRegime == RefreshRateManager::RefreshRateRegime::INACTIVE) {
+            getRefreshRateManager().resetInactiveTimer();
+        }
     }
 
     if (event->type() == QEvent::Leave) {
@@ -4420,23 +4428,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
 }
 
-void Application::focusInEvent(QFocusEvent* event) {
-    if (!_aboutToQuit && _startUpFinished) {
-        getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
-    }
-}
-
-
 void Application::focusOutEvent(QFocusEvent* event) {
     auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
         if (inputPlugin->isActive()) {
             inputPlugin->pluginFocusOutEvent();
         }
-    }
-
-    if (!_aboutToQuit && _startUpFinished) {
-        getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::UNFOCUS);
     }
 // FIXME spacemouse code still needs cleanup
 #if 0
@@ -8549,11 +8546,20 @@ void Application::activeChanged(Qt::ApplicationState state) {
     switch (state) {
         case Qt::ApplicationActive:
             _isForeground = true;
+            if (!_aboutToQuit && _startUpFinished) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
+            }
             break;
 
         case Qt::ApplicationSuspended:
+            break;
         case Qt::ApplicationHidden:
+            break;
         case Qt::ApplicationInactive:
+            if (!_aboutToQuit && _startUpFinished) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::UNFOCUS);
+            }
+            break;
         default:
             _isForeground = false;
             break;

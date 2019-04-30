@@ -15,6 +15,8 @@
 #include <map>
 #include <string>
 
+#include <QTimer>
+
 #include <SettingHandle.h>
 #include <shared/ReadWriteLockable.h>
 
@@ -33,6 +35,7 @@ public:
         MINIMIZED,
         STARTUP,
         SHUTDOWN,
+        INACTIVE,
         REGIME_NUM
     };
 
@@ -60,6 +63,8 @@ public:
     void setInteractiveRefreshRate(int refreshRate);
     int getInteractiveRefreshRate() const;
 
+    void resetInactiveTimer();
+
     static std::string refreshRateProfileToString(RefreshRateProfile refreshRateProfile);
     static RefreshRateProfile refreshRateProfileFromString(std::string refreshRateProfile);
     static std::string uxModeToString(UXMode uxMode);
@@ -78,6 +83,9 @@ private:
     Setting::Handle<int> _refreshRateMode { "refreshRateProfile", INTERACTIVE };
 
     std::function<void(int)> _refreshRateOperator { nullptr };
+
+
+    std::shared_ptr<QTimer> _inactiveTimer { std::make_shared<QTimer>() };
 };
 
 #endif
