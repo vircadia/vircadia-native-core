@@ -71,7 +71,14 @@ void PolyLineEntityRenderer::buildPipeline() {
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    // FIXME: implement isTransparent() for polylines and an opaque pipeline
+    auto builder = ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (_cullWithParent) {
+        builder.withSubMetaCulled();
+    }
+
+    return builder.build();
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {

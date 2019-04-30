@@ -151,7 +151,7 @@ void Model::setOffset(const glm::vec3& offset) {
 }
 
 void Model::calculateTextureInfo() {
-    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItemsMap.isEmpty()) {
+    if (!_hasCalculatedTextureInfo && isLoaded() && getGeometry()->areTexturesLoaded() && !_modelMeshRenderItems.isEmpty()) {
         size_t textureSize = 0;
         int textureCount = 0;
         bool allTexturesLoaded = true;
@@ -951,6 +951,20 @@ void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
             });
         }
         scene->enqueueTransaction(transaction);
+    }
+}
+
+void Model::setCullWithParent(bool cullWithParent) {
+    if (_cullWithParent != cullWithParent) {
+        _cullWithParent = cullWithParent;
+
+        render::Transaction transaction;
+        foreach(auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [cullWithParent](ModelMeshPartPayload& data) {
+                data.setCullWithParent(cullWithParent);
+            });
+        }
+        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
     }
 }
 

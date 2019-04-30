@@ -2111,7 +2111,8 @@ void Avatar::updateAttachmentRenderIDs() {
 
 void Avatar::updateDescendantRenderIDs() {
     _subItemLock.withWriteLock([&] {
-        auto oldDescendantRenderIDs = _descendantRenderIDs;
+        auto oldRenderingDescendantEntityIDs = _renderingDescendantEntityIDs;
+        _renderingDescendantEntityIDs.clear();
         _descendantRenderIDs.clear();
         auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -2121,34 +2122,30 @@ void Avatar::updateDescendantRenderIDs() {
                     if (object && object->getNestableType() == NestableType::Entity) {
                         EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                         if (entity->isVisible()) {
-                            auto renderer = entityTreeRenderer->renderableForEntityId(object->getID());
+                            auto id = object->getID();
+                            _renderingDescendantEntityIDs.insert(id);
+                            oldRenderingDescendantEntityIDs.erase(id);
+                            entity->setCullWithParent(true);
+
+                            auto renderer = entityTreeRenderer->renderableForEntityId(id);
                             if (renderer) {
                                 render::ItemIDs renderableSubItems;
                                 uint32_t numRenderableSubItems = renderer->metaFetchMetaSubItems(renderableSubItems);
                                 if (numRenderableSubItems > 0) {
-                                    for (auto& renderID : renderableSubItems) {
-                                        _descendantRenderIDs.insert(renderID);
-                                        oldDescendantRenderIDs.erase(renderID);
-                                    }
+                                    _descendantRenderIDs.insert(_descendantRenderIDs.end(), renderableSubItems.begin(), renderableSubItems.end());
                                 }
                             }
                         }
                     }
                 });
-            });
 
-            render::Transaction transaction;
-            for (auto& oldDescendantRenderID : oldDescendantRenderIDs) {
-                transaction.updateItem<render::PayloadProxyInterface>(oldDescendantRenderID, [](render::PayloadProxyInterface& self) {
-                    self.setOverrideSubMetaCulled(false);
-                });
-            }
-            for (auto& descendantRenderIDs : _descendantRenderIDs) {
-                transaction.updateItem<render::PayloadProxyInterface>(descendantRenderIDs, [](render::PayloadProxyInterface& self) {
-                    self.setOverrideSubMetaCulled(true);
-                });
-            }
-            AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+                for (auto& oldRenderingDescendantEntityID : oldRenderingDescendantEntityIDs) {
+                    auto entity = entityTree->findEntityByEntityItemID(oldRenderingDescendantEntityID);
+                    if (entity) {
+                        entity->setCullWithParent(false);
+                    }
+                }
+            });
         }
     });
 }

@@ -3061,6 +3061,17 @@ void EntityItem::setCanCastShadow(bool value) {
     }
 }
 
+bool EntityItem::getCullWithParent() const {
+    return _cullWithParent;
+}
+
+void EntityItem::setCullWithParent(bool value) {
+    if (_cullWithParent != value) {
+        _cullWithParent = value;
+        emit requestRenderUpdate();
+    }
+}
+
 bool EntityItem::isChildOfMyAvatar() const {
     QUuid ancestorID = findAncestorOfType(NestableType::Avatar);
     return !ancestorID.isNull() && (ancestorID == Physics::getSessionUUID() || ancestorID == AVATAR_SELF_ID);

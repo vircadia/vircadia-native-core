@@ -599,12 +599,6 @@ public:
     virtual Item::Bound getBound() = 0;
     virtual void render(RenderArgs* args) = 0;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) = 0;
-
-    bool overrideSubMetaCulled() const { return _overrideSubMetaCulled; }
-    void setOverrideSubMetaCulled(bool overrideSubMetaCulled) { _overrideSubMetaCulled = overrideSubMetaCulled; }
-
-protected:
-    bool _overrideSubMetaCulled { false };
 };
 
 template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload);
@@ -615,7 +609,7 @@ template <> const ShapeKey shapeGetShapeKey(const PayloadProxyInterface::Pointer
 
 
 typedef Item::PayloadPointer PayloadPointer;
-typedef std::vector< PayloadPointer > Payloads;
+typedef std::vector<PayloadPointer> Payloads;
 
 // A map of items by ShapeKey to optimize rendering pipeline assignments
 using ShapeBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;

@@ -230,8 +230,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
 }
 
 ItemKey MaterialEntityRenderer::getKey() {
-    ItemKey::Builder builder;
-    builder.withTypeShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    auto builder = ItemKey::Builder().withTypeShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 
     if (!_visible) {
         builder.withInvisible();
