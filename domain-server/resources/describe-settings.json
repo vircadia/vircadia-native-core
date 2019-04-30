@@ -1307,8 +1307,8 @@
           "name": "connection_rate",
           "label": "Connection Rate",
           "help": "Number of new agents that can connect to the mixer every second",
-          "placeholder": "50",
-          "default": "50",
+          "placeholder": "10000000",
+          "default": "10000000",
           "advanced": true
         },
         {
