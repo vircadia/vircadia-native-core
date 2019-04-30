@@ -3591,7 +3591,7 @@ void Application::setPreferAvatarFingerOverStylus(bool value) {
 
 void Application::setPreferredCursor(const QString& cursorName) {
     qCDebug(interfaceapp) << "setPreferredCursor" << cursorName;
-    _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
+    _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName);
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
 }
 
@@ -5041,11 +5041,8 @@ void Application::idle() {
         }
     }
 #endif
-
     
-    if((displayPlugin && displayPlugin->isHmd()) ||  _preferredCursor.get() ==  Cursor::Manager::ICON_NAMES[Cursor::Icon::RETICLE]){
-        checkChangeCursor();
-    }
+    checkChangeCursor();
 
 #if !defined(DISABLE_QML)
     auto stats = Stats::getInstance();
