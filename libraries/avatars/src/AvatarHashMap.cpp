@@ -326,7 +326,8 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             bool displayNameChanged = false;
             // In this case, the "sendingNode" is the Avatar Mixer.
             avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
-            if (avatar->isCertifyFailed()) {
+            if (avatar->isCertifyFailed() && identityUUID != EMPTY) {
+                qCDebug(avatars) << "Avatar" << avatar->getSessionDisplayName() << "marked as VERIFY-FAILED";
                 avatar->setSkeletonModelURL(PathUtils::resourcesUrl(VERIFY_FAIL_MODEL));
             }
             _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);

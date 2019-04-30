@@ -27,24 +27,27 @@
 #include "ClientTraitsHandler.h"
 #include "AvatarLogging.h"
 
-const QString MixerAvatar::VERIFY_FAIL_MODEL { "qrc:/meshes/verifyFailed.fst" };
-
 void MixerAvatar::fetchAvatarFST() {
     _verifyState = nonCertified;
+
+    _pendingEvent = false;
+
+    QUrl avatarURL = getSkeletonModelURL();
+    auto avatarString = avatarURL.toString();
+    qCDebug(avatars) << "MixerAvatar::fetchAvatarFST: called with" << avatarString;
+    if (avatarURL.isEmpty() || avatarURL.isLocalFile() || avatarURL.scheme() == "qrc") {
+        // Not network FST.
+        return;
+    }
     _certificateIdFromURL.clear();
     _certificateIdFromFST.clear();
     _marketplaceIdFromURL.clear();
     _marketplaceIdFromFST.clear();
     auto resourceManager = DependencyManager::get<ResourceManager>();
-    QUrl avatarURL = getSkeletonModelURL();
-    if (avatarURL.isEmpty()) {
-        return;
-    }
 
-    //auto avatarURLString = avatarURL.toDisplayString();
     // Match UUID + (optionally) URL cert
     static const QRegularExpression marketIdRegex{
-        "^https://metaverse.highfidelity.com/api/v.+/commerce/entity_edition/([-0-9a-z]{36})(.*?certificate_id=([\\w/+%]+)|.*).*$"
+        "^https://.*?highfidelity\\.com/api/.*?/commerce/entity_edition/([-0-9a-z]{36})(.*?certificate_id=([\\w/+%]+)|.*).*$"
     };
     auto marketIdMatch = marketIdRegex.match(avatarURL.toDisplayString());
     if (marketIdMatch.hasMatch()) {
@@ -58,18 +61,17 @@ void MixerAvatar::fetchAvatarFST() {
     ResourceRequest* fstRequest = resourceManager->createResourceRequest(this, avatarURL);
     if (fstRequest) {
         QMutexLocker certifyLocker(&_avatarCertifyLock);
+        qCDebug(avatars) << "Requesting FST at" << avatarURL;
 
-        if (_avatarRequest) {
-            _avatarRequest->deleteLater();
-        }
         _avatarRequest = fstRequest;
-        connect(fstRequest, &ResourceRequest::finished, this, &MixerAvatar::fstRequestComplete);
         _verifyState = requestingFST;
+        connect(fstRequest, &ResourceRequest::finished, this, &MixerAvatar::fstRequestComplete);
         fstRequest->send();
     } else {
         qCDebug(avatars) << "Couldn't create FST request for" << avatarURL;
         _verifyState = error;
     }
+    _needsIdentityUpdate = true;
 }
 
 void MixerAvatar::fstRequestComplete() {
@@ -176,6 +178,7 @@ void MixerAvatar::ownerRequestComplete() {
             qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
                 << jsonData.toObject()["message"].toString();
             _verifyState = error;
+            _pendingEvent = false;
         }
     }
     networkReply->deleteLater();
@@ -263,6 +266,7 @@ void MixerAvatar::processCertifyEvents() {
         {
             if (_challengeResponse.length() < 8) {
                 _verifyState = error;
+                _pendingEvent = false;
                 break;
             }
 
@@ -282,7 +286,6 @@ void MixerAvatar::processCertifyEvents() {
             _needsIdentityUpdate = true;
             if (_verifyState == verificationFailed) {
                 qCDebug(avatars) << "Dynamic verification FAILED for " << getDisplayName() << getSessionUUID();
-                setSkeletonModelURL(QUrl(VERIFY_FAIL_MODEL));
             } else {
                 qCDebug(avatars) << "Dynamic verification SUCCEEDED for " << getDisplayName() << getSessionUUID();
             }
@@ -324,7 +327,6 @@ void MixerAvatar::sendOwnerChallenge() {
     _challengeTimeout.setInterval(CHALLENGE_TIMEOUT_MS);
     _challengeTimeout.connect(&_challengeTimeout, &QTimer::timeout, [this]() {
         _verifyState = verificationFailed;
-        setSkeletonModelURL(QUrl(VERIFY_FAIL_MODEL));
         _needsIdentityUpdate = true;
     });
 }
