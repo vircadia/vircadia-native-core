@@ -8456,28 +8456,30 @@ bool Application::takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOp
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     addSnapshotOperator(std::make_tuple([notify, includeAnimated, aspectRatio, filename](const QImage& snapshot) {
-        QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
+        qApp->postLambdaEvent([snapshot, notify, includeAnimated, aspectRatio, filename] {
+            QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        // If we're not doing an animated snapshot as well...
-        if (!includeAnimated) {
-            if (!path.isEmpty()) {
-                // Tell the dependency manager that the capture of the still snapshot has taken place.
-                emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
-            }
-        } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
-            qApp->postLambdaEvent([path, aspectRatio] {
+            // If we're not doing an animated snapshot as well...
+            if (!includeAnimated) {
+                if (!path.isEmpty()) {
+                    // Tell the dependency manager that the capture of the still snapshot has taken place.
+                    emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
+                }
+            } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
                 // Get an animated GIF snapshot and save it
                 SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, DependencyManager::get<WindowScriptingInterface>());
-            });
-        }
+            }
+        });
     }, aspectRatio, true));
 }
 
 void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
     addSnapshotOperator(std::make_tuple([notify, filename](const QImage& snapshot) {
-        QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
+        qApp->postLambdaEvent([snapshot, notify, filename] {
+            QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
+            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
+        });
     }, 0.0f, false));
 }
 
