@@ -3591,7 +3591,14 @@ void Application::setPreferAvatarFingerOverStylus(bool value) {
 
 void Application::setPreferredCursor(const QString& cursorName) {
     qCDebug(interfaceapp) << "setPreferredCursor" << cursorName;
-    _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName);
+
+    if (_displayPlugin && _displayPlugin->isHmd()) {
+        _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
+    }
+    else { 
+        _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName); 
+    }
+
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
 }
 
