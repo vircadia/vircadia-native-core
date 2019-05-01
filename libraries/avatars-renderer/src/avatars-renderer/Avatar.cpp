@@ -1428,7 +1428,7 @@ int Avatar::getJointIndex(const QString& name) const {
 
     withValidJointIndicesCache([&]() {
         if (_modelJointIndicesCache.contains(name)) {
-            result = _modelJointIndicesCache[name] - 1;
+            result = _modelJointIndicesCache.value(name) - 1;
         }
     });
     return result;
@@ -1439,22 +1439,22 @@ QStringList Avatar::getJointNames() const {
     withValidJointIndicesCache([&]() {
         // find out how large the vector needs to be
         int maxJointIndex = -1;
-        QHashIterator<QString, int> k(_modelJointIndicesCache);
-        while (k.hasNext()) {
-            k.next();
+        QHash<QString, int>::const_iterator k = _modelJointIndicesCache.constBegin();
+        while (k != _modelJointIndicesCache.constEnd()) {
             int index = k.value();
             if (index > maxJointIndex) {
                 maxJointIndex = index;
             }
+            ++k;
         }
         // iterate through the hash and put joint names
         // into the vector at their indices
         QVector<QString> resultVector(maxJointIndex+1);
-        QHashIterator<QString, int> i(_modelJointIndicesCache);
-        while (i.hasNext()) {
-            i.next();
+        QHash<QString, int>::const_iterator i = _modelJointIndicesCache.constBegin();
+        while (i != _modelJointIndicesCache.constEnd()) {
             int index = i.value();
             resultVector[index] = i.key();
+            ++i;
         }
         // convert to QList and drop out blanks
         result = resultVector.toList();
