@@ -25,23 +25,6 @@
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
-#ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
-#include "EntityTree.h"
-
-bool EntityMotionState::entityTreeIsLocked() const {
-    EntityTreeElementPointer element = _entity->getElement();
-    EntityTreePointer tree = element ? element->getTree() : nullptr;
-    if (!tree) {
-        return true;
-    }
-    return true;
-}
-#else
-bool entityTreeIsLocked() {
-    return true;
-}
-#endif
-
 const uint8_t LOOPS_FOR_SIMULATION_ORPHAN = 50;
 const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
 
@@ -74,7 +57,6 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
 
     _type = MOTIONSTATE_TYPE_ENTITY;
     assert(_entity);
-    assert(entityTreeIsLocked());
     setMass(_entity->computeMass());
     // we need the side-effects of EntityMotionState::setShape() so we call it explicitly here
     // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
@@ -143,7 +125,6 @@ void EntityMotionState::handleDeactivation() {
 
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t& flags) {
-    assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
 
@@ -191,17 +172,10 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
 }
 
 
-// virtual
-bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables();
-    return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
-}
-
 PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     if (!_entity) {
         return MOTION_TYPE_STATIC;
     }
-    assert(entityTreeIsLocked());
 
     if (_entity->getLocked()) {
         if (_entity->isMoving()) {
@@ -226,7 +200,6 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
 }
 
 bool EntityMotionState::isMoving() const {
-    assert(entityTreeIsLocked());
     return _entity && _entity->isMovingRelativeToParent();
 }
 
@@ -240,7 +213,6 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     if (!_entity) {
         return;
     }
-    assert(entityTreeIsLocked());
     if (_motionType == MOTION_TYPE_KINEMATIC) {
         BT_PROFILE("kinematicIntegration");
         uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
@@ -271,7 +243,6 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation step...
 // iff the corresponding RigidBody is DYNAMIC and ACTIVE.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
-    assert(entityTreeIsLocked());
     measureBodyAcceleration();
 
     // If transform or velocities are flagged as dirty it means a network or scripted change
@@ -308,19 +279,6 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     }
 }
 
-
-// virtual and protected
-bool EntityMotionState::isReadyToComputeShape() const {
-    return _entity->isReadyToComputeShape();
-}
-
-// virtual and protected
-const btCollisionShape* EntityMotionState::computeNewShape() {
-    ShapeInfo shapeInfo;
-    assert(entityTreeIsLocked());
-    _entity->computeShapeInfo(shapeInfo);
-    return getShapeManager()->getShape(shapeInfo);
-}
 
 const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
 
@@ -439,7 +397,6 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
     DETAILED_PROFILE_RANGE(simulation_physics, "ShouldSend");
     // NOTE: we expect _entity and _body to be valid in this context, since shouldSendUpdate() is only called
     // after doesNotNeedToSendUpdate() returns false and that call should return 'true' if _entity or _body are NULL.
-    assert(entityTreeIsLocked());
 
     // this case is prevented by setting _ownershipState to UNOWNABLE in EntityMotionState::ctor
     assert(!(_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()));
@@ -505,7 +462,6 @@ void EntityMotionState::updateSendVelocities() {
 
 void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t step) {
     DETAILED_PROFILE_RANGE(simulation_physics, "Bid");
-    assert(entityTreeIsLocked());
 
     updateSendVelocities();
 
@@ -546,7 +502,6 @@ void EntityMotionState::sendBid(OctreeEditPacketSender* packetSender, uint32_t s
 
 void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step) {
     DETAILED_PROFILE_RANGE(simulation_physics, "Send");
-    assert(entityTreeIsLocked());
     assert(isLocallyOwned());
 
     updateSendVelocities();
@@ -645,8 +600,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
     _bumpedPriority = 0;
 }
 
-uint32_t EntityMotionState::getIncomingDirtyFlags() {
-    assert(entityTreeIsLocked());
+uint32_t EntityMotionState::getIncomingDirtyFlags() const {
     uint32_t dirtyFlags = 0;
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags();
@@ -677,7 +631,6 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
 }
 
 void EntityMotionState::clearIncomingDirtyFlags() {
-    assert(entityTreeIsLocked());
     if (_body && _entity) {
         _entity->clearDirtyFlags(DIRTY_PHYSICS_FLAGS);
     }
@@ -694,7 +647,6 @@ void EntityMotionState::slaveBidPriority() {
 
 // virtual
 QUuid EntityMotionState::getSimulatorID() const {
-    assert(entityTreeIsLocked());
     return _entity->getSimulatorID();
 }
 
@@ -762,6 +714,10 @@ glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
     return _measuredAcceleration * _measuredDeltaTime;
 }
 
+bool EntityMotionState::shouldBeInPhysicsSimulation() const {
+    return _region < workload::Region::R3 && _entity->shouldBePhysical();
+}
+
 // virtual
 void EntityMotionState::setMotionType(PhysicsMotionType motionType) {
     ObjectMotionState::setMotionType(motionType);
@@ -770,7 +726,6 @@ void EntityMotionState::setMotionType(PhysicsMotionType motionType) {
 
 // virtual
 QString EntityMotionState::getName() const {
-    assert(entityTreeIsLocked());
     return _entity->getName();
 }
 

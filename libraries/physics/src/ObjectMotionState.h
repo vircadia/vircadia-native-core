@@ -100,7 +100,6 @@ public:
     virtual ~ObjectMotionState();
 
     virtual void handleEasyChanges(uint32_t& flags);
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
@@ -123,11 +122,12 @@ public:
     glm::vec3 getBodyAngularVelocity() const;
     virtual glm::vec3 getObjectLinearVelocityChange() const;
 
-    virtual uint32_t getIncomingDirtyFlags() = 0;
+    virtual uint32_t getIncomingDirtyFlags() const = 0;
     virtual void clearIncomingDirtyFlags() = 0;
 
     virtual PhysicsMotionType computePhysicsMotionType() const = 0;
 
+    virtual bool needsNewShape() const { return _shape == nullptr || getIncomingDirtyFlags() & Simulation::DIRTY_SHAPE; }
     const btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
 
@@ -154,6 +154,7 @@ public:
     virtual void bump(uint8_t priority) {}
 
     virtual QString getName() const { return ""; }
+    virtual ShapeType getShapeType() const = 0;
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const = 0;
 
@@ -172,8 +173,6 @@ public:
     friend class PhysicsEngine;
 
 protected:
-    virtual bool isReadyToComputeShape() const = 0;
-    virtual const btCollisionShape* computeNewShape() = 0;
     virtual void setMotionType(PhysicsMotionType motionType);
     void updateCCDConfiguration();
 
@@ -187,7 +186,7 @@ protected:
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
-    // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK: These date members allow an Action
+    // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK: These data members allow an Action
     // to operate on a kinematic object without screwing up our default kinematic integration
     // which is done in the MotionState::getWorldTransform().
     mutable uint32_t _lastKinematicStep;

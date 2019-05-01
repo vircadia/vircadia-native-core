@@ -201,6 +201,9 @@ void ObjectMotionState::setShape(const btCollisionShape* shape) {
         if (_body && _type != MOTIONSTATE_TYPE_DETAILED) {
             updateCCDConfiguration();
         }
+    } else if (shape) {
+        // we need to release unused reference to shape
+        getShapeManager()->releaseShape(shape);
     }
 }
 
@@ -283,50 +286,6 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_MASS) {
         updateBodyMassProperties();
     }
-}
-
-bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    assert(_body && _shape);
-    if (flags & Simulation::DIRTY_SHAPE) {
-        // make sure the new shape is valid
-        if (!isReadyToComputeShape()) {
-            return false;
-        }
-        const btCollisionShape* newShape = computeNewShape();
-        if (!newShape) {
-            qCDebug(physics) << "Warning: failed to generate new shape!";
-            // failed to generate new shape! --> keep old shape and remove shape-change flag
-            flags &= ~Simulation::DIRTY_SHAPE;
-            // TODO: force this object out of PhysicsEngine rather than just use the old shape
-            if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
-                // no HARD flags remain, so do any EASY changes
-                if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    handleEasyChanges(flags);
-                }
-                return true;
-            }
-        } else {
-            if (_shape == newShape) {
-                // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
-                flags &= ~Simulation::DIRTY_SHAPE;
-                // and clear the reference we just created
-                getShapeManager()->releaseShape(_shape);        
-            } else {
-                _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
-                setShape(newShape);
-            }
-        }
-    }
-    if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        handleEasyChanges(flags);
-    }
-    // it is possible there are no HARD flags at this point (if DIRTY_SHAPE was removed)
-    // so we check again before we reinsert:
-    if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-        engine->reinsertObject(this);
-    }
-
-    return true;
 }
 
 void ObjectMotionState::updateBodyMaterialProperties() {

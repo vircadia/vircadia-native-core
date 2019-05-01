@@ -23,55 +23,55 @@ class DetailedMotionState : public ObjectMotionState {
 public:
     DetailedMotionState(AvatarPointer avatar, const btCollisionShape* shape, int jointIndex);
 
-    virtual void handleEasyChanges(uint32_t& flags) override;
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
+    void handleEasyChanges(uint32_t& flags) override;
 
-    virtual PhysicsMotionType getMotionType() const override { return _motionType; }
+    PhysicsMotionType getMotionType() const override { return _motionType; }
 
-    virtual uint32_t getIncomingDirtyFlags() override;
-    virtual void clearIncomingDirtyFlags() override;
+    uint32_t getIncomingDirtyFlags() const override;
+    void clearIncomingDirtyFlags() override;
 
-    virtual PhysicsMotionType computePhysicsMotionType() const override;
+    PhysicsMotionType computePhysicsMotionType() const override;
 
-    virtual bool isMoving() const override;
+    bool isMoving() const override;
 
     // this relays incoming position/rotation to the RigidBody
-    virtual void getWorldTransform(btTransform& worldTrans) const override;
+    void getWorldTransform(btTransform& worldTrans) const override;
 
     // this relays outgoing position/rotation to the EntityItem
-    virtual void setWorldTransform(const btTransform& worldTrans) override;
+    void setWorldTransform(const btTransform& worldTrans) override;
 
 
     // These pure virtual methods must be implemented for each MotionState type
     // and make it possible to implement more complicated methods in this base class.
 
     // pure virtual overrides from ObjectMotionState
-    virtual float getObjectRestitution() const override;
-    virtual float getObjectFriction() const override;
-    virtual float getObjectLinearDamping() const override;
-    virtual float getObjectAngularDamping() const override;
+    float getObjectRestitution() const override;
+    float getObjectFriction() const override;
+    float getObjectLinearDamping() const override;
+    float getObjectAngularDamping() const override;
 
-    virtual glm::vec3 getObjectPosition() const override;
-    virtual glm::quat getObjectRotation() const override;
-    virtual glm::vec3 getObjectLinearVelocity() const override;
-    virtual glm::vec3 getObjectAngularVelocity() const override;
-    virtual glm::vec3 getObjectGravity() const override;
+    glm::vec3 getObjectPosition() const override;
+    glm::quat getObjectRotation() const override;
+    glm::vec3 getObjectLinearVelocity() const override;
+    glm::vec3 getObjectAngularVelocity() const override;
+    glm::vec3 getObjectGravity() const override;
 
-    virtual const QUuid getObjectID() const override;
+    const QUuid getObjectID() const override;
 
-    virtual QString getName() const override;
-    virtual QUuid getSimulatorID() const override;
+    QString getName() const override;
+    ShapeType getShapeType() const override { return SHAPE_TYPE_HULL; }
+    QUuid getSimulatorID() const override;
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
-    virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
+    void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
-    virtual float getMass() const override;
+    float getMass() const override;
     void forceActive();
     QUuid getAvatarID() const { return _avatar->getID(); }
-    int getJointIndex() const { return _jointIndex; }
-    void setIsBound(bool isBound, std::vector<int> boundJoints) { _isBound = isBound; _boundJoints = boundJoints; }
-    bool getIsBound(std::vector<int>& boundJoints) const { boundJoints = _boundJoints; return _isBound; }
+    int32_t getJointIndex() const { return _jointIndex; }
+    void setIsBound(bool isBound, const std::vector<int32_t>& boundJoints) { _isBound = isBound; _boundJoints = boundJoints; }
+    bool getIsBound(std::vector<int32_t>& boundJoints) const { boundJoints = _boundJoints; return _isBound; }
 
     friend class AvatarManager;
     friend class Avatar;
@@ -84,17 +84,14 @@ protected:
     // ever called by the Avatar class dtor.
     ~DetailedMotionState();
 
-    virtual bool isReadyToComputeShape() const override { return true; }
-    virtual const btCollisionShape* computeNewShape() override;
-
     AvatarPointer _avatar;
     float _diameter { 0.0f };
 
     uint32_t _dirtyFlags;
-    int _jointIndex { -1 };
+    int32_t _jointIndex { -1 };
     OtherAvatarPointer _otherAvatar { nullptr };
     bool _isBound { false };
-    std::vector<int> _boundJoints;
+    std::vector<int32_t> _boundJoints;
 };
 
 #endif // hifi_DetailedMotionState_h

@@ -39,7 +39,6 @@ public:
 
     void handleDeactivation();
     virtual void handleEasyChanges(uint32_t& flags) override;
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
     /// \return PhysicsMotionType based on params set in EntityItem
     virtual PhysicsMotionType computePhysicsMotionType() const override;
@@ -56,7 +55,7 @@ public:
     void sendBid(OctreeEditPacketSender* packetSender, uint32_t step);
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
-    virtual uint32_t getIncomingDirtyFlags() override;
+    virtual uint32_t getIncomingDirtyFlags() const override;
     virtual void clearIncomingDirtyFlags() override;
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
@@ -85,6 +84,7 @@ public:
     void measureBodyAcceleration();
 
     virtual QString getName() const override;
+    ShapeType getShapeType() const override { return _entity->getShapeType(); }
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
@@ -113,12 +113,8 @@ protected:
 
     void clearObjectVelocities() const;
 
-    #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
-    bool entityTreeIsLocked() const;
-    #endif
-
-    bool isReadyToComputeShape() const override;
-    const btCollisionShape* computeNewShape() override;
+    bool isInPhysicsSimulation() const { return _body != nullptr; }
+    bool shouldBeInPhysicsSimulation() const;
     void setMotionType(PhysicsMotionType motionType) override;
 
     // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR

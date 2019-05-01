@@ -260,35 +260,6 @@ void PhysicsEngine::addObjects(const VectorOfMotionStates& objects) {
     }
 }
 
-VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& objects) {
-    VectorOfMotionStates stillNeedChange;
-    for (auto object : objects) {
-        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
-        if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleHardAndEasyChanges(flags, this)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                stillNeedChange.push_back(object);
-            }
-        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
-            object->clearIncomingDirtyFlags();
-        }
-        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
-            _activeStaticBodies.insert(object->getRigidBody());
-        }
-    }
-    // active static bodies have changed (in an Easy way) and need their Aabbs updated
-    // but we've configured Bullet to NOT update them automatically (for improved performance)
-    // so we must do it ourselves
-    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
-    while (itr != _activeStaticBodies.end()) {
-        _dynamicsWorld->updateSingleAabb(*itr);
-        ++itr;
-    }
-    return stillNeedChange;
-}
-
 void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     // remove object from DynamicsWorld
     bumpAndPruneContacts(object);
@@ -320,7 +291,6 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
             body->setMotionState(nullptr);
             delete body;
         }
-        object->clearIncomingDirtyFlags();
     }
 
     // adds
@@ -328,34 +298,16 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
         addObjectToDynamicsWorld(object);
     }
 
-    // changes
-    std::vector<ObjectMotionState*> failedChanges;
-    for (auto object : transaction.objectsToChange) {
-        uint32_t flags = object->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
-        if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleHardAndEasyChanges(flags, this)) {
-                object->clearIncomingDirtyFlags();
-            } else {
-                failedChanges.push_back(object);
-            }
-        } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
-            object->clearIncomingDirtyFlags();
-        }
-        if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
-            _activeStaticBodies.insert(object->getRigidBody());
-        }       
+    // reinserts
+    for (auto object : transaction.objectsToReinsert) {
+        reinsertObject(object);
     }
-    // activeStaticBodies have changed (in an Easy way) and need their Aabbs updated
-    // but we've configured Bullet to NOT update them automatically (for improved performance)
-    // so we must do it ourselves
-    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
-    while (itr != _activeStaticBodies.end()) {
-        _dynamicsWorld->updateSingleAabb(*itr);
-        ++itr;
+
+    for (auto object : transaction.activeStaticObjects) {
+        btRigidBody* body = object->getRigidBody();
+        _dynamicsWorld->updateSingleAabb(body);
+        _activeStaticBodies.insert(body);
     }
-    // we replace objectsToChange with any that failed
-    transaction.objectsToChange.swap(failedChanges);
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {

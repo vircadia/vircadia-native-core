@@ -17,7 +17,7 @@
 #include "MyAvatar.h"
 
 
-DetailedMotionState::DetailedMotionState(AvatarPointer avatar, const btCollisionShape* shape, int jointIndex) : 
+DetailedMotionState::DetailedMotionState(AvatarPointer avatar, const btCollisionShape* shape, int32_t jointIndex) : 
     ObjectMotionState(shape), _avatar(avatar), _jointIndex(jointIndex) {
     assert(_avatar);
     if (!_avatar->isMyAvatar()) {
@@ -33,17 +33,13 @@ void DetailedMotionState::handleEasyChanges(uint32_t& flags) {
     }
 }
 
-bool DetailedMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
-}
-
 DetailedMotionState::~DetailedMotionState() {
     assert(_avatar);
     _avatar = nullptr;
 }
 
 // virtual
-uint32_t DetailedMotionState::getIncomingDirtyFlags() {
+uint32_t DetailedMotionState::getIncomingDirtyFlags() const {
     return _body ? _dirtyFlags : 0;
 }
 
@@ -54,24 +50,7 @@ void DetailedMotionState::clearIncomingDirtyFlags() {
 }
 
 PhysicsMotionType DetailedMotionState::computePhysicsMotionType() const {
-    // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
     return MOTION_TYPE_KINEMATIC;
-}
-
-// virtual and protected
-const btCollisionShape* DetailedMotionState::computeNewShape() {
-    btCollisionShape* shape = nullptr;
-    if (!_avatar->isMyAvatar()) {
-        if (_otherAvatar != nullptr) {
-            shape =  _otherAvatar->createCollisionShape(_jointIndex, _isBound, _boundJoints);
-        }
-    } else {
-        std::shared_ptr<MyAvatar> myAvatar = std::static_pointer_cast<MyAvatar>(_avatar);
-        if (myAvatar) {
-            shape = myAvatar->getCharacterController()->createDetailedCollisionShapeForJoint(_jointIndex);
-        }
-    }
-    return shape;
 }
 
 // virtual

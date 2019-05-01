@@ -293,6 +293,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
                 radiuses.push_back(sphereData.w);
             }
             shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
+            const float MULTI_SPHERE_MARGIN = 0.001f;
+            shape->setMargin(MULTI_SPHERE_MARGIN);
         }
         break;
         case SHAPE_TYPE_ELLIPSOID: {
@@ -459,6 +461,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
                 shape = compound;
             }
         }
+    } else {
+        // TODO: warn about this case
     }
     return shape;
 }
