@@ -1330,7 +1330,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("avatar", avatarURL.toString().toStdString());
     });
 
-
     // Inititalize sample before registering
     _sampleSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/sample.wav"));
 
@@ -1421,6 +1420,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
 
+    if (_displayPlugin && !_displayPlugin->isHmd()) {
+        _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+        showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
+    }
     // An audio device changed signal received before the display plugins are set up will cause a crash,
     // so we defer the setup of the `scripting::Audio` class until this point
     {
