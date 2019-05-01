@@ -1286,6 +1286,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         }
     }
 
+    if (properties.privateUserDataChanged()) {
+        int index = changedProperties.indexOf("privateUserData");
+        if (index >= 0) {
+            QString changeHint = properties.getPrivateUserData();
+            changedProperties[index] = QString("privateUserData:") + changeHint;
+        }
+    }
+
     if (properties.parentJointIndexChanged()) {
         int index = changedProperties.indexOf("parentJointIndex");
         if (index >= 0) {

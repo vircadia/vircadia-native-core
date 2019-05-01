@@ -26,6 +26,7 @@ enum EntityPropertyList {
     PROP_NAME,
     PROP_LOCKED,
     PROP_USER_DATA,
+    PROP_PRIVATE_USER_DATA,
     PROP_HREF,
     PROP_DESCRIPTION,
     PROP_POSITION,

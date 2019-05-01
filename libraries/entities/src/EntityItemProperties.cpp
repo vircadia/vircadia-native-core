@@ -487,6 +487,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_NAME, name);
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
+    CHECK_PROPERTY_CHANGE(PROP_PRIVATE_USER_DATA, privateUserData);
     CHECK_PROPERTY_CHANGE(PROP_HREF, href);
     CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
@@ -817,6 +818,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     leave the rest of the data intact. You can use <code>JSON.parse()</code> to parse the string into a JavaScript object 
  *     which you can manipulate the properties of, and use <code>JSON.stringify()</code> to convert the object into a string to 
  *     put in the property.
+ *
+ * @property {string} privateUserData="" - Like userData, but only accessible by the Entity Server Scripts.
  *
  * @property {string} script="" - The URL of the client entity script, if any, that is attached to the entity.
  * @property {number} scriptTimestamp=0 - Intended to be used to indicate when the client entity script was loaded. Should be 
@@ -1591,6 +1594,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PRIVATE_USER_DATA, privateUserData);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
@@ -1999,6 +2003,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(privateUserData, QString, setPrivateUserData);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(position, vec3, setPosition);
@@ -2288,6 +2293,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(name);
     COPY_PROPERTY_IF_CHANGED(locked);
     COPY_PROPERTY_IF_CHANGED(userData);
+    COPY_PROPERTY_IF_CHANGED(privateUserData);
     COPY_PROPERTY_IF_CHANGED(href);
     COPY_PROPERTY_IF_CHANGED(description);
     COPY_PROPERTY_IF_CHANGED(position);
@@ -2573,6 +2579,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
         ADD_PROPERTY_TO_MAP(PROP_LOCKED, Locked, locked, bool);
         ADD_PROPERTY_TO_MAP(PROP_USER_DATA, UserData, userData, QString);
+        ADD_PROPERTY_TO_MAP(PROP_PRIVATE_USER_DATA, PrivateUserData, privateUserData, QString);
         ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
         ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, vec3);
@@ -3047,6 +3054,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
+            APPEND_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, properties.getPrivateUserData());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
             APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
@@ -3530,6 +3538,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIVATE_USER_DATA, QString, setPrivateUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, vec3, setPosition);
@@ -3941,6 +3950,7 @@ void EntityItemProperties::markAllChanged() {
     _nameChanged = true;
     _lockedChanged = true;
     _userDataChanged = true;
+    _privateUserDataChanged = true;
     _hrefChanged = true;
     _descriptionChanged = true;
     _positionChanged = true;
@@ -4302,6 +4312,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (userDataChanged()) {
         out += "userData";
+    }
+    if (privateUserDataChanged()) {
+        out += "privateUserData";
     }
     if (hrefChanged()) {
         out += "href";

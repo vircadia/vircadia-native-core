@@ -135,6 +135,7 @@ public:
         AudioSoloRequest,
         BulkAvatarTraitsAck,
         StopInjector,
+        PrivateUserData,
         NUM_PACKET_TYPE
     };
 
