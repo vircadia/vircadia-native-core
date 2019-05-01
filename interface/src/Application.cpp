@@ -4109,12 +4109,7 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     auto eventType = event->type();
     if (eventType == QEvent::KeyPress || eventType == QEvent::KeyRelease || eventType == QEvent::MouseMove) {
         RefreshRateManager& refreshRateManager = getRefreshRateManager();
-        auto refreshRateRegime = refreshRateManager.getRefreshRateRegime();
-
-        if (refreshRateRegime == RefreshRateManager::RefreshRateRegime::RUNNING ||
-            refreshRateRegime == RefreshRateManager::RefreshRateRegime::INACTIVE) {
-            getRefreshRateManager().resetInactiveTimer();
-        }
+        getRefreshRateManager().resetInactiveTimer();
     }
 
     if (event->type() == QEvent::Leave) {
@@ -5603,7 +5598,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
     _startUpFinished = true;
-    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
+    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -8547,7 +8542,7 @@ void Application::activeChanged(Qt::ApplicationState state) {
         case Qt::ApplicationActive:
             _isForeground = true;
             if (!_aboutToQuit && _startUpFinished) {
-                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
             }
             break;
 
@@ -8890,7 +8885,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
         RefreshRateManager& refreshRateManager = getRefreshRateManager();
         refreshRateManager.setRefreshRateOperator(OpenGLDisplayPlugin::getRefreshRateOperator());
         bool isHmd = newDisplayPlugin->isHmd();
-        RefreshRateManager::UXMode uxMode = isHmd ? RefreshRateManager::UXMode::HMD :
+        RefreshRateManager::UXMode uxMode = isHmd ? RefreshRateManager::UXMode::VR :
             RefreshRateManager::UXMode::DESKTOP;
 
         refreshRateManager.setUXMode(uxMode);

@@ -30,18 +30,18 @@ public:
     };
 
     enum RefreshRateRegime {
-        RUNNING = 0,
+        FOCUS_ACTIVE = 0,
+        FOCUS_INACTIVE,
         UNFOCUS,
         MINIMIZED,
         STARTUP,
         SHUTDOWN,
-        INACTIVE,
         REGIME_NUM
     };
 
     enum UXMode {
         DESKTOP = 0,
-        HMD,
+        VR,
         UX_NUM
     };
 
