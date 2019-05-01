@@ -19,18 +19,18 @@ try:
     post_data = open(sys.argv[2], 'rb')
 except:
     print('file ' + sys.argv[2] + ' not found')
-    exit()
+    exit(1)
     
 try:
     post_request = urllib.request.Request(post_url, post_data, post_headers)
 except:
     print('urllib.request.Request failed')
-    exit()
+    exit(1)
 
 try:
     post_response = urllib.request.urlopen(post_request)
 except:
     print('urllib.request.urlopen failed')
-    exit()
+    exit(1)
 
 print("Upload to BackTrace completed without errors")
