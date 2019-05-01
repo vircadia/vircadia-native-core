@@ -2023,9 +2023,10 @@ void EntityItem::setCollisionMask(uint16_t value) {
 
 void EntityItem::setDynamic(bool value) {
     if (getDynamic() != value) {
+        auto shapeType = getShapeType();
         withWriteLock([&] {
             // dynamic and STATIC_MESH are incompatible so we check for that case
-            if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            if (value && shapeType == SHAPE_TYPE_STATIC_MESH) {
                 if (_dynamic) {
                     _dynamic = false;
                     _flags |= Simulation::DIRTY_MOTION_TYPE;
