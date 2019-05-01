@@ -422,7 +422,7 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
 
         // tell node whose name changed about its new session display name or avatar.
         sendIdentityPacket(nodeData, node);
-        avatar.clearIdentityUpdate();
+        avatar.setNeedsIdentityUpdate(false);
     }
 }
 

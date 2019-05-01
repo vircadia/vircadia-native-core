@@ -27,7 +27,7 @@ public:
     void fetchAvatarFST();
     virtual bool isCertifyFailed() const override { return _verifyState == verificationFailed; }
     bool needsIdentityUpdate() const { return _needsIdentityUpdate; }
-    void clearIdentityUpdate() { _needsIdentityUpdate = false; }
+    void setNeedsIdentityUpdate(bool value = true) { _needsIdentityUpdate = value; }
 
     void processCertifyEvents();
     void handleChallengeResponse(ReceivedMessage* response);
