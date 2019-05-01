@@ -4298,6 +4298,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto audioClient = DependencyManager::get<AudioClient>();
                     audioClient->setMuted(!audioClient->isMuted());
+                    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+                    if (audioScriptingInterface->getPTT()) {
+                        audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
+                    }
                 }
                 break;
 
