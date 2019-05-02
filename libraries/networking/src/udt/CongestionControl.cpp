@@ -29,7 +29,7 @@ void CongestionControl::setMaxBandwidth(int maxBandwidth) {
 void CongestionControl::setPacketSendPeriod(double newSendPeriod) {
     Q_ASSERT_X(newSendPeriod >= 0, "CongestionControl::setPacketPeriod", "Can not set a negative packet send period");
 
-    auto packetsPerSecond = (double)_maxBandwidth / (BITS_PER_BYTE * _mss);
+    auto packetsPerSecond = _mss > 0.0f ? (double)_maxBandwidth / (BITS_PER_BYTE * _mss) : -1.0f;
     if (packetsPerSecond > 0.0) {
         // anytime the packet send period is about to be increased, make sure it stays below the minimum period,
         // calculated based on the maximum desired bandwidth
