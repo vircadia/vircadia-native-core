@@ -79,6 +79,8 @@
 
 #include "Sound.h"
 
+
+
 class GLCanvas;
 class FaceTracker;
 class MainWindow;
@@ -172,6 +174,7 @@ public:
     void raise();
 
     void showCursor(const Cursor::Icon& cursor);
+    void InitializePlatform();
 
     bool isThrottleRendering() const;
 
