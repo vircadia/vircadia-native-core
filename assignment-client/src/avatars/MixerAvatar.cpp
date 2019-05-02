@@ -33,8 +33,6 @@ void MixerAvatar::fetchAvatarFST() {
     _pendingEvent = false;
 
     QUrl avatarURL = getSkeletonModelURL();
-    auto avatarString = avatarURL.toString();
-    qCDebug(avatars) << "MixerAvatar::fetchAvatarFST: called with" << avatarString;
     if (avatarURL.isEmpty() || avatarURL.isLocalFile() || avatarURL.scheme() == "qrc") {
         // Not network FST.
         return;
@@ -61,7 +59,6 @@ void MixerAvatar::fetchAvatarFST() {
     ResourceRequest* fstRequest = resourceManager->createResourceRequest(this, avatarURL);
     if (fstRequest) {
         QMutexLocker certifyLocker(&_avatarCertifyLock);
-        qCDebug(avatars) << "Requesting FST at" << avatarURL;
 
         _avatarRequest = fstRequest;
         _verifyState = requestingFST;
@@ -195,29 +192,34 @@ void MixerAvatar::processCertifyEvents() {
         case receivedFST:
         {
             generateFSTHash();
-            QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
-            bool staticVerification = validateFSTHash(marketplacePublicKey);
-            _verifyState = staticVerification ? staticValidation : verificationFailed;
+            if (_certificateIdFromFST.length() != 0) {
+                QString& marketplacePublicKey = EntityItem::_marketplacePublicKey;
+                bool staticVerification = validateFSTHash(marketplacePublicKey);
+                _verifyState = staticVerification ? staticValidation : verificationFailed;
 
-            if (_verifyState == staticValidation) {
-                static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
-                auto& networkAccessManager = NetworkAccessManager::getInstance();
-                QNetworkRequest networkRequest;
-                networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-                networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-                QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
-                requestURL.setPath(POP_MARKETPLACE_API);
-                networkRequest.setUrl(requestURL);
+                if (_verifyState == staticValidation) {
+                    static const QString POP_MARKETPLACE_API { "/api/v1/commerce/proof_of_purchase_status/transfer" };
+                    auto& networkAccessManager = NetworkAccessManager::getInstance();
+                    QNetworkRequest networkRequest;
+                    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+                    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                    QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
+                    requestURL.setPath(POP_MARKETPLACE_API);
+                    networkRequest.setUrl(requestURL);
 
-                QJsonObject request;
-                request["certificate_id"] = _certificateIdFromFST;
-                _verifyState = requestingOwner;
-                QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-                connect(networkReply, &QNetworkReply::finished, this, &MixerAvatar::ownerRequestComplete);
-            } else {
-                _needsIdentityUpdate = true;
+                    QJsonObject request;
+                    request["certificate_id"] = _certificateIdFromFST;
+                    _verifyState = requestingOwner;
+                    QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
+                    connect(networkReply, &QNetworkReply::finished, this, &MixerAvatar::ownerRequestComplete);
+                } else {
+                    _needsIdentityUpdate = true;
+                    _pendingEvent = false;
+                    qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
+                }
+            } else {  // FST doesn't have a certificate, so noncertified rather than failed:
                 _pendingEvent = false;
-                qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
+                _verifyState = nonCertified;
             }
             break;
         }
@@ -227,7 +229,6 @@ void MixerAvatar::processCertifyEvents() {
             QJsonDocument responseJson = QJsonDocument::fromJson(_dynamicMarketResponse.toUtf8());
             QString ownerPublicKey;
             bool ownerValid = false;
-            qCDebug(avatars) << "Marketplace response for avatar" << getDisplayName() << ":" << _dynamicMarketResponse;
             if (responseJson["status"].toString() == "success") {
                 QJsonValue jsonData = responseJson["data"];
                 if (jsonData.isObject()) {
