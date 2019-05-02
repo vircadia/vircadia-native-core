@@ -669,9 +669,10 @@ private:
 
 /**jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
- * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or
- * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
- * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
+ * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
+ * mapping (e.g., using the {@link RouteObject#when} method). Each data value is either <code>1.0</code> for "true" or 
+ * <code>0.0</code> for "false".</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
@@ -685,13 +686,17 @@ private:
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
- *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement controls are enabled.
- *       </td></tr>
+ *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are 
+ *       enabled.</td></tr>
+ *     <tr><td><code>StrafeEnabled</code></td><td>number</td><td>number</td><td>Strafing is enabled</td></tr>
  *     <tr><td><code>LeftHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to left.</td></tr>
  *     <tr><td><code>RightHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to right.</td></tr>
  *     <tr><td><code>SnapTurn</code></td><td>number</td><td>number</td><td>Snap turn is enabled.</td></tr>
  *     <tr><td><code>Grounded</code></td><td>number</td><td>number</td><td>The user's avatar is on the ground.</td></tr>
  *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
+ *     <tr><td><code>PlatformWindows</code></td><td>number</td><td>number</td><td>The operating system is Windows.</td></tr>
+ *     <tr><td><code>PlatformMac</code></td><td>number</td><td>number</td><td>The operating system is Mac.</td></tr>
+ *     <tr><td><code>PlatformAndroid</code></td><td>number</td><td>number</td><td>The operating system is Android.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {object} Controller.Hardware-Application
@@ -1335,7 +1340,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("avatar", avatarURL.toString().toStdString());
     });
 
-
     // Inititalize sample before registering
     _sampleSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/sample.wav"));
 
@@ -1426,6 +1430,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
 
+    if (_displayPlugin && !_displayPlugin->isHmd()) {
+        _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+        showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
+    }
     // An audio device changed signal received before the display plugins are set up will cause a crash,
     // so we defer the setup of the `scripting::Audio` class until this point
     {
