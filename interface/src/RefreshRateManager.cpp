@@ -83,8 +83,11 @@ RefreshRateManager::RefreshRateManager() {
 
 void RefreshRateManager::resetInactiveTimer() {
     if (_uxMode == RefreshRateManager::UXMode::DESKTOP) {
-        _inactiveTimer->start();
-        setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+        auto regime = getRefreshRateRegime();
+        if (regime == RefreshRateRegime::FOCUS_ACTIVE || regime == RefreshRateRegime::FOCUS_INACTIVE) {
+            _inactiveTimer->start();
+            setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+        }
     }
 }
 
