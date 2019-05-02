@@ -427,7 +427,6 @@ protected:
     void setScaleInternal(const glm::vec3& scale);
     void snapToRegistrationPoint();
 
-    void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Allow sub classes to force invalidating the bboxes
