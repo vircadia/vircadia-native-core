@@ -4111,7 +4111,6 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 
     auto eventType = event->type();
     if (eventType == QEvent::KeyPress || eventType == QEvent::KeyRelease || eventType == QEvent::MouseMove) {
-        RefreshRateManager& refreshRateManager = getRefreshRateManager();
         getRefreshRateManager().resetInactiveTimer();
     }
 
