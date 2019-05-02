@@ -252,7 +252,9 @@ private slots:
         _finished = true;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);
-        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
+        if (!offscreenUi.isNull()) {
+            offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
+        }
         disconnect(_dialog);
     }
 };
