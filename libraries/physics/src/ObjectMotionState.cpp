@@ -198,7 +198,9 @@ void ObjectMotionState::setShape(const btCollisionShape* shape) {
             getShapeManager()->releaseShape(_shape);
         }
         _shape = shape;
-        if (_body && _type != MOTIONSTATE_TYPE_DETAILED) {
+        if (_body) {
+            assert(_shape);
+            _body->setCollisionShape(const_cast<btCollisionShape*>(_shape));
             updateCCDConfiguration();
         }
     } else if (shape) {

@@ -39,9 +39,9 @@ uint32_t AvatarMotionState::getIncomingDirtyFlags() const {
     return _body ? _dirtyFlags : 0;
 }
 
-void AvatarMotionState::clearIncomingDirtyFlags() {
+void AvatarMotionState::clearIncomingDirtyFlags(uint32_t mask) {
     if (_body) {
-        _dirtyFlags = 0;
+        _dirtyFlags &= ~mask;
     }
 }
 

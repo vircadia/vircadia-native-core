@@ -28,7 +28,7 @@ public:
     PhysicsMotionType getMotionType() const override { return _motionType; }
 
     uint32_t getIncomingDirtyFlags() const override;
-    void clearIncomingDirtyFlags() override;
+    void clearIncomingDirtyFlags(uint32_t mask = DIRTY_PHYSICS_FLAGS) override;
 
     PhysicsMotionType computePhysicsMotionType() const override;
 

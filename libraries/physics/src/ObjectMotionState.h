@@ -123,7 +123,7 @@ public:
     virtual glm::vec3 getObjectLinearVelocityChange() const;
 
     virtual uint32_t getIncomingDirtyFlags() const = 0;
-    virtual void clearIncomingDirtyFlags() = 0;
+    virtual void clearIncomingDirtyFlags(uint32_t mask = DIRTY_PHYSICS_FLAGS) = 0;
 
     virtual PhysicsMotionType computePhysicsMotionType() const = 0;
 

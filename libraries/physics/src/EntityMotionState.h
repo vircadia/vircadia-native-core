@@ -56,7 +56,7 @@ public:
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
     virtual uint32_t getIncomingDirtyFlags() const override;
-    virtual void clearIncomingDirtyFlags() override;
+    virtual void clearIncomingDirtyFlags(uint32_t mask = DIRTY_PHYSICS_FLAGS) override;
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }

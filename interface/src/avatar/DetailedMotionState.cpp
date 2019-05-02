@@ -43,9 +43,9 @@ uint32_t DetailedMotionState::getIncomingDirtyFlags() const {
     return _body ? _dirtyFlags : 0;
 }
 
-void DetailedMotionState::clearIncomingDirtyFlags() {
+void DetailedMotionState::clearIncomingDirtyFlags(uint32_t mask) {
     if (_body) {
-        _dirtyFlags = 0;
+        _dirtyFlags &= ~mask;
     }
 }
 
@@ -157,7 +157,19 @@ void DetailedMotionState::setRigidBody(btRigidBody* body) {
 }
 
 void DetailedMotionState::setShape(const btCollisionShape* shape) {
-    ObjectMotionState::setShape(shape);
+    if (_shape != shape) {
+        if (_shape) {
+            getShapeManager()->releaseShape(_shape);
+        }
+        _shape = shape;
+        if (_body) {
+            assert(_shape);
+            _body->setCollisionShape(const_cast<btCollisionShape*>(_shape));
+        }
+    } else if (shape) {
+        // we need to release unused reference to shape
+        getShapeManager()->releaseShape(shape);
+    }
 }
 
 void DetailedMotionState::forceActive() {

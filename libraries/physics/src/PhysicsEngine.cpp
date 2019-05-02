@@ -178,8 +178,6 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     int32_t group, mask;
     motionState->computeCollisionGroupAndMask(group, mask);
     _dynamicsWorld->addRigidBody(body, group, mask);
-
-    motionState->clearIncomingDirtyFlags();
 }
 
 QList<EntityDynamicPointer> PhysicsEngine::removeDynamicsForBody(btRigidBody* body) {

@@ -630,9 +630,9 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() const {
     return dirtyFlags;
 }
 
-void EntityMotionState::clearIncomingDirtyFlags() {
+void EntityMotionState::clearIncomingDirtyFlags(uint32_t mask) {
     if (_body && _entity) {
-        _entity->clearDirtyFlags(DIRTY_PHYSICS_FLAGS);
+        _entity->clearDirtyFlags(mask);
     }
 }
 

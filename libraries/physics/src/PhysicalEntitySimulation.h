@@ -81,9 +81,6 @@ protected: // only called by EntitySimulation
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
 
-    void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
-    void getObjectsToChange(VectorOfMotionStates& result);
-
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
 

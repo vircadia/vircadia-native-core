@@ -237,7 +237,6 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
         _incomingChanges.insert(motionState);
     };
 
-    QMutexLocker lock(&_mutex);
     uint32_t deliveryCount = ObjectMotionState::getShapeManager()->getWorkDeliveryCount();
     if (deliveryCount != _lastWorkDeliveryCount) {
         // new off-thread shapes have arrived --> find adds whose shapes have arrived
@@ -343,41 +342,22 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
     }
 }
 
-void PhysicalEntitySimulation::setObjectsToChange(const VectorOfMotionStates& objectsToChange) {
-    QMutexLocker lock(&_mutex);
-    for (auto object : objectsToChange) {
-        _incomingChanges.insert(static_cast<EntityMotionState*>(object));
-    }
-}
-
-void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) {
-    result.clear();
-    QMutexLocker lock(&_mutex);
-    for (auto stateItr : _incomingChanges) {
-        EntityMotionState* motionState = &(*stateItr);
-        result.push_back(motionState);
-    }
-    _incomingChanges.clear();
-}
-
 void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    QMutexLocker lock(&_mutex);
     buildMotionStatesForEntitiesThatNeedThem();
     for (auto& object : _incomingChanges) {
         uint32_t flags = object->getIncomingDirtyFlags();
-        object->clearIncomingDirtyFlags();
 
+        uint32_t handledFlags = EASY_DIRTY_PHYSICS_FLAGS;
         bool isInPhysicsSimulation = object->isInPhysicsSimulation();
-        if (isInPhysicsSimulation != object->shouldBeInPhysicsSimulation()) {
-            if (isInPhysicsSimulation) {
-                transaction.objectsToRemove.push_back(object);
-                continue;
-            } else {
-                transaction.objectsToAdd.push_back(object);
-            }
+        bool shouldBeInPhysicsSimulation = object->shouldBeInPhysicsSimulation();
+        if (!shouldBeInPhysicsSimulation && isInPhysicsSimulation) {
+            transaction.objectsToRemove.push_back(object);
+            continue;
         }
 
-        bool reinsert = false;
-        if (object->needsNewShape()) {
+        bool needsNewShape = object->needsNewShape();
+        if (needsNewShape) {
             ShapeType shapeType = object->getShapeType();
             if (shapeType == SHAPE_TYPE_STATIC_MESH) {
                 ShapeRequest shapeRequest(object->_entity);
@@ -389,13 +369,15 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
                     btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
                     if (shape) {
                         object->setShape(shape);
-                        reinsert = true;
+                        handledFlags |= Simulation::DIRTY_SHAPE;
+                        needsNewShape = false;
                     } else if (requestCount != ObjectMotionState::getShapeManager()->getWorkRequestCount()) {
                         // shape doesn't exist but a new worker has been spawned to build it --> add to shapeRequests and wait
                         shapeRequest.shapeHash = shapeInfo.getHash();
                         _shapeRequests.insert(shapeRequest);
                     } else {
                         // failed to build shape --> will not be added/updated
+                        handledFlags |= Simulation::DIRTY_SHAPE;
                     }
                 } else {
                     // continue waiting for shape request
@@ -406,24 +388,35 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
                 btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
                 if (shape) {
                     object->setShape(shape);
-                    reinsert = true;
+                    handledFlags |= Simulation::DIRTY_SHAPE;
+                    needsNewShape = false;
                 } else {
                     // failed to build shape --> will not be added
                 }
             }
         }
         if (!isInPhysicsSimulation) {
-            continue;
+            if (needsNewShape) {
+                // skip it
+                continue;
+            } else {
+                transaction.objectsToAdd.push_back(object);
+                handledFlags = DIRTY_PHYSICS_FLAGS;
+            }
         }
-        if (flags | EASY_DIRTY_PHYSICS_FLAGS) {
+
+        if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
             object->handleEasyChanges(flags);
         }
-        if (flags | (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP) || reinsert) {
+        if ((flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) || (handledFlags & Simulation::DIRTY_SHAPE)) {
             transaction.objectsToReinsert.push_back(object);
+            handledFlags |= (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
         } else if (flags & Simulation::DIRTY_PHYSICS_ACTIVATION && object->getRigidBody()->isStaticObject()) {
             transaction.activeStaticObjects.push_back(object);
         }
+        object->clearIncomingDirtyFlags(handledFlags);
     }
+    _incomingChanges.clear();
 }
 
 void PhysicalEntitySimulation::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {

@@ -507,13 +507,13 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             } else {
                 uint32_t flags = motionState->getIncomingDirtyFlags();
                 motionState->clearIncomingDirtyFlags();
-                if (flags | EASY_DIRTY_PHYSICS_FLAGS) {
+                if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
                     motionState->handleEasyChanges(flags);
                 }
                 // NOTE: we don't call detailedMotionState->handleEasyChanges() here is because they are KINEMATIC
                 // and Bullet will automagically call DetailedMotionState::getWorldTransform() on all that are active.
 
-                if (flags | (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
+                if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
                     transaction.objectsToReinsert.push_back(motionState);
                     for (auto detailedMotionState : avatar->getDetailedMotionStates()) {
                         transaction.objectsToReinsert.push_back(detailedMotionState);
