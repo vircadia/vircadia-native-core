@@ -94,7 +94,7 @@ def parse_args():
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
-    parser.add_argument('--ci-build', action='store_true')
+    parser.add_argument('--ci-build', action='store_true', default=os.getenv('CI_BUILD') is not None)
     if True:
         args = parser.parse_args()
     else:
