@@ -776,11 +776,14 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
                 auto& materialName = _modelMeshMaterialNames[shapeID];
                 result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
 
-                auto mappedMaterialIter = _materialMapping.find(shapeID);
-                if (mappedMaterialIter != _materialMapping.end()) {
-                    auto mappedMaterials = mappedMaterialIter->second;
-                    for (auto& mappedMaterial : mappedMaterials) {
-                        result.appendMaterial(mappedMaterial, shapeID, materialName);
+                {
+                    std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                    auto mappedMaterialIter = _materialMapping.find(shapeID);
+                    if (mappedMaterialIter != _materialMapping.end()) {
+                        auto mappedMaterials = mappedMaterialIter->second;
+                        for (auto& mappedMaterial : mappedMaterials) {
+                            result.appendMaterial(mappedMaterial, shapeID, materialName);
+                        }
                     }
                 }
                 shapeID++;
@@ -1558,6 +1561,13 @@ void Model::applyMaterialMapping() {
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     PrimitiveMode primitiveMode = getPrimitiveMode();
     bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+    auto modelMeshRenderItemIDs = _modelMeshRenderItemIDs;
+    auto modelMeshRenderItemShapes = _modelMeshRenderItemShapes;
+    std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
+
+    for (auto& shape : _modelMeshRenderItemShapes) {
+        shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+    }
 
     auto& materialMapping = getMaterialMapping();
     for (auto& mapping : materialMapping) {
@@ -1577,7 +1587,8 @@ void Model::applyMaterialMapping() {
             priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
+                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap]() {
             if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
@@ -1600,12 +1611,15 @@ void Model::applyMaterialMapping() {
                 }
             }
             for (auto shapeID : shapeIDs) {
-                if (shapeID < _modelMeshRenderItemIDs.size()) {
-                    auto itemID = _modelMeshRenderItemIDs[shapeID];
-                    auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
-                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+                if (shapeID < modelMeshRenderItemIDs.size()) {
+                    auto itemID = modelMeshRenderItemIDs[shapeID];
+                    auto meshIndex = modelMeshRenderItemShapes[shapeID].meshIndex;
+                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKeyMap.at(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
-                    _materialMapping[shapeID].push_back(material);
+                    {
+                        std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                        _materialMapping[shapeID].push_back(material);
+                    }
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                         data.addMaterial(material);
