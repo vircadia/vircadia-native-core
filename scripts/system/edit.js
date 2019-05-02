@@ -860,15 +860,10 @@ var toolBar = (function () {
 
         addButton("newModelButton", createNewEntityDialogButtonCallback("Model"));
 
-        addButton("newCubeButton", function () {
+        addButton("newShapeButton", function () {
             createNewEntity({
-                type: "Box",
-            });
-        });
-
-        addButton("newSphereButton", function () {
-            createNewEntity({
-                type: "Sphere",
+                type: "Shape",
+				shape: "Cube",
             });
         });
 
