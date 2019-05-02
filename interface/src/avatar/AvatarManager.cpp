@@ -295,7 +295,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     render::Transaction renderTransaction;
     workload::Transaction workloadTransaction;
- 
+
     for (int p = kHero; p < NumVariants; p++) {
         auto& priorityQueue = avatarPriorityQueues[p];
         // Sorting the current queue HERE as part of the measured timing.
@@ -471,13 +471,17 @@ void AvatarManager::rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction
     OtherAvatar::BodyLOD lod = avatar->getBodyLOD();
     if (lod == OtherAvatar::BodyLOD::Sphere) {
         auto dMotionState = createDetailedMotionState(avatar, -1);
-        detailedMotionStates.push_back(dMotionState);
+        if (dMotionState) {
+            detailedMotionStates.push_back(dMotionState);
+            transaction.objectsToAdd.push_back(dMotionState);
+        }
     } else {
         int32_t numJoints = avatar->getJointCount();
         for (int32_t i = 0; i < numJoints; i++) {
             auto dMotionState = createDetailedMotionState(avatar, i);
             if (dMotionState) {
                 detailedMotionStates.push_back(dMotionState);
+                transaction.objectsToAdd.push_back(dMotionState);
             }
         }
     }
