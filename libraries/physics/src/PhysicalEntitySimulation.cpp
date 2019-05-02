@@ -344,9 +344,29 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
 
 void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
     QMutexLocker lock(&_mutex);
+    // entities being removed
+    for (auto entity : _entitiesToRemoveFromPhysics) {
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
+        if (motionState) {
+            transaction.objectsToRemove.push_back(motionState);
+            _incomingChanges.remove(motionState);
+        }
+        if (_shapeRequests.size() > 0) {
+            ShapeRequest shapeRequest(entity);
+            ShapeRequests::iterator  requestItr = _shapeRequests.find(shapeRequest);
+            if (requestItr == _shapeRequests.end()) {
+                _shapeRequests.erase(requestItr);
+            }
+        }
+    }
+    _entitiesToRemoveFromPhysics.clear();
+
+    // entities to add
     buildMotionStatesForEntitiesThatNeedThem();
+
+    // motionStates with changed entities: delete, add, or change
     for (auto& object : _incomingChanges) {
-        uint32_t flags = object->getIncomingDirtyFlags();
+        uint32_t unhandledFlags = object->getIncomingDirtyFlags();
 
         uint32_t handledFlags = EASY_DIRTY_PHYSICS_FLAGS;
         bool isInPhysicsSimulation = object->isInPhysicsSimulation();
@@ -402,16 +422,17 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
             } else {
                 transaction.objectsToAdd.push_back(object);
                 handledFlags = DIRTY_PHYSICS_FLAGS;
+                unhandledFlags = 0;
             }
         }
 
-        if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            object->handleEasyChanges(flags);
+        if (unhandledFlags & EASY_DIRTY_PHYSICS_FLAGS) {
+            object->handleEasyChanges(unhandledFlags);
         }
-        if ((flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) || (handledFlags & Simulation::DIRTY_SHAPE)) {
+        if (unhandledFlags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | (handledFlags & Simulation::DIRTY_SHAPE))) {
             transaction.objectsToReinsert.push_back(object);
             handledFlags |= (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
-        } else if (flags & Simulation::DIRTY_PHYSICS_ACTIVATION && object->getRigidBody()->isStaticObject()) {
+        } else if (unhandledFlags & Simulation::DIRTY_PHYSICS_ACTIVATION && object->getRigidBody()->isStaticObject()) {
             transaction.activeStaticObjects.push_back(object);
         }
         object->clearIncomingDirtyFlags(handledFlags);
