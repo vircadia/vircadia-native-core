@@ -241,8 +241,10 @@ void Model::updateRenderItems() {
                                                                   invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                    data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
                 } else {
                     data.updateClusterBuffer(meshState.clusterMatrices);
+                    data.computeAdjustedLocalBound(meshState.clusterMatrices);
                 }
 
                 Transform renderTransform = modelTransform;
@@ -1367,8 +1369,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         // update the world space transforms for all joints
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
         updateRig(deltaTime, parentTransform);
-
-        computeMeshPartLocalBounds();
     }
 }
 
@@ -1377,17 +1377,6 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
     _rig.updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
-}
-
-void Model::computeMeshPartLocalBounds() {
-    for (auto& part : _modelMeshRenderItems) {
-        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        if (_useDualQuaternionSkinning) {
-            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
-        } else {
-            part->computeAdjustedLocalBound(state.clusterMatrices);
-        }
-    }
 }
 
 // virtual
