@@ -84,12 +84,12 @@ class UserInputMapper;
 /**jsdoc
  * A route in a {@link Controller.MappingJSON}.
  * @typedef {object} Controller.MappingJSONRoute
- * @property {string|Controller.MappingJSONAxis} from - The name of a {@link Controller.Hardware} property name or an axis 
- *     made from them. If a property name, the leading <code>"Controller.Hardware."</code> can be omitted.
- * @property {boolean} [peek=false] - If <codd>true</code> then peeking is enabled per {@link RouteObject#peek}.
- * @property {boolean} [debug=false] - If <code>true</code> then debug is enabled per {@link RouteObject#debug}.
+ * @property {string|Controller.MappingJSONAxis} from - The name of a {@link Controller.Hardware} property or an axis made from 
+ *     them. If a property name, the leading <code>"Controller.Hardware."</code> can be omitted.
+ * @property {boolean} [peek=false] - If <codd>true</code>, then peeking is enabled per {@link RouteObject#peek}.
+ * @property {boolean} [debug=false] - If <code>true</code>, then debug is enabled per {@link RouteObject#debug}.
  * @property {string|string[]} [when=[]] - One or more numeric {@link Controller.Hardware} property names which are evaluated 
- *     as booleans and ANDed together. Prepend with a <code>!</code> to use the logical NOT of the property value. The leading 
+ *     as booleans and ANDed together. Prepend a property name with a <code>!</code> to do a logical NOT. The leading 
  *     <code>"Controller.Hardware."</code> can be omitted from the property names.
  * @property {Controller.MappingJSONFilter|Controller.MappingJSONFilter[]} [filters=[]] - One or more filters in the route.
  * @property {string} to - The name of a {@link Controller.Actions} or {@link Controller.Standard} property. The leading 

@@ -270,7 +270,7 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *       new x-coordinate value.</td></tr>
  *     <tr><td><code>MouseY</code></td><td>number</td><td>number</td><td>The mouse y-coordinate changed. The data value is its 
  *       new y-coordinate value.</td></tr>
- *     <tr><td><code>MouseWheelRight</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
+ *     <tr><td><code>MouseWheelRight</code></td><td>number</td><td>number</td><td>The mouse wheel rotated right. The data value 
  *       is the number of units rotated (typically <code>1.0</code>).</td></tr>
  *     <tr><td><code>MouseWheelLeft</code></td><td>number</td><td>number</td><td>The mouse wheel rotated left. The data value 
  *       is the number of units rotated (typically <code>1.0</code>).</td></tr>

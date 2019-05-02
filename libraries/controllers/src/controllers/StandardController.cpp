@@ -33,8 +33,8 @@ void StandardController::focusOutEvent() {
  * identifying each output. <em>Read-only.</em></p>
  * <p>These outputs can be mapped to actions or functions in a {@link RouteObject} mapping. The data value provided by each 
  * control is either a number or a {@link Pose}. Numbers are typically normalized to <code>0.0</code> or <code>1.0</code> for 
- * button states, the range <code>0.0 &ndash; 1.0</code> for unidirectional scales, and the range <code>-1.0 &ndash; 1.0</code> 
- * for bidirectional scales.</p>
+ * button states, the range <code>0.0</code> &ndash; </code>1.0</code> for unidirectional scales, and the range 
+ * <code>-1.0</code> &ndash; <code>1.0</code> for bidirectional scales.</p>
  * <p>Each hardware device has a mapping from its outputs to a subset of <code>Controller.Standard</code> items, specified in a 
  * JSON file. For example, 
  * <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/vive.json">vive.json</a>

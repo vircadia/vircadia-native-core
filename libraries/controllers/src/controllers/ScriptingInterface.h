@@ -210,7 +210,7 @@ namespace controller {
         /**jsdoc
          * Triggers a haptic pulse on connected and enabled devices that have the capability.
          * @function Controller.triggerHapticPulse
-         * @param {number} strength - The strength of the haptic pulse, <code>0.0</code> &ndash; <code>1.0</code>.
+         * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
          * @param {number} duration - The duration of the haptic pulse, in milliseconds.
          * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
          * @example <caption>Trigger a haptic pulse on the right hand.</caption>
@@ -224,7 +224,7 @@ namespace controller {
         /**jsdoc
          * Triggers a 250ms haptic pulse on connected and enabled devices that have the capability.
          * @function Controller.triggerShortHapticPulse
-         * @param {number} strength - The strength of the haptic pulse, <code>0.0</code> &ndash; <code>1.0</code>.
+         * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
          * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
          */
         Q_INVOKABLE bool triggerShortHapticPulse(float strength, controller::Hand hand = BOTH) const;
@@ -233,7 +233,7 @@ namespace controller {
          * Triggers a haptic pulse on a particular device if connected and enabled and it has the capability.
          * @function Controller.triggerHapticPulseOnDevice
          * @param {number} deviceID - The ID of the device to trigger the haptic pulse on.
-         * @param {number} strength - The strength of the haptic pulse, <code>0.0</code> &ndash; <code>1.0</code>.
+         * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
          * @param {number} duration - The duration of the haptic pulse, in milliseconds.
          * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
          * @example <caption>Trigger a haptic pulse on an Oculus Touch controller.</caption>
@@ -250,7 +250,7 @@ namespace controller {
          * Triggers a 250ms haptic pulse on a particular device if connected and enabled and it has the capability.
          * @function Controller.triggerShortHapticPulseOnDevice
          * @param {number} deviceID - The ID of the device to trigger the haptic pulse on.
-         * @param {number} strength - The strength of the haptic pulse, <code>0.0</code> &ndash; <code>1.0</code>.
+         * @param {number} strength - The strength of the haptic pulse, range <code>0.0</code> &ndash; <code>1.0</code>.
          * @param {Controller.Hand} [hand=2] - The hand or hands to trigger the haptic pulse on.
          */
         Q_INVOKABLE bool triggerShortHapticPulseOnDevice(unsigned int device, float strength, controller::Hand hand = BOTH) 
