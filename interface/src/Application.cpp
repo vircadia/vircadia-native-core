@@ -1441,7 +1441,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         });
         connect(this, &Application::activeDisplayPluginChanged,
-            reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+            dynamic_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -1634,7 +1634,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+        auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
         {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
@@ -4298,9 +4298,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto audioClient = DependencyManager::get<AudioClient>();
                     audioClient->setMuted(!audioClient->isMuted());
-                    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+                    auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
                     if (audioScriptingInterface->getPTT()) {
-                        audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
+                       audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
                     }
                 }
                 break;
@@ -5363,7 +5363,7 @@ void Application::loadSettings() {
         }
     }
 
-    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
     audioScriptingInterface->loadData();
 
     getMyAvatar()->loadData();
@@ -5375,7 +5375,7 @@ void Application::saveSettings() const {
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
 
-    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
     audioScriptingInterface->saveData();
 
     Menu::getInstance()->saveSettings();
