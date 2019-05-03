@@ -100,6 +100,8 @@ public:
     void saveKinematicState(btScalar timeStep) override;
 
 protected:
+    void setRigidBody(btRigidBody* body) override;
+
     uint8_t computeFinalBidPriority() const;
     void updateSendVelocities();
     uint64_t getNextBidExpiry() const { return _nextBidExpiry; }

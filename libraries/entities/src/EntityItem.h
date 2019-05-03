@@ -424,8 +424,9 @@ public:
 
     bool isSimulated() const { return _simulated; }
 
-    void* getPhysicsInfo() const { return _physicsInfo; }
+    bool isInPhysicsSimulation() const { return (bool)(_flags & Simulation::SPECIAL_FLAG_IN_PHYSICS_SIMULATION); }
 
+    void* getPhysicsInfo() const { return _physicsInfo; }
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
 
     EntityTreeElementPointer getElement() const { return _element; }

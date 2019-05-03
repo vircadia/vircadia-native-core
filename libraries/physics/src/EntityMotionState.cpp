@@ -743,6 +743,15 @@ bool EntityMotionState::shouldSendBid() const {
         && !_entity->getLocked();
 }
 
+void EntityMotionState::setRigidBody(btRigidBody* body) {
+    ObjectMotionState::setRigidBody(body);
+    if (_body) {
+        _entity->markSpecialFlags(Simulation::SPECIAL_FLAG_IN_PHYSICS_SIMULATION);
+    } else {
+        _entity->clearSpecialFlags(Simulation::SPECIAL_FLAG_IN_PHYSICS_SIMULATION);
+    }
+}
+
 uint8_t EntityMotionState::computeFinalBidPriority() const {
     return (_region == workload::Region::R1) ?
         glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) : 0;
