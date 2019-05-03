@@ -54,10 +54,9 @@ enum Hand {
 
 /**jsdoc
  * <p>The <code>Controller.Hardware</code> object has properties representing standard and hardware-specific controller and 
- * computer outputs, plus predefined actions on Interface and the user's avatar. <em>Read-only.</em> The outputs can be mapped 
- * to actions or functions in a {@link RouteObject} mapping. Additionally, hardware-specific controller outputs can be mapped 
- * to standard controller outputs. 
- * 
+ * computer outputs, plus predefined actions on Interface and the user's avatar. <em>Read-only.</em></p>
+ * <p>The outputs can be mapped to actions or functions in a {@link RouteObject} mapping. Additionally, hardware-specific 
+ * controller outputs can be mapped to standard controller outputs. 
  * <p>Controllers typically implement a subset of the {@link Controller.Standard} controls, plus they may implement some extras. 
  * Some common controllers are included in the table. You can see the outputs provided by these and others by 
  * viewing their {@link Controller.MappingJSON|MappingJSON} files at 

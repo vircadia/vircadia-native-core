@@ -237,9 +237,11 @@ void CauterizedModel::updateRenderItems() {
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
                                                  cauterizedMeshState.clusterDualQuaternions);
+                        data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
                     } else {
                         data.updateClusterBuffer(meshState.clusterMatrices,
                                                  cauterizedMeshState.clusterMatrices);
+                        data.computeAdjustedLocalBound(meshState.clusterMatrices);
                     }
 
                     Transform renderTransform = modelTransform;
