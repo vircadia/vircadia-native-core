@@ -37,3 +37,11 @@ std::string platform::getProcessor(int index) {
 bool platform::enumerateProcessors() {
     return _instance->enumerateProcessors();
 }
+
+int platform::getTotalSystemRamMb() {
+    return _instance->getTotalSystemRamMb();
+}
+
+int platform::getProcessorCount() {
+    return _instance->getProcessorCount();
+}

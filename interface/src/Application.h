@@ -48,7 +48,6 @@
 #include <ThreadSafeValueCache.h>
 #include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
-
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
@@ -148,7 +147,7 @@ public:
 
     // Return an HTTP User-Agent string with OS and device information.
     Q_INVOKABLE QString getUserAgent();
-
+    void initializePlatform();
     void initializeGL();
     void initializeDisplayPlugins();
     void initializeRenderEngine();
@@ -174,7 +173,6 @@ public:
     void raise();
 
     void showCursor(const Cursor::Icon& cursor);
-    void InitializePlatform();
 
     bool isThrottleRendering() const;
 

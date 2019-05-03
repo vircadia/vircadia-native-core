@@ -8,14 +8,23 @@
 
 #pragma once
 #include "platform.h"
+#include <nlohmann/json.hpp>
 
 namespace platform {
 
+    using namespace nlohmann;
+
     class WINInstance : public Instance {
-   
-        public:
-            bool enumerateProcessors();
-            std::string getProcessor(int index);
-    };
+    
+    public:
+        bool enumerateProcessors();
+        std::string getProcessor(int index);
+
+    private:
+        unsigned int getNumLogicalCores();
+        void getCpuDetails(cpu& cpu);
+        int getTotalSystemRamMb();
+        void to_Json(nlohmann::json& result, const cpu& cpu);
+};
 
 }  // namespace platform
