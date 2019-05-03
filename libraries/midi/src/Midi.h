@@ -143,7 +143,7 @@ public slots:
      * Unblocks a MIDI device's input or output.
      * @function Midi.unblockMidiDevice
      * @param {string} name- The name of the MIDI device to unblock.
-     * @param {boolean} output -  <code>true</code> to block the device's output, <code>false</code> to block its input.
+     * @param {boolean} output -  <code>true</code> to unblock the device's output, <code>false</code> to unblock its input.
      */
     Q_INVOKABLE void unblockMidiDevice(QString name, bool output);
 
@@ -175,28 +175,28 @@ public slots:
     Q_INVOKABLE void typeNoteOffEnable(bool enable);
 
     /**jsdoc
-     * Enables or disabled note on events.
+     * Enables or disables note on events.
      * @function Midi.typeNoteOnEnable
      * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeNoteOnEnable(bool enable);
 
     /**jsdoc
-     * Enables or disabled ply key pressure events.
+     * Enables or disables poly key pressure events.
      * @function Midi.typePolyKeyPressureEnable
      * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typePolyKeyPressureEnable(bool enable);
 
     /**jsdoc
-     * Enables or disabled control change events.
+     * Enables or disables control change events.
      * @function Midi.typeControlChangeEnable
      * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeControlChangeEnable(bool enable);
 
     /**jsdoc
-     * Enables or disabled program change events.
+     * Enables or disables program change events.
      * @function Midi.typeProgramChangeEnable
      * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
@@ -210,7 +210,7 @@ public slots:
     Q_INVOKABLE void typeChanPressureEnable(bool enable);
 
     /**jsdoc
-     * Enables or disabled pitch bend events.
+     * Enables or disables pitch bend events.
      * @function Midi.typePitchBendEnable
      * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */

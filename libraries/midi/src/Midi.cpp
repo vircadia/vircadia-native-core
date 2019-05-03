@@ -266,7 +266,7 @@ void Midi::MidiCleanup() {
  * <p><strong>Warning:</strong> The <code>status</code> property is NOT a MIDI status value.</p>
  * @typedef {object} Midi.MidiMessage
  * @property {number} device - Device number.
- * @property {Midi.RawMidiMessage} raw - Raw MIDI messag.
+ * @property {Midi.RawMidiMessage} raw - Raw MIDI message.
  * @property {number} status - Channel + status. <em>Legacy value.</em>
  * @property {number} channel - Channel: <code>1</code> &ndash; <code>16</code>.
  * @property {number} type - Status: {@link Midi.MidiStatus}; <code>8</code> &ndash; <code>15</code>.
