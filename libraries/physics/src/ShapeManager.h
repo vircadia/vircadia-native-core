@@ -13,6 +13,7 @@
 #define hifi_ShapeManager_h
 
 #include <atomic>
+#include <chrono>
 #include <vector>
 
 #include <QObject>
