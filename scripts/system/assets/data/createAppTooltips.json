@@ -366,17 +366,8 @@
     "materialData": {
         "tooltip": "Can be used instead of a JSON file when material set to materialData."
     },
-    "materialNameToReplace": {
-        "tooltip": "Material name of parent entity to map this material entity on.",
-        "jsPropertyName": "parentMaterialName"
-    },
-    "submeshToReplace": {
-        "tooltip": "Submesh index of the parent entity to map this material on.",
-        "jsPropertyName": "parentMaterialName"
-    },
-    "selectSubmesh": {
-        "tooltip": "If enabled, \"Submesh to Replace\" property will show up, otherwise \"Material to Replace\" will be shown.",
-        "skipJSProperty": true
+    "parentMaterialName": {
+        "tooltip": "The target mesh indices or material names that this material entity should be assigned to on it's parent. This only supports parents that are Avatars as well as Shape or Model entity types."
     },
     "priority": {
         "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
