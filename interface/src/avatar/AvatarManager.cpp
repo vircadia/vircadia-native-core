@@ -427,8 +427,6 @@ DetailedMotionState* AvatarManager::createDetailedMotionState(OtherAvatarPointer
     std::vector<int32_t> boundJoints;
     const btCollisionShape* shape = avatar->createCollisionShape(jointIndex, isBound, boundJoints);
     if (shape) {
-        //std::shared_ptr<OtherAvatar> avatar = shared_from_this();
-        //std::shared_ptr<Avatar> avatar = getThisPointer();
         DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
         motionState->setMass(0.0f); // DetailedMotionState has KINEMATIC MotionType, so zero mass is ok
         motionState->setIsBound(isBound, boundJoints);
@@ -514,7 +512,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
                     motionState->handleEasyChanges(flags);
                 }
-                // NOTE: we don't call detailedMotionState->handleEasyChanges() here is because they are KINEMATIC
+                // NOTE: we don't call detailedMotionState->handleEasyChanges() here because they are KINEMATIC
                 // and Bullet will automagically call DetailedMotionState::getWorldTransform() on all that are active.
 
                 if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {

@@ -192,22 +192,6 @@ void EntitySimulation::processChangedEntities() {
 
 void EntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
     uint32_t dirtyFlags = entity->getDirtyFlags();
-    /* TODO? maybe add to _entitiesToSort when DIRTY_POSITION is set?
-    // Although it is not the responsibility of the EntitySimulation to sort the tree for EXTERNAL changes
-    // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence
-    // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
-    if (dirtyFlags & Simulation::DIRTY_POSITION) {
-        AACube domainBounds(glm::vec3((float)-HALF_TREE_SCALE), (float)TREE_SCALE);
-        bool success;
-        AACube newCube = entity->getQueryAACube(success);
-        if (success && !domainBounds.touches(newCube)) {
-            qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
-            entity->die();
-            prepareEntityForDelete(entity);
-            return;
-        }
-    }
-    */
 
     if (dirtyFlags & (Simulation::DIRTY_LIFETIME | Simulation::DIRTY_UPDATEABLE)) {
         if (dirtyFlags & Simulation::DIRTY_LIFETIME) {

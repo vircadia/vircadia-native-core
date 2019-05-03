@@ -104,8 +104,8 @@ private:
     ShapeFactory::Worker* _deadWorker { nullptr };
     TimePoint _nextOrphanExpiry;
     uint32_t _ringIndex { 0 };
-    std::atomic_uint32_t _workRequestCount { 0 };
-    std::atomic_uint32_t _workDeliveryCount { 0 };
+    std::atomic_uint _workRequestCount { 0 };
+    std::atomic_uint _workDeliveryCount { 0 };
 };
 
 #endif // hifi_ShapeManager_h
