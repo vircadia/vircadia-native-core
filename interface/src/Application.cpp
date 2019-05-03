@@ -1448,8 +1448,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 audioScriptingInterface->environmentMuted();
             }
         });
-        connect(this, &Application::activeDisplayPluginChanged,
-            dynamic_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+        QSharedPointer<scripting::Audio> scriptingAudioSharedPointer = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+        if (scriptingAudioSharedPointer) {
+            connect(this, &Application::activeDisplayPluginChanged,
+                scriptingAudioSharedPointer.data(), &scripting::Audio::onContextChanged);
+        }
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -1642,7 +1645,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+        QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
         {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
@@ -1650,10 +1653,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             bool navAxis = false;
             switch (actionEnum) {
                 case Action::TOGGLE_PUSHTOTALK:
-                    if (state > 0.0f) {
-                        audioScriptingInterface->setPushingToTalk(true);
-                    } else if (state <= 0.0f) {
-                        audioScriptingInterface->setPushingToTalk(false);
+                    if (audioScriptingInterface) {
+                        if (state > 0.0f) {
+                            audioScriptingInterface->setPushingToTalk(true);
+                        } else if (state <= 0.0f) {
+                            audioScriptingInterface->setPushingToTalk(false);
+                        }
                     }
                     break;
 
@@ -4306,8 +4311,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto audioClient = DependencyManager::get<AudioClient>();
                     audioClient->setMuted(!audioClient->isMuted());
-                    auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
-                    if (audioScriptingInterface->getPTT()) {
+                    QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+                    if (audioScriptingInterface && audioScriptingInterface->getPTT()) {
                        audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
                     }
                 }
@@ -5371,8 +5376,10 @@ void Application::loadSettings() {
         }
     }
 
-    auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
-    audioScriptingInterface->loadData();
+    QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+    if (audioScriptingInterface) {
+        audioScriptingInterface->loadData();
+    }
 
     getMyAvatar()->loadData();
     _settingsLoaded = true;
@@ -5383,8 +5390,10 @@ void Application::saveSettings() const {
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
 
-    auto audioScriptingInterface = dynamic_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
-    audioScriptingInterface->saveData();
+    QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+    if (audioScriptingInterface) {
+        audioScriptingInterface->saveData();
+    }
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
