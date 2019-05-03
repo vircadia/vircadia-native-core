@@ -392,6 +392,10 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
 void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
+    if (!transitionStage) {
+        return;
+    }
+
     for (auto& add : transactions) {
         auto itemId = std::get<0>(add);
         // Access the true item
@@ -432,6 +436,10 @@ void Scene::reApplyTransitions(const Transaction::TransitionReApplies& transacti
 
 void Scene::queryTransitionItems(const Transaction::TransitionQueries& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+
+    if (!transitionStage) {
+        return;
+    }
 
     for (auto& query : transactions) {
         auto itemId = std::get<0>(query);
@@ -553,11 +561,14 @@ void Scene::setItemTransition(ItemID itemId, Index transitionId) {
 }
 
 void Scene::resetItemTransition(ItemID itemId) {
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+    if (!transitionStage) {
+        return;
+    }
+
     auto& item = _items[itemId];
     TransitionStage::Index transitionId = item.getTransitionId();
     if (!render::TransitionStage::isIndexInvalid(transitionId)) {
-        auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-
         auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
         for (auto finishedOperator : finishedOperators) {
             if (finishedOperator) {
