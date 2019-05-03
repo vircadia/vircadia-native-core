@@ -98,6 +98,7 @@ public:
     bool isPassword() const;
     void setPassword(bool password);
     void enableRightMallet();
+    void scaleKeyboard(float sensorToWorldScale);
     void enableLeftMallet();
     void disableRightMallet();
     void disableLeftMallet();
@@ -122,7 +123,6 @@ public slots:
     void handleTriggerContinue(const QUuid& id, const PointerEvent& event);
     void handleHoverBegin(const QUuid& id, const PointerEvent& event);
     void handleHoverEnd(const QUuid& id, const PointerEvent& event);
-    void scaleKeyboard(float sensorToWorldScale);
 
 private:
     struct Anchor {

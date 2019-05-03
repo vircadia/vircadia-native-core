@@ -13,7 +13,7 @@
 
 (function() {
     var TABLET_BUTTON_NAME = "TAA";
-    var QMLAPP_URL = Script.resolvePath("./antialiasing.qml");
+    var QMLAPP_URL = Script.resolvePath("./luci/Antialiasing.qml");
 
    
     var onLuciScreen = false;

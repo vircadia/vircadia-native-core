@@ -115,7 +115,6 @@ void DomainMetadata::securityChanged(bool send) {
     auto& state = *static_cast<QVariantMap*>(_metadata[DESCRIPTORS].data());
 
     const QString RESTRICTION_OPEN = "open";
-    const QString RESTRICTION_ANON = "anon";
     const QString RESTRICTION_HIFI = "hifi";
     const QString RESTRICTION_ACL = "acl";
 
@@ -127,7 +126,7 @@ void DomainMetadata::securityChanged(bool send) {
     bool hasHifiAccess = settingsManager.getStandardPermissionsForName(NodePermissions::standardNameLoggedIn).can(
         NodePermissions::Permission::canConnectToDomain);
     if (hasAnonymousAccess) {
-        restriction = hasHifiAccess ? RESTRICTION_OPEN : RESTRICTION_ANON;
+        restriction = RESTRICTION_OPEN;
     } else if (hasHifiAccess) {
         restriction = RESTRICTION_HIFI;
     } else {

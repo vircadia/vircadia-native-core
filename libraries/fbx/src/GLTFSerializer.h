@@ -159,9 +159,20 @@ struct GLTFMeshPrimitive {
     }
 };
 
+struct GLTFMeshExtra {
+    QVector<QString> targetNames;
+    QMap<QString, bool> defined;
+    void dump() {
+        if (defined["targetNames"]) {
+            qCDebug(modelformat) << "targetNames: " << targetNames;
+        }
+    }
+};
+
 struct GLTFMesh {
     QString name;
     QVector<GLTFMeshPrimitive> primitives;
+    GLTFMeshExtra extras;
     QVector<double> weights;
     QMap<QString, bool> defined;
     void dump() {
@@ -171,6 +182,10 @@ struct GLTFMesh {
         if (defined["primitives"]) {
             qCDebug(modelformat) << "primitives: ";
             foreach(auto prim, primitives) prim.dump();
+        }
+        if (defined["extras"]) {
+            qCDebug(modelformat) << "extras: ";
+            extras.dump();
         }
         if (defined["weights"]) {
             qCDebug(modelformat) << "weights: " << weights;
@@ -713,9 +728,9 @@ private:
 
     glm::mat4 getModelTransform(const GLTFNode& node);
     void getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues);
-    void getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, std::vector<int>& result);
+    void generateTargetData(int index, float weight, QVector<glm::vec3>& returnVector);
 
-    bool buildGeometry(HFMModel& hfmModel, const hifi::URL& url);
+    bool buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& url);
     bool parseGLTF(const hifi::ByteArray& data);
     
     bool getStringVal(const QJsonObject& object, const QString& fieldname, 
@@ -785,6 +800,7 @@ private:
 
     void setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& material);
     HFMTexture getHFMTexture(const GLTFTexture& texture);
+    void glTFDebugDump();
     void hfmDebugDump(const HFMModel& hfmModel);
 };
 

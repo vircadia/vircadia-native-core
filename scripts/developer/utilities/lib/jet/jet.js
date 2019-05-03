@@ -10,7 +10,12 @@
 //
 "use strict";
 
- // traverse task tree
+ // traverse task tree recursively
+ //
+ // @param root: the root job config from where to traverse
+ // @param functor: the functor function() which is applied on every subjobs of root traversed
+ //                 if return true, then 'task_tree' is called recursively on that subjob
+ // @param depth: the depth of the recurse loop since the initial call.      
 function task_traverse(root, functor, depth) {
     if (root.isTask()) { 
        depth++;
@@ -22,6 +27,9 @@ function task_traverse(root, functor, depth) {
         }
     }    
 }
+
+// same function as 'task_traverse' with the depth being 0
+// and visisting the root job first.
 function task_traverseTree(root, functor) {
     if (functor(root, 0, 0)) {
         task_traverse(root, functor, 0)

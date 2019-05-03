@@ -116,8 +116,12 @@ public:
     void destroyAnimGraph();
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    bool isPlayingOverrideAnimation() const { return _userAnimState.clipNodeEnum != UserAnimState::None; };
     void restoreAnimation();
     
+    void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void restoreHandAnimation(bool isLeft);
+
     void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void triggerNetworkRole(const QString& role);
     void restoreNetworkAnimation();
@@ -333,7 +337,7 @@ protected:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
-    
+
     struct NetworkAnimState {
         enum ClipNodeEnum {
             None = 0,
@@ -354,6 +358,27 @@ protected:
         float firstFrame;
         float lastFrame;
         float blendTime;
+    };
+
+    struct HandAnimState {
+        enum ClipNodeEnum {
+            None = 0,
+            A,
+            B
+        };
+
+        HandAnimState() : clipNodeEnum(HandAnimState::None) {}
+        HandAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {
+        }
+
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
     };
 
     struct UserAnimState {
@@ -390,10 +415,15 @@ protected:
 
     UserAnimState _userAnimState;
     NetworkAnimState _networkAnimState;
+    HandAnimState _rightHandAnimState;
+    HandAnimState _leftHandAnimState;
     std::map<QString, RoleAnimState> _roleAnimStates;
+    int _evaluationCount{ 0 };
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
+    float _talkIdleInterpTime { 0.0f };
+    bool _previousIsTalking { false };
 
     SimpleMovingAverage _averageForwardSpeed { 10 };
     SimpleMovingAverage _averageLateralSpeed { 10 };

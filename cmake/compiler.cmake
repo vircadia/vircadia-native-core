@@ -89,7 +89,7 @@ if (APPLE)
   string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
   message(STATUS "Detected OS X version = ${OSX_VERSION}")
 
-  set(OSX_SDK "${OSX_VERSION}" CACHE String "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
+  set(OSX_SDK "${OSX_VERSION}" CACHE STRING "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
 
   # set our OS X deployment target
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)

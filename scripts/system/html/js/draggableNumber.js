@@ -13,6 +13,7 @@ function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.min = min;
     this.max = max;
     this.step = step !== undefined ? step : 1;
+    this.multiDiffModeEnabled = false;
     this.decimals = decimals;
     this.dragStartFunction = dragStart;
     this.dragEndFunction = dragEnd;
@@ -20,6 +21,7 @@ function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.initialMouseEvent = null;
     this.lastMouseEvent = null;
     this.valueChangeFunction = null;
+    this.multiDiffStepFunction = null;
     this.initialize();
 }
 
@@ -70,22 +72,22 @@ DraggableNumber.prototype = {
             this.lastMouseEvent = event;
         }
         if (this.dragging && this.lastMouseEvent) {
-            let initialValue = this.elInput.value;
-            let dx = event.clientX - this.lastMouseEvent.clientX;
-            let changeValue = dx !== 0;
-            if (changeValue) {
-                while (dx !== 0) {
-                    if (dx > 0) {
-                        this.elInput.stepUp();
-                        --dx;
-                    } else {
-                        this.elInput.stepDown();
-                        ++dx;
+            let dragDelta = event.clientX - this.lastMouseEvent.clientX;
+            if (dragDelta !== 0) {
+                if (this.multiDiffModeEnabled) {
+                    if (this.multiDiffStepFunction) {
+                        this.multiDiffStepFunction(dragDelta * this.step);
                     }
-                }
-                this.inputChange();
-                if (this.valueChangeFunction) {
-                    this.valueChangeFunction();
+                } else {
+                    if (dragDelta > 0) {
+                        this.elInput.stepUp(dragDelta);
+                    } else {
+                        this.elInput.stepDown(-dragDelta);
+                    }
+                    this.inputChange();
+                    if (this.valueChangeFunction) {
+                        this.valueChangeFunction();
+                    }
                 }
             }
             this.lastMouseEvent = event;
@@ -106,25 +108,46 @@ DraggableNumber.prototype = {
     
     stepUp: function() {
         if (!this.isDisabled()) {
-            this.elInput.value = parseFloat(this.elInput.value) + this.step;
-            this.inputChange();
-            if (this.valueChangeFunction) {
-                this.valueChangeFunction();
+            if (this.multiDiffModeEnabled) {
+                if (this.multiDiffStepFunction) {
+                    this.multiDiffStepFunction(this.step, true);
+                }
+            } else {
+                this.elInput.value = parseFloat(this.elInput.value) + this.step;
+                this.inputChange();
+                if (this.valueChangeFunction) {
+                    this.valueChangeFunction();
+                }
             }
         }
     },
     
     stepDown: function() {
         if (!this.isDisabled()) {
-            this.elInput.value = parseFloat(this.elInput.value) - this.step;
-            this.inputChange();
-            if (this.valueChangeFunction) {
-                this.valueChangeFunction();
+            if (this.multiDiffModeEnabled) {
+                if (this.multiDiffStepFunction) {
+                    this.multiDiffStepFunction(-this.step, true);
+                }
+            } else {
+                this.elInput.value = parseFloat(this.elInput.value) - this.step;
+                this.inputChange();
+                if (this.valueChangeFunction) {
+                    this.valueChangeFunction();
+                }
             }
         }
     },
     
-    setValue: function(newValue) {
+    setValue: function(newValue, isMultiDiff) {
+        if (isMultiDiff !== undefined) {
+            this.setMultiDiff(isMultiDiff);
+        }
+
+        if (isNaN(newValue)) {
+            console.error("DraggableNumber.setValue() > " + newValue + " is not a number.");
+            return;
+        }
+
         if (newValue !== "" && this.decimals !== undefined) {
             this.elInput.value = parseFloat(newValue).toFixed(this.decimals);
         } else {
@@ -133,11 +156,24 @@ DraggableNumber.prototype = {
         this.elText.firstChild.data = this.elInput.value;
     },
 
+    setMultiDiff: function(isMultiDiff) {
+        this.multiDiffModeEnabled = isMultiDiff;
+        if (isMultiDiff) {
+            this.elDiv.classList.add('multi-diff');
+        } else {
+            this.elDiv.classList.remove('multi-diff');
+        }
+    },
+
     setValueChangeFunction: function(valueChangeFunction) {
         this.valueChangeFunction = valueChangeFunction.bind(this.elInput);
         this.elInput.addEventListener("change", this.valueChangeFunction);
     },
-    
+
+    setMultiDiffStepFunction: function (multiDiffStepFunction) {
+        this.multiDiffStepFunction = multiDiffStepFunction;
+    },
+
     inputChange: function() {
         let value = this.elInput.value;
         if (this.max !== undefined) {
@@ -155,6 +191,9 @@ DraggableNumber.prototype = {
 
     keyPress: function(event) {
         if (event.keyCode === ENTER_KEY) {
+            if (this.valueChangeFunction) {
+                this.valueChangeFunction();
+            }
             this.inputBlur();
         }
     },
@@ -203,7 +242,10 @@ DraggableNumber.prototype = {
         this.elRightArrow.className = 'right-arrow';
         this.elRightArrow.innerHTML = 'D';
         this.elRightArrow.addEventListener("click", this.onStepUp);
-        
+
+        this.elMultiDiff = document.createElement('span');
+        this.elMultiDiff.className = 'multi-diff';
+
         this.elInput = document.createElement('input');
         this.elInput.className = "input";
         this.elInput.setAttribute("type", "number");
@@ -220,6 +262,7 @@ DraggableNumber.prototype = {
         this.elDiv.appendChild(this.elLeftArrow);
         this.elDiv.appendChild(this.elText);
         this.elDiv.appendChild(this.elInput);
+        this.elDiv.appendChild(this.elMultiDiff);
         this.elDiv.appendChild(this.elRightArrow);
     }
 };

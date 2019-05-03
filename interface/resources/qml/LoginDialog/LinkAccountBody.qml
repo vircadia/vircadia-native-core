@@ -363,7 +363,7 @@ Item {
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {
                     Tablet.playSound(TabletEnums.ButtonClick);
-                    loginDialog.openUrl(link);
+                    Window.openUrl(link);
                     lightboxPopup.titleText = "Can't Access Account";
                     lightboxPopup.bodyText = lightboxPopup.cantAccessBodyText;
                     lightboxPopup.button2text = "CLOSE";
