@@ -96,6 +96,8 @@ Verify again
 `sudo apt-get install libdbus-glib-1-dev -y`  
 1.  nss (needed for qtwebengine)  
 `sudo apt-get install libnss3-dev -y`  
+1.  Add the following line to *.bash_profile* (otherwise fonts will not be displayed)  
+`export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/`  
 ### Mac
 1.  git >= 1.6  
 Check if needed `git --version`  
@@ -112,7 +114,7 @@ The build is performed in the qt5-build folder.
 Build products are installed to the qt5-install folder.  
 Before running configure, make sure that the qt5-build folder is empty.  
 
-**Only run the patches once!!!**  
+**Only run the git patches once!!!**  
 ### Windows
 Before building, verify that **HIFI_VCPKG_BASE_VERSION** points to a *vcpkg* folder containing *packages\openssl-windows_x64-windows*.  
 If not, follow https://github.com/highfidelity/vcpkg to install *vcpkg* and then *openssl*.  
@@ -164,8 +166,12 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 `mkdir qt5-build`  
 `cd qt5-build`  
 
+*Ubuntu 16.04*  
 `../qt5/configure -opensource -confirm-license -platform linux-g++-64 -qt-zlib -qt-libjpeg -qt-libpng -qt-xcb -qt-freetype -qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -no-egl -no-icu -prefix ../qt5-install`  
-#### Make
+
+*Ubuntu 18.04*  
+`../qt5/configure -opensource -confirm-license -platform linux-g++-64 -qt-zlib -qt-libjpeg -qt-libpng -qt-xcb -qt-freetype -qt-pcre -qt-harfbuzz -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ../qt5-install`  
+#### Make  
 `make`  
 `make install`  
 #### Fixing
@@ -185,8 +191,13 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 `filename.add("qt5-install", os.path.basename("qt5-install"))`  
 `exit()`  
 
-1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/  
-### Mac
+*Ubuntu 16.04*  
+1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/16.04  
+
+*Ubuntu 16.04*  
+1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/18.04  
+
+1. ### Mac
 #### Preparing source files
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch  
   

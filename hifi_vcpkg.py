@@ -241,17 +241,25 @@ endif()
 
     def installQt(self):
         if not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
-            print ("Downloading Qt from AWS ")
+            print ('Downloading Qt from AWS')
             dest = os.path.join(self.path, 'installed')
+
             if platform.system() == 'Windows':
-                url = "https://hifi-qa.s3.amazonaws.com/qt5/Windows/qt5-install.tar.gz"
+                url = 'https://hifi-qa.s3.amazonaws.com/qt5/Windows/qt5-install.tar.gz'
             elif platform.system() == 'Darwin':
-                url = "https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.tar.gz"
+                url = 'https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.tar.gz'
             elif platform.system() == 'Linux':
-                url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/qt5-install.tar.gz"
- 
-            print("Extracting " + url + " to " + dest)
+                if (platform.linux_distribution()[1] == '16.04':
+                    self.vcpkgUrl = 'https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/16.04/qt5-install.tar.gz'
+                elif platform.linux_distribution()[1] == '18.04':
+                    self.vcpkgUrl = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/18.04/qt5-install.tar.gz"
+                else:
+                    print('UNKNOWN LINUX VERSION!!!')
+            else:
+                print('UNKNOWN OPERATING SYSTEM!!!')
+
+            print('Extracting ' + url + ' to ' + dest)
+
             hifi_utils.downloadAndExtract(url, dest)
         else:
-            print ("Qt has already been downloaded")
-
+            print ('Qt has already been downloaded')
