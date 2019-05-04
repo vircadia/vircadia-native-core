@@ -38,6 +38,7 @@
 #include <gpu/gl/GLBackend.h>
 #include <GeometryCache.h>
 
+#include <CursorManager.h>
 #include <FramebufferCache.h>
 #include <shared/NsightHelpers.h>
 #include <ui-plugins/PluginContainer.h>
@@ -46,7 +47,7 @@
 #include <TextureCache.h>
 #include "CompositorHelper.h"
 #include "Logging.h"
-
+#include "RefreshRateController.h"
 extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
@@ -60,11 +61,15 @@ public:
             shutdown();
         });
         setObjectName("Present");
+
+        _refreshRateController = std::make_shared<RefreshRateController>();
     }
 
     ~PresentThread() {
         shutdown();
     }
+
+    auto getRefreshRateController() { return _refreshRateController; }
 
     void shutdown() {
         if (isRunning()) {
@@ -178,14 +183,22 @@ public:
                 continue;
             }
 
+#if defined(Q_OS_MAC)
+            _context->makeCurrent();
+#endif
             // Execute the frame and present it to the display device.
             {
                 PROFILE_RANGE(render, "PluginPresent")
                 gl::globalLock();
-                currentPlugin->present();
+                currentPlugin->present(_refreshRateController);
                 gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
+#if defined(Q_OS_MAC)
+            _context->doneCurrent();
+#endif
+            
+            _refreshRateController->sleepThreadIfNeeded(this, currentPlugin->isHmd());
         }
 
         _context->doneCurrent();
@@ -234,6 +247,7 @@ private:
     bool _finishedOtherThreadOperation { false };
     std::queue<OpenGLDisplayPlugin*> _newPluginQueue;
     gl::Context* _context { nullptr };
+    std::shared_ptr<RefreshRateController> _refreshRateController { nullptr };
 };
 
 bool OpenGLDisplayPlugin::activate() {
@@ -668,11 +682,14 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeExtra();
     }
 
-    // Draw the pointer last so it's on top of everything
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    if (compositorHelper->getReticleVisible()) {
-        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
+    auto& cursorManager = Cursor::Manager::instance();
+    if (isHmd() || cursorManager.getCursor()->getIcon() == Cursor::RETICLE) {
+        auto compositorHelper = DependencyManager::get<CompositorHelper>();
+        // Draw the pointer last so it's on top of everything
+        if (compositorHelper->getReticleVisible()) {
+            PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
             compositePointer();
+        }
     }
 }
 
@@ -687,11 +704,11 @@ void OpenGLDisplayPlugin::internalPresent() {
     _presentRate.increment();
 }
 
-void OpenGLDisplayPlugin::present() {
+void OpenGLDisplayPlugin::present(const std::shared_ptr<RefreshRateController>& refreshRateController) {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
-
+    refreshRateController->clockStartTime();
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
         updateFrameData();
@@ -721,7 +738,21 @@ void OpenGLDisplayPlugin::present() {
             compositeLayers();
         }
 
+        { // If we have any snapshots this frame, handle them
+            PROFILE_RANGE_EX(render, "snapshotOperators", 0xffff00ff, frameId)
+            while (!_currentFrame->snapshotOperators.empty()) {
+                auto& snapshotOperator = _currentFrame->snapshotOperators.front();
+                if (std::get<2>(snapshotOperator)) {
+                    std::get<0>(snapshotOperator)(getScreenshot(std::get<1>(snapshotOperator)));
+                } else {
+                    std::get<0>(snapshotOperator)(getSecondaryCameraScreenshot());
+                }
+                _currentFrame->snapshotOperators.pop();
+            }
+        }
+
         // Take the composite framebuffer and send it to the output device
+        refreshRateController->clockEndTime();
         {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
             internalPresent();
@@ -729,7 +760,10 @@ void OpenGLDisplayPlugin::present() {
 
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
     } else if (alwaysPresent()) {
+        refreshRateController->clockEndTime();
         internalPresent();
+    } else {
+        refreshRateController->clockEndTime();
     }
     _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }
@@ -744,6 +778,13 @@ float OpenGLDisplayPlugin::droppedFrameRate() const {
 
 float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
+}
+
+std::function<void(int)>  OpenGLDisplayPlugin::getRefreshRateOperator() {
+    return [](int targetRefreshRate) {
+        auto refreshRateController = DependencyManager::get<PresentThread>()->getRefreshRateController();
+        refreshRateController->setRefreshRateLimitPeriod(targetRefreshRate);
+    };
 }
 
 void OpenGLDisplayPlugin::resetPresentRate() {
@@ -785,7 +826,7 @@ bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
     return !!_displayTexture;
 }
 
-QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
+QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) {
     auto size = _compositeFramebuffer->getSize();
     if (isHmd()) {
         size.x /= 2;
@@ -801,24 +842,18 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
         corner.x = round((size.x - bestSize.x) / 2.0f);
         corner.y = round((size.y - bestSize.y) / 2.0f);
     }
-    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(bestSize.x, bestSize.y, QImage::Format_ARGB32);
-    withOtherThreadContext([&] {
-        glBackend->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
-    });
+    getGLBackend()->downloadFramebuffer(_compositeFramebuffer, ivec4(corner, bestSize), screenshot);
     return screenshot.mirrored(false, true);
 }
 
-QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() const {
+QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() {
     auto textureCache = DependencyManager::get<TextureCache>();
     auto secondaryCameraFramebuffer = textureCache->getSpectatorCameraFramebuffer();
     gpu::Vec4i region(0, 0, secondaryCameraFramebuffer->getWidth(), secondaryCameraFramebuffer->getHeight());
 
-    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     QImage screenshot(region.z, region.w, QImage::Format_ARGB32);
-    withOtherThreadContext([&] {
-        glBackend->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
-    });
+    getGLBackend()->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
     return screenshot.mirrored(false, true);
 }
 

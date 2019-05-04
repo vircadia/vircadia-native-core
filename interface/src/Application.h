@@ -58,6 +58,7 @@
 #include "gpu/Context.h"
 #include "LoginStateManager.h"
 #include "Menu.h"
+#include "RefreshRateManager.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
 #include "scripting/ControllerScriptingInterface.h"
@@ -203,6 +204,7 @@ public:
     CompositorHelper& getApplicationCompositor() const;
 
     Overlays& getOverlays() { return _overlays; }
+    RefreshRateManager& getRefreshRateManager() { return _refreshRateManager; }
 
     size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
     float getRenderLoopRate() const { return _graphicsEngine.getRenderLoopRate(); }
@@ -345,6 +347,12 @@ public:
     void toggleAwayMode();
     #endif
 
+    using SnapshotOperator = std::tuple<std::function<void(const QImage&)>, float, bool>;
+    void addSnapshotOperator(const SnapshotOperator& snapshotOperator);
+    bool takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators);
+
+    void openDirectory(const QString& path);
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -403,8 +411,6 @@ public slots:
     void readArgumentsFromLocalSocket() const;
 
     static void packageModel();
-
-    void openUrl(const QUrl& url) const;
 
     void resetSensors(bool andReload = false);
     void setActiveFaceTracker() const;
@@ -471,6 +477,9 @@ public slots:
     void changeViewAsNeeded(float boomLength);
 
     QString getGraphicsCardType();
+
+    bool gpuTextureMemSizeStable();
+    void showUrlHandler(const QUrl& url);
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -566,7 +575,6 @@ private:
     bool importFromZIP(const QString& filePath);
     bool importImage(const QString& urlString);
 
-    bool gpuTextureMemSizeStable();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);
 
@@ -717,6 +725,7 @@ private:
     QUuid _loginDialogID;
     QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
+    RefreshRateManager _refreshRateManager;
 
     quint64 _lastFaceTrackerUpdate;
 
@@ -789,6 +798,9 @@ private:
     AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
     SharedSoundPointer _sampleSound;
+    std::mutex _snapshotMutex;
+    std::queue<SnapshotOperator> _snapshotOperators;
+    bool _hasPrimarySnapshot { false };
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
@@ -811,5 +823,6 @@ private:
 
     bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
     bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
+    bool _startUpFinished { false };
 };
 #endif // hifi_Application_h

@@ -261,6 +261,61 @@ void Midi::MidiCleanup() {
 }
 #endif
 
+/**jsdoc
+ * A MIDI message.
+ * <p><strong>Warning:</strong> The <code>status</code> property is NOT a MIDI status value.</p>
+ * @typedef {object} Midi.MidiMessage
+ * @property {number} device - Device number.
+ * @property {Midi.RawMidiMessage} raw - Raw MIDI message.
+ * @property {number} status - Channel + status. <em>Legacy value.</em>
+ * @property {number} channel - Channel: <code>1</code> &ndash; <code>16</code>.
+ * @property {number} type - Status: {@link Midi.MidiStatus}; <code>8</code> &ndash; <code>15</code>.
+ * @property {number} note - Note: <code>0</code> &ndash; <code>127</code>.
+ * @property {number} velocity - Note velocity: <code>0</code> &ndash; <code>127</code>. (<code>0</code> means "note off".)
+ * @property {number} bend - Pitch bend: <code>-8192</code> &ndash; <code>8191</code>.
+ * @property {number} program - Program change: <code>0</code> &ndash; <code>127</code>.
+ */
+/**jsdoc
+ * An integer DWORD (unsigned 32 bit) message with bits having values as follows:
+ * <table>
+ *   <tbody>
+ *     <tr>
+ *       <td width=25%><code>00000000</code></td>
+ *       <td width=25%><code>0vvvvvvv</code></td>
+ *       <td width=25%><code>0nnnnnnn</code></td>
+ *       <td width=12%><code>1sss</code></td>
+ *       <td width=12%><code>cccc</code></td>
+ *   </tbody>
+ * </table>
+ * <p>Where:</p>
+ * <ul>
+ *   <li><code>v</code> = Velocity.
+ *   <li><code>n</code> = Note.
+ *   <li><code>s</code> = Status - {@link Midi.MidiStatus}
+ *   <li><code>c</code> = Channel.
+ * </ul>
+ * <p>The number in the first bit of each byte denotes whether it is a command (1) or data (0).
+ * @typedef {number} Midi.RawMidiMessage
+ */
+/**jsdoc
+ * <p>A MIDI status value. The following MIDI status values are supported:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>8</code></td><td>Note off.</td></tr>
+ *     <tr><td><code>9</code></td><td>Note on.</td></tr>
+ *     <tr><td><code>10</code></td><td>Polyphonic key pressure.</td></tr>
+ *     <tr><td><code>11</code></td><td>Control change.</td></tr>
+ *     <tr><td><code>12</code></td><td>Program change.</td></tr>
+ *     <tr><td><code>13</code></td><td>Channel pressure.</td></tr>
+ *     <tr><td><code>14</code></td><td>Pitch bend.</td></tr>
+ *     <tr><td><code>15</code></td><td>System message.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} Midi.MidiStatus
+ */
 void Midi::midiReceived(int device, int raw, int channel, int status, int type, int note, int velocity, int bend, int program) {
     QVariantMap eventData;
     eventData["device"] = device;

@@ -35,9 +35,9 @@ namespace controller {
 
     /**jsdoc
      * <p>The <code>Controller.Actions</code> object has properties representing predefined actions on the user's avatar and 
-     * Interface. The property values are integer IDs, uniquely identifying each action. <em>Read-only.</em> These can be used 
-     * as end points in the routes of a {@link MappingObject}. The data routed to each action is either a number or a 
-     * {@link Pose}.</p>
+     * Interface. The property values are integer IDs, uniquely identifying each action. <em>Read-only.</em></p>
+     * <p>These actions can be used as end points in the routes of a {@link MappingObject}. The data item routed to each action 
+     * is either a number or a {@link Pose}.</p>
      *
      * <table>
      *   <thead>
@@ -178,7 +178,7 @@ namespace controller {
      *       person view.</td></tr>
      *     <tr><td><code>CycleCamera</code></td><td>number</td><td>number</td><td>Cycle the camera view from first person, to 
      *       third person, to full screen mirror, then back to first person and repeat.</td></tr>
-     *     <tr><td><code>ContextMenu</code></td><td>number</td><td>number</td><td>Show / hide the tablet.</td></tr>
+     *     <tr><td><code>ContextMenu</code></td><td>number</td><td>number</td><td>Show/hide the tablet.</td></tr>
      *     <tr><td><code>ToggleMute</code></td><td>number</td><td>number</td><td>Toggle the microphone mute.</td></tr>
      *     <tr><td><code>TogglePushToTalk</code></td><td>number</td><td>number</td><td>Toggle push to talk.</td></tr>
      *     <tr><td><code>ToggleOverlay</code></td><td>number</td><td>number</td><td>Toggle the display of overlays.</td></tr>
@@ -201,15 +201,16 @@ namespace controller {
      *     <tr><td><code>UiNavSelect</code></td><td>number</td><td>number</td><td>Generate a keyboard Enter key event.
      *       </td></tr>
      *     <tr><td><code>UiNavBack</code></td><td>number</td><td>number</td><td>Generate a keyboard Esc key event.</td></tr>
-     *     <tr><td><code>LeftHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated: </strong> No action.
-     *       </td></tr>
-     *     <tr><td><code>RightHandClick</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
-     *       </td></tr>
-     *     <tr><td><code>Shift</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.</td></tr>
-     *     <tr><td><code>PrimaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
-     *       </td></tr>
-     *     <tr><td><code>SecondaryAction</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> No action.
-     *       </td></tr>
+     *     <tr><td><code>LeftHandClick</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>RightHandClick</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>Shift</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>PrimaryAction</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>SecondaryAction</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. It takes no action.</span></td></tr>
      *
      *     <tr><td colSpan=4><strong>Aliases</strong></td>
      *     <tr><td><code>Backward</code></td><td>number</td><td>number</td><td>Alias for <code>TranslateZ</code> in the 
@@ -234,86 +235,86 @@ namespace controller {
      *       direction.</td></tr>
      *
      *     <tr><td colSpan=4><strong>Deprecated Aliases</strong></td>
-     *     <tr><td><code>LEFT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated:</strong> Use 
-     *       <code>LeftHand</code> instead.</td></tr>
-     *     <tr><td><code>RIGHT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated:</strong> Use 
-     *       <code>RightHand</code> instead.</td></tr>
-     *     <tr><td><code>BOOM_IN</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>BoomIn</code> instead.</td></tr>
-     *     <tr><td><code>BOOM_OUT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>BoomOut</code> instead.</td></tr>
-     *     <tr><td><code>CONTEXT_MENU</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>ContextMenu</code> instead.</td></tr>
-     *     <tr><td><code>TOGGLE_MUTE</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>ToggleMute</code> instead.</td></tr>
-     *     <tr><td><code>TOGGLE_PUSHTOTALK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>TogglePushToTalk</code> instead.</td></tr>
-     *     <tr><td><code>SPRINT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>Sprint</code> instead.</td></tr>
-     *     <tr><td><code>LONGITUDINAL_BACKWARD</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>Backward</code> instead.</td></tr>
-     *     <tr><td><code>LONGITUDINAL_FORWARD</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>Forward</code> instead.</td></tr>
-     *     <tr><td><code>LATERAL_LEFT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>StrafeLeft</code> instead.</td></tr>
-     *     <tr><td><code>LATERAL_RIGHT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>StrafeRight</code> instead.</td></tr>
-     *     <tr><td><code>VERTICAL_UP</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>Up</code> instead.</td></tr>
-     *     <tr><td><code>VERTICAL_DOWN</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>Down</code> instead.</td></tr>
-     *     <tr><td><code>PITCH_DOWN</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>PitchDown</code> instead.</td></tr>
-     *     <tr><td><code>PITCH_UP</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>PitchUp</code> instead.</td></tr>
-     *     <tr><td><code>YAW_LEFT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>YawLeft</code> instead.</td></tr>
-     *     <tr><td><code>YAW_RIGHT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>YawRight</code> instead.</td></tr>
-     *     <tr><td><code>LEFT_HAND_CLICK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>LeftHandClick</code> instead.</td></tr>
-     *     <tr><td><code>RIGHT_HAND_CLICK</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>RightHandClick</code> instead.</td></tr>
-     *     <tr><td><code>SHIFT</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>Shift</code> instead.</td></tr>
-     *     <tr><td><code>ACTION1</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>PrimaryAction</code> instead.</td></tr>
-     *     <tr><td><code>ACTION2</code></td><td>number</td><td>number</td><td><strong>Deprecated:</strong> Use 
-     *       <code>SecondaryAction</code> instead.</td></tr>
+     *     <tr><td><code>LEFT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>LeftHand</code> instead.</span></td></tr>
+     *     <tr><td><code>RIGHT_HAND</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>RightHand</code> instead.</span></td></tr>
+     *     <tr><td><code>BOOM_IN</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>BoomIn</code> instead.</span></td></tr>
+     *     <tr><td><code>BOOM_OUT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>BoomOut</code> instead.</span></td></tr>
+     *     <tr><td><code>CONTEXT_MENU</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>ContextMenu</code> instead.</span></td></tr>
+     *     <tr><td><code>TOGGLE_MUTE</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>ToggleMute</code> instead.</span></td></tr>
+     *     <tr><td><code>TOGGLE_PUSHTOTALK</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>TogglePushToTalk</code> instead.</span></td></tr>
+     *     <tr><td><code>SPRINT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>Sprint</code> instead.</span></td></tr>
+     *     <tr><td><code>LONGITUDINAL_BACKWARD</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>Backward</code> instead.</span></td></tr>
+     *     <tr><td><code>LONGITUDINAL_FORWARD</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>Forward</code> instead.</span></td></tr>
+     *     <tr><td><code>LATERAL_LEFT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>StrafeLeft</code> instead.</span></td></tr>
+     *     <tr><td><code>LATERAL_RIGHT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>StrafeRight</code> instead.</span></td></tr>
+     *     <tr><td><code>VERTICAL_UP</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>Up</code> instead.</span></td></tr>
+     *     <tr><td><code>VERTICAL_DOWN</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>Down</code> instead.</span></td></tr>
+     *     <tr><td><code>PITCH_DOWN</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>PitchDown</code> instead.</span></td></tr>
+     *     <tr><td><code>PITCH_UP</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>PitchUp</code> instead.</span></td></tr>
+     *     <tr><td><code>YAW_LEFT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>YawLeft</code> instead.</span></td></tr>
+     *     <tr><td><code>YAW_RIGHT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>YawRight</code> instead.</span></td></tr>
+     *     <tr><td><code>LEFT_HAND_CLICK</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>LeftHandClick</code> instead.</span></td></tr>
+     *     <tr><td><code>RIGHT_HAND_CLICK</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>RightHandClick</code> instead.</span></td></tr>
+     *     <tr><td><code>SHIFT</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>Shift</code> instead.</span></td></tr>
+     *     <tr><td><code>ACTION1</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>PrimaryAction</code> instead.</span></td></tr>
+     *     <tr><td><code>ACTION2</code></td><td>number</td><td>number</td><td><span class="important">Deprecated: This 
+     *       action is deprecated and will be removed. Use <code>SecondaryAction</code> instead.</span></td></tr>
      *
      *     <tr><td colSpan=4><strong>Deprecated Trackers</strong></td>
-     *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject02</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject03</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject04</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject05</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject06</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject07</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject08</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject09</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject10</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject11</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject12</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject13</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject14</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
-     *     <tr><td><code>TrackedObject15</code></td><td>number</td><td>{@link Pose}</td><td><strong>Deprecated: </strong> No
-     *       action.</td></tr>
+     *     <tr><td><code>TrackedObject00</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject01</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject02</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject03</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject04</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject05</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject06</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject07</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject08</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject09</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject10</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject11</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject12</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject13</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject14</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
+     *     <tr><td><code>TrackedObject15</code></td><td>number</td><td>{@link Pose}</td><td><span class="important">Deprecated: 
+     *       This action is deprecated and will be removed. It takes no action.</span></td></tr>
      *   </tbody>
      * </table>
      * @typedef {object} Controller.Actions

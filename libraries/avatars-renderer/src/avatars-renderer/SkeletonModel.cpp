@@ -164,7 +164,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         Parent::simulate(deltaTime, fullUpdate);
     }
 
-    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem and ModelOverlay,
+    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem,
     // but Avatars don't get updates in the same way
     if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;

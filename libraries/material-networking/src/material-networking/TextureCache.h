@@ -176,7 +176,7 @@ public:
     const gpu::TexturePointer& getBlackTexture();
 
     /// Returns a texture version of an image file
-    static gpu::TexturePointer getImageTexture(const QString& path, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE, QVariantMap options = QVariantMap());
+    static gpu::TexturePointer getImageTexture(const QString& path, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE);
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,

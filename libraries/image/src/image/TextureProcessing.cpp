@@ -103,7 +103,7 @@ gpu::Element getHDRTextureFormatForTarget(BackendTarget target, bool compressed)
     }
 }
 
-TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
+TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type) {
     switch (type) {
         case ALBEDO_TEXTURE:
             return image::TextureUsage::createAlbedoTextureFromImage;
@@ -114,11 +114,7 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
         case SKY_TEXTURE:
             return image::TextureUsage::createCubeTextureFromImage;
         case AMBIENT_TEXTURE:
-            if (options.value("generateIrradiance", true).toBool()) {
-                return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
-            } else {
-                return image::TextureUsage::createAmbientCubeTextureFromImage;
-            }
+            return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
         case BUMP_TEXTURE:
             return image::TextureUsage::createNormalTextureFromBumpImage;
         case NORMAL_TEXTURE:
@@ -188,19 +184,9 @@ gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(Image&& srcImag
     return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, target, false, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createCubeTextureAndIrradianceFromImage(Image&& srcImage, const std::string& srcImageName,
-                                                             bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE, abortProcessing);
-}
-
 gpu::TexturePointer TextureUsage::createCubeTextureFromImage(Image&& srcImage, const std::string& srcImageName,
                                                              bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
     return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_DEFAULT, abortProcessing);
-}
-
-gpu::TexturePointer TextureUsage::createAmbientCubeTextureFromImage(Image&& image, const std::string& srcImageName,
-                                                           bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GGX_CONVOLVE, abortProcessing);
 }
 
 gpu::TexturePointer TextureUsage::createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
@@ -388,7 +374,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     if (sourceChannel != ColorChannel::NONE) {
         mapToRedChannel(image, sourceChannel);
     }
-    
+
     auto loader = TextureUsage::getTextureLoaderForType(textureType);
     auto texture = loader(std::move(image), filename, compress, target, abortProcessing);
 

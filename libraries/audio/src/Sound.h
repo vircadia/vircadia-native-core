@@ -124,7 +124,7 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * An audio resource, created by {@link SoundCache.getSound}, to be played back using {@link Audio.playSound}.
  * <p>Supported formats:</p>
  * <ul>
- *   <li>WAV: 16-bit uncompressed WAV at any sample rate, with 1 (mono), 2 (stereo), or 4 (ambisonic) channels.</li>
+ *   <li>WAV: 16-bit uncompressed at any sample rate, with 1 (mono), 2 (stereo), or 4 (ambisonic) channels.</li>
  *   <li>MP3: Mono or stereo, at any sample rate.</li>
  *   <li>RAW: 48khz 16-bit mono or stereo. File name must include <code>".stereo"</code> to be interpreted as stereo.</li>
  * </ul>

@@ -15,7 +15,6 @@
 #include <QtCore/QEventLoop>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
-#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 
 #include "Gzip.h"
@@ -132,10 +131,10 @@ void DomainBaker::loadLocalFile() {
     }
 
     // read the file contents to a JSON document
-    auto jsonDocument = QJsonDocument::fromJson(fileContents);
+    _json = QJsonDocument::fromJson(fileContents);
 
     // grab the entities object from the root JSON object
-    _entities = jsonDocument.object()[ENTITIES_OBJECT_KEY].toArray();
+    _entities = _json.object()[ENTITIES_OBJECT_KEY].toArray();
 
     if (_entities.isEmpty()) {
         // add an error to our list stating that the models file was empty
@@ -171,7 +170,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
                 // move the baker to the baker thread
                 // and kickoff the bake
                 baker->moveToThread(Oven::instance().getNextWorkerThread());
-                QMetaObject::invokeMethod(baker.data(), "bake");
+                QMetaObject::invokeMethod(baker.data(), "bake", Qt::QueuedConnection);
 
                 // keep track of the total number of baking entities
                 ++_totalNumberOfSubBakes;
@@ -189,18 +188,20 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
 void DomainBaker::addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef) {
     QString cleanURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
     auto idx = cleanURL.lastIndexOf('.');
-    auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
+    auto extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
         // grab a clean version of the URL without a query or fragment
         QUrl textureURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+        TextureKey key = { textureURL, type };
 
         // setup a texture baker for this URL, as long as we aren't baking a texture already
-        if (!_textureBakers.contains(textureURL)) {
+        if (!_textureBakers.contains(key)) {
+            auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
             // setup a baker for this texture
             QSharedPointer<TextureBaker> textureBaker {
-                new TextureBaker(textureURL, type, _contentOutputPath),
+                new TextureBaker(textureURL, type, _contentOutputPath, baseTextureFileName),
                 &TextureBaker::deleteLater
             };
 
@@ -208,11 +209,11 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
             connect(textureBaker.data(), &TextureBaker::finished, this, &DomainBaker::handleFinishedTextureBaker);
 
             // insert it into our bakers hash so we hold a strong pointer to it
-            _textureBakers.insert(textureURL, textureBaker);
+            _textureBakers.insert(key, textureBaker);
 
             // move the baker to a worker thread and kickoff the bake
             textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
-            QMetaObject::invokeMethod(textureBaker.data(), "bake");
+            QMetaObject::invokeMethod(textureBaker.data(), "bake", Qt::QueuedConnection);
 
             // keep track of the total number of baking entities
             ++_totalNumberOfSubBakes;
@@ -220,7 +221,8 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
         // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
         // to the baked version once the baker is complete
-        _entitiesNeedingRewrite.insert(textureURL, { property, jsonRef });
+        // it doesn't really matter what this key is as long as it's consistent
+        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + "^" + QString::number(type), { property, jsonRef });
     } else {
         qDebug() << "Texture extension not supported: " << extension;
     }
@@ -247,7 +249,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, co
 
         // move the baker to a worker thread and kickoff the bake
         scriptBaker->moveToThread(Oven::instance().getNextWorkerThread());
-        QMetaObject::invokeMethod(scriptBaker.data(), "bake");
+        QMetaObject::invokeMethod(scriptBaker.data(), "bake", Qt::QueuedConnection);
 
         // keep track of the total number of baking entities
         ++_totalNumberOfSubBakes;
@@ -272,7 +274,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath, destinationPath),
+            new MaterialBaker(materialData, isURL, _contentOutputPath, destinationPath),
             &MaterialBaker::deleteLater
         };
 
@@ -284,7 +286,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // move the baker to a worker thread and kickoff the bake
         materialBaker->moveToThread(Oven::instance().getNextWorkerThread());
-        QMetaObject::invokeMethod(materialBaker.data(), "bake");
+        QMetaObject::invokeMethod(materialBaker.data(), "bake", Qt::QueuedConnection);
 
         // keep track of the total number of baking entities
         ++_totalNumberOfSubBakes;
@@ -410,7 +412,10 @@ void DomainBaker::enumerateEntities() {
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
-                addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
+                QString materialURL = entity[MATERIAL_URL_KEY].toString();
+                if (!materialURL.startsWith("materialData")) {
+                    addMaterialBaker(MATERIAL_URL_KEY, materialURL, true, *it);
+                }
             }
             if (entity.contains(MATERIAL_DATA_KEY)) {
                 addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it, _destinationPath);
@@ -497,9 +502,11 @@ void DomainBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
+        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + "^" + QString::number(baker->getTextureType());
+
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan
-            qDebug() << "Re-writing entity references to" << baker->getTextureURL();
+            qDebug() << "Re-writing entity references to" << baker->getTextureURL() << "with usage" << baker->getTextureType();
 
             // setup a new URL using the prefix we were passed
             auto relativeTextureFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getMetaTextureFileName());
@@ -510,7 +517,7 @@ void DomainBaker::handleFinishedTextureBaker() {
 
             // enumerate the QJsonRef values for the URL of this texture from our multi hash of
             // entity objects needing a URL re-write
-            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(baker->getTextureURL())) {
+            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(rewriteKey)) {
                 QString property = propertyEntityPair.first;
                 // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
                 auto entity = propertyEntityPair.second.toObject();
@@ -554,10 +561,10 @@ void DomainBaker::handleFinishedTextureBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-        _entitiesNeedingRewrite.remove(baker->getTextureURL());
+        _entitiesNeedingRewrite.remove(rewriteKey);
 
         // drop our shared pointer to this baker so that it gets cleaned up
-        _textureBakers.remove(baker->getTextureURL());
+        _textureBakers.remove({ baker->getTextureURL(), baker->getTextureType() });
 
         // emit progress to tell listeners how many textures we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
@@ -749,15 +756,11 @@ void DomainBaker::writeNewEntitiesFile() {
     // time to write out a main models.json.gz file
 
     // first setup a document with the entities array below the entities key
-    QJsonDocument entitiesDocument;
-
-    QJsonObject rootObject;
-    rootObject[ENTITIES_OBJECT_KEY] = _entities;
-
-    entitiesDocument.setObject(rootObject);
+    QJsonObject json = _json.object();
+    json[ENTITIES_OBJECT_KEY] = _entities;
 
     // turn that QJsonDocument into a byte array ready for compression
-    QByteArray jsonByteArray = entitiesDocument.toJson();
+    QByteArray jsonByteArray = QJsonDocument(json).toJson();
 
     // compress the json byte array using gzip
     QByteArray compressedJson;

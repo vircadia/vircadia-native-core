@@ -535,9 +535,10 @@ public slots:
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
-     * Open a URL in the Interface window or other application, depending on the URL's scheme. If the URL starts with 
-     * <code>hifi://</code> then that URL is navigated to in Interface, otherwise the URL is opened in the application the OS 
-     * associates with the URL's scheme (e.g., a Web browser for <code>http://</code>).
+     * Open a URL in the Interface window or other application, depending on the URL's scheme. The following schemes are supported:
+     * <code>hifi</code> (navigate to the URL in Interface), <code>hifiapp<code> (open a system app in Interface).  Other schemes will either be handled by the OS
+     * (e.g. <code>http</code>, <code>https</code>, <code>mailto</code>) or will create a confirmation dialog asking the user to confirm that they want to try to open
+     * the URL.
      * @function Window.openUrl
      * @param {string} url - The URL to open.
      */

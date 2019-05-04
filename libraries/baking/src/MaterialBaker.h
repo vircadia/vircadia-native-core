@@ -21,6 +21,8 @@
 
 static const QString BAKED_MATERIAL_EXTENSION = ".baked.json";
 
+using TextureKey = QPair<QUrl, image::TextureUsage::Type>;
+
 class MaterialBaker : public Baker {
     Q_OBJECT
 public:
@@ -31,6 +33,9 @@ public:
     QString getBakedMaterialData() const { return _bakedMaterialData; }
 
     void setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL);
+    void setMaterials(const NetworkMaterialResourcePointer& materialResource);
+
+    NetworkMaterialResourcePointer getNetworkMaterialResource() const { return _materialResource; }
 
     static void setNextOvenWorkerThreadOperator(std::function<QThread*()> getNextOvenWorkerThreadOperator) { _getNextOvenWorkerThreadOperator = getNextOvenWorkerThreadOperator; }
 
@@ -55,8 +60,8 @@ private:
 
     NetworkMaterialResourcePointer _materialResource;
 
-    QHash<QPair<QUrl, image::TextureUsage::Type>, QSharedPointer<TextureBaker>> _textureBakers;
-    QMultiHash<QPair<QUrl, image::TextureUsage::Type>, std::shared_ptr<NetworkMaterial>> _materialsNeedingRewrite;
+    QHash<TextureKey, QSharedPointer<TextureBaker>> _textureBakers;
+    QMultiHash<TextureKey, std::shared_ptr<NetworkMaterial>> _materialsNeedingRewrite;
 
     QString _bakedOutputDir;
     QString _textureOutputDir;

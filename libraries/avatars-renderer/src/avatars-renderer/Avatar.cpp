@@ -1428,7 +1428,7 @@ int Avatar::getJointIndex(const QString& name) const {
 
     withValidJointIndicesCache([&]() {
         if (_modelJointIndicesCache.contains(name)) {
-            result = _modelJointIndicesCache[name] - 1;
+            result = _modelJointIndicesCache.value(name) - 1;
         }
     });
     return result;
@@ -1439,9 +1439,7 @@ QStringList Avatar::getJointNames() const {
     withValidJointIndicesCache([&]() {
         // find out how large the vector needs to be
         int maxJointIndex = -1;
-        QHashIterator<QString, int> k(_modelJointIndicesCache);
-        while (k.hasNext()) {
-            k.next();
+        for (auto k = _modelJointIndicesCache.constBegin(); k != _modelJointIndicesCache.constEnd(); k++) {
             int index = k.value();
             if (index > maxJointIndex) {
                 maxJointIndex = index;
@@ -1450,9 +1448,7 @@ QStringList Avatar::getJointNames() const {
         // iterate through the hash and put joint names
         // into the vector at their indices
         QVector<QString> resultVector(maxJointIndex+1);
-        QHashIterator<QString, int> i(_modelJointIndicesCache);
-        while (i.hasNext()) {
-            i.next();
+        for (auto i = _modelJointIndicesCache.constBegin(); i != _modelJointIndicesCache.constEnd(); i++) {
             int index = i.value();
             resultVector[index] = i.key();
         }
@@ -1467,6 +1463,37 @@ QStringList Avatar::getJointNames() const {
         }
     });
     return result;
+}
+
+std::vector<AvatarSkeletonTrait::UnpackedJointData> Avatar::getSkeletonDefaultData() {
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> defaultSkeletonData;
+    if (_skeletonModel->isLoaded()) {
+        auto& model = _skeletonModel->getHFMModel();
+        auto& rig = _skeletonModel->getRig();
+        float geometryToRigScale = extractScale(rig.getGeometryToRigTransform())[0];
+        QStringList jointNames = getJointNames();
+        int sizeCount = 0;
+        for (int i = 0; i < jointNames.size(); i++) {
+            AvatarSkeletonTrait::UnpackedJointData jointData;
+            jointData.jointIndex = i;
+            jointData.parentIndex = rig.getJointParentIndex(i);
+            if (jointData.parentIndex == -1) {
+                jointData.boneType = model.joints[i].isSkeletonJoint ? AvatarSkeletonTrait::BoneType::SkeletonRoot : AvatarSkeletonTrait::BoneType::NonSkeletonRoot;
+            } else {
+                jointData.boneType = model.joints[i].isSkeletonJoint ? AvatarSkeletonTrait::BoneType::SkeletonChild : AvatarSkeletonTrait::BoneType::NonSkeletonChild;
+            }
+            jointData.defaultRotation = rig.getAbsoluteDefaultPose(i).rot();
+            jointData.defaultTranslation = getDefaultJointTranslation(i);
+            float jointLocalScale = extractScale(model.joints[i].transform)[0];
+            jointData.defaultScale = jointLocalScale / geometryToRigScale;
+            jointData.jointName = jointNames[i];
+            jointData.stringLength = jointNames[i].size();
+            jointData.stringStart = sizeCount;
+            sizeCount += jointNames[i].size();
+            defaultSkeletonData.push_back(jointData);
+        }
+    }
+    return defaultSkeletonData;
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
@@ -1535,6 +1562,8 @@ void Avatar::rigReady() {
     buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
     buildSpine2SplineRatioCache();
+    setSkeletonData(getSkeletonDefaultData());
+    sendSkeletonData();
 }
 
 // rig has been reset.
