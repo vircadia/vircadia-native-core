@@ -196,4 +196,6 @@ if (WIN32)
     set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
 
     package_libraries_for_deployment()
+elseif (APPLE)
+    package_libraries_for_deployment()
 endif()
