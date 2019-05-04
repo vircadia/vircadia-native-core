@@ -354,7 +354,7 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
         if (_shapeRequests.size() > 0) {
             ShapeRequest shapeRequest(entity);
             ShapeRequests::iterator  requestItr = _shapeRequests.find(shapeRequest);
-            if (requestItr == _shapeRequests.end()) {
+            if (requestItr != _shapeRequests.end()) {
                 _shapeRequests.erase(requestItr);
             }
         }
