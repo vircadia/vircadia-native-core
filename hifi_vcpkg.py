@@ -249,7 +249,7 @@ endif()
             elif platform.system() == 'Darwin':
                 url = 'https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.tar.gz'
             elif platform.system() == 'Linux':
-                if (platform.linux_distribution()[1] == '16.04':
+                if platform.linux_distribution()[1] == '16.04':
                     self.vcpkgUrl = 'https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/16.04/qt5-install.tar.gz'
                 elif platform.linux_distribution()[1] == '18.04':
                     self.vcpkgUrl = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/18.04/qt5-install.tar.gz"
