@@ -57,6 +57,20 @@ void interactiveWindowPointerFromScriptValue(const QScriptValue& object, Interac
     }
 }
 
+/**jsdoc
+ * A set of properties used when creating an <code>InteractiveWindow</code>.
+ * @typedef {object} InteractiveWindow.Properties
+ * @property {string} [title="InteractiveWindow] - The title of the window.
+ * @property {Vec2} [position] - The initial position of the window, in pixels.
+ * @property {Vec2} [size] - The initial size of the window, in pixels
+ * @property {boolean} [visible=true] - <code>true</code> to make the window visible when created, <code>false</code> to make 
+ *     it invisible.
+ * @property {InteractiveWindow.PresentationMode} [presentationMode=Desktop.PresentationMode.VIRTUAL] - 
+ *     <code>Desktop.PresentationMode.VIRTUAL</code> to display the window inside Interface, <code>.NATIVE</code> to display it 
+ *     as its own separate window.
+ * @property {InteractiveWindow.Flags} [flags=0] - Window behavior flags, set at window creation. Possible flag values are 
+ *     provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
+ */
 InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 

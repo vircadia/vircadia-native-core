@@ -25,6 +25,21 @@
 namespace InteractiveWindowEnums {
     Q_NAMESPACE
 
+    /**jsdoc
+     * A set of  flags controlling <code>InteractiveWindow</code> behavior. The value is constructed by using the 
+     * <code>|</code> (bitwise OR) operator on the individual flag values.<br />
+     * <table>
+     *   <thead>
+     *     <tr><th>Flag Name</th><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td>ALWAYS_ON_TOP</td><td><code>1</code></td><td>The window always displays on top.</td></tr>
+     *     <tr><td>CLOSE_BUTTON_HIDES</td><td><code>2</code></td><td>The window hides instead of closing when the user clicks 
+     *       the "close" button.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} InteractiveWindow.Flags
+     */
     enum InteractiveWindowFlags : uint8_t {
         AlwaysOnTop = 1 << 0,
         CloseButtonHides = 1 << 1
@@ -41,18 +56,25 @@ namespace InteractiveWindowEnums {
 using namespace InteractiveWindowEnums;
 
 /**jsdoc
+ * An <code>InteractiveWindow</code> can display either inside Interface or in its own window separate from the Interface 
+ * window. The window content is defined by a QML file, which can optionally include a <code>WebView</code> control that embeds 
+ * an HTML Web page. (The <code>WebView</code> control is defined by a "WebView.qml" file included in the Interface install.)
+ *
+ * <p>Create using {@link Desktop.createWindow}.</p>
+ *
  * @class InteractiveWindow
  *
  * @hifi-interface
  * @hifi-client-entity
  * @hifi-avatar
  *
- * @property {string} title
- * @property {Vec2} position
- * @property {Vec2} size
- * @property {boolean} visible
- * @property {Desktop.PresentationMode} presentationMode
- * 
+ * @property {string} title - The title of the window.
+ * @property {Vec2} position - The position of the window, in pixels.
+ * @property {Vec2} size - The size of the window, in pixels.
+ * @property {boolean} visible - <code>true</code> if the window is visible, <code>false</code> if it isn't.
+ * @property {InteractiveWindow.PresentationMode} presentationMode - The presentation mode of the window: 
+ *     <code>Desktop.PresentationMode.VIRTUAL</code> to display the window inside Interface, <code>.NATIVE</code> to display it
+ *     as its own separate window.
  */
 class InteractiveWindow : public QObject {
     Q_OBJECT
@@ -90,36 +112,49 @@ private:
 public slots:
 
     /**jsdoc
+     * Sends a message to the QML page. To receive the message, the QML page must implement a function:
+     * <pre class="prettyprint"><code>function fromScript(message) {
+     *   ...
+     * }</code></pre>
      * @function InteractiveWindow.sendToQml
-     * @param {object} message
+     * @param {string|object} message - The message to send to the QML page.
      */
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
 
     /**jsdoc
+     * Sends a message to an embedded HTML Web page. To receive the message, the HTML page's script must connect to the 
+     * <code>EventBridge</code> that is automatically provided to the script:
+     * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
+     *     ...
+     * });</code></pre>
      * @function InteractiveWindow.emitScriptEvent
-     * @param {object} message
+     * @param {string|object} message - The message to send to the embedded HTML Web page.
      */
     // QmlWindow content may include WebView requiring EventBridge.
     void emitScriptEvent(const QVariant& scriptMessage);
 
     /**jsdoc
      * @function InteractiveWindow.emitWebEvent
-     * @param {object} message
+     * @param {object|string} message - The message.
+     * @deprecated This function is deprecated and will be removed from the API.
      */
     void emitWebEvent(const QVariant& webMessage);
 
     /**jsdoc
+     * Closes the window. It can then no longer be used.
      * @function InteractiveWindow.close
      */
     Q_INVOKABLE void close();
 
     /**jsdoc
+     * Makes the window visible and raises it to the top.
      * @function InteractiveWindow.show
      */
     Q_INVOKABLE void show();
 
     /**jsdoc
+     * Raises the window to the top.
      * @function InteractiveWindow.raise
      */
     Q_INVOKABLE void raise();
@@ -127,44 +162,52 @@ public slots:
 signals:
 
     /**jsdoc
+     * Triggered when the window is made visible or invisible, or is closed.
      * @function InteractiveWindow.visibleChanged
      * @returns {Signal}
      */
     void visibleChanged();
 
     /**jsdoc
+     * Triggered when the window's position changes.
      * @function InteractiveWindow.positionChanged
      * @returns {Signal}
      */
     void positionChanged();
 
     /**jsdoc
+     * Triggered when the window's' size changes.
      * @function InteractiveWindow.sizeChanged
      * @returns {Signal}
      */
     void sizeChanged();
 
     /**jsdoc
+     * Triggered when the window's presentation mode changes.
      * @function InteractiveWindow.presentationModeChanged
      * @returns {Signal}
      */
     void presentationModeChanged();
 
     /**jsdoc
+     * Triggered when window's title changes.
      * @function InteractiveWindow.titleChanged
      * @returns {Signal}
      */
     void titleChanged();
 
     /**jsdoc
+     * Triggered when the window is closed.
      * @function InteractiveWindow.closed
      * @returns {Signal}
      */
     void closed();
 
     /**jsdoc
+     * Triggered when a message from the QML page is received. The QML page can send a message (string or object) by calling:
+     * <pre class="prettyprint"><code>sendToScript(message);</code></pre>
      * @function InteractiveWindow.fromQml
-     * @param {object} message
+     * @param {string|object} message - The message received.
      * @returns {Signal}
      */
     // Scripts can connect to this signal to receive messages from the QML object
@@ -172,15 +215,18 @@ signals:
 
     /**jsdoc
      * @function InteractiveWindow.scriptEventReceived
-     * @param {object} message
+     * @param {object} message - The message.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed from the API.
      */
     // InteractiveWindow content may include WebView requiring EventBridge.
     void scriptEventReceived(const QVariant& message);
 
     /**jsdoc
+     * Trigged when a message from an embedded HTML Web page is received. The HTML Web page can send a message by calling:
+     * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
      * @function InteractiveWindow.webEventReceived
-     * @param {object} message
+     * @param {string|object} message - The message received.
      * @returns {Signal}
      */
     void webEventReceived(const QVariant& message);
@@ -190,6 +236,7 @@ protected slots:
      * @function InteractiveWindow.qmlToScript
      * @param {object} message
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed from the API.
      */
     void qmlToScript(const QVariant& message);
 
