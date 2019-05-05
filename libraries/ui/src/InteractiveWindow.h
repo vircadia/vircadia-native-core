@@ -118,6 +118,44 @@ public slots:
      * }</code></pre>
      * @function InteractiveWindow.sendToQml
      * @param {string|object} message - The message to send to the QML page.
+     * @example <caption>Send and receive messages with a QML window.</caption>
+     * // JavaScript file.
+     * 
+     * var qmlWindow = Desktop.createWindow(Script.resolvePath("QMLWindow.qml"), {
+     *     title: "QML Window",
+     *     size: { x: 400, y: 300 }
+     * });
+     * 
+     * qmlWindow.fromQml.connect(function (message) {
+     *     print("Message received: " + message);
+     * });
+     * 
+     * Script.setTimeout(function () {
+     *     qmlWindow.sendToQml("Hello world!");
+     * }, 2000);
+     * 
+     * Script.scriptEnding.connect(function () {
+     *     qmlWindow.close();
+     * });
+     * @example
+     * // QML file, "QMLWindow.qml".
+     * 
+     * import QtQuick 2.5
+     * import QtQuick.Controls 1.4
+     * 
+     * Rectangle {
+     * 
+     *     function fromScript(message) {
+     *         text.text = message;
+     *         sendToScript("Hello back!");
+     *     }
+     * 
+     *     Label {
+     *         id: text
+     *         anchors.centerIn: parent
+     *         text: "..."
+     *     }
+     * }
      */
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
