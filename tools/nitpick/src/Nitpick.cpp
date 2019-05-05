@@ -192,12 +192,17 @@ void Nitpick::on_createTestsOutlinePushbutton_clicked() {
     _testCreator->createTestsOutline();
 }
 
+// TestRail interface
 void Nitpick::on_createTestRailTestCasesPushbutton_clicked() {
     _testCreator->createTestRailTestCases();
 }
 
-void Nitpick::on_createTestRailRunButton_clicked() {
+void Nitpick::on_createTestRailRunPushButton_clicked() {
     _testCreator->createTestRailRun();
+}
+
+void Nitpick::on_updateTestRailRunResultsPushbutton_clicked() {
+    _testCreator->updateTestRailRunResult();
 }
 
 void Nitpick::on_setWorkingFolderRunOnDesktopPushbutton_clicked() {
@@ -229,10 +234,6 @@ void Nitpick::on_runFullSuiteOnDesktopCheckBox_clicked() {
 
 void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
     _testRunnerDesktop->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
-}
-
-void Nitpick::on_updateTestRailRunResultsPushbutton_clicked() {
-    _testCreator->updateTestRailRunResult();
 }
 
 // To toggle between show and hide
