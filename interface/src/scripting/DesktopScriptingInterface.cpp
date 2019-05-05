@@ -31,6 +31,13 @@ int DesktopScriptingInterface::getHeight() {
     return size.height();
 }
 
+/**jsdoc
+ * The presentation mode specifies how an {@link InteractiveWindow} is displayed.
+ * @typedef {object} InteractiveWindow.PresentationMode
+ * @property {number} VIRTUAL - The window is displayed inside Interface: in the desktop window in desktop mode or on the HUD 
+ *     surface in HMD mode.
+ * @property {number} NATIVE - The window is displayed separately from the Interface window, as its own separate window.
+ */
 QVariantMap DesktopScriptingInterface::getPresentationMode() {
     static QVariantMap presentationModes {
         { "VIRTUAL", Virtual },
