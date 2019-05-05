@@ -10,22 +10,28 @@
 #
 
 macro(fixup_interface)
-    if (APPLE)
-        string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${INTERFACE_BUNDLE_NAME})
-        string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
-        set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
+  if (APPLE)
 
-        find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS "${QT_DIR}/bin" NO_DEFAULT_PATH)
+    string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${INTERFACE_BUNDLE_NAME})
+    string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
+    set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
 
-        if (NOT MACDEPLOYQT_COMMAND)
-            message(FATAL_ERROR "Could not find macdeployqt at ${QT_DIR}/bin.\
-                It is required to produce a relocatable interface application.\
-                Check that the variable QT_DIR points to your Qt installation.\
-            ")
-        endif ()
+    find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS "${QT_DIR}/bin" NO_DEFAULT_PATH)
 
-        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-            COMMAND ${MACDEPLOYQT_COMMAND} "$<TARGET_FILE_DIR:${TARGET_NAME}>/../.." -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/
-        )
+    if (NOT MACDEPLOYQT_COMMAND AND (PRODUCTION_BUILD OR PR_BUILD))
+      message(FATAL_ERROR "Could not find macdeployqt at ${QT_DIR}/bin.\
+        It is required to produce an relocatable interface application.\
+        Check that the environment variable QT_DIR points to your Qt installation.\
+      ")
     endif ()
+
+    install(CODE "
+      execute_process(COMMAND ${MACDEPLOYQT_COMMAND}\
+        \${CMAKE_INSTALL_PREFIX}/${_INTERFACE_INSTALL_PATH}/\
+        -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/\
+      )"
+      COMPONENT ${CLIENT_COMPONENT}
+    )
+
+  endif ()
 endmacro()
