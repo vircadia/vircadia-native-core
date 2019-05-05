@@ -24,7 +24,7 @@ macro(fixup_interface)
             ")
         endif ()
 
-        if (DEV_BUILD)
+        if (RELEASE_TYPE STREQUAL "DEV")
             install(CODE "
                 execute_process(COMMAND ${MACDEPLOYQT_COMMAND}\
                     \${CMAKE_INSTALL_PREFIX}/${_INTERFACE_INSTALL_PATH}/\
