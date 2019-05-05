@@ -379,6 +379,7 @@ protected:
 
     std::unordered_map<unsigned int, quint16> _priorityMap; // only used for materialMapping
     std::unordered_map<unsigned int, std::vector<graphics::MaterialLayer>> _materialMapping; // generated during applyMaterialMapping
+    std::mutex _materialMappingMutex;
     void applyMaterialMapping();
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
@@ -427,7 +428,6 @@ protected:
     void setScaleInternal(const glm::vec3& scale);
     void snapToRegistrationPoint();
 
-    void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Allow sub classes to force invalidating the bboxes

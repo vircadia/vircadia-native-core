@@ -450,9 +450,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
     _adjustedLocalBound = _localBound;
     if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
+        _adjustedLocalBound.transform(clusterMatrices.back());
 
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
+        for (int i = 0; i < (int)clusterMatrices.size() - 1; ++i) {
             AABox clusterBound = _localBound;
             clusterBound.transform(clusterMatrices[i]);
             _adjustedLocalBound += clusterBound;
@@ -463,12 +463,12 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4
 void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions) {
     _adjustedLocalBound = _localBound;
     if (clusterDualQuaternions.size() > 0) {
-        Transform rootTransform(clusterDualQuaternions[0].getRotation(),
-                                clusterDualQuaternions[0].getScale(),
-                                clusterDualQuaternions[0].getTranslation());
+        Transform rootTransform(clusterDualQuaternions.back().getRotation(),
+                                clusterDualQuaternions.back().getScale(),
+                                clusterDualQuaternions.back().getTranslation());
         _adjustedLocalBound.transform(rootTransform);
 
-        for (int i = 1; i < (int)clusterDualQuaternions.size(); ++i) {
+        for (int i = 0; i < (int)clusterDualQuaternions.size() - 1; ++i) {
             AABox clusterBound = _localBound;
             Transform transform(clusterDualQuaternions[i].getRotation(),
                                 clusterDualQuaternions[i].getScale(),
