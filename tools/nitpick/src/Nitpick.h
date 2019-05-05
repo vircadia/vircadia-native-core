@@ -65,10 +65,8 @@ private slots:
 
     void on_createTestsOutlinePushbutton_clicked();
 
-    // TestRail interface
     void on_createTestRailTestCasesPushbutton_clicked();
-    void on_createTestRailRunPushButton_clicked();
-    void on_updateTestRailRunResultsPushbutton_clicked();
+    void on_createTestRailRunButton_clicked();
 
     void on_setWorkingFolderRunOnDesktopPushbutton_clicked();
     void on_runNowPushbutton_clicked();
@@ -77,6 +75,7 @@ private slots:
     void on_runLatestOnDesktopCheckBox_clicked();
     void on_runFullSuiteOnDesktopCheckBox_clicked();
 
+    void on_updateTestRailRunResultsPushbutton_clicked();
 
     void on_hideTaskbarPushbutton_clicked();
     void on_showTaskbarPushbutton_clicked();
