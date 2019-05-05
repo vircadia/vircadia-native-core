@@ -96,8 +96,6 @@ Verify again
 `sudo apt-get install libdbus-glib-1-dev -y`  
 1.  nss (needed for qtwebengine)  
 `sudo apt-get install libnss3-dev -y`  
-1.  Add the following line to *.bash_profile* (otherwise fonts will not be displayed)  
-`export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/`  
 ### Mac
 1.  git >= 1.6  
 Check if needed `git --version`  
@@ -174,33 +172,39 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 
 #### Make  
 `make`  
+
+*Ubuntu 18.04 only*  
+`make module-qtwebengine`  
+`make module-qtscript`  
+
+*Both*  
 `make install`  
 #### Fixing
 1.  The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
 `cd ../qt5-install`  
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 1.   Copy *qt.conf* to *qt5-install\bin*  
-#### Uploading
-1.  Return to the home folder  
+#### Uploading  
+*Ubuntu 16.04*  
+1.  Return to the home folder    
 `cd ..`  
 1.  Open a python 3 shell  
 `python3`  
 1.  Run the following snippet:  
 `import os`  
 `import tarfile`  
-`filename=tarfile.open("qt5-install.tar.gz", "w:gz")`  
-`filename.add("qt5-install", os.path.basename("qt5-install"))`  
+`filename=tarfile.open("qt5-install.tar.gz", "w:gz")`    
+`filename.add("qt5-install", os.path.basename("qt5-install"))`    
 `exit()`  
+1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/16.04    
 
-*Ubuntu 16.04*  
-1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/16.04  
-
-*Ubuntu 16.04*  
+*Ubuntu 18.04*  
+``tar -zcvf qt5-install.tar.gz qt5-install`  
 1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/18.04  
 
-1. ### Mac
-#### Preparing source files
-git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch  
+1. ### Mac  
+#### Preparing source files  
+git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch    
   
 *  Copy the **patches** folder to qt5  
 *   Apply one patch to Qt  
