@@ -23,6 +23,8 @@
 
 #include "Profile.h"
 
+static const QString VERIFY_FAIL_MODEL { "/meshes/verifyFailed.fst" };
+
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
         return;
@@ -324,6 +326,10 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             bool displayNameChanged = false;
             // In this case, the "sendingNode" is the Avatar Mixer.
             avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
+            if (avatar->isCertifyFailed() && identityUUID != EMPTY) {
+                qCDebug(avatars) << "Avatar" << avatar->getSessionDisplayName() << "marked as VERIFY-FAILED";
+                avatar->setSkeletonModelURL(PathUtils::resourcesUrl(VERIFY_FAIL_MODEL));
+            }
             _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
         }
     }
