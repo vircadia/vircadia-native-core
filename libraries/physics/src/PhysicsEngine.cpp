@@ -250,6 +250,7 @@ void PhysicsEngine::removeSetOfObjects(const SetOfMotionStates& objects) {
         }
         object->clearIncomingDirtyFlags();
     }
+    _activeStaticBodies.clear();
 }
 
 void PhysicsEngine::addObjects(const VectorOfMotionStates& objects) {
