@@ -2466,8 +2466,8 @@ void Application::initializePlatform() {
 
     //run the enumeration 
     if (platform::enumerateProcessors()) {
-        for (int i = 0; i < platform::getProcessorCount(); i++) {
-            std::string myPlat = platform::getProcessor(0);
+        for (int i = 0; i < platform::getNumProcessor(); i++) {
+            platform::getProcessor(i);
         }
     }
 }

@@ -16,20 +16,24 @@ using namespace nlohmann;
 
 bool WINInstance::enumerateProcessors() {
     
-    cpu cpu;
+    
+    json cpu;
     
     getCpuDetails(cpu);
     
-    cpu.numberOfCores = getNumLogicalCores();
+    cpu["numCores"] = getNumLogicalCores();
 
     _processors.push_back(cpu);
 
-    _memory.totalMb = getTotalSystemRamMb();
+    json mem;
+    mem["totalRam"] = getTotalSystemRam();
+    
+    _memory.push_back(mem);
 
     return true;
 }
 
-void WINInstance::getCpuDetails(cpu &cpu) {
+void WINInstance::getCpuDetails(json &cpu) {
     int CPUInfo[4] = { -1 };
     unsigned nExIds;
     unsigned int i = 0;
@@ -53,41 +57,23 @@ void WINInstance::getCpuDetails(cpu &cpu) {
         }
     }
     
-    cpu.brand = CPUBrandString;
-    cpu.model = CPUModelString;
-    cpu.clockSpeed = CPUClockString;
+    cpu["brand"] = CPUBrandString;
+    cpu["model"] = CPUModelString;
+    cpu["clockSpeed"] = CPUClockString;
 }
 
 unsigned int WINInstance::getNumLogicalCores() {
     return std::thread::hardware_concurrency();
 }
 
-int WINInstance::getTotalSystemRamMb() {
+int WINInstance::getTotalSystemRam() {
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     return statex.ullTotalPhys / 1024 / 1024;
 }
 
-std::string WINInstance::getProcessor(int index) {
-   
-    std::string result;
-    if (index >= _processors.size())
-        return result;
-    
-    json j;
-    to_Json(j, _processors.at(index));
 
-    //serialize this
-    return j.dump();
-}
 
-void WINInstance::to_Json(json& result, const cpu& cpu) {
-    
-    result["cpuBrand"] = cpu.brand;
-    result["cpuModel"] = cpu.model;
-    result["cpuClockSpeed"] = cpu.clockSpeed;
-    result["cpuNumberOfCores"] = cpu.numberOfCores;
-}
 
 

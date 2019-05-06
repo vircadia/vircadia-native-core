@@ -18,13 +18,11 @@ namespace platform {
     
     public:
         bool enumerateProcessors();
-        std::string getProcessor(int index);
 
     private:
         unsigned int getNumLogicalCores();
-        void getCpuDetails(cpu& cpu);
-        int getTotalSystemRamMb();
-        void to_Json(nlohmann::json& result, const cpu& cpu);
+        void getCpuDetails(nlohmann::json& cpu);
+        int getTotalSystemRam();
 };
 
 }  // namespace platform

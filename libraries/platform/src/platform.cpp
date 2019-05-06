@@ -6,7 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "platform.h"
+
 #include <QtGlobal>
 
 #ifdef Q_OS_WIN
@@ -21,6 +23,9 @@
 #endif
 
 using namespace platform;
+using namespace nlohmann;
+
+Instance* _instance;
 
 void platform::create() {
 
@@ -30,18 +35,56 @@ void platform::create() {
     #endif
 }
 
-std::string platform::getProcessor(int index) {
-    return _instance->getProcessor(index);
+json Instance::getProcessor(int index) {
+    assert(index < _processor.size());
+
+    json result;
+    if (index >= _processors.size())
+        return result;
+
+    return _processors.at(index);
 }
+
+
+//These are ripe for template.. will work on that next
+json Instance::getSystemRam(int index) { 
+    
+    assert(index < _memory.size());
+
+    json result;
+    if(index>= _memory.size())
+        return result;
+
+    return _memory.at(index);
+}
+
+json Instance::getGPU(int index) {
+    assert(index < _gpu.size());
+
+    json result;
+    if (index >= _gpu.size())
+        return result;
+
+    return _gpu.at(index);
+}
+
 
 bool platform::enumerateProcessors() {
     return _instance->enumerateProcessors();
 }
 
-int platform::getTotalSystemRamMb() {
-    return _instance->getTotalSystemRamMb();
+json platform::getProcessor(int index) {
+    return _instance->getProcessor(index);
 }
 
-int platform::getProcessorCount() {
-    return _instance->getProcessorCount();
+json platform::getSystemRam(int index) {
+    return _instance->getSystemRam(index);
+}
+
+int platform::getNumMemory() {
+    return _instance->getNumMemory();
+}
+
+int platform::getNumProcessor() {
+    return _instance->getNumProcessor();
 }

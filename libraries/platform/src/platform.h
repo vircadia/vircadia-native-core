@@ -9,39 +9,36 @@
 #pragma once
 #include <string>
 #include <vector>
-
+#include <nlohmann/json.hpp>
 namespace platform {
-
-struct cpu {
-    std::string brand;
-    std::string model;
-    int numberOfCores;
-    std::string clockSpeed;
-};
-
-struct memory {
-    int totalMb;
-};
 
 class Instance {
 public:
-    std::string virtual getProcessor(int index) = 0;
     bool virtual enumerateProcessors() = 0;
-    int virtual getTotalSystemRamMb() = 0;
-    int getProcessorCount() {return _processors.size(); }
+
+    int getNumProcessor() { return _processors.size(); }
+    nlohmann::json getProcessor(int index);
+
+    int getNumMemory() { return _memory.size(); }
+    nlohmann::json getSystemRam(int index);
+
+    int getNumGPU() { return _gpu.size(); }
+    nlohmann::json getGPU(int index);
+
 
 protected:
-    std::vector<cpu> _processors;
-    struct memory _memory;
+    std::vector<nlohmann::json> _processors;
+    std::vector<nlohmann::json> _memory;
+    std::vector<nlohmann::json> _gpu;
 };
-
-static Instance* _instance;
 
 //Platform level functions
 void create();
-std::string getProcessor(int index);
-int getProcessorCount();
+
 bool enumerateProcessors();
-int getTotalSystemRamMb();
+int getNumProcessor();
+nlohmann::json getProcessor(int index);
+int getNumMemory();
+nlohmann::json getSystemRam(int index);
 
 }  // namespace platform
