@@ -206,7 +206,7 @@ void Midi::MidiSetup() {
 
     MIDIOUTCAPS outcaps;
     for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
-        midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
+        midiOutGetDevCaps(i, &outcaps, sizeof(MIDIOUTCAPS));
 
         bool found = false;
         for (int j = 0; j < midiOutExclude.size(); j++) {
