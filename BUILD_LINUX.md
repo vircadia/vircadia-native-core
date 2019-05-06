@@ -11,7 +11,7 @@ Should you choose not to install Qt5 via a package manager that handles dependen
 ### Ubuntu 16.04 only
 Add the following line to *.bash_profile*  
 `export QT_QPA_FONTDIR=/usr/share/fonts/truetype/dejavu/`
-### Ubuntu 18.04 only
+### Ubuntu 18.04 server only
 Add the universe repository:  
 _(This is not enabled by default on the server edition)_  
 `sudo add-apt-repository universe`  
@@ -36,20 +36,15 @@ Verify by git --version
 1.  g++
 `sudo apt-get install g++ -y`  
 Verify by g++ --version  
-1.  cmake
+1.  *Ubuntu 18.04* cmake
 `sudo apt-get install cmake -y`  
 Verify by git --version  
-1. cmake  
+1. *Ubuntu 16.04* cmake  
 `wget https://cmake.org/files/v3.14/cmake-3.14.2-Linux-x86_64.sh`  
 `sudo sh cmake-3.14.2-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir`  
-##### Python
-Add to _bash_profile:  
-`
 ### Get code and checkout the tag you need
 Clone this repository:
-```bash
-git clone https://github.com/highfidelity/hifi.git
-```
+`git clone https://github.com/highfidelity/hifi.git`  
 
 To compile a RELEASE version checkout the tag you need getting a list of all tags:
 `git fetch -a`  
