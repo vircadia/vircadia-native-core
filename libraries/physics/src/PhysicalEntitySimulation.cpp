@@ -156,7 +156,6 @@ void PhysicalEntitySimulation::processChangedEntity(const EntityItemPointer& ent
 
             // remove from the physical simulation
             _incomingChanges.remove(motionState);
-            _physicalObjects.remove(motionState);
             removeOwnershipData(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
             if (canBeKinematic && entity->isMovingRelativeToParent()) {
@@ -443,6 +442,7 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
 void PhysicalEntitySimulation::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
     // things on objectsToRemove are ready for delete
     for (auto object : transaction.objectsToRemove) {
+        _physicalObjects.remove(object);
         delete object;
     }
     transaction.clear();
