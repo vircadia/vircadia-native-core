@@ -157,6 +157,11 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
             ++simpleReceivedIt;
         }
 
+        if (bytesWritten > 0 && sendingAvatar->isCertifyFailed()) {
+            // Resend identity packet if certification failed:
+            sendingAvatar->setNeedsIdentityUpdate();
+        }
+
         // enumerate the received instanced trait versions
         auto instancedReceivedIt = lastReceivedVersions.instancedCBegin();
         while (instancedReceivedIt != lastReceivedVersions.instancedCEnd()) {

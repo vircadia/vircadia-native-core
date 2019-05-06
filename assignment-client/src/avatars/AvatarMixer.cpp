@@ -82,6 +82,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnership");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -367,10 +368,13 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         return;
     }
 
-    bool sendIdentity = false;
-    if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
-        AvatarData& avatar = nodeData->getAvatar();
-        const QString& existingBaseDisplayName = nodeData->getAvatar().getSessionDisplayName();
+    MixerAvatar& avatar = nodeData->getAvatar();
+    bool sendIdentity = avatar.needsIdentityUpdate();
+    if (sendIdentity) {
+        nodeData->flagIdentityChange();
+    }
+    if (nodeData->getAvatarSessionDisplayNameMustChange()) {
+        const QString& existingBaseDisplayName = avatar.getSessionDisplayName();
         if (!existingBaseDisplayName.isEmpty()) {
             SessionDisplayName existingDisplayName { existingBaseDisplayName };
 
@@ -414,10 +418,11 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
         // it needs a new sequence number
-        nodeData->getAvatar().pushIdentitySequenceNumber();
+        avatar.pushIdentitySequenceNumber();
 
         // tell node whose name changed about its new session display name or avatar.
         sendIdentityPacket(nodeData, node);
+        avatar.setNeedsIdentityUpdate(false);
     }
 }
 
@@ -1121,6 +1126,16 @@ void AvatarMixer::entityRemoved(EntityItem * entity) {
 
 void AvatarMixer::entityChange() {
     _dirtyHeroStatus = true;
+}
+
+void AvatarMixer::handleChallengeOwnership(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    if (senderNode->getType() == NodeType::Agent && senderNode->getLinkedData()) {
+        auto clientData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
+        auto avatar = clientData->getAvatarSharedPointer();
+        if (avatar) {
+            avatar->handleChallengeResponse(message.data());
+        }
+    }
 }
 
 void AvatarMixer::aboutToFinish() {

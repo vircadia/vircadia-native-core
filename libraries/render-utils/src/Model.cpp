@@ -241,8 +241,10 @@ void Model::updateRenderItems() {
                                                                   invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                    data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
                 } else {
                     data.updateClusterBuffer(meshState.clusterMatrices);
+                    data.computeAdjustedLocalBound(meshState.clusterMatrices);
                 }
 
                 Transform renderTransform = modelTransform;
@@ -774,11 +776,14 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
                 auto& materialName = _modelMeshMaterialNames[shapeID];
                 result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
 
-                auto mappedMaterialIter = _materialMapping.find(shapeID);
-                if (mappedMaterialIter != _materialMapping.end()) {
-                    auto mappedMaterials = mappedMaterialIter->second;
-                    for (auto& mappedMaterial : mappedMaterials) {
-                        result.appendMaterial(mappedMaterial, shapeID, materialName);
+                {
+                    std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                    auto mappedMaterialIter = _materialMapping.find(shapeID);
+                    if (mappedMaterialIter != _materialMapping.end()) {
+                        auto mappedMaterials = mappedMaterialIter->second;
+                        for (auto& mappedMaterial : mappedMaterials) {
+                            result.appendMaterial(mappedMaterial, shapeID, materialName);
+                        }
                     }
                 }
                 shapeID++;
@@ -1367,8 +1372,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         // update the world space transforms for all joints
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
         updateRig(deltaTime, parentTransform);
-
-        computeMeshPartLocalBounds();
     }
 }
 
@@ -1377,17 +1380,6 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
     _rig.updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
-}
-
-void Model::computeMeshPartLocalBounds() {
-    for (auto& part : _modelMeshRenderItems) {
-        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        if (_useDualQuaternionSkinning) {
-            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
-        } else {
-            part->computeAdjustedLocalBound(state.clusterMatrices);
-        }
-    }
 }
 
 // virtual
@@ -1569,6 +1561,13 @@ void Model::applyMaterialMapping() {
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     PrimitiveMode primitiveMode = getPrimitiveMode();
     bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+    auto modelMeshRenderItemIDs = _modelMeshRenderItemIDs;
+    auto modelMeshRenderItemShapes = _modelMeshRenderItemShapes;
+    std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
+
+    for (auto& shape : _modelMeshRenderItemShapes) {
+        shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+    }
 
     auto& materialMapping = getMaterialMapping();
     for (auto& mapping : materialMapping) {
@@ -1588,7 +1587,8 @@ void Model::applyMaterialMapping() {
             priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
+                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap]() {
             if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
@@ -1611,12 +1611,15 @@ void Model::applyMaterialMapping() {
                 }
             }
             for (auto shapeID : shapeIDs) {
-                if (shapeID < _modelMeshRenderItemIDs.size()) {
-                    auto itemID = _modelMeshRenderItemIDs[shapeID];
-                    auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
-                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+                if (shapeID < modelMeshRenderItemIDs.size()) {
+                    auto itemID = modelMeshRenderItemIDs[shapeID];
+                    auto meshIndex = modelMeshRenderItemShapes[shapeID].meshIndex;
+                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKeyMap.at(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
-                    _materialMapping[shapeID].push_back(material);
+                    {
+                        std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                        _materialMapping[shapeID].push_back(material);
+                    }
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                         data.addMaterial(material);

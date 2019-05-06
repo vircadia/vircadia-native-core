@@ -203,7 +203,7 @@ function setAwayProperties() {
     if (!wasMuted) {
         Audio.muted = !Audio.muted;
     }
-    MyAvatar.setEnableMeshVisible(false);  // just for our own display, without changing point of view
+    MyAvatar.setEnableMeshVisible(false); // just for our own display, without changing point of view
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
 
@@ -223,8 +223,8 @@ function setAwayProperties() {
 
 function setActiveProperties() {
     isAway = false;
-    if (!wasMuted) {
-        Audio.muted = !Audio.muted;
+    if (Audio.muted && !wasMuted) {
+        Audio.muted = false;
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
@@ -254,7 +254,7 @@ function setActiveProperties() {
 }
 
 function maybeGoActive(event) {
-    if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
+    if (event.isAutoRepeat) { // isAutoRepeat is true when held down (or when Windows feels like it)
         return;
     }
     if (!isAway && (event.text === 'ESC')) {
@@ -314,6 +314,13 @@ function setEnabled(value) {
     isEnabled = value;
 }
 
+function checkAudioToggled() {
+    if (isAway && !Audio.muted) {
+        goActive();
+    }
+}
+
+
 var CHANNEL_AWAY_ENABLE = "Hifi-Away-Enable";
 var handleMessage = function(channel, message, sender) {
     if (channel === CHANNEL_AWAY_ENABLE && sender === MyAvatar.sessionUUID) {
@@ -324,9 +331,10 @@ var handleMessage = function(channel, message, sender) {
 Messages.subscribe(CHANNEL_AWAY_ENABLE);
 Messages.messageReceived.connect(handleMessage);
 
-var maybeIntervalTimer = Script.setInterval(function(){
+var maybeIntervalTimer = Script.setInterval(function() {
     maybeMoveOverlay();
     maybeGoAway();
+    checkAudioToggled();
 }, BASIC_TIMER_INTERVAL);
 
 

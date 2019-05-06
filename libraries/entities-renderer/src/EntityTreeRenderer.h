@@ -169,7 +169,7 @@ private:
 
     void resetEntitiesScriptEngine();
 
-    bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
+    bool findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
 
     bool applyLayeredZones();
     void stopDomainAndNonOwnedEntities();
@@ -186,7 +186,8 @@ private:
     void forceRecheckEntities();
 
     glm::vec3 _avatarPosition { 0.0f };
-    QVector<EntityItemID> _currentEntitiesInside;
+    bool _forceRecheckEntities { true };
+    QSet<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
     ScriptEnginePointer _entitiesScriptEngine;

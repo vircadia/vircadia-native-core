@@ -334,6 +334,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SendMaxTranslationDimension,
     FBXJointOrderChange,
     HandControllerSection,
+    SendVerificationFailed
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
