@@ -215,7 +215,6 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     if (framesAvailable > _desiredJitterBufferFrames + MAX_FRAMES_OVER_DESIRED) {
         int framesToDrop = framesAvailable - (_desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING);
         _ringBuffer.shiftReadPosition(framesToDrop * _ringBuffer.getNumFrameSamples());
-        
         _framesAvailableStat.reset();
         _currentJitterBufferFrames = 0;
 
@@ -250,7 +249,7 @@ int InboundAudioStream::lostAudioData(int numPackets) {
         if (_decoder) {
             _decoder->lostFrame(decodedBuffer);
         } else {
-            decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
+            decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * _numChannels);
             memset(decodedBuffer.data(), 0, decodedBuffer.size());
         }
         _ringBuffer.writeData(decodedBuffer.data(), decodedBuffer.size());
@@ -338,10 +337,14 @@ int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing) {
             popSamplesNoCheck(samplesAvailable);
             samplesPopped = samplesAvailable;
         } else {
-            // we can't pop any samples, set this stream to starved
+            // we can't pop any samples, set this stream to starved for jitter 
+            // buffer calculations.
             setToStarved();
             _consecutiveNotMixedCount++;
-            _lastPopSucceeded = false;
+            //Kick PLC to generate a filler frame, reducing 'click'
+            lostAudioData(allOrNothing ? (maxSamples - samplesAvailable) / _ringBuffer.getNumFrameSamples() : 1);
+            samplesPopped = _ringBuffer.samplesAvailable();
+            popSamplesNoCheck(samplesPopped);
         }
     }
     return samplesPopped;
