@@ -135,7 +135,6 @@ public:
         AudioSoloRequest,
         BulkAvatarTraitsAck,
         StopInjector,
-        PrivateUserData,
         NUM_PACKET_TYPE
     };
 
@@ -270,6 +269,7 @@ enum class EntityVersion : PacketVersion {
     CertificateTypeProperty,
     DisableWebMedia,
     ParticleShapeType,
+    PrivateUserData,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

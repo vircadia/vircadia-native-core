@@ -1780,6 +1780,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
             bool suppressDisallowedClientScript = false;
             bool suppressDisallowedServerScript = false;
+            bool suppressDisallowedPrivateUserData = false;
             bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
@@ -1869,6 +1870,27 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     }
                 }
 
+                if (!properties.getPrivateUserData().isEmpty()) {
+                    if (!senderNode->getCanGetAndSetPrivateUserData()) {
+                        if (wantEditLogging()) {
+                            qCDebug(entities) << "User [" << senderNode->getUUID()
+                                << "] is attempting to set private user data but user isn't allowed; edit rejected...";
+                        }
+
+                        // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                        if (isAdd) {
+                            // Make sure we didn't already need to send back a delete because the client script failed
+                            // the whitelist check
+                            if (!wasDeletedBecauseOfClientScript) {
+                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                validEditPacket = false;
+                            }
+                        } else {
+                            suppressDisallowedPrivateUserData = true;
+                        }
+                    }
+                }
             }
 
             if (!isClone) {
@@ -1921,6 +1943,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (suppressDisallowedServerScript) {
                         bumpTimestamp(properties);
                         properties.setServerScripts(existingEntity->getServerScripts());
+                    }
+
+                    if (suppressDisallowedPrivateUserData) {
+                        bumpTimestamp(properties);
+                        properties.setPrivateUserData(existingEntity->getPrivateUserData());
                     }
 
                     // if the EntityItem exists, then update it

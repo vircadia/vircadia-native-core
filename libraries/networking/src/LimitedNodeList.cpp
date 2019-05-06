@@ -202,7 +202,6 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         emit canGetAndSetPrivateUserDataChanged(_permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData));
     }
 }
-}
 
 void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {
     if (QThread::currentThread() != thread()) {
