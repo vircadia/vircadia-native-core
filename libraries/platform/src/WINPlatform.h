@@ -6,7 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#pragma once
+#ifndef hifi_WinPlatform_h
+#define hifi_WinPlatform_h
+
 #include "platform.h"
 #include <nlohmann/json.hpp>
 
@@ -26,3 +28,5 @@ namespace platform {
 };
 
 }  // namespace platform
+
+#endif //hifi_winplatform_h

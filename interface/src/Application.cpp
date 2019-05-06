@@ -2461,13 +2461,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
 ///Platform test function not staying for final code
 void Application::initializePlatform() {
-    //init the platform 
+    //init the platform
     platform::create();
 
-    //run the enumeration 
+    //run the enumeration
     if (platform::enumerateProcessors()) {
         for (int i = 0; i < platform::getNumProcessor(); i++) {
-            platform::getProcessor(i);
+            std::string test = platform::getProcessor(i).dump();
+
+            qDebug() << test.c_str();
         }
     }
 }

@@ -6,7 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#pragma once
+#ifndef hifi_Platform_h
+#define hifi_Platform_h
+
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
@@ -42,3 +44,5 @@ int getNumMemory();
 nlohmann::json getSystemRam(int index);
 
 }  // namespace platform
+
+#endif  // hifi_platform_h
