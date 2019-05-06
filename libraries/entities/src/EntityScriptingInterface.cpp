@@ -108,6 +108,11 @@ bool EntityScriptingInterface::canReplaceContent() {
     return nodeList->getThisNodeCanReplaceContent();
 }
 
+bool EntityScriptingInterface::canGetAndSetPrivateUserData() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanGetAndSetPrivateUserData();
+}
+
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     if (_entityTree) {
         disconnect(_entityTree.get(), &EntityTree::addingEntityPointer, this, &EntityScriptingInterface::onAddingEntity);
