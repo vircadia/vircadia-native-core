@@ -197,6 +197,11 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         newPermissions.can(NodePermissions::Permission::canReplaceDomainContent)) {
         emit canReplaceContentChanged(_permissions.can(NodePermissions::Permission::canReplaceDomainContent));
     }
+    if (originalPermissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData) !=
+        newPermissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData)) {
+        emit canGetAndSetPrivateUserDataChanged(_permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData));
+    }
+}
 }
 
 void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {
