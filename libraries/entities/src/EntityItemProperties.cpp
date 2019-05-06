@@ -819,7 +819,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     which you can manipulate the properties of, and use <code>JSON.stringify()</code> to convert the object into a string to 
  *     put in the property.
  *
- * @property {string} privateUserData="" - Like userData, but only accessible by the Entity Server Scripts.
+ * @property {string} privateUserData="" - Like userData, but only accessible by Entity Server Scripts, AC scripts, and users
+ *     who are given "Can Get and Set Private User Data" permissions from the ACL matrix on the Domain Settings page.
  *
  * @property {string} script="" - The URL of the client entity script, if any, that is attached to the entity.
  * @property {number} scriptTimestamp=0 - Intended to be used to indicate when the client entity script was loaded. Should be 
