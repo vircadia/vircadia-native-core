@@ -240,7 +240,7 @@ endif()
 
 
     def installQt(self):
-        if not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
+        if True or not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
             print ('Downloading Qt from AWS')
             dest = os.path.join(self.path, 'installed')
 
