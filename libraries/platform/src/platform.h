@@ -27,11 +27,12 @@ public:
     int getNumGPU() { return _gpu.size(); }
     nlohmann::json getGPU(int index);
 
+    ~Instance();
 
 protected:
     std::vector<nlohmann::json> _processors;
     std::vector<nlohmann::json> _memory;
-    std::vector<nlohmann::json> _gpu;
+    std::vector<nlohmann::json*> _gpu;
 };
 
 //Platform level functions

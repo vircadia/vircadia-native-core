@@ -69,6 +69,37 @@ json Instance::getGPU(int index) {
 }
 
 
+Instance::~Instance() {
+    //if (_processors.size() > 0) {
+    
+  //     for (std::vector<json*>::iterator it = _processors.begin(); it != _processors.end(); ++it)   {
+  //          delete (*it);
+  //     }
+  //
+  //    _processors.clear();
+  //
+  //  } 
+  //
+  //   if (_memory.size() > 0) {
+  //      for (std::vector<json*>::iterator it = _memory.begin(); it != _memory.end(); ++it) {
+  //          delete (*it);
+  //      }
+  //
+  //      _memory.clear();
+  //  } 
+
+
+      if (_gpu.size() > 0) {
+        for (std::vector<json*>::iterator it = _gpu.begin(); it != _gpu.end(); ++it) {
+            delete (*it);
+        }
+
+        _gpu.clear();
+      } 
+
+
+}
+
 bool platform::enumerateProcessors() {
     return _instance->enumerateProcessors();
 }

@@ -23,9 +23,10 @@ namespace platform {
 
     private:
         unsigned int getNumLogicalCores();
-        void getCpuDetails(nlohmann::json& cpu);
-        int getTotalSystemRam();
-};
+        void enumerateCpu();
+        void enumerateRam();
+        void enumerateGpu();
+    };
 
 }  // namespace platform
 
