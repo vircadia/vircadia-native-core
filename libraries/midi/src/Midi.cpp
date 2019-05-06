@@ -187,38 +187,43 @@ void Midi::MidiSetup() {
 
     MIDIINCAPS incaps;
     for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
-        midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
+        if (MMSYSERR_NOERROR == midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS))) {
 
-        bool found = false;
-        for (int j = 0; j < midiInExclude.size(); j++) {
-            if (midiInExclude[j].toStdString().compare(incaps.szPname) == 0) {
-                found = true;
-                break;
+            bool found = false;
+            for (int j = 0; j < midiInExclude.size(); j++) {
+                if (midiInExclude[j].toStdString().compare(incaps.szPname) == 0) {
+                    found = true;
+                    break;
+                }
             }
-        }
-        if (!found) {        // EXCLUDE AN INPUT BY NAME
-            HMIDIIN tmphin;
-            midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION);
-            midiInStart(tmphin);
-            midihin.push_back(tmphin);
+            if (!found) {        // EXCLUDE AN INPUT BY NAME
+                HMIDIIN tmphin;
+                if (MMSYSERR_NOERROR == midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION)) {
+                    if (MMSYSERR_NOERROR == midiInStart(tmphin)) {
+                        midihin.push_back(tmphin);
+                    }
+                }
+            }
         }
     }
 
     MIDIOUTCAPS outcaps;
     for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
-        midiOutGetDevCaps(i, &outcaps, sizeof(MIDIOUTCAPS));
+        if (MMSYSERR_NOERROR == midiOutGetDevCaps(i, &outcaps, sizeof(MIDIOUTCAPS))) {
 
-        bool found = false;
-        for (int j = 0; j < midiOutExclude.size(); j++) {
-            if (midiOutExclude[j].toStdString().compare(outcaps.szPname) == 0) {
-                found = true;
-                break;
+            bool found = false;
+            for (int j = 0; j < midiOutExclude.size(); j++) {
+                if (midiOutExclude[j].toStdString().compare(outcaps.szPname) == 0) {
+                    found = true;
+                    break;
+                }
             }
-        }
-        if (!found) {        // EXCLUDE AN OUTPUT BY NAME
-            HMIDIOUT tmphout;
-            midiOutOpen(&tmphout, i, (DWORD_PTR)MidiOutProc, NULL, CALLBACK_FUNCTION);
-            midihout.push_back(tmphout);
+            if (!found) {        // EXCLUDE AN OUTPUT BY NAME
+                HMIDIOUT tmphout;
+                if (MMSYSERR_NOERROR == midiOutOpen(&tmphout, i, (DWORD_PTR)MidiOutProc, NULL, CALLBACK_FUNCTION)) {
+                    midihout.push_back(tmphout);
+                }
+            }
         }
     }
 
