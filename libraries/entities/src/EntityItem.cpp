@@ -86,6 +86,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_PRIVATE_USER_DATA;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_POSITION;
@@ -266,8 +267,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
+        auto nodeList = DependencyManager::get<NodeList>();
         if (actualParentID == AVATAR_SELF_ID) {
-            auto nodeList = DependencyManager::get<NodeList>();
             actualParentID = nodeList->getSessionUUID();
         }
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
@@ -276,7 +277,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
-        APPEND_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, getPrivateUserData());
+        if (nodeList->getThisNodeCanGetAndSetPrivateUserData()) {
+            APPEND_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, getPrivateUserData());
+        }
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());

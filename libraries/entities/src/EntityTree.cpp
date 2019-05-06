@@ -1869,26 +1869,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         }
                     }
                 }
+            }
 
-                if (!properties.getPrivateUserData().isEmpty()) {
-                    if (!senderNode->getCanGetAndSetPrivateUserData()) {
-                        if (wantEditLogging()) {
-                            qCDebug(entities) << "User [" << senderNode->getUUID()
-                                << "] is attempting to set private user data but user isn't allowed; edit rejected...";
-                        }
+            if (!properties.getPrivateUserData().isEmpty() && validEditPacket) {
+                if (!senderNode->getCanGetAndSetPrivateUserData()) {
+                    if (wantEditLogging()) {
+                        qCDebug(entities) << "User [" << senderNode->getUUID()
+                            << "] is attempting to set private user data but user isn't allowed; edit rejected...";
+                    }
 
-                        // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
-                        if (isAdd) {
-                            // Make sure we didn't already need to send back a delete because the client script failed
-                            // the whitelist check
-                            if (!wasDeletedBecauseOfClientScript) {
-                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                                validEditPacket = false;
-                            }
-                        } else {
-                            suppressDisallowedPrivateUserData = true;
-                        }
+                    // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                    if (isAdd) {
+                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                        validEditPacket = false;
+                    } else {
+                        suppressDisallowedPrivateUserData = true;
                     }
                 }
             }
