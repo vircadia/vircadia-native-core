@@ -562,7 +562,10 @@ public:
                     return true;
                 }
             }
-
+            // Attempting to close MIDI interfaces of a hot-unplugged device can result in audio-driver deadlock.
+            // Detecting MIDI devices that have been added/removed after starting Inteface has been disabled.
+            // https://support.microsoft.com/en-us/help/4460006/midi-device-app-hangs-when-former-midi-api-is-used
+#if 0
             if (message->message == WM_DEVICECHANGE) {
                 const float MIN_DELTA_SECONDS = 2.0f; // de-bounce signal
                 static float lastTriggerTime = 0.0f;
@@ -572,6 +575,7 @@ public:
                     Midi::USBchanged();                // re-scan the MIDI bus
                 }
             }
+#endif
         }
         return false;
     }
