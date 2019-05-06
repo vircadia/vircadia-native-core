@@ -344,17 +344,17 @@ void SharedObject::setSize(const QSize& size) {
 #endif
 }
 
-bool SharedObject::preRender() {
+bool SharedObject::preRender(bool sceneGraphSync) {
 #ifndef DISABLE_QML
     QMutexLocker lock(&_mutex);
     if (_paused) {
-        if (_syncRequested) {
+        if (sceneGraphSync) {
             wake();
         }
         return false;
     }
 
-    if (_syncRequested) {
+    if (sceneGraphSync) {
         bool syncResult = true;
         if (!nsightActive()) {
             PROFILE_RANGE(render_qml_gl, "sync")
@@ -364,7 +364,6 @@ bool SharedObject::preRender() {
         if (!syncResult) {
             return false;
         }
-        _syncRequested = false;
     }
 #endif
 
@@ -475,9 +474,10 @@ void SharedObject::onRender() {
         lock.unlock();
         _renderControl->polishItems();
         lock.relock();
-        QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Render));
+        QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::RenderSync));
         // sync and render request, main and render threads must be synchronized
         wait();
+        _syncRequested = false;
     } else {
         QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Render));
     }
