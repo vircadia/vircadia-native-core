@@ -359,6 +359,7 @@ public:
      * @param {boolean} [deleteScriptCache=false]
      */
     Q_INVOKABLE void resetModuleCache(bool deleteScriptCache = false);
+
     QScriptValue currentModule();
     bool registerModuleWithParent(const QScriptValue& module, const QScriptValue& parent);
     QScriptValue newModule(const QString& modulePath, const QScriptValue& parent = QScriptValue());
@@ -496,7 +497,7 @@ public:
      * @function Script.callEntityScriptMethod
      * @param {Uuid} entityID
      * @param {string} methodName
-     * @param {string[]} parameters
+     * @param {string[]} [parameters=[]]
      * @param {Uuid} [remoteCallerID=Uuid.NULL]
      */
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
@@ -721,6 +722,7 @@ signals:
 
     /**jsdoc
      * @function Script.entityScriptPreloadFinished
+     * @param {Uuid} entityID
      * @returns {Signal}
      */
     // Emitted when an entity script has finished running preload

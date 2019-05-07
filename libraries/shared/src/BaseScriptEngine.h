@@ -31,8 +31,29 @@ public:
 
     BaseScriptEngine() {}
 
+    /**jsdoc
+     * @function Script.lintScript
+     * @param {string} sourceCode
+     * @param {string} fileName
+     * @param {number} [lineNumber=1]
+     * @returns {object}
+     */
     Q_INVOKABLE QScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
+
+    /**jsdoc
+     * @function Script.makeError
+     * @param {object} [other]
+     * @param {string} [type="Error"]
+     * @returns {object}
+     */
     Q_INVOKABLE QScriptValue makeError(const QScriptValue& other = QScriptValue(), const QString& type = "Error");
+    
+    /**jsdoc
+     * @function Script.formatExecption
+     * @param {object} exception
+     * @param {boolean} inludeExtendeDetails
+     * @returns {string}
+     */
     Q_INVOKABLE QString formatException(const QScriptValue& exception, bool includeExtendedDetails);
 
     QScriptValue cloneUncaughtException(const QString& detail = QString());
@@ -48,6 +69,18 @@ public:
     // helper to detect and log warnings when other code invokes QScriptEngine/BaseScriptEngine in thread-unsafe ways
     static bool IS_THREADSAFE_INVOCATION(const QThread *thread, const QString& method);
 signals:
+    /**jsdoc
+     * @function Script.signalHandlerException
+     * @param {object} exception
+     * @returns {Signal}
+     */
+    // Script.signalHandlerException is exposed by QScriptEngine.
+    
+    /**jsdoc
+     * @function Script.unhandledException
+     * @param {object} exception
+     * @returns {Signal}
+     */
     void unhandledException(const QScriptValue& exception);
 
 protected:
