@@ -5833,7 +5833,8 @@ void Application::cameraModeChanged() {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
             break;
         default:
-            break;
+            // we don't have menu items for the others, so just leave it alone.
+            return;
     }
     cameraMenuChanged();
 }
