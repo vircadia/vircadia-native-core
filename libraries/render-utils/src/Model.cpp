@@ -1741,14 +1741,6 @@ Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointe
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
 
-#define BLENDER_USE_NONE 0
-#define BLENDER_USE_TBB 1
-#define BLENDER_TBB_CHUNK_SIZE 512
-#define BLENDER_USE_OPENMP 2
-
-
-#define BLENDER_PARALLELISM BLENDER_USE_NONE
-
 void Blender::run() {
     QVector<BlendshapeOffset> blendshapeOffsets;
     QVector<int> blendedMeshSizes;
@@ -1788,63 +1780,30 @@ void Blender::run() {
 
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const HFMBlendshape& blendshape = mesh.blendshapes.at(i);
-#if (BLENDER_PARALLELISM == BLENDER_USE_TBB)
-                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size(), BLENDER_TBB_CHUNK_SIZE), [&](const tbb::blocked_range<int>& range) {
-                    for (auto j = range.begin(); j < range.end(); j++) {
-#elif (BLENDER_PARALLELISM == BLENDER_USE_OPENMP)
-                {
-                    #pragma omp parallel for 
-                    for (int j = 0; j < (int)blendshape.indices.size(); ++j) {
-#else
-                {
-                    for (int j = 0; j < blendshape.indices.size(); ++j) {
-#endif
+                for (int j = 0; j < blendshape.indices.size(); ++j) {
+                    int index = blendshape.indices.at(j);
 
-                        int index = blendshape.indices.at(j);
+                    auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
+                    currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
 
-                        auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
-                        currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
-
-                        currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
-                        if (j < blendshape.tangents.size()) {
-                            currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
-                        }
+                    currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
+                    if (j < blendshape.tangents.size()) {
+                        currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
                     }
-#if (BLENDER_PARALLELISM == BLENDER_USE_TBB)
-                });
-#else
                 }
-#endif
             }
 
             // Blendshape offsets are generrated, now let's pack it on its way to gpu
-#if (BLENDER_PARALLELISM == BLENDER_USE_TBB)
-            tbb::parallel_for(tbb::blocked_range<int>(0, (int) unpackedBlendshapeOffsets.size(), BLENDER_TBB_CHUNK_SIZE), [&](const tbb::blocked_range<int>& range) {
-                auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
-                auto packed = meshBlendshapeOffsets + range.begin();
-                for (auto j = range.begin(); j < range.end(); j++) {
-#elif (BLENDER_PARALLELISM == BLENDER_USE_OPENMP)
-            {
-                auto unpacked = unpackedBlendshapeOffsets.data();
-                auto packed = meshBlendshapeOffsets;
-                #pragma omp parallel for 
-                for (int j = 0; j < (int)unpackedBlendshapeOffsets.size(); ++j) {
-#else
+            // FIXME it feels like we could be more effectively using SIMD here
             {
                 auto unpacked = unpackedBlendshapeOffsets.data();
                 auto packed = meshBlendshapeOffsets;
                 for (int j = 0; j < (int)unpackedBlendshapeOffsets.size(); ++j) {
-#endif
-                    //for (auto j = range.begin(); j < range.end(); j++) {
                     packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
                     ++unpacked;
                     ++packed;
                 }
-#if (BLENDER_PARALLELISM == BLENDER_USE_TBB)
-            });
-#else
             }
-#endif
         }
     }
     // post the result to the ModelBlender, which will dispatch to the model if still alive
