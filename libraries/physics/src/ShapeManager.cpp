@@ -30,6 +30,10 @@ ShapeManager::~ShapeManager() {
         ShapeFactory::deleteShape(shapeRef->shape);
     }
     _shapeMap.clear();
+    if (_deadWorker) {
+        delete _deadWorker;
+        _deadWorker = nullptr;
+    }
 }
 
 const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
@@ -230,12 +234,14 @@ void ShapeManager::acceptWork(ShapeFactory::Worker* worker) {
             // refCount on expiry we will move it to _garbageRing.
             const int64_t SHAPE_EXPIRY = USECS_PER_SECOND;
             auto now = std::chrono::steady_clock::now();
-            auto expiry = now + std::chrono::microseconds(SHAPE_EXPIRY);
+            auto newExpiry = now + std::chrono::microseconds(SHAPE_EXPIRY);
             if (_nextOrphanExpiry < now) {
+                _nextOrphanExpiry = newExpiry;
                 // check for expired orphan shapes
                 size_t i = 0;
                 while (i < _orphans.size()) {
-                    if (_orphans[i].expiry < now) {
+                    auto expiry = _orphans[i].expiry;
+                    if (expiry < now) {
                         uint64_t key = _orphans[i].key;
                         HashKey hashKey(key);
                         ShapeReference* shapeRef = _shapeMap.find(hashKey);
@@ -248,12 +254,14 @@ void ShapeManager::acceptWork(ShapeFactory::Worker* worker) {
                         _orphans[i] = _orphans.back();
                         _orphans.pop_back();
                     } else {
+                        if (expiry < _nextOrphanExpiry) {
+                            _nextOrphanExpiry = expiry;
+                        }
                         ++i;
                     }
                 }
             }
-            _nextOrphanExpiry = expiry;
-            _orphans.push_back(KeyExpiry(newRef.key, expiry));
+            _orphans.push_back(KeyExpiry(newRef.key, newExpiry));
         }
     }
     disconnect(worker, &ShapeFactory::Worker::submitWork, this, &ShapeManager::acceptWork);
