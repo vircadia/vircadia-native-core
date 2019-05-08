@@ -1747,9 +1747,9 @@ void Blender::run() {
     if (_model && _model->isLoaded()) {
         DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
         int offset = 0;
-        auto meshes = _model->getHFMModel().meshes;
+        const auto& meshes = _model->getHFMModel().meshes;
         int meshIndex = 0;
-        foreach(const HFMMesh& mesh, meshes) {
+        for(const HFMMesh& mesh : meshes) {
             auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);
             if (mesh.blendshapes.isEmpty() || modelMeshBlendshapeOffsets == _model->_blendshapeOffsets.end()) {
                 // Not blendshaped or not initialized
@@ -1780,33 +1780,30 @@ void Blender::run() {
 
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const HFMBlendshape& blendshape = mesh.blendshapes.at(i);
+                for (int j = 0; j < blendshape.indices.size(); ++j) {
+                    int index = blendshape.indices.at(j);
 
-                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
-                    for (auto j = range.begin(); j < range.end(); j++) {
-                        int index = blendshape.indices.at(j);
+                    auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
+                    currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
 
-                        auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
-                        currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
-
-                        currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
-                        if (j < blendshape.tangents.size()) {
-                            currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
-                        }
+                    currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
+                    if (j < blendshape.tangents.size()) {
+                        currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
                     }
-                });
+                }
             }
 
             // Blendshape offsets are generrated, now let's pack it on its way to gpu
-            tbb::parallel_for(tbb::blocked_range<int>(0, (int) unpackedBlendshapeOffsets.size()), [&](const tbb::blocked_range<int>& range) {
-                auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
-                auto packed = meshBlendshapeOffsets + range.begin();
-                for (auto j = range.begin(); j < range.end(); j++) {
+            // FIXME it feels like we could be more effectively using SIMD here
+            {
+                auto unpacked = unpackedBlendshapeOffsets.data();
+                auto packed = meshBlendshapeOffsets;
+                for (int j = 0; j < (int)unpackedBlendshapeOffsets.size(); ++j) {
                     packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
-
-                    unpacked++;
-                    packed++;
+                    ++unpacked;
+                    ++packed;
                 }
-            });
+            }
         }
     }
     // post the result to the ModelBlender, which will dispatch to the model if still alive

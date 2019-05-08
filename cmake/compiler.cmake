@@ -88,11 +88,9 @@ if (APPLE)
   exec_program(sw_vers ARGS -productVersion  OUTPUT_VARIABLE OSX_VERSION)
   string(REGEX MATCH "^[0-9]+\\.[0-9]+" OSX_VERSION ${OSX_VERSION})
   message(STATUS "Detected OS X version = ${OSX_VERSION}")
+  message(STATUS "OS X deployment target = ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 
   set(OSX_SDK "${OSX_VERSION}" CACHE STRING "OS X SDK version to look for inside Xcode bundle or at OSX_SDK_PATH")
-
-  # set our OS X deployment target
-  set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 
   # find the SDK path for the desired SDK
   find_path(
