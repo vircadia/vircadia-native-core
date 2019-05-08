@@ -13,7 +13,6 @@
 #define hifi_AudioSRC_h
 
 #include <stdint.h>
-#include <QMutex>
 
 static const int SRC_MAX_CHANNELS = 4;
 
@@ -56,7 +55,6 @@ public:
     int getMaxInput(int outputFrames);
 
 private:
-    QMutex _renderMutex;
 
     float* _polyphaseFilter;
     int* _stepTable;

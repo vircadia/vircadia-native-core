@@ -1491,7 +1491,6 @@ AudioSRC::~AudioSRC() {
 //
 int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames) {
     int outputFrames = 0;
-    QMutexLocker lock(&_renderMutex);
     while (inputFrames) {
         int ni = MIN(inputFrames, _inputBlock);
 
@@ -1516,7 +1515,6 @@ int AudioSRC::render(const int16_t* input, int16_t* output, int inputFrames) {
 //
 int AudioSRC::render(const float* input, float* output, int inputFrames) {
     int outputFrames = 0;
-    QMutexLocker lock(&_renderMutex);
     while (inputFrames) {
         int ni = MIN(inputFrames, _inputBlock);
 

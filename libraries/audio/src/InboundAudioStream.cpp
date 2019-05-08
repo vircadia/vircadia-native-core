@@ -246,12 +246,20 @@ int InboundAudioStream::lostAudioData(int numPackets) {
     QByteArray decodedBuffer;
 
     while (numPackets--) {
+        if (!_decoderMutex.tryLock()) {
+            // an incoming packet is being processed,
+            // and will likely be on the ring buffer shortly,
+            // so don't bother generating more data
+            qCInfo(audiostream, "Packet currently being unpacked or lost frame already being generated.  Not generating lost frame.");
+            return 0;
+        }
         if (_decoder) {
             _decoder->lostFrame(decodedBuffer);
         } else {
             decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * _numChannels);
             memset(decodedBuffer.data(), 0, decodedBuffer.size());
         }
+        _decoderMutex.unlock();
         _ringBuffer.writeData(decodedBuffer.data(), decodedBuffer.size());
     }
     return 0;
@@ -259,6 +267,12 @@ int InboundAudioStream::lostAudioData(int numPackets) {
 
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
+
+    // may block on the real-time thread, which is acceptible as 
+    // parseAudioData is only called by the packet processing
+    // thread which, while high performance, is not as sensitive to
+    // delays as the real-time thread.
+    QMutexLocker lock(&_decoderMutex);
     if (_decoder) {
         _decoder->decode(packetAfterStreamProperties, decodedBuffer);
     } else {
@@ -277,16 +291,23 @@ int InboundAudioStream::writeDroppableSilentFrames(int silentFrames) {
     // case we will call the decoder's lostFrame() method, which indicates
     // that it should interpolate from its last known state down toward 
     // silence.
-    if (_decoder) {
-        // FIXME - We could potentially use the output from the codec, in which 
-        // case we might get a cleaner fade toward silence. NOTE: The below logic 
-        // attempts to catch up in the event that the jitter buffers have grown. 
-        // The better long term fix is to use the output from the decode, detect
-        // when it actually reaches silence, and then delete the silent portions
-        // of the jitter buffers. Or petentially do a cross fade from the decode
-        // output to silence.
-        QByteArray decodedBuffer;
-        _decoder->lostFrame(decodedBuffer);
+    {
+        // may block on the real-time thread, which is acceptible as 
+        // writeDroppableSilentFrames is only called by the packet processing
+        // thread which, while high performance, is not as sensitive to
+        // delays as the real-time thread.
+        QMutexLocker lock(&_decoderMutex);
+        if (_decoder) {
+            // FIXME - We could potentially use the output from the codec, in which 
+            // case we might get a cleaner fade toward silence. NOTE: The below logic 
+            // attempts to catch up in the event that the jitter buffers have grown. 
+            // The better long term fix is to use the output from the decode, detect
+            // when it actually reaches silence, and then delete the silent portions
+            // of the jitter buffers. Or petentially do a cross fade from the decode
+            // output to silence.
+            QByteArray decodedBuffer;
+            _decoder->lostFrame(decodedBuffer);
+        }
     }
 
     // calculate how many silent frames we should drop.
@@ -344,7 +365,16 @@ int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing) {
             //Kick PLC to generate a filler frame, reducing 'click'
             lostAudioData(allOrNothing ? (maxSamples - samplesAvailable) / _ringBuffer.getNumFrameSamples() : 1);
             samplesPopped = _ringBuffer.samplesAvailable();
-            popSamplesNoCheck(samplesPopped);
+            if (samplesPopped) {
+                popSamplesNoCheck(samplesPopped);
+            } else {
+                // No samples available means a packet is currently being
+                // processed, so we don't generate lost audio data, and instead
+                // just wait for the packet to come in.  This prevents locking
+                // the real-time audio thread at the cost of a potential (but rare)
+                // 'click'
+                _lastPopSucceeded = false;
+            }
         }
     }
     return samplesPopped;
@@ -531,6 +561,7 @@ void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& cod
     _codec = codec;
     _selectedCodecName = codecName;
     if (_codec) {
+        QMutexLocker lock(&_decoderMutex);
         _decoder = codec->createDecoder(AudioConstants::SAMPLE_RATE, numChannels);
     }
 }
@@ -538,6 +569,7 @@ void InboundAudioStream::setupCodec(CodecPluginPointer codec, const QString& cod
 void InboundAudioStream::cleanupCodec() {
     // release any old codec encoder/decoder first...
     if (_codec) {
+        QMutexLocker lock(&_decoderMutex);
         if (_decoder) {
             _codec->releaseDecoder(_decoder);
             _decoder = nullptr;
