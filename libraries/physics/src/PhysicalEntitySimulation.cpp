@@ -430,7 +430,7 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
         }
         if (unhandledFlags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP | (handledFlags & Simulation::DIRTY_SHAPE))) {
             transaction.objectsToReinsert.push_back(object);
-            handledFlags |= (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+            handledFlags |= HARD_DIRTY_PHYSICS_FLAGS;
         } else if (unhandledFlags & Simulation::DIRTY_PHYSICS_ACTIVATION && object->getRigidBody()->isStaticObject()) {
             transaction.activeStaticObjects.push_back(object);
         }
