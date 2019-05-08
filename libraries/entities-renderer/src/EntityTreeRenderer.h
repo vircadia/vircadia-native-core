@@ -213,11 +213,11 @@ private:
         LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : zone(zone), id(zone->getID()), volume(zone->getVolumeEstimate()) {}
 
         bool operator>(const LayeredZone& r) const { return volume > r.volume; }
-        bool operator==(const LayeredZone& r) const { return zone.get() == r.zone.get(); }
+        bool operator==(const LayeredZone& r) const { return zone.lock() == r.zone.lock(); }
         bool operator!=(const LayeredZone& r) const { return !(*this == r); }
         bool operator>=(const LayeredZone& r) const { return (*this > r) || (*this == r); }
 
-        std::shared_ptr<ZoneEntityItem> zone;
+        std::weak_ptr<ZoneEntityItem> zone;
         QUuid id;
         float volume;
     };

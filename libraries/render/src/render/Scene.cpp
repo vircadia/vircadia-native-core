@@ -277,9 +277,6 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         // removes
         removeItems(transaction._removedItems);
 
-        // handle selections
-        resetSelections(transaction._resetSelections);
-
         // add transitions
         transitionItems(transaction._addedTransitions);
         reApplyTransitions(transaction._reAppliedTransitions);
@@ -289,6 +286,8 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
     }
+
+    resetSelections(transaction._resetSelections);
 
     resetHighlights(transaction._highlightResets);
     removeHighlights(transaction._highlightRemoves);

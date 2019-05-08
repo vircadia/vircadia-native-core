@@ -1191,7 +1191,8 @@ bool EntityTreeRenderer::LayeredZones::clearDomainAndNonOwnedZones(const QUuid& 
 
     auto it = c.begin();
     while (it != c.end()) {
-        if (!(it->zone->isLocalEntity() || (it->zone->isAvatarEntity() && it->zone->getOwningAvatarID() == sessionUUID))) {
+        auto zone = it->zone.lock();
+        if (!zone || !(zone->isLocalEntity() || (zone->isAvatarEntity() && zone->getOwningAvatarID() == sessionUUID))) {
             zonesChanged = true;
             it = c.erase(it);
         } else {
@@ -1208,8 +1209,9 @@ bool EntityTreeRenderer::LayeredZones::clearDomainAndNonOwnedZones(const QUuid& 
 std::pair<bool, bool> EntityTreeRenderer::LayeredZones::getZoneInteractionProperties() const {
     auto it = c.cbegin();
     while (it != c.cend()) {
-        if (it->zone && it->zone->isDomainEntity()) {
-            return { it->zone->getFlyingAllowed(), it->zone->getGhostingAllowed() };
+        auto zone = it->zone.lock();
+        if (zone && zone->isDomainEntity()) {
+            return { zone->getFlyingAllowed(), zone->getGhostingAllowed() };
         }
         it++;
     }
@@ -1219,7 +1221,7 @@ std::pair<bool, bool> EntityTreeRenderer::LayeredZones::getZoneInteractionProper
 void EntityTreeRenderer::LayeredZones::remove(const std::shared_ptr<ZoneEntityItem>& zone) {
     auto it = c.begin();
     while (it != c.end()) {
-        if (it->zone == zone) {
+        if (it->zone.lock() == zone) {
             break;
         }
         it++;
@@ -1262,7 +1264,7 @@ bool EntityTreeRenderer::LayeredZones::equals(const LayeredZones& other) const {
 void EntityTreeRenderer::LayeredZones::appendRenderIDs(render::ItemIDs& list, EntityTreeRenderer* entityTreeRenderer) const {
     auto it = c.cbegin();
     while (it != c.cend()) {
-        if (it->zone) {
+        if (it->zone.lock()) {
             auto id = entityTreeRenderer->renderableIdForEntityId(it->id);
             if (id != render::Item::INVALID_ITEM_ID) {
                 list.push_back(id);
