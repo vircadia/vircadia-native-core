@@ -22,6 +22,13 @@
 #include <DependencyManager.h>
 #include <OffscreenUi.h>
 
+static const QVariantMap DOCK_AREA {
+    { "TOP", DockArea::TOP },
+    { "BOTTOM", DockArea::BOTTOM },
+    { "LEFT", DockArea::LEFT },
+    { "RIGHT", DockArea::RIGHT }
+};
+
 int DesktopScriptingInterface::getWidth() {
     QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
     return size.width();
@@ -44,6 +51,10 @@ QVariantMap DesktopScriptingInterface::getPresentationMode() {
         { "NATIVE", Native }
     };
     return presentationModes;
+}
+
+QVariantMap DesktopScriptingInterface::getDockArea() {
+    return DOCK_AREA;
 }
 
 void DesktopScriptingInterface::setHUDAlpha(float alpha) {

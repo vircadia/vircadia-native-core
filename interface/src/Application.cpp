@@ -136,7 +136,6 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
-#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -213,6 +212,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
+#include "ui/InteractiveWindow.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -377,7 +377,12 @@ const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application:
 class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
+    // TODO: go back to 2 min across the board, after figuring out the issues with mac
+#if defined(Q_OS_MAC)
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 600 * USECS_PER_SECOND; // 10 mins with no checkin probably a deadlock, right now, on MAC
+#else
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 120 * USECS_PER_SECOND; // 2 mins with no checkin probably a deadlock
+#endif
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 
@@ -557,7 +562,10 @@ public:
                     return true;
                 }
             }
-
+            // Attempting to close MIDI interfaces of a hot-unplugged device can result in audio-driver deadlock.
+            // Detecting MIDI devices that have been added/removed after starting Inteface has been disabled.
+            // https://support.microsoft.com/en-us/help/4460006/midi-device-app-hangs-when-former-midi-api-is-used
+#if 0
             if (message->message == WM_DEVICECHANGE) {
                 const float MIN_DELTA_SECONDS = 2.0f; // de-bounce signal
                 static float lastTriggerTime = 0.0f;
@@ -567,6 +575,7 @@ public:
                     Midi::USBchanged();                // re-scan the MIDI bus
                 }
             }
+#endif
         }
         return false;
     }
@@ -2780,14 +2789,14 @@ Application::~Application() {
     avatarManager->handleProcessedPhysicsTransaction(transaction);
 
     avatarManager->deleteAllAvatars();
-    
+
     auto myCharacterController = getMyAvatar()->getCharacterController();
     myCharacterController->clearDetailedMotionStates();
-    
+
     myCharacterController->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     myCharacterController->handleProcessedPhysicsTransaction(transaction);
-    
+
     _physicsEngine->setCharacterController(nullptr);
 
     // the _shapeManager should have zero references
@@ -2919,7 +2928,7 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
-    // Bug 21993: disable microphone and camera input 
+    // Bug 21993: disable microphone and camera input
     chromiumFlags << "--use-fake-device-for-media-stream";
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
@@ -3390,6 +3399,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
     surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
     if (setAdditionalContextProperties) {
+        qDebug() << "setting additional context properties!";
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 
@@ -4015,8 +4025,8 @@ bool Application::notify(QObject * object, QEvent * event) {
     if (thread() == QThread::currentThread()) {
         PROFILE_RANGE_IF_LONGER(app, "notify", 2)
         return QApplication::notify(object, event);
-    } 
-        
+    }
+
     return QApplication::notify(object, event);
 }
 
@@ -5823,7 +5833,8 @@ void Application::cameraModeChanged() {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
             break;
         default:
-            break;
+            // we don't have menu items for the others, so just leave it alone.
+            return;
     }
     cameraMenuChanged();
 }
