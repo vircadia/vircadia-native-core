@@ -169,7 +169,7 @@ private:
 
     void resetEntitiesScriptEngine();
 
-    bool findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
+    void findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
 
     bool applyLayeredZones();
     void stopDomainAndNonOwnedEntities();
@@ -180,7 +180,7 @@ private:
     EntityItemID _currentClickingOnEntityID;
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
-    bool checkEnterLeaveEntities();
+    void checkEnterLeaveEntities();
     void leaveDomainAndNonOwnedEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
@@ -210,47 +210,37 @@ private:
 
     class LayeredZone {
     public:
-        LayeredZone(std::shared_ptr<ZoneEntityItem> zone, QUuid id, float volume) : zone(zone), id(id), volume(volume) {}
-        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : LayeredZone(zone, zone->getID(), zone->getVolumeEstimate()) {}
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : zone(zone), id(zone->getID()), volume(zone->getVolumeEstimate()) {}
 
-        bool operator<(const LayeredZone& r) const { return std::tie(volume, id) < std::tie(r.volume, r.id); }
-        bool operator==(const LayeredZone& r) const { return id == r.id; }
-        bool operator<=(const LayeredZone& r) const { return (*this < r) || (*this == r); }
+        bool operator>(const LayeredZone& r) const { return volume > r.volume; }
+        bool operator==(const LayeredZone& r) const { return zone.lock() == r.zone.lock(); }
+        bool operator!=(const LayeredZone& r) const { return !(*this == r); }
+        bool operator>=(const LayeredZone& r) const { return (*this > r) || (*this == r); }
 
-        std::shared_ptr<ZoneEntityItem> zone;
+        std::weak_ptr<ZoneEntityItem> zone;
         QUuid id;
         float volume;
     };
 
-    class LayeredZones : public std::set<LayeredZone> {
+    class LayeredZones : public std::priority_queue<LayeredZone, std::vector<LayeredZone>, std::greater<LayeredZone>> {
     public:
-        LayeredZones() {};
-        LayeredZones(LayeredZones&& other);
+        void clear() { *this = LayeredZones(); }
+        bool clearDomainAndNonOwnedZones(const QUuid& sessionUUID);
 
-        // avoid accidental misconstruction
-        LayeredZones(const LayeredZones&) = delete;
-        LayeredZones& operator=(const LayeredZones&) = delete;
-        LayeredZones& operator=(LayeredZones&&) = delete;
+        bool equals(const LayeredZones& other) const;
+        void remove(const std::shared_ptr<ZoneEntityItem>& zone);
+        void update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer);
 
-        void clear();
-        void clearNonLocalLayeredZones();
-        std::pair<iterator, bool> insert(const LayeredZone& layer);
-        void update(std::shared_ptr<ZoneEntityItem> zone);
-        bool contains(const LayeredZones& other);
-
-        std::shared_ptr<ZoneEntityItem> getZone() { return empty() ? nullptr : begin()->zone; }
-
-    private:
-        std::map<QUuid, iterator> _map;
-        iterator _skyboxLayer { end() };
+        void appendRenderIDs(render::ItemIDs& list, EntityTreeRenderer* entityTreeRenderer) const;
+        std::pair<bool, bool> getZoneInteractionProperties() const;
     };
 
     LayeredZones _layeredZones;
-    float _avgRenderableUpdateCost { 0.0f };
-
     uint64_t _lastZoneCheck { 0 };
     const uint64_t ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
+
+    float _avgRenderableUpdateCost { 0.0f };
 
     ReadWriteLockable _changedEntitiesGuard;
     std::unordered_set<EntityItemID> _changedEntities;
