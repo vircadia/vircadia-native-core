@@ -55,7 +55,6 @@ public:
     int getMaxInput(int outputFrames);
 
 private:
-
     float* _polyphaseFilter;
     int* _stepTable;
 

@@ -215,6 +215,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     if (framesAvailable > _desiredJitterBufferFrames + MAX_FRAMES_OVER_DESIRED) {
         int framesToDrop = framesAvailable - (_desiredJitterBufferFrames + DESIRED_JITTER_BUFFER_FRAMES_PADDING);
         _ringBuffer.shiftReadPosition(framesToDrop * _ringBuffer.getNumFrameSamples());
+
         _framesAvailableStat.reset();
         _currentJitterBufferFrames = 0;
 
