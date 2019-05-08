@@ -1069,6 +1069,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     }
 
+    {
+        // identify gpu as early as possible to help identify OpenGL initialization errors.
+        auto gpuIdent = GPUIdent::getInstance();
+        setCrashAnnotation("gpu_name", gpuIdent->getName().toStdString());
+        setCrashAnnotation("gpu_driver", gpuIdent->getDriver().toStdString());
+        setCrashAnnotation("gpu_memory", std::to_string(gpuIdent->getMemory()));
+    }
+
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");
 
