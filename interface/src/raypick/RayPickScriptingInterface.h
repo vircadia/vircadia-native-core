@@ -67,7 +67,7 @@ public:
 
     /**jsdoc
      * Creates a new ray pick.
-     * <p><strong>Warning:</strong> Picks created with this method currently always intersect at least visible and collidable
+     * <p><strong>Warning:</strong> Picks created using this method currently always intersect at least visible and collidable
      * things but this may not always be the case.</p>
      * @function RayPick.createRayPick
      * @param {Picks.RayPickProperties} properties - Properties of the pick.

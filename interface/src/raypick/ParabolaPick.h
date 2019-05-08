@@ -50,7 +50,7 @@ public:
      * @property {boolean} intersects - <code>true</code> if there's a valid intersection, <code>false</code> if there isn't.
      * @property {Uuid} objectID - The ID of the intersected object. <code>null</code> for HUD or invalid intersections.
      * @property {number} distance - The distance from the parabola origin to the intersection point in a straight line.
-     * @property {number} parabolicDistance - The distance from  the parabola origin to the intersection point along the arc of
+     * @property {number} parabolicDistance - The distance from the parabola origin to the intersection point along the arc of
      *     the parabola.
      * @property {Vec3} intersection - The intersection point in world coordinates.
      * @property {Vec3} surfaceNormal - The surface normal at the intersected point. All <code>NaN</code>s if <code>type ==

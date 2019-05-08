@@ -296,7 +296,7 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
  * @typedef {object} StylusTip
  * @property {number} side - The hand that the stylus is attached to: <code>0</code> for left hand, <code>1</code> for the 
  *     right hand, <code>-1</code> for invalid.
- * @property {Vec3} tipOffset  - The position of the stylus tip relative to the body of the stylus.
+ * @property {Vec3} tipOffset - The position of the stylus tip relative to the body of the stylus.
  * @property {Vec3} position - The position of the stylus tip.
  * @property {Quat} orientation - The orientation of the stylus.
  * @property {Vec3} velocity - The velocity of the stylus tip.

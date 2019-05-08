@@ -19,7 +19,7 @@ public:
      * individual flag values.</p>
      * <table>
      *   <thead>
-     *     <tr><th>Flag name</th><th>Value</th><th>Description</th></tr>
+     *     <tr><th>Flag Name</th><th>Value</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
      *     <tr><td>PICK_DOMAIN_ENTITIES</td><td><code>1</code></td><td>Include domain entities when intersecting.</td></tr>

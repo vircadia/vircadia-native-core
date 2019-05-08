@@ -109,7 +109,7 @@ public:
      * Creates a new pick. Different {@link PickType}s use different properties, and within one PickType the properties you 
      * choose can lead to a wide range of behaviors. For example, with <code>PickType.Ray</code>, the properties could 
      * configure a mouse ray pick, an avatar head ray pick, or a joint ray pick.
-     * <p><strong>Warning:</strong> Picks created with this method currently always intersect at least visible and collidable 
+     * <p><strong>Warning:</strong> Picks created using this method currently always intersect at least visible and collidable 
      * things but this may not always be the case.</p>
      * @function Picks.createPick
      * @param {PickType} type - The type of picking to use.
@@ -121,7 +121,7 @@ public:
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
 
     /**jsdoc
-     * Enables a pick. enabled picks update their pick results.
+     * Enables a pick. Enabled picks update their pick results.
      * @function Picks.enablePick
      * @param {number} id - The ID of the pick.
      */
