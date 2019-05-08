@@ -37,8 +37,11 @@
  *     top. <em>Read-only.</em>
  * @property {InteractiveWindow.Flags} CLOSE_BUTTON_HIDES - A flag value that makes an {@link InteractiveWindow} hide instead 
  *     of closing when the user clicks the "close" button.<em> Read-only.</em>
- * @property {InteractiveWindow.PresentationMode} PresentationMode - The different display options for an 
+ * @property {InteractiveWindow.PresentationModes} PresentationMode - The possible display options for an 
  *     {@link InteractiveWindow}: display inside Interface or in a separate desktop window. <em>Read-only.</em>
+ * @property {InteractiveWindow.DockAreas} DockArea - The possible docking locations of an {@link InteractiveWindow}: top, 
+ *     bottom, left, or right of the Interface window. 
+ *     <em>Read-only.</em>
  */
 class DesktopScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

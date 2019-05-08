@@ -79,6 +79,9 @@ void interactiveWindowPointerFromScriptValue(const QScriptValue& object, Interac
  * @property {InteractiveWindow.PresentationMode} [presentationMode=Desktop.PresentationMode.VIRTUAL] - 
  *     <code>Desktop.PresentationMode.VIRTUAL</code> to display the window inside Interface, <code>.NATIVE</code> to display it 
  *     as its own separate window.
+ * @property {InteractiveWindow.PresentationWindowInfo} [presentationWindowInfo] - Controls how a <code>NATIVE</code> window is 
+ *     displayed. If used, the window is docked to the specified edge of the Interface window, otherwise the window is 
+ *     displayed as its own separate window.
  * @property {InteractiveWindow.Flags} [flags=0] - Window behavior flags, set at window creation. Possible flag values are 
  *     provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
  */
@@ -107,6 +110,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         auto mainWindow = qApp->getWindow();
         _dockWidget = std::shared_ptr<DockWidget>(new DockWidget(title, mainWindow), dockWidgetDeleter);
 
+        /**jsdoc
+         * Configures how a <code>NATIVE</code> window is displayed.
+         * @typedef {object} InteractiveWindow.PresentationWindowInfo
+         * @property {InteractiveWindow.DockArea} dockArea - The edge of the Interface window to dock to.
+         */
         if (nativeWindowInfo.contains(DOCK_AREA_PROPERTY)) {
             DockArea dockedArea = (DockArea) nativeWindowInfo[DOCK_AREA_PROPERTY].toInt();
             switch (dockedArea) {
