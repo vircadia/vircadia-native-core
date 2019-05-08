@@ -43,7 +43,7 @@ const Selection::Name ZoneRendererTask::ZONES_SELECTION { "RankedZones" };
 
 void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& output) {
     // Filter out the sorted list of zones
-    const auto zoneItems = task.addJob<render::SelectSortItems>("FilterZones", input, ZONES_SELECTION.c_str());
+    const auto zoneItems = task.addJob<render::SelectSortItems>("FilterZones", input, ZONES_SELECTION);
 
     // just setup the current zone env
     task.addJob<SetupZones>("SetupZones", zoneItems);
