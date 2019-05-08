@@ -136,7 +136,6 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
-#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -213,6 +212,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
+#include "ui/InteractiveWindow.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
