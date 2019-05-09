@@ -10,6 +10,7 @@
 //
 
 #include "InboundAudioStream.h"
+#include "TryLocker.h"
 
 #include <glm/glm.hpp>
 
@@ -247,7 +248,8 @@ int InboundAudioStream::lostAudioData(int numPackets) {
     QByteArray decodedBuffer;
 
     while (numPackets--) {
-        if (!_decoderMutex.tryLock()) {
+        MutexTryLocker lock(_decoderMutex);
+        if (!lock.isLocked()) {
             // an incoming packet is being processed,
             // and will likely be on the ring buffer shortly,
             // so don't bother generating more data
@@ -260,7 +262,6 @@ int InboundAudioStream::lostAudioData(int numPackets) {
             decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * _numChannels);
             memset(decodedBuffer.data(), 0, decodedBuffer.size());
         }
-        _decoderMutex.unlock();
         _ringBuffer.writeData(decodedBuffer.data(), decodedBuffer.size());
     }
     return 0;

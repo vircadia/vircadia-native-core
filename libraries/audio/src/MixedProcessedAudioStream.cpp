@@ -11,6 +11,7 @@
 
 #include "MixedProcessedAudioStream.h"
 #include "AudioLogging.h"
+#include "TryLocker.h"
 
 MixedProcessedAudioStream::MixedProcessedAudioStream(int numFramesCapacity, int numStaticJitterFrames)
     : InboundAudioStream(AudioConstants::STEREO, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
@@ -36,7 +37,8 @@ int MixedProcessedAudioStream::lostAudioData(int numPackets) {
     QByteArray outputBuffer;
 
     while (numPackets--) {
-        if (!_decoderMutex.tryLock()) {
+        MutexTryLocker lock(_decoderMutex);
+        if (!lock.isLocked()) {
             // an incoming packet is being processed,
             // and will likely be on the ring buffer shortly,
             // so don't bother generating more data
@@ -49,7 +51,6 @@ int MixedProcessedAudioStream::lostAudioData(int numPackets) {
             decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
             memset(decodedBuffer.data(), 0, decodedBuffer.size());
         }
-        _decoderMutex.unlock();
         emit addedStereoSamples(decodedBuffer);
 
         emit processSamples(decodedBuffer, outputBuffer);
