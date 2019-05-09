@@ -10,7 +10,14 @@ endif()
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/macros/TargetPython.cmake")
 target_python()
 
-if (HIFI_ANDROID )
+# set our OS X deployment target
+# (needs to be set before first project() call and before prebuild.py)
+# Will affect VCPKG dependencies
+if (APPLE)
+  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
+endif()
+
+if (HIFI_ANDROID)
     execute_process(
         COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

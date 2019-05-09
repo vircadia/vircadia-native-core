@@ -241,8 +241,10 @@ void Model::updateRenderItems() {
                                                                   invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                    data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
                 } else {
                     data.updateClusterBuffer(meshState.clusterMatrices);
+                    data.computeAdjustedLocalBound(meshState.clusterMatrices);
                 }
 
                 Transform renderTransform = modelTransform;
@@ -774,11 +776,14 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
                 auto& materialName = _modelMeshMaterialNames[shapeID];
                 result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
 
-                auto mappedMaterialIter = _materialMapping.find(shapeID);
-                if (mappedMaterialIter != _materialMapping.end()) {
-                    auto mappedMaterials = mappedMaterialIter->second;
-                    for (auto& mappedMaterial : mappedMaterials) {
-                        result.appendMaterial(mappedMaterial, shapeID, materialName);
+                {
+                    std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                    auto mappedMaterialIter = _materialMapping.find(shapeID);
+                    if (mappedMaterialIter != _materialMapping.end()) {
+                        auto mappedMaterials = mappedMaterialIter->second;
+                        for (auto& mappedMaterial : mappedMaterials) {
+                            result.appendMaterial(mappedMaterial, shapeID, materialName);
+                        }
                     }
                 }
                 shapeID++;
@@ -1367,8 +1372,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         // update the world space transforms for all joints
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
         updateRig(deltaTime, parentTransform);
-
-        computeMeshPartLocalBounds();
     }
 }
 
@@ -1377,17 +1380,6 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
     _rig.updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
-}
-
-void Model::computeMeshPartLocalBounds() {
-    for (auto& part : _modelMeshRenderItems) {
-        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        if (_useDualQuaternionSkinning) {
-            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
-        } else {
-            part->computeAdjustedLocalBound(state.clusterMatrices);
-        }
-    }
 }
 
 // virtual
@@ -1569,6 +1561,13 @@ void Model::applyMaterialMapping() {
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     PrimitiveMode primitiveMode = getPrimitiveMode();
     bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+    auto modelMeshRenderItemIDs = _modelMeshRenderItemIDs;
+    auto modelMeshRenderItemShapes = _modelMeshRenderItemShapes;
+    std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
+
+    for (auto& shape : _modelMeshRenderItemShapes) {
+        shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+    }
 
     auto& materialMapping = getMaterialMapping();
     for (auto& mapping : materialMapping) {
@@ -1588,7 +1587,8 @@ void Model::applyMaterialMapping() {
             priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
+                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap]() {
             if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
@@ -1611,12 +1611,15 @@ void Model::applyMaterialMapping() {
                 }
             }
             for (auto shapeID : shapeIDs) {
-                if (shapeID < _modelMeshRenderItemIDs.size()) {
-                    auto itemID = _modelMeshRenderItemIDs[shapeID];
-                    auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
-                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+                if (shapeID < modelMeshRenderItemIDs.size()) {
+                    auto itemID = modelMeshRenderItemIDs[shapeID];
+                    auto meshIndex = modelMeshRenderItemShapes[shapeID].meshIndex;
+                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKeyMap.at(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
-                    _materialMapping[shapeID].push_back(material);
+                    {
+                        std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                        _materialMapping[shapeID].push_back(material);
+                    }
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                         data.addMaterial(material);
@@ -1744,9 +1747,9 @@ void Blender::run() {
     if (_model && _model->isLoaded()) {
         DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
         int offset = 0;
-        auto meshes = _model->getHFMModel().meshes;
+        const auto& meshes = _model->getHFMModel().meshes;
         int meshIndex = 0;
-        foreach(const HFMMesh& mesh, meshes) {
+        for(const HFMMesh& mesh : meshes) {
             auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);
             if (mesh.blendshapes.isEmpty() || modelMeshBlendshapeOffsets == _model->_blendshapeOffsets.end()) {
                 // Not blendshaped or not initialized
@@ -1777,33 +1780,30 @@ void Blender::run() {
 
                 float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
                 const HFMBlendshape& blendshape = mesh.blendshapes.at(i);
+                for (int j = 0; j < blendshape.indices.size(); ++j) {
+                    int index = blendshape.indices.at(j);
 
-                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
-                    for (auto j = range.begin(); j < range.end(); j++) {
-                        int index = blendshape.indices.at(j);
+                    auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
+                    currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
 
-                        auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
-                        currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
-
-                        currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
-                        if (j < blendshape.tangents.size()) {
-                            currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
-                        }
+                    currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
+                    if (j < blendshape.tangents.size()) {
+                        currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
                     }
-                });
+                }
             }
 
             // Blendshape offsets are generrated, now let's pack it on its way to gpu
-            tbb::parallel_for(tbb::blocked_range<int>(0, (int) unpackedBlendshapeOffsets.size()), [&](const tbb::blocked_range<int>& range) {
-                auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
-                auto packed = meshBlendshapeOffsets + range.begin();
-                for (auto j = range.begin(); j < range.end(); j++) {
+            // FIXME it feels like we could be more effectively using SIMD here
+            {
+                auto unpacked = unpackedBlendshapeOffsets.data();
+                auto packed = meshBlendshapeOffsets;
+                for (int j = 0; j < (int)unpackedBlendshapeOffsets.size(); ++j) {
                     packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
-
-                    unpacked++;
-                    packed++;
+                    ++unpacked;
+                    ++packed;
                 }
-            });
+            }
         }
     }
     // post the result to the ModelBlender, which will dispatch to the model if still alive

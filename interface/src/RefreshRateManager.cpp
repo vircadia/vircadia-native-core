@@ -20,37 +20,40 @@
 
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
 
-static const int HMD_TARGET_RATE = 90;
+static const int VR_TARGET_RATE = 90;
 
 static const std::array<std::string, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> REFRESH_RATE_PROFILE_TO_STRING =
     { { "Eco", "Interactive", "Realtime" } };
 
 static const std::array<std::string, RefreshRateManager::RefreshRateRegime::REGIME_NUM> REFRESH_RATE_REGIME_TO_STRING =
-    { { "Running", "Unfocus", "Minimized", "StartUp", "ShutDown" } };
+    { { "FocusActive", "FocusInactive", "Unfocus", "Minimized", "StartUp", "ShutDown" } };
 
 static const std::array<std::string, RefreshRateManager::UXMode::UX_NUM> UX_MODE_TO_STRING =
-    { { "Desktop", "HMD" } };
+    { { "Desktop", "VR" } };
 
 static const std::map<std::string, RefreshRateManager::RefreshRateProfile> REFRESH_RATE_PROFILE_FROM_STRING =
     { { "Eco", RefreshRateManager::RefreshRateProfile::ECO },
       { "Interactive", RefreshRateManager::RefreshRateProfile::INTERACTIVE },
       { "Realtime", RefreshRateManager::RefreshRateProfile::REALTIME } };
 
-static const std::array<int, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> RUNNING_REGIME_PROFILES =
-    { { 5, 20, 60 } };
 
-static const std::array<int, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> UNFOCUS_REGIME_PROFILES =
-    { { 5, 5, 10 } };
+// Porfile regimes are:
+//  { { "FocusActive", "FocusInactive", "Unfocus", "Minimized", "StartUp", "ShutDown" } }
 
-static const std::array<int, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> MINIMIZED_REGIME_PROFILE =
-    { { 2, 2, 2 } };
+static const std::array<int, RefreshRateManager::RefreshRateRegime::REGIME_NUM> ECO_PROFILE =
+    { { 20, 10, 5, 2, 30, 30 } };
 
-static const std::array<int, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> START_AND_SHUTDOWN_REGIME_PROFILES =
-    { { 30, 30, 30 } };
+static const std::array<int, RefreshRateManager::RefreshRateRegime::REGIME_NUM> INTERACTIVE_PROFILE =
+    { { 30, 20, 10, 2, 30, 30 } };
 
-static const std::array<std::array<int, RefreshRateManager::RefreshRateProfile::PROFILE_NUM>, RefreshRateManager::RefreshRateRegime::REGIME_NUM> REFRESH_RATE_REGIMES =
-    { { RUNNING_REGIME_PROFILES, UNFOCUS_REGIME_PROFILES, MINIMIZED_REGIME_PROFILE,
-      START_AND_SHUTDOWN_REGIME_PROFILES, START_AND_SHUTDOWN_REGIME_PROFILES } };
+static const std::array<int, RefreshRateManager::RefreshRateRegime::REGIME_NUM> REALTIME_PROFILE =
+    { { 60, 60, 10, 2, 30, 30} };
+
+static const std::array<std::array<int, RefreshRateManager::RefreshRateRegime::REGIME_NUM>, RefreshRateManager::RefreshRateProfile::PROFILE_NUM> REFRESH_RATE_PROFILES =
+    { { ECO_PROFILE, INTERACTIVE_PROFILE, REALTIME_PROFILE } };
+
+
+static const int INACTIVE_TIMER_LIMIT = 3000;
 
 
 std::string RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile refreshRateProfile) {
@@ -70,14 +73,36 @@ std::string RefreshRateManager::uxModeToString(RefreshRateManager::RefreshRateMa
 }
 
 RefreshRateManager::RefreshRateManager() {
-    _refreshRateProfile = (RefreshRateManager::RefreshRateProfile) _refreshRateMode.get();
+    _refreshRateProfile = (RefreshRateManager::RefreshRateProfile) _refreshRateProfileSetting.get();
+    _inactiveTimer->setInterval(INACTIVE_TIMER_LIMIT);
+    _inactiveTimer->setSingleShot(true);
+    QObject::connect(_inactiveTimer.get(), &QTimer::timeout, [&] {
+        toggleInactive();
+    });
+}
+
+void RefreshRateManager::resetInactiveTimer() {
+    if (_uxMode == RefreshRateManager::UXMode::DESKTOP) {
+        auto regime = getRefreshRateRegime();
+        if (regime == RefreshRateRegime::FOCUS_ACTIVE || regime == RefreshRateRegime::FOCUS_INACTIVE) {
+            _inactiveTimer->start();
+            setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+        }
+    }
+}
+
+void RefreshRateManager::toggleInactive() {
+    if (_uxMode == RefreshRateManager::UXMode::DESKTOP &&
+        getRefreshRateRegime() == RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE) {
+        setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_INACTIVE);
+    }
 }
 
 void RefreshRateManager::setRefreshRateProfile(RefreshRateManager::RefreshRateProfile refreshRateProfile) {
     if (_refreshRateProfile != refreshRateProfile) {
-        _refreshRateModeLock.withWriteLock([&] {
+        _refreshRateProfileSettingLock.withWriteLock([&] {
             _refreshRateProfile = refreshRateProfile;
-            _refreshRateMode.set((int) refreshRateProfile);
+            _refreshRateProfileSetting.set((int) refreshRateProfile);
         });
         updateRefreshRateController();
     }
@@ -86,9 +111,9 @@ void RefreshRateManager::setRefreshRateProfile(RefreshRateManager::RefreshRatePr
 RefreshRateManager::RefreshRateProfile RefreshRateManager::getRefreshRateProfile() const {
     RefreshRateManager::RefreshRateProfile profile = RefreshRateManager::RefreshRateProfile::REALTIME;
 
-    if (getUXMode() != RefreshRateManager::UXMode::HMD) {
-        profile =(RefreshRateManager::RefreshRateProfile) _refreshRateModeLock.resultWithReadLock<int>([&] {
-            return _refreshRateMode.get();
+    if (getUXMode() != RefreshRateManager::UXMode::VR) {
+        profile =(RefreshRateManager::RefreshRateProfile) _refreshRateProfileSettingLock.resultWithReadLock<int>([&] {
+            return _refreshRateProfileSetting.get();
         });
     }
 
@@ -96,8 +121,11 @@ RefreshRateManager::RefreshRateProfile RefreshRateManager::getRefreshRateProfile
 }
 
 RefreshRateManager::RefreshRateRegime RefreshRateManager::getRefreshRateRegime() const {
-    return getUXMode() == RefreshRateManager::UXMode::HMD ? RefreshRateManager::RefreshRateRegime::RUNNING :
-        _refreshRateRegime;
+    if (getUXMode() == RefreshRateManager::UXMode::VR) {
+        return RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE;
+    } else {
+        return _refreshRateRegime;
+    }
 }
 
 void RefreshRateManager::setRefreshRateRegime(RefreshRateManager::RefreshRateRegime refreshRateRegime) {
@@ -119,31 +147,12 @@ void RefreshRateManager::updateRefreshRateController() const {
     if (_refreshRateOperator) {
         int targetRefreshRate;
         if (_uxMode == RefreshRateManager::UXMode::DESKTOP) {
-            if (_refreshRateRegime == RefreshRateManager::RefreshRateRegime::RUNNING &&
-                _refreshRateProfile == RefreshRateManager::RefreshRateProfile::INTERACTIVE) {
-                targetRefreshRate = getInteractiveRefreshRate();
-            } else {
-                targetRefreshRate = REFRESH_RATE_REGIMES[_refreshRateRegime][_refreshRateProfile];
-            }
+            targetRefreshRate = REFRESH_RATE_PROFILES[_refreshRateProfile][_refreshRateRegime];
         } else {
-            targetRefreshRate = HMD_TARGET_RATE;
+            targetRefreshRate = VR_TARGET_RATE;
         }
 
         _refreshRateOperator(targetRefreshRate);
         _activeRefreshRate = targetRefreshRate;
     }
-}
-
-void RefreshRateManager::setInteractiveRefreshRate(int refreshRate) {
-     _refreshRateLock.withWriteLock([&] {
-         _interactiveRefreshRate.set(refreshRate);
-     });
-     updateRefreshRateController();
-}
-
-
-int RefreshRateManager::getInteractiveRefreshRate() const {
-    return _refreshRateLock.resultWithReadLock<int>([&] {
-        return _interactiveRefreshRate.get();
-    });
 }

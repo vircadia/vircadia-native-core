@@ -26,6 +26,10 @@
 #include <QDebug>
 
 #include "ui/Logging.h"
+#include "DockWidget.h"
+
+#include <QSizePolicy>
+#include <QLayout>
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
@@ -34,6 +38,7 @@ MainWindow::MainWindow(QWidget* parent) :
 {
     setAttribute(Qt::WA_NoSystemBackground);
     setAcceptDrops(true);
+    setStyleSheet("QMainWindow::separator {width: 1px; border: none;}");
 }
 
 MainWindow::~MainWindow() {

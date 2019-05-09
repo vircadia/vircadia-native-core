@@ -136,7 +136,6 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
-#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -213,6 +212,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
+#include "ui/InteractiveWindow.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -374,7 +374,12 @@ const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application:
 class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
+    // TODO: go back to 2 min across the board, after figuring out the issues with mac
+#if defined(Q_OS_MAC)
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 600 * USECS_PER_SECOND; // 10 mins with no checkin probably a deadlock, right now, on MAC
+#else
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 120 * USECS_PER_SECOND; // 2 mins with no checkin probably a deadlock
+#endif
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 
@@ -554,7 +559,10 @@ public:
                     return true;
                 }
             }
-
+            // Attempting to close MIDI interfaces of a hot-unplugged device can result in audio-driver deadlock.
+            // Detecting MIDI devices that have been added/removed after starting Inteface has been disabled.
+            // https://support.microsoft.com/en-us/help/4460006/midi-device-app-hangs-when-former-midi-api-is-used
+#if 0
             if (message->message == WM_DEVICECHANGE) {
                 const float MIN_DELTA_SECONDS = 2.0f; // de-bounce signal
                 static float lastTriggerTime = 0.0f;
@@ -564,6 +572,7 @@ public:
                     Midi::USBchanged();                // re-scan the MIDI bus
                 }
             }
+#endif
         }
         return false;
     }
@@ -661,9 +670,10 @@ private:
 
 /**jsdoc
  * <p>The <code>Controller.Hardware.Application</code> object has properties representing Interface's state. The property
- * values are integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or
- * <code>Controller.Standard</code> items in a {@link RouteObject} mapping (e.g., using the {@link RouteObject#when} method).
- * Each data value is either <code>1.0</code> for "true" or <code>0.0</code> for "false".</p>
+ * values are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
+ * <p>These states can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
+ * mapping (e.g., using the {@link RouteObject#when} method). Each data value is either <code>1.0</code> for "true" or 
+ * <code>0.0</code> for "false".</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>
@@ -677,13 +687,17 @@ private:
  *     <tr><td><code>CameraIndependent</code></td><td>number</td><td>number</td><td>The camera is in independent mode.</td></tr>
  *     <tr><td><code>CameraEntity</code></td><td>number</td><td>number</td><td>The camera is in entity mode.</td></tr>
  *     <tr><td><code>InHMD</code></td><td>number</td><td>number</td><td>The user is in HMD mode.</td></tr>
- *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement controls are enabled.
- *       </td></tr>
+ *     <tr><td><code>AdvancedMovement</code></td><td>number</td><td>number</td><td>Advanced movement (walking) controls are 
+ *       enabled.</td></tr>
+ *     <tr><td><code>StrafeEnabled</code></td><td>number</td><td>number</td><td>Strafing is enabled</td></tr>
  *     <tr><td><code>LeftHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to left.</td></tr>
  *     <tr><td><code>RightHandDominant</code></td><td>number</td><td>number</td><td>Dominant hand set to right.</td></tr>
  *     <tr><td><code>SnapTurn</code></td><td>number</td><td>number</td><td>Snap turn is enabled.</td></tr>
  *     <tr><td><code>Grounded</code></td><td>number</td><td>number</td><td>The user's avatar is on the ground.</td></tr>
  *     <tr><td><code>NavigationFocused</code></td><td>number</td><td>number</td><td><em>Not used.</em></td></tr>
+ *     <tr><td><code>PlatformWindows</code></td><td>number</td><td>number</td><td>The operating system is Windows.</td></tr>
+ *     <tr><td><code>PlatformMac</code></td><td>number</td><td>number</td><td>The operating system is Mac.</td></tr>
+ *     <tr><td><code>PlatformAndroid</code></td><td>number</td><td>number</td><td>The operating system is Android.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {object} Controller.Hardware-Application
@@ -1052,6 +1066,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     }
 
+    {
+        // identify gpu as early as possible to help identify OpenGL initialization errors.
+        auto gpuIdent = GPUIdent::getInstance();
+        setCrashAnnotation("gpu_name", gpuIdent->getName().toStdString());
+        setCrashAnnotation("gpu_driver", gpuIdent->getDriver().toStdString());
+        setCrashAnnotation("gpu_memory", std::to_string(gpuIdent->getMemory()));
+    }
+
     // make sure the debug draw singleton is initialized on the main thread.
     DebugDraw::getInstance().removeMarker("");
 
@@ -1327,7 +1349,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("avatar", avatarURL.toString().toStdString());
     });
 
-
     // Inititalize sample before registering
     _sampleSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl("sounds/sample.wav"));
 
@@ -1418,6 +1439,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     initializeDisplayPlugins();
     qCDebug(interfaceapp, "Initialized Display");
 
+    if (_displayPlugin && !_displayPlugin->isHmd()) {
+        _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+        showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
+    }
     // An audio device changed signal received before the display plugins are set up will cause a crash,
     // so we defer the setup of the `scripting::Audio` class until this point
     {
@@ -1437,8 +1462,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 audioScriptingInterface->environmentMuted();
             }
         });
-        connect(this, &Application::activeDisplayPluginChanged,
-            reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+        QSharedPointer<scripting::Audio> scriptingAudioSharedPointer = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+        if (scriptingAudioSharedPointer) {
+            connect(this, &Application::activeDisplayPluginChanged,
+                scriptingAudioSharedPointer.data(), &scripting::Audio::onContextChanged);
+        }
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -1631,7 +1659,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+        QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
         {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
@@ -1639,10 +1667,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             bool navAxis = false;
             switch (actionEnum) {
                 case Action::TOGGLE_PUSHTOTALK:
-                    if (state > 0.0f) {
-                        audioScriptingInterface->setPushingToTalk(true);
-                    } else if (state <= 0.0f) {
-                        audioScriptingInterface->setPushingToTalk(false);
+                    if (audioScriptingInterface) {
+                        if (state > 0.0f) {
+                            audioScriptingInterface->setPushingToTalk(true);
+                        } else if (state <= 0.0f) {
+                            audioScriptingInterface->setPushingToTalk(false);
+                        }
                     }
                     break;
 
@@ -2764,14 +2794,14 @@ Application::~Application() {
     avatarManager->handleProcessedPhysicsTransaction(transaction);
 
     avatarManager->deleteAllAvatars();
-    
+
     auto myCharacterController = getMyAvatar()->getCharacterController();
     myCharacterController->clearDetailedMotionStates();
-    
+
     myCharacterController->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     myCharacterController->handleProcessedPhysicsTransaction(transaction);
-    
+
     _physicsEngine->setCharacterController(nullptr);
 
     // the _shapeManager should have zero references
@@ -2903,7 +2933,7 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
-    // Bug 21993: disable microphone and camera input 
+    // Bug 21993: disable microphone and camera input
     chromiumFlags << "--use-fake-device-for-media-stream";
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
@@ -3374,6 +3404,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
     surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
     if (setAdditionalContextProperties) {
+        qDebug() << "setting additional context properties!";
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
 
@@ -3588,7 +3619,14 @@ void Application::setPreferAvatarFingerOverStylus(bool value) {
 
 void Application::setPreferredCursor(const QString& cursorName) {
     qCDebug(interfaceapp) << "setPreferredCursor" << cursorName;
-    _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
+
+    if (_displayPlugin && _displayPlugin->isHmd()) {
+        _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
+    }
+    else { 
+        _preferredCursor.set(cursorName.isEmpty() ? Cursor::Manager::getIconName(Cursor::Icon::SYSTEM) : cursorName); 
+    }
+
     showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
 }
 
@@ -3992,8 +4030,8 @@ bool Application::notify(QObject * object, QEvent * event) {
     if (thread() == QThread::currentThread()) {
         PROFILE_RANGE_IF_LONGER(app, "notify", 2)
         return QApplication::notify(object, event);
-    } 
-        
+    }
+
     return QApplication::notify(object, event);
 }
 
@@ -4054,9 +4092,6 @@ bool Application::event(QEvent* event) {
         case QEvent::KeyRelease:
             keyReleaseEvent(static_cast<QKeyEvent*>(event));
             return true;
-        case QEvent::FocusIn:
-            focusInEvent(static_cast<QFocusEvent*>(event));
-            return true;
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
@@ -4097,6 +4132,11 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
         return true;
+    }
+
+    auto eventType = event->type();
+    if (eventType == QEvent::KeyPress || eventType == QEvent::KeyRelease || eventType == QEvent::MouseMove) {
+        getRefreshRateManager().resetInactiveTimer();
     }
 
     if (event->type() == QEvent::Leave) {
@@ -4288,6 +4328,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto audioClient = DependencyManager::get<AudioClient>();
                     audioClient->setMuted(!audioClient->isMuted());
+                    QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+                    if (audioScriptingInterface && audioScriptingInterface->getPTT()) {
+                       audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
+                    }
                 }
                 break;
 
@@ -4410,23 +4454,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
 }
 
-void Application::focusInEvent(QFocusEvent* event) {
-    if (!_aboutToQuit && _startUpFinished) {
-        getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
-    }
-}
-
-
 void Application::focusOutEvent(QFocusEvent* event) {
     auto inputPlugins = PluginManager::getInstance()->getInputPlugins();
     foreach(auto inputPlugin, inputPlugins) {
         if (inputPlugin->isActive()) {
             inputPlugin->pluginFocusOutEvent();
         }
-    }
-
-    if (!_aboutToQuit && _startUpFinished) {
-        getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::UNFOCUS);
     }
 // FIXME spacemouse code still needs cleanup
 #if 0
@@ -5038,7 +5071,7 @@ void Application::idle() {
         }
     }
 #endif
-
+    
     checkChangeCursor();
 
 #if !defined(DISABLE_QML)
@@ -5349,8 +5382,10 @@ void Application::loadSettings() {
         }
     }
 
-    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
-    audioScriptingInterface->loadData();
+    QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+    if (audioScriptingInterface) {
+        audioScriptingInterface->loadData();
+    }
 
     getMyAvatar()->loadData();
     _settingsLoaded = true;
@@ -5361,8 +5396,10 @@ void Application::saveSettings() const {
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
 
-    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
-    audioScriptingInterface->saveData();
+    QSharedPointer<scripting::Audio> audioScriptingInterface = qSharedPointerDynamicCast<scripting::Audio>(DependencyManager::get<AudioScriptingInterface>());
+    if (audioScriptingInterface) {
+        audioScriptingInterface->saveData();
+    }
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
@@ -5596,7 +5633,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
     _startUpFinished = true;
-    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::RUNNING);
+    getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -5801,7 +5838,8 @@ void Application::cameraModeChanged() {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
             break;
         default:
-            break;
+            // we don't have menu items for the others, so just leave it alone.
+            return;
     }
     cameraMenuChanged();
 }
@@ -8453,28 +8491,30 @@ bool Application::takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOp
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio, const QString& filename) {
     addSnapshotOperator(std::make_tuple([notify, includeAnimated, aspectRatio, filename](const QImage& snapshot) {
-        QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
+        qApp->postLambdaEvent([snapshot, notify, includeAnimated, aspectRatio, filename] {
+            QString path = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        // If we're not doing an animated snapshot as well...
-        if (!includeAnimated) {
-            if (!path.isEmpty()) {
-                // Tell the dependency manager that the capture of the still snapshot has taken place.
-                emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
-            }
-        } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
-            qApp->postLambdaEvent([path, aspectRatio] {
+            // If we're not doing an animated snapshot as well...
+            if (!includeAnimated) {
+                if (!path.isEmpty()) {
+                    // Tell the dependency manager that the capture of the still snapshot has taken place.
+                    emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(path, notify);
+                }
+            } else if (!SnapshotAnimated::isAlreadyTakingSnapshotAnimated()) {
                 // Get an animated GIF snapshot and save it
                 SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, DependencyManager::get<WindowScriptingInterface>());
-            });
-        }
+            }
+        });
     }, aspectRatio, true));
 }
 
 void Application::takeSecondaryCameraSnapshot(const bool& notify, const QString& filename) {
     addSnapshotOperator(std::make_tuple([notify, filename](const QImage& snapshot) {
-        QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
+        qApp->postLambdaEvent([snapshot, notify, filename] {
+            QString snapshotPath = DependencyManager::get<Snapshot>()->saveSnapshot(snapshot, filename, TestScriptingInterface::getInstance()->getTestResultsLocation());
 
-        emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
+            emit DependencyManager::get<WindowScriptingInterface>()->stillSnapshotTaken(snapshotPath, notify);
+        });
     }, 0.0f, false));
 }
 
@@ -8539,11 +8579,20 @@ void Application::activeChanged(Qt::ApplicationState state) {
     switch (state) {
         case Qt::ApplicationActive:
             _isForeground = true;
+            if (!_aboutToQuit && _startUpFinished) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+            }
             break;
 
         case Qt::ApplicationSuspended:
+            break;
         case Qt::ApplicationHidden:
+            break;
         case Qt::ApplicationInactive:
+            if (!_aboutToQuit && _startUpFinished) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::UNFOCUS);
+            }
+            break;
         default:
             _isForeground = false;
             break;
@@ -8874,7 +8923,7 @@ void Application::setDisplayPlugin(DisplayPluginPointer newDisplayPlugin) {
         RefreshRateManager& refreshRateManager = getRefreshRateManager();
         refreshRateManager.setRefreshRateOperator(OpenGLDisplayPlugin::getRefreshRateOperator());
         bool isHmd = newDisplayPlugin->isHmd();
-        RefreshRateManager::UXMode uxMode = isHmd ? RefreshRateManager::UXMode::HMD :
+        RefreshRateManager::UXMode uxMode = isHmd ? RefreshRateManager::UXMode::VR :
             RefreshRateManager::UXMode::DESKTOP;
 
         refreshRateManager.setUXMode(uxMode);

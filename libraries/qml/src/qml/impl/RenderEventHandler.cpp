@@ -31,6 +31,10 @@ bool RenderEventHandler::event(QEvent* e) {
             onRender();
             return true;
 
+        case OffscreenEvent::RenderSync:
+            onRenderSync();
+            return true;
+
         case OffscreenEvent::Initialize:
             onInitalize();
             return true;
@@ -106,6 +110,14 @@ void RenderEventHandler::resize() {
 }
 
 void RenderEventHandler::onRender() {
+    qmlRender(false);
+}
+
+void RenderEventHandler::onRenderSync() {
+    qmlRender(true);
+}
+
+void RenderEventHandler::qmlRender(bool sceneGraphSync) {
     if (_shared->isQuit()) {
         return;
     }
@@ -117,7 +129,8 @@ void RenderEventHandler::onRender() {
     PROFILE_RANGE(render_qml_gl, __FUNCTION__);
 
     gl::globalLock();
-    if (!_shared->preRender()) {
+    if (!_shared->preRender(sceneGraphSync)) {
+        gl::globalRelease();
         return;
     }
 

@@ -15,6 +15,8 @@
 #include <map>
 #include <string>
 
+#include <QTimer>
+
 #include <SettingHandle.h>
 #include <shared/ReadWriteLockable.h>
 
@@ -28,7 +30,8 @@ public:
     };
 
     enum RefreshRateRegime {
-        RUNNING = 0,
+        FOCUS_ACTIVE = 0,
+        FOCUS_INACTIVE,
         UNFOCUS,
         MINIMIZED,
         STARTUP,
@@ -38,7 +41,7 @@ public:
 
     enum UXMode {
         DESKTOP = 0,
-        HMD,
+        VR,
         UX_NUM
     };
 
@@ -57,8 +60,9 @@ public:
     void setRefreshRateOperator(std::function<void(int)> refreshRateOperator) { _refreshRateOperator = refreshRateOperator; }
     int getActiveRefreshRate() const { return _activeRefreshRate; }
     void updateRefreshRateController() const;
-    void setInteractiveRefreshRate(int refreshRate);
-    int getInteractiveRefreshRate() const;
+
+    void resetInactiveTimer();
+    void toggleInactive();
 
     static std::string refreshRateProfileToString(RefreshRateProfile refreshRateProfile);
     static RefreshRateProfile refreshRateProfileFromString(std::string refreshRateProfile);
@@ -66,18 +70,17 @@ public:
     static std::string refreshRateRegimeToString(RefreshRateRegime refreshRateRegime);
 
 private:
-    mutable ReadWriteLockable _refreshRateLock;
-    mutable ReadWriteLockable _refreshRateModeLock;
-
     mutable int _activeRefreshRate { 20 };
     RefreshRateProfile _refreshRateProfile { RefreshRateProfile::INTERACTIVE};
     RefreshRateRegime _refreshRateRegime { RefreshRateRegime::STARTUP };
     UXMode _uxMode;
 
-    Setting::Handle<int> _interactiveRefreshRate { "interactiveRefreshRate", 20};
-    Setting::Handle<int> _refreshRateMode { "refreshRateProfile", INTERACTIVE };
+    mutable ReadWriteLockable _refreshRateProfileSettingLock;
+    Setting::Handle<int> _refreshRateProfileSetting { "refreshRateProfile", RefreshRateProfile::INTERACTIVE };
 
     std::function<void(int)> _refreshRateOperator { nullptr };
+
+    std::shared_ptr<QTimer> _inactiveTimer { std::make_shared<QTimer>() };
 };
 
 #endif

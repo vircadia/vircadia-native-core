@@ -287,12 +287,7 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         _numAllocatedItems.exchange(maxID);
     }
 
-    if (transaction.touchTransactions()) {
-        std::unique_lock<std::mutex> lock(_selectionsMutex);
-
-        // resets and potential NEW items
-        resetSelections(transaction._resetSelections);
-    }
+    resetSelections(transaction._resetSelections);
 
     resetHighlights(transaction._highlightResets);
     removeHighlights(transaction._highlightRemoves);
@@ -392,6 +387,10 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
 void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
+    if (!transitionStage) {
+        return;
+    }
+
     for (auto& add : transactions) {
         auto itemId = std::get<0>(add);
         // Access the true item
@@ -432,6 +431,10 @@ void Scene::reApplyTransitions(const Transaction::TransitionReApplies& transacti
 
 void Scene::queryTransitionItems(const Transaction::TransitionQueries& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+
+    if (!transitionStage) {
+        return;
+    }
 
     for (auto& query : transactions) {
         auto itemId = std::get<0>(query);
@@ -553,11 +556,14 @@ void Scene::setItemTransition(ItemID itemId, Index transitionId) {
 }
 
 void Scene::resetItemTransition(ItemID itemId) {
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+    if (!transitionStage) {
+        return;
+    }
+
     auto& item = _items[itemId];
     TransitionStage::Index transitionId = item.getTransitionId();
     if (!render::TransitionStage::isIndexInvalid(transitionId)) {
-        auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-
         auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
         for (auto finishedOperator : finishedOperators) {
             if (finishedOperator) {
@@ -570,35 +576,34 @@ void Scene::resetItemTransition(ItemID itemId) {
     }
 }
 
-// This function is thread safe
 Selection Scene::getSelection(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
         return Selection();
     } else {
-        return (*found).second;
+        return found->second;
     }
 }
 
-// This function is thread safe
 bool Scene::isSelectionEmpty(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
         return true;
     } else {
-        return (*found).second.isEmpty();
+        return found->second.isEmpty();
     }
 }
 
 void Scene::resetSelections(const Transaction::SelectionResets& transactions) {
+    std::unique_lock<std::mutex> lock(_selectionsMutex);
     for (auto selection : transactions) {
         auto found = _selections.find(selection.getName());
         if (found == _selections.end()) {
-            _selections.insert(SelectionMap::value_type(selection.getName(), selection));
+            _selections[selection.getName()] = selection;
         } else {
-            (*found).second = selection;
+            found->second = selection;
         }
     }
 }

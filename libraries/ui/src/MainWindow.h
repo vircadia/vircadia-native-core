@@ -16,6 +16,7 @@
 
 #include <SettingHandle.h>
 
+class DockWidget;
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -23,11 +24,10 @@ public:
     ~MainWindow();
 
     static QWindow* findMainWindow();
-    
 public slots:
     void restoreGeometry();
     void saveGeometry();
-    
+
 signals:
     void windowGeometryChanged(QRect geometry);
     void windowShown(bool shown);
@@ -42,7 +42,7 @@ protected:
     virtual void changeEvent(QEvent* event) override;
     virtual void dragEnterEvent(QDragEnterEvent *e) override;
     virtual void dropEvent(QDropEvent *e) override;
-    
+
 private:
     Setting::Handle<QRect> _windowGeometry;
     Setting::Handle<int> _windowState;
