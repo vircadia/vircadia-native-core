@@ -11,12 +11,15 @@
 #include "RenderViewTask.h"
 
 #include "RenderShadowTask.h"
+#include "RenderCommonTask.h"
 #include "RenderDeferredTask.h"
 #include "RenderForwardTask.h"
 
-#include <DisableDeferred.h>
+#include <RenderForward.h>
 
 void RenderShadowsAndDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
+    task.addJob<SetRenderMethod>("SetRenderMethodTask", render::Args::DEFERRED);
+
     const auto items = input.getN<DeferredForwardSwitchJob::Input>(0);
     const auto lightingModel = input.getN<DeferredForwardSwitchJob::Input>(1);
     const auto lightingStageFramesAndZones = input.getN<DeferredForwardSwitchJob::Input>(2);
@@ -31,9 +34,9 @@ void RenderShadowsAndDeferredTask::build(JobModel& task, const render::Varying& 
 }
 
 void DeferredForwardSwitchJob::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
-    task.addBranch<RenderShadowsAndDeferredTask>("RenderShadowsAndDeferredTask", 0, input, cullFunctor, tagBits, tagMask);
+    task.addBranch<RenderShadowsAndDeferredTask>("RenderShadowsAndDeferredTask", RENDER_FORWARD ? 1 : 0, input, cullFunctor, tagBits, tagMask);
 
-    task.addBranch<RenderForwardTask>("RenderForwardTask", 1, input);
+    task.addBranch<RenderForwardTask>("RenderForwardTask", RENDER_FORWARD ? 0 : 1, input);
 }
 
 void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
@@ -45,11 +48,11 @@ void RenderViewTask::build(JobModel& task, const render::Varying& input, render:
     // Assemble the lighting stages current frames
     const auto lightingStageFramesAndZones = task.addJob<AssembleLightingStageTask>("AssembleStages", items);
 
-    if (!DISABLE_DEFERRED) {
+#ifndef Q_OS_ANDROID
         const auto deferredForwardIn = DeferredForwardSwitchJob::Input(items, lightingModel, lightingStageFramesAndZones).asVarying();
         task.addJob<DeferredForwardSwitchJob>("DeferredForwardSwitch", deferredForwardIn, cullFunctor, tagBits, tagMask);
-    } else {
+#else
         const auto renderInput = RenderForwardTask::Input(items, lightingModel, lightingStageFramesAndZones).asVarying();
         task.addJob<RenderForwardTask>("RenderForwardTask", renderInput);
-    }
+#endif
 }

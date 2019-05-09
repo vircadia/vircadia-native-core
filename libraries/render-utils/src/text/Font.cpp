@@ -13,9 +13,12 @@
 #include "FontFamilies.h"
 #include "../StencilMaskPass.h"
 
-#include "DisableDeferred.h"
-
 static std::mutex fontMutex;
+
+gpu::PipelinePointer Font::_deferredPipeline;
+gpu::PipelinePointer Font::_forwardPipeline;
+gpu::PipelinePointer Font::_transparentPipeline;
+gpu::Stream::FormatPointer Font::_format;
 
 struct TextureVertex {
     glm::vec2 pos;
@@ -218,13 +221,10 @@ void Font::read(QIODevice& in) {
 }
 
 void Font::setupGPU() {
-    if (!_initialized) {
-        _initialized = true;
-
+    if (!_deferredPipeline) {
         // Setup render pipeline
         {
             {
-                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::forward_sdf_text3D);
                 auto state = std::make_shared<gpu::State>();
                 state->setCullMode(gpu::State::CULL_BACK);
                 state->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -232,25 +232,11 @@ void Font::setupGPU() {
                     gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                     gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
                 PrepareStencil::testMaskDrawShape(*state);
-                _layeredPipeline = gpu::Pipeline::create(program, state);
-            }
-
-            if (DISABLE_DEFERRED) {
-                _pipeline = _layeredPipeline;
-            } else {
-                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D);
-                auto state = std::make_shared<gpu::State>();
-                state->setCullMode(gpu::State::CULL_BACK);
-                state->setDepthTest(true, true, gpu::LESS_EQUAL);
-                state->setBlendFunction(false,
-                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-                PrepareStencil::testMaskDrawShape(*state);
-                _pipeline = gpu::Pipeline::create(program, state);
+                _deferredPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D), state);
+                _forwardPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::forward_sdf_text3D), state);
             }
 
             {
-                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
                 auto state = std::make_shared<gpu::State>();
                 state->setCullMode(gpu::State::CULL_BACK);
                 state->setDepthTest(true, true, gpu::LESS_EQUAL);
@@ -258,7 +244,7 @@ void Font::setupGPU() {
                     gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                     gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
                 PrepareStencil::testMask(*state);
-                _transparentPipeline = gpu::Pipeline::create(program, state);
+                _transparentPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent), state);
             }
         }
 
@@ -363,7 +349,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool layered) {
+                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool forward) {
     if (str == "") {
         return;
     }
@@ -390,7 +376,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
     }
     // need the gamma corrected color here
 
-    batch.setPipeline(color.a < 1.0f ? _transparentPipeline : (layered ? _layeredPipeline : _pipeline));
+    batch.setPipeline(color.a < 1.0f ? _transparentPipeline : (forward ? _forwardPipeline : _deferredPipeline));
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);

@@ -460,7 +460,7 @@ public:
         void applyConfiguration() override {
             TimeProfiler probe("configure::" + JobConcept::getName());
             jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
-            for (auto& branch : _branches) {
+            for (auto& branch : SwitchConcept::_branches) {
                 branch.second.applyConfiguration();
             }
         }
@@ -468,13 +468,9 @@ public:
         void run(const ContextPointer& jobContext) override {
             auto config = std::static_pointer_cast<C>(Concept::_config);
             if (config->isEnabled()) {
-                auto jobsIt = _branches.find(config->getBranch());
-                if (jobsIt != _branches.end()) {
+                auto jobsIt = SwitchConcept::_branches.find(config->getBranch());
+                if (jobsIt != SwitchConcept::_branches.end()) {
                     jobsIt->second.run(jobContext);
-                    if (jobContext->taskFlow.doAbortTask()) {
-                        jobContext->taskFlow.reset();
-                        return;
-                    }
                 }
             }
         }

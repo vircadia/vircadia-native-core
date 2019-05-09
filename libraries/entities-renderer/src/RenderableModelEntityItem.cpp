@@ -1520,7 +1520,7 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
         model = _model;
     });
     if (model) {
-        model->renderDebugMeshBoxes(batch);
+        model->renderDebugMeshBoxes(batch, args->_renderMethod == Args::RenderMethod::FORWARD);
     }
 #endif
 }
