@@ -100,6 +100,8 @@ public:
 };
 
 /**jsdoc
+ * The <code>Script</code> API provides facilities for working with scripts.
+ *
  * @namespace Script
  *
  * @hifi-interface
@@ -150,9 +152,18 @@ public:
     QList<EntityItemID> getListOfEntityScriptIDs();
 
     /**jsdoc
-     * Stop the current script.
+     * Stops and unloads the current script.
      * @function Script.stop
-     * @param {boolean} [marshal=false]
+     * @param {boolean} [marshal=false] - Marshal.
+     *     <p class="important">Deprecated: This parameter is deprecated and will be removed.</p>
+     * @example <caption>Stop a script after 5s.</caption>
+     * Script.setInterval(function () {
+     *     print("Hello");
+     * }, 1000);
+     * 
+     * Script.setTimeout(function () {
+     *     Script.stop(true);
+     * }, 5000);
      */
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - this is intended to be a public interface for Agent scripts, and local scripts, but not for EntityScripts
@@ -292,9 +303,10 @@ public:
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
     /**jsdoc
-     * Start a new Interface or entity script.
+     * Starts running another script in Interface.
+     * <p><strong>Note:</strong> Only works for Interface and avatar scripts.</p>
      * @function Script.load
-     * @param {string} filename - The URL of the script to load. Can be relative to the current script.
+     * @param {string} filename - The URL of the script to load. This can be relative to the current script's URL.
      * @example <caption>Load a script from another script.</caption>
      * // First file: scriptA.js
      * print("This is script A");
@@ -303,7 +315,7 @@ public:
      * print("This is script B");
      * Script.load("scriptA.js");
      *
-     * // If you run scriptB.js you should see both scripts in the running scripts list.
+     * // If you run scriptB.js you should see both scripts in the Running Scripts dialog.
      * // And you should see the following output:
      * // This is script B
      * // This is script A
@@ -311,21 +323,23 @@ public:
     Q_INVOKABLE void load(const QString& loadfile);
 
     /**jsdoc
-     * Include JavaScript from other files in the current script. If a callback is specified the files are loaded and included 
-     * asynchronously, otherwise they are included synchronously (i.e., script execution blocks while the files are included).
+     * Includes JavaScript from other files in the current script. If a callback is specified, the files are loaded and 
+     * included asynchronously, otherwise they are included synchronously (i.e., script execution blocks while the files are 
+     * included).
      * @function Script.include
+     * @variation 0
      * @param {string[]} filenames - The URLs of the scripts to include. Each can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the scripts have been included. Can be an in-line 
+     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be an in-line 
      * function or the name of a function.
      */
     Q_INVOKABLE void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
 
     /**jsdoc
-     * Include JavaScript from another file in the current script. If a callback is specified the file is loaded and included 
+     * Includes JavaScript from another file in the current script. If a callback is specified, the file is loaded and included
      * asynchronously, otherwise it is included synchronously (i.e., script execution blocks while the file is included).
      * @function Script.include
-     * @param {string} filename - The URL of the script to include. Can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the script has been included. Can be an in-line 
+     * @param {string} filename - The URL of the script to include. It can be relative to the current script.
+     * @param {function} [callback=null] - The function to call back when the script has been included. It can be an in-line 
      * function or the name of a function.
      * @example <caption>Include a script file asynchronously.</caption>
      * // First file: scriptA.js
@@ -367,53 +381,53 @@ public:
     QScriptValue instantiateModule(const QScriptValue& module, const QString& sourceCode);
 
     /**jsdoc
-     * Call a function at a set interval.
+     * Calls a function repeatedly, at a set interval.
      * @function Script.setInterval
-     * @param {function} function - The function to call. Can be an in-line function or the name of a function.
+     * @param {function} function - The function to call. This can be an in-line function or the name of a function.
      * @param {number} interval - The interval at which to call the function, in ms.
-     * @returns {object} A handle to the interval timer. Can be used by {@link Script.clearInterval}.
+     * @returns {object} A handle to the interval timer. This can be used by {@link Script.clearInterval}.
      * @example <caption>Print a message every second.</caption>
      * Script.setInterval(function () {
-     *     print("Timer fired");
+     *     print("Interval timer fired");
      * }, 1000);
     */
     Q_INVOKABLE QObject* setInterval(const QScriptValue& function, int intervalMS);
 
     /**jsdoc
-     * Call a function after a delay.
+     * Calls a function once, after a delay.
      * @function Script.setTimeout
-     * @param {function} function - The function to call. Can be an in-line function or the name of a function.
+     * @param {function} function - The function to call. This can be an in-line function or the name of a function.
      * @param {number} timeout - The delay after which to call the function, in ms.
-     * @returns {object} A handle to the timeout timer. Can be used by {@link Script.clearTimeout}.
-     * @example <caption>Print a message after a second.</caption>
+     * @returns {object} A handle to the timeout timer. This can be used by {@link Script.clearTimeout}.
+     * @example <caption>Print a message once, after a second.</caption>
      * Script.setTimeout(function () {
-     *     print("Timer fired");
+     *     print("Timeout timer fired");
      * }, 1000);
      */
     Q_INVOKABLE QObject* setTimeout(const QScriptValue& function, int timeoutMS);
 
     /**jsdoc
-     * Stop an interval timer set by {@link Script.setInterval|setInterval}.
+     * Stops an interval timer set by {@link Script.setInterval|setInterval}.
      * @function Script.clearInterval
-     * @param {object} timer - The interval timer to clear.
+     * @param {object} timer - The interval timer to stop.
      * @example <caption>Stop an interval timer.</caption>
      * // Print a message every second.
      * var timer = Script.setInterval(function () {
-     *     print("Timer fired");
+     *     print("Interval timer fired");
      * }, 1000);
      *
      * // Stop the timer after 10 seconds.
      * Script.setTimeout(function () {
-     *     print("Stop timer");
+     *     print("Stop interval timer");
      *     Script.clearInterval(timer);
      * }, 10000);
      */
     Q_INVOKABLE void clearInterval(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
     /**jsdoc
-     * Clear a timeout timer set by {@link Script.setTimeout|setTimeout}.
+     * Stops a timeout timer set by {@link Script.setTimeout|setTimeout}.
      * @function Script.clearTimeout
-     * @param {object} timer - The timeout timer to clear.
+     * @param {object} timer - The timeout timer to stop.
      * @example <caption>Stop a timeout timer.</caption>
      * // Print a message after two seconds.
      * var timer = Script.setTimeout(function () {
@@ -432,10 +446,16 @@ public:
     Q_INVOKABLE void print(const QString& message);
 
     /**jsdoc
-     * Resolve a relative path to an absolute path.
+     * Resolves a relative path to an absolute path. The relative path is relative to the script's location.
      * @function Script.resolvePath
      * @param {string} path - The relative path to resolve.
      * @returns {string} The absolute path.
+     * @example <caption>Report the directory and filename of the running script.</caption>
+     * print(Script.resolvePath(""));
+     * @example <caption>Report the directory of the running script.</caption>
+     * print(Script.resolvePath("."));
+     * @example <caption>Report the path to a file located relative to the running script.</caption>
+     * print(Script.resolvePath("../assets/sounds/hello.wav"));
      */
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
 
@@ -606,18 +626,22 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
 
     /**jsdoc
-     * Triggered regularly at a system-determined frequency.
+     * Triggered frequently at a system-determined interval.
      * @function Script.update
      * @param {number} deltaTime - The time since the last update, in s.
      * @returns {Signal}
+     * @example <caption>Report script update intervals.</caption>
+     * Script.update.connect(function (deltaTime) {
+     *     print("Update: " + deltaTime);
+     * });
      */
     void update(float deltaTime);
 
     /**jsdoc
-     * Triggered when the script is ending.
+     * Triggered when the script is stopping.
      * @function Script.scriptEnding
      * @returns {Signal}
-     * @example <caption>Connect to the <code>scriptEnding</code> signal.</caption>
+     * @example <caption>Report when a script is stopping.</caption>
      * print("Script started");
      *
      * Script.scriptEnding.connect(function () {
