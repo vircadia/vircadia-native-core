@@ -863,7 +863,7 @@ var toolBar = (function () {
         addButton("newShapeButton", function () {
             createNewEntity({
                 type: "Shape",
-				shape: "Cube",
+                shape: "Cube",
             });
         });
 
