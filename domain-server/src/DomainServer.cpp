@@ -1630,7 +1630,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             return;
         }
 
-        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 3 };
+        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 6 };
 
         // increase the count of no reply ICE heartbeats and check the current value
         ++_noReplyICEHeartbeats;
