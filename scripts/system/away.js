@@ -285,10 +285,10 @@ function maybeGoAway() {
     if (Reticle.mouseCaptured !== wasMouseCaptured) {
         wasMouseCaptured = !wasMouseCaptured;
         if (!wasMouseCaptured) {
-			if (enterAwayStateWhenFocusLostInVR) {
-				goAway();
-				return;
-			}
+            if (enterAwayStateWhenFocusLostInVR) {
+                goAway();
+                return;
+            }
         }
     }
 
@@ -354,13 +354,13 @@ eventMapping.from(Controller.Standard.Start).peek().to(goActive);
 Controller.enableMapping(eventMappingName);
 
 function awayStateWhenFocusLostInVRChanged(enabled) {
-	enterAwayStateWhenFocusLostInVR = enabled;
+    enterAwayStateWhenFocusLostInVR = enabled;
 }
 
 Script.scriptEnding.connect(function () {
     Script.clearInterval(maybeIntervalTimer);
     goActive();
-	HMD.awayStateWhenFocusLostInVRChanged.disconnect(awayStateWhenFocusLostInVRChanged);
+    HMD.awayStateWhenFocusLostInVRChanged.disconnect(awayStateWhenFocusLostInVRChanged);
     Controller.disableMapping(eventMappingName);
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
