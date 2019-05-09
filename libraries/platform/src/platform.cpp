@@ -40,7 +40,7 @@ void platform::destroy() {
 }
 
 json Instance::getCPU(int index) {
-    assert(index < _processor.size());
+    assert(index < _cpu.size());
 
     json result;
     if (index >= _cpu.size())
@@ -83,40 +83,36 @@ json Instance::getDisplay(int index) {
 }
 
 Instance::~Instance() {
-    if (_cpu.size() > 0) {
-    
-       for (std::vector<json*>::iterator it = _cpu.begin(); it != _cpu.end(); ++it)   {
-            delete (*it);
-       }
-  
-	   _cpu.clear();
-  
-    } 
-  
-     if (_memory.size() > 0) {
-        for (std::vector<json*>::iterator it = _memory.begin(); it != _memory.end(); ++it) {
-            delete (*it);
-        }
-  
-        _memory.clear();
-    } 
+	if (_cpu.size() > 0) {
+
+		for (std::vector<json*>::iterator it = _cpu.begin(); it != _cpu.end(); ++it) {
+			delete (*it);
+		}
+		_cpu.clear();
+	}
+
+	if (_memory.size() > 0) {
+		for (std::vector<json*>::iterator it = _memory.begin(); it != _memory.end(); ++it) {
+			delete (*it);
+		}
+		_memory.clear();
+	}
 
 
-      if (_gpu.size() > 0) {
-        for (std::vector<json*>::iterator it = _gpu.begin(); it != _gpu.end(); ++it) {
-            delete (*it);
-        }
+	if (_gpu.size() > 0) {
+		for (std::vector<json*>::iterator it = _gpu.begin(); it != _gpu.end(); ++it) {
+			delete (*it);
+		}
+				_gpu.clear();
+	}
 
-        _gpu.clear();
-      } 
+	if (_display.size() > 0) {
+		for (std::vector<json*>::iterator it = _display.begin(); it != _display.end(); ++it) {
+			delete (*it);
+		}
 
-	  if (_display.size() > 0) {
-		  for (std::vector<json*>::iterator it = _display.begin(); it != _display.end(); ++it) {
-			  delete (*it);
-		  }
-
-		  _display.clear();
-	  }
+		_display.clear();
+	}
 }
 
 bool platform::enumeratePlatform() {
