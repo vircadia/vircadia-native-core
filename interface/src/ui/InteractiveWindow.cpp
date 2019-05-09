@@ -92,6 +92,8 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
 
         auto mainWindow = qApp->getWindow();
         _dockWidget = std::shared_ptr<DockWidget>(new DockWidget(title, mainWindow), dockWidgetDeleter);
+        auto quickView = _dockWidget->getQuickView();
+        Application::setupQmlSurface(quickView->rootContext(), true);
 
         if (nativeWindowInfo.contains(DOCK_AREA_PROPERTY)) {
             DockArea dockedArea = (DockArea) nativeWindowInfo[DOCK_AREA_PROPERTY].toInt();
@@ -119,7 +121,6 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             }
         }
 
-        auto quickView = _dockWidget->getQuickView();
         QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
