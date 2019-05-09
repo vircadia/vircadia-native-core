@@ -241,8 +241,10 @@ public slots:
     void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
+
     void setLocalInjectorGain(float gain) { _localInjectorGain = gain; };
     void setSystemInjectorGain(float gain) { _systemInjectorGain = gain; };
+    void setOutputGain(float gain) { _outputGain = gain; };
 
     void outputNotify();
 
