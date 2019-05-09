@@ -243,9 +243,11 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
     sendPacket(std::move(replyPacket), message->getSenderSockAddr());
 }
 
-void NodeList::reset(bool skipDomainHandlerReset) {
+void NodeList::reset(QString reason, bool skipDomainHandlerReset) {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, skipDomainHandlerReset));
+        QMetaObject::invokeMethod(this, "reset",
+                                  Q_ARG(QString, reason),
+                                  Q_ARG(bool, skipDomainHandlerReset));
         return;
     }
 
@@ -267,7 +269,7 @@ void NodeList::reset(bool skipDomainHandlerReset) {
 
     if (!skipDomainHandlerReset) {
         // clear the domain connection information, unless they're the ones that asked us to reset
-        _domainHandler.softReset();
+        _domainHandler.softReset(reason);
     }
 
     // refresh the owner UUID to the NULL UUID
@@ -297,12 +299,12 @@ void NodeList::sendDomainServerCheckIn() {
     // may be called by multiple threads.
 
     if (!_sendDomainServerCheckInEnabled) {
-        qCDebug(networking) << "Refusing to send a domain-server check in while it is disabled.";
+        qCDebug(networking_ice) << "Refusing to send a domain-server check in while it is disabled.";
         return;
     }
 
     if (_isShuttingDown) {
-        qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
+        qCDebug(networking_ice) << "Refusing to send a domain-server check in while shutting down.";
         return;
     }
 
@@ -311,9 +313,9 @@ void NodeList::sendDomainServerCheckIn() {
 
     if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
-        qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
+        qCDebug(networking_ice) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
     } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
-        qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
+        qCDebug(networking_ice) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
         // let the domain handler know we are due to send a checkin packet
     } else if (!domainHandlerIp.isNull() && !_domainHandler.checkInPacketTimeout()) {
@@ -324,7 +326,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         if (!domainIsConnected) {
             auto hostname = _domainHandler.getHostname();
-            qCDebug(networking) << "Sending connect request to domain-server at" << hostname;
+            qCDebug(networking_ice) << "Sending connect request to domain-server at" << hostname;
 
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
@@ -334,7 +336,7 @@ void NodeList::sendDomainServerCheckIn() {
 
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
                 getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, domainPort);
-                qCDebug(networking) << "Local domain-server port read from shared memory (or default) is" << domainPort;
+                qCDebug(networking_ice) << "Local domain-server port read from shared memory (or default) is" << domainPort;
                 _domainHandler.setPort(domainPort);
             }
         }
@@ -346,7 +348,7 @@ void NodeList::sendDomainServerCheckIn() {
         bool requiresUsernameSignature = !domainIsConnected && !connectionToken.isNull();
 
         if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
-            qWarning() << "A keypair is required to present a username signature to the domain-server"
+            qCWarning(networking_ice) << "A keypair is required to present a username signature to the domain-server"
                 << "but no keypair is present. Waiting for keypair generation to complete.";
             accountManager->generateNewUserKeypair();
 
@@ -574,12 +576,12 @@ void NodeList::pingPunchForDomainServer() {
         const int NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET = 2000 / UDP_PUNCH_PING_INTERVAL_MS;
 
         if (_domainHandler.getICEPeer().getConnectionAttempts() == 0) {
-            qCDebug(networking) << "Sending ping packets to establish connectivity with domain-server with ID"
+            qCDebug(networking_ice) << "Sending ping packets to establish connectivity with domain-server with ID"
                 << uuidStringWithoutCurlyBraces(_domainHandler.getPendingDomainID());
         } else {
             if (_domainHandler.getICEPeer().getConnectionAttempts() % NUM_DOMAIN_SERVER_PINGS_BEFORE_RESET == 0) {
                 // if we have then nullify the domain handler's network peer and send a fresh ICE heartbeat
-                qCDebug(networking) << "No ping replies received from domain-server with ID"
+                qCDebug(networking_ice) << "No ping replies received from domain-server with ID"
                     << uuidStringWithoutCurlyBraces(_domainHandler.getICEClientID()) << "-" << "re-sending ICE query.";
 
                 _domainHandler.getICEPeer().softReset();
@@ -657,10 +659,8 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     if (_domainHandler.isConnected() &&
         ((currentLocalID != Node::NULL_LOCAL_ID && newLocalID != currentLocalID) ||
         (!currentSessionID.isNull() && newUUID != currentSessionID))) {
-            qCDebug(networking) << "Local ID or Session ID changed while connected to domain - forcing NodeList reset";
-
             // reset the nodelist, but don't do a domain handler reset since we're about to process a good domain list
-            reset(true);
+            reset("Local ID or Session ID changed while connected to domain - forcing NodeList reset", true);
 
             // tell the domain handler that we're no longer connected so that below
             // it can re-perform actions as if we just connected

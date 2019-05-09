@@ -103,8 +103,8 @@ public:
     virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:
-    void reset(bool skipDomainHandlerReset = false);
-    void resetFromDomainHandler() { reset(true); }
+    void reset(QString reason, bool skipDomainHandlerReset = false);
+    void resetFromDomainHandler() { reset("Reset from Domain Handler", true); }
     
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
