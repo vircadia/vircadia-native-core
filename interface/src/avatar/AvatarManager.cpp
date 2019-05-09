@@ -504,23 +504,18 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             }
         } else if (isInPhysics) {
             AvatarMotionState* motionState = avatar->_motionState;
+            uint32_t flags = motionState->getIncomingDirtyFlags();
+            if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+                motionState->handleEasyChanges(flags);
+            }
+            // NOTE: we don't call detailedMotionState->handleEasyChanges() here because they are KINEMATIC
+            // and Bullet will automagically call DetailedMotionState::getWorldTransform() on all that are active.
+
             if (motionState->needsNewShape()) {
                 rebuildAvatarPhysics(transaction, avatar);
-            } else {
-                uint32_t flags = motionState->getIncomingDirtyFlags();
+            } else if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
+                transaction.objectsToReinsert.push_back(motionState);
                 motionState->clearIncomingDirtyFlags();
-                if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    motionState->handleEasyChanges(flags);
-                }
-                // NOTE: we don't call detailedMotionState->handleEasyChanges() here because they are KINEMATIC
-                // and Bullet will automagically call DetailedMotionState::getWorldTransform() on all that are active.
-
-                if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
-                    transaction.objectsToReinsert.push_back(motionState);
-                    for (auto detailedMotionState : avatar->getDetailedMotionStates()) {
-                        transaction.objectsToReinsert.push_back(detailedMotionState);
-                    }
-                }
             }
         }
     }
