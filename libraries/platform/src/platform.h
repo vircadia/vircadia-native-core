@@ -12,37 +12,53 @@
 #include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
+
+
 namespace platform {
 
 class Instance {
 public:
-    bool virtual enumerateProcessors() = 0;
+    bool virtual enumeratePlatform() = 0;
 
-    int getNumProcessor() { return _processors.size(); }
-    nlohmann::json getProcessor(int index);
-
-    int getNumMemory() { return _memory.size(); }
-    nlohmann::json getSystemRam(int index);
+    int getNumCPU() { return _cpu.size(); }
+    nlohmann::json getCPU(int index);
 
     int getNumGPU() { return _gpu.size(); }
     nlohmann::json getGPU(int index);
 
+    int getNumMemory() { return _memory.size(); }
+    nlohmann::json getMemory(int index);
+
+    int getNumDisplay() { return _display.size(); }
+    nlohmann::json getDisplay(int index);
+
     ~Instance();
 
 protected:
-    std::vector<nlohmann::json> _processors;
-    std::vector<nlohmann::json> _memory;
+    std::vector<nlohmann::json*>  _cpu;
+    std::vector<nlohmann::json*>  _memory;
     std::vector<nlohmann::json*> _gpu;
+    std::vector<nlohmann::json*> _display;
+
 };
 
 //Platform level functions
 void create();
+void destroy();
 
-bool enumerateProcessors();
+bool enumeratePlatform();
+
 int getNumProcessor();
 nlohmann::json getProcessor(int index);
+
+int getNumGraphics();
+nlohmann::json getGraphics(int index);
+
+int getNumDisplay();
+nlohmann::json getDisplay(int index);
+
 int getNumMemory();
-nlohmann::json getSystemRam(int index);
+nlohmann::json getMemory(int index);
 
 }  // namespace platform
 

@@ -10,27 +10,22 @@
 #include <intrin.h>
 #include <Windows.h>
 #include <thread>
+#include <GPUIdent.h>
+#include <string>
 
-
-
-#ifdef Q_OS_WINDOWS
-#include <dxgi.h>
-#include <d3d11.h>
-#endif
 
 using namespace platform;
 using namespace nlohmann;
 
-bool WINInstance::enumerateProcessors() {
+bool WINInstance::enumeratePlatform() {
     enumerateCpu();
     enumerateGpu();
     enumerateRam();
-
     return true;
 }
 
 void WINInstance::enumerateCpu() {
-    json cpu;
+    json *cpu= new json();
     int CPUInfo[4] = { -1 };
     unsigned nExIds;
     unsigned int i = 0;
@@ -54,12 +49,12 @@ void WINInstance::enumerateCpu() {
         }
     }
 
-    cpu["brand"] = CPUBrandString;
-    cpu["model"] = CPUModelString;
-    cpu["clockSpeed"] = CPUClockString;
-    cpu["numCores"] = getNumLogicalCores();
+    (*cpu)["brand"] = CPUBrandString;
+    (*cpu)["model"] = CPUModelString;
+    (*cpu)["clockSpeed"] = CPUClockString;
+    (*cpu)["numCores"] = getNumLogicalCores();
 
-    _processors.push_back(cpu);
+    _cpu.push_back(cpu);
 }
 
 unsigned int WINInstance::getNumLogicalCores() {
@@ -67,65 +62,26 @@ unsigned int WINInstance::getNumLogicalCores() {
 }
 
 void WINInstance::enumerateGpu() {
-#ifdef Q_OS_WINDOWS
-    IDXGIAdapter* adapter;
-    std::vector<IDXGIAdapter*> adapters;
-    IDXGIFactory* factory = NULL;
 
-    HRESULT hr = CreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
-    _gpu.clear();
-    if (SUCCEEDED(hr)) {
-        for (UINT i = 0; factory->EnumAdapters(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
-            DXGI_ADAPTER_DESC* desc;
+	GPUIdent* ident = GPUIdent::getInstance();
+   
+    json *gpu = new json();
+    (*gpu)["name"] = ident->getName().toUtf8().constData();
+    (*gpu)["memory"] = ident->getMemory();
+    (*gpu)["driver"] = ident->getDriver().toUtf8().constData();
 
-            if (SUCCEEDED(adapter->GetDesc(desc))) {
-                json* gpu = new json();
-            
-                (*gpu)["BrandModel"] = desc->Description;
-                (*gpu)["DedicatedRam"] = desc->DedicatedVideoMemory/1024/1024;
-                (*gpu)["SharedRam"] = desc->SharedSystemMemory / 1024 / 1024;
-
-                UINT numModes = 0;
-                DXGI_MODE_DESC* displayModes = NULL;
-                DXGI_FORMAT format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-                IDXGIOutput* output = NULL;
-
-                if (SUCCEEDED(adapter->EnumOutputs(0, &output))) {
-                   output->GetDisplayModeList(format, 0, &numModes, displayModes);
-
-                   DXGI_OUTPUT_DESC* desc;
-
-                   output->GetDesc(desc);
-
-                   //auto a = desc->Monitor;
-                   //auto b = desc->DeviceName;
-                   //figure out monitor info here
-
-                }
-                
-                _gpu.push_back(gpu);
-
-            }
-        }
-    }
-
-    if (adapter) {
-        adapter->Release();
-    }
-    if (factory) {
-        factory->Release();
-    }
-
-
-#endif
+    _gpu.push_back(gpu);
+    _display = ident->getOutput();
 }
 
 void WINInstance::enumerateRam() {
-    json ram;
+    json* ram = new json();
+
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    ram["totalMem"] = totalRam;
+    (*ram)["totalMem"] = totalRam;
+
     _memory.push_back(ram);
 }

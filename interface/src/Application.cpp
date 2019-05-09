@@ -196,6 +196,8 @@
 #include "scripting/RefreshRateScriptingInterface.h"
 
 
+#include <platform.h>
+#include <nlohmann/json.hpp>
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -245,7 +247,7 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
 
-
+#include <nlohmann/json.hpp>
 #include "AboutUtil.h"
 
 #include <DisableDeferred.h>
@@ -1032,6 +1034,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _sampleSound(nullptr)
 {
 
+    initPlatform();
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
@@ -2484,6 +2487,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     AndroidHelper::instance().notifyLoadComplete();
 #endif
     pauseUntilLoginDetermined();
+}
+
+void Application::initPlatform() {
+
+    platform::create();
+
+    platform::enumeratePlatform();
+    
+    nlohmann::json test = platform::getGraphics(0);
+    nlohmann::json test1 = platform::getProcessor(0);
+    nlohmann::json test2 = platform::getMemory(0);
+    nlohmann::json test3 = platform::getDisplay(0);
 }
 
 void Application::updateVerboseLogging() {

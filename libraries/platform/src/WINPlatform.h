@@ -19,7 +19,7 @@ namespace platform {
     class WINInstance : public Instance {
     
     public:
-        bool enumerateProcessors();
+        bool enumeratePlatform();
 
     private:
         unsigned int getNumLogicalCores();

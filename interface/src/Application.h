@@ -130,6 +130,9 @@ public:
     virtual bool makeRenderingContextCurrent() override;
     virtual bool isForeground() const override;
 
+    //test
+    void initPlatform();
+
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
 
     // FIXME? Empty methods, do we still need them?
