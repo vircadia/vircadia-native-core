@@ -1586,11 +1586,11 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
 void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply* requestReply) {
     _sendICEServerAddressToMetaverseAPIInProgress = false;
     if (_sendICEServerAddressToMetaverseAPIRedo) {
-        qCDebug(domain_server_ice) << "ice-server address updated with metaverse, but has since changed.  redoing update...";
+        qCDebug(domain_server_ice) << "ice-server address (" << _iceServerSocket << ") updated with metaverse, but has since changed.  redoing update...";
         _sendICEServerAddressToMetaverseAPIRedo = false;
         sendICEServerAddressToMetaverseAPI();
     } else {
-        qCDebug(domain_server_ice) << "ice-server address updated with metaverse.";
+        qCDebug(domain_server_ice) << "ice-server address (" << _iceServerSocket << ") updated with metaverse.";
     }
 }
 
@@ -1603,7 +1603,7 @@ void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply* requestRepl
     } else {
         const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
 
-        qCWarning(domain_server_ice) << "Failed to update ice-server address with High Fidelity Metaverse - error was"
+        qCWarning(domain_server_ice) << "Failed to update ice-server address (" << _iceServerSocket << ") with High Fidelity Metaverse - error was"
                    << requestReply->errorString();
         qCWarning(domain_server_ice) << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
 
