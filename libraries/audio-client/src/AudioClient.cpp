@@ -221,6 +221,35 @@ static float computeLoudness(int16_t* samples, int numSamples, int numChannels, 
     return (float)loudness * scale;
 }
 
+template <int NUM_CHANNELS>
+static void applyGainSmoothing(float* buffer, int numFrames, float gain0, float gain1) {
+
+    // fast path for unity gain
+    if (gain0 == 1.0f && gain1 == 1.0f) {
+        return;
+    }
+
+    // cubic poly from gain0 to gain1
+    float c3 = -2.0f * (gain1 - gain0);
+    float c2 = 3.0f * (gain1 - gain0);
+    float c0 = gain0;
+
+    float t = 0.0f;
+    float tStep = 1.0f / numFrames;
+
+    for (int i = 0; i < numFrames; i++) {
+
+        // evaluate poly over t=[0,1)
+        float gain = (c3 * t + c2) * t * t + c0;
+        t += tStep;
+
+        // apply gain to all channels
+        for (int ch = 0; ch < NUM_CHANNELS; ch++) {
+            buffer[NUM_CHANNELS*i + ch] *= gain;
+        }
+    }
+}
+
 static inline float convertToFloat(int16_t sample) {
     return (float)sample * (1 / 32768.0f);
 }
@@ -2109,6 +2138,14 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     int framesPopped = samplesPopped / AudioConstants::STEREO;
     int bytesWritten;
     if (samplesPopped > 0) {
+
+        // apply output gain
+        float newGain = _audio->_outputGain.load(std::memory_order_acquire);
+        float oldGain = _audio->_lastOutputGain;
+        _audio->_lastOutputGain = newGain;
+
+        applyGainSmoothing<OUTPUT_CHANNEL_COUNT>(mixBuffer, framesPopped, oldGain, newGain);
+
         if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
             // limit the audio
             _audio->_audioLimiter.render(mixBuffer, (int16_t*)data, framesPopped);
