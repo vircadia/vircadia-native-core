@@ -513,8 +513,10 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
 
             if (motionState->needsNewShape()) {
                 rebuildAvatarPhysics(transaction, avatar);
-            } else if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
-                transaction.objectsToReinsert.push_back(motionState);
+            } else {
+                if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
+                    transaction.objectsToReinsert.push_back(motionState);
+                }
                 motionState->clearIncomingDirtyFlags();
             }
         }
