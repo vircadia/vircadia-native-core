@@ -2790,20 +2790,14 @@ Application::~Application() {
     // remove avatars from physics engine
     auto avatarManager = DependencyManager::get<AvatarManager>();
     avatarManager->clearOtherAvatars();
+    auto myCharacterController = getMyAvatar()->getCharacterController();
+    myCharacterController->clearDetailedMotionStates();
 
     PhysicsEngine::Transaction transaction;
     avatarManager->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     avatarManager->handleProcessedPhysicsTransaction(transaction);
-
     avatarManager->deleteAllAvatars();
-
-    auto myCharacterController = getMyAvatar()->getCharacterController();
-    myCharacterController->clearDetailedMotionStates();
-
-    myCharacterController->buildPhysicsTransaction(transaction);
-    _physicsEngine->processTransaction(transaction);
-    myCharacterController->handleProcessedPhysicsTransaction(transaction);
 
     _physicsEngine->setCharacterController(nullptr);
 
@@ -6414,64 +6408,42 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
 
-        if (_physicsEnabled) {
-            auto t0 = std::chrono::high_resolution_clock::now();
-            auto t1 = t0;
+        getEntities()->preUpdate();
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        auto t1 = t0;
+        {
+            PROFILE_RANGE(simulation_physics, "PrePhysics");
+            PerformanceTimer perfTimer("prePhysics)");
             {
-                PROFILE_RANGE(simulation_physics, "PrePhysics");
-                PerformanceTimer perfTimer("prePhysics)");
-                {
-                    PROFILE_RANGE(simulation_physics, "RemoveEntities");
-                    const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
-                    {
-                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
-                        _physicsEngine->removeObjects(motionStates);
-                    }
-                    _entitySimulation->deleteObjectsRemovedFromPhysics();
-                }
+                PROFILE_RANGE(simulation_physics, "Entities");
+                PhysicsEngine::Transaction transaction;
+                _entitySimulation->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                _entitySimulation->handleProcessedPhysicsTransaction(transaction);
+            }
 
-                {
-                    PROFILE_RANGE(simulation_physics, "AddEntities");
-                    VectorOfMotionStates motionStates;
-                    getEntities()->getTree()->withReadLock([&] {
-                        _entitySimulation->getObjectsToAddToPhysics(motionStates);
-                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
-                        _physicsEngine->addObjects(motionStates);
-                    });
-                }
-                {
-                    VectorOfMotionStates motionStates;
-                    PROFILE_RANGE(simulation_physics, "ChangeEntities");
-                    getEntities()->getTree()->withReadLock([&] {
-                        _entitySimulation->getObjectsToChange(motionStates);
-                        VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-                        _entitySimulation->setObjectsToChange(stillNeedChange);
-                    });
-                }
+            t1 = std::chrono::high_resolution_clock::now();
 
+            {
+                PROFILE_RANGE(simulation_physics, "Avatars");
+                PhysicsEngine::Transaction transaction;
+                avatarManager->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                avatarManager->handleProcessedPhysicsTransaction(transaction);
+
+                myAvatar->prepareForPhysicsSimulation();
+                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+            }
+        }
+
+        if (_physicsEnabled) {
+            {
+                PROFILE_RANGE(simulation_physics, "PrepareActions");
                 _entitySimulation->applyDynamicChanges();
-
-                t1 = std::chrono::high_resolution_clock::now();
-
-                {
-                    PROFILE_RANGE(simulation_physics, "Avatars");
-                    PhysicsEngine::Transaction transaction;
-                    avatarManager->buildPhysicsTransaction(transaction);
-                    _physicsEngine->processTransaction(transaction);
-                    avatarManager->handleProcessedPhysicsTransaction(transaction);
-                    myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
-                    _physicsEngine->processTransaction(transaction);
-                    myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
-                    myAvatar->prepareForPhysicsSimulation();
-                    _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
-                }
-
-                {
-                    PROFILE_RANGE(simulation_physics, "PrepareActions");
-                    _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
-                        dynamic->prepareForPhysicsSimulation();
-                    });
-                }
+                _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
+                    dynamic->prepareForPhysicsSimulation();
+                });
             }
             auto t2 = std::chrono::high_resolution_clock::now();
             {

@@ -735,13 +735,15 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
     auto model = getModel();
     // If we have a model, make sure it hasn't failed to download.
     // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
-    if (model && (getShapeType() == SHAPE_TYPE_COMPOUND || getShapeType() == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
-        return false;
-    } else if (model && getShapeType() != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
-        return false;
-    } else {
-        return ModelEntityItem::shouldBePhysical();
+    ShapeType shapeType = getShapeType();
+    if (model) {
+        if ((shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
+            return false;
+        } else if (shapeType != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
+            return false;
+        }
     }
+    return !isDead() && shapeType != SHAPE_TYPE_NONE && QUrl(_modelURL).isValid();
 }
 
 int RenderableModelEntityItem::getJointParent(int index) const {

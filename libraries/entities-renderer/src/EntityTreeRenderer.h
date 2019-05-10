@@ -78,6 +78,7 @@ public:
     void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
     void shutdown();
+    void preUpdate();
     void update(bool simulate);
 
     EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }

@@ -1828,42 +1828,42 @@ void EntityItem::setParentID(const QUuid& value) {
         if (!value.isNull() && tree) {
             EntityItemPointer entity = tree->findEntityByEntityItemID(value);
             if (entity) {
-                newParentNoBootstrapping = entity->getSpecialFlags() & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+                newParentNoBootstrapping = entity->getSpecialFlags() & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
             }
         }
 
         if (!oldParentID.isNull() && tree) {
             EntityItemPointer entity = tree->findEntityByEntityItemID(oldParentID);
             if (entity) {
-                oldParentNoBootstrapping = entity->getDirtyFlags() & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+                oldParentNoBootstrapping = entity->getDirtyFlags() & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
             }
         }
 
         if (!value.isNull() && (value == Physics::getSessionUUID() || value == AVATAR_SELF_ID)) {
-            newParentNoBootstrapping |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+            newParentNoBootstrapping |= Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         }
 
         if (!oldParentID.isNull() && (oldParentID == Physics::getSessionUUID() || oldParentID == AVATAR_SELF_ID)) {
-            oldParentNoBootstrapping |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+            oldParentNoBootstrapping |= Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         }
 
         if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
-            if ((bool)(newParentNoBootstrapping & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-                markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            if ((bool)(newParentNoBootstrapping & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING)) {
+                markSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                 forEachDescendant([&](SpatiallyNestablePointer object) {
                         if (object->getNestableType() == NestableType::Entity) {
                             EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                             entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                            entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                            entity->markSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                         }
                 });
             } else {
-                clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                clearSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                 forEachDescendant([&](SpatiallyNestablePointer object) {
                         if (object->getNestableType() == NestableType::Entity) {
                             EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                             entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                            entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                            entity->clearSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                         }
                 });
             }
@@ -2102,7 +2102,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask
             }
         }
 
-        if ((bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
+        if ((bool)(_flags & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING)) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
         mask = Physics::getDefaultCollisionMask(group) & (int32_t)(userMask);
@@ -2173,8 +2173,8 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
 }
 
 void EntityItem::enableNoBootstrap() {
-    if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+    if (!(bool)(_flags & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING)) {
+        _flags |= Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
@@ -2186,7 +2186,7 @@ void EntityItem::enableNoBootstrap() {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                entity->markSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
             }
         });
     }
@@ -2194,7 +2194,7 @@ void EntityItem::enableNoBootstrap() {
 
 void EntityItem::disableNoBootstrap() {
     if (!stillHasMyGrabAction()) {
-        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags &= ~Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         EntityTreePointer entityTree = getTree();
@@ -2207,7 +2207,7 @@ void EntityItem::disableNoBootstrap() {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                entity->clearSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                 simulation->changeEntity(entity);
             }
         });
@@ -2326,7 +2326,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         if (removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) {
             disableNoBootstrap();
         } else {
-            // NO-OP: we assume SPECIAL_FLAGS_NO_BOOTSTRAPPING bits and collision group are correct
+            // NO-OP: we assume SPECIAL_FLAG_NO_BOOTSTRAPPING bits and collision group are correct
             // because they should have been set correctly when the action was added
             // and/or when children were linked
         }
@@ -3154,21 +3154,21 @@ DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVer
 uint32_t EntityItem::getDirtyFlags() const {
     uint32_t result;
     withReadLock([&] {
-        result = _flags & Simulation::DIRTY_FLAGS;
+        result = _flags & Simulation::DIRTY_FLAGS_MASK;
     });
     return result;
 }
 
 void EntityItem::markDirtyFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::DIRTY_FLAGS;
+        mask &= Simulation::DIRTY_FLAGS_MASK;
         _flags |= mask;
     });
 }
 
 void EntityItem::clearDirtyFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::DIRTY_FLAGS;
+        mask &= Simulation::DIRTY_FLAGS_MASK;
         _flags &= ~mask;
     });
 }
@@ -3176,21 +3176,21 @@ void EntityItem::clearDirtyFlags(uint32_t mask) {
 uint32_t EntityItem::getSpecialFlags() const {
     uint32_t result;
     withReadLock([&] {
-        result = _flags & Simulation::SPECIAL_FLAGS;
+        result = _flags & Simulation::SPECIAL_FLAGS_MASK;
     });
     return result;
 }
 
 void EntityItem::markSpecialFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::SPECIAL_FLAGS;
+        mask &= Simulation::SPECIAL_FLAGS_MASK;
         _flags |= mask;
     });
 }
 
 void EntityItem::clearSpecialFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::SPECIAL_FLAGS;
+        mask &= Simulation::SPECIAL_FLAGS_MASK;
         _flags &= ~mask;
     });
 }

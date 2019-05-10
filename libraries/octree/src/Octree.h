@@ -145,7 +145,10 @@ public:
     virtual bool rootElementHasData() const { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
 
-    virtual void update() { } // nothing to do by default
+    // Why preUpdate() and update()?
+    // Because EntityTree needs them.
+    virtual void preUpdate() { }
+    virtual void update(bool simulate = true) { }
 
     OctreeElementPointer getRoot() { return _rootElement; }
 

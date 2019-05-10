@@ -17,7 +17,9 @@
 
 #include <btBulletDynamicsCommon.h>
 
+#include <EntityItemID.h>
 #include <shared/ReadWriteLockable.h>
+#include <SpatiallyNestable.h>
 
 #include "ObjectMotionState.h"
 #include "BulletUtil.h"
