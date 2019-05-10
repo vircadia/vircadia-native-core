@@ -430,22 +430,6 @@ function redraw(uuid) {
 // Add a user to the list.
 var DEFAULT_LIFETIME = entityProps.lifetime;
 
-// setup to get the outline in on mode
-var NAMETAG_SELECTION_LIST = "NAMETAG_SELECTION_LIST";
-var nametagSelectionProps = {
-    outlineUnoccludedColor: { red: 255, green: 255, blue: 255 },
-    outlineOccludedColor: { red: 235, green: 87, blue: 87 },
-    fillUnoccludedColor: { red: 235, green: 87, blue: 87 },
-    fillOccludedColor: { red: 235, green: 87, blue: 87 },
-    outlineUnoccludedAlpha: 1,
-    outlineOccludedAlpha: 0,
-    fillUnoccludedAlpha: 0,
-    fillOccludedAlpha: 0,
-    outlineWidth: 3,
-    isOutlineSmooth: true
-};
-Selection.enableListHighlight(NAMETAG_SELECTION_LIST, nametagSelectionProps);
-
 
 // add a user to our current selections
 function add(uuid) {
@@ -472,7 +456,6 @@ function add(uuid) {
 
     // Remove from list after lifetime is over
     if (avatarNametagMode === "on") {
-        Selection.addToSelectedItemsList(NAMETAG_SELECTION_LIST, "avatar", uuid);
         avatar.timeoutStarted = Script.setTimeout(function () {
             removeNametag(uuid);
         }, deleteEnttyInMiliseconds);
@@ -517,7 +500,6 @@ function removeNametag(uuid) {
     if (avatar) {
         avatar.nametag.destroy();
         delete _this.selectedAvatars[uuid];
-        Selection.removeFromSelectedItemsList(NAMETAG_SELECTION_LIST, "avatar", uuid);
         return _this;
     }
 
