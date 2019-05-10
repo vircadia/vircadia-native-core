@@ -885,6 +885,7 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
+        qCDebug(networking_ice) << "Removing silent node" << killedNode;
         handleNodeKill(killedNode);
     }
 }
