@@ -1116,6 +1116,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Cairo-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Medium.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
@@ -3062,6 +3065,7 @@ void Application::initializeUi() {
     QmlContextCallback commerceCallback = [](QQmlContext* context) {
         context->setContextProperty("Commerce", DependencyManager::get<QmlCommerce>().data());
     };
+
     OffscreenQmlSurface::addWhitelistContextHandler({
         QUrl{ "hifi/commerce/checkout/Checkout.qml" },
         QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
@@ -3087,6 +3091,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
         QUrl{ "hifi/tablet/TabletMenu.qml" },
         QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
+        QUrl{ "hifi/simplifiedUI/avatarApp/AvatarApp.qml" },
     }, commerceCallback);
 
     QmlContextCallback marketplaceCallback = [](QQmlContext* context) {
