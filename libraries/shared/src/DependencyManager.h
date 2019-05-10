@@ -85,7 +85,6 @@ private:
     size_t getHashCode() const;
 
     QSharedPointer<Dependency> safeGet(size_t hashCode) const;
-    void safeSet(size_t hashCode, const QSharedPointer<Dependency>& value);
 
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
@@ -133,8 +132,16 @@ bool DependencyManager::isSet() {
 template <typename T, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
     static size_t hashCode = manager().getHashCode<T>();
+    QMutexLocker lock(&manager()._instanceHashMutex);
+
+    // clear the previous instance before constructing the new instance
+    auto iter = manager()._instanceHash.find(hashCode);
+    if (iter != manager()._instanceHash.end()) {
+        iter.value().clear();
+    }
+
     QSharedPointer<T> newInstance(new T(args...), &T::customDeleter);
-    manager().safeSet(hashCode, newInstance);
+    manager()._instanceHash.insert(hashCode, newInstance);
 
     return newInstance;
 }
@@ -142,8 +149,16 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 template <typename T, typename I, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
     static size_t hashCode = manager().getHashCode<T>();
+    QMutexLocker lock(&manager()._instanceHashMutex);
+
+    // clear the previous instance before constructing the new instance
+    auto iter = manager()._instanceHash.find(hashCode);
+    if (iter != manager()._instanceHash.end()) {
+        iter.value().clear();
+    }
+
     QSharedPointer<T> newInstance(new I(args...), &I::customDeleter);
-    manager().safeSet(hashCode, newInstance);
+    _instanceHash.insert(hashCode, newInstance);
 
     return newInstance;
 }
