@@ -39,7 +39,9 @@ Q_LOGGING_CATEGORY(trace_baker, "trace.baker")
 #endif
 
 static bool tracingEnabled() {
-    return DependencyManager::isSet<tracing::Tracer>() && DependencyManager::get<tracing::Tracer>()->isEnabled();
+    // Cheers, love! The cavalry's here!
+    auto tracer = DependencyManager::get<tracing::Tracer>();
+    return (tracer && tracer->isEnabled());
 }
 
 DurationBase::DurationBase(const QLoggingCategory& category, const QString& name) : _name(name), _category(category) {

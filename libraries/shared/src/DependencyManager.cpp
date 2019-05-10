@@ -21,6 +21,13 @@ DependencyManager& DependencyManager::manager() {
     return *instance;
 }
 
-QSharedPointer<Dependency>& DependencyManager::safeGet(size_t hashCode) {
-    return _instanceHash[hashCode];
+QSharedPointer<Dependency> DependencyManager::safeGet(size_t hashCode) const {
+    QMutexLocker lock(&_instanceHashMutex);
+    return _instanceHash.value(hashCode);
 }
+
+void DependencyManager::safeSet(size_t hashCode, const QSharedPointer<Dependency>& value) {
+    QMutexLocker lock(&_instanceHashMutex);
+    _instanceHash.insert(hashCode, value);
+}
+
