@@ -331,6 +331,7 @@ static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 static const int ENTITY_SERVER_ADDED_TIMEOUT = 5000;
 static const int ENTITY_SERVER_CONNECTION_TIMEOUT = 5000;
+static const int WATCHDOG_TIMER_TIMEOUT = 100;
 
 static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
@@ -1138,6 +1139,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto deadlockWatchdogThread = new DeadlockWatchdogThread();
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
+
+
+        // Main thread timer to keep the watchdog updated
+        QTimer* watchdogUpdateTimer = new QTimer(this);
+        connect(watchdogUpdateTimer, &QTimer::timeout, [this] { updateHeartbeat(); });
+        connect(this, &QCoreApplication::aboutToQuit, [watchdogUpdateTimer] {
+            watchdogUpdateTimer->stop();
+            watchdogUpdateTimer->deleteLater();
+        });
+        watchdogUpdateTimer->setSingleShot(false);
+        watchdogUpdateTimer->setInterval(WATCHDOG_TIMER_TIMEOUT); // 100ms, Qt::CoarseTimer acceptable
+        watchdogUpdateTimer->start();
     }
 
     // Set File Logger Session UUID
@@ -4989,9 +5002,6 @@ void setupCpuMonitorThread() {
 
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
-
-    // Update the deadlock watchdog
-    updateHeartbeat();
 
 #if !defined(DISABLE_QML)
     auto offscreenUi = getOffscreenUI();
