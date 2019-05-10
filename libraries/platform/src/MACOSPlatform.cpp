@@ -57,7 +57,7 @@ void MACOSInstance::enumerateCpu() {
         }
     }
  
-     (*cpu)["brand"] =  ident->getName();
+    (*cpu)["brand"] = CPUBrandString;
      (*cpu)["model"] = CPUModelString;
      (*cpu)["clockSpeed"] = CPUClockString;
      (*cpu)["numCores"] = getNumLogicalCores();
