@@ -9389,7 +9389,7 @@ void Application::showUrlHandler(const QUrl& url) {
 void Application::beforeEnterBackground() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(false);
-    nodeList->reset(true);
+    nodeList->reset("Entering background", true);
     clearDomainOctreeDetails();
 }
 
