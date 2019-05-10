@@ -23,6 +23,7 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <PhysicsCollisionGroups.h>
+#include <SimulationFlags.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -33,11 +34,11 @@
 #include "EntityPropertyFlags.h"
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
-#include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 #include "GrabPropertyGroup.h"
 
 class EntitySimulation;
+using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 class EntityDynamicInterface;
@@ -322,7 +323,7 @@ public:
     bool getDynamic() const;
     void setDynamic(bool value);
 
-    virtual bool shouldBePhysical() const { return false; }
+    virtual bool shouldBePhysical() const { return !isDead() && getShapeType() != SHAPE_TYPE_NONE; }
     bool isVisuallyReady() const { return _visuallyReady; }
 
     bool getLocked() const;
@@ -423,8 +424,9 @@ public:
 
     bool isSimulated() const { return _simulated; }
 
-    void* getPhysicsInfo() const { return _physicsInfo; }
+    bool isInPhysicsSimulation() const { return (bool)(_flags & Simulation::SPECIAL_FLAG_IN_PHYSICS_SIMULATION); }
 
+    void* getPhysicsInfo() const { return _physicsInfo; }
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
 
     EntityTreeElementPointer getElement() const { return _element; }
