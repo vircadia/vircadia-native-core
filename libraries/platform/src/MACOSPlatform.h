@@ -12,9 +12,6 @@
 #include "platform.h"
 
 namespace platform {
-
-    using namespace nlohmann;
-
     class MACOSInstance : public Instance {
     
     public:

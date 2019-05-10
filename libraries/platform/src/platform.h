@@ -12,7 +12,6 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 
-
 namespace platform {
     using json = nlohmann::json;
     
@@ -39,7 +38,6 @@ protected:
     std::vector<json*>  _memory;
     std::vector<json*> _gpu;
     std::vector<json*> _display;
-
 };
 
 //Platform level functions
@@ -56,6 +54,7 @@ const json* getGraphics(int index);
 
 int getNumDisplay();
 const json* getDisplay(int index);
+    
 
 int getNumMemory();
 const json* getMemory(int index);
