@@ -21,18 +21,18 @@ public:
     bool virtual enumeratePlatform() = 0;
 
     int getNumCPU() { return _cpu.size(); }
-    nlohmann::json getCPU(int index);
+    nlohmann::json* getCPU(int index);
 
     int getNumGPU() { return _gpu.size(); }
-    nlohmann::json getGPU(int index);
+    nlohmann::json* getGPU(int index);
 
     int getNumMemory() { return _memory.size(); }
-    nlohmann::json getMemory(int index);
+    nlohmann::json* getMemory(int index);
 
     int getNumDisplay() { return _display.size(); }
-    nlohmann::json getDisplay(int index);
+    nlohmann::json* getDisplay(int index);
 
-    ~Instance();
+    virtual ~Instance();
 
 protected:
     std::vector<nlohmann::json*>  _cpu;
@@ -49,16 +49,16 @@ void destroy();
 bool enumeratePlatform();
 
 int getNumProcessor();
-nlohmann::json getProcessor(int index);
+const nlohmann::json* getProcessor(int index);
 
 int getNumGraphics();
-nlohmann::json getGraphics(int index);
+const nlohmann::json* getGraphics(int index);
 
 int getNumDisplay();
-nlohmann::json getDisplay(int index);
+const nlohmann::json* getDisplay(int index);
 
 int getNumMemory();
-nlohmann::json getMemory(int index);
+const nlohmann::json* getMemory(int index);
 
 }  // namespace platform
 

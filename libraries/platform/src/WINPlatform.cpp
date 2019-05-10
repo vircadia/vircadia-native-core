@@ -7,8 +7,10 @@
 //
 
 #include "WINPlatform.h"
+#ifdef Q_OS_WINDOWS
 #include <intrin.h>
 #include <Windows.h>
+#endif
 #include <thread>
 #include <GPUIdent.h>
 #include <string>
@@ -33,6 +35,7 @@ void WINInstance::enumerateCpu() {
     char CPUModelString[16];
     char CPUClockString[16];
 
+#ifdef Q_OS_WINDOWS
     // Get the information associated with each extended ID.
     __cpuid(CPUInfo, 0x80000000);
     nExIds = CPUInfo[0];
@@ -53,7 +56,7 @@ void WINInstance::enumerateCpu() {
     (*cpu)["model"] = CPUModelString;
     (*cpu)["clockSpeed"] = CPUClockString;
     (*cpu)["numCores"] = getNumLogicalCores();
-
+#endif
     _cpu.push_back(cpu);
 }
 
@@ -76,12 +79,12 @@ void WINInstance::enumerateGpu() {
 
 void WINInstance::enumerateRam() {
     json* ram = new json();
-
+#ifdef Q_OS_WINDOWS
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
     (*ram)["totalMem"] = totalRam;
-
+#endif
     _memory.push_back(ram);
 }

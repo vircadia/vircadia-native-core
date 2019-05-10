@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_WinPlatform_h
-#define hifi_WinPlatform_h
+#ifndef hifi_MACOSPlatform_h
+#define hifi_MACOSPlatform_h
 
 #include "platform.h"
 #include <nlohmann/json.hpp>

@@ -16,7 +16,7 @@
 #endif
 
 #ifdef Q_OS_MACOS
-#include "MACPlatform.h"
+#include "MACOSPlatform.h"
 #endif
 
 #ifdef Q_OS_LINUX
@@ -31,7 +31,10 @@ void platform::create() {
 
     #ifdef Q_OS_WIN
         _instance =new WINInstance();
-    #elif Q_OS_MAC
+    #endif
+    
+    #ifdef Q_OS_MAC
+    _instance = new MACOSInstance();
     #endif
 }
 
@@ -39,45 +42,37 @@ void platform::destroy() {
 	delete _instance;
 }
 
-json Instance::getCPU(int index) {
-    assert(index < _cpu.size());
-
-    json result;
-    if (index >= _cpu.size())
-        return result;
+ json* Instance::getCPU(int index) {
+    assert(index <(int) _cpu.size());
+    if (index >= (int)_cpu.size())
+        return nullptr;
 
     return _cpu.at(index);
 }
 
 
 //These are ripe for template.. will work on that next
-json Instance::getMemory(int index) { 
-    
-    assert(index < _memory.size());
-
-    json result;
-    if(index>= _memory.size())
-        return result;
+json* Instance::getMemory(int index) {
+    assert(index <(int) _memory.size());
+    if(index >= (int)_memory.size())
+        return nullptr;
 
     return _memory.at(index);
 }
 
-json Instance::getGPU(int index) {
-    assert(index < _gpu.size());
-
-    json result;
-    if (index >= _gpu.size())
-        return result;
+json* Instance::getGPU(int index) {
+    assert(index <(int) _gpu.size());
+    if (index >=(int) _gpu.size())
+        return nullptr;
 
     return _gpu.at(index);
 }
 
-json Instance::getDisplay(int index) {
-	assert(index < _display.size());
-
-	json result;
-	if (index >= _display.size())
-		return result;
+json* Instance::getDisplay(int index) {
+	assert(index <(int) _display.size());
+    
+	if (index >=(int) _display.size())
+		return nullptr;
 
 	return _display.at(index);
 }
@@ -123,7 +118,7 @@ int platform::getNumProcessor() {
 	return _instance->getNumCPU();
 }
 
-json platform::getProcessor(int index) {
+const json* platform::getProcessor(int index) {
     return _instance->getCPU(index);
 }
 
@@ -131,7 +126,7 @@ int platform::getNumGraphics() {
 	return _instance->getNumGPU();
 }
 
-nlohmann::json platform::getGraphics(int index) {
+const json* platform::getGraphics(int index) {
 	return _instance->getGPU(index);
 }
 
@@ -139,15 +134,17 @@ int platform::getNumDisplay() {
 	return _instance->getNumDisplay();
 }
 
-nlohmann::json platform::getDisplay(int index) {
+const json* platform::getDisplay(int index) {
 	return _instance->getDisplay(index);
-}
-
-json platform::getMemory(int index) {
-    return _instance->getMemory(index);
 }
 
 int platform::getNumMemory() {
     return _instance->getNumMemory();
 }
+
+const json* platform::getMemory(int index) {
+    return _instance->getMemory(index);
+}
+
+
 

@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <QString>
 #include <memory>
-#include <nlohmann\json.hpp>
+#include <nlohmann/json.hpp>
 #include <vector>
 
 class GPUIdent
