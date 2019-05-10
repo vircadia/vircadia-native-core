@@ -539,7 +539,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
             if (avatar->getLastFadeRequested() != render::Transition::Type::USER_LEAVE_DOMAIN) {
                 // The avatar is using another transition besides the fade-out transition, which means it is still in use.
                 // Deleting the avatar now could cause state issues, so abort deletion and show message.
-                qCWarning(interfaceapp) << "An ending fade-out animation wants to delete an avatar, but the avatar is still in use. Avatar deletion has aborted. (avatar ID: " << avatar->getSessionUUID() << ")";
+                qCWarning(interfaceapp) << "An ending fade-out transition wants to delete an avatar, but the avatar is still in use. Avatar deletion has aborted. (avatar ID: " << avatar->getSessionUUID() << ")";
             } else {
                 const render::ScenePointer& scene = qApp->getMain3DScene();
                 render::Transaction transaction;
