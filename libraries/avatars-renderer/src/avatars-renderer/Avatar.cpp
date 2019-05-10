@@ -690,6 +690,11 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
             transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
     }
+    _lastFadeRequested = type;
+}
+
+render::Transition::Type Avatar::getLastFadeRequested() const {
+    return _lastFadeRequested;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
