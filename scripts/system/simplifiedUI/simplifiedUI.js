@@ -14,7 +14,7 @@
 
 
 // START CONFIG OPTIONS
-var DOCKED_QML_SUPPORTED = false;
+var DOCKED_QML_SUPPORTED = true;
 var REMOVE_EXISTING_UI = true;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
@@ -379,8 +379,8 @@ function getInputDeviceMutedOverlayTopY() {
 
 
 var inputDeviceMutedOverlay = false;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 320;
-var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 60;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 353;
+var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 95;
 var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20;
 function updateInputDeviceMutedOverlay(isMuted) {
     if (isMuted) {

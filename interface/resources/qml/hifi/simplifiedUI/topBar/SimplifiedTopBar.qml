@@ -14,6 +14,7 @@ import "../inputDeviceButton" as InputDeviceButton
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 import QtGraphicalEffects 1.0
+import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Rectangle {
     id: root
@@ -23,7 +24,94 @@ Rectangle {
     }
 
     color: simplifiedUI.colors.darkBackground
-    anchors.fill: parent;
+    anchors.fill: parent
+
+    property bool inventoryFullyReceived: false
+
+    Component.onCompleted: {
+        Commerce.getLoginStatus();
+    }
+
+    Connections {
+        target: MyAvatar
+
+        onSkeletonModelURLChanged: {
+            root.updatePreviewUrl();
+        }
+    }
+
+    Connections {
+        target: Commerce
+
+        onLoginStatusResult: {
+            if (inventoryFullyReceived) {
+                return;
+            }
+            
+            if (isLoggedIn) {
+                Commerce.getWalletStatus();
+            } else {
+                // Show some error to the user
+            }
+        }
+
+        onWalletStatusResult: {
+            if (inventoryFullyReceived) {
+                return;
+            }
+
+            if (walletStatus === 5) {
+                topBarInventoryModel.getFirstPage();
+            } else {
+                // Show some error to the user
+            }
+        }
+
+        onInventoryResult: {
+            if (inventoryFullyReceived) {
+                return;
+            }
+
+            topBarInventoryModel.handlePage(result.status !== "success" && result.message, result);
+            root.updatePreviewUrl();
+
+            // I _should_ be able to do `if (currentPageToRetrieve > -1)` here, but the
+            // inventory endpoint doesn't return `response.total_pages`, so the PSFListModel doesn't
+            // know when to automatically stop fetching new pages.
+            // This will result in fetching one extra page than is necessary, but that's not a big deal.
+            if (result.data.assets.length > 0) {
+                topBarInventoryModel.getNextPage();
+            } else {
+                inventoryFullyReceived = true;
+            }
+        }
+    }
+
+    HifiModels.PSFListModel {
+        id: topBarInventoryModel
+        itemsPerPage: 8
+        listModelName: 'inventory'
+        getPage: function () {
+            var editionFilter = "";
+            var primaryFilter = "avatar";
+            var titleFilter = "";
+
+            Commerce.inventory(
+                editionFilter,
+                primaryFilter,
+                titleFilter,
+                topBarInventoryModel.currentPageToRetrieve,
+                topBarInventoryModel.itemsPerPage
+            );
+        }
+        processPage: function(data) {
+            data.assets.forEach(function (item) {
+                if (item.status.length > 1) { console.warn("Unrecognized inventory status", item); }
+                item.status = item.status[0];
+            });
+            return data.assets;
+        }
+    }
 
 
     Item {
@@ -34,9 +122,18 @@ Rectangle {
         anchors.leftMargin: 16
         width: height
 
+        AnimatedImage {
+            visible: avatarButtonImage.source === ""
+            anchors.centerIn: parent
+            width: parent.width - 10
+            height: width
+            source: "../images/loading.gif"
+        }
+
         Image {
             id: avatarButtonImage
-            source: "images/defaultAvatar.jpg"
+            visible: source !== ""
+            source: ""
             anchors.centerIn: parent
             width: parent.width - 10
             height: width
@@ -210,6 +307,20 @@ Rectangle {
                         "method": "toggleSettingsApp"
                     });
                 }
+            }
+        }
+    }
+
+
+    function updatePreviewUrl() {
+        var previewUrl = "";
+        var downloadUrl = "";
+        for (var i = 0; i < topBarInventoryModel.count; ++i) {
+            downloadUrl = topBarInventoryModel.get(i).download_url;
+            previewUrl = topBarInventoryModel.get(i).preview;
+            if (MyAvatar.skeletonModelURL === downloadUrl) {
+                avatarButtonImage.source = previewUrl;
+                return;
             }
         }
     }

@@ -71,7 +71,7 @@ Rectangle {
         }
 
         onInventoryResult: {
-            inventoryModel.handlePage(result.status !== "success" && result.message, result);
+            avatarAppInventoryModel.handlePage(result.status !== "success" && result.message, result);
             root.updatePreviewUrl();
         }
     }
@@ -137,7 +137,7 @@ Rectangle {
     }
 
     HifiModels.PSFListModel {
-        id: inventoryModel
+        id: avatarAppInventoryModel
         itemsPerPage: 4
         listModelName: 'inventory'
         listView: inventoryContentsList
@@ -150,8 +150,8 @@ Rectangle {
                 editionFilter,
                 primaryFilter,
                 titleFilter,
-                inventoryModel.currentPageToRetrieve,
-                inventoryModel.itemsPerPage
+                avatarAppInventoryModel.currentPageToRetrieve,
+                avatarAppInventoryModel.itemsPerPage
             );
         }
         processPage: function(data) {
@@ -181,10 +181,10 @@ Rectangle {
 
         ListView {
             id: inventoryContentsList
-            visible: inventoryModel.count !== 0
+            visible: avatarAppInventoryModel.count !== 0
             interactive: contentItem.height > height
             clip: true
-            model: inventoryModel
+            model: avatarAppInventoryModel
             anchors.fill: parent
             width: parent.width
             delegate: AvatarAppComponents.AvatarAppListDelegate {
@@ -200,15 +200,15 @@ Rectangle {
 
 
     function getInventory() {
-        inventoryModel.getFirstPage();
+        avatarAppInventoryModel.getFirstPage();
     }
 
     function updatePreviewUrl() {
         var previewUrl = "";
         var downloadUrl = "";
-        for (var i = 0; i < inventoryModel.count; ++i) {
-            downloadUrl = inventoryModel.get(i).download_url;
-            previewUrl = inventoryModel.get(i).preview;
+        for (var i = 0; i < avatarAppInventoryModel.count; ++i) {
+            downloadUrl = avatarAppInventoryModel.get(i).download_url;
+            previewUrl = avatarAppInventoryModel.get(i).preview;
             if (MyAvatar.skeletonModelURL === downloadUrl) {
                 avatarPreviewUrl = previewUrl;
                 return;

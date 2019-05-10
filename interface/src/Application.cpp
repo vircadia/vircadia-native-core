@@ -3092,6 +3092,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/tablet/TabletMenu.qml" },
         QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
         QUrl{ "hifi/simplifiedUI/avatarApp/AvatarApp.qml" },
+        QUrl{ "hifi/simplifiedUI/topBar/SimplifiedTopBar.qml" },
     }, commerceCallback);
 
     QmlContextCallback marketplaceCallback = [](QQmlContext* context) {
