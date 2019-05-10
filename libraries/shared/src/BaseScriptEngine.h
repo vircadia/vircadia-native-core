@@ -42,17 +42,19 @@ public:
 
     /**jsdoc
      * @function Script.makeError
-     * @param {object} [other]
-     * @param {string} [type="Error"]
-     * @returns {object}
+     * @param {object} [other] - Other.
+     * @param {string} [type="Error"] - Errorl
+     * @returns {object} Object.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE QScriptValue makeError(const QScriptValue& other = QScriptValue(), const QString& type = "Error");
     
     /**jsdoc
      * @function Script.formatExecption
-     * @param {object} exception
-     * @param {boolean} inludeExtendeDetails
-     * @returns {string}
+     * @param {object} exception - Exception.
+     * @param {boolean} inludeExtendeDetails - Include extended details.
+     * @returns {string} String.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE QString formatException(const QScriptValue& exception, bool includeExtendedDetails);
 
@@ -71,8 +73,9 @@ public:
 signals:
     /**jsdoc
      * @function Script.signalHandlerException
-     * @param {object} exception
+     * @param {object} exception - Exception.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     // Script.signalHandlerException is exposed by QScriptEngine.
     

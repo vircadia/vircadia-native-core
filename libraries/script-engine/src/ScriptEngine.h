@@ -178,18 +178,20 @@ public:
 
     /**jsdoc
      * @function Script.registerGlobalObject
-     * @param {string} name
-     * @param {object} object
+     * @param {string} name - Name.
+     * @param {object} object - Object.
+     * @deprecated This function is deprecated and will be removed.
      */
     /// registers a global object by name
     Q_INVOKABLE void registerGlobalObject(const QString& name, QObject* object);
 
     /**jsdoc
      * @function Script.registerGetterSetter
-     * @param {string} name
-     * @param {object} getter
-     * @param {object} setter
-     * @param {string} [parent=""]
+     * @param {string} name - Name.
+     * @param {object} getter - Getter.
+     * @param {object} setter - Setter.
+     * @param {string} [parent=""] - Parent.
+     * @deprecated This function is deprecated and will be removed.
      */
     /// registers a global getter/setter
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
@@ -197,19 +199,21 @@ public:
 
     /**jsdoc
      * @function Script.registerFunction
-     * @param {string} name
-     * @param {object} function
-     * @param {number} [numArguments=-1]
+     * @param {string} name - Name.
+     * @param {object} function - Function.
+     * @param {number} [numArguments=-1] - Number of arguments.
+     * @deprecated This function is deprecated and will be removed.
      */
     /// register a global function
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
     /**jsdoc
      * @function Script.registerFunction
-     * @param {string} parent
-     * @param {string} name
-     * @param {object} function
-     * @param {number} [numArguments=-1]
+     * @param {string} parent - Parent.
+     * @param {string} name - Name.
+     * @param {object} function - Function.
+     * @param {number} [numArguments=-1] - Number of arguments.
+     * @deprecated This function is deprecated and will be removed.
      */
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
@@ -217,27 +221,30 @@ public:
 
     /**jsdoc
      * @function Script.registerValue
-     * @param {string} name
-     * @param {object} value
+     * @param {string} name - Name.
+     * @param {object} value - Value.
+     * @deprecated This function is deprecated and will be removed.
      */
     /// registers a global object by name
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
 
     /**jsdoc
      * @function Script.evaluate
-     * @param {string} program
-     * @param {string} filename
-     * @param {number} [lineNumber=-1]
-     * @returns {object}
+     * @param {string} program - Program.
+     * @param {string} filename - File name.
+     * @param {number} [lineNumber=-1] - Line number.
+     * @returns {object} Object.
+     * @deprecated This function is deprecated and will be removed.
      */
     /// evaluate some code in the context of the ScriptEngine and return the result
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
     /**jsdoc
      * @function Script.evaluateInClosure
-     * @param {object} locals
-     * @param {object} program
-     * @returns {object}
+     * @param {object} locals - Locals.
+     * @param {object} program - Program.
+     * @returns {object} Object.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE QScriptValue evaluateInClosure(const QScriptValue& locals, const QScriptProgram& program);
 
@@ -495,21 +502,24 @@ public:
 
     /**jsdoc
      * @function Script.loadEntityScript
-     * @param {Uuid} entityID
-     * @param {string} script
-     * @param {boolean} forceRedownload
+     * @param {Uuid} entityID - Entity IUD.
+     * @param {string} script - Script.
+     * @param {boolean} forceRedownload - Force re-download.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void loadEntityScript(const EntityItemID& entityID, const QString& entityScript, bool forceRedownload);
 
     /**jsdoc
      * @function Script.unloadEntityScript
-     * @param {Uuid} entityID
-     * @param {boolean} [shouldRemoveFromMap=false]
+     * @param {Uuid} entityID - Entity ID.
+     * @param {boolean} [shouldRemoveFromMap=false] - Should remove from map.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap = false); // will call unload method
 
     /**jsdoc
      * @function Script.unloadAllEntityScripts
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void unloadAllEntityScripts();
 
@@ -548,7 +558,8 @@ public:
 
     /**jsdoc
      * @function Script.generateUUID
-     * @returns {Uuid}
+     * @returns {Uuid} A new UUID.
+     * @deprecated This function is deprecated and will be removed. Use {@link Uuid.generate} instead.
      */
     Q_INVOKABLE QUuid generateUUID() { return QUuid::createUuid(); }
 
@@ -605,7 +616,8 @@ public slots:
 
     /**jsdoc
      * @function Script.updateMemoryCost
-     * @param {number} deltaSize
+     * @param {number} deltaSize - Delta size.
+     * @deprecated This function is deprecated and will be removed.
      */
     void updateMemoryCost(const qint64&);
 
@@ -657,16 +669,18 @@ signals:
 
     /**jsdoc
      * @function Script.finished
-     * @param {string} filename
-     * @param {object} engine
+     * @param {string} filename - File name.
+     * @param {object} engine - Engine.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void finished(const QString& fileNameString, ScriptEnginePointer);
 
     /**jsdoc
      * @function Script.cleanupMenuItem
-     * @param {string} menuItem
+     * @param {string} menuItem - Menu item.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void cleanupMenuItem(const QString& menuItemString);
 
@@ -711,6 +725,7 @@ signals:
     /**jsdoc
      * @function Script.clearDebugWindow
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void clearDebugWindow();
 
@@ -739,6 +754,7 @@ signals:
     /**jsdoc
      * @function Script.entityScriptDetailsUpdated
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     // Emitted when an entity script is added or removed, or when the status of an entity
     // script is updated (goes from RUNNING to ERROR_RUNNING_SCRIPT, for example)
@@ -757,16 +773,18 @@ protected:
 
     /**jsdoc
      * @function Script.executeOnScriptThread
-     * @param {object} function
-     * @param {ConnectionType} [type=2]
+     * @param {object} function - Function.
+     * @param {ConnectionType} [type=2] - Connection type.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void executeOnScriptThread(std::function<void()> function, const Qt::ConnectionType& type = Qt::QueuedConnection );
 
     /**jsdoc
      * @function Script._requireResolve
-     * @param {string} module
-     * @param {string} [relativeTo=""]
-     * @returns {string}
+     * @param {string} module - Module.
+     * @param {string} [relativeTo=""] - Relative to.
+     * @returns {string} Result.
+     * @deprecated This function is deprecated and will be removed.
      */
     // note: this is not meant to be called directly, but just to have QMetaObject take care of wiring it up in general;
     //   then inside of init() we just have to do "Script.require.resolve = Script._requireResolve;"
@@ -789,12 +807,13 @@ protected:
 
     /**jsdoc
      * @function Script.entityScriptContentAvailable
-     * @param {Uuid} entityID
-     * @param {string} scriptOrURL
-     * @param {string} contents
-     * @param {boolean} isURL
-     * @param {boolean} success
-     * @param {string} status
+     * @param {Uuid} entityID - Entity ID.
+     * @param {string} scriptOrURL - Path.
+     * @param {string} contents - Contents.
+     * @param {boolean} isURL - Is URL.
+     * @param {boolean} success - Success.
+     * @param {string} status - Status.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success, const QString& status);
 
