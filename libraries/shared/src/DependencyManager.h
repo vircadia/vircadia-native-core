@@ -158,7 +158,7 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
     }
 
     QSharedPointer<T> newInstance(new I(args...), &I::customDeleter);
-    _instanceHash.insert(hashCode, newInstance);
+    manager()._instanceHash.insert(hashCode, newInstance);
 
     return newInstance;
 }
