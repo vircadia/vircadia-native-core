@@ -2696,7 +2696,7 @@ void Application::cleanupBeforeQuit() {
         auto nodeList = DependencyManager::get<NodeList>();
 
         // send the domain a disconnect packet, force stoppage of domain-server check-ins
-        nodeList->getDomainHandler().disconnect();
+        nodeList->getDomainHandler().disconnect("Quitting");
         nodeList->setIsShuttingDown(true);
 
         // tell the packet receiver we're shutting down, so it can drop packets
@@ -5539,7 +5539,7 @@ void Application::pauseUntilLoginDetermined() {
     cameraModeChanged();
 
     // disconnect domain handler.
-    nodeList->getDomainHandler().disconnect();
+    nodeList->getDomainHandler().disconnect("Pause until login determined");
 
     // From now on, it's permissible to call resumeAfterLoginDialogActionTaken()
     _resumeAfterLoginDialogActionTaken_SafeToRun = true;
@@ -5919,7 +5919,7 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<TextureCache>()->refreshAll();
     DependencyManager::get<recording::ClipCache>()->refreshAll();
 
-    DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
+    DependencyManager::get<NodeList>()->reset("Reloading resources");  // Force redownload of .fst models
 
     DependencyManager::get<ScriptEngines>()->reloadAllScripts();
     getOffscreenUI()->clearCache();
@@ -9370,7 +9370,7 @@ void Application::showUrlHandler(const QUrl& url) {
 void Application::beforeEnterBackground() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(false);
-    nodeList->reset(true);
+    nodeList->reset("Entering background", true);
     clearDomainOctreeDetails();
 }
 
