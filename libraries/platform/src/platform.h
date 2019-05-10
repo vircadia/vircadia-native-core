@@ -9,36 +9,36 @@
 #ifndef hifi_Platform_h
 #define hifi_Platform_h
 
-#include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
 
 
 namespace platform {
-
+    using json = nlohmann::json;
+    
 class Instance {
 public:
     bool virtual enumeratePlatform() = 0;
 
     int getNumCPU() { return _cpu.size(); }
-    nlohmann::json* getCPU(int index);
+    json* getCPU(int index);
 
     int getNumGPU() { return _gpu.size(); }
-    nlohmann::json* getGPU(int index);
+    json* getGPU(int index);
 
     int getNumMemory() { return _memory.size(); }
-    nlohmann::json* getMemory(int index);
+    json* getMemory(int index);
 
     int getNumDisplay() { return _display.size(); }
-    nlohmann::json* getDisplay(int index);
+    json* getDisplay(int index);
 
     virtual ~Instance();
 
 protected:
-    std::vector<nlohmann::json*>  _cpu;
-    std::vector<nlohmann::json*>  _memory;
-    std::vector<nlohmann::json*> _gpu;
-    std::vector<nlohmann::json*> _display;
+    std::vector<json*>  _cpu;
+    std::vector<json*>  _memory;
+    std::vector<json*> _gpu;
+    std::vector<json*> _display;
 
 };
 
@@ -49,16 +49,16 @@ void destroy();
 bool enumeratePlatform();
 
 int getNumProcessor();
-const nlohmann::json* getProcessor(int index);
+const json* getProcessor(int index);
 
 int getNumGraphics();
-const nlohmann::json* getGraphics(int index);
+const json* getGraphics(int index);
 
 int getNumDisplay();
-const nlohmann::json* getDisplay(int index);
+const json* getDisplay(int index);
 
 int getNumMemory();
-const nlohmann::json* getMemory(int index);
+const json* getMemory(int index);
 
 }  // namespace platform
 

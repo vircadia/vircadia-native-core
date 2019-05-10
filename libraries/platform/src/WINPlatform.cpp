@@ -7,17 +7,18 @@
 //
 
 #include "WINPlatform.h"
+
 #ifdef Q_OS_WINDOWS
 #include <intrin.h>
 #include <Windows.h>
 #endif
+
 #include <thread>
 #include <GPUIdent.h>
 #include <string>
 
 
 using namespace platform;
-using namespace nlohmann;
 
 bool WINInstance::enumeratePlatform() {
     enumerateCpu();

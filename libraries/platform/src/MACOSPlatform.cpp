@@ -14,7 +14,6 @@
 #include <unistd.h>
 
 using namespace platform;
-using namespace nlohmann;
 
 bool MACOSInstance::enumeratePlatform() {
     enumerateCpu();
@@ -26,8 +25,6 @@ bool MACOSInstance::enumeratePlatform() {
 void MACOSInstance::enumerateCpu() {
     json *cpu= new json();
    
-
-   
   //  (*cpu)["brand"] =  ident->getName();
    // (*cpu)["model"] = CPUModelString;
    // (*cpu)["clockSpeed"] = CPUClockString;
@@ -35,8 +32,6 @@ void MACOSInstance::enumerateCpu() {
 
     _cpu.push_back(cpu);
 }
-
-
 
 unsigned int MACOSInstance::getNumLogicalCores() {
     return std::thread::hardware_concurrency();

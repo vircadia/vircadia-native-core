@@ -23,7 +23,6 @@
 #endif
 
 using namespace platform;
-using namespace nlohmann;
 
 Instance* _instance;
 

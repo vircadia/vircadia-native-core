@@ -10,7 +10,6 @@
 #define hifi_WinPlatform_h
 
 #include "platform.h"
-#include <nlohmann/json.hpp>
 
 namespace platform {
 
