@@ -38,7 +38,8 @@ void platform::create() {
 }
 
 void platform::destroy() {
-	delete _instance;
+    if(_instance)
+        delete _instance;
 }
 
  json* Instance::getCPU(int index) {
@@ -97,14 +98,13 @@ Instance::~Instance() {
 		for (std::vector<json*>::iterator it = _gpu.begin(); it != _gpu.end(); ++it) {
 			delete (*it);
 		}
-				_gpu.clear();
+        _gpu.clear();
 	}
 
 	if (_display.size() > 0) {
 		for (std::vector<json*>::iterator it = _display.begin(); it != _display.end(); ++it) {
 			delete (*it);
 		}
-
 		_display.clear();
 	}
 }
