@@ -34,6 +34,10 @@ int glVersionToInteger(QString glVersion);
 
 bool isRenderThread();
 
+#define GL_MAKE_VERSION(major, minor) ((major << 8) | minor)
+#define GL_GET_MINOR_VERSION(glversion) (glversion & 0x00FF)
+#define GL_GET_MAJOR_VERSION(glversion) ((glversion & 0xFF00) >> 8)
+
 namespace gl {
     void globalLock();
     void globalRelease(bool finish = true);
@@ -52,7 +56,11 @@ namespace gl {
 
     bool disableGl45();
 
-    void getTargetVersion(int& major, int& minor);
+    uint16_t getTargetVersion();
+
+    uint16_t getAvailableVersion();
+
+    uint16_t getRequiredVersion();
 } // namespace gl
 
 #define CHECK_GL_ERROR() ::gl::checkGLErrorDebug(__FUNCTION__)
