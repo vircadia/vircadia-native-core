@@ -1016,6 +1016,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             root.inverseBindTransform = Transform(root.inverseBindMatrix);
             mesh.clusters.append(root);
 
+            QList<QString> meshAttributes;
+            foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
+                QList<QString> keys = primitive.attributes.values.keys();
+                foreach (auto &key, keys) {
+                    if (!meshAttributes.contains(key)) {
+                        meshAttributes.push_back(key);
+                    }
+                }
+            }
+
             foreach(auto &primitive, _file.meshes[node.mesh].primitives) {
                 HFMMeshPart part = HFMMeshPart();
 
@@ -1026,17 +1036,21 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 // Buffers
                 QVector<int> indices;
                 QVector<float> vertices;
+                int verticesStride = 3;
                 QVector<float> normals;
+                int normalStride = 3;
                 QVector<float> tangents;
-                int tangentStride = 0;
+                int tangentStride = 4;
                 QVector<float> texcoords;
+                int texCoordStride = 2;
                 QVector<float> texcoords2;
+                int texCoord2Stride = 2;
                 QVector<float> colors;
-                int colorStride = 0;
+                int colorStride = 3;
                 QVector<uint16_t> joints;
-                int jointStride = 0;
+                int jointStride = 4;
                 QVector<float> weights;
-                int weightStride = 0;
+                int weightStride = 4;
 
                 bool success = addArrayFromAccessor(indicesAccessor, indices);
 
@@ -1058,40 +1072,41 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     GLTFAccessor& accessor = _file.accessors[accessorIdx];
 
                     if (key == "POSITION") {
+                        if (accessor.type != GLTFAccessorType::VEC3) {
+                            qWarning(modelformat) << "Invalid accessor type on glTF POSITION data for model " << _url;
+                            continue;
+                        }
+
                         success = addArrayFromAccessor(accessor, vertices);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF POSITION data for model " << _url;
                             continue;
                         }
-
+                    } else if (key == "NORMAL") {
                         if (accessor.type != GLTFAccessorType::VEC3) {
-                            qWarning(modelformat) << "Invalid accessor type on glTF POSITION data for model " << _url;
+                            qWarning(modelformat) << "Invalid accessor type on glTF NORMAL data for model " << _url;
                             continue;
                         }
-                    } else if (key == "NORMAL") {
+
                         success = addArrayFromAccessor(accessor, normals);
                         if (!success) {
                             qWarning(modelformat) << "There was a problem reading glTF NORMAL data for model " << _url;
                             continue;
                         }
-
-                        if (accessor.type != GLTFAccessorType::VEC3) {
-                            qWarning(modelformat) << "Invalid accessor type on glTF NORMAL data for model " << _url;
-                            continue;
-                        }
                     } else if (key == "TANGENT") {
-                        success = addArrayFromAccessor(accessor, tangents);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
-                            continue;
-                        }
-
                         if (accessor.type == GLTFAccessorType::VEC4) {
                             tangentStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
                             tangentStride = 3;
                         } else {
                             qWarning(modelformat) << "Invalid accessor type on glTF TANGENT data for model " << _url;
+                            continue;
+                        }
+
+                        success = addArrayFromAccessor(accessor, tangents);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
+                            tangentStride = 0;
                             continue;
                         }
                     } else if (key == "TEXCOORD_0") {
@@ -1117,12 +1132,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             continue;
                         }
                     } else if (key == "COLOR_0") {
-                        success = addArrayFromAccessor(accessor, colors);
-                        if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
-                            continue;
-                        }
-
                         if (accessor.type == GLTFAccessorType::VEC4) {
                             colorStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
@@ -1131,13 +1140,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             qWarning(modelformat) << "Invalid accessor type on glTF COLOR_0 data for model " << _url;
                             continue;
                         }
-                    } else if (key == "JOINTS_0") {
-                        success = addArrayFromAccessor(accessor, joints);
+
+                        success = addArrayFromAccessor(accessor, colors);
                         if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF JOINTS_0 data for model " << _url;
+                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
                             continue;
                         }
-
+                    } else if (key == "JOINTS_0") {
                         if (accessor.type == GLTFAccessorType::VEC4) {
                             jointStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
@@ -1150,13 +1159,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             qWarning(modelformat) << "Invalid accessor type on glTF JOINTS_0 data for model " << _url;
                             continue;
                         }
-                    } else if (key == "WEIGHTS_0") {
-                        success = addArrayFromAccessor(accessor, weights);
+
+                        success = addArrayFromAccessor(accessor, joints);
                         if (!success) {
-                            qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
+                            qWarning(modelformat) << "There was a problem reading glTF JOINTS_0 data for model " << _url;
                             continue;
                         }
-
+                    } else if (key == "WEIGHTS_0") {
                         if (accessor.type == GLTFAccessorType::VEC4) {
                             weightStride = 4;
                         } else if (accessor.type == GLTFAccessorType::VEC3) {
@@ -1169,78 +1178,263 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             qWarning(modelformat) << "Invalid accessor type on glTF WEIGHTS_0 data for model " << _url;
                             continue;
                         }
+
+                        success = addArrayFromAccessor(accessor, weights);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
+                            continue;
+                        }
                     }
                 }
 
-                for (int n = 0; n < indices.count(); n++) {
-                    part.triangleIndices.push_back(indices[n] + prevMeshVerticesCount);
+                // Validation stage
+                if (indices.count() == 0) {
+                    qWarning(modelformat) << "Missing indices for model " << _url;
+                    continue;
+                }
+                if (vertices.count() == 0) {
+                    qWarning(modelformat) << "Missing vertices for model " << _url;
+                    continue;
                 }
 
-                for (int n = 0; n < vertices.size(); n = n + 3) {
+                int partVerticesCount = vertices.size() / 3;
+
+                // generate the normals if they don't exist
+                if (normals.size() == 0) {
+                    QVector<int> newIndices;
+                    QVector<float> newVertices;
+                    QVector<float> newNormals;
+                    QVector<float> newTexcoords;
+                    QVector<float> newTexcoords2;
+                    QVector<float> newColors;
+                    QVector<uint16_t> newJoints;
+                    QVector<float> newWeights;
+
+                    for (int n = 0; n < indices.size(); n = n + 3) {
+                        int v1_index = (indices[n + 0] * 3);
+                        int v2_index = (indices[n + 1] * 3);
+                        int v3_index = (indices[n + 2] * 3);
+
+                        glm::vec3 v1 = glm::vec3(vertices[v1_index], vertices[v1_index + 1], vertices[v1_index + 2]);
+                        glm::vec3 v2 = glm::vec3(vertices[v2_index], vertices[v2_index + 1], vertices[v2_index + 2]);
+                        glm::vec3 v3 = glm::vec3(vertices[v3_index], vertices[v3_index + 1], vertices[v3_index + 2]);
+
+                        newVertices.append(v1.x);
+                        newVertices.append(v1.y);
+                        newVertices.append(v1.z);
+                        newVertices.append(v2.x);
+                        newVertices.append(v2.y);
+                        newVertices.append(v2.z);
+                        newVertices.append(v3.x);
+                        newVertices.append(v3.y);
+                        newVertices.append(v3.z);
+
+                        glm::vec3 norm = glm::normalize(glm::cross(v2 - v1, v3 - v1));
+
+                        newNormals.append(norm.x);
+                        newNormals.append(norm.y);
+                        newNormals.append(norm.z);
+                        newNormals.append(norm.x);
+                        newNormals.append(norm.y);
+                        newNormals.append(norm.z);
+                        newNormals.append(norm.x);
+                        newNormals.append(norm.y);
+                        newNormals.append(norm.z);
+
+                        if (texcoords.size() == partVerticesCount * texCoordStride) {
+                            GLTF_APPEND_ARRAY_2(newTexcoords, texcoords)
+                        }
+
+                        if (texcoords2.size() == partVerticesCount * texCoord2Stride) {
+                            GLTF_APPEND_ARRAY_2(newTexcoords2, texcoords2)
+                        }
+
+                        if (colors.size() == partVerticesCount * colorStride) {
+                            if (colorStride == 4) {
+                                GLTF_APPEND_ARRAY_4(newColors, colors)
+                            } else {
+                                GLTF_APPEND_ARRAY_3(newColors, colors)
+                            }
+                        }
+
+                        if (joints.size() == partVerticesCount * jointStride) {
+                            if (jointStride == 4) {
+                                GLTF_APPEND_ARRAY_4(newJoints, joints)
+                            } else if (jointStride == 3) {
+                                GLTF_APPEND_ARRAY_3(newJoints, joints)
+                            } else if (jointStride == 2) {
+                                GLTF_APPEND_ARRAY_2(newJoints, joints)
+                            } else {
+                                GLTF_APPEND_ARRAY_1(newJoints, joints)
+                            }
+                        }
+
+                        if (weights.size() == partVerticesCount * weightStride) {
+                            if (weightStride == 4) {
+                                GLTF_APPEND_ARRAY_4(newWeights, weights)
+                            } else if (weightStride == 3) {
+                                GLTF_APPEND_ARRAY_3(newWeights, weights)
+                            } else if (weightStride == 2) {
+                                GLTF_APPEND_ARRAY_2(newWeights, weights)
+                            } else {
+                                GLTF_APPEND_ARRAY_1(newWeights, weights)
+                            }
+                        }
+                        newIndices.append(n);
+                        newIndices.append(n + 1);
+                        newIndices.append(n + 2);
+                    }
+
+                    vertices = newVertices;
+                    normals = newNormals;
+                    tangents = QVector<float>();
+                    texcoords = newTexcoords;
+                    texcoords2 = newTexcoords2;
+                    colors = newColors;
+                    joints = newJoints;
+                    weights = newWeights;
+                    indices = newIndices;
+
+                    partVerticesCount = vertices.size() / 3;
+                }
+
+                QVector<int> validatedIndices;
+                for (int n = 0; n < indices.count(); n++) {
+                    if (indices[n] < partVerticesCount) {
+                        validatedIndices.push_back(indices[n] + prevMeshVerticesCount);
+                    } else {
+                        validatedIndices = QVector<int>();
+                        break;
+                    }
+                }
+
+                if (validatedIndices.size() == 0) {
+                    qWarning(modelformat) << "Indices out of range for model " << _url;
+                    continue;
+                }
+
+                part.triangleIndices.append(validatedIndices);
+
+                for (int n = 0; n < vertices.size(); n = n + verticesStride) {
                     mesh.vertices.push_back(glm::vec3(vertices[n], vertices[n + 1], vertices[n + 2]));
                 }
 
-                for (int n = 0; n < normals.size(); n = n + 3) {
+                for (int n = 0; n < normals.size(); n = n + normalStride) {
                     mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                 }
 
-                for (int n = 0; n < tangents.size(); n += tangentStride) {
-                    float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
-                    mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
+                // TODO: add correct tangent generation
+                if (tangents.size() == partVerticesCount * tangentStride) {
+                    for (int n = 0; n < tangents.size(); n += tangentStride) {
+                        float tanW = tangentStride == 4 ? tangents[n + 3] : 1;
+                        mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
+                    }
+                } else {
+                    if (meshAttributes.contains("TANGENT")) {
+                        for (int i = 0; i < partVerticesCount; i++) {
+                            mesh.tangents.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
+                        }
+                    }
                 }
 
-                for (int n = 0; n < texcoords.size(); n = n + 2) {
-                    mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
-                }
-                for (int n = 0; n < texcoords2.size(); n = n + 2) {
-                    mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
+                if (texcoords.size() == partVerticesCount * texCoordStride) {
+                    for (int n = 0; n < texcoords.size(); n = n + 2) {
+                        mesh.texCoords.push_back(glm::vec2(texcoords[n], texcoords[n + 1]));
+                    }
+                } else {
+                    if (meshAttributes.contains("TEXCOORD_0")) {
+                        for (int i = 0; i < partVerticesCount; i++) {
+                            mesh.texCoords.push_back(glm::vec2(0.0f, 0.0f));
+                        }
+                    }
                 }
 
-                for (int n = 0; n < colors.size(); n += colorStride) {
-                    mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                if (texcoords.size() == partVerticesCount * texCoord2Stride) {
+                    for (int n = 0; n < texcoords2.size(); n = n + 2) {
+                        mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
+                    }
+                } else {
+                    if (meshAttributes.contains("TEXCOORD_1")) {
+                        for (int i = 0; i < partVerticesCount; i++) {
+                            mesh.texCoords1.push_back(glm::vec2(0.0f, 0.0f));
+                        }
+                    }
                 }
 
-                for (int n = 0; n < joints.size(); n += jointStride) {
-                    clusterJoints.push_back(joints[n]);
-                    if (jointStride > 1) {
-                        clusterJoints.push_back(joints[n + 1]);
-                        if (jointStride > 2) {
-                            clusterJoints.push_back(joints[n + 2]);
-                            if (jointStride > 3) {
-                                clusterJoints.push_back(joints[n + 3]);
+                if (colors.size() == partVerticesCount * colorStride) {
+                    for (int n = 0; n < colors.size(); n += colorStride) {
+                        mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                    }
+                } else {
+                    if (meshAttributes.contains("COLOR_0")) {
+                        for (int i = 0; i < partVerticesCount; i++) {
+                            mesh.colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
+                        }
+                    }
+                }
+
+                if (joints.size() == partVerticesCount * jointStride) {
+                    for (int n = 0; n < joints.size(); n += jointStride) {
+                        clusterJoints.push_back(joints[n]);
+                        if (jointStride > 1) {
+                            clusterJoints.push_back(joints[n + 1]);
+                            if (jointStride > 2) {
+                                clusterJoints.push_back(joints[n + 2]);
+                                if (jointStride > 3) {
+                                    clusterJoints.push_back(joints[n + 3]);
+                                } else {
+                                    clusterJoints.push_back(0);
+                                }
                             } else {
+                                clusterJoints.push_back(0);
                                 clusterJoints.push_back(0);
                             }
                         } else {
                             clusterJoints.push_back(0);
                             clusterJoints.push_back(0);
+                            clusterJoints.push_back(0);
                         }
-                    } else {
-                        clusterJoints.push_back(0);
-                        clusterJoints.push_back(0);
-                        clusterJoints.push_back(0);
+                    }
+                } else {
+                    if (meshAttributes.contains("JOINTS_0")) {
+                        for (int i = 0; i < partVerticesCount; i++) {
+                            for (int j = 0; j < 4; j++) {
+                                clusterJoints.push_back(0);
+                            }
+                        }
                     }
                 }
 
-                for (int n = 0; n < weights.size(); n += weightStride) {
-                    clusterWeights.push_back(weights[n]);
-                    if (weightStride > 1) {
-                        clusterWeights.push_back(weights[n + 1]);
-                        if (weightStride > 2) {
-                            clusterWeights.push_back(weights[n + 2]);
-                            if (weightStride > 3) {
-                                clusterWeights.push_back(weights[n + 3]);
+                if (weights.size() == partVerticesCount * weightStride) {
+                    for (int n = 0; n < weights.size(); n += weightStride) {
+                        clusterWeights.push_back(weights[n]);
+                        if (weightStride > 1) {
+                            clusterWeights.push_back(weights[n + 1]);
+                            if (weightStride > 2) {
+                                clusterWeights.push_back(weights[n + 2]);
+                                if (weightStride > 3) {
+                                    clusterWeights.push_back(weights[n + 3]);
+                                } else {
+                                    clusterWeights.push_back(0.0f);
+                                }
                             } else {
-                                clusterWeights.push_back(0);
+                                clusterWeights.push_back(0.0f);
+                                clusterWeights.push_back(0.0f);
                             }
                         } else {
-                            clusterWeights.push_back(0);
-                            clusterWeights.push_back(0);
+                            clusterWeights.push_back(0.0f);
+                            clusterWeights.push_back(0.0f);
+                            clusterWeights.push_back(0.0f);
                         }
-                    } else {
-                        clusterWeights.push_back(0);
-                        clusterWeights.push_back(0);
-                        clusterWeights.push_back(0);
+                    }
+                } else {
+                    if (meshAttributes.contains("WEIGHTS_0")) {
+                        for (int i = 0; i < partVerticesCount; i++) {
+                            clusterWeights.push_back(1.0f);
+                            for (int j = 1; j < 4; j++) {
+                                clusterWeights.push_back(0.0f);
+                            }
+                        }
                     }
                 }
 
