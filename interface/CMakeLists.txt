@@ -333,11 +333,11 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
-     #copy serverless for android
-     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-     "${PROJECT_SOURCE_DIR}/resources/serverless"
-     "${RESOURCES_DEV_DIR}/serverless"
-      # add redirect json to macOS builds.
+    #copy serverless for android
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${PROJECT_SOURCE_DIR}/resources/serverless"
+      "${RESOURCES_DEV_DIR}/serverless"
+    # add redirect json to macOS builds.
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
@@ -397,6 +397,29 @@ else()
     set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
 
     optional_win_executable_signing()
+  endif()
+endif()
+
+if (APPLE OR UNIX)
+  # need to worry about hard-coded search paths in the Qt libraries
+  set(QT_LIB_PATH "${VCPKG_INSTALL_ROOT}/../qt5-install")
+  if (APPLE)
+    set(QT_CONF_OVERRIDE "${RESOURCES_DEV_DIR}/../qt.conf")
+  else ()
+    set(QT_CONF_OVERRIDE "${INTERFACE_EXEC_DIR}/qt.conf")
+  endif ()
+  if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+    # using VCPKG-installed Qt rather than a custom install
+    # TODO: erase old qt.conf file if it exists
+    # HINT: the file(REMOVE) operation below does not succeed
+    #file(REMOVE ${QT_CONF_OVERRIDE})
+  else ()
+    # using VCPKG-installed Qt rather than a custom install
+    # need to create qt.conf file to override hard coded 
+    file(GENERATE
+      OUTPUT "${QT_CONF_OVERRIDE}"
+      CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+    )
   endif()
 endif()
 
