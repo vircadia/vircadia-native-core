@@ -1299,7 +1299,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
     connect(&nodeList->getDomainHandler(), &DomainHandler::limitOfSilentDomainCheckInsReached,
-        [nodeList]() {nodeList->reset("Domain checkin limit"); });
+        nodeList.data(), [nodeList]() {nodeList->reset("Domain checkin limit"); });
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 #if defined(Q_OS_ANDROID)
