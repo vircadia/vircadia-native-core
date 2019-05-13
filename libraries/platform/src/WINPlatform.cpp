@@ -28,7 +28,7 @@ bool WINInstance::enumeratePlatform() {
 }
 
 void WINInstance::enumerateCpu() {
-    json *cpu= new json();
+	json cpu = {};
     int CPUInfo[4] = { -1 };
     unsigned nExIds;
     unsigned int i = 0;
@@ -53,10 +53,10 @@ void WINInstance::enumerateCpu() {
         }
     }
 
-    (*cpu)["brand"] = CPUBrandString;
-    (*cpu)["model"] = CPUModelString;
-    (*cpu)["clockSpeed"] = CPUClockString;
-    (*cpu)["numCores"] = getNumLogicalCores();
+   cpu["brand"] = CPUBrandString;
+   cpu["model"] = CPUModelString;
+   cpu["clockSpeed"] = CPUClockString;
+   cpu["numCores"] = getNumLogicalCores();
 #endif
     _cpu.push_back(cpu);
 }
@@ -69,23 +69,23 @@ void WINInstance::enumerateGpu() {
 
 	GPUIdent* ident = GPUIdent::getInstance();
    
-    json *gpu = new json();
-    (*gpu)["name"] = ident->getName().toUtf8().constData();
-    (*gpu)["memory"] = ident->getMemory();
-    (*gpu)["driver"] = ident->getDriver().toUtf8().constData();
+	json gpu = {};
+    gpu["name"] = ident->getName().toUtf8().constData();
+    gpu["memory"] = ident->getMemory();
+    gpu["driver"] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
 }
 
 void WINInstance::enumerateRam() {
-    json* ram = new json();
+	json ram = {};
 #ifdef Q_OS_WINDOWS
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    (*ram)["totalMem"] = totalRam;
+    ram["totalMem"] = totalRam;
 #endif
     _memory.push_back(ram);
 }

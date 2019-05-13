@@ -2495,9 +2495,9 @@ void Application::initPlatform() {
 
     platform::enumeratePlatform();
     
-   const nlohmann::json* test = platform::getGraphics(0);
-   const nlohmann::json* test1 = platform::getProcessor(0);
-   const nlohmann::json* test2 = platform::getMemory(0);
+   const nlohmann::json test = platform::getGraphics(0);
+   const nlohmann::json test1 = platform::getProcessor(0);
+   const nlohmann::json test2 = platform::getMemory(0);
    //const nlohmann::json* test3 = platform::getDisplay(0);
 }
 

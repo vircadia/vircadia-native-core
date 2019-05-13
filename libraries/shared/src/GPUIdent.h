@@ -28,12 +28,12 @@ public:
     QString getName() { return _name; }
     QString getDriver() { return _driver; }
     bool isValid() { return _isValid; }
-	std::vector<nlohmann::json*> getOutput() { return _output; }
+	std::vector<nlohmann::json> getOutput() { return _output; }
 
     // E.g., GPUIdent::getInstance()->getMemory();
     static GPUIdent* getInstance(const QString& vendor = "", const QString& renderer = "") { return _instance.ensureQuery(vendor, renderer); }
 private:
-    std::vector<nlohmann::json*> _output;
+    std::vector<nlohmann::json> _output;
     uint64_t _dedicatedMemoryMB { 0 };
     QString _name { "" };
     QString _driver { "" };

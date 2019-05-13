@@ -20,24 +20,24 @@ public:
     bool virtual enumeratePlatform() = 0;
 
     int getNumCPU() { return _cpu.size(); }
-    json* getCPU(int index);
+    json getCPU(int index);
 
     int getNumGPU() { return _gpu.size(); }
-    json* getGPU(int index);
+    json getGPU(int index);
 
     int getNumMemory() { return _memory.size(); }
-    json* getMemory(int index);
+    json getMemory(int index);
 
     int getNumDisplay() { return _display.size(); }
-    json* getDisplay(int index);
+    json getDisplay(int index);
 
     virtual ~Instance();
 
 protected:
-    std::vector<json*>  _cpu;
-    std::vector<json*>  _memory;
-    std::vector<json*> _gpu;
-    std::vector<json*> _display;
+    std::vector<json>  _cpu;
+    std::vector<json>  _memory;
+    std::vector<json> _gpu;
+    std::vector<json> _display;
 };
 
 //Platform level functions
@@ -47,17 +47,17 @@ void destroy();
 bool enumeratePlatform();
 
 int getNumProcessor();
-const json* getProcessor(int index);
+json getProcessor(int index);
 
 int getNumGraphics();
-const json* getGraphics(int index);
+json getGraphics(int index);
 
 int getNumDisplay();
-const json* getDisplay(int index);
+json getDisplay(int index);
     
 
 int getNumMemory();
-const json* getMemory(int index);
+json getMemory(int index);
 
 }  // namespace platform
 
