@@ -12,7 +12,7 @@
 #include <GPUIdent.h>
 #include <string>
 
-#ifdef Q_MAC_OS
+#ifdef Q_OS_MAC
 #include <unistd.h>
 #include <cpuid.h>
 #endif
