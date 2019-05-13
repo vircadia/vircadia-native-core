@@ -22,13 +22,25 @@ QtObject {
 
         readonly property QtObject controls: QtObject {
             readonly property QtObject radioButton: QtObject {
-                readonly property QtObject checked: QtObject {
-                    readonly property color startColor: "#7d7d7d"
-                    readonly property color checkboxFinish: "#6b6a6b"
+                readonly property QtObject background: QtObject {
+                    readonly property color startColor: "#828282"
+                    readonly property real startPosition: 0.15
+                    readonly property color endColor: "#6A6A6A"
+                    readonly property real endPosition: 1.0
+                    readonly property real disabledOpacity: 0.5
                 }
-                readonly property QtObject unchecked: QtObject {
-                    readonly property color startColor: "#7d7d7d"
-                    readonly property color checkboxFinish: "#6b6a6b"
+                readonly property QtObject hover: QtObject {
+                    readonly property color outerBorderColor: "#00B4EF"
+                    readonly property color innerColor: "#00B4EF"
+                    readonly property color innerBorderColor: "#36CDFF"
+                    readonly property real innerOpacity: 0.5
+                }
+                readonly property QtObject active: QtObject {
+                    readonly property color color: "#00B4EF"
+                }
+                readonly property QtObject checked: QtObject {
+                    readonly property color innerColor: "#00B4EF"
+                    readonly property color innerBorderColor: "#36CDFF"
                 }
             }
             readonly property QtObject slider: QtObject {
@@ -150,6 +162,10 @@ QtObject {
                 readonly property int height: 14
                 readonly property int labelTextSize: 14
                 readonly property int backgroundHeight: 8
+            }
+            readonly property QtObject radioButton: QtObject {
+                readonly property int outerBorderWidth: 1
+                readonly property int innerBorderWidth: 1
             }
             readonly property QtObject simplifiedSwitch: QtObject {
                 readonly property int switchBackgroundHeight: 18

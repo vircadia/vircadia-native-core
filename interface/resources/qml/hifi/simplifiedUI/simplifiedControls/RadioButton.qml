@@ -46,58 +46,42 @@ RadioButton {
         implicitHeight: root.radioButtonRadius
         radius: root.radioButtonRadius
         y: parent.height / 2 - height / 2
-        border.width: 1
-        border.color: pressed || hovered
-                      ? hifi.colors.checkboxCheckedBorder
-                      : hifi.colors.checkboxDarkFinish
+        border.width: root.hovered ? simplifiedUI.sizes.controls.radioButton.outerBorderWidth : 0
+        border.color: simplifiedUI.colors.controls.radioButton.hover.outerBorderColor
+        opacity: root.disabled ? 0.5 : 1.0
 
         gradient: Gradient {
             GradientStop {
-                position: 0.2
-                color: pressed || hovered
-                       ? hifi.colors.checkboxLightStart
-                       : hifi.colors.checkboxDarkStart
+                position: simplifiedUI.colors.controls.radioButton.background.startPosition
+                color: simplifiedUI.colors.controls.radioButton.background.startColor
             }
             GradientStop {
-                position: 1.0
-                color: pressed || hovered
-                       ? hifi.colors.checkboxLightFinish
-                       : hifi.colors.checkboxDarkFinish
+                position: simplifiedUI.colors.controls.radioButton.background.endPosition
+                color: simplifiedUI.colors.controls.radioButton.background.endColor
             }
         }
 
         Rectangle {
             id: innerBox
-            visible: pressed || hovered
+            visible: root.checked || root.hovered
             anchors.centerIn: parent
-            width: checkSize - 4
+            width: root.checkSize
             height: width
             radius: checkSize / 2
-            color: hifi.colors.checkboxCheckedBorder
+            border.width: simplifiedUI.sizes.controls.radioButton.innerBorderWidth
+            border.color: root.hovered ? simplifiedUI.colors.controls.radioButton.hover.innerBorderColor : simplifiedUI.colors.controls.radioButton.checked.innerBorderColor
+            color: root.hovered ? simplifiedUI.colors.controls.radioButton.hover.innerColor : simplifiedUI.colors.controls.radioButton.hover.innerColor
+            opacity: root.hovered ? simplifiedUI.colors.controls.radioButton.hover.innerOpacity : 1.0
         }
 
         Rectangle {
-            id: check
-            width: checkSize
-            height: checkSize
-            radius: checkSize / 2
+            id: pressedBox
+            visible: root.pressed
+            width: parent.width
+            height: parent.height
+            radius: parent.radius
             anchors.centerIn: parent
-            color: hifi.colors.checkboxChecked
-            border.width: 2
-            border.color: hifi.colors.checkboxCheckedBorder
-            visible: checked && !pressed || !checked && pressed
-        }
-
-        Rectangle {
-            id: disabledOverlay
-            visible: !enabled
-            width: root.radioButtonRadius
-            height: root.radioButtonRadius
-            radius: root.radioButtonRadius / 2
-            border.width: 1
-            border.color: hifi.colors.baseGrayHighlight
-            color: hifi.colors.baseGrayHighlight
-            opacity: 0.5
+            color: simplifiedUI.colors.controls.radioButton.active.color
         }
     }
 
