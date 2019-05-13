@@ -64,6 +64,7 @@ namespace render {
     public:
         enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE, SECONDARY_CAMERA_RENDER_MODE };
         enum DisplayMode { MONO, STEREO_MONITOR, STEREO_HMD };
+        enum RenderMethod { DEFERRED, FORWARD };
         enum DebugFlags {
             RENDER_DEBUG_NONE = 0,
             RENDER_DEBUG_HULLS = 1
@@ -77,6 +78,7 @@ namespace render {
             float lodAngleHalfTan = 0.1f,
             RenderMode renderMode = DEFAULT_RENDER_MODE,
             DisplayMode displayMode = MONO,
+            RenderMethod renderMethod = DEFERRED,
             DebugFlags debugFlags = RENDER_DEBUG_NONE,
             gpu::Batch* batch = nullptr) :
             _context(context),
@@ -86,6 +88,7 @@ namespace render {
             _lodAngleHalfTanSq(lodAngleHalfTan * lodAngleHalfTan),
             _renderMode(renderMode),
             _displayMode(displayMode),
+            _renderMethod(renderMethod),
             _debugFlags(debugFlags),
             _batch(batch) {
         }
@@ -117,6 +120,7 @@ namespace render {
 
         RenderMode _renderMode { DEFAULT_RENDER_MODE };
         DisplayMode _displayMode { MONO };
+        RenderMethod _renderMethod { DEFERRED };
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
         gpu::Batch* _batch = nullptr;
 

@@ -195,8 +195,6 @@
 #include "scripting/RefreshRateScriptingInterface.h"
 
 
-#include <platform.h>
-#include <nlohmann/json.hpp>
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -247,10 +245,7 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
 
-#include <nlohmann/json.hpp>
 #include "AboutUtil.h"
-
-#include <DisableDeferred.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -1035,7 +1030,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _sampleSound(nullptr)
 {
 
-    initPlatform();
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
@@ -2510,18 +2504,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     pauseUntilLoginDetermined();
 }
 
-void Application::initPlatform() {
-
-    platform::create();
-
-    platform::enumeratePlatform();
-    
-   const nlohmann::json test = platform::getGraphics(0);
-   const nlohmann::json test1 = platform::getProcessor(0);
-   const nlohmann::json test2 = platform::getMemory(0);
-   //const nlohmann::json* test3 = platform::getDisplay(0);
-}
-
 void Application::updateVerboseLogging() {
     auto menu = Menu::getInstance();
     if (!menu) {
@@ -3045,7 +3027,7 @@ void Application::initializeDisplayPlugins() {
 void Application::initializeRenderEngine() {
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
-        _graphicsEngine.initializeRender(DISABLE_DEFERRED);
+        _graphicsEngine.initializeRender();
         DependencyManager::get<Keyboard>()->registerKeyboardHighlighting();
     });
 }
@@ -6722,7 +6704,7 @@ void Application::updateRenderArgs(float deltaTime) {
             }
             appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getOctreeSizeScale(),
                 lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
-                RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+                RenderArgs::MONO, RenderArgs::DEFERRED, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 
             {
