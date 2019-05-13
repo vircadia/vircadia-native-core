@@ -168,7 +168,7 @@ bool isEntityPhysicsReady(const EntityItemPointer& entity) {
             bool hasAABox;
             entity->getAABox(hasAABox);
             if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
-                return (!entity->shouldBePhysical() || entity->isReadyToComputeShape() || modelEntity->computeShapeFailedToLoad());
+                return (!entity->shouldBePhysical() || entity->isInPhysicsSimulation() || modelEntity->computeShapeFailedToLoad());
             }
         }
     }

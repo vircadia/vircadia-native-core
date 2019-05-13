@@ -211,6 +211,8 @@ public:
     float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
+    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
 
@@ -238,6 +240,9 @@ public:
 
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
+
+    float getAwayStateWhenFocusLostInVREnabled() { return _awayStateWhenFocusLostInVREnabled.get(); }
+    void setAwayStateWhenFocusLostInVREnabled(bool setting);
 
     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
@@ -369,6 +374,7 @@ signals:
     void loginDialogFocusDisabled();
 
     void miniTabletEnabledChanged(bool enabled);
+    void awayStateWhenFocusLostInVRChanged(bool enabled);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
@@ -604,7 +610,6 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
 
-    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
     void userKickConfirmation(const QUuid& nodeID);
 
     MainWindow* _window;
@@ -672,6 +677,7 @@ private:
     Setting::Handle<bool> _preferStylusOverLaserSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
+    Setting::Handle<bool> _awayStateWhenFocusLostInVREnabled;
     Setting::Handle<QString> _preferredCursor;
     Setting::Handle<bool> _miniTabletEnabledSetting;
     Setting::Handle<bool> _keepLogWindowOnTop { "keepLogWindowOnTop", false };

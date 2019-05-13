@@ -37,7 +37,7 @@ protected:
     virtual ShapeKey getShapeKey() override;
     virtual void doRender(RenderArgs* args) override;
 
-    void buildPipeline();
+    static void buildPipelines();
     void updateGeometry();
     void updateData();
 
@@ -58,8 +58,7 @@ protected:
     size_t _numVertices;
     gpu::BufferPointer _polylineDataBuffer;
     gpu::BufferPointer _polylineGeometryBuffer;
-    static gpu::PipelinePointer _pipeline;
-    static gpu::PipelinePointer _glowPipeline;
+    static std::map<std::pair<render::Args::RenderMethod, bool>, gpu::PipelinePointer> _pipelines;
 };
 
 } } // namespace 

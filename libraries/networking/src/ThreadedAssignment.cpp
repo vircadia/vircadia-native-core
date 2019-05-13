@@ -59,7 +59,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             packetReceiver.setShouldDropPackets(true);
 
             // send a disconnect packet to the domain
-            nodeList->getDomainHandler().disconnect();
+            nodeList->getDomainHandler().disconnect("Finished");
 
             // stop our owned timers
             _domainServerTimer.stop();

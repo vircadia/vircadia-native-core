@@ -187,6 +187,7 @@ protected:
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
+    QMutex _decoderMutex;
     Decoder* _decoder { nullptr };
     int _mismatchedAudioCodecCount { 0 };
 };

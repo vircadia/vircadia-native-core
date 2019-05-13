@@ -62,6 +62,7 @@ public:
     virtual bool isReadyToComputeShape() const override { return false; }
     virtual void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
+    bool shouldBePhysical() const override { return false; }
 
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);

@@ -67,6 +67,8 @@ var avatarPosition = MyAvatar.position;
 var wasHmdMounted = HMD.mounted;
 var previousBubbleState = Users.getIgnoreRadiusEnabled();
 
+var enterAwayStateWhenFocusLostInVR = HMD.enterAwayStateWhenFocusLostInVR;
+
 // some intervals we may create/delete
 var avatarMovedInterval;
 
@@ -283,8 +285,10 @@ function maybeGoAway() {
     if (Reticle.mouseCaptured !== wasMouseCaptured) {
         wasMouseCaptured = !wasMouseCaptured;
         if (!wasMouseCaptured) {
-            goAway();
-            return;
+            if (enterAwayStateWhenFocusLostInVR) {
+                goAway();
+                return;
+            }
         }
     }
 
@@ -357,15 +361,22 @@ eventMapping.from(Controller.Standard.Back).peek().to(goActive);
 eventMapping.from(Controller.Standard.Start).peek().to(goActive);
 Controller.enableMapping(eventMappingName);
 
+function awayStateWhenFocusLostInVRChanged(enabled) {
+    enterAwayStateWhenFocusLostInVR = enabled;
+}
+
 Script.scriptEnding.connect(function () {
     Script.clearInterval(maybeIntervalTimer);
     goActive();
+    HMD.awayStateWhenFocusLostInVRChanged.disconnect(awayStateWhenFocusLostInVRChanged);
     Controller.disableMapping(eventMappingName);
     Controller.mousePressEvent.disconnect(goActive);
     Controller.keyPressEvent.disconnect(maybeGoActive);
     Messages.messageReceived.disconnect(handleMessage);
     Messages.unsubscribe(CHANNEL_AWAY_ENABLE);
 });
+
+HMD.awayStateWhenFocusLostInVRChanged.connect(awayStateWhenFocusLostInVRChanged);
 
 if (HMD.active && !HMD.mounted) {
     print("Starting script, while HMD is active and not mounted...");

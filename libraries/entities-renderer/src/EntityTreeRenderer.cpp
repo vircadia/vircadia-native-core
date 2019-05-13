@@ -481,6 +481,12 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     }
 }
 
+void EntityTreeRenderer::preUpdate() {
+    if (_tree && !_shuttingDown) {
+        _tree->preUpdate();
+    }
+}
+
 void EntityTreeRenderer::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "ETR::update");
     PerformanceTimer perfTimer("ETRupdate");
@@ -585,7 +591,7 @@ void EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QSet<EntityItemI
             if (contains) {
                 // if this entity is a zone and visible, add it to our layered zones
                 if (isZone && entity->getVisible() && renderableIdForEntity(entity) != render::Item::INVALID_ITEM_ID) {
-                    _layeredZones.emplace(std::dynamic_pointer_cast<ZoneEntityItem>(entity));
+                    _layeredZones.emplace_back(std::dynamic_pointer_cast<ZoneEntityItem>(entity));
                 }
 
                 if ((!hasScript && isZone) || scriptHasLoaded) {
@@ -594,6 +600,7 @@ void EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QSet<EntityItemI
             }
         }
 
+        _layeredZones.sort();
         if (!_layeredZones.equals(oldLayeredZones)) {
             applyLayeredZones();
         }
@@ -1181,66 +1188,73 @@ void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
 
 void EntityTreeRenderer::updateZone(const EntityItemID& id) {
     if (auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(getTree()->findEntityByEntityItemID(id))) {
-        _layeredZones.update(zone, _avatarPosition, this);
-        applyLayeredZones();
+        if (_layeredZones.update(zone, _avatarPosition, this)) {
+            applyLayeredZones();
+        }
     }
 }
 
 bool EntityTreeRenderer::LayeredZones::clearDomainAndNonOwnedZones(const QUuid& sessionUUID) {
     bool zonesChanged = false;
 
-    auto it = c.begin();
-    while (it != c.end()) {
+    auto it = begin();
+    while (it != end()) {
         auto zone = it->zone.lock();
         if (!zone || !(zone->isLocalEntity() || (zone->isAvatarEntity() && zone->getOwningAvatarID() == sessionUUID))) {
             zonesChanged = true;
-            it = c.erase(it);
+            it = erase(it);
         } else {
             it++;
         }
     }
 
     if (zonesChanged) {
-        std::make_heap(c.begin(), c.end(), comp);
+        sort();
     }
     return zonesChanged;
 }
 
 std::pair<bool, bool> EntityTreeRenderer::LayeredZones::getZoneInteractionProperties() const {
-    auto it = c.cbegin();
-    while (it != c.cend()) {
+    for (auto it = cbegin(); it != cend(); it++) {
         auto zone = it->zone.lock();
         if (zone && zone->isDomainEntity()) {
             return { zone->getFlyingAllowed(), zone->getGhostingAllowed() };
         }
-        it++;
     }
     return { true, true };
 }
 
-void EntityTreeRenderer::LayeredZones::remove(const std::shared_ptr<ZoneEntityItem>& zone) {
-    auto it = c.begin();
-    while (it != c.end()) {
-        if (it->zone.lock() == zone) {
-            break;
-        }
-        it++;
-    }
-    if (it != c.end()) {
-        c.erase(it);
-        std::make_heap(c.begin(), c.end(), comp);
-    }
-}
-
-void EntityTreeRenderer::LayeredZones::update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer) {
+bool EntityTreeRenderer::LayeredZones::update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer) {
     // When a zone's position or visibility changes, we call this method
     // In order to resort our zones, we first remove the changed zone, and then re-insert it if necessary
-    remove(zone);
+
+    bool needsResort = false;
+
+    {
+        auto it = begin();
+        while (it != end()) {
+            if (it->zone.lock() == zone) {
+                break;
+            }
+            it++;
+        }
+        if (it != end()) {
+            erase(it);
+            needsResort = true;
+        }
+    }
 
     // Only call contains if the zone is rendering
     if (zone->isVisible() && entityTreeRenderer->renderableIdForEntity(zone) != render::Item::INVALID_ITEM_ID && zone->contains(position)) {
-        emplace(zone);
+        emplace_back(zone);
+        needsResort = true;
     }
+
+    if (needsResort) {
+        sort();
+    }
+
+    return needsResort;
 }
 
 bool EntityTreeRenderer::LayeredZones::equals(const LayeredZones& other) const {
@@ -1248,9 +1262,9 @@ bool EntityTreeRenderer::LayeredZones::equals(const LayeredZones& other) const {
         return false;
     }
 
-    auto it = c.cbegin();
-    auto otherIt = other.c.cbegin();
-    while (it != c.cend()) {
+    auto it = cbegin();
+    auto otherIt = other.cbegin();
+    while (it != cend()) {
         if (*it != *otherIt) {
             return false;
         }
@@ -1262,15 +1276,13 @@ bool EntityTreeRenderer::LayeredZones::equals(const LayeredZones& other) const {
 }
 
 void EntityTreeRenderer::LayeredZones::appendRenderIDs(render::ItemIDs& list, EntityTreeRenderer* entityTreeRenderer) const {
-    auto it = c.cbegin();
-    while (it != c.cend()) {
+    for (auto it = cbegin(); it != cend(); it++) {
         if (it->zone.lock()) {
             auto id = entityTreeRenderer->renderableIdForEntityId(it->id);
             if (id != render::Item::INVALID_ITEM_ID) {
                 list.push_back(id);
             }
         }
-        it++;
     }
 }
 

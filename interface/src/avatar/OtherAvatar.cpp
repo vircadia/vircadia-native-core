@@ -116,6 +116,8 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
 int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
     for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        // NOTE: we activate _detailedMotionStates is because they are KINEMATIC
+        // and Bullet will automagically call DetailedMotionState::getWorldTransform() when active.
         _detailedMotionStates[i]->forceActive();
     }
     if (_moving && _motionState) {
@@ -124,11 +126,11 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return bytesRead;
 }
 
-btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints) {
+const btCollisionShape* OtherAvatar::createCollisionShape(int32_t jointIndex, bool& isBound, std::vector<int32_t>& boundJoints) {
     ShapeInfo shapeInfo;
     isBound = false;
-    QString jointName = ""; 
-    if (jointIndex > -1 && jointIndex < (int)_multiSphereShapes.size()) {
+    QString jointName = "";
+    if (jointIndex > -1 && jointIndex < (int32_t)_multiSphereShapes.size()) {
         jointName = _multiSphereShapes[jointIndex].getJointName();
     }
     switch (_bodyLOD) {
@@ -163,39 +165,21 @@ btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBoun
             }
             break;
         }
+        // Note: MultiSphereLow case really means: "skip fingers and use spheres for hands,
+        // else fall through to MultiSphereHigh case"
     case BodyLOD::MultiSphereHigh:
         computeDetailedShapeInfo(shapeInfo, jointIndex);
         break;
     default:
+        assert(false); // should never reach here
         break;
     }
-    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        auto shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-        if (shape) {
-            shape->setMargin(0.001f);
-        }
-        return shape;
-    }
-    return nullptr;
-}
-
-DetailedMotionState* OtherAvatar::createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
-    bool isBound = false;
-    std::vector<int> boundJoints;
-    btCollisionShape* shape = createCollisionShape(jointIndex, isBound, boundJoints);
-    if (shape) {
-        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
-        motionState->setMass(computeMass());
-        motionState->setIsBound(isBound, boundJoints);
-        return motionState;
-    }
-    return nullptr;
+    return ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 }
 
 void OtherAvatar::resetDetailedMotionStates() {
-    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
-        _detailedMotionStates[i] = nullptr;
-    }
+    // NOTE: the DetailedMotionStates are deleted after being added to PhysicsEngine::Transaction::_objectsToRemove
+    // See AvatarManager::handleProcessedPhysicsTransaction()
     _detailedMotionStates.clear();
 }
 
@@ -231,11 +215,11 @@ void OtherAvatar::computeShapeLOD() {
 }
 
 bool OtherAvatar::isInPhysicsSimulation() const {
-    return _motionState != nullptr && _detailedMotionStates.size() > 0;
+    return _motionState && _motionState->getRigidBody();
 }
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
-    return !isDead() && !(isInPhysicsSimulation() && _needsReinsertion);
+    return !isDead() && _workloadRegion < workload::Region::R3;
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
@@ -245,12 +229,9 @@ bool OtherAvatar::needsPhysicsUpdate() const {
 
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
+        // do not actually rebuild here, instead flag for later
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-    }
-    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
-        if (_detailedMotionStates[i]) {
-            _detailedMotionStates[i]->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        }
+        _needsReinsertion = true;
     }
 }
 
@@ -258,25 +239,6 @@ void OtherAvatar::setCollisionWithOtherAvatarsFlags() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
     }
-}
-
-void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar) {
-    auto& detailedMotionStates = getDetailedMotionStates();
-    assert(detailedMotionStates.empty());
-    if (_bodyLOD == BodyLOD::Sphere) {
-        auto dMotionState = createMotionState(avatar, -1);
-        if (dMotionState) {
-            detailedMotionStates.push_back(dMotionState);
-        }
-    } else {
-        for (int i = 0; i < getJointCount(); i++) {
-            auto dMotionState = createMotionState(avatar, i);
-            if (dMotionState) {
-                detailedMotionStates.push_back(dMotionState);
-            }
-        }
-    }
-    _needsReinsertion = false;
 }
 
 void OtherAvatar::simulate(float deltaTime, bool inView) {

@@ -52,9 +52,7 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
-    btCollisionShape* createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints);
-    DetailedMotionState* createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
-    void createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar);
+    const btCollisionShape* createCollisionShape(int32_t jointIndex, bool& isBound, std::vector<int32_t>& boundJoints);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
     BodyLOD getBodyLOD() { return _bodyLOD; }

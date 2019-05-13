@@ -11,6 +11,7 @@
 
 #include "MixedProcessedAudioStream.h"
 #include "AudioLogging.h"
+#include "TryLocker.h"
 
 MixedProcessedAudioStream::MixedProcessedAudioStream(int numFramesCapacity, int numStaticJitterFrames)
     : InboundAudioStream(AudioConstants::STEREO, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL,
@@ -36,13 +37,20 @@ int MixedProcessedAudioStream::lostAudioData(int numPackets) {
     QByteArray outputBuffer;
 
     while (numPackets--) {
+        MutexTryLocker lock(_decoderMutex);
+        if (!lock.isLocked()) {
+            // an incoming packet is being processed,
+            // and will likely be on the ring buffer shortly,
+            // so don't bother generating more data
+            qCInfo(audiostream, "Packet currently being unpacked or lost frame already being generated.  Not generating lost frame.");
+            return 0;
+        }
         if (_decoder) {
             _decoder->lostFrame(decodedBuffer);
         } else {
             decodedBuffer.resize(AudioConstants::NETWORK_FRAME_BYTES_STEREO);
             memset(decodedBuffer.data(), 0, decodedBuffer.size());
         }
-
         emit addedStereoSamples(decodedBuffer);
 
         emit processSamples(decodedBuffer, outputBuffer);
@@ -55,6 +63,12 @@ int MixedProcessedAudioStream::lostAudioData(int numPackets) {
 
 int MixedProcessedAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties) {
     QByteArray decodedBuffer;
+
+    // may block on the real-time thread, which is acceptible as 
+    // parseAudioData is only called by the packet processing
+    // thread which, while high performance, is not as sensitive to
+    // delays as the real-time thread.
+    QMutexLocker lock(&_decoderMutex);
     if (_decoder) {
         _decoder->decode(packetAfterStreamProperties, decodedBuffer);
     } else {

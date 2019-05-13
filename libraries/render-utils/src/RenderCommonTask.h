@@ -137,4 +137,16 @@ public:
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
 };
 
+class SetRenderMethod {
+public:
+    using JobModel = render::Job::Model<SetRenderMethod>;
+
+    SetRenderMethod(render::Args::RenderMethod method) : _method(method) {}
+
+    void run(const render::RenderContextPointer& renderContext) { renderContext->args->_renderMethod = _method; }
+
+protected:
+    render::Args::RenderMethod _method;
+};
+
 #endif // hifi_RenderDeferredTask_h

@@ -26,9 +26,8 @@ public:
                                bool isVisibleInSecondaryCamera, bool drawInFront, bool enabled);
             ~ParabolaRenderItem() {}
 
-            static gpu::PipelinePointer _parabolaPipeline;
-            static gpu::PipelinePointer _transparentParabolaPipeline;
-            const gpu::PipelinePointer getParabolaPipeline();
+            static std::map<std::pair<bool, bool>, gpu::PipelinePointer> _parabolaPipelines;
+            gpu::PipelinePointer getParabolaPipeline(bool forward) const;
 
             void render(RenderArgs* args);
             render::Item::Bound& editBound() { return _bound; }
