@@ -134,7 +134,8 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const;
+                                                        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
+                                                        const bool destinationNodeCanGetAndSetPrivateUserData = false) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
