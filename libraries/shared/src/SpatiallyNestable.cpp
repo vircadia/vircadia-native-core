@@ -758,7 +758,11 @@ const Transform SpatiallyNestable::getTransform() const {
     bool success;
     Transform result = getTransform(success);
     if (!success) {
-        qCDebug(shared) << "getTransform failed for" << getID();
+        // There is a known issue related to child entities not being deleted
+        // when their parent is removed. This has the side-effect that the
+        // logs will be spammed with the following message. Until this is
+        // fixed, this log message will be suppressed.
+        //qCDebug(shared) << "getTransform failed for" << getID();
     }
     return result;
 }
