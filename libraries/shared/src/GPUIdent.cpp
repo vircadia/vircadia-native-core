@@ -251,15 +251,12 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     */
 
     if (!validAdapterList.empty()) {
+        for (auto outy = adapterToOutputs.begin(); outy != adapterToOutputs.end(); outy++) {
 
-		for (auto outy = adapterToOutputs.begin(); outy != adapterToOutputs.end(); outy++) {
-			
 			AdapterEntry entry = *outy;
-
-			entry.first.first.Description;
-			for (auto test = entry.second.begin(); test != entry.second.end(); test++) {
-				nlohmann::json output = {};
-
+            for (auto test = entry.second.begin(); test != entry.second.end(); ++test) {
+            
+                nlohmann::json output = {};
                 output["description"] = entry.first.first.Description;
                 output["deviceName"]= test->DeviceName;
                 output["coordinatesleft"] = test->DesktopCoordinates.left;
@@ -267,8 +264,8 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
                 output["coordinatestop"] = test->DesktopCoordinates.top;
                 output["coordinatesbottom"] = test->DesktopCoordinates.bottom;
                 _output.push_back(output);
-			}
-		}
+            }
+        }
 
         auto& adapterEntry = adapterToOutputs[validAdapterList.front()];
 

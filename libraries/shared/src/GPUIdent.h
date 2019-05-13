@@ -28,7 +28,7 @@ public:
     QString getName() { return _name; }
     QString getDriver() { return _driver; }
     bool isValid() { return _isValid; }
-	std::vector<nlohmann::json> getOutput() { return _output; }
+    const std::vector<nlohmann::json>& getOutput() { return _output; }
 
     // E.g., GPUIdent::getInstance()->getMemory();
     static GPUIdent* getInstance(const QString& vendor = "", const QString& renderer = "") { return _instance.ensureQuery(vendor, renderer); }

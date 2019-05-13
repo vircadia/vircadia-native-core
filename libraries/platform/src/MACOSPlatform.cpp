@@ -41,7 +41,7 @@ static void getCpuId( uint32_t* p, uint32_t ax )
 }
 
 void MACOSInstance::enumerateCpu() {
-	json cpu = {};
+    json cpu = {};
     uint32_t cpuInfo[4]={0,0,0,0};
     char CPUBrandString[16];
     char CPUModelString[16];
@@ -75,10 +75,8 @@ unsigned int MACOSInstance::getNumLogicalCores() {
 }
 
 void MACOSInstance::enumerateGpu() {
-
-	GPUIdent* ident = GPUIdent::getInstance();
-   
-	json gpu = {};
+    GPUIdent* ident = GPUIdent::getInstance();
+    json gpu = {};
     gpu["name"] = ident->getName().toUtf8().constData();
     gpu["memory"] = ident->getMemory();
     gpu["driver"] = ident->getDriver().toUtf8().constData();
@@ -88,11 +86,11 @@ void MACOSInstance::enumerateGpu() {
 }
 
 void MACOSInstance::enumerateRam() {
-	json ram = {};
+    json ram = {};
+
 #ifdef Q_OS_MAC
-	long pages = sysconf(_SC_PHYS_PAGES);
+    long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
-   
     ram["totalMem"] =  pages * page_size;;
 #endif
     _memory.push_back(ram);

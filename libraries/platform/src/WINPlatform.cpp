@@ -28,8 +28,7 @@ bool WINInstance::enumeratePlatform() {
 }
 
 void WINInstance::enumerateCpu() {
-	json cpu = {};
-   
+    json cpu = {};
 
 #ifdef Q_OS_WINDOWS
     int CPUInfo[4] = { -1 };
@@ -59,6 +58,7 @@ void WINInstance::enumerateCpu() {
    cpu["clockSpeed"] = CPUClockString;
    cpu["numCores"] = getNumLogicalCores();
 #endif
+   
     _cpu.push_back(cpu);
 }
 
@@ -68,9 +68,9 @@ unsigned int WINInstance::getNumLogicalCores() {
 
 void WINInstance::enumerateGpu() {
 
-	GPUIdent* ident = GPUIdent::getInstance();
+    GPUIdent* ident = GPUIdent::getInstance();
    
-	json gpu = {};
+    json gpu = {};
     gpu["name"] = ident->getName().toUtf8().constData();
     gpu["memory"] = ident->getMemory();
     gpu["driver"] = ident->getDriver().toUtf8().constData();
@@ -80,7 +80,7 @@ void WINInstance::enumerateGpu() {
 }
 
 void WINInstance::enumerateRam() {
-	json ram = {};
+    json ram = {};
 #ifdef Q_OS_WINDOWS
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
@@ -88,5 +88,6 @@ void WINInstance::enumerateRam() {
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
     ram["totalMem"] = totalRam;
 #endif
+    
     _memory.push_back(ram);
 }

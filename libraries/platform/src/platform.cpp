@@ -42,10 +42,10 @@ void platform::destroy() {
         delete _instance;
 }
 
- json Instance::getCPU(int index) {
+json Instance::getCPU(int index) {
     assert(index <(int) _cpu.size());
     if (index >= (int)_cpu.size())
-        return NULL;
+        return json();
 
     return _cpu.at(index);
 }
@@ -55,74 +55,74 @@ void platform::destroy() {
 json Instance::getMemory(int index) {
     assert(index <(int) _memory.size());
     if(index >= (int)_memory.size())
-        return NULL;
+        return json();
 
     return _memory.at(index);
 }
 
 json Instance::getGPU(int index) {
     assert(index <(int) _gpu.size());
-    if (index >=(int) _gpu.size())
-        return NULL;
 
+    if (index >=(int) _gpu.size())
+        return json();
+    
     return _gpu.at(index);
 }
 
 json Instance::getDisplay(int index) {
-	assert(index <(int) _display.size());
+    assert(index <(int) _display.size());
     
-	if (index >=(int) _display.size())
-		return NULL;
+    if (index >=(int) _display.size())
+        return json();
 
-	return _display.at(index);
+    return _display.at(index);
 }
 
 Instance::~Instance() {
-	if (_cpu.size() > 0) {
+    if (_cpu.size() > 0) {
+        _cpu.clear();
+    }
 
-		_cpu.clear();
-	}
-
-	if (_memory.size() > 0) {
-		_memory.clear();
-	}
+    if (_memory.size() > 0) {
+        _memory.clear();
+    }
 
 
-	if (_gpu.size() > 0) {
+    if (_gpu.size() > 0) {
         _gpu.clear();
-	}
+    }
 
-	if (_display.size() > 0) {
-		_display.clear();
-	}
+    if (_display.size() > 0) {
+        _display.clear();
+    }
 }
 
 bool platform::enumeratePlatform() {
     return _instance->enumeratePlatform();
 }
 
-int platform::getNumProcessor() {
-	return _instance->getNumCPU();
+int platform::getNumCPU() {
+    return _instance->getNumCPU();
 }
 
-json platform::getProcessor(int index) {
+json platform::getCPU(int index) {
     return _instance->getCPU(index);
 }
 
-int platform::getNumGraphics() {
-	return _instance->getNumGPU();
+int platform::getNumGPU() {
+    return _instance->getNumGPU();
 }
 
-json platform::getGraphics(int index) {
-	return _instance->getGPU(index);
+json platform::getGPU(int index) {
+    return _instance->getGPU(index);
 }
 
 int platform::getNumDisplay() {
-	return _instance->getNumDisplay();
+    return _instance->getNumDisplay();
 }
 
 json platform::getDisplay(int index) {
-	return _instance->getDisplay(index);
+    return _instance->getDisplay(index);
 }
 
 int platform::getNumMemory() {
@@ -132,6 +132,3 @@ int platform::getNumMemory() {
 json platform::getMemory(int index) {
     return _instance->getMemory(index);
 }
-
-
-

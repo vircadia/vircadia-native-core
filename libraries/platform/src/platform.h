@@ -37,7 +37,7 @@ protected:
     std::vector<json>  _cpu;
     std::vector<json>  _memory;
     std::vector<json>  _gpu;
-    std::vector<json> _display;
+    std::vector<json>  _display;
 };
 
 //Platform level functions
@@ -46,16 +46,15 @@ void destroy();
 
 bool enumeratePlatform();
 
-int getNumProcessor();
-json getProcessor(int index);
+int getNumCPU();
+json getCPU(int index);
 
-int getNumGraphics();
-json getGraphics(int index);
+int getNumGPU();
+json getGPU(int index);
 
 int getNumDisplay();
 json getDisplay(int index);
     
-
 int getNumMemory();
 json getMemory(int index);
 

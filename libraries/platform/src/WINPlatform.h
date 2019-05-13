@@ -23,7 +23,6 @@ namespace platform {
         void enumerateRam();
         void enumerateGpu();
     };
-
 }  // namespace platform
 
 #endif //hifi_winplatform_h
