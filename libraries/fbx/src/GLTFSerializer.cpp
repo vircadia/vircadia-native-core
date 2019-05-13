@@ -1349,7 +1349,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 }
 
-                if (texcoords.size() == partVerticesCount * texCoord2Stride) {
+                if (texcoords2.size() == partVerticesCount * texCoord2Stride) {
                     for (int n = 0; n < texcoords2.size(); n = n + 2) {
                         mesh.texCoords1.push_back(glm::vec2(texcoords2[n], texcoords2[n + 1]));
                     }
