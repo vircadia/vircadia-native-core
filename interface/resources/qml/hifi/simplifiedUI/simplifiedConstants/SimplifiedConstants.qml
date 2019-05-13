@@ -52,14 +52,24 @@ QtObject {
                     }
                 }
                 readonly property QtObject handle: QtObject {
-                    readonly property color border: "#000000"
+                    readonly property color disabledBorder: "#2A2A2A"
+                    readonly property color enabledBorder: "#00B4EF"
+                    readonly property QtObject disabled: QtObject {
+                        readonly property color start: "#2A2A2A"
+                        readonly property color finish: "#2A2A2A"
+                    }
                     readonly property QtObject normal: QtObject {
                         readonly property color start: "#828282"
                         readonly property color finish: "#6A6A6A"
                     }
+                    readonly property QtObject hover: QtObject {
+                        readonly property color start: "#48C7F4"
+                        readonly property color finish: "#48C7F4"
+                    }
                     readonly property QtObject pressed: QtObject {
-                        readonly property color start: "#6A6A6A"
-                        readonly property color finish: "#828282"
+                        readonly property color start: "#48C7F4"
+                        readonly property color finish: "#48C7F4"
+                        readonly property color border: "#00B4EF"
                     }
                 }
             }
@@ -160,7 +170,7 @@ QtObject {
     readonly property QtObject sizes: QtObject {
         readonly property QtObject controls: QtObject {
             readonly property QtObject slider: QtObject {
-                readonly property int height: 14
+                readonly property int height: 16
                 readonly property int labelTextSize: 14
                 readonly property int backgroundHeight: 8
             }

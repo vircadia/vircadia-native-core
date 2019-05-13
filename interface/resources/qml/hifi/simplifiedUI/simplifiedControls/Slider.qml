@@ -53,6 +53,7 @@ Item {
         width: root.width * 0.6
         enabled: root.enabled
         anchors.right: parent.right
+        anchors.rightMargin: sliderHandle.width / 2
         anchors.verticalCenter: parent.verticalCenter
 
         onPressedChanged: {
@@ -76,7 +77,7 @@ Item {
             color: simplifiedUI.colors.controls.slider.background.empty
 
             Rectangle {
-                width: sliderControl.visualPosition * sliderControl.width
+                width: sliderControl.visualPosition * sliderBackground.width
                 height: parent.height
                 radius: height / 2
                 gradient: Gradient {
@@ -87,35 +88,38 @@ Item {
         }
 
         handle: Rectangle {
-            visible: root.enabled
+            id: sliderHandle
             width: sliderControl.height
-            height: sliderControl.height
-            x: sliderControl.visualPosition * (sliderControl.width - width)
+            height: width
+            x: sliderControl.visualPosition * (sliderBackground.width - (sliderHandle.width / 2))
             y: sliderControl.height / 2 - height / 2
             radius: height / 2
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.0
-                    color: sliderControl.pressed
-                        ? (simplifiedUI.colors.controls.slider.handle.pressed.start)
-                        : (simplifiedUI.colors.controls.slider.handle.normal.start)
-                }
-                GradientStop {
-                    position: 1.0
-                    color: sliderControl.pressed
-                        ? (simplifiedUI.colors.controls.slider.handle.pressed.finish)
-                        : (simplifiedUI.colors.controls.slider.handle.normal.finish)
-                }
-            }
+            color: "#000000"
+            border.width: 1
+            border.color: sliderControl.hovered || sliderControl.pressed ? simplifiedUI.colors.controls.slider.handle.enabledBorder : simplifiedUI.colors.controls.slider.handle.disabledBorder
 
             Rectangle {
-                height: parent.height - 2
+                visible: root.enabled
+                height: sliderControl.pressed ? parent.height : parent.height - 4
                 width: height
                 radius: height / 2
                 anchors.centerIn: parent
-                color: "transparent"
-                border.width: 1
-                border.color: simplifiedUI.colors.controls.slider.handle.border
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.2
+                        color: sliderControl.enabled ? (sliderControl.hovered ? simplifiedUI.colors.controls.slider.handle.hover.start :
+                            (sliderControl.pressed
+                            ? (simplifiedUI.colors.controls.slider.handle.pressed.start)
+                            : (simplifiedUI.colors.controls.slider.handle.normal.start))) : simplifiedUI.colors.controls.slider.handle.disabled.start
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: sliderControl.enabled ? (sliderControl.hovered ? simplifiedUI.colors.controls.slider.handle.hover.finish :
+                            (sliderControl.pressed
+                            ? (simplifiedUI.colors.controls.slider.handle.pressed.finish)
+                            : (simplifiedUI.colors.controls.slider.handle.normal.finish))) : simplifiedUI.colors.controls.slider.handle.disabled.finish
+                    }
+                }
             }
         }
     }
