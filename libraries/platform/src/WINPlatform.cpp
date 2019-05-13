@@ -29,14 +29,15 @@ bool WINInstance::enumeratePlatform() {
 
 void WINInstance::enumerateCpu() {
 	json cpu = {};
+   
+
+#ifdef Q_OS_WINDOWS
     int CPUInfo[4] = { -1 };
     unsigned nExIds;
     unsigned int i = 0;
     char CPUBrandString[16];
     char CPUModelString[16];
     char CPUClockString[16];
-
-#ifdef Q_OS_WINDOWS
     // Get the information associated with each extended ID.
     __cpuid(CPUInfo, 0x80000000);
     nExIds = CPUInfo[0];

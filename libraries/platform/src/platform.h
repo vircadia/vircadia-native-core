@@ -19,16 +19,16 @@ class Instance {
 public:
     bool virtual enumeratePlatform() = 0;
 
-    int getNumCPU() { return _cpu.size(); }
+    int getNumCPU() { return (int)_cpu.size(); }
     json getCPU(int index);
 
-    int getNumGPU() { return _gpu.size(); }
+    int getNumGPU() { return (int)_gpu.size(); }
     json getGPU(int index);
 
-    int getNumMemory() { return _memory.size(); }
+    int getNumMemory() { return (int)_memory.size(); }
     json getMemory(int index);
 
-    int getNumDisplay() { return _display.size(); }
+    int getNumDisplay() { return (int)_display.size(); }
     json getDisplay(int index);
 
     virtual ~Instance();
