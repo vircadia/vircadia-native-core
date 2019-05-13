@@ -17,6 +17,7 @@
 #include <QHash>
 #include <QSharedPointer>
 #include <QWeakPointer>
+#include <QMutex>
 
 #include <functional>
 #include <typeinfo>
@@ -81,12 +82,15 @@ private:
     static DependencyManager& manager();
 
     template<typename T>
-    size_t getHashCode();
+    size_t getHashCode() const;
 
-    QSharedPointer<Dependency>& safeGet(size_t hashCode);
+    QSharedPointer<Dependency> safeGet(size_t hashCode) const;
 
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
+
+    mutable QMutex _instanceHashMutex;
+    mutable QMutex _inheritanceHashMutex;
 
     bool _exiting { false };
 };
@@ -121,19 +125,23 @@ template <typename T>
 bool DependencyManager::isSet() {
     static size_t hashCode = manager().getHashCode<T>();
 
-    QSharedPointer<Dependency>& instance = manager().safeGet(hashCode);
+    QSharedPointer<Dependency> instance = manager().safeGet(hashCode);
     return !instance.isNull();
 }
 
 template <typename T, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
     static size_t hashCode = manager().getHashCode<T>();
+    QMutexLocker lock(&manager()._instanceHashMutex);
 
-    QSharedPointer<Dependency>& instance = manager().safeGet(hashCode);
-    instance.clear(); // Clear instance before creation of new one to avoid edge cases
+    // clear the previous instance before constructing the new instance
+    auto iter = manager()._instanceHash.find(hashCode);
+    if (iter != manager()._instanceHash.end()) {
+        iter.value().clear();
+    }
+
     QSharedPointer<T> newInstance(new T(args...), &T::customDeleter);
-    QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
-    instance.swap(storedInstance);
+    manager()._instanceHash.insert(hashCode, newInstance);
 
     return newInstance;
 }
@@ -141,12 +149,16 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 template <typename T, typename I, typename ...Args>
 QSharedPointer<T> DependencyManager::set(Args&&... args) {
     static size_t hashCode = manager().getHashCode<T>();
+    QMutexLocker lock(&manager()._instanceHashMutex);
 
-    QSharedPointer<Dependency>& instance = manager().safeGet(hashCode);
-    instance.clear(); // Clear instance before creation of new one to avoid edge cases
+    // clear the previous instance before constructing the new instance
+    auto iter = manager()._instanceHash.find(hashCode);
+    if (iter != manager()._instanceHash.end()) {
+        iter.value().clear();
+    }
+
     QSharedPointer<T> newInstance(new I(args...), &I::customDeleter);
-    QSharedPointer<Dependency> storedInstance = qSharedPointerCast<Dependency>(newInstance);
-    instance.swap(storedInstance);
+    manager()._instanceHash.insert(hashCode, newInstance);
 
     return newInstance;
 }
@@ -154,9 +166,12 @@ QSharedPointer<T> DependencyManager::set(Args&&... args) {
 template <typename T>
 void DependencyManager::destroy() {
     static size_t hashCode = manager().getHashCode<T>();
-    QSharedPointer<Dependency>& shared = manager().safeGet(hashCode);
+
+    QMutexLocker lock(&manager()._instanceHashMutex);
+    QSharedPointer<Dependency> shared = manager()._instanceHash.take(hashCode);
     QWeakPointer<Dependency> weak = shared;
     shared.clear();
+
     // Check that the dependency was actually destroyed.  If it wasn't, it was improperly captured somewhere
     if (weak.lock()) {
         qWarning() << "DependencyManager::destroy():" << typeid(T).name() << "was not properly destroyed!";
@@ -167,12 +182,14 @@ template<typename Base, typename Derived>
 void DependencyManager::registerInheritance() {
     size_t baseHashCode = typeHash<Base>();
     size_t derivedHashCode = typeHash<Derived>();
+    QMutexLocker lock(&manager()._inheritanceHashMutex);
     manager()._inheritanceHash.insert(baseHashCode, derivedHashCode);
 }
 
 template<typename T>
-size_t DependencyManager::getHashCode() {
+size_t DependencyManager::getHashCode() const {
     size_t hashCode = typeHash<T>();
+    QMutexLocker lock(&_inheritanceHashMutex);
     auto derivedHashCode = _inheritanceHash.find(hashCode);
 
     while (derivedHashCode != _inheritanceHash.end()) {
