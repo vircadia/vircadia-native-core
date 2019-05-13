@@ -51,6 +51,7 @@ Item {
         id: sliderControl
         height: simplifiedUI.sizes.controls.slider.height
         width: root.width * 0.6
+        enabled: root.enabled
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
 
@@ -86,6 +87,7 @@ Item {
         }
 
         handle: Rectangle {
+            visible: root.enabled
             width: sliderControl.height
             height: sliderControl.height
             x: sliderControl.visualPosition * (sliderControl.width - width)

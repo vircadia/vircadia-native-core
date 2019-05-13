@@ -34,51 +34,57 @@ Item {
     property string backgroundOnColor: "#252525"
     signal clicked
 
-    function changeColor() {
-        if (originalSwitch.checked) {
-            if (originalSwitch.hovered) {
-                switchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.hover;
-            } else {
-                switchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.on;
-            }
-        } else {
-            if (originalSwitch.hovered) {
-                switchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.hover;
-            } else {
-                switchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.off;
-            }
-        }
-    }
-
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
     }
 
     Original.Switch {
         id: originalSwitch
+        enabled: root.enabled
         focusPolicy: Qt.ClickFocus
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: labelOff.text === "" ? undefined : parent.horizontalCenter
         anchors.left: labelOff.text === "" ? parent.left : undefined
+        anchors.leftMargin: (outerSwitchHandle.width - innerSwitchHandle.width) / 2
         width: simplifiedUI.sizes.controls.simplifiedSwitch.switchBackgroundWidth
         hoverEnabled: true
+
+        function changeColor() {
+            if (!originalSwitch.enabled) {
+                innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.disabled;
+                return;
+            }
+            if (originalSwitch.checked) {
+                if (originalSwitch.hovered) {
+                    innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.hover;
+                } else {
+                    innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.on;
+                }
+            } else {
+                if (originalSwitch.hovered) {
+                    innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.hover;
+                } else {
+                    innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.off;
+                }
+            }
+        }
 
         onCheckedChanged: {
             root.checkedChanged();
             Tablet.playSound(TabletEnums.ButtonClick);
-            root.changeColor();
+            originalSwitch.changeColor();
         }
 
         onClicked: {
             root.clicked();
-            root.changeColor();
+            originalSwitch.changeColor();
         }
 
         onHoveredChanged: {
             if (hovered) {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }
-            root.changeColor();
+            originalSwitch.changeColor();
         }
 
         background: Rectangle {
@@ -86,22 +92,46 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             color: originalSwitch.checked ? simplifiedUI.colors.controls.simplifiedSwitch.background.on : simplifiedUI.colors.controls.simplifiedSwitch.background.off
             width: originalSwitch.width
-            height: root.height
+            height: simplifiedUI.sizes.controls.simplifiedSwitch.switchBackgroundHeight
             radius: height/2
         }
 
-        indicator: Rectangle {
-            id: switchHandle
+        indicator: Item {
             anchors.verticalCenter: parent.verticalCenter
-            width: switchBackground.height - (2 * simplifiedUI.margins.controls.simplifiedSwitch.handleMargins)
-            height: switchHandle.width
-            radius: switchHandle.width/2
-            color: originalSwitch.checked ? simplifiedUI.colors.controls.simplifiedSwitch.handle.on : simplifiedUI.colors.controls.simplifiedSwitch.handle.off
-            x: originalSwitch.visualPosition * switchBackground.width - (switchHandle.width / 2) + (originalSwitch.checked ? -5 * simplifiedUI.margins.controls.simplifiedSwitch.handleMargins : 5 * simplifiedUI.margins.controls.simplifiedSwitch.handleMargins)
-            y: simplifiedUI.margins.controls.simplifiedSwitch.handleMargins
+            width: simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleOuterWidth
+            height: width
+            x: originalSwitch.visualPosition * switchBackground.width - (innerSwitchHandle.width * (originalSwitch.checked ? 1 : 0)) - ((outerSwitchHandle.width - innerSwitchHandle.width) / 2)
+
             Behavior on x {
                 enabled: !originalSwitch.down
                 SmoothedAnimation { velocity: 200 }
+            }
+
+            Rectangle {
+                id: outerSwitchHandle
+                visible: originalSwitch.hovered
+                anchors.centerIn: parent
+                width: simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleOuterWidth
+                height: width
+                radius: width/2
+                color: "transparent"
+                border.width: simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleBorderSize
+                border.color: simplifiedUI.colors.controls.simplifiedSwitch.handle.activeBorder
+            }
+
+            Rectangle {
+                id: innerSwitchHandle
+                anchors.centerIn: parent
+                width: simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleInnerWidth
+                height: width
+                radius: width/2
+                color: simplifiedUI.colors.controls.simplifiedSwitch.handle.off
+                border.width: originalSwitch.pressed || originalSwitch.checked ? simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleBorderSize : 0
+                border.color: originalSwitch.pressed ? simplifiedUI.colors.controls.simplifiedSwitch.handle.activeBorder : simplifiedUI.colors.controls.simplifiedSwitch.handle.checkedBorder
+
+                Component.onCompleted: {
+                    originalSwitch.changeColor();
+                }
             }
         }
     }

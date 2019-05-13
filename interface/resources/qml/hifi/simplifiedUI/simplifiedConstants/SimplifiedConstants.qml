@@ -65,16 +65,20 @@ QtObject {
             }
             readonly property QtObject simplifiedSwitch: QtObject {
                 readonly property QtObject background: QtObject {
-                    readonly property color off: "#252525"
-                    readonly property color hover: "#00b4ef"
-                    readonly property color pressed: "#ffffff"
+                    readonly property color disabled: "#616161"
+                    readonly property color off: "#616161"
+                    readonly property color hover: "#616161"
+                    readonly property color pressed: "#616161"
                     readonly property color on: "#ffffff"
                 }
                 readonly property QtObject handle: QtObject {
-                    readonly property color off: "#6A6A6A"
-                    readonly property color hover: "#00b4ef"
-                    readonly property color pressed: "#0093C5"
-                    readonly property color on: "#0093C5"
+                    readonly property color disabled: "#616161"
+                    readonly property color off: "#E6E6E6"
+                    readonly property color hover: "#48C7F4"
+                    readonly property color active: "#48C7F4"
+                    readonly property color activeBorder: "#00B4EF"
+                    readonly property color on: "#00B4EF"
+                    readonly property color checkedBorder: "#36CDFF"
                 }
                 readonly property QtObject text: QtObject {
                     readonly property color off: "#8F8F8F"
@@ -144,9 +148,6 @@ QtObject {
             readonly property QtObject radioButton: QtObject {
                 readonly property int labelLeftMargin: 6
             }
-            readonly property QtObject simplifiedSwitch: QtObject {
-                readonly property int handleMargins: 2
-            }
         }
 
         readonly property QtObject settings: QtObject {
@@ -168,8 +169,11 @@ QtObject {
                 readonly property int innerBorderWidth: 1
             }
             readonly property QtObject simplifiedSwitch: QtObject {
-                readonly property int switchBackgroundHeight: 18
-                readonly property int switchBackgroundWidth: 47
+                readonly property int switchBackgroundHeight: 8
+                readonly property int switchBackgroundWidth: 30
+                readonly property int switchHandleInnerWidth: 12
+                readonly property int switchHandleOuterWidth: 16
+                readonly property int switchHandleBorderSize: 1
                 readonly property int labelTextSize: 14
                 readonly property int labelGlyphSize: 32
             }

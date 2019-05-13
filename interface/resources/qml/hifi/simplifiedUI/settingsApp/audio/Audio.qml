@@ -165,7 +165,7 @@ Flickable {
                 SimplifiedControls.Switch {
                     id: muteMicrophoneSwitch
                     width: parent.width
-                    height: simplifiedUI.sizes.controls.simplifiedSwitch.switchBackgroundHeight
+                    height: 18
                     labelTextOn: "Mute Microphone"
                     checked: AudioScriptingInterface.mutedDesktop
                     onClicked: {
@@ -176,7 +176,7 @@ Flickable {
                 SimplifiedControls.Switch {
                     id: pushToTalkSwitch
                     width: parent.width
-                    height: simplifiedUI.sizes.controls.simplifiedSwitch.switchBackgroundHeight
+                    height: 18
                     labelTextOn: "Push to Talk - Press and Hold \"T\" to Talk"
                     checked: AudioScriptingInterface.pushToTalkDesktop
                     onClicked: {
