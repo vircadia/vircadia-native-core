@@ -17,7 +17,7 @@
 
 #include <DependencyManager.h>
 
-#include "InteractiveWindow.h"
+#include "ui/InteractiveWindow.h"
 
 /**jsdoc
  * @namespace Desktop
@@ -37,10 +37,11 @@ class DesktopScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int height READ getHeight)  // Physical height of screen(s) including task bars and system menus
 
     Q_PROPERTY(QVariantMap PresentationMode READ getPresentationMode CONSTANT FINAL)
+    Q_PROPERTY(QVariantMap DockArea READ getDockArea CONSTANT FINAL)
     Q_PROPERTY(int ALWAYS_ON_TOP READ flagAlwaysOnTop CONSTANT FINAL)
     Q_PROPERTY(int CLOSE_BUTTON_HIDES READ flagCloseButtonHides CONSTANT FINAL)
 
-public:
+public: 
     Q_INVOKABLE void setHUDAlpha(float alpha);
     Q_INVOKABLE void show(const QString& path, const QString&  title);
 
@@ -53,6 +54,8 @@ public:
 private:
     static int flagAlwaysOnTop() { return AlwaysOnTop; }
     static int flagCloseButtonHides() { return CloseButtonHides; }
+
+    static QVariantMap getDockArea();
 
     Q_INVOKABLE static QVariantMap getPresentationMode();
 };

@@ -164,7 +164,6 @@ class PolyVoxEntityItem : public EntityItem {
     glm::vec3 getSurfacePositionAdjustment() const;
 
     virtual ShapeType getShapeType() const override;
-    virtual bool shouldBePhysical() const override { return !isDead(); }
 
     bool isEdged() const;
 

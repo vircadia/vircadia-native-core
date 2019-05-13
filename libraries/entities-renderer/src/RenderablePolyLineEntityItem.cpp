@@ -19,15 +19,12 @@
 #include <PerfStat.h>
 #include <shaders/Shaders.h>
 
-#include <DisableDeferred.h>
-
 #include "paintStroke_Shared.slh"
 
 using namespace render;
 using namespace render::entities;
 
-gpu::PipelinePointer PolyLineEntityRenderer::_pipeline = nullptr;
-gpu::PipelinePointer PolyLineEntityRenderer::_glowPipeline = nullptr;
+std::map<std::pair<render::Args::RenderMethod, bool>, gpu::PipelinePointer> PolyLineEntityRenderer::_pipelines;
 
 static const QUrl DEFAULT_POLYLINE_TEXTURE = PathUtils::resourcesUrl("images/paintStroke.png");
 
@@ -44,29 +41,24 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
     }
 }
 
-void PolyLineEntityRenderer::buildPipeline() {
-    // FIXME: opaque pipeline
-    gpu::ShaderPointer program = gpu::Shader::createProgram(DISABLE_DEFERRED ? shader::entities_renderer::program::paintStroke_forward : shader::entities_renderer::program::paintStroke);
+void PolyLineEntityRenderer::buildPipelines() {
+    // FIXME: opaque pipelines
 
-    {
+    static const std::vector<std::pair<render::Args::RenderMethod, bool>> keys = {
+        { render::Args::DEFERRED, false }, { render::Args::DEFERRED, true }, { render::Args::FORWARD, false }, { render::Args::FORWARD, true },
+    };
+
+    for (auto& key : keys) {
+        gpu::ShaderPointer program = gpu::Shader::createProgram(key.first == render::Args::DEFERRED ? shader::entities_renderer::program::paintStroke : shader::entities_renderer::program::paintStroke_forward);
+
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        state->setDepthTest(true, !key.second, gpu::LESS_EQUAL);
         PrepareStencil::testMask(*state);
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        _pipeline = gpu::Pipeline::create(program, state);
-    }
-    {
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setCullMode(gpu::State::CullMode::CULL_NONE);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        PrepareStencil::testMask(*state);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        _glowPipeline = gpu::Pipeline::create(program, state);
+        _pipelines[key] = gpu::Pipeline::create(program, state);
     }
 }
 
@@ -299,11 +291,11 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
         return;
     }
 
-    if (!_pipeline) {
-        buildPipeline();
+    if (_pipelines.empty()) {
+        buildPipelines();
     }
 
-    batch.setPipeline(_glow ? _glowPipeline : _pipeline);
+    batch.setPipeline(_pipelines[{args->_renderMethod, _glow}]);
     batch.setModelTransform(transform);
     batch.setResourceTexture(0, texture);
     batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * numVertices), 0);

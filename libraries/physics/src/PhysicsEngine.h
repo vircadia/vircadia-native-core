@@ -79,11 +79,13 @@ public:
         void clear() {
             objectsToRemove.clear();
             objectsToAdd.clear();
-            objectsToChange.clear();
+            objectsToReinsert.clear();
+            activeStaticObjects.clear();
         }
         std::vector<ObjectMotionState*> objectsToRemove;
         std::vector<ObjectMotionState*> objectsToAdd;
-        std::vector<ObjectMotionState*> objectsToChange;
+        std::vector<ObjectMotionState*> objectsToReinsert;
+        std::vector<ObjectMotionState*> activeStaticObjects;
     };
 
     PhysicsEngine(const glm::vec3& offset);
@@ -97,7 +99,7 @@ public:
     void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
 
     void addObjects(const VectorOfMotionStates& objects);
-    VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
+    void changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
 
     void processTransaction(Transaction& transaction);

@@ -889,6 +889,7 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
+        qCDebug(networking_ice) << "Removing silent node" << killedNode;
         handleNodeKill(killedNode);
     }
 }
@@ -1269,7 +1270,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSoc
 
         iceDataStream << peerID;
 
-        qCDebug(networking) << "Sending packet to ICE server to request connection info for peer with ID"
+        qCDebug(networking_ice) << "Sending packet to ICE server to request connection info for peer with ID"
             << uuidStringWithoutCurlyBraces(peerID);
     }
 

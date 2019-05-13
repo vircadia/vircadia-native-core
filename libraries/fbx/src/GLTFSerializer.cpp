@@ -874,6 +874,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         joint.isSkeletonJoint = false;
         hfmModel.joints.push_back(joint);
     }
+    hfmModel.shapeVertices.resize(hfmModel.joints.size());
 
 
     // Build skeleton
@@ -1240,6 +1241,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                                 count++;
                             }
                         }
+                    }
+                }
+
+                for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; clusterIndex++) {
+                    ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
+                    for (glm::vec3 vertex : mesh.vertices) {
+                        points.push_back(vertex);
                     }
                 }
 

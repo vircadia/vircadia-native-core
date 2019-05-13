@@ -2108,7 +2108,6 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 }
 
 void EntityTree::fixupNeedsParentFixups() {
-    PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
     QVector<EntityItemWeakPointer> entitiesToFixup;
     {
@@ -2218,11 +2217,19 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
     _needsParentFixup.append(entity);
 }
 
+void EntityTree::preUpdate() {
+    withWriteLock([&] {
+        fixupNeedsParentFixups();
+        if (_simulation) {
+            _simulation->processChangedEntities();
+        }
+    });
+}
+
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
     PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
-        fixupNeedsParentFixups();
         if (simulate && _simulation) {
             _simulation->updateEntities();
             {

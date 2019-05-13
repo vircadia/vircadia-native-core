@@ -36,6 +36,14 @@ namespace InteractiveWindowEnums {
         Native
     };
     Q_ENUM_NS(InteractiveWindowPresentationMode);
+
+    enum DockArea {
+        TOP,
+        BOTTOM,
+        LEFT,
+        RIGHT
+    };
+    Q_ENUM_NS(DockArea);
 }
 
 using namespace InteractiveWindowEnums;
@@ -52,8 +60,10 @@ using namespace InteractiveWindowEnums;
  * @property {Vec2} size
  * @property {boolean} visible
  * @property {Desktop.PresentationMode} presentationMode
- * 
+ *
  */
+
+class DockWidget;
 class InteractiveWindow : public QObject {
     Q_OBJECT
 
@@ -65,7 +75,6 @@ class InteractiveWindow : public QObject {
 
 public:
     InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties);
-
     ~InteractiveWindow();
 
 private:
@@ -194,7 +203,9 @@ protected slots:
     void qmlToScript(const QVariant& message);
 
 private:
+    bool _dockedWindow { false };
     QPointer<QObject> _qmlWindow;
+    std::shared_ptr<DockWidget> _dockWidget { nullptr };
 };
 
 typedef InteractiveWindow* InteractiveWindowPointer;

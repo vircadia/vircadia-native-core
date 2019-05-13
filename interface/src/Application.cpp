@@ -136,7 +136,6 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
-#include <InteractiveWindow.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -213,6 +212,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
+#include "ui/InteractiveWindow.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -245,10 +245,7 @@
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
 
-
 #include "AboutUtil.h"
-
-#include <DisableDeferred.h>
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
@@ -331,6 +328,7 @@ static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
 static const int ENTITY_SERVER_ADDED_TIMEOUT = 5000;
 static const int ENTITY_SERVER_CONNECTION_TIMEOUT = 5000;
+static const int WATCHDOG_TIMER_TIMEOUT = 100;
 
 static const float INITIAL_QUERY_RADIUS = 10.0f;  // priority radius for entities before physics enabled
 
@@ -377,7 +375,12 @@ const std::vector<std::pair<QString, Application::AcceptURLMethod>> Application:
 class DeadlockWatchdogThread : public QThread {
 public:
     static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
+    // TODO: go back to 2 min across the board, after figuring out the issues with mac
+#if defined(Q_OS_MAC)
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 600 * USECS_PER_SECOND; // 10 mins with no checkin probably a deadlock, right now, on MAC
+#else
     static const unsigned long MAX_HEARTBEAT_AGE_USECS = 120 * USECS_PER_SECOND; // 2 mins with no checkin probably a deadlock
+#endif
     static const int WARNING_ELAPSED_HEARTBEAT = 500 * USECS_PER_MSEC; // warn if elapsed heartbeat average is large
     static const int HEARTBEAT_SAMPLES = 100000; // ~5 seconds worth of samples
 
@@ -557,7 +560,10 @@ public:
                     return true;
                 }
             }
-
+            // Attempting to close MIDI interfaces of a hot-unplugged device can result in audio-driver deadlock.
+            // Detecting MIDI devices that have been added/removed after starting Inteface has been disabled.
+            // https://support.microsoft.com/en-us/help/4460006/midi-device-app-hangs-when-former-midi-api-is-used
+#if 0
             if (message->message == WM_DEVICECHANGE) {
                 const float MIN_DELTA_SECONDS = 2.0f; // de-bounce signal
                 static float lastTriggerTime = 0.0f;
@@ -567,6 +573,7 @@ public:
                     Midi::USBchanged();                // re-scan the MIDI bus
                 }
             }
+#endif
         }
         return false;
     }
@@ -978,6 +985,7 @@ const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 const QString DEFAULT_CURSOR_NAME = "DEFAULT";
 const bool DEFAULT_MINI_TABLET_ENABLED = true;
+const bool DEFAULT_AWAY_STATE_WHEN_FOCUS_LOST_IN_VR_ENABLED = true;
 
 QSharedPointer<OffscreenUi> getOffscreenUI() {
 #if !defined(DISABLE_QML)
@@ -1008,6 +1016,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _preferStylusOverLaserSetting("preferStylusOverLaser", DEFAULT_PREFER_STYLUS_OVER_LASER),
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
+    _awayStateWhenFocusLostInVREnabled("awayStateWhenFocusLostInVREnabled", DEFAULT_AWAY_STATE_WHEN_FOCUS_LOST_IN_VR_ENABLED),
     _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
     _miniTabletEnabledSetting("miniTabletEnabled", DEFAULT_MINI_TABLET_ENABLED),
     _scaleMirror(1.0f),
@@ -1058,6 +1067,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 }
             }
         }
+    }
+
+    {
+        // identify gpu as early as possible to help identify OpenGL initialization errors.
+        auto gpuIdent = GPUIdent::getInstance();
+        setCrashAnnotation("gpu_name", gpuIdent->getName().toStdString());
+        setCrashAnnotation("gpu_driver", gpuIdent->getDriver().toStdString());
+        setCrashAnnotation("gpu_memory", std::to_string(gpuIdent->getMemory()));
     }
 
     // make sure the debug draw singleton is initialized on the main thread.
@@ -1121,6 +1138,18 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto deadlockWatchdogThread = new DeadlockWatchdogThread();
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
+
+
+        // Main thread timer to keep the watchdog updated
+        QTimer* watchdogUpdateTimer = new QTimer(this);
+        connect(watchdogUpdateTimer, &QTimer::timeout, [this] { updateHeartbeat(); });
+        connect(this, &QCoreApplication::aboutToQuit, [watchdogUpdateTimer] {
+            watchdogUpdateTimer->stop();
+            watchdogUpdateTimer->deleteLater();
+        });
+        watchdogUpdateTimer->setSingleShot(false);
+        watchdogUpdateTimer->setInterval(WATCHDOG_TIMER_TIMEOUT); // 100ms, Qt::CoarseTimer acceptable
+        watchdogUpdateTimer->start();
     }
 
     // Set File Logger Session UUID
@@ -2679,7 +2708,7 @@ void Application::cleanupBeforeQuit() {
         auto nodeList = DependencyManager::get<NodeList>();
 
         // send the domain a disconnect packet, force stoppage of domain-server check-ins
-        nodeList->getDomainHandler().disconnect();
+        nodeList->getDomainHandler().disconnect("Quitting");
         nodeList->setIsShuttingDown(true);
 
         // tell the packet receiver we're shutting down, so it can drop packets
@@ -2773,21 +2802,15 @@ Application::~Application() {
     // remove avatars from physics engine
     auto avatarManager = DependencyManager::get<AvatarManager>();
     avatarManager->clearOtherAvatars();
+    auto myCharacterController = getMyAvatar()->getCharacterController();
+    myCharacterController->clearDetailedMotionStates();
 
     PhysicsEngine::Transaction transaction;
     avatarManager->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     avatarManager->handleProcessedPhysicsTransaction(transaction);
-
     avatarManager->deleteAllAvatars();
-    
-    auto myCharacterController = getMyAvatar()->getCharacterController();
-    myCharacterController->clearDetailedMotionStates();
-    
-    myCharacterController->buildPhysicsTransaction(transaction);
-    _physicsEngine->processTransaction(transaction);
-    myCharacterController->handleProcessedPhysicsTransaction(transaction);
-    
+
     _physicsEngine->setCharacterController(nullptr);
 
     // the _shapeManager should have zero references
@@ -2919,7 +2942,7 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
-    // Bug 21993: disable microphone and camera input 
+    // Bug 21993: disable microphone and camera input
     chromiumFlags << "--use-fake-device-for-media-stream";
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
@@ -3006,7 +3029,7 @@ void Application::initializeDisplayPlugins() {
 void Application::initializeRenderEngine() {
     // FIXME: on low end systems os the shaders take up to 1 minute to compile, so we pause the deadlock watchdog thread.
     DeadlockWatchdogThread::withPause([&] {
-        _graphicsEngine.initializeRender(DISABLE_DEFERRED);
+        _graphicsEngine.initializeRender();
         DependencyManager::get<Keyboard>()->registerKeyboardHighlighting();
     });
 }
@@ -3621,6 +3644,11 @@ void Application::setSettingConstrainToolbarPosition(bool setting) {
     getOffscreenUI()->setConstrainToolbarToCenterX(setting);
 }
 
+void Application::setAwayStateWhenFocusLostInVREnabled(bool enabled) {
+    _awayStateWhenFocusLostInVREnabled.set(enabled);
+    emit awayStateWhenFocusLostInVRChanged(enabled);
+}
+
 void Application::setMiniTabletEnabled(bool enabled) {
     _miniTabletEnabledSetting.set(enabled);
     emit miniTabletEnabledChanged(enabled);
@@ -4016,8 +4044,8 @@ bool Application::notify(QObject * object, QEvent * event) {
     if (thread() == QThread::currentThread()) {
         PROFILE_RANGE_IF_LONGER(app, "notify", 2)
         return QApplication::notify(object, event);
-    } 
-        
+    }
+
     return QApplication::notify(object, event);
 }
 
@@ -4979,9 +5007,6 @@ void setupCpuMonitorThread() {
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
 
-    // Update the deadlock watchdog
-    updateHeartbeat();
-
 #if !defined(DISABLE_QML)
     auto offscreenUi = getOffscreenUI();
 
@@ -5528,7 +5553,7 @@ void Application::pauseUntilLoginDetermined() {
     cameraModeChanged();
 
     // disconnect domain handler.
-    nodeList->getDomainHandler().disconnect();
+    nodeList->getDomainHandler().disconnect("Pause until login determined");
 
     // From now on, it's permissible to call resumeAfterLoginDialogActionTaken()
     _resumeAfterLoginDialogActionTaken_SafeToRun = true;
@@ -5824,7 +5849,8 @@ void Application::cameraModeChanged() {
             Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
             break;
         default:
-            break;
+            // we don't have menu items for the others, so just leave it alone.
+            return;
     }
     cameraMenuChanged();
 }
@@ -5907,7 +5933,7 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<TextureCache>()->refreshAll();
     DependencyManager::get<recording::ClipCache>()->refreshAll();
 
-    DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
+    DependencyManager::get<NodeList>()->reset("Reloading resources");  // Force redownload of .fst models
 
     DependencyManager::get<ScriptEngines>()->reloadAllScripts();
     getOffscreenUI()->clearCache();
@@ -6396,64 +6422,42 @@ void Application::update(float deltaTime) {
         PROFILE_RANGE(simulation_physics, "Simulation");
         PerformanceTimer perfTimer("simulation");
 
-        if (_physicsEnabled) {
-            auto t0 = std::chrono::high_resolution_clock::now();
-            auto t1 = t0;
+        getEntities()->preUpdate();
+
+        auto t0 = std::chrono::high_resolution_clock::now();
+        auto t1 = t0;
+        {
+            PROFILE_RANGE(simulation_physics, "PrePhysics");
+            PerformanceTimer perfTimer("prePhysics)");
             {
-                PROFILE_RANGE(simulation_physics, "PrePhysics");
-                PerformanceTimer perfTimer("prePhysics)");
-                {
-                    PROFILE_RANGE(simulation_physics, "RemoveEntities");
-                    const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
-                    {
-                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
-                        _physicsEngine->removeObjects(motionStates);
-                    }
-                    _entitySimulation->deleteObjectsRemovedFromPhysics();
-                }
+                PROFILE_RANGE(simulation_physics, "Entities");
+                PhysicsEngine::Transaction transaction;
+                _entitySimulation->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                _entitySimulation->handleProcessedPhysicsTransaction(transaction);
+            }
 
-                {
-                    PROFILE_RANGE(simulation_physics, "AddEntities");
-                    VectorOfMotionStates motionStates;
-                    getEntities()->getTree()->withReadLock([&] {
-                        _entitySimulation->getObjectsToAddToPhysics(motionStates);
-                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
-                        _physicsEngine->addObjects(motionStates);
-                    });
-                }
-                {
-                    VectorOfMotionStates motionStates;
-                    PROFILE_RANGE(simulation_physics, "ChangeEntities");
-                    getEntities()->getTree()->withReadLock([&] {
-                        _entitySimulation->getObjectsToChange(motionStates);
-                        VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-                        _entitySimulation->setObjectsToChange(stillNeedChange);
-                    });
-                }
+            t1 = std::chrono::high_resolution_clock::now();
 
+            {
+                PROFILE_RANGE(simulation_physics, "Avatars");
+                PhysicsEngine::Transaction transaction;
+                avatarManager->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                avatarManager->handleProcessedPhysicsTransaction(transaction);
+
+                myAvatar->prepareForPhysicsSimulation();
+                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+            }
+        }
+
+        if (_physicsEnabled) {
+            {
+                PROFILE_RANGE(simulation_physics, "PrepareActions");
                 _entitySimulation->applyDynamicChanges();
-
-                t1 = std::chrono::high_resolution_clock::now();
-
-                {
-                    PROFILE_RANGE(simulation_physics, "Avatars");
-                    PhysicsEngine::Transaction transaction;
-                    avatarManager->buildPhysicsTransaction(transaction);
-                    _physicsEngine->processTransaction(transaction);
-                    avatarManager->handleProcessedPhysicsTransaction(transaction);
-                    myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
-                    _physicsEngine->processTransaction(transaction);
-                    myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
-                    myAvatar->prepareForPhysicsSimulation();
-                    _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
-                }
-
-                {
-                    PROFILE_RANGE(simulation_physics, "PrepareActions");
-                    _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
-                        dynamic->prepareForPhysicsSimulation();
-                    });
-                }
+                _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
+                    dynamic->prepareForPhysicsSimulation();
+                });
             }
             auto t2 = std::chrono::high_resolution_clock::now();
             {
@@ -6707,7 +6711,7 @@ void Application::updateRenderArgs(float deltaTime) {
             }
             appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getOctreeSizeScale(),
                 lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
-                RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+                RenderArgs::MONO, RenderArgs::DEFERRED, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 
             {
@@ -9380,7 +9384,7 @@ void Application::showUrlHandler(const QUrl& url) {
 void Application::beforeEnterBackground() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(false);
-    nodeList->reset(true);
+    nodeList->reset("Entering background", true);
     clearDomainOctreeDetails();
 }
 

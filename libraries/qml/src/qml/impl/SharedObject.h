@@ -71,7 +71,7 @@ public:
 private:
     bool event(QEvent* e) override;
 
-    bool preRender();
+    bool preRender(bool sceneGraphSync);
     void shutdownRendering(OffscreenGLCanvas& canvas, const QSize& size);
     // Called by the render event handler, from the render thread
     void initializeRenderControl(QOpenGLContext* context);

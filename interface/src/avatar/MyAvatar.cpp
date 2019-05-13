@@ -3755,6 +3755,7 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
 void MyAvatar::leaveDomain() {
     clearScaleRestriction();
     saveAvatarScale();
+    prepareResetTraitInstances();
 }
 
 void MyAvatar::saveAvatarScale() {

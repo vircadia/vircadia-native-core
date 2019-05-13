@@ -40,6 +40,7 @@
 #include <QLoggingCategory>
 
 Q_DECLARE_LOGGING_CATEGORY(domain_server)
+Q_DECLARE_LOGGING_CATEGORY(domain_server_ice)
 
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;

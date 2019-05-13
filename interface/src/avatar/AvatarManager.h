@@ -273,6 +273,8 @@ public slots:
 
 protected:
     AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
+    DetailedMotionState* createDetailedMotionState(OtherAvatarPointer avatar, int32_t jointIndex);
+    void rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, OtherAvatarPointer avatar);
 
 private:
     explicit AvatarManager(QObject* parent = 0);
@@ -288,7 +290,7 @@ private:
     void handleTransitAnimations(AvatarTransit::Status status);
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
-    SetOfOtherAvatars _avatarsToChangeInPhysics;
+    SetOfOtherAvatars _otherAvatarsToChangeInPhysics;
 
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
