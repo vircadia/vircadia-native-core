@@ -113,6 +113,19 @@ void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> funct
     }
 }
 
+#ifdef DEBUG_EVENT_QUEUE
+void AudioMixerSlavePool::queueStats(QJsonObject & stats) {
+    unsigned i = 0;
+    for (auto& slave : _slaves) {
+        int queueSize = ::hifi::qt::getEventQueueSize(slave.get());
+        QString queueName = QString("audio_thread_event_queue_%1").arg(i);
+        stats[queueName] = queueSize;
+
+        i++;
+    }
+}
+#endif // DEBUG_EVENT_QUEUE
+
 void AudioMixerSlavePool::setNumThreads(int numThreads) {
     // clamp to allowed size
     {

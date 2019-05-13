@@ -253,17 +253,6 @@
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
-#ifdef DEBUG_EVENT_QUEUE
-// This is a HACK that uses private headers included with the qt source distrubution.
-// To use this feature you need to add these directores to your include path:
-// E:/Qt/5.10.1/Src/qtbase/include/QtCore/5.10.1/QtCore
-// E:/Qt/5.10.1/Src/qtbase/include/QtCore/5.10.1
-#define QT_BOOTSTRAPPED
-#include <private/qthread_p.h>
-#include <private/qobject_p.h>
-#undef QT_BOOTSTRAPPED
-#endif
-
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
 extern "C" {
@@ -4011,24 +4000,6 @@ bool Application::handleFileOpenEvent(QFileOpenEvent* fileEvent) {
     return false;
 }
 
-#ifdef DEBUG_EVENT_QUEUE
-static int getEventQueueSize(QThread* thread) {
-    auto threadData = QThreadData::get2(thread);
-    QMutexLocker locker(&threadData->postEventList.mutex);
-    return threadData->postEventList.size();
-}
-
-static void dumpEventQueue(QThread* thread) {
-    auto threadData = QThreadData::get2(thread);
-    QMutexLocker locker(&threadData->postEventList.mutex);
-    qDebug() << "Event list, size =" << threadData->postEventList.size();
-    for (auto& postEvent : threadData->postEventList) {
-        QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
-        qDebug() << "    " << type;
-    }
-}
-#endif // DEBUG_EVENT_QUEUE
-
 bool Application::notify(QObject * object, QEvent * event) {
     if (thread() == QThread::currentThread()) {
         PROFILE_RANGE_IF_LONGER(app, "notify", 2)
@@ -4064,14 +4035,14 @@ bool Application::event(QEvent* event) {
         case ApplicationEvent::Idle:
             idle();
 
-#ifdef DEBUG_EVENT_QUEUE
+#ifdef DEBUG_EVENT_QUEUE_DEPTH
             {
-                int count = getEventQueueSize(QThread::currentThread());
+                int count = ::hifi::qt::getEventQueueSize(QThread::currentThread());
                 if (count > 400) {
-                    dumpEventQueue(QThread::currentThread());
+                    ::hifi::qt::dumpEventQueue(QThread::currentThread());
                 }
             }
-#endif // DEBUG_EVENT_QUEUE
+#endif // DEBUG_EVENT_QUEUE_DEPTH
 
             _pendingIdleEvent.store(false);
 

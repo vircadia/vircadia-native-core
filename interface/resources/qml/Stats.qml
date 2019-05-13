@@ -147,6 +147,16 @@ Item {
                                     "Parabolas:\t" + root.parabolaPicksUpdated.x + "/" + root.parabolaPicksUpdated.y + "/" + root.parabolaPicksUpdated.z + "\n    " +
                                     "Colliders:\t" + root.collisionPicksUpdated.x + "/" + root.collisionPicksUpdated.y + "/" + root.collisionPicksUpdated.z
                     }
+                    StatText {
+                        visible: { root.eventQueueDebuggingOn && root.expanded }
+                        text: { if (root.eventQueueDebuggingOn)
+                                    return "Event Queue Depth\n    " +
+                                        "Main:\t" + root.mainThreadQueueDepth + "\n" +
+                                        "NodeList:\t" + root.nodeListThreadQueueDepth;
+                                else
+                                    return "";
+                            }
+                    }
                 }
             }
 

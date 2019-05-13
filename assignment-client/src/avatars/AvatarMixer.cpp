@@ -24,6 +24,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtCore/QJsonDocument>
+#include <shared/QtHelpers.h>
 
 #include <AABox.h>
 #include <AvatarLogging.h>
@@ -752,6 +753,13 @@ void AvatarMixer::sendStatsPacket() {
     statsObject["threads"] = _slavePool.numThreads();
     statsObject["trailing_mix_ratio"] = _trailingMixRatio;
     statsObject["throttling_ratio"] = _throttlingRatio;
+
+#ifdef DEBUG_EVENT_QUEUE
+    QJsonObject qtStats;
+
+    _slavePool.queueStats(qtStats);
+    statsObject["avatar_thread_event_queue"] = qtStats;
+#endif
 
     // this things all occur on the frequency of the tight loop
     int tightLoopFrames = _numTightLoopFrames;
