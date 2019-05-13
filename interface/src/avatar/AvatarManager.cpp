@@ -578,14 +578,20 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
         workload::SpacePointer space = _space;
         transaction.transitionFinishedOperator(avatar->getRenderItemID(), [space, avatar]() {
-            const render::ScenePointer& scene = qApp->getMain3DScene();
-            render::Transaction transaction;
-            avatar->removeFromScene(avatar, scene, transaction);
-            scene->enqueueTransaction(transaction);
+            if (avatar->getLastFadeRequested() != render::Transition::Type::USER_LEAVE_DOMAIN) {
+                // The avatar is using another transition besides the fade-out transition, which means it is still in use.
+                // Deleting the avatar now could cause state issues, so abort deletion and show message.
+                qCWarning(interfaceapp) << "An ending fade-out transition wants to delete an avatar, but the avatar is still in use. Avatar deletion has aborted. (avatar ID: " << avatar->getSessionUUID() << ")";
+            } else {
+                const render::ScenePointer& scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                avatar->removeFromScene(avatar, scene, transaction);
+                scene->enqueueTransaction(transaction);
 
-            workload::Transaction workloadTransaction;
-            workloadTransaction.remove(avatar->getSpaceIndex());
-            space->enqueueTransaction(workloadTransaction);
+                workload::Transaction workloadTransaction;
+                workloadTransaction.remove(avatar->getSpaceIndex());
+                space->enqueueTransaction(workloadTransaction);
+            }
         });
         scene->enqueueTransaction(transaction);
     }
