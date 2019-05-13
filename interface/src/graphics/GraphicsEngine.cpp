@@ -65,15 +65,15 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
 
-void GraphicsEngine::initializeRender(bool disableDeferred) {
+void GraphicsEngine::initializeRender() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !disableDeferred);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !disableDeferred, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
     _renderEngine->load();
     _renderEngine->registerScene(_renderScene);
 

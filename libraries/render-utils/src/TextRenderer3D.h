@@ -38,8 +38,8 @@ public:
     glm::vec2 computeExtent(const QString& str) const;
     float getFontSize() const; // Pixel size
     
-    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(1.0f),
-              const glm::vec2& bounds = glm::vec2(-1.0f), bool layered = false);
+    void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
+              const glm::vec2& bounds, bool forward);
 
 private:
     TextRenderer3D(const char* family, float pointSize, int weight = -1, bool italic = false,

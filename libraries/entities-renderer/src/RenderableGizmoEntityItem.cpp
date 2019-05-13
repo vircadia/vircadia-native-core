@@ -261,15 +261,17 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         Transform transform;
         bool hasTickMarks;
         glm::vec4 tickProperties;
+        bool forward;
         withReadLock([&] {
             transform = _renderTransform;
             hasTickMarks = _ringProperties.getHasTickMarks();
             tickProperties = glm::vec4(_ringProperties.getMajorTickMarksAngle(), _ringProperties.getMajorTickMarksLength(),
                                        _ringProperties.getMinorTickMarksAngle(), _ringProperties.getMinorTickMarksLength());
+            forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
         });
 
         bool wireframe = render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES;
-        geometryCache->bindSimpleProgram(batch, false, isTransparent(), false, wireframe, true, true, _renderLayer != RenderLayer::WORLD);
+        geometryCache->bindSimpleProgram(batch, false, isTransparent(), false, wireframe, true, true, forward);
 
         batch.setModelTransform(transform);
 
