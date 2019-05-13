@@ -32,7 +32,7 @@ void CalculateMeshNormalsTask::run(const baker::BakeContextPointer& context, con
                     return &normalsOut[normalIndex];
                 },
                 [&mesh](int vertexIndex, glm::vec3& outVertex) /* VertexSetter */ {
-                    outVertex = mesh.vertices[vertexIndex];
+                    outVertex = baker::safeGet(mesh.vertices, vertexIndex);
                 }
             );
         }

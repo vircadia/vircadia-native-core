@@ -665,6 +665,8 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
             // tell the domain handler that we're no longer connected so that below
             // it can re-perform actions as if we just connected
             _domainHandler.setIsConnected(false);
+            // Clear any reliable connections using old ID.
+            _nodeSocket.clearConnections();
     }
 
     setSessionLocalID(newLocalID);

@@ -61,7 +61,7 @@ void CalculateBlendshapeNormalsTask::run(const baker::BakeContextPointer& contex
                             outVertex = blendshape.vertices[lookupIndex];
                         } else {
                             // Index isn't in the blendshape, so return vertex from mesh
-                            outVertex = mesh.vertices[lookupIndex];
+                            outVertex = baker::safeGet(mesh.vertices, lookupIndex);
                         }
                     });
             }

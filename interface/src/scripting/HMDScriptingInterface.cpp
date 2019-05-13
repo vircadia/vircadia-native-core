@@ -30,6 +30,9 @@ HMDScriptingInterface::HMDScriptingInterface() {
     connect(qApp, &Application::miniTabletEnabledChanged, [this](bool enabled) {
         emit miniTabletEnabledChanged(enabled);
     });
+    connect(qApp, &Application::awayStateWhenFocusLostInVRChanged, [this](bool enabled) {
+        emit awayStateWhenFocusLostInVRChanged(enabled);
+    });
 }
 
 glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
@@ -135,6 +138,14 @@ void HMDScriptingInterface::setMiniTabletEnabled(bool enabled) {
 
 bool HMDScriptingInterface::getMiniTabletEnabled() {
     return qApp->getMiniTabletEnabled();
+}
+
+void HMDScriptingInterface::setAwayStateWhenFocusLostInVREnabled(bool enabled) {
+    qApp->setAwayStateWhenFocusLostInVREnabled(enabled);
+}
+
+bool HMDScriptingInterface::getAwayStateWhenFocusLostInVREnabled() {
+    return qApp->getAwayStateWhenFocusLostInVREnabled();
 }
 
 
