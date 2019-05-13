@@ -147,7 +147,7 @@ public:
 
     // Return an HTTP User-Agent string with OS and device information.
     Q_INVOKABLE QString getUserAgent();
-    void initializePlatform();
+
     void initializeGL();
     void initializeDisplayPlugins();
     void initializeRenderEngine();
