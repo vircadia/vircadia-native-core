@@ -61,7 +61,7 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
  * An intersection result for a collision pick.
  *
  * @typedef {object} CollisionPickResult
- * @property {boolean} intersects - <code>truen</code> if there is at least one intersection, <code>false</code> if there isn't.
+ * @property {boolean} intersects - <code>true</code> if there is at least one intersection, <code>false</code> if there isn't.
  * @property {IntersectingObject[]} intersectingObjects - All objects which intersect with the <code>collisionRegion</code>.
  * @property {CollisionRegion} collisionRegion - The collision region that was used. Valid even if there was no intersection.
  */

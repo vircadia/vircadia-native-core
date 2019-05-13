@@ -426,15 +426,16 @@ public:
     /**jsdoc
      * A volume for checking collisions in the physics simulation.
      * @typedef {object} CollisionRegion
-     * @property {Shape} shape - The collision region's shape and size. Dimensions are in world space, but scale with the parent
-     *     if defined.
-     * @property {boolean} loaded - <code>true</code> if the <code>shape</code> has no model, or has a model and it is loaded.
+     * @property {Shape} shape - The collision region's shape and size. Dimensions are in world coordinates, but scale with the 
+     *     parent if defined.
+     * @property {boolean} loaded - <code>true</code> if the <code>shape</code> has no model, or has a model and it is loaded, 
+     *     <code>false</code> if otherwise.
      * @property {Vec3} position - The position of the collision region, relative to the parent if defined.
      * @property {Quat} orientation - The orientation of the collision region, relative to the parent if defined.
      * @property {number} threshold - The approximate minimum penetration depth for a test object to be considered in contact with
      *     the collision region. The depth is in world coordinates but scales with the parent if defined.
      * @property {CollisionMask} [collisionGroup=8] - The type of objects the collision region collides as. Objects whose collision
-     *     masks overlap with the regions's collision group are considered to be colliding with the region.
+     *     masks overlap with the region's collision group are considered to be colliding with the region.
      */
 
     /**jsdoc

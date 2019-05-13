@@ -325,7 +325,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
  * @property {number} threshold - The approximate minimum penetration depth for a test object to be considered in contact with
  *     the collision region. The depth is in world coordinates but scales with the parent if defined.
  * @property {CollisionMask} [collisionGroup=8] - The type of objects the collision region collides as. Objects whose collision
- *     masks overlap with the regions's collision group are considered to be colliding with the region.
+ *     masks overlap with the region's collision group are considered to be colliding with the region.
  */
 unsigned int PickScriptingInterface::createCollisionPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
