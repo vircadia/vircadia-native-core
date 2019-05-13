@@ -215,6 +215,8 @@ public:
     float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
+    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
 
@@ -608,7 +610,6 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
 
-    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
     void userKickConfirmation(const QUuid& nodeID);
 
     MainWindow* _window;

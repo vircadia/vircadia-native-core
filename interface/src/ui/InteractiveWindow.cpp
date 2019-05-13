@@ -11,12 +11,15 @@
 
 #include "InteractiveWindow.h"
 
+#include "Application.h"
 #include <QtQml/QQmlContext>
 #include <QtCore/QThread>
 #include <QtGui/QGuiApplication>
 #include <QtQuick/QQuickWindow>
+#include <QQuickView>
 
 #include <DependencyManager.h>
+#include <DockWidget.h>
 #include <RegisteredMetaTypes.h>
 
 #include "OffscreenUi.h"
@@ -40,8 +43,16 @@ static const char* const VISIBLE_PROPERTY = "visible";
 static const char* const INTERACTIVE_WINDOW_VISIBLE_PROPERTY = "interactiveWindowVisible";
 static const char* const EVENT_BRIDGE_PROPERTY = "eventBridge";
 static const char* const PRESENTATION_MODE_PROPERTY = "presentationMode";
+static const char* const DOCKED_PROPERTY = "presentationWindowInfo";
+static const char* const DOCK_AREA_PROPERTY = "dockArea";
 
 static const QStringList KNOWN_SCHEMES = QStringList() << "http" << "https" << "file" << "about" << "atp" << "qrc";
+
+static const int DEFAULT_HEIGHT = 60;
+
+static void dockWidgetDeleter(DockWidget* dockWidget) {
+    dockWidget->deleteLater();
+}
 
 void registerInteractiveWindowMetaType(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, interactiveWindowPointerToScriptValue, interactiveWindowPointerFromScriptValue);
@@ -58,55 +69,117 @@ void interactiveWindowPointerFromScriptValue(const QScriptValue& object, Interac
 }
 
 InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    bool docked = false;
+    InteractiveWindowPresentationMode presentationMode = InteractiveWindowPresentationMode::Native;
 
-    // Build the event bridge and wrapper on the main thread
-    offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
-        _qmlWindow = object;
-        context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
-        if (properties.contains(FLAGS_PROPERTY)) {
-            object->setProperty(FLAGS_PROPERTY, properties[FLAGS_PROPERTY].toUInt());
-        }
-        if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
-            object->setProperty(PRESENTATION_MODE_PROPERTY, properties[PRESENTATION_MODE_PROPERTY].toInt());
-        }
+    if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
+        presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
+    }
+
+    if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
+        QVariantMap nativeWindowInfo = properties[DOCKED_PROPERTY].toMap();
+        Qt::DockWidgetArea dockArea = Qt::TopDockWidgetArea;
+        QString title;
+        QSize windowSize(DEFAULT_HEIGHT, DEFAULT_HEIGHT);
+
         if (properties.contains(TITLE_PROPERTY)) {
-            object->setProperty(TITLE_PROPERTY, properties[TITLE_PROPERTY].toString());
+            title = properties[TITLE_PROPERTY].toString();
         }
         if (properties.contains(SIZE_PROPERTY)) {
             const auto size = vec2FromVariant(properties[SIZE_PROPERTY]);
-            object->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(size.x, size.y));
-        }
-        if (properties.contains(POSITION_PROPERTY)) {
-            const auto position = vec2FromVariant(properties[POSITION_PROPERTY]);
-            object->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(position.x, position.y));
-        }
-        if (properties.contains(VISIBLE_PROPERTY)) {
-            object->setProperty(VISIBLE_PROPERTY, properties[INTERACTIVE_WINDOW_VISIBLE_PROPERTY].toBool());
+            windowSize = QSize(size.x, size.y);
         }
 
-        connect(object, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
-        connect(object, SIGNAL(interactiveWindowPositionChanged()), this, SIGNAL(positionChanged()), Qt::QueuedConnection);
-        connect(object, SIGNAL(interactiveWindowSizeChanged()), this, SIGNAL(sizeChanged()), Qt::QueuedConnection);
-        connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
-        connect(object, SIGNAL(presentationModeChanged()), this, SIGNAL(presentationModeChanged()), Qt::QueuedConnection);
-        connect(object, SIGNAL(titleChanged()), this, SIGNAL(titleChanged()), Qt::QueuedConnection);
-        connect(object, SIGNAL(windowClosed()), this, SIGNAL(closed()), Qt::QueuedConnection);
-        connect(object, SIGNAL(selfDestruct()), this, SLOT(close()), Qt::QueuedConnection);
+        auto mainWindow = qApp->getWindow();
+        _dockWidget = std::shared_ptr<DockWidget>(new DockWidget(title, mainWindow), dockWidgetDeleter);
+        auto quickView = _dockWidget->getQuickView();
+        Application::setupQmlSurface(quickView->rootContext(), true);
+
+        if (nativeWindowInfo.contains(DOCK_AREA_PROPERTY)) {
+            DockArea dockedArea = (DockArea) nativeWindowInfo[DOCK_AREA_PROPERTY].toInt();
+            switch (dockedArea) {
+                case DockArea::TOP:
+                    dockArea = Qt::TopDockWidgetArea;
+                    _dockWidget->setFixedHeight(windowSize.height());
+                    break;
+                case DockArea::BOTTOM:
+                    dockArea = Qt::BottomDockWidgetArea;
+                    _dockWidget->setFixedHeight(windowSize.height());
+                    break;
+                case DockArea::LEFT:
+                    dockArea = Qt::LeftDockWidgetArea;
+                    _dockWidget->setFixedWidth(windowSize.width());
+                    break;
+                case DockArea::RIGHT:
+                    dockArea = Qt::RightDockWidgetArea;
+                    _dockWidget->setFixedWidth(windowSize.width());
+                    break;
+
+                default:
+                    _dockWidget->setFixedHeight(DEFAULT_HEIGHT);
+                    break;
+            }
+        }
+
+        QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
+            if (status == QQuickView::Ready) {
+                QQuickItem* rootItem = _dockWidget->getRootItem();
+                QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            }
+        });
+        _dockWidget->setSource(QUrl(sourceUrl));
+        mainWindow->addDockWidget(dockArea, _dockWidget.get());
+        _dockedWindow = docked;
+    } else {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        // Build the event bridge and wrapper on the main thread
+        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
+            _qmlWindow = object;
+            context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+            if (properties.contains(FLAGS_PROPERTY)) {
+                object->setProperty(FLAGS_PROPERTY, properties[FLAGS_PROPERTY].toUInt());
+            }
+            if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
+                object->setProperty(PRESENTATION_MODE_PROPERTY, properties[PRESENTATION_MODE_PROPERTY].toInt());
+            }
+            if (properties.contains(TITLE_PROPERTY)) {
+                object->setProperty(TITLE_PROPERTY, properties[TITLE_PROPERTY].toString());
+            }
+            if (properties.contains(SIZE_PROPERTY)) {
+                const auto size = vec2FromVariant(properties[SIZE_PROPERTY]);
+                object->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(size.x, size.y));
+            }
+            if (properties.contains(POSITION_PROPERTY)) {
+                const auto position = vec2FromVariant(properties[POSITION_PROPERTY]);
+                object->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(position.x, position.y));
+            }
+            if (properties.contains(VISIBLE_PROPERTY)) {
+                object->setProperty(VISIBLE_PROPERTY, properties[INTERACTIVE_WINDOW_VISIBLE_PROPERTY].toBool());
+            }
+
+            connect(object, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            connect(object, SIGNAL(interactiveWindowPositionChanged()), this, SIGNAL(positionChanged()), Qt::QueuedConnection);
+            connect(object, SIGNAL(interactiveWindowSizeChanged()), this, SIGNAL(sizeChanged()), Qt::QueuedConnection);
+            connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SIGNAL(visibleChanged()), Qt::QueuedConnection);
+            connect(object, SIGNAL(presentationModeChanged()), this, SIGNAL(presentationModeChanged()), Qt::QueuedConnection);
+            connect(object, SIGNAL(titleChanged()), this, SIGNAL(titleChanged()), Qt::QueuedConnection);
+            connect(object, SIGNAL(windowClosed()), this, SIGNAL(closed()), Qt::QueuedConnection);
+            connect(object, SIGNAL(selfDestruct()), this, SLOT(close()), Qt::QueuedConnection);
 
 #ifdef Q_OS_WIN
-        connect(object, SIGNAL(nativeWindowChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
-        connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
-        connect(object, SIGNAL(presentationModeChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+            connect(object, SIGNAL(nativeWindowChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+            connect(object, SIGNAL(interactiveWindowVisibleChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
+            connect(object, SIGNAL(presentationModeChanged()), this, SLOT(parentNativeWindowToMainWindow()), Qt::QueuedConnection);
 #endif
 
-        QUrl sourceURL{ sourceUrl };
-        // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
-        if (!KNOWN_SCHEMES.contains(sourceURL.scheme(), Qt::CaseInsensitive)) {
-            sourceURL = QUrl::fromLocalFile(sourceURL.toString()).toString();
-        }
-        object->setProperty(SOURCE_PROPERTY, sourceURL);
-    });
+            QUrl sourceURL{ sourceUrl };
+            // If the passed URL doesn't correspond to a known scheme, assume it's a local file path
+            if (!KNOWN_SCHEMES.contains(sourceURL.scheme(), Qt::CaseInsensitive)) {
+                sourceURL = QUrl::fromLocalFile(sourceURL.toString()).toString();
+            }
+            object->setProperty(SOURCE_PROPERTY, sourceURL);
+        });
+    }
 }
 
 InteractiveWindow::~InteractiveWindow() {
@@ -115,7 +188,14 @@ InteractiveWindow::~InteractiveWindow() {
 
 void InteractiveWindow::sendToQml(const QVariant& message) {
     // Forward messages received from the script on to QML
-    QMetaObject::invokeMethod(_qmlWindow, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    if (_dockedWindow) {
+        QQuickItem* rootItem = _dockWidget->getRootItem();
+        if (rootItem) {
+            QMetaObject::invokeMethod(_qmlWindow, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+        }
+    } else {
+        QMetaObject::invokeMethod(_qmlWindow, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+    }
 }
 
 void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
@@ -143,6 +223,9 @@ void InteractiveWindow::close() {
     if (_qmlWindow) {
         _qmlWindow->deleteLater();
     }
+
+    qApp->getWindow()->removeDockWidget(_dockWidget.get());
+    _dockWidget = nullptr;
     _qmlWindow = nullptr;
 }
 

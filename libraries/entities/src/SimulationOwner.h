@@ -89,6 +89,8 @@
 //    (14) When an entity's ownership priority drops to YIELD (=1, below VOLUNTEER) other participants may
 //         bid for it immediately at VOLUNTEER.
 //
+/* These declarations temporarily moved to SimulationFlags.h while we unravel some spaghetti dependencies.
+ * The intent is to move them back here once the dust settles.
 const uint8_t YIELD_SIMULATION_PRIORITY = 1;
 const uint8_t VOLUNTEER_SIMULATION_PRIORITY = YIELD_SIMULATION_PRIORITY + 1;
 const uint8_t RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
@@ -101,6 +103,7 @@ const uint8_t SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY 
 // which really just means: things that collide with it will be bid at a priority level one lower
 const uint8_t PERSONAL_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY;
 const uint8_t AVATAR_ENTITY_SIMULATION_PRIORITY = PERSONAL_SIMULATION_PRIORITY;
+*/
 
 
 class SimulationOwner {

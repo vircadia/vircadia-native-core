@@ -31,7 +31,7 @@ protected:
     void updateEntitiesInternal(uint64_t now) override;
     void addEntityInternal(EntityItemPointer entity) override;
     void removeEntityInternal(EntityItemPointer entity) override;
-    void changeEntityInternal(EntityItemPointer entity) override;
+    void processChangedEntity(const EntityItemPointer& entity) override;
     void clearEntitiesInternal() override;
 
     void sortEntitiesThatMoved() override;

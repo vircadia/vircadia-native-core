@@ -13,7 +13,9 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-#include "QVariantGLM.h"
+#include <EntityItem.h>
+#include <QVariantGLM.h>
+
 #include "PhysicsLogging.h"
 
 const uint16_t ObjectActionTravelOriented::actionVersion = 1;

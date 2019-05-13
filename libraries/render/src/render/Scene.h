@@ -78,9 +78,6 @@ public:
     void merge(Transaction&& transaction);
     void clear();
 
-    // Checkers if there is work to do when processing the transaction
-    bool touchTransactions() const { return !_resetSelections.empty(); }
-
 protected:
 
     using Reset = std::tuple<ItemID, PayloadPointer>;

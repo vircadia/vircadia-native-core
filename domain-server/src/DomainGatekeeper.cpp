@@ -811,26 +811,23 @@ void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<ReceivedMe
     // any peer we don't have we add to the hash, otherwise we update
     QDataStream iceResponseStream(message->getMessage());
 
-    NetworkPeer* receivedPeer = new NetworkPeer;
+    auto receivedPeer = SharedNetworkPeer::create();
     iceResponseStream >> *receivedPeer;
 
     if (!_icePeers.contains(receivedPeer->getUUID())) {
-        qDebug() << "New peer requesting ICE connection being added to hash -" << *receivedPeer;
-        SharedNetworkPeer newPeer = SharedNetworkPeer(receivedPeer);
-        _icePeers[receivedPeer->getUUID()] = newPeer;
+        qCDebug(domain_server_ice) << "New peer requesting ICE connection being added to hash -" << *receivedPeer;
+        _icePeers[receivedPeer->getUUID()] = receivedPeer;
 
         // make sure we know when we should ping this peer
-        connect(newPeer.data(), &NetworkPeer::pingTimerTimeout, this, &DomainGatekeeper::handlePeerPingTimeout);
+        connect(receivedPeer.data(), &NetworkPeer::pingTimerTimeout, this, &DomainGatekeeper::handlePeerPingTimeout);
 
         // immediately ping the new peer, and start a timer to continue pinging it until we connect to it
-        newPeer->startPingTimer();
+        receivedPeer->startPingTimer();
 
-        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-            << newPeer->getUUID();
+        qCDebug(domain_server_ice) << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << receivedPeer->getUUID();
 
-        pingPunchForConnectingPeer(newPeer);
-    } else {
-        delete receivedPeer;
+        pingPunchForConnectingPeer(receivedPeer);
     }
 }
 
