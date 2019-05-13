@@ -15,7 +15,7 @@ namespace platform {
     class MACOSInstance : public Instance {
     
     public:
-        bool enumeratePlatform();
+        bool enumeratePlatform() override;
 
     private:
         unsigned int getNumLogicalCores();

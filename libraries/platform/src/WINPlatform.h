@@ -15,7 +15,7 @@ namespace platform {
     class WINInstance : public Instance {
     
     public:
-        bool enumeratePlatform();
+        bool enumeratePlatform() override;
 
     private:
         unsigned int getNumLogicalCores();

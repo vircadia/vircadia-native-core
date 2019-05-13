@@ -36,7 +36,7 @@ public:
 protected:
     std::vector<json>  _cpu;
     std::vector<json>  _memory;
-    std::vector<json> _gpu;
+    std::vector<json>  _gpu;
     std::vector<json> _display;
 };
 
