@@ -114,7 +114,7 @@ void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> funct
 }
 
 #ifdef DEBUG_EVENT_QUEUE
-void AudioMixerSlavePool::queueStats(QJsonObject & stats) {
+void AudioMixerSlavePool::queueStats(QJsonObject& stats) {
     unsigned i = 0;
     for (auto& slave : _slaves) {
         int queueSize = ::hifi::qt::getEventQueueSize(slave.get());

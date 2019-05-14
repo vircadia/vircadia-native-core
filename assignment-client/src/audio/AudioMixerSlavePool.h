@@ -73,7 +73,7 @@ public:
     void each(std::function<void(AudioMixerSlave& slave)> functor);
 
 #ifdef DEBUG_EVENT_QUEUE
-    void queueStats(QJsonObject & stats);
+    void queueStats(QJsonObject& stats);
 #endif
 
     void setNumThreads(int numThreads);

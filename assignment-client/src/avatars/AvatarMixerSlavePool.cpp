@@ -118,7 +118,7 @@ void AvatarMixerSlavePool::each(std::function<void(AvatarMixerSlave& slave)> fun
 }
 
 #ifdef DEBUG_EVENT_QUEUE
-void AvatarMixerSlavePool::queueStats(QJsonObject & stats) {
+void AvatarMixerSlavePool::queueStats(QJsonObject& stats) {
     unsigned i = 0;
     for (auto& slave : _slaves) {
         int queueSize = ::hifi::qt::getEventQueueSize(slave.get());

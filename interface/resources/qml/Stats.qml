@@ -149,12 +149,13 @@ Item {
                     }
                     StatText {
                         visible: { root.eventQueueDebuggingOn && root.expanded }
-                        text: { if (root.eventQueueDebuggingOn)
+                        text: { if (root.eventQueueDebuggingOn) {
                                     return "Event Queue Depth\n    " +
                                         "Main:\t" + root.mainThreadQueueDepth + "\n" +
                                         "NodeList:\t" + root.nodeListThreadQueueDepth;
-                                else
+                                } else {
                                     return "";
+                                }
                             }
                     }
                 }
