@@ -12,7 +12,7 @@
 
 namespace platform {
     namespace jsonKeys{
-#ifndef Q_OS_LINUX //hiding from linux at the moment due to unused variables warning
+#if !defined(Q_OS_LINUX) //hiding from linux at the moment due to unused variables warning
         static const char*  cpuBrand= "cpuBrand";
         static const char*  cpuModel = "cpuModel";
         static const char*  cpuClockSpeed = "clockSpeed";
