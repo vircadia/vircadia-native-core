@@ -258,12 +258,12 @@ public:
 };
 
 /**jsdoc
- * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or avatars that lie under a
- * mouse click or intersect a laser beam.
+ * A vector with a starting point. It is used, for example, when finding entities or avatars that lie under a mouse click or 
+ * intersect a laser beam.
  *
  * @typedef {object} PickRay
- * @property {Vec3} origin - The starting position of the PickRay.
- * @property {Vec3} direction - The direction that the PickRay travels.
+ * @property {Vec3} origin - The starting position of the ray.
+ * @property {Vec3} direction - The direction that the ray travels.
  */
 class PickRay : public MathPick {
 public:
@@ -291,13 +291,14 @@ QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay)
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
 /**jsdoc
- * A StylusTip defines the tip of a stylus.
+ * The tip of a stylus.
  *
  * @typedef {object} StylusTip
- * @property {number} side - The hand the tip is attached to: <code>0</code> for left, <code>1</code> for right.
- * @property {Vec3} tipOffset  - the position offset of the stylus tip.
+ * @property {number} side - The hand that the stylus is attached to: <code>0</code> for left hand, <code>1</code> for the 
+ *     right hand, <code>-1</code> for invalid.
+ * @property {Vec3} tipOffset - The position of the stylus tip relative to the body of the stylus.
  * @property {Vec3} position - The position of the stylus tip.
- * @property {Quat} orientation - The orientation of the stylus tip.
+ * @property {Quat} orientation - The orientation of the stylus.
  * @property {Vec3} velocity - The velocity of the stylus tip.
  */
 class StylusTip : public MathPick {
@@ -333,12 +334,16 @@ public:
 };
 
 /**jsdoc
-* A PickParabola defines a parabola with a starting point, intitial velocity, and acceleration.
+* A parabola defined by a starting point, initial velocity, and acceleration. It is used, for example, when finding entities or
+* avatars that intersect a parabolic beam.
 *
 * @typedef {object} PickParabola
-* @property {Vec3} origin - The starting position of the PickParabola.
-* @property {Vec3} velocity - The starting velocity of the parabola.
-* @property {Vec3} acceleration - The acceleration that the parabola experiences.
+* @property {Vec3} origin - The starting position of the parabola, i.e., the initial position of a virtual projectile whose 
+*     trajectory defines the parabola.
+* @property {Vec3} velocity - The starting velocity of the parabola in m/s, i.e., the initial speed of a virtual projectile 
+*     whose trajectory defines the parabola.
+* @property {Vec3} acceleration - The acceleration that the parabola experiences in m/s<sup>2</sup>, i.e., the acceleration of 
+*     a virtual projectile whose trajectory defines the parabola, both magnitude and direction.
 */
 class PickParabola : public MathPick {
 public:
@@ -364,23 +369,6 @@ public:
     }
 };
 
-// TODO: Add "loaded" to CollisionRegion jsdoc once model collision picks are supported.
-
-/**jsdoc
-* A CollisionRegion defines a volume for checking collisions in the physics simulation.
-
-* @typedef {object} CollisionRegion
-* @property {Shape} shape - The information about the collision region's size and shape. Dimensions are in world space, but will scale with the parent if defined.
-* @property {Vec3} position - The position of the collision region, relative to a parent if defined.
-* @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
-* @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
-* The depth is measured in world space, but will scale with the parent if defined.
-* @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
-* will be considered colliding with the pick.
-* @property {Uuid} parentID - The ID of the parent, either an avatar or an entity.
-* @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
-* @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
-*/
 class CollisionRegion : public MathPick {
 public:
     CollisionRegion() { }
@@ -434,6 +422,30 @@ public:
             collisionGroup = pickVariant["collisionGroup"].toUInt();
         }
     }
+
+    /**jsdoc
+     * A volume for checking collisions in the physics simulation.
+     * @typedef {object} CollisionRegion
+     * @property {Shape} shape - The collision region's shape and size. Dimensions are in world coordinates, but scale with the 
+     *     parent if defined.
+     * @property {boolean} loaded - <code>true</code> if the <code>shape</code> has no model, or has a model and it is loaded, 
+     *     <code>false</code> if otherwise.
+     * @property {Vec3} position - The position of the collision region, relative to the parent if defined.
+     * @property {Quat} orientation - The orientation of the collision region, relative to the parent if defined.
+     * @property {number} threshold - The approximate minimum penetration depth for a test object to be considered in contact with
+     *     the collision region. The depth is in world coordinates but scales with the parent if defined.
+     * @property {CollisionMask} [collisionGroup=8] - The type of objects the collision region collides as. Objects whose collision
+     *     masks overlap with the region's collision group are considered to be colliding with the region.
+     */
+
+    /**jsdoc
+     * A physical volume.
+     * @typedef {object} Shape
+     * @property {ShapeType} shapeType="none" - The type of shape.
+     * @property {string} [modelUrl=""] - The model to load to for the shape if <code>shapeType</code> is one of
+     *     <code>"compound"</code>, <code>"simple-hull"</code>, <code>"simple-compound"</code>, or <code>"static-mesh"</code>.
+     * @property {Vec3} dimensions - The dimensions of the shape.
+     */
 
     QVariantMap toVariantMap() const override {
         QVariantMap collisionRegion;
@@ -589,7 +601,7 @@ namespace std {
 }
 
 /**jsdoc
- * <p>The type of a collision contact event.
+ * <p>The type of a collision contact event.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
