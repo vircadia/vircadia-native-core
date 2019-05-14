@@ -5,8 +5,7 @@ var toolBar = (function() {
         toolBar,
         activeButton,
         newModelButton,
-        newCubeButton,
-        newSphereButton,
+        newShapeButton,
         newLightButton,
         newTextButton,
         newWebButton,
@@ -41,16 +40,9 @@ var toolBar = (function() {
             visible: false
         });
 
-        newCubeButton = toolBar.addButton({
-            objectName: "newCubeButton",
+        newShapeButton = toolBar.addButton({
+            objectName: "newShapeButton",
             imageURL: toolIconUrl + "cube-01.svg",
-            alpha: 0.9,
-            visible: false
-        });
-
-        newSphereButton = toolBar.addButton({
-            objectName: "newSphereButton",
-            imageURL: toolIconUrl + "sphere-01.svg",
             alpha: 0.9,
             visible: false
         });
@@ -111,8 +103,7 @@ var toolBar = (function() {
     // Sets visibility of tool buttons, excluding the power button
     that.showTools = function(doShow) {
         newModelButton.writeProperty('visible', doShow);
-        newCubeButton.writeProperty('visible', doShow);
-        newSphereButton.writeProperty('visible', doShow);
+        newShapeButton.writeProperty('visible', doShow);
         newLightButton.writeProperty('visible', doShow);
         newTextButton.writeProperty('visible', doShow);
         newWebButton.writeProperty('visible', doShow);

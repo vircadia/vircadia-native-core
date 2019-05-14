@@ -270,6 +270,7 @@ enum class EntityVersion : PacketVersion {
     DisableWebMedia,
     ParticleShapeType,
     ParticleShapeTypeDeadlockFix,
+    PrivateUserData,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
