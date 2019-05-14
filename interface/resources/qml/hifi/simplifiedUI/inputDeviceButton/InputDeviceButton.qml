@@ -16,28 +16,28 @@ import TabletScriptingInterface 1.0
 import "../simplifiedConstants" as SimplifiedConstants
 
 Rectangle {
-    id: micBar;
+    id: micBar
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
     }
 
-    readonly property var level: AudioScriptingInterface.inputLevel;
-    readonly property var clipping: AudioScriptingInterface.clipping;
-    property var muted: AudioScriptingInterface.muted;
-    property var pushToTalk: AudioScriptingInterface.pushToTalk;
-    property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
-    readonly property var userSpeakingLevel: 0.4;
-    property bool gated: false;
+    readonly property var level: AudioScriptingInterface.inputLevel
+    readonly property var clipping: AudioScriptingInterface.clipping
+    property var muted: AudioScriptingInterface.muted
+    property var pushToTalk: AudioScriptingInterface.pushToTalk
+    property var pushingToTalk: AudioScriptingInterface.pushingToTalk
+    readonly property var userSpeakingLevel: 0.4
+    property bool gated: false
 
-    readonly property string unmutedIcon: "images/mic-unmute-i.svg";
-    readonly property string mutedIcon: "images/mic-mute-i.svg";
-    readonly property string pushToTalkIcon: "images/mic-ptt-i.svg";
-    readonly property string clippingIcon: "images/mic-clip-i.svg";
-    readonly property string gatedIcon: "images/mic-gate-i.svg";
+    readonly property string unmutedIcon: "images/mic-unmute-i.svg"
+    readonly property string mutedIcon: "images/mic-mute-i.svg"
+    readonly property string pushToTalkIcon: "images/mic-ptt-i.svg"
+    readonly property string clippingIcon: "images/mic-clip-i.svg"
+    readonly property string gatedIcon: "images/mic-gate-i.svg"
     
     Connections {
-        target: AudioScriptingInterface;
+        target: AudioScriptingInterface
 
         onNoiseGateOpened: {
             gated = false;
@@ -48,10 +48,10 @@ Rectangle {
         }
     }
 
-    height: 30;
-    width: 34;
+    height: 30
+    width: 34
 
-    opacity: 0.7;
+    opacity: 0.7
 
     onLevelChanged: {
         var rectOpacity = (muted && (level >= userSpeakingLevel)) ? 1.0 : 0.7;
@@ -63,20 +63,20 @@ Rectangle {
         micBar.opacity = rectOpacity;
     }
 
-    color: "#00000000";
+    color: "#00000000"
 
     MouseArea {
-        id: mouseArea;
+        id: mouseArea
 
         anchors {
-            left: icon.left;
-            right: bar.right;
-            top: icon.top;
-            bottom: icon.bottom;
+            left: icon.left
+            right: bar.right
+            top: icon.top
+            bottom: icon.bottom
         }
 
-        hoverEnabled: true;
-        scrollGestureEnabled: false;
+        hoverEnabled: true
+        scrollGestureEnabled: false
         onClicked: {
             if (pushToTalk) {
                 return;
@@ -93,17 +93,17 @@ Rectangle {
     }
 
     QtObject {
-        id: colors;
+        id: colors
 
-        readonly property string unmutedColor: simplifiedUI.colors.controls.inputVolumeButton.text.noisy;
-        readonly property string gatedColor: "#00BDFF";
-        readonly property string mutedColor: simplifiedUI.colors.controls.inputVolumeButton.text.muted;
-        readonly property string gutter: "#575757";
-        readonly property string greenStart: "#39A38F";
-        readonly property string greenEnd: "#1FC6A6";
-        readonly property string yellow: "#C0C000";
-        readonly property string fill: "#55000000";
-        readonly property string icon: (muted || clipping) ? mutedColor : gated ? gatedColor : unmutedColor;
+        readonly property string unmutedColor: simplifiedUI.colors.controls.inputVolumeButton.text.noisy
+        readonly property string gatedColor: "#00BDFF"
+        readonly property string mutedColor: simplifiedUI.colors.controls.inputVolumeButton.text.muted
+        readonly property string gutter: "#575757"
+        readonly property string greenStart: "#39A38F"
+        readonly property string greenEnd: "#1FC6A6"
+        readonly property string yellow: "#C0C000"
+        readonly property string fill: "#55000000"
+        readonly property string icon: (muted || clipping) ? mutedColor : gated ? gatedColor : unmutedColor
     }
 
     Item {
@@ -117,9 +117,9 @@ Rectangle {
             anchors.fill: parent
             opacity: mouseArea.containsMouse ? 1.0 : 0.7
             Image {
-                id: image;
+                id: image
                 source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
-                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
+                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.fill: parent
                 fillMode: Image.PreserveAspectFit
             }
@@ -127,42 +127,42 @@ Rectangle {
             ColorOverlay {
                 id: imageOverlay
                 anchors { fill: image }
-                source: image;
-                color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : colors.icon;
+                source: image
+                color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : colors.icon
             }
         }
     }
 
     Item {
-        id: bar;
+        id: bar
 
         anchors {
-            left: icon.right;
-            leftMargin: 0;
-            verticalCenter: icon.verticalCenter;
+            left: icon.right
+            leftMargin: 0
+            verticalCenter: icon.verticalCenter
         }
 
-        width: 4;
-        height: parent.height;
+        width: 4
+        height: parent.height
 
         Rectangle { // base
             id: baseBar
-            radius: 4;
+            radius: 4
             anchors { fill: parent }
-            color: colors.gutter;
+            color: colors.gutter
         }
 
         Rectangle { // mask
-            id: mask;
-            height: micBar.muted ? parent.height : parent.height * level;
+            id: mask
+            height: micBar.muted ? parent.height : parent.height * level
             color: micBar.muted ? colors.mutedColor : "white"
-            width: parent.width;
-            radius: 5;
+            width: parent.width
+            radius: 5
             anchors {
-                bottom: parent.bottom;
-                bottomMargin: 0;
-                left: parent.left;
-                leftMargin: 0;
+                bottom: parent.bottom
+                bottomMargin: 0
+                left: parent.left
+                leftMargin: 0
             }
         }
 
@@ -170,21 +170,21 @@ Rectangle {
             anchors { fill: mask }
             visible: mask.visible && !micBar.muted
             source: mask
-            start: Qt.point(0, 0);
-            end: Qt.point(0, bar.height);
+            start: Qt.point(0, 0)
+            end: Qt.point(0, bar.height)
             rotation: 180
             gradient: Gradient {
                 GradientStop {
-                    position: 0.0;
-                    color: colors.greenStart;
+                    position: 0.0
+                    color: colors.greenStart
                 }
                 GradientStop {
-                    position: 0.5;
-                    color: colors.greenEnd;
+                    position: 0.5
+                    color: colors.greenEnd
                 }
                 GradientStop {
-                    position: 1.0;
-                    color: colors.yellow;
+                    position: 1.0
+                    color: colors.yellow
                 }
             }
         }

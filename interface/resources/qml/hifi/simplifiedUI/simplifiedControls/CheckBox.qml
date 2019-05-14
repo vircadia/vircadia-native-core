@@ -27,7 +27,7 @@ Original.CheckBox {
     property alias checkBoxRadius: checkBoxIndicator.radius
     property alias checkSize: innerBox.width
     property alias checkRadius: innerBox.radius
-    property bool wrapLabel: true;
+    property bool wrapLabel: true
     property alias labelFontFamily: checkBoxLabel.font.family
     property alias labelFontSize: checkBoxLabel.font.pixelSize
     property alias labelFontWeight: checkBoxLabel.font.weight
@@ -77,9 +77,9 @@ Original.CheckBox {
         id: checkBoxLabel
         text: root.text
         color: root.color
-        font.family: "Graphik";
-        font.pixelSize: 14;
-        font.weight: Font.DemiBold;
+        font.family: "Graphik"
+        font.pixelSize: 14
+        font.weight: Font.DemiBold
         x: 2
         verticalAlignment: Text.AlignVCenter
         wrapMode: root.wrapLabel ? Text.Wrap : Text.NoWrap

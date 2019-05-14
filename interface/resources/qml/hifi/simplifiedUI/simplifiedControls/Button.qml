@@ -64,7 +64,7 @@ Original.Button {
         border.color: root.enabled ? simplifiedUI.colors.controls.button.border.enabled : simplifiedUI.colors.controls.button.border.disabled
 
         Item {
-            clip: true;
+            clip: true
             visible: root.enabled
             anchors.centerIn: parent
             width: parent.width - parent.border.width * 2

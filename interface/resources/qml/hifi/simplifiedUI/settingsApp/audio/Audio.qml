@@ -16,12 +16,12 @@ import stylesUit 1.0 as HifiStylesUit
 import QtQuick.Layouts 1.3
 
 Flickable {
-    id: root;
-    contentWidth: parent.width;
-    contentHeight: audioColumnLayout.height;
+    id: root
+    contentWidth: parent.width
+    contentHeight: audioColumnLayout.height
     topMargin: 16
     bottomMargin: 16
-    clip: true;
+    clip: true
 
     function changePeakValuesEnabled(enabled) {
         if (!enabled) {
@@ -216,15 +216,15 @@ Flickable {
             ButtonGroup { id: inputDeviceButtonGroup }
 
             ListView {
-                id: inputDeviceListView;
+                id: inputDeviceListView
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
-                interactive: false;
-                height: contentItem.height;
-                spacing: 4;
-                clip: true;
-                model: AudioScriptingInterface.devices.input;
+                interactive: false
+                height: contentItem.height
+                spacing: 4
+                clip: true
+                model: AudioScriptingInterface.devices.input
                 delegate: Item {
                     width: parent.width
                     height: inputDeviceCheckbox.height
@@ -233,7 +233,7 @@ Flickable {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width - inputLevel.width
-                        checked: selectedDesktop;
+                        checked: selectedDesktop
                         text: model.devicename
                         ButtonGroup.group: inputDeviceButtonGroup
                         onClicked: {
@@ -247,8 +247,8 @@ Flickable {
                         showMuted: AudioScriptingInterface.mutedDesktop
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right
-                        peak: model.peak;
-                        visible: AudioScriptingInterface.devices.input.peakValuesAvailable;
+                        peak: model.peak
+                        visible: AudioScriptingInterface.devices.input.peakValuesAvailable
                     }
                 }
             }
@@ -271,9 +271,9 @@ Flickable {
 
                 Timer {
                     id: loopbackTimer
-                    interval: 8000;
-                    running: false;
-                    repeat: false;
+                    interval: 8000
+                    running: false
+                    repeat: false
                     onTriggered: {
                         stopAudioLoopback();
                     }
@@ -326,15 +326,15 @@ Flickable {
             ButtonGroup { id: outputDeviceButtonGroup }
 
             ListView {
-                id: outputDeviceListView;
+                id: outputDeviceListView
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
-                interactive: false;
-                height: contentItem.height;
-                spacing: 4;
-                clip: true;
-                model: AudioScriptingInterface.devices.output;
+                interactive: false
+                height: contentItem.height
+                spacing: 4
+                clip: true
+                model: AudioScriptingInterface.devices.output
                 delegate: Item {
                     width: parent.width
                     height: outputDeviceCheckbox.height
@@ -343,7 +343,7 @@ Flickable {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width
-                        checked: selectedDesktop;
+                        checked: selectedDesktop
                         text: model.devicename
                         ButtonGroup.group: outputDeviceButtonGroup
                         onClicked: {
@@ -354,9 +354,9 @@ Flickable {
             }
 
             SimplifiedControls.Button {
-                property var sound: null;
-                property var sample: null;
-                property bool isPlaying: false;
+                property var sound: null
+                property var sample: null
+                property bool isPlaying: false
                 function createSampleSound() {
                     sound = ApplicationInterface.getSampleSound();
                     sample = null;

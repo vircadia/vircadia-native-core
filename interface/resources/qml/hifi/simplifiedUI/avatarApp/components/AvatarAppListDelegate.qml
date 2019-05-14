@@ -15,23 +15,23 @@ import stylesUit 1.0 as HifiStylesUit
 import QtGraphicalEffects 1.0
 
 Rectangle {
-    id: root;
+    id: root
     
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
     }
 
-    property string itemName;
-    property string itemPreviewImageUrl;
-    property string itemHref;
-    property bool standaloneOptimized;
-    property bool standaloneIncompatible;
-    property bool isCurrentItem;
+    property string itemName
+    property string itemPreviewImageUrl
+    property string itemHref
+    property bool standaloneOptimized
+    property bool standaloneIncompatible
+    property bool isCurrentItem
 
     property bool isHovering: mouseArea.containsMouse || wearButton.hovered || wearButton.down
 
-    height: 102;
-    width: parent.width;
+    height: 102
+    width: parent.width
     color: root.isHovering ? simplifiedUI.colors.darkBackgroundHighlight : "transparent"
     
 
@@ -88,7 +88,7 @@ Rectangle {
     }
 
     SimplifiedControls.Button {
-        id: wearButton;
+        id: wearButton
         visible: MyAvatar.skeletonModelURL !== root.itemHref && root.isHovering
 
         anchors.right: parent.right
@@ -104,7 +104,7 @@ Rectangle {
     }
 
     SimplifiedControls.CheckBox {
-        id: wornCheckBox;
+        id: wornCheckBox
         enabled: false
         visible: MyAvatar.skeletonModelURL === root.itemHref
         anchors.right: parent.right

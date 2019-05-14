@@ -12,88 +12,88 @@ import QtQuick 2.10
 import QtGraphicalEffects 1.0
 
 Item {
-    property var peak;
+    property var peak
     property alias showMuted: status.visible
 
-    width: 70;
-    height: 8;
+    width: 70
+    height: 8
 
     QtObject {
-        id: colors;
+        id: colors
 
-        readonly property string unmuted: "#FFF";
-        readonly property string muted: "#E2334D";
-        readonly property string gutter: "#575757";
-        readonly property string greenStart: "#39A38F";
-        readonly property string greenEnd: "#1FC6A6";
-        readonly property string yellow: "#C0C000";
-        readonly property string red: colors.muted;
-        readonly property string fill: "#55000000";
+        readonly property string unmuted: "#FFF"
+        readonly property string muted: "#E2334D"
+        readonly property string gutter: "#575757"
+        readonly property string greenStart: "#39A38F"
+        readonly property string greenEnd: "#1FC6A6"
+        readonly property string yellow: "#C0C000"
+        readonly property string red: colors.muted
+        readonly property string fill: "#55000000"
     }
 
 
     Text {
-        id: status;
+        id: status
 
         anchors {
-            horizontalCenter: parent.horizontalCenter;
-            verticalCenter: parent.verticalCenter;
+            horizontalCenter: parent.horizontalCenter
+            verticalCenter: parent.verticalCenter
         }
 
-        visible: false;
-        color: colors.muted;
+        visible: false
+        color: colors.muted
 
-        text: "MUTED";
-        font.pointSize: 10;
+        text: "MUTED"
+        font.pointSize: 10
     }
 
     Item {
-        id: bar;
+        id: bar
 
-        width: parent.width;
-        height: parent.height;
+        width: parent.width
+        height: parent.height
 
         anchors { fill: parent }
 
-        visible: !status.visible;
+        visible: !status.visible
 
         Rectangle { // base
-            radius: 4;
+            radius: 4
             anchors { fill: parent }
-            color: colors.gutter;
+            color: colors.gutter
         }
 
         Rectangle { // mask
-            id: mask;
-            width: parent.width * peak;
-            radius: 5;
+            id: mask
+            width: parent.width * peak
+            radius: 5
             anchors {
-                bottom: parent.bottom;
-                bottomMargin: 0;
-                top: parent.top;
-                topMargin: 0;
-                left: parent.left;
-                leftMargin: 0;
+                bottom: parent.bottom
+                bottomMargin: 0
+                top: parent.top
+                topMargin: 0
+                left: parent.left
+                leftMargin: 0
             }
         }
 
         LinearGradient {
             anchors { fill: mask }
             source: mask
-            start: Qt.point(0, 0);
-            end: Qt.point(bar.width, 0);
+            start: Qt.point(0, 0)
+            end: Qt.point(bar.width, 0)
             gradient: Gradient {
                 GradientStop {
-                    position: 0;
-                    color: colors.greenStart;
+                    position: 0
+                    color: colors.greenStart
                 }
                 GradientStop {
-                    position: 0.5;
-                    color: colors.greenEnd;
+                    position: 0.5
+                    color: colors.greenEnd
                 }
                 GradientStop {
-                    position: 1;
-                    color: colors.yellow;
+                    position: 1
+                    color: colors.yellow
                 }
             }
         }

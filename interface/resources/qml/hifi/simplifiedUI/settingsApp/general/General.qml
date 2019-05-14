@@ -15,13 +15,13 @@ import stylesUit 1.0 as HifiStylesUit
 import QtQuick.Layouts 1.3
 
 Flickable {
-    property string avatarNametagMode: Settings.getValue("simplifiedNametag/avatarNametagMode", "on");
-    id: root;
-    contentWidth: parent.width;
-    contentHeight: generalColumnLayout.height;
+    property string avatarNametagMode: Settings.getValue("simplifiedNametag/avatarNametagMode", "on")
+    id: root
+    contentWidth: parent.width
+    contentHeight: generalColumnLayout.height
     topMargin: 16
     bottomMargin: 16
-    clip: true;
+    clip: true
 
     onAvatarNametagModeChanged: {
         sendNameTagInfo({method: 'handleAvatarNametagMode', avatarNametagMode: root.avatarNametagMode, source: "SettingsApp.qml"});
@@ -197,7 +197,7 @@ Flickable {
                 }
                 
               Connections {
-                    target: Camera;
+                    target: Camera
 
                     onModeUpdated: {
                         if (Camera.mode === "first person") {

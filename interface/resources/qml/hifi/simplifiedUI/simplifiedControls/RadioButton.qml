@@ -25,7 +25,7 @@ RadioButton {
     property alias labelFontSize: radioButtonLabel.font.pixelSize
     property int radioButtonRadius: 14
     property int labelLeftMargin: simplifiedUI.margins.controls.radioButton.labelLeftMargin
-    property bool wrapLabel: true;
+    property bool wrapLabel: true
     readonly property int checkSize: Math.max(root.radioButtonRadius - 8, 10)
     focusPolicy: Qt.ClickFocus
     hoverEnabled: true

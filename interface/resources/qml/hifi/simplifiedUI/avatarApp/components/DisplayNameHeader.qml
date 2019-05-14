@@ -54,7 +54,7 @@ Item {
             id: mask
             width: itemPreviewImage.width
             height: width
-            radius: width
+            radius: width / 2
             visible: false
         }
     }
@@ -81,7 +81,6 @@ Item {
 
         Item {
             id: myDisplayNameContainer
-            // Size
             width: parent.width
             height: 42
             anchors.top: parent.verticalCenter
