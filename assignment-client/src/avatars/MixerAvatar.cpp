@@ -27,6 +27,12 @@
 #include "ClientTraitsHandler.h"
 #include "AvatarLogging.h"
 
+MixerAvatar::~MixerAvatar() {
+    if (_challengeTimeout) {
+        _challengeTimeout->deleteLater();
+    }
+}
+
 void MixerAvatar::fetchAvatarFST() {
     _verifyState = nonCertified;
 
@@ -229,6 +235,7 @@ void MixerAvatar::processCertifyEvents() {
             QJsonDocument responseJson = QJsonDocument::fromJson(_dynamicMarketResponse.toUtf8());
             QString ownerPublicKey;
             bool ownerValid = false;
+            _pendingEvent = false;
             if (responseJson["status"].toString() == "success") {
                 QJsonValue jsonData = responseJson["data"];
                 if (jsonData.isObject()) {
@@ -251,6 +258,7 @@ void MixerAvatar::processCertifyEvents() {
                     }
                     sendOwnerChallenge();
                     _verifyState = challengeClient;
+                    _pendingEvent = true;
                 } else {
                     _verifyState = error;
                 }
@@ -259,7 +267,6 @@ void MixerAvatar::processCertifyEvents() {
                     "message:" << responseJson["message"].toString();
                 _verifyState = error;
             }
-            _pendingEvent = false;
             break;
         }
 
@@ -295,6 +302,7 @@ void MixerAvatar::processCertifyEvents() {
         }
 
         case requestingOwner:
+        case challengeClient:
         {   // Qt networking done on this thread:
             QCoreApplication::processEvents();
             break;
@@ -324,12 +332,21 @@ void MixerAvatar::sendOwnerChallenge() {
     nonceHash.addData(nonce);
     _challengeNonceHash = nonceHash.result();
 
-    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
-    _challengeTimeout.setInterval(CHALLENGE_TIMEOUT_MS);
-    _challengeTimeout.connect(&_challengeTimeout, &QTimer::timeout, [this]() {
-        _verifyState = verificationFailed;
-        _needsIdentityUpdate = true;
+    static constexpr int CHALLENGE_TIMEOUT_MS = 5 * 1000;  // 5 s
+    if (_challengeTimeout) {
+        _challengeTimeout->deleteLater();
+    }
+    _challengeTimeout = new QTimer();
+    _challengeTimeout->setInterval(CHALLENGE_TIMEOUT_MS);
+    _challengeTimeout->setSingleShot(true);
+    _challengeTimeout->connect(_challengeTimeout, &QTimer::timeout, this, [this]() {
+        if (_verifyState == challengeClient) {
+            _pendingEvent = false;
+            _verifyState = verificationFailed;
+            _needsIdentityUpdate = true;
+        }
     });
+    _challengeTimeout->start();
 }
 
 void MixerAvatar::handleChallengeResponse(ReceivedMessage* response) {
@@ -337,7 +354,6 @@ void MixerAvatar::handleChallengeResponse(ReceivedMessage* response) {
     QByteArray encryptedNonce;
     QMutexLocker certifyLocker(&_avatarCertifyLock);
     if (_verifyState == challengeClient) {
-        _challengeTimeout.stop();
         _challengeResponse = response->readAll();
         _verifyState = challengeResponse;
         _pendingEvent = true;
