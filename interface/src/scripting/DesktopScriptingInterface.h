@@ -65,7 +65,7 @@ public:
      * Opens a QML window within Interface: in the Interface window in desktop mode or on the HUD surface in HMD mode. If a 
      * window of the specified name already exists, it is shown, otherwise a new window is created from the QML.
      * @function Desktop.show
-     * @param {string} url - The QML file that specifies the window content
+     * @param {string} url - The QML file that specifies the window content.
      * @param {string} name - A unique name for the window.
      * @example <caption>Open the general settings dialog.</caption>
      * Desktop.show("hifi/dialogs/GeneralPreferencesDialog.qml", "GeneralPreferencesDialog");
@@ -76,7 +76,7 @@ public:
      * Creates a new window that can be displayed either within Interface or as a separate desktop window.
      * @function Desktop.createWindow
      * @param {string} url - The QML file that specifies the window content. The QML file can use a <code>WebView</code> 
-     *     control (defined by "WebView.qml" included in the Interface install) to embed an HTML Web page (complete with  
+     *     control (defined by "WebView.qml" included in the Interface install) to embed an HTML web page (complete with  
      *     <code>EventBridge</code> object).
      * @param {InteractiveWindow.Properties} [properties] - Initial window properties.
      * @returns {InteractiveWindow} A new window object.

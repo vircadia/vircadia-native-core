@@ -59,7 +59,7 @@ public slots:
     /**jsdoc
      * Returns the total system memory in megabytes.
      * @function PlatformInfo.getTotalSystemMemoryMB
-     * @returns {number} the total system memory in megabytes.
+     * @returns {number} The total system memory in megabytes.
      */
     int getTotalSystemMemoryMB();
 

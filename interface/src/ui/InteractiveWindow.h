@@ -66,7 +66,7 @@ using namespace InteractiveWindowEnums;
 /**jsdoc
  * An <code>InteractiveWindow</code> can display either inside Interface or in its own window separate from the Interface 
  * window. The window content is defined by a QML file, which can optionally include a <code>WebView</code> control that embeds 
- * an HTML Web page. (The <code>WebView</code> control is defined by a "WebView.qml" file included in the Interface install.)
+ * an HTML web page. (The <code>WebView</code> control is defined by a "WebView.qml" file included in the Interface install.)
  *
  * <p>Create using {@link Desktop.createWindow}.</p>
  *
@@ -170,13 +170,13 @@ public slots:
     void sendToQml(const QVariant& message);
 
     /**jsdoc
-     * Sends a message to an embedded HTML Web page. To receive the message, the HTML page's script must connect to the 
+     * Sends a message to an embedded HTML web page. To receive the message, the HTML page's script must connect to the 
      * <code>EventBridge</code> that is automatically provided to the script:
      * <pre class="prettyprint"><code>EventBridge.scriptEventReceived.connect(function(message) {
      *     ...
      * });</code></pre>
      * @function InteractiveWindow.emitScriptEvent
-     * @param {string|object} message - The message to send to the embedded HTML Web page.
+     * @param {string|object} message - The message to send to the embedded HTML web page.
      */
     // QmlWindow content may include WebView requiring EventBridge.
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -223,7 +223,7 @@ signals:
     void positionChanged();
 
     /**jsdoc
-     * Triggered when the window's' size changes.
+     * Triggered when the window's size changes.
      * @function InteractiveWindow.sizeChanged
      * @returns {Signal}
      */
@@ -270,7 +270,7 @@ signals:
     void scriptEventReceived(const QVariant& message);
 
     /**jsdoc
-     * Trigged when a message from an embedded HTML Web page is received. The HTML Web page can send a message by calling:
+     * Triggered when a message from an embedded HTML web page is received. The HTML web page can send a message by calling:
      * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
      * @function InteractiveWindow.webEventReceived
      * @param {string|object} message - The message received.

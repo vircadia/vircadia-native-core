@@ -65,7 +65,7 @@ const std::string TextureCache::KTX_DIRNAME{ "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
 /**jsdoc
- * <p>The views that may be displayed on the PC display.</p>
+ * <p>The views that may be visible on the PC display.</p>
  * <table>
  *   <thead>
  *     <tr>

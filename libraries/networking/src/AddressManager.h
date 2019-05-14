@@ -245,21 +245,22 @@ public slots:
      * Takes you to the specified user's location.
      * @function location.goToUser
      * @param {string} username - The user's username.
-     * @param {boolean} [matchOrientation=true] - If <code>true</code> then go to a location just in front of the user and turn to face
-     *     them, otherwise go to the user's exact location and orientation.
+     * @param {boolean} [matchOrientation=true] - If <code>true</code> then go to a location just in front of the user and turn 
+     *     to face them, otherwise go to the user's exact location and orientation.
      */
     void goToUser(const QString& username, bool shouldMatchOrientation = true);
 
     /**jsdoc
-    * Takes you to the last address tried.  This will be the last URL tried from location.handleLookupString
-    * @function location.goToLastAddress
-    */
+     * Takes you to the last address tried. This will be the last URL tried from <code>location.handleLookupString</code>.
+     * @function location.goToLastAddress
+     */
     void goToLastAddress() { handleUrl(_lastVisitedURL, LookupTrigger::AttemptedRefresh); }
 
     /**jsdoc
-    * Checks if going back is possible.
-    * @function location.canGoBack
-    */
+     * Checks if going back to the previous location is possible.
+     * @function location.canGoBack
+     * @returns <code>true</code> if going back is possible, <code>false</code> if it isn't.
+     */
     bool canGoBack() const;
 
     /**jsdoc
