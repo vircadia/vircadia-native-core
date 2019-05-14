@@ -29,7 +29,7 @@ Instance *_instance;
 void platform::create() {
 #ifdef Q_OS_WIN
     _instance =new WINInstance();
-#elseif defined(Q_OS_MAC)
+#elif defined(Q_OS_MAC)
     _instance = new MACOSInstance();
 #endif
 }
