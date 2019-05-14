@@ -1,4 +1,4 @@
-﻿//
+//
 //  Application.h
 //  interface/src
 //
@@ -77,8 +77,6 @@
 #include <ModelScriptingInterface.h>
 
 #include "Sound.h"
-
-
 
 class GLCanvas;
 class FaceTracker;
