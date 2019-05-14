@@ -170,6 +170,7 @@ QtObject {
         readonly property string vol_x_2: "\ue015"
         readonly property string vol_x_3: "\ue016"
         readonly property string vol_x_4: "\ue017"
+        readonly property string muted: "H"
         readonly property string pencil: "\ue00d"
     }
 

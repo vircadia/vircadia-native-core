@@ -195,7 +195,7 @@ function maybeDeleteOutputDeviceMutedOverlay() {
 
 
 var outputDeviceMutedOverlay = false;
-var OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX = 600;
+var OUTPUT_DEVICE_MUTED_OVERLAY_DEFAULT_DIMS_PX = 300;
 var OUTPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20;
 var OUTPUT_DEVICE_MUTED_MARGIN_LEFT_RIGHT_PX = 20;
 function updateOutputDeviceMutedOverlay(isMuted) {

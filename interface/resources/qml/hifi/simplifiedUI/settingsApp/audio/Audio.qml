@@ -32,6 +32,8 @@ Flickable {
     onVisibleChanged: {
         AudioScriptingInterface.devices.input.peakValuesEnabled = visible;
         if (visible) {
+            root.contentX = 0;
+            root.contentY = -root.topMargin;
             AudioScriptingInterface.devices.input.peakValuesEnabledChanged.connect(changePeakValuesEnabled);
         } else {
             AudioScriptingInterface.devices.input.peakValuesEnabledChanged.disconnect(changePeakValuesEnabled);

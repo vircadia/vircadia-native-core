@@ -27,6 +27,13 @@ Flickable {
         sendNameTagInfo({method: 'handleAvatarNametagMode', avatarNametagMode: root.avatarNametagMode, source: "SettingsApp.qml"});
     }
 
+    onVisibleChanged: {
+        if (visible) {
+            root.contentX = 0;
+            root.contentY = -root.topMargin;
+        }
+    }
+
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
     }
