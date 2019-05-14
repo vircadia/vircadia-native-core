@@ -139,6 +139,11 @@ QtObject {
                     readonly property color background: "#00B4EF"
                 }
             }
+            readonly property QtObject textField: QtObject {
+                readonly property color normal: Qt.rgba(1, 1, 1, 0.3)
+                readonly property color hover: "#FFFFFF"
+                readonly property color focus: "#FFFFFF"
+            }
         }
 
         readonly property color darkSeparator: "#595959"
@@ -165,6 +170,7 @@ QtObject {
         readonly property string vol_x_2: "\ue015"
         readonly property string vol_x_3: "\ue016"
         readonly property string vol_x_4: "\ue017"
+        readonly property string pencil: "\ue00d"
     }
 
     readonly property QtObject margins: QtObject {
@@ -207,6 +213,9 @@ QtObject {
                 readonly property int width: 160
                 readonly property int height: 32
                 readonly property int textSize: 14
+            }
+            readonly property QtObject textField: QtObject {
+                readonly property int editPencilPadding: 6
             }
         }
     }

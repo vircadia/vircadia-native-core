@@ -10,6 +10,7 @@
 
 import QtQuick 2.10
 import "../../simplifiedConstants" as SimplifiedConstants
+import "../../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
 import controlsUit 1.0 as HifiControlsUit
 import QtGraphicalEffects 1.0
@@ -82,39 +83,17 @@ Item {
             id: myDisplayNameContainer
             // Size
             width: parent.width
-            height: 40
+            height: 42
             anchors.top: parent.verticalCenter
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
             anchors.left: parent.left
-            
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                onClicked: {
-                    myDisplayNameText.focus = true;
-                    myDisplayNameText.cursorPosition = myDisplayNameText.positionAt(mouseX - myDisplayNameText.anchors.leftMargin, mouseY, TextInput.CursorOnCharacter);
-                }
-                onDoubleClicked: {
-                    myDisplayNameText.selectAll();
-                    myDisplayNameText.focus = true;
-                }
-            }
 
-            TextInput {
+            SimplifiedControls.TextField {
                 id: myDisplayNameText
                 text: MyAvatar.sessionDisplayName === "" ? MyAvatar.displayName : MyAvatar.sessionDisplayName
                 maximumLength: 256
                 clip: true
                 anchors.fill: parent
-                color: simplifiedUI.colors.text.white
-                font.family: "Graphik Medium"
-                font.pixelSize: 22
-                selectionColor: simplifiedUI.colors.text.white
-                selectedTextColor: simplifiedUI.colors.text.darkGrey
-                verticalAlignment: TextInput.AlignVCenter
-                horizontalAlignment: TextInput.AlignLeft
-                autoScroll: false
                 onEditingFinished: {
                     if (MyAvatar.displayName !== text) {
                         MyAvatar.displayName = text;
@@ -122,9 +101,6 @@ Item {
                     myDisplayNameText.focus = false;
                 }
                 onFocusChanged: {
-                    if (!focus) {
-                        cursorPosition = 0;
-                    }
                     myDisplayNameText.autoScroll = focus;
                 }
             }
