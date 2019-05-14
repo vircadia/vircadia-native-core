@@ -113,11 +113,13 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 color;
     glm::vec3 dimensions;
     Transform renderTransform;
+    bool forward;
     withReadLock([&] {
         color = glm::vec4(toGlm(_color), _alpha);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         dimensions = _dimensions;
         renderTransform = _renderTransform;
+        forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
     });
 
     if (!_visible) {
@@ -153,5 +155,5 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
         minorGridRowDivisions, minorGridColDivisions, MINOR_GRID_EDGE,
         majorGridRowDivisions, majorGridColDivisions, MAJOR_GRID_EDGE,
-        color, _geometryId);
+        color, forward, _geometryId);
 }

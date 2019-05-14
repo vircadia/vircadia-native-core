@@ -532,12 +532,31 @@ void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction
 }
 
 void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     for (auto entity : deadEntities) {
-        QUuid sessionID = entity->getOwningAvatarID();
-        AvatarSharedPointer avatar = getAvatarBySessionID(sessionID);
+        QUuid entityOwnerID = entity->getOwningAvatarID();
+        AvatarSharedPointer avatar = getAvatarBySessionID(entityOwnerID);
+        const bool REQUIRES_REMOVAL_FROM_TREE = false;
         if (avatar) {
-            const bool REQUIRES_REMOVAL_FROM_TREE = false;
             avatar->clearAvatarEntity(entity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+        }
+        if (entityTree && entity->isMyAvatarEntity()) {
+            entityTree->withWriteLock([&] {
+                // We only need to delete the direct children (rather than the descendants) because
+                // when the child is deleted, it will take care of its own children.  If the child
+                // is also an avatar-entity, we'll end up back here.  If it's not, the entity-server
+                // will take care of it in the usual way.
+                entity->forEachChild([&](SpatiallyNestablePointer child) {
+                    EntityItemPointer childEntity = std::dynamic_pointer_cast<EntityItem>(child);
+                    if (childEntity) {
+                        entityTree->deleteEntity(childEntity->getID(), true, true);
+                        if (avatar) {
+                            avatar->clearAvatarEntity(childEntity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+                        }
+                    }
+                });
+            });
         }
     }
 }
@@ -578,14 +597,20 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
         workload::SpacePointer space = _space;
         transaction.transitionFinishedOperator(avatar->getRenderItemID(), [space, avatar]() {
-            const render::ScenePointer& scene = qApp->getMain3DScene();
-            render::Transaction transaction;
-            avatar->removeFromScene(avatar, scene, transaction);
-            scene->enqueueTransaction(transaction);
+            if (avatar->getLastFadeRequested() != render::Transition::Type::USER_LEAVE_DOMAIN) {
+                // The avatar is using another transition besides the fade-out transition, which means it is still in use.
+                // Deleting the avatar now could cause state issues, so abort deletion and show message.
+                qCWarning(interfaceapp) << "An ending fade-out transition wants to delete an avatar, but the avatar is still in use. Avatar deletion has aborted. (avatar ID: " << avatar->getSessionUUID() << ")";
+            } else {
+                const render::ScenePointer& scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                avatar->removeFromScene(avatar, scene, transaction);
+                scene->enqueueTransaction(transaction);
 
-            workload::Transaction workloadTransaction;
-            workloadTransaction.remove(avatar->getSpaceIndex());
-            space->enqueueTransaction(workloadTransaction);
+                workload::Transaction workloadTransaction;
+                workloadTransaction.remove(avatar->getSpaceIndex());
+                space->enqueueTransaction(workloadTransaction);
+            }
         });
         scene->enqueueTransaction(transaction);
     }

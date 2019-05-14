@@ -213,24 +213,24 @@ private:
     public:
         LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : zone(zone), id(zone->getID()), volume(zone->getVolumeEstimate()) {}
 
-        bool operator>(const LayeredZone& r) const { return volume > r.volume; }
-        bool operator==(const LayeredZone& r) const { return zone.lock() == r.zone.lock(); }
+        // We need to sort on volume AND id so that different clients sort zones with identical volumes the same way
+        bool operator<(const LayeredZone& r) const { return volume < r.volume || (volume == r.volume && id < r.id); }
+        bool operator==(const LayeredZone& r) const { return zone.lock() && zone.lock() == r.zone.lock(); }
         bool operator!=(const LayeredZone& r) const { return !(*this == r); }
-        bool operator>=(const LayeredZone& r) const { return (*this > r) || (*this == r); }
+        bool operator<=(const LayeredZone& r) const { return (*this < r) || (*this == r); }
 
         std::weak_ptr<ZoneEntityItem> zone;
         QUuid id;
         float volume;
     };
 
-    class LayeredZones : public std::priority_queue<LayeredZone, std::vector<LayeredZone>, std::greater<LayeredZone>> {
+    class LayeredZones : public std::vector<LayeredZone> {
     public:
-        void clear() { *this = LayeredZones(); }
         bool clearDomainAndNonOwnedZones(const QUuid& sessionUUID);
 
+        void sort() { std::sort(begin(), end(), std::less<LayeredZone>()); }
         bool equals(const LayeredZones& other) const;
-        void remove(const std::shared_ptr<ZoneEntityItem>& zone);
-        void update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer);
+        bool update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer);
 
         void appendRenderIDs(render::ItemIDs& list, EntityTreeRenderer* entityTreeRenderer) const;
         std::pair<bool, bool> getZoneInteractionProperties() const;

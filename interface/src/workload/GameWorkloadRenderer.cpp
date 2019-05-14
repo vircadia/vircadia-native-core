@@ -145,6 +145,7 @@ void GameWorkloadRenderItem::setAllViews(const workload::Views& views) {
 }
 
 const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
+    // FIXME: this needs a forward pipeline, or to only write to one output
     if (!_drawAllProxiesPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::drawWorkloadProxy);
         auto state = std::make_shared<gpu::State>();
@@ -162,6 +163,7 @@ const gpu::PipelinePointer GameWorkloadRenderItem::getProxiesPipeline() {
 
 
 const gpu::PipelinePointer GameWorkloadRenderItem::getViewsPipeline() {
+    // FIXME: this needs a forward pipeline, or to only write to one output
     if (!_drawAllViewsPipeline) {
         gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::drawWorkloadView);
         auto state = std::make_shared<gpu::State>();
