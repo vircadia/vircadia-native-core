@@ -794,7 +794,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             parents[child] = nodecount;
         }
         sortedNodes.push_back(nodecount);
-        nodecount++;
+        ++nodecount;
     }
     
 
@@ -810,7 +810,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             _file.nodes[nodecount].transforms.push_back(getModelTransform(parentNode));
             parentIndex = parents[parentIndex];
         }
-        nodecount++;
+        ++nodecount;
     }
 
  
@@ -824,7 +824,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         int parentIndex = parents[currentNode];
         if (parentIndex == -1 || hasBeenSorted[parentIndex]) {
             hasBeenSorted[currentNode] = true;
-            i++;
+            ++i;
         } else {
             int j = i + 1; // index of node to be sorted
             while (j < numNodes) {
@@ -835,19 +835,19 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     hasBeenSorted[nextNode] = true;
                     sortedNodes[i] = nextNode;
                     sortedNodes[j] = currentNode;
-                    i++;
+                    ++i;
                     currentNode = sortedNodes[i];
                 }
-                j++;
+                ++j;
             }
         }
     }
-
+    
 
      // Build map from original to new indices
     QVector<int> originalToNewNodeIndexMap;
     originalToNewNodeIndexMap.fill(-1, numNodes);
-    for (int i = 0; i < numNodes; i++) {
+    for (int i = 0; i < numNodes; ++i) {
         originalToNewNodeIndexMap[sortedNodes[i]] = i;
     }
 
@@ -856,20 +856,26 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     HFMJoint joint;
     joint.distanceToParent = 0;
     hfmModel.jointIndices["x"] = numNodes;
+    QVector<glm::mat4> globalTransforms;
+    globalTransforms.resize(numNodes + 1);
 
     for (int nodeIndex : sortedNodes) {
         auto& node = _file.nodes[nodeIndex];
 
-        joint.parentIndex = parents[nodeIndex];
-        if (joint.parentIndex != -1) {
-            joint.parentIndex = originalToNewNodeIndexMap[joint.parentIndex];
-        }
         joint.transform = node.transforms.first();
         joint.translation = extractTranslation(joint.transform);
         joint.rotation = glmExtractRotation(joint.transform);
         glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform = glm::scale(glm::mat4(), scale);  
 
+        joint.parentIndex = parents[nodeIndex];
+        globalTransforms[numNodes] = joint.transform * globalTransforms[numNodes];  // accumulate for all nodes
+        globalTransforms[nodeIndex] = joint.transform;
+        if (joint.parentIndex != -1) {
+            globalTransforms[nodeIndex] = globalTransforms[joint.parentIndex] * globalTransforms[nodeIndex];
+            joint.parentIndex = originalToNewNodeIndexMap[joint.parentIndex];
+        }
+       
         joint.name = node.name;
         joint.isSkeletonJoint = false;
         hfmModel.joints.push_back(joint);
@@ -886,11 +892,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         std::vector<std::vector<float>> inverseBindValues;
         getSkinInverseBindMatrices(inverseBindValues);
 
-        for (int jointIndex = 0; jointIndex < numNodes; jointIndex++) {
+        for (int jointIndex = 0; jointIndex < numNodes; ++jointIndex) {
             int nodeIndex = sortedNodes[jointIndex];
             auto joint = hfmModel.joints[jointIndex];
 
-            for (int s = 0; s < _file.skins.size(); s++) {
+            for (int s = 0; s < _file.skins.size(); ++s) {
                 const auto& skin = _file.skins[s];
                 int matrixIndex = skin.joints.indexOf(nodeIndex);
                 joint.isSkeletonJoint = skin.joints.contains(nodeIndex);
@@ -924,7 +930,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         materialIDs.push_back(mid);
     }
 
-    for (int i = 0; i < materialIDs.size(); i++) {
+    for (int i = 0; i < materialIDs.size(); ++i) {
         QString& matid = materialIDs[i];
         hfmModel.materials[matid] = HFMMaterial();
         HFMMaterial& hfmMaterial = hfmModel.materials[matid];
@@ -935,6 +941,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     
     // Build meshes
     nodecount = 0;
+    hfmModel.meshExtents.reset();
     for (int nodeIndex : sortedNodes) {
         auto& node = _file.nodes[nodeIndex];
 
@@ -949,7 +956,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
                     mesh.clusters.append(cluster);
                 } else { // skinned model
-                    for (int j = 0; j < numNodes; j++) {
+                    for (int j = 0; j < numNodes; ++j) {
                         HFMCluster cluster;
                         cluster.jointIndex = j;
                         cluster.inverseBindMatrix = jointInverseBindTransforms[j];
@@ -1106,7 +1113,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             qWarning(modelformat) << "There was a problem reading glTF JOINTS_0 data for model " << _url;
                             continue;
                         }
-                        for (int n = 0; n < joints.size(); n++) {
+                        for (int n = 0; n < joints.size(); ++n) {
                             clusterJoints.push_back(joints[n]);
                         }
                     } else if (key == "WEIGHTS_0") {
@@ -1121,7 +1128,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             qWarning(modelformat) << "There was a problem reading glTF WEIGHTS_0 data for model " << _url;
                             continue;
                         }
-                        for (int n = 0; n < weights.size(); n++) {
+                        for (int n = 0; n < weights.size(); ++n) {
                             clusterWeights.push_back(weights[n]);
                         }
                     }
@@ -1136,7 +1143,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     mesh.clusterIndices.fill(mesh.clusters.size() - 1, numClusterIndices);
                     mesh.clusterWeights.fill(0, numClusterIndices);
 
-                    for (int c = 0; c < clusterJoints.size(); c++) {
+                    for (int c = 0; c < clusterJoints.size(); ++c) {
                         mesh.clusterIndices[c] = originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
                     }
 
@@ -1166,7 +1173,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 // populate the texture coordinates if they don't exist
                 if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
-                    for (int i = 0; i < part.triangleIndices.size(); i++) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
+                    for (int i = 0; i < part.triangleIndices.size(); ++i) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
                 }
 
                 // Build morph targets (blend shapes)
@@ -1177,7 +1184,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
 
-                    for (int i = 0;; i++) {
+                    for (int i = 0;; ++i) {
                         hifi::ByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
                         if (blendshapeName.isEmpty()) {
                             break;
@@ -1197,7 +1204,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     auto names = _file.meshes[node.mesh].extras.targetNames;
                     QVector<double> weights = _file.meshes[node.mesh].weights;
 
-                    for (int weightedIndex = 0; weightedIndex < values.size(); weightedIndex++) {
+                    for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
                         float weight = 0.1f;
                         int indexFromMapping = weightedIndex;
                         int targetIndex = weightedIndex;
@@ -1238,29 +1245,32 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             } else {
                                 blendshape.vertices[count] = blendshape.vertices[count] + vertices[i];
                                 blendshape.normals[count] = blendshape.normals[count] + normals[i];
-                                count++;
+                                ++count;
                             }
                         }
                     }
                 }
 
-                for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; clusterIndex++) {
+                for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; ++clusterIndex) {
+                    auto joint = hfmModel.joints[clusterIndex];
                     ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
+                    glm::mat4 modelTransform = glm::mat4(0.1f) * globalTransforms[numNodes] * joint.transform;
                     for (glm::vec3 vertex : mesh.vertices) {
-                        points.push_back(vertex);
+                        glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
+                        points.push_back(transformedVertex);
                     }
                 }
 
-                mesh.meshExtents.reset();
                 foreach(const glm::vec3& vertex, mesh.vertices) {
-                    mesh.meshExtents.addPoint(vertex);
-                    hfmModel.meshExtents.addPoint(vertex);
+                    glm::vec3 transformedVertex = glm::vec3(globalTransforms[nodeIndex] * glm::vec4(vertex, 1.0f));
+                    mesh.meshExtents.addPoint(transformedVertex);
+                    hfmModel.meshExtents.addPoint(transformedVertex);
                 }
                
                 mesh.meshIndex = hfmModel.meshes.size();
             }
         }
-        nodecount++;
+        ++nodecount;
     }
 
     return true;
@@ -1511,8 +1521,8 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
         blobstream.unsetDevice();
         return false;
     }
-    for (int i = 0; i < count; i++) {
-        for (int j = 0; j < bufferCount; j++) {
+    for (int i = 0; i < count; ++i) {
+        for (int j = 0; j < bufferCount; ++j) {
             if (!blobstream.atEnd()) {
                 T value;
                 blobstream >> value;
