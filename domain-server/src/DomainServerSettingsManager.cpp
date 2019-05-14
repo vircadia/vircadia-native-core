@@ -441,6 +441,12 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
             }
         }
 
+        if (oldVersion < 2.3) {
+            unpackPermissions();
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canGetAndSetPrivateUserData);
+            packPermissions();
+        }
+
 
         // write the current description version to our settings
         *versionVariant = _descriptionVersion;
