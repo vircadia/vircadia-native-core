@@ -27,74 +27,16 @@ using namespace platform;
 Instance *_instance;
 
 void platform::create() {
-
-    #ifdef Q_OS_WIN
-        _instance =new WINInstance();
-    #endif
-    
-    #ifdef Q_OS_MAC
+#ifdef Q_OS_WIN
+    _instance =new WINInstance();
+#elseif defined(Q_OS_MAC)
     _instance = new MACOSInstance();
-    #endif
+#endif
 }
 
 void platform::destroy() {
     if(_instance)
         delete _instance;
-}
-
-json Instance::getCPU(int index) {
-    assert(index <(int) _cpu.size());
-    if (index >= (int)_cpu.size())
-        return json();
-
-    return _cpu.at(index);
-}
-
-
-//These are ripe for template.. will work on that next
-json Instance::getMemory(int index) {
-    assert(index <(int) _memory.size());
-    if(index >= (int)_memory.size())
-        return json();
-
-    return _memory.at(index);
-}
-
-json Instance::getGPU(int index) {
-    assert(index <(int) _gpu.size());
-
-    if (index >=(int) _gpu.size())
-        return json();
-    
-    return _gpu.at(index);
-}
-
-json Instance::getDisplay(int index) {
-    assert(index <(int) _display.size());
-    
-    if (index >=(int) _display.size())
-        return json();
-
-    return _display.at(index);
-}
-
-Instance::~Instance() {
-    if (_cpu.size() > 0) {
-        _cpu.clear();
-    }
-
-    if (_memory.size() > 0) {
-        _memory.clear();
-    }
-
-
-    if (_gpu.size() > 0) {
-        _gpu.clear();
-    }
-
-    if (_display.size() > 0) {
-        _display.clear();
-    }
 }
 
 bool platform::enumeratePlatform() {

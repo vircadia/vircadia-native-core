@@ -19,13 +19,6 @@
 
 using namespace platform;
 
-bool MACOSInstance::enumeratePlatform() {
-    enumerateCpu();
-    enumerateGpu();
-    enumerateRam();
-    return true;
-}
-
 static void getCpuId( uint32_t* p, uint32_t ax )
 {
 #ifdef Q_OS_MAC
@@ -65,13 +58,9 @@ void MACOSInstance::enumerateCpu() {
      cpu["brand"] = CPUBrandString;
      cpu["model"] = CPUModelString;
      cpu["clockSpeed"] = CPUClockString;
-     cpu["numCores"] = getNumLogicalCores();
+     cpu["numCores"] = std::thread::hardware_concurrency();
 
     _cpu.push_back(cpu);
-}
-
-unsigned int MACOSInstance::getNumLogicalCores() {
-    return std::thread::hardware_concurrency();
 }
 
 void MACOSInstance::enumerateGpu() {
@@ -85,7 +74,7 @@ void MACOSInstance::enumerateGpu() {
     _display = ident->getOutput();
 }
 
-void MACOSInstance::enumerateRam() {
+void MACOSInstance::enumerateMemory() {
     json ram = {};
 
 #ifdef Q_OS_MAC

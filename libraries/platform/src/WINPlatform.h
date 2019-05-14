@@ -9,19 +9,16 @@
 #ifndef hifi_WinPlatform_h
 #define hifi_WinPlatform_h
 
-#include "platform.h"
+#include "platformInstance.h"
 
 namespace platform {
     class WINInstance : public Instance {
     
     public:
-        bool enumeratePlatform() override;
+        void enumerateCpu() override;
+        void enumerateMemory() override;
+        void enumerateGpu() override;
 
-    private:
-        unsigned int getNumLogicalCores();
-        void enumerateCpu();
-        void enumerateRam();
-        void enumerateGpu();
     };
 }  // namespace platform
 

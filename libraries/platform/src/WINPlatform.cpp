@@ -20,13 +20,6 @@
 
 using namespace platform;
 
-bool WINInstance::enumeratePlatform() {
-    enumerateCpu();
-    enumerateGpu();
-    enumerateRam();
-    return true;
-}
-
 void WINInstance::enumerateCpu() {
     json cpu = {};
 
@@ -56,14 +49,10 @@ void WINInstance::enumerateCpu() {
    cpu["brand"] = CPUBrandString;
    cpu["model"] = CPUModelString;
    cpu["clockSpeed"] = CPUClockString;
-   cpu["numCores"] = getNumLogicalCores();
+   cpu["numCores"] = std::thread::hardware_concurrency();
 #endif
    
     _cpu.push_back(cpu);
-}
-
-unsigned int WINInstance::getNumLogicalCores() {
-    return std::thread::hardware_concurrency();
 }
 
 void WINInstance::enumerateGpu() {
@@ -79,8 +68,9 @@ void WINInstance::enumerateGpu() {
     _display = ident->getOutput();
 }
 
-void WINInstance::enumerateRam() {
+void WINInstance::enumerateMemory() {
     json ram = {};
+    
 #ifdef Q_OS_WINDOWS
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
@@ -88,6 +78,5 @@ void WINInstance::enumerateRam() {
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
     ram["totalMem"] = totalRam;
 #endif
-    
     _memory.push_back(ram);
 }

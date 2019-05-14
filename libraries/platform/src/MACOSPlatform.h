@@ -9,19 +9,15 @@
 #ifndef hifi_MACOSPlatform_h
 #define hifi_MACOSPlatform_h
 
-#include "platform.h"
+#include "platformInstance.h"
 
 namespace platform {
     class MACOSInstance : public Instance {
-    
-    public:
-        bool enumeratePlatform() override;
 
-    private:
-        unsigned int getNumLogicalCores();
-        void enumerateCpu();
-        void enumerateRam();
-        void enumerateGpu();
+    public:
+        void enumerateCpu() override;
+        void enumerateMemory() override;
+        void enumerateGpu() override;
     };
 
 }  // namespace platform
