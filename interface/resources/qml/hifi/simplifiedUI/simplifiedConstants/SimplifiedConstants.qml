@@ -125,6 +125,20 @@ QtObject {
                     readonly property color noisy: "#FFFFFF"
                 }
             }
+            readonly property QtObject checkBox: QtObject {
+                readonly property QtObject background: QtObject {
+                    readonly property color disabled: "#464646"
+                    readonly property color active: "#00B4EF"
+                    readonly property color enabled: "#767676"
+                }
+                readonly property QtObject border: QtObject {
+                    readonly property color hover: "#00B4EF"
+                }
+                readonly property QtObject innerBox: QtObject {
+                    readonly property color border: "#36CDFF"
+                    readonly property color background: "#00B4EF"
+                }
+            }
         }
 
         readonly property color darkSeparator: "#595959"

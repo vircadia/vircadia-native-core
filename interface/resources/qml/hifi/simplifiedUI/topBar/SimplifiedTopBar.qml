@@ -169,12 +169,16 @@ Rectangle {
         Rectangle {
             z: -1
             id: borderMask
-            visible: avatarButtonImageMouseArea.containsMouse
-            width: avatarButtonImage.width + 4
+            width: avatarButtonImageMouseArea.containsMouse ? avatarButtonImage.width + 4 : avatarButtonImage.width
             height: width
             radius: width
             anchors.centerIn: avatarButtonImage
             color: "#FFFFFF"
+
+            Behavior on width {
+                enabled: true
+                SmoothedAnimation { velocity: 80 }
+            }
         }
 
         Rectangle {

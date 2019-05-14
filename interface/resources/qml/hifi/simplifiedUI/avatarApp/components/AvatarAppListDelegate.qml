@@ -85,18 +85,30 @@ Rectangle {
 
     SimplifiedControls.Button {
         id: wearButton;
-        visible: MyAvatar.skeletonModelURL !== root.itemHref && root.isHovering;
+        visible: MyAvatar.skeletonModelURL !== root.itemHref && root.isHovering
 
-        anchors.right: parent.right;
-        anchors.rightMargin: 24;
+        anchors.right: parent.right
+        anchors.rightMargin: 24
         anchors.verticalCenter: parent.verticalCenter
-        width: 165;
-        height: 32;
+        width: 165
+        height: 32
         text: "WEAR"
 
         onClicked: {
             MyAvatar.useFullAvatarURL(root.itemHref);
         }
+    }
+
+    SimplifiedControls.CheckBox {
+        id: wornCheckBox;
+        enabled: false
+        visible: MyAvatar.skeletonModelURL === root.itemHref
+        anchors.right: parent.right
+        anchors.rightMargin: 24
+        anchors.verticalCenter: parent.verticalCenter
+        width: 14
+        height: 14
+        checked: true
     }
 
     MouseArea {
