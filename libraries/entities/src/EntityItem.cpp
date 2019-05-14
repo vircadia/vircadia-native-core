@@ -3431,6 +3431,10 @@ bool EntityItem::isWearable() const {
         (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
 
+bool EntityItem::isMyAvatarEntity() const {
+    return _hostType == entity::HostType::AVATAR && Physics::getSessionUUID() == _owningAvatarID;
+};
+
 void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();
     SpatiallyNestable::addGrab(grab);

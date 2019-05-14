@@ -447,7 +447,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         /**jsdoc
-         * Information about a submesh intersection point.
+         * A submesh intersection point.
          * @typedef {object} SubmeshIntersection
          * @property {Vec3} worldIntersectionPoint - The intersection point in world coordinates.
          * @property {Vec3} meshIntersectionPoint - The intersection point in model coordinates.

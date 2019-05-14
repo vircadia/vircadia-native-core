@@ -503,6 +503,7 @@ public:
     virtual bool isWearable() const;
     bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
     bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
+    bool isMyAvatarEntity() const;
     bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }
     entity::HostType getEntityHostType() const { return _hostType; }
     virtual void setEntityHostType(entity::HostType hostType) { _hostType = hostType; }

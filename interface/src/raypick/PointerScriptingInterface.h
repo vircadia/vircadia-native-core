@@ -49,7 +49,7 @@ public:
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pointer, a Mouse Ray Pointer, or a Joint Ray Pointer.
      * Pointers created with this method always intersect at least visible and collidable things
      * @function Pointers.createPointer
-     * @param {PickType} type A PickType that specifies the method of picking to use
+     * @param {PickType} type A PickType that specifies the method of picking to use. Cannot be {@link PickType|PickType.Collision}.
      * @param {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties|Pointers.ParabolaPointerProperties} properties A PointerProperties object, containing all the properties for initializing this Pointer <b>and</b> the {@link Picks.PickProperties} for the Pick that
      *   this Pointer will use to do its picking.
      * @returns {number} The ID of the created Pointer.  Used for managing the Pointer.  0 if invalid.
