@@ -361,6 +361,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
+
+    auto model = getModel();
+    if (!model) {
+        type = SHAPE_TYPE_NONE;
+    }
+
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
@@ -442,10 +448,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        auto model = getModel();
-        // assert we never fall in here when model not fully loaded
-        assert(model && model->isLoaded());
-
         glm::vec3 dimensions = getScaledDimensions();
         glm::vec3 scaleToFit = dimensions / model->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
@@ -461,7 +463,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         adjustShapeInfoByRegistration(shapeInfo);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         updateModelBounds();
-        auto model = getModel();
         // assert we never fall in here when model not fully loaded
         assert(model && model->isLoaded());
         model->updateGeometry();
