@@ -1300,8 +1300,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
-    connect(&nodeList->getDomainHandler(), SIGNAL(limitOfSilentDomainCheckInsReached()),
-            nodeList.data(), SLOT(reset()));
+    connect(&nodeList->getDomainHandler(), &DomainHandler::limitOfSilentDomainCheckInsReached,
+        nodeList.data(), [nodeList]() {nodeList->reset("Domain checkin limit"); });
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 #if defined(Q_OS_ANDROID)
