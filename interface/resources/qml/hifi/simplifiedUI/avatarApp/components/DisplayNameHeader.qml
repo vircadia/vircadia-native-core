@@ -103,7 +103,7 @@ Item {
 
             TextInput {
                 id: myDisplayNameText
-                text: MyAvatar.displayName
+                text: MyAvatar.sessionDisplayName === "" ? MyAvatar.displayName : MyAvatar.sessionDisplayName
                 maximumLength: 256
                 clip: true
                 anchors.fill: parent

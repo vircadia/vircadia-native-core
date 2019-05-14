@@ -53,7 +53,6 @@ Item {
         width: root.width * 0.6
         enabled: root.enabled
         anchors.right: parent.right
-        anchors.rightMargin: sliderHandle.width / 2
         anchors.verticalCenter: parent.verticalCenter
 
         onPressedChanged: {
@@ -70,8 +69,9 @@ Item {
 
         background: Rectangle {
             id: sliderBackground
-            width: sliderControl.width
+            width: sliderControl.width - sliderHandle.width
             height: simplifiedUI.sizes.controls.slider.backgroundHeight
+            x: sliderHandle.width / 2
             y: sliderControl.height / 2 - height / 2
             radius: height / 2
             color: simplifiedUI.colors.controls.slider.background.empty
@@ -91,7 +91,7 @@ Item {
             id: sliderHandle
             width: sliderControl.height
             height: width
-            x: sliderControl.visualPosition * (sliderBackground.width - (sliderHandle.width / 2))
+            x: sliderControl.visualPosition * sliderBackground.width
             y: sliderControl.height / 2 - height / 2
             radius: height / 2
             color: "#000000"

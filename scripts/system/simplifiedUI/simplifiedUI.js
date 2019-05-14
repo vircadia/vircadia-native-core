@@ -43,7 +43,10 @@ function runDefaultsTogether() {
 }
 
 
-var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
+// Uncomment this out once the work is actually complete.
+// Until then, users are required to access some functionality from the top menu bar.
+//var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
+var MENU_NAMES = ["File", "Edit", "View", "Navigate", "Help"];
 function removeDesktopMenu() {    
     MENU_NAMES.forEach(function(menu) {
         Menu.removeMenu(menu);
@@ -431,6 +434,8 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
 
 
 var simplifiedNametag = Script.require("../simplifiedNametag/simplifiedNametag.js");
+var oldShowAudioTools;
+var oldShowBubbleTools;
 function startup() {
     if (REMOVE_EXISTING_UI) {
         pauseCurrentScripts();
@@ -451,6 +456,11 @@ function startup() {
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(ensureFirstPersonCameraInHMD);
+
+    oldShowAudioTools = AvatarInputs.showAudioTools;
+    AvatarInputs.showAudioTools = false;
+    oldShowBubbleTools = AvatarInputs.showBubbleTools;
+    AvatarInputs.showBubbleTools = false;
 }
 
 
@@ -495,6 +505,9 @@ function shutdown() {
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(ensureFirstPersonCameraInHMD);
+
+    AvatarInputs.showAudioTools = oldShowAudioTools;
+    AvatarInputs.showBubbleTools = oldShowBubbleTools;
 }
 
 
