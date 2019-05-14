@@ -116,11 +116,11 @@ Rectangle {
 
     Item {
         id: avatarButtonContainer
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+        anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: 16
-        width: height
+        width: 48
+        height: width
 
         AnimatedImage {
             visible: avatarButtonImage.source === ""
@@ -192,20 +192,19 @@ Rectangle {
 
     InputDeviceButton.InputDeviceButton {
         id: inputDeviceButton
+        anchors.verticalCenter: parent.verticalCenter
         anchors.left: avatarButtonContainer.right
         anchors.leftMargin: 8
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
     }
 
 
     Item {
         id: outputDeviceButtonContainer
+        anchors.verticalCenter: parent.verticalCenter
         anchors.left: inputDeviceButton.right
-        anchors.leftMargin: 8
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        width: 40
+        anchors.leftMargin: 24
+        width: 20
+        height: width
 
         HifiStylesUit.HiFiGlyphs {
             property bool outputMuted: false
@@ -213,9 +212,9 @@ Rectangle {
             text: (outputDeviceButton.outputMuted ? simplifiedUI.glyphs.vol_0 : simplifiedUI.glyphs.vol_3)
             color: (outputDeviceButton.outputMuted ? simplifiedUI.colors.controls.outputVolumeButton.text.muted : simplifiedUI.colors.controls.outputVolumeButton.text.noisy)
             opacity: outputDeviceButtonMouseArea.containsMouse ? 1.0 : 0.7
-            size: 40
+            size: 32
             anchors.centerIn: parent
-            width: 35
+            width: parent.width
             height: parent.height
             horizontalAlignment: Text.AlignHCenter
             MouseArea {

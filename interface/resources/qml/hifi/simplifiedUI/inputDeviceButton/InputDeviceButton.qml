@@ -48,10 +48,9 @@ Rectangle {
         }
     }
 
-    height: parent.height;
-    width: 40;
+    height: 30;
+    width: 34;
 
-    radius: 5;
     opacity: 0.7;
 
     onLevelChanged: {
@@ -108,11 +107,11 @@ Rectangle {
     }
 
     Item {
-        id: icon;
-        width: parent.width - bar.width - bar.anchors.leftMargin;
-        height: parent.height - 4;
+        id: icon
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
+        width: parent.width - bar.width - bar.anchors.leftMargin
+        height: parent.height
 
         Item {
             anchors.fill: parent
@@ -143,8 +142,8 @@ Rectangle {
             verticalCenter: icon.verticalCenter;
         }
 
-        width: 6;
-        height: parent.height - 12;
+        width: 4;
+        height: parent.height;
 
         Rectangle { // base
             id: baseBar
