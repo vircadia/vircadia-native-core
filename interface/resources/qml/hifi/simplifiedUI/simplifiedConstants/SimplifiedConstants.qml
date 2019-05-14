@@ -184,7 +184,7 @@ QtObject {
         readonly property QtObject settings: QtObject {
             property real subtitleTopMargin: 2
             property real settingsGroupTopMargin: 10
-            property real spacingBetweenSettings: 24
+            property real spacingBetweenSettings: 48
         }
     }
 
