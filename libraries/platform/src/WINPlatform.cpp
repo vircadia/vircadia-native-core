@@ -7,7 +7,7 @@
 //
 
 #include "WINPlatform.h"
-
+#include "platformJsonKeys.h"
 #ifdef Q_OS_WINDOWS
 #include <intrin.h>
 #include <Windows.h>
@@ -22,7 +22,7 @@ using namespace platform;
 
 void WINInstance::enumerateCpu() {
     json cpu = {};
-
+    
 #ifdef Q_OS_WINDOWS
     int CPUInfo[4] = { -1 };
     unsigned nExIds;
@@ -46,10 +46,10 @@ void WINInstance::enumerateCpu() {
         }
     }
 
-   cpu["brand"] = CPUBrandString;
-   cpu["model"] = CPUModelString;
-   cpu["clockSpeed"] = CPUClockString;
-   cpu["numCores"] = std::thread::hardware_concurrency();
+    cpu[jsonKeys::cpuBrand] = CPUBrandString;
+    cpu[jsonKeys::cpuModel] = CPUModelString;
+    cpu[jsonKeys::cpuClockSpeed] = CPUClockString;
+    cpu[jsonKeys::cpuNumCores] = std::thread::hardware_concurrency();
 #endif
    
     _cpu.push_back(cpu);
@@ -60,9 +60,9 @@ void WINInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
    
     json gpu = {};
-    gpu["name"] = ident->getName().toUtf8().constData();
-    gpu["memory"] = ident->getMemory();
-    gpu["driver"] = ident->getDriver().toUtf8().constData();
+    gpu[jsonKeys::gpuName] = ident->getName().toUtf8().constData();
+    gpu[jsonKeys::gpuMemory] = ident->getMemory();
+    gpu[jsonKeys::gpuDriver] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
@@ -76,7 +76,7 @@ void WINInstance::enumerateMemory() {
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    ram["totalMem"] = totalRam;
+    ram[jsonKeys::totalMemory] = totalRam;
 #endif
     _memory.push_back(ram);
 }

@@ -46,4 +46,4 @@ protected:
 
 }  // namespace platform
 
-#endif  // hifi_platform_h
+#endif  // hifi_platformInstance_h
