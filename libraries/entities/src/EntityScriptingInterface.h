@@ -237,6 +237,14 @@ public slots:
     Q_INVOKABLE bool canReplaceContent();
 
     /**jsdoc
+     * Check whether or not you can get and set private user data.
+     * @function Entities.canGetAndSetPrivateUserData
+     * @returns {boolean} <code>true</code> if the domain server will allow the user to get and set private user data,
+     *     otherwise <code>false</code>.
+     */
+    Q_INVOKABLE bool canGetAndSetPrivateUserData();
+
+    /**jsdoc
      * <p>How an entity is sent over the wire.</p>
      * <table>
      *   <thead>
@@ -1860,6 +1868,15 @@ signals:
      * @returns {Signal}
      */
     void canWriteAssetsChanged(bool canWriteAssets);
+
+    /**jsdoc
+     * Triggered when your ability to get and set private user data changes.
+     * @function Entities.canGetAndSetPrivateUserDataChanged
+     * @param {boolean} canGetAndSetPrivateUserData - <code>true</code> if you can change the <code>privateUserData</code> property of an entity,
+     *     otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    void canGetAndSetPrivateUserDataChanged(bool canGetAndSetPrivateUserData);
 
 
     /**jsdoc

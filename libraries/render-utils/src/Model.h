@@ -347,7 +347,7 @@ public:
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
-    void renderDebugMeshBoxes(gpu::Batch& batch);
+    void renderDebugMeshBoxes(gpu::Batch& batch, bool forward);
 
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }

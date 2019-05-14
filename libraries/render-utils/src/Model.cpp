@@ -447,7 +447,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
 
         /**jsdoc
-         * Information about a submesh intersection point.
+         * A submesh intersection point.
          * @typedef {object} SubmeshIntersection
          * @property {Vec3} worldIntersectionPoint - The intersection point in world coordinates.
          * @property {Vec3} meshIntersectionPoint - The intersection point in model coordinates.
@@ -1033,7 +1033,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _renderInfoHasTransparent = false;
 }
 
-void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
+void Model::renderDebugMeshBoxes(gpu::Batch& batch, bool forward) {
     int colorNdx = 0;
     _mutex.lock();
 
@@ -1042,7 +1042,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     Transform meshToWorld(meshToWorldMatrix);
     batch.setModelTransform(meshToWorld);
 
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true, forward);
 
     for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
         for (auto &partTriangleSet : meshTriangleSets) {

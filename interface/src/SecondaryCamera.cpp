@@ -272,10 +272,10 @@ public:
     }
 };
 
-void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
+void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
 
-    task.addJob<RenderViewTask>("RenderSecondView", cullFunctor, isDeferred, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
+    task.addJob<RenderViewTask>("RenderSecondView", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
 
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

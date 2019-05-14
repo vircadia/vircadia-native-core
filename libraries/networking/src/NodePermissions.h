@@ -75,7 +75,8 @@ public:
         canKick = 64,
         canReplaceDomainContent = 128,
         canRezPermanentCertifiedEntities = 256,
-        canRezTemporaryCertifiedEntities = 512
+        canRezTemporaryCertifiedEntities = 512,
+        canGetAndSetPrivateUserData = 1024
     };
     Q_DECLARE_FLAGS(Permissions, Permission)
     Permissions permissions;

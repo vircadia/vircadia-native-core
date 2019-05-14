@@ -366,8 +366,10 @@ void Audio::onContextChanged() {
 void Audio::handlePushedToTalk(bool enabled) {
     if (getPTT()) {
         if (enabled) {
+            DependencyManager::get<AudioClient>()->setOutputGain(0.1f); // duck the output by 20dB
             setMuted(false);
         } else {
+            DependencyManager::get<AudioClient>()->setOutputGain(1.0f);
             setMuted(true);
         }
     }

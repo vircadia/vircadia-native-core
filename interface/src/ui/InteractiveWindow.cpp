@@ -109,6 +109,8 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
 
         auto mainWindow = qApp->getWindow();
         _dockWidget = std::shared_ptr<DockWidget>(new DockWidget(title, mainWindow), dockWidgetDeleter);
+        auto quickView = _dockWidget->getQuickView();
+        Application::setupQmlSurface(quickView->rootContext(), true);
 
         /**jsdoc
          * Configures how a <code>NATIVE</code> window is displayed.
@@ -141,7 +143,6 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             }
         }
 
-        auto quickView = _dockWidget->getQuickView();
         QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
