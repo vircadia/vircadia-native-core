@@ -4047,6 +4047,8 @@ bool Application::event(QEvent* event) {
             idle();
 
 #ifdef DEBUG_EVENT_QUEUE_DEPTH
+            // The event queue may very well grow beyond 400, so 
+            // this code should only be enabled on local builds
             {
                 int count = ::hifi::qt::getEventQueueSize(QThread::currentThread());
                 if (count > 400) {
