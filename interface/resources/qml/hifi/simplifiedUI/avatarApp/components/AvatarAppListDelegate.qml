@@ -37,12 +37,16 @@ Rectangle {
 
     Rectangle {
         id: borderMask
-        visible: root.isHovering
-        width: itemPreviewImage.width + 4
+        width: root.isHovering ? itemPreviewImage.width + 4 : itemPreviewImage.width - 4
         height: width
         radius: width
         anchors.centerIn: itemPreviewImage
         color: "#FFFFFF"
+
+        Behavior on width {
+            enabled: true
+            SmoothedAnimation { velocity: 80 }
+        }
     }
 
     Image {

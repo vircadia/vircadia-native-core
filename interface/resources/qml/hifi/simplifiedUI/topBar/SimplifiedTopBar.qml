@@ -169,7 +169,7 @@ Rectangle {
         Rectangle {
             z: -1
             id: borderMask
-            width: avatarButtonImageMouseArea.containsMouse ? avatarButtonImage.width + 4 : avatarButtonImage.width
+            width: avatarButtonImageMouseArea.containsMouse ? avatarButtonImage.width + 4 : avatarButtonImage.width - 4
             height: width
             radius: width
             anchors.centerIn: avatarButtonImage
