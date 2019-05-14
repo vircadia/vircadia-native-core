@@ -251,7 +251,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     */
 
     if (!validAdapterList.empty()) {
-        for (auto outy = adapterToOutputs.begin(); outy != adapterToOutputs.end(); outy++) {
+        for (auto outy = adapterToOutputs.begin(); outy != adapterToOutputs.end(); ++outy) {
 
 			AdapterEntry entry = *outy;
             for (auto test = entry.second.begin(); test != entry.second.end(); ++test) {
