@@ -59,17 +59,6 @@ Flickable {
                 color: simplifiedUI.colors.text.white
             }
 
-            HifiStylesUit.GraphikRegular {
-                id: avatarNameTagsSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "Control how nametags appear over other peoples' heads in your HQ. \"Click to View\" allows you to click anyone to see their name."
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
-            }
-
             ColumnLayout {
                 id: avatarNameTagsRadioButtonGroup
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
@@ -117,17 +106,6 @@ Flickable {
                 color: simplifiedUI.colors.text.white
             }
 
-            HifiStylesUit.GraphikRegular {
-                id: performanceSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "Modify how this application uses system resources and impacts battery life."
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
-            }
-
             ColumnLayout {
                 id: performanceRadioButtonGroup
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
@@ -161,17 +139,6 @@ Flickable {
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
-            }
-
-            HifiStylesUit.GraphikRegular {
-                id: cameraSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "Change your point of view by selecting either first or third person view. Try scrolling your mouse wheel."
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
             }
 
             ColumnLayout {

@@ -66,17 +66,6 @@ Flickable {
                 color: simplifiedUI.colors.text.white
             }
 
-            HifiStylesUit.GraphikRegular {
-                id: controlsSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "Everyone responds to VR movement differently. Choose the setting that is most comfortable for you. Try using \"Default\" first."
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
-            }
-
             ColumnLayout {
                 id: controlsRadioButtonGroup
                 width: parent.width
@@ -162,17 +151,6 @@ Flickable {
                 color: simplifiedUI.colors.text.white
             }
 
-            HifiStylesUit.GraphikRegular {
-                id: micControlsSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "These settings let you configure how you communicate with others in your HQ while in VR mode. Push to Talk works like a walkie-talkie!"
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
-            }
-
             ColumnLayout {
                 id: micControlsSwitchGroup
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
@@ -213,17 +191,6 @@ Flickable {
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
-            }
-
-            HifiStylesUit.GraphikRegular {
-                id: inputDeviceSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "Here are all of the input devices and microphones that we found. Select the one you'd like to use in your HQ while in VR mode."
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
             }
 
             ButtonGroup { id: inputDeviceButtonGroup }
@@ -323,17 +290,6 @@ Flickable {
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
-            }
-
-            HifiStylesUit.GraphikRegular {
-                id: outputDeviceSubtitle
-                Layout.topMargin: simplifiedUI.margins.settings.subtitleTopMargin
-                text: "Here are all of the output devices that we found. Select the one you'd like to use in your HQ while in VR mode."
-                wrapMode: Text.Wrap
-                Layout.maximumWidth: parent.width
-                height: paintedHeight
-                size: 14
-                color: simplifiedUI.colors.text.darkGrey
             }
 
             ButtonGroup { id: outputDeviceButtonGroup }
