@@ -211,7 +211,7 @@ public:
     virtual void cycleDebugOutput() {}
 
     void waitForPresent();
-    float getAveragePresentTime() { return _movingAveragePresent.average / (float)USECS_PER_MSEC; } // in msec
+    float getAveragePresentTime() { return _movingAveragePresent.average / (float)USECS_PER_MSEC; }  // in msec
 
     std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
 
