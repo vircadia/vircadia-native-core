@@ -15,10 +15,10 @@ using namespace platform;
 void LinuxInstance::enumerateCpu() {
     json cpu = {};
  
-    cpu[jsonKeys::cpuBrand] = "";
-    cpu[jsonKeys::cpuModel] = "";
-    cpu[jsonKeys::cpuClockSpeed] = "";
-    cpu[jsonKeys::cpuNumCores] = "";
+    cpu["cpuBrand"] = "";
+    cpu["cpuModel"] = "";
+    cpu["cpuClockSpeed"] = "";
+    cpu["cpuNumCores"] = "";
 
     _cpu.push_back(cpu);
 }
@@ -26,9 +26,9 @@ void LinuxInstance::enumerateCpu() {
 void LinuxInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
-    gpu[jsonKeys::gpuName] = ident->getName().toUtf8().constData();
-    gpu[jsonKeys::gpuMemory] = ident->getMemory();
-    gpu[jsonKeys::gpuDriver] = ident->getDriver().toUtf8().constData();
+    gpu["gpuName"] = ident->getName().toUtf8().constData();
+    gpu["gpuMemory"] = ident->getMemory();
+    gpu["gpuDriver"] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
