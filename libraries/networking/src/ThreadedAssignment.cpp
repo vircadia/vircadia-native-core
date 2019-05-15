@@ -18,6 +18,7 @@
 #include <QtCore/QTimer>
 
 #include <LogHandler.h>
+#include <shared/QtHelpers.h>
 
 #include "NetworkLogging.h"
 
@@ -93,6 +94,10 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
+
+#ifdef DEBUG_EVENT_QUEUE
+    statsObject["nodelist_event_queue_size"] = ::hifi::qt::getEventQueueSize(nodeList->thread());
+#endif
 
     QJsonObject ioStats;
     ioStats["inbound_kbps"] = nodeList->getInboundKbps();

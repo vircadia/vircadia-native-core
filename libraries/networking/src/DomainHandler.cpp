@@ -567,9 +567,19 @@ bool DomainHandler::checkInPacketTimeout() {
     }
 
     if (_checkInPacketsSinceLastReply > MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+
+        auto nodeList = DependencyManager::get<NodeList>();
+
         // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
         // so emit our signal that says that
-        qCDebug(networking_ice) << "Limit of silent domain checkins reached";
+
+#ifdef DEBUG_EVENT_QUEUE
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(nodeList->thread());
+        qCDebug(networking) << "Limit of silent domain checkins reached (network qt queue: " << nodeListQueueSize << ")";
+#else  // DEBUG_EVENT_QUEUE
+        qCDebug(networking) << "Limit of silent domain checkins reached";
+#endif // DEBUG_EVENT_QUEUE
+
         emit limitOfSilentDomainCheckInsReached();
         return true;
     } else {

@@ -180,6 +180,11 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE_FLOAT(mbpsIn, nodeList->getInboundKbps() / 1000.0f, 0.01f);
     STAT_UPDATE_FLOAT(mbpsOut, nodeList->getOutboundKbps() / 1000.0f, 0.01f);
 
+#ifdef DEBUG_EVENT_QUEUE
+    STAT_UPDATE(mainThreadQueueDepth, ::hifi::qt::getEventQueueSize(QThread::currentThread()));
+    STAT_UPDATE(nodeListThreadQueueDepth, ::hifi::qt::getEventQueueSize(nodeList->thread()));
+#endif
+
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
