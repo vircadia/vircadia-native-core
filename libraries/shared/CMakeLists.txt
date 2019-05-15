@@ -15,3 +15,5 @@ endif()
 
 target_zlib()
 target_nsight()
+target_json()
+

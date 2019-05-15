@@ -22,6 +22,7 @@
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
+#include <QSaveFile>
 
 #include <AccountManager.h>
 #include <Assignment.h>
@@ -1712,28 +1713,44 @@ void DomainServerSettingsManager::sortPermissions() {
 }
 
 void DomainServerSettingsManager::persistToFile() {
-    sortPermissions();
-
-    // make sure we have the dir the settings file is supposed to live in
-    QFileInfo settingsFileInfo(_configMap.getUserConfigFilename());
-
-    if (!settingsFileInfo.dir().exists()) {
-        settingsFileInfo.dir().mkpath(".");
-    }
-
-    QFile settingsFile(_configMap.getUserConfigFilename());
-
-    if (settingsFile.open(QIODevice::WriteOnly)) {
-        // take a read lock so we can grab the config and write it to file
-        QReadLocker locker(&_settingsLock);
-        settingsFile.write(QJsonDocument::fromVariant(_configMap.getConfig()).toJson());
-    } else {
-        qCritical("Could not write to JSON settings file. Unable to persist settings.");
-
-        // failed to write, reload whatever the current config state is
-        // with a write lock since we're about to overwrite the config map
+    QString settingsFilename = _configMap.getUserConfigFilename();
+    QDir settingsDir = QFileInfo(settingsFilename).dir();
+    if (!settingsDir.exists() && !settingsDir.mkpath(".")) {
+        // If the path already exists when the `mkpath` method is
+        // called, it will return true. It will only return false if the
+        // path doesn't exist after the call returns.
+        qCritical("Could not create the settings file parent directory. Unable to persist settings.");
         QWriteLocker locker(&_settingsLock);
         _configMap.loadConfig();
+        return;
+    }
+    QSaveFile settingsFile(settingsFilename);
+    if (!settingsFile.open(QIODevice::WriteOnly)) {
+        qCritical("Could not open the JSON settings file. Unable to persist settings.");
+        QWriteLocker locker(&_settingsLock);
+        _configMap.loadConfig();
+        return;
+    }
+
+    sortPermissions();
+
+    QVariantMap conf;
+    {
+        QReadLocker locker(&_settingsLock);
+        conf = _configMap.getConfig();
+    }
+    QByteArray json = QJsonDocument::fromVariant(conf).toJson();
+    if (settingsFile.write(json) == -1) {
+        qCritical("Could not write to JSON settings file. Unable to persist settings.");
+        QWriteLocker locker(&_settingsLock);
+        _configMap.loadConfig();
+        return;
+    }
+    if (!settingsFile.commit()) {
+        qCritical("Could not commit writes to JSON settings file. Unable to persist settings.");
+        QWriteLocker locker(&_settingsLock);
+        _configMap.loadConfig();
+        return; // defend against future code
     }
 }
 
