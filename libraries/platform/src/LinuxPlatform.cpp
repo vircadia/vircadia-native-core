@@ -7,7 +7,7 @@
 //
 
 #include "LinuxPlatform.h"
-
+#include "platformJsonKeys.h"
 #include <GPUIdent.h>
 #include <string>
 
