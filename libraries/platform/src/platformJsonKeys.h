@@ -8,12 +8,11 @@
 
 #ifndef hifi_PlatformJsonKeys_h
 #define hifi_PlatformJsonKeys_h
-
+#include <QtGlobal>
 
 namespace platform {
     namespace jsonKeys{
-#if defined(Q_OS_LINUX) //hiding from linux at the moment due to unused variables warning
-#else
+#if !defined(Q_OS_LINUX) //hiding from linux at the moment due to unused variables warning
         static const char*  cpuBrand= "cpuBrand";
         static const char*  cpuModel = "cpuModel";
         static const char*  cpuClockSpeed = "clockSpeed";
