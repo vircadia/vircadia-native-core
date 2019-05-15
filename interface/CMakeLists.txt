@@ -209,7 +209,7 @@ link_hifi_libraries(
   model-networking model-baker entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
-  controllers plugins image trackers
+  controllers plugins image trackers platform
   ui-plugins display-plugins input-plugins
   # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
@@ -228,6 +228,7 @@ target_bullet()
 target_opengl()
 add_crashpad()
 target_breakpad()
+target_json()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
