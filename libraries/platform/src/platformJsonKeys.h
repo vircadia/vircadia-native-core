@@ -11,22 +11,20 @@
 
 namespace platform {
     namespace jsonKeys{
-#if 0
-        static const char*  cpuBrand { "cpuBrand"};
-        static const char*  cpuModel {"cpuModel"};
-        static const char*  cpuClockSpeed {"clockSpeed"};
-        static const char*  cpuNumCores { "numCores"};
-        static const char*  gpuName  {"GpuName"};
-        static const char*  gpuMemory {"gpuMemory"};
-        static const char*  gpuDriver  {"gpuDriver"};
-        static const char*  totalMemory  {"totalMem"};
-        static const char*  displayDescription { "description"};
-        static const char*  displayName  {"deviceName"};
-        static const char*  displayCoordsLeft {"coordinatesleft"};
-        static const char*  displayCoordsRight { "coordinatesright"};
-        static const char*  displayCoordsTop { "coordinatestop"};
-        static const char*  displayCoordsBottom { "coordinatesbottom"};
-#endif
+        const char*  cpuBrand { "cpuBrand"};
+        const char*  cpuModel {"cpuModel"};
+        const char*  cpuClockSpeed {"clockSpeed"};
+        const char*  cpuNumCores { "numCores"};
+        const char*  gpuName  {"GpuName"};
+        const char*  gpuMemory {"gpuMemory"};
+        const char*  gpuDriver  {"gpuDriver"};
+        const char*  totalMemory  {"totalMem"};
+        const char*  displayDescription { "description"};
+        const char*  displayName  {"deviceName"};
+        const char*  displayCoordsLeft {"coordinatesleft"};
+        const char*  displayCoordsRight { "coordinatesright"};
+        const char*  displayCoordsTop { "coordinatestop"};
+        const char*  displayCoordsBottom { "coordinatesbottom"};
     }
 
 } // namespace platform

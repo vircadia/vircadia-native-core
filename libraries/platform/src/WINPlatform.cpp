@@ -46,10 +46,10 @@ void WINInstance::enumerateCpu() {
         }
     }
 
-    cpu["cpuBrand"] = CPUBrandString;
-    cpu["cpuModel"] = CPUModelString;
-    cpu["cpuClockSpeed"] = CPUClockString;
-    cpu["cpuNumCores"] = std::thread::hardware_concurrency();
+    cpu[platform::json::cpuBrand] = CPUBrandString;
+    cpu[jsonKeys::cpuModel] = CPUModelString;
+    cpu[jsonKeys::cpuClockSpeed] = CPUClockString;
+    cpu[jsonKeys::cpuNumCores] = std::thread::hardware_concurrency();
 #endif
    
     _cpu.push_back(cpu);
@@ -60,9 +60,9 @@ void WINInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
    
     json gpu = {};
-    gpu["gpuName"] = ident->getName().toUtf8().constData();
-    gpu["gpuMemory"] = ident->getMemory();
-    gpu["gpuDriver"] = ident->getDriver().toUtf8().constData();
+    gpu[jsonKeys::gpuName] = ident->getName().toUtf8().constData();
+    gpu[jsonKeys::gpuMemory] = ident->getMemory();
+    gpu[jsonKeys::gpuDriver] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
