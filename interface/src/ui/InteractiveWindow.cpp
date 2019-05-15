@@ -86,7 +86,6 @@ void interactiveWindowPointerFromScriptValue(const QScriptValue& object, Interac
  *     provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
  */
 InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties) {
-    bool docked = false;
     InteractiveWindowPresentationMode presentationMode = InteractiveWindowPresentationMode::Native;
 
     if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
@@ -146,12 +145,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
+                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
                 QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
             }
         });
         _dockWidget->setSource(QUrl(sourceUrl));
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
-        _dockedWindow = docked;
     } else {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         // Build the event bridge and wrapper on the main thread
@@ -210,10 +209,10 @@ InteractiveWindow::~InteractiveWindow() {
 
 void InteractiveWindow::sendToQml(const QVariant& message) {
     // Forward messages received from the script on to QML
-    if (_dockedWindow) {
+    if (_dockWidget) {
         QQuickItem* rootItem = _dockWidget->getRootItem();
         if (rootItem) {
-            QMetaObject::invokeMethod(_qmlWindow, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+            QMetaObject::invokeMethod(rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
         }
     } else {
         QMetaObject::invokeMethod(_qmlWindow, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
