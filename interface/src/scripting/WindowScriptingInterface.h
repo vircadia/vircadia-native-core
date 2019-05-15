@@ -575,6 +575,44 @@ public slots:
 
     float domainLoadingProgress();
 
+    /**jsdoc
+     * Return the number of display plugins currently available
+     * @function Window.getDisplayPluginCount
+     * @returns {int} The number of currently available display plugins
+     */
+    int getDisplayPluginCount();
+
+    /**jsdoc
+     * Return the human readable name of a display plugin
+     * @function Window.getDisplayPluginName
+     * @param {int} index - The index of the display plugin.  Must be less than the value returned by {@link Window.getDisplayPluginCount|getDisplayPluginCount}.
+     * @returns {string} The name of the specified display plugin
+     */
+    QString getDisplayPluginName(int index);
+
+    /**jsdoc
+     * Return whether a given display plugin is an HMD
+     * @function Window.isDisplayPluginHmd
+     * @param {int} index - The index of the display plugin.  Must be less than the value returned by {@link Window.getDisplayPluginCount|getDisplayPluginCount}.
+     * @returns {bool} True if the specified display plugin is a HMD
+     */
+    bool isDisplayPluginHmd(int index);
+
+    /**jsdoc
+     * Return the currently active display plugin
+     * @function Window.getActiveDisplayPlugin
+     * @returns {int} The index of the currently active display plugin
+     */
+    int getActiveDisplayPlugin();
+
+    /**jsdoc
+     * Return the currently active display plugin
+     * @function Window.setActiveDisplayPlugin
+     * @param {int} index - The index of the display plugin.  Must be less than the value returned by {@link Window.getDisplayPluginCount|getDisplayPluginCount}.
+     */
+    void setActiveDisplayPlugin(int index);
+
+
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);
     void onMessageBoxSelected(int button);

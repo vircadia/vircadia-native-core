@@ -19,6 +19,7 @@
 #include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 
+#include <plugins/PluginManager.h>
 #include <display-plugins/CompositorHelper.h>
 #include <AddressManager.h>
 #include "AndroidHelper.h"
@@ -608,4 +609,36 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
 
 float WindowScriptingInterface::domainLoadingProgress() {
     return qApp->getOctreePacketProcessor().domainLoadingProgress();
+}
+
+const DisplayPluginList& getDisplayPlugins() {
+    static const auto& list = PluginManager::getInstance()->getDisplayPlugins();
+    return list;
+}
+
+int WindowScriptingInterface::getDisplayPluginCount() {
+    return getDisplayPlugins().size();
+}
+
+QString WindowScriptingInterface::getDisplayPluginName(int index) {
+    return getDisplayPlugins().at(index)->getName();
+}
+
+bool WindowScriptingInterface::isDisplayPluginHmd(int index) {
+    return getDisplayPlugins().at(index)->isHmd();
+}
+
+int WindowScriptingInterface::getActiveDisplayPlugin() {
+    auto active = qApp->getActiveDisplayPlugin();
+    auto size = getDisplayPluginCount();
+    for (int i = 0; i < size; ++i) {
+        if (getDisplayPlugins().at(i) == active) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
+    qApp->setActiveDisplayPlugin(getDisplayPlugins().at(index)->getName());
 }
