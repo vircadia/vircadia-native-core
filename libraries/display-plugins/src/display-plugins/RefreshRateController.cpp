@@ -30,7 +30,7 @@ int RefreshRateController::getRefreshRateLimitPeriod() const {
     return durationNanosecondsToHz(_refreshRateLimitPeriod);
 }
 
-void RefreshRateController::sleepThreadIfNeeded(QThread* thread, bool isHmd) {
+std::chrono::nanoseconds RefreshRateController::sleepThreadIfNeeded(QThread* thread, bool isHmd) {
     if (!isHmd) {
         static const std::chrono::nanoseconds EPSILON = std::chrono::milliseconds(1);
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(_endTime - _startTime);
@@ -39,5 +39,7 @@ void RefreshRateController::sleepThreadIfNeeded(QThread* thread, bool isHmd) {
         if (sleepDuration.count() > 0) {
             thread->msleep(std::chrono::duration_cast<std::chrono::milliseconds>(sleepDuration).count());
         }
+        return sleepDuration;
     }
+    return std::chrono::nanoseconds(0);
 }
