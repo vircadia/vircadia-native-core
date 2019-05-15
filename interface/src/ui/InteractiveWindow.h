@@ -203,7 +203,6 @@ protected slots:
     void qmlToScript(const QVariant& message);
 
 private:
-    bool _dockedWindow { false };
     QPointer<QObject> _qmlWindow;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };
 };
