@@ -23,6 +23,7 @@
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <PhysicsCollisionGroups.h>
+#include <SimulationFlags.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -33,11 +34,11 @@
 #include "EntityPropertyFlags.h"
 #include "EntityTypes.h"
 #include "SimulationOwner.h"
-#include "SimulationFlags.h"
 #include "EntityDynamicInterface.h"
 #include "GrabPropertyGroup.h"
 
 class EntitySimulation;
+using EntitySimulationPointer = std::shared_ptr<EntitySimulation>;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 class EntityDynamicInterface;
@@ -133,7 +134,8 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
     virtual OctreeElement::AppendState appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                                        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const;
+                                                        EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
+                                                        const bool destinationNodeCanGetAndSetPrivateUserData = false) const;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
@@ -322,7 +324,7 @@ public:
     bool getDynamic() const;
     void setDynamic(bool value);
 
-    virtual bool shouldBePhysical() const { return false; }
+    virtual bool shouldBePhysical() const { return !isDead() && getShapeType() != SHAPE_TYPE_NONE; }
     bool isVisuallyReady() const { return _visuallyReady; }
 
     bool getLocked() const;
@@ -330,6 +332,9 @@ public:
 
     QString getUserData() const;
     virtual void setUserData(const QString& value); // FIXME: This is suspicious
+
+    QString getPrivateUserData() const;
+    void setPrivateUserData(const QString& value);
 
     // FIXME not thread safe?
     const SimulationOwner& getSimulationOwner() const { return _simulationOwner; }
@@ -423,8 +428,9 @@ public:
 
     bool isSimulated() const { return _simulated; }
 
-    void* getPhysicsInfo() const { return _physicsInfo; }
+    bool isInPhysicsSimulation() const { return (bool)(_flags & Simulation::SPECIAL_FLAG_IN_PHYSICS_SIMULATION); }
 
+    void* getPhysicsInfo() const { return _physicsInfo; }
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
 
     EntityTreeElementPointer getElement() const { return _element; }
@@ -501,6 +507,7 @@ public:
     virtual bool isWearable() const;
     bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
     bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
+    bool isMyAvatarEntity() const;
     bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }
     entity::HostType getEntityHostType() const { return _hostType; }
     virtual void setEntityHostType(entity::HostType hostType) { _hostType = hostType; }
@@ -641,6 +648,7 @@ protected:
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
     bool _locked { ENTITY_ITEM_DEFAULT_LOCKED };
     QString _userData { ENTITY_ITEM_DEFAULT_USER_DATA };
+    QString _privateUserData{ ENTITY_ITEM_DEFAULT_PRIVATE_USER_DATA };
     SimulationOwner _simulationOwner;
     bool _shouldHighlight { false };
     QString _name { ENTITY_ITEM_DEFAULT_NAME };

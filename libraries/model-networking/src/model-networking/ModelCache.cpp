@@ -542,5 +542,3 @@ void GeometryResourceWatcher::resourceRefreshed() {
     // FIXME: Model is not set up to handle a refresh
     // _instance.reset();
 }
-
-#include "ModelCache.moc"

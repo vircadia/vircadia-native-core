@@ -118,8 +118,6 @@ public:
     const QString getTextures() const;
     void setTextures(const QString& textures);
 
-    virtual bool shouldBePhysical() const override;
-
     virtual void setJointRotations(const QVector<glm::quat>& rotations);
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
     virtual void setJointTranslations(const QVector<glm::vec3>& translations);

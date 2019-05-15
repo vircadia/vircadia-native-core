@@ -228,9 +228,11 @@ void initForwardPipelines(ShapePlumber& plumber) {
 
     // Opaques
     addPipeline(Key::Builder().withMaterial(), program::forward_model);
+    addPipeline(Key::Builder().withMaterial().withLightmap(), program::forward_model_lightmap);
     addPipeline(Key::Builder().withMaterial().withUnlit(), program::forward_model_unlit);
     addPipeline(Key::Builder().withMaterial().withTangents(), program::forward_model_normal_map);
- 
+    addPipeline(Key::Builder().withMaterial().withTangents().withLightmap(), program::forward_model_normal_map_lightmap);
+
     // Deformed Opaques
     addPipeline(Key::Builder().withMaterial().withDeformed(), program::forward_deformed_model);
     addPipeline(Key::Builder().withMaterial().withDeformed().withTangents(), program::forward_deformed_model_normal_map);

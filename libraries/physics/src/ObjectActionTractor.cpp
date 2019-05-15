@@ -11,7 +11,8 @@
 
 #include "ObjectActionTractor.h"
 
-#include "QVariantGLM.h"
+#include <EntityItem.h>
+#include <QVariantGLM.h>
 
 #include "PhysicsLogging.h"
 

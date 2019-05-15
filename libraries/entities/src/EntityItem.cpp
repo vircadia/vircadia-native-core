@@ -86,6 +86,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_PRIVATE_USER_DATA;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_POSITION;
@@ -154,7 +155,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const {
+                                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
+                                            const bool destinationNodeCanGetAndSetPrivateUserData) const {
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -196,6 +198,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
         requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
+    }
+
+    QString privateUserData = "";
+    if (destinationNodeCanGetAndSetPrivateUserData) {
+        privateUserData = getPrivateUserData();
     }
 
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
@@ -266,8 +273,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
+        auto nodeList = DependencyManager::get<NodeList>();
         if (actualParentID == AVATAR_SELF_ID) {
-            auto nodeList = DependencyManager::get<NodeList>();
             actualParentID = nodeList->getSessionUUID();
         }
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
@@ -276,6 +283,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, privateUserData);
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
@@ -812,6 +820,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
+    READ_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, QString, setPrivateUserData);
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -1331,6 +1340,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(privateUserData, getPrivateUserData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
@@ -1479,6 +1489,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(privateUserData, setPrivateUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
@@ -1828,42 +1839,42 @@ void EntityItem::setParentID(const QUuid& value) {
         if (!value.isNull() && tree) {
             EntityItemPointer entity = tree->findEntityByEntityItemID(value);
             if (entity) {
-                newParentNoBootstrapping = entity->getSpecialFlags() & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+                newParentNoBootstrapping = entity->getSpecialFlags() & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
             }
         }
 
         if (!oldParentID.isNull() && tree) {
             EntityItemPointer entity = tree->findEntityByEntityItemID(oldParentID);
             if (entity) {
-                oldParentNoBootstrapping = entity->getDirtyFlags() & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+                oldParentNoBootstrapping = entity->getDirtyFlags() & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
             }
         }
 
         if (!value.isNull() && (value == Physics::getSessionUUID() || value == AVATAR_SELF_ID)) {
-            newParentNoBootstrapping |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+            newParentNoBootstrapping |= Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         }
 
         if (!oldParentID.isNull() && (oldParentID == Physics::getSessionUUID() || oldParentID == AVATAR_SELF_ID)) {
-            oldParentNoBootstrapping |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+            oldParentNoBootstrapping |= Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         }
 
         if ((bool)(oldParentNoBootstrapping ^ newParentNoBootstrapping)) {
-            if ((bool)(newParentNoBootstrapping & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-                markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            if ((bool)(newParentNoBootstrapping & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING)) {
+                markSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                 forEachDescendant([&](SpatiallyNestablePointer object) {
                         if (object->getNestableType() == NestableType::Entity) {
                             EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                             entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                            entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                            entity->markSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                         }
                 });
             } else {
-                clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                clearSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                 forEachDescendant([&](SpatiallyNestablePointer object) {
                         if (object->getNestableType() == NestableType::Entity) {
                             EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                             entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                            entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                            entity->clearSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                         }
                 });
             }
@@ -2023,9 +2034,10 @@ void EntityItem::setCollisionMask(uint16_t value) {
 
 void EntityItem::setDynamic(bool value) {
     if (getDynamic() != value) {
+        auto shapeType = getShapeType();
         withWriteLock([&] {
             // dynamic and STATIC_MESH are incompatible so we check for that case
-            if (value && getShapeType() == SHAPE_TYPE_STATIC_MESH) {
+            if (value && shapeType == SHAPE_TYPE_STATIC_MESH) {
                 if (_dynamic) {
                     _dynamic = false;
                     _flags |= Simulation::DIRTY_MOTION_TYPE;
@@ -2101,7 +2113,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int32_t& group, int32_t& mask
             }
         }
 
-        if ((bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
+        if ((bool)(_flags & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING)) {
             userMask &= ~USER_COLLISION_GROUP_MY_AVATAR;
         }
         mask = Physics::getDefaultCollisionMask(group) & (int32_t)(userMask);
@@ -2172,8 +2184,8 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
 }
 
 void EntityItem::enableNoBootstrap() {
-    if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+    if (!(bool)(_flags & Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING)) {
+        _flags |= Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
@@ -2185,7 +2197,7 @@ void EntityItem::enableNoBootstrap() {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                entity->markSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
             }
         });
     }
@@ -2193,7 +2205,7 @@ void EntityItem::enableNoBootstrap() {
 
 void EntityItem::disableNoBootstrap() {
     if (!stillHasMyGrabAction()) {
-        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags &= ~Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         EntityTreePointer entityTree = getTree();
@@ -2206,7 +2218,7 @@ void EntityItem::disableNoBootstrap() {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                entity->clearSpecialFlags(Simulation::SPECIAL_FLAG_NO_BOOTSTRAPPING);
                 simulation->changeEntity(entity);
             }
         });
@@ -2325,7 +2337,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         if (removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) {
             disableNoBootstrap();
         } else {
-            // NO-OP: we assume SPECIAL_FLAGS_NO_BOOTSTRAPPING bits and collision group are correct
+            // NO-OP: we assume SPECIAL_FLAG_NO_BOOTSTRAPPING bits and collision group are correct
             // because they should have been set correctly when the action was added
             // and/or when children were linked
         }
@@ -3120,6 +3132,20 @@ void EntityItem::setUserData(const QString& value) {
     });
 }
 
+QString EntityItem::getPrivateUserData() const {
+    QString result;
+    withReadLock([&] {
+        result = _privateUserData;
+    });
+    return result;
+}
+
+void EntityItem::setPrivateUserData(const QString& value) {
+    withWriteLock([&] {
+        _privateUserData = value;
+    });
+}
+
 // Certifiable Properties
 #define DEFINE_PROPERTY_GETTER(type, accessor, var) \
 type EntityItem::get##accessor() const {            \
@@ -3153,21 +3179,21 @@ DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVer
 uint32_t EntityItem::getDirtyFlags() const {
     uint32_t result;
     withReadLock([&] {
-        result = _flags & Simulation::DIRTY_FLAGS;
+        result = _flags & Simulation::DIRTY_FLAGS_MASK;
     });
     return result;
 }
 
 void EntityItem::markDirtyFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::DIRTY_FLAGS;
+        mask &= Simulation::DIRTY_FLAGS_MASK;
         _flags |= mask;
     });
 }
 
 void EntityItem::clearDirtyFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::DIRTY_FLAGS;
+        mask &= Simulation::DIRTY_FLAGS_MASK;
         _flags &= ~mask;
     });
 }
@@ -3175,21 +3201,21 @@ void EntityItem::clearDirtyFlags(uint32_t mask) {
 uint32_t EntityItem::getSpecialFlags() const {
     uint32_t result;
     withReadLock([&] {
-        result = _flags & Simulation::SPECIAL_FLAGS;
+        result = _flags & Simulation::SPECIAL_FLAGS_MASK;
     });
     return result;
 }
 
 void EntityItem::markSpecialFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::SPECIAL_FLAGS;
+        mask &= Simulation::SPECIAL_FLAGS_MASK;
         _flags |= mask;
     });
 }
 
 void EntityItem::clearSpecialFlags(uint32_t mask) {
     withWriteLock([&] {
-        mask &= Simulation::SPECIAL_FLAGS;
+        mask &= Simulation::SPECIAL_FLAGS_MASK;
         _flags &= ~mask;
     });
 }
@@ -3429,6 +3455,10 @@ bool EntityItem::isWearable() const {
     return isVisible() &&
         (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
+
+bool EntityItem::isMyAvatarEntity() const {
+    return _hostType == entity::HostType::AVATAR && Physics::getSessionUUID() == _owningAvatarID;
+};
 
 void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();

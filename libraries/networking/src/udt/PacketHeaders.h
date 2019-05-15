@@ -269,6 +269,8 @@ enum class EntityVersion : PacketVersion {
     CertificateTypeProperty,
     DisableWebMedia,
     ParticleShapeType,
+    ParticleShapeTypeDeadlockFix,
+    PrivateUserData,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
@@ -333,6 +335,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     SendMaxTranslationDimension,
     FBXJointOrderChange,
     HandControllerSection,
+    SendVerificationFailed
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

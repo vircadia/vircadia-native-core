@@ -51,15 +51,15 @@ float HashKey::getNumQuantizedValuesPerMeter() {
     return QUANTIZED_VALUES_PER_METER;
 }
 
-void HashKey::hashUint64(uint64_t data) {
+void HashKey::Hasher::hashUint64(uint64_t data) {
     _hash += squirrel3_64(data, ++_hashCount);
 }
 
-void HashKey::hashFloat(float data) {
+void HashKey::Hasher::hashFloat(float data) {
     _hash += squirrel3_64((uint64_t)((int64_t)(data * QUANTIZED_VALUES_PER_METER)), ++_hashCount);
 }
 
-void HashKey::hashVec3(const glm::vec3& data) {
+void HashKey::Hasher::hashVec3(const glm::vec3& data) {
     _hash += squirrel3_64((uint64_t)((int64_t)(data[0] * QUANTIZED_VALUES_PER_METER)), ++_hashCount);
     _hash *= squirrel3_64((uint64_t)((int64_t)(data[1] * QUANTIZED_VALUES_PER_METER)), ++_hashCount);
     _hash ^= squirrel3_64((uint64_t)((int64_t)(data[2] * QUANTIZED_VALUES_PER_METER)), ++_hashCount);

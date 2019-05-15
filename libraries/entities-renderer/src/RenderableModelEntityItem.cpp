@@ -361,6 +361,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
+
+    auto model = getModel();
+    if (!model) {
+        type = SHAPE_TYPE_NONE;
+    }
+
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
@@ -442,10 +448,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        auto model = getModel();
-        // assert we never fall in here when model not fully loaded
-        assert(model && model->isLoaded());
-
         glm::vec3 dimensions = getScaledDimensions();
         glm::vec3 scaleToFit = dimensions / model->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
@@ -461,7 +463,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         adjustShapeInfoByRegistration(shapeInfo);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         updateModelBounds();
-        auto model = getModel();
         // assert we never fall in here when model not fully loaded
         assert(model && model->isLoaded());
         model->updateGeometry();
@@ -735,13 +736,15 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
     auto model = getModel();
     // If we have a model, make sure it hasn't failed to download.
     // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
-    if (model && (getShapeType() == SHAPE_TYPE_COMPOUND || getShapeType() == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
-        return false;
-    } else if (model && getShapeType() != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
-        return false;
-    } else {
-        return ModelEntityItem::shouldBePhysical();
+    ShapeType shapeType = getShapeType();
+    if (model) {
+        if ((shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
+            return false;
+        } else if (shapeType != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
+            return false;
+        }
     }
+    return !isDead() && shapeType != SHAPE_TYPE_NONE && QUrl(_modelURL).isValid();
 }
 
 int RenderableModelEntityItem::getJointParent(int index) const {
@@ -1520,7 +1523,7 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
         model = _model;
     });
     if (model) {
-        model->renderDebugMeshBoxes(batch);
+        model->renderDebugMeshBoxes(batch, args->_renderMethod == Args::RenderMethod::FORWARD);
     }
 #endif
 }

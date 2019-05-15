@@ -523,6 +523,7 @@ public:
 
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::Transaction& transaction, KillAvatarReason reason);
+    render::Transition::Type getLastFadeRequested() const;
 
     // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
@@ -694,13 +695,14 @@ protected:
     glm::vec3 getDisplayNamePosition() const;
 
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition, bool forward) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene(const render::ScenePointer& scene);
 
     virtual void updatePalms();
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
+    render::Transition::Type _lastFadeRequested { render::Transition::Type::NONE }; // Used for sanity checking
 
     ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };

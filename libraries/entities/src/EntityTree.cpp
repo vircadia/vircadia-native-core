@@ -1286,6 +1286,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         }
     }
 
+    if (properties.privateUserDataChanged()) {
+        int index = changedProperties.indexOf("privateUserData");
+        if (index >= 0) {
+            QString changeHint = properties.getPrivateUserData();
+            changedProperties[index] = QString("privateUserData:") + changeHint;
+        }
+    }
+
     if (properties.parentJointIndexChanged()) {
         int index = changedProperties.indexOf("parentJointIndex");
         if (index >= 0) {
@@ -1772,6 +1780,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
             bool suppressDisallowedClientScript = false;
             bool suppressDisallowedServerScript = false;
+            bool suppressDisallowedPrivateUserData = false;
             bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
@@ -1860,7 +1869,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         }
                     }
                 }
+            }
 
+            if (!properties.getPrivateUserData().isEmpty() && validEditPacket && !senderNode->getCanGetAndSetPrivateUserData()) {
+                if (wantEditLogging()) {
+                    qCDebug(entities) << "User [" << senderNode->getUUID()
+                        << "] is attempting to set private user data but user isn't allowed; edit rejected...";
+                }
+
+                // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                if (isAdd) {
+                    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                    _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                    validEditPacket = false;
+                } else {
+                    suppressDisallowedPrivateUserData = true;
+                }
             }
 
             if (!isClone) {
@@ -1913,6 +1937,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (suppressDisallowedServerScript) {
                         bumpTimestamp(properties);
                         properties.setServerScripts(existingEntity->getServerScripts());
+                    }
+
+                    if (suppressDisallowedPrivateUserData) {
+                        bumpTimestamp(properties);
+                        properties.setPrivateUserData(existingEntity->getPrivateUserData());
                     }
 
                     // if the EntityItem exists, then update it
@@ -2079,7 +2108,6 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 }
 
 void EntityTree::fixupNeedsParentFixups() {
-    PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
     QVector<EntityItemWeakPointer> entitiesToFixup;
     {
@@ -2189,11 +2217,19 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
     _needsParentFixup.append(entity);
 }
 
+void EntityTree::preUpdate() {
+    withWriteLock([&] {
+        fixupNeedsParentFixups();
+        if (_simulation) {
+            _simulation->processChangedEntities();
+        }
+    });
+}
+
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
     PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
-        fixupNeedsParentFixups();
         if (simulate && _simulation) {
             _simulation->updateEntities();
             {

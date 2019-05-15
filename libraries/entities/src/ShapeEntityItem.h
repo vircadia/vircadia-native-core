@@ -84,8 +84,6 @@ public:
 
     void setUnscaledDimensions(const glm::vec3& value) override;
 
-    bool shouldBePhysical() const override { return !isDead(); }
-
     bool supportsDetailedIntersection() const override;
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                 OctreeElementPointer& element, float& distance,

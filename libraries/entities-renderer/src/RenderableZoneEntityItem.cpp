@@ -92,9 +92,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     }
 
     { // Sun 
-      // Need an update ?
         if (_needSunUpdate) {
-            // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
             } else {
@@ -107,9 +105,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     { // Ambient
         updateAmbientMap();
 
-        // Need an update ?
         if (_needAmbientUpdate) {
-            // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_ambientIndex)) {
                 _ambientIndex = _stage->addLight(_ambientLight);
             } else {
@@ -123,7 +119,7 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
         updateSkyboxMap();
 
         if (_needBackgroundUpdate) {
-            if (_skyboxMode == COMPONENT_MODE_ENABLED && BackgroundStage::isIndexInvalid(_backgroundIndex)) {
+            if (BackgroundStage::isIndexInvalid(_backgroundIndex)) {
                 _backgroundIndex = _backgroundStage->addBackground(_background);
             }
             _needBackgroundUpdate = false;
@@ -186,23 +182,18 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
     }
 }
 
-void ZoneEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& transaction) {
-#if 0
-    if (_model) {
-        _model->removeFromScene(scene, transaction);
-    }
-#endif
-    Parent::removeFromScene(scene, transaction);
-}
-
 void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
-
     auto position = entity->getWorldPosition();
     auto rotation = entity->getWorldOrientation();
     auto dimensions = entity->getScaledDimensions();
     bool rotationChanged = rotation != _lastRotation;
     bool transformChanged = rotationChanged || position != _lastPosition || dimensions != _lastDimensions;
+
+    auto visible = entity->getVisible();
+    if (transformChanged || visible != _lastVisible) {
+        _lastVisible = visible;
+        DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
+    }
 
     auto proceduralUserData = entity->getUserData();
     bool proceduralUserDataChanged = _proceduralUserData != proceduralUserData;
@@ -225,25 +216,6 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     if (proceduralUserDataChanged) {
         _proceduralUserData = entity->getUserData();
     }
-
-#if 0
-    if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
-        _lastShapeURL = _typedEntity->getCompoundShapeURL();
-        _model.reset();
-        _model = std::make_shared<Model>();
-        _model->setIsWireframe(true);
-        _model->init();
-        _model->setURL(_lastShapeURL);
-    }
-
-    if (_model && _model->isActive()) {
-        _model->setScaleToFit(true, _lastDimensions);
-        _model->setSnapModelToRegistrationPoint(true, _entity->getRegistrationPoint());
-        _model->setRotation(_lastRotation);
-        _model->setTranslation(_lastPosition);
-        _model->simulate(0.0f);
-    }
-#endif
 
     updateKeyZoneItemFromEntity(entity);
 
@@ -296,6 +268,10 @@ ItemKey ZoneEntityRenderer::getKey() {
 }
 
 bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
+    if (entity->getVisible() != _lastVisible) {
+        return true;
+    }
+
     if (entity->keyLightPropertiesChanged() ||
         entity->ambientLightPropertiesChanged() ||
         entity->hazePropertiesChanged() ||
@@ -323,25 +299,7 @@ bool ZoneEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
-#if 0
-    if (_typedEntity->getCompoundShapeURL() != _lastShapeURL) {
-        return true;
-    }
-
-    if (_model) {
-        if (!_model->needsFixupInScene() && (!ZoneEntityItem::getDrawZoneBoundaries() || _entity->getShapeType() != SHAPE_TYPE_COMPOUND)) {
-            return true;
-        }
-
-        if (_model->needsFixupInScene() && (ZoneEntityItem::getDrawZoneBoundaries() || _entity->getShapeType() == SHAPE_TYPE_COMPOUND)) {
-            return true;
-        }
-
-        if (_lastModelActive != _model->isActive()) {
-            return true;
-        }
-    }
-#endif
+    // FIXME: do we need to trigger an update when shapeType changes?  see doRenderUpdateAsynchronousTyped
 
     return false;
 }
@@ -450,7 +408,6 @@ void ZoneEntityRenderer::updateKeyZoneItemFromEntity(const TypedEntityPointer& e
 }
 
 void ZoneEntityRenderer::setAmbientURL(const QString& ambientUrl) {
-    // nothing change if nothing change
     if (_ambientTextureURL == ambientUrl) {
         return;
     }
@@ -466,8 +423,6 @@ void ZoneEntityRenderer::setAmbientURL(const QString& ambientUrl) {
         _pendingAmbientTexture = true;
         auto textureCache = DependencyManager::get<TextureCache>();
         _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::AMBIENT_TEXTURE);
-
-        // keep whatever is assigned on the ambient map/sphere until texture is loaded
     }
 }
 
@@ -492,7 +447,6 @@ void ZoneEntityRenderer::updateAmbientMap() {
 }
 
 void ZoneEntityRenderer::setSkyboxURL(const QString& skyboxUrl) {
-    // nothing change if nothing change
     if (_skyboxTextureURL == skyboxUrl) {
         return;
     }

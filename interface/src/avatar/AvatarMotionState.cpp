@@ -29,36 +29,25 @@ void AvatarMotionState::handleEasyChanges(uint32_t& flags) {
     }
 }
 
-bool AvatarMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
-}
-
 AvatarMotionState::~AvatarMotionState() {
     assert(_avatar);
     _avatar = nullptr;
 }
 
 // virtual
-uint32_t AvatarMotionState::getIncomingDirtyFlags() {
+uint32_t AvatarMotionState::getIncomingDirtyFlags() const {
     return _body ? _dirtyFlags : 0;
 }
 
-void AvatarMotionState::clearIncomingDirtyFlags() {
+void AvatarMotionState::clearIncomingDirtyFlags(uint32_t mask) {
     if (_body) {
-        _dirtyFlags = 0;
+        _dirtyFlags &= ~mask;
     }
 }
 
 PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
     // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
     return MOTION_TYPE_DYNAMIC;
-}
-
-// virtual and protected
-const btCollisionShape* AvatarMotionState::computeNewShape() {
-    ShapeInfo shapeInfo;
-    _avatar->computeShapeInfo(shapeInfo);
-    return getShapeManager()->getShape(shapeInfo);
 }
 
 // virtual
