@@ -12,7 +12,6 @@
 
 namespace platform {
     namespace jsonKeys{
-#if !defined(Q_OS_LINUX) || !defined(Q_OS_ANDROID) //hiding from linux at the moment due to unused variables warning
         static const char*  cpuBrand= "cpuBrand";
         static const char*  cpuModel = "cpuModel";
         static const char*  cpuClockSpeed = "clockSpeed";
@@ -27,9 +26,8 @@ namespace platform {
         static const char*  displayCoordsRight = "coordinatesright";
         static const char*  displayCoordsTop = "coordinatestop";
         static const char*  displayCoordsBottom = "coordinatesbottom";
-#endif
 	}
 
 } // namespace platform
 
-#endif  
+#endif

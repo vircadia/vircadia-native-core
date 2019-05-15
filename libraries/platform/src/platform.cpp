@@ -19,7 +19,12 @@
 #include "MACOSPlatform.h"
 #endif
 
+#ifdef Q_OS_ANDROID
+#include "AndroidPlatform.h"
+#endif
+
 #ifdef Q_OS_LINUX
+#include "LinuxPlatform.h"
 #endif
 
 using namespace platform;
@@ -31,6 +36,10 @@ void platform::create() {
     _instance =new WINInstance();
 #elif defined(Q_OS_MAC)
     _instance = new MACOSInstance();
+#elif defined(Q_OS_ANDROID)
+    _instance= new AndroidInstance();
+#elif defined(Q_OS_LINUX)
+    _instance= new LinuxInstance();
 #endif
 }
 
