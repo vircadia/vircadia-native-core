@@ -9,21 +9,15 @@
 
 #include "platform.h"
 
-#include <QtGlobal>
+#include <qglobal.h>
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
 #include "WINPlatform.h"
-#endif
-
-#ifdef Q_OS_MACOS
+#elif defined(Q_OS_MAC)
 #include "MACOSPlatform.h"
-#endif
-
-#ifdef Q_OS_ANDROID
+#elif defined(Q_OS_ANDROID)
 #include "AndroidPlatform.h"
-#endif
-
-#ifdef Q_OS_LINUX
+#elif defined(Q_OS_LINUX)
 #include "LinuxPlatform.h"
 #endif
 
@@ -32,7 +26,7 @@ using namespace platform;
 Instance *_instance;
 
 void platform::create() {
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN)
     _instance =new WINInstance();
 #elif defined(Q_OS_MAC)
     _instance = new MACOSInstance();
