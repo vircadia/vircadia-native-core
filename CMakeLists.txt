@@ -42,6 +42,9 @@ project(hifi)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
 
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
+
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/bin)
 add_paths_to_fixup_libs(${VCPKG_INSTALL_ROOT}/debug/bin)
 
