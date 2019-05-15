@@ -28,6 +28,7 @@ const QVector<glm::vec3> ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC = QVector<glm::vec3
 
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
+const QString ENTITY_ITEM_DEFAULT_PRIVATE_USER_DATA = QString("");
 const QUuid ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QUuid();
 
 // Certifiable Properties
