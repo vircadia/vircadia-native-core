@@ -245,21 +245,31 @@ endif()
             dest = os.path.join(self.path, 'installed')
 
             url = 'NOT DEFINED'
+            sha512sum = None
             if platform.system() == 'Windows':
-                url = 'https://hifi-qa.s3.amazonaws.com/qt5/Windows/qt5-install.tar.gz'
+                # TODO: figure out how to download with versionId
+                #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows.tar.gz?versionId=Etx8novAe0.IxQ7AosLFtop7fZur.cx9'
+                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows.tar.gz'
+                sha512sum = 'c0d1416d28ff8f4570651cf7d18857709f573567d34ac66f62a368983b8643dde20806b8c1de19886cd60b5586d98aa49f109b15a842def82ab3c4f76419d99e'
             elif platform.system() == 'Darwin':
-                url = 'https://hifi-qa.s3.amazonaws.com/qt5/Mac/qt5-install.tar.gz'
+                #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=QrGxwssB.WwU_z3QCyG7ghP1_VjTkQeK'
+                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz'
+                sha512sum = '025a1aa258f6ca41c9544e1ab871b7af5fde891fc2be2cbfca3ba6c89f40c7cf5794997f5e78e83dc20fa0aaeab7223f2c82923df1ce698bdc87fe4f2aebf23f'
             elif platform.system() == 'Linux':
                 if platform.linux_distribution()[1] == '16.04':
-                    url = 'https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/16.04/qt5-install.tar.gz'
+                    #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04.tar.gz?versionId=c9j7PW4uBDPLif7DKmgIhorh9WBMjZRB'
+                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04.tar.gz'
+                    sha512sum = '290fdf0ac1bbc54791650bcff971dc69502bbacbcc88f69a9f439d23a5ca5c114a2d7d8bd354c29abfd48e20d0757aaf1eac3d12bac8b207d9ab6ad24b5f30b8'
                 elif platform.linux_distribution()[1] == '18.04':
-                    url = "https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/18.04/qt5-install.tar.gz"
+                    #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz?versionId=Z3TojPFdb5pXdahF3oi85jjKocpL0xqw'
+                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
+                    sha512sum = '74bcce1879251ec5e78b82d9b99a73a5b94698a4937ba91d6abf0047daee08d21cab364be6cbda8bb97e1f4cfa35c931bd42265032bff468d0ecbc0b8f5fab77'
                 else:
                     print('UNKNOWN LINUX VERSION!!!')
             else:
                 print('UNKNOWN OPERATING SYSTEM!!!')
 
             print('Extracting ' + url + ' to ' + dest)
-            hifi_utils.downloadAndExtract(url, dest)
+            hifi_utils.downloadAndExtract(url, dest, sha512sum)
         else:
             print ('Qt has already been downloaded')
