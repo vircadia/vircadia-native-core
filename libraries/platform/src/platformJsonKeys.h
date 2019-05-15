@@ -8,7 +8,6 @@
 #pragma once
 #ifndef hifi_PlatformJsonKeys_h
 #define hifi_PlatformJsonKeys_h
-#include <QtGlobal>
 
 namespace platform {
     namespace jsonKeys{
