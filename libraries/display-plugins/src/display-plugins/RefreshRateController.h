@@ -29,7 +29,7 @@ public:
 
     void clockStartTime() { _startTime = std::chrono::high_resolution_clock::now(); }
     void clockEndTime() { _endTime = std::chrono::high_resolution_clock::now(); }
-    void sleepThreadIfNeeded(QThread* thread, bool isHmd);
+    std::chrono::nanoseconds sleepThreadIfNeeded(QThread* thread, bool isHmd);
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> _startTime { std::chrono::high_resolution_clock::now() };
     std::chrono::time_point<std::chrono::high_resolution_clock> _endTime { std::chrono::high_resolution_clock::now() };

@@ -180,6 +180,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString, ENTITY_ITEM_DEFAULT_USER_DATA);
+    DEFINE_PROPERTY_REF(PROP_PRIVATE_USER_DATA, PrivateUserData, privateUserData, QString, ENTITY_ITEM_DEFAULT_PRIVATE_USER_DATA);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
@@ -607,6 +608,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Textures, textures, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, UserData, userData, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, PrivateUserData, privateUserData, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, SimulationOwner, simulationOwner, SimulationOwner());
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Text, text, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LineHeight, lineHeight, "");

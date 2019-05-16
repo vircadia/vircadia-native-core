@@ -51,6 +51,10 @@ Install Python 3:
 sudo apt-get install python3.6
 ```
 
+Install node, required to build the jsdoc documentation
+```bash
+sudo apt-get install nodejs
+```
 
 ### Get code and checkout the tag you need
 

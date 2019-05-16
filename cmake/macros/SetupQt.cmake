@@ -7,7 +7,8 @@
 #
 
 # Construct a default QT location from a root path, a version and an architecture
-function(calculate_default_qt_dir _RESULT_NAME)
+
+function(calculate_default_qt_dir _QT_VERSION _RESULT_NAME)
     if (ANDROID)
         set(QT_DEFAULT_ARCH "android_armv7")
     elseif(UWP)
@@ -27,22 +28,22 @@ function(calculate_default_qt_dir _RESULT_NAME)
     endif()
 
     set_from_env(QT_ROOT QT_ROOT ${QT_DEFAULT_ROOT})
-    set_from_env(QT_VERSION QT_VERSION "5.10.1")
     set_from_env(QT_ARCH QT_ARCH ${QT_DEFAULT_ARCH})
 
-    set(${_RESULT_NAME} "${QT_ROOT}/${QT_VERSION}/${QT_ARCH}" PARENT_SCOPE)
+    set(${_RESULT_NAME} "${QT_ROOT}/${_QT_VERSION}/${QT_ARCH}" PARENT_SCOPE)
 endfunction()
 
 # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
 # Also enables CMAKE_AUTOMOC and CMAKE_AUTORCC
 macro(setup_qt)
+    set_from_env(QT_VERSION QT_VERSION "5.10.1")
     # if QT_CMAKE_PREFIX_PATH was not specified before hand,
     # try to use the environment variable
     if (NOT QT_CMAKE_PREFIX_PATH)
         set(QT_CMAKE_PREFIX_PATH "$ENV{QT_CMAKE_PREFIX_PATH}")
     endif()
     if (("QT_CMAKE_PREFIX_PATH" STREQUAL "") OR (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}"))
-        calculate_default_qt_dir(QT_DIR)
+        calculate_default_qt_dir(${QT_VERSION} QT_DIR)
         set(QT_CMAKE_PREFIX_PATH "${QT_DIR}/lib/cmake")
     else()
         # figure out where the qt dir is

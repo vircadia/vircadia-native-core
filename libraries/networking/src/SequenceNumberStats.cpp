@@ -142,8 +142,10 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
                 if (wantExtraDebugging) {
                     qCDebug(networking) << "found it in _missingSet";
                 }
-                _stats._lost--;
-                _stats._recovered++;
+                if (_stats._lost > 0) {
+                    _stats._lost--;
+                    _stats._recovered++;
+                }
             } else {
                 // this late seq num is not in our missing set.  it is possibly a duplicate, or possibly a late
                 // packet that should have arrived before our first received packet.  we'll count these

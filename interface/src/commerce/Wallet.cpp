@@ -313,6 +313,8 @@ Wallet::Wallet() {
         walletScriptingInterface->setWalletStatus(status);
     });
 
+    connect(ledger.data(), &Ledger::accountResult, this, &Wallet::sendChallengeOwnershipResponses);
+
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
         getWalletStatus();
@@ -823,88 +825,101 @@ bool Wallet::changePassphrase(const QString& newPassphrase) {
 }
 
 void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode) {
+    _pendingChallenges.push_back(packet);
+    sendChallengeOwnershipResponses();
+}
+
+void Wallet::sendChallengeOwnershipResponses() {
+    if (_pendingChallenges.size() == 0 || getSalt().length() == 0) {
+        return;
+    }
     auto nodeList = DependencyManager::get<NodeList>();
 
-    // With EC keys, we receive a nonce from the metaverse server, which is signed
-    // here with the private key and returned.  Verification is done at server.
-
-    bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
-    int status;
-    int idByteArraySize;
-    int textByteArraySize;
-    int challengingNodeUUIDByteArraySize;
-
-    packet->readPrimitive(&idByteArraySize);
-    packet->readPrimitive(&textByteArraySize);  // returns a cast char*, size
-    if (challengeOriginatedFromClient) {
-        packet->readPrimitive(&challengingNodeUUIDByteArraySize);
-    }
-
-    // "encryptedText"  is now a series of random bytes, a nonce
-    QByteArray id = packet->read(idByteArraySize);
-    QByteArray text = packet->read(textByteArraySize);
-    QByteArray challengingNodeUUID;
-    if (challengeOriginatedFromClient) {
-        challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
-    }
-
     EC_KEY* ec = readKeys(keyFilePath());
-    QString sig;
 
-    if (ec) {
-        ERR_clear_error();
-        sig = signWithKey(text, ""); // base64 signature, QByteArray cast (on return) to QString FIXME should pass ec as string so we can tell which key to sign with
-        status = 1;
-    } else {
-        qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
-        status = -1;
+    for (const auto& packet: _pendingChallenges) {
+
+        // With EC keys, we receive a nonce from the metaverse server, which is signed
+        // here with the private key and returned.  Verification is done at server.
+
+        QString sig;
+        bool challengeOriginatedFromClient = packet->getType() == PacketType::ChallengeOwnershipRequest;
+        int status;
+        int idByteArraySize;
+        int textByteArraySize;
+        int challengingNodeUUIDByteArraySize;
+
+        packet->readPrimitive(&idByteArraySize);
+        packet->readPrimitive(&textByteArraySize);  // returns a cast char*, size
+        if (challengeOriginatedFromClient) {
+            packet->readPrimitive(&challengingNodeUUIDByteArraySize);
+        }
+
+        // "encryptedText"  is now a series of random bytes, a nonce
+        QByteArray id = packet->read(idByteArraySize);
+        QByteArray text = packet->read(textByteArraySize);
+        QByteArray challengingNodeUUID;
+        if (challengeOriginatedFromClient) {
+            challengingNodeUUID = packet->read(challengingNodeUUIDByteArraySize);
+        }
+
+        if (ec) {
+            ERR_clear_error();
+            sig = signWithKey(text, ""); // base64 signature, QByteArray cast (on return) to QString FIXME should pass ec as string so we can tell which key to sign with
+            status = 1;
+        } else {
+            qCDebug(commerce) << "During entity ownership challenge, creating the EC-signed nonce failed.";
+            status = -1;
+        }
+
+        QByteArray textByteArray;
+        if (status > -1) {
+            textByteArray = sig.toUtf8();
+        }
+        textByteArraySize = textByteArray.size();
+        int idSize = id.size();
+        // setup the packet
+        Node& sendingNode = *nodeList->nodeWithLocalID(packet->getSourceID());
+        if (challengeOriginatedFromClient) {
+            auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+                idSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+                true);
+
+            textPacket->writePrimitive(idSize);
+            textPacket->writePrimitive(textByteArraySize);
+            textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+            textPacket->write(id);
+            textPacket->write(textByteArray);
+            textPacket->write(challengingNodeUUID);
+
+            qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for id" << id;
+
+            nodeList->sendPacket(std::move(textPacket), sendingNode);
+        } else {
+            auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, idSize + textByteArraySize + 2 * sizeof(int), true);
+
+            textPacket->writePrimitive(idSize);
+            textPacket->writePrimitive(textByteArraySize);
+            textPacket->write(id);
+            textPacket->write(textByteArray);
+
+            qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for id" << id;
+
+            nodeList->sendPacket(std::move(textPacket), sendingNode);
+        }
+
+        if (status == -1) {
+            qCDebug(commerce) << "During entity ownership challenge, signing the text failed.";
+            long error = ERR_get_error();
+            if (error != 0) {
+                const char* error_str = ERR_error_string(error, NULL);
+                qCWarning(entities) << "EC error:" << error_str;
+            }
+        }
     }
 
     EC_KEY_free(ec);
-
-    QByteArray textByteArray;
-    if (status > -1) {
-        textByteArray = sig.toUtf8();
-    }
-    textByteArraySize = textByteArray.size();
-    int idSize = id.size();
-    // setup the packet
-    if (challengeOriginatedFromClient) {
-        auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-            idSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
-            true);
-
-        textPacket->writePrimitive(idSize);
-        textPacket->writePrimitive(textByteArraySize);
-        textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
-        textPacket->write(id);
-        textPacket->write(textByteArray);
-        textPacket->write(challengingNodeUUID);
-
-        qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for id" << id;
-
-        nodeList->sendPacket(std::move(textPacket), *sendingNode);
-    } else {
-        auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, idSize + textByteArraySize + 2 * sizeof(int), true);
-
-        textPacket->writePrimitive(idSize);
-        textPacket->writePrimitive(textByteArraySize);
-        textPacket->write(id);
-        textPacket->write(textByteArray);
-
-        qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for id" << id;
-
-        nodeList->sendPacket(std::move(textPacket), *sendingNode);
-    }
-
-    if (status == -1) {
-        qCDebug(commerce) << "During entity ownership challenge, signing the text failed.";
-        long error = ERR_get_error();
-        if (error != 0) {
-            const char* error_str = ERR_error_string(error, NULL);
-            qCWarning(entities) << "EC error:" << error_str;
-        }
-    }
+    _pendingChallenges.clear();
 }
 
 void Wallet::account() {

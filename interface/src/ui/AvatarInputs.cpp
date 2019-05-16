@@ -20,6 +20,7 @@
 static AvatarInputs* INSTANCE{ nullptr };
 
 Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, true };
+Setting::Handle<bool> showBubbleToolsSetting{ QStringList { "AvatarInputs", "showBubbleTools" }, true };
 
 AvatarInputs* AvatarInputs::getInstance() {
     if (!INSTANCE) {
@@ -86,6 +87,15 @@ void AvatarInputs::setShowAudioTools(bool showAudioTools) {
     _showAudioTools = showAudioTools;
     showAudioToolsSetting.set(_showAudioTools);
     emit showAudioToolsChanged(_showAudioTools);
+}
+
+void AvatarInputs::setShowBubbleTools(bool showBubbleTools) {
+    if (_showBubbleTools == showBubbleTools)
+        return;
+
+    _showBubbleTools = showBubbleTools;
+    showBubbleToolsSetting.set(_showAudioTools);
+    emit showBubbleToolsChanged(_showBubbleTools);
 }
 
 bool AvatarInputs::getIgnoreRadiusEnabled() const {
