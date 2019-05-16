@@ -414,11 +414,11 @@ QString WindowScriptingInterface::protocolSignature() {
 }
 
 int WindowScriptingInterface::getInnerWidth() {
-    return qApp->getWindow()->geometry().width();
+    return qApp->getPrimaryWidget()->geometry().width();
 }
 
 int WindowScriptingInterface::getInnerHeight() {
-    return qApp->getWindow()->geometry().height() - qApp->getPrimaryMenu()->geometry().height();
+    return qApp->getPrimaryWidget()->geometry().height();
 }
 
 glm::vec2 WindowScriptingInterface::getDeviceSize() const {
