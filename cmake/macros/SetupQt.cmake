@@ -21,7 +21,11 @@ function(calculate_qt5_version result _QT_DIR)
   #   .../include/QtCore/5.12.3/QtCore/private
   # Sometimes we need to include these private headers for debug hackery.
   # Hence we find one of these directories and pick apart its path to determine the actual QT_VERSION.
-  set(_QT_CORE_DIR "${_QT_DIR}/include/QtCore")
+  if (APPLE)
+    set(_QT_CORE_DIR "${_QT_DIR}/lib/QtCore.framework/Versions/5/Headers")
+  else()
+    set(_QT_CORE_DIR "${_QT_DIR}/include/QtCore")
+  endif()
   if(NOT EXISTS "${_QT_CORE_DIR}")
       message(FATAL_ERROR "Could not find 'include/QtCore' in '${_QT_DIR}'")
   endif()
@@ -74,7 +78,9 @@ macro(setup_qt)
         message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
     endif()
 
-    message(STATUS "Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
+    message("adebug")
+    message("adebug Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
+    message("adebug")
 
     # Instruct CMake to run moc automatically when needed.
     set(CMAKE_AUTOMOC ON)
