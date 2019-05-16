@@ -24,6 +24,11 @@ QString RenderScriptingInterface::getRenderMethod() {
 }
 
 void RenderScriptingInterface::setRenderMethod(const QString& renderMethod) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setRenderMethod", Q_ARG(const QString&, renderMethod));
+        return;
+    }
+
     auto config = dynamic_cast<task::SwitchConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("RenderMainView.DeferredForwardSwitch"));
     if (config) {
         if (renderMethod == DEFERRED) {

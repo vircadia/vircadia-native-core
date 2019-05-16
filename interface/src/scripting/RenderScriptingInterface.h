@@ -59,13 +59,7 @@ public slots:
     void setRenderMethod(const QString& renderMethod);
 
 private:
-    Setting::Handle<int> _renderMethodSetting { "renderMethod",
-#ifdef RENDER_FORWARD
-        render::Args::RenderMethod::FORWARD
-#else
-        render::Args::RenderMethod::DEFERRED
-#endif
-    };
+    Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
 };
 
 #endif  // hifi_RenderScriptingInterface_h
