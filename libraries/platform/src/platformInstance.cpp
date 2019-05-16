@@ -48,13 +48,13 @@ json Instance::getGPU(int index) {
 }
 
 json Instance::getComputer(<#int index#>){
-    if(index >=(int) _computer.size()){
+    if(index >= (int)_computer.size()){
         return json();
     }
     
     return _computer.at(index);
-    
 }
+
 json Instance::getDisplay(int index) {
     assert(index <(int) _display.size());
     
