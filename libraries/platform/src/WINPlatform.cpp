@@ -81,3 +81,8 @@ void WINInstance::enumerateMemory() {
 #endif
     _memory.push_back(ram);
 }
+
+void WINInstance::enumerateComputer(){
+    //no implememntation at this time
+}
+

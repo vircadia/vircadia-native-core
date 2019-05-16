@@ -78,6 +78,10 @@ json platform::getMemory(int index) {
     return _instance->getMemory(index);
 }
 
-std::string platform::getComputerModel(){
-    return _instance->getComputerModel();
+int platform::getNumComputer(){
+    return _instance->getNumComputer();
+}
+
+json platform::getComputer(int index){
+    return _instance->getComputer(index);
 }

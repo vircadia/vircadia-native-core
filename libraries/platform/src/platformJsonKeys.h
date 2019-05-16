@@ -26,10 +26,12 @@ namespace platform {
         static const char*  displayCoordsRight { "coordinatesright"};
         static const char*  displayCoordsTop { "coordinatestop"};
         static const char*  displayCoordsBottom { "coordinatesbottom"};
+        static const char*  computerModel { "computerModel"};
+        
 #endif
         
     }
 
-} // namespace platform
+} // namespace plaform::jsonKeys
 
 #endif

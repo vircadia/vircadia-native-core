@@ -64,16 +64,6 @@ void MACOSInstance::enumerateCpu() {
      cpu["cpuNumCores"] = std::thread::hardware_concurrency();
 
     _cpu.push_back(cpu);
-    
-    
-    //get system name
-    size_t len=0;
-    sysctlbyname("hw.model",NULL, &len, NULL, 0);
-    char* model = (char *) malloc(sizeof(char)*len+1);
-    sysctlbyname("hw.model", model, &len, NULL,0);
-    
-    _computerModel=std::string(model);
-    free(model);
 }
 
 void MACOSInstance::enumerateGpu() {
@@ -98,3 +88,24 @@ void MACOSInstance::enumerateMemory() {
 #endif
     _memory.push_back(ram);
 }
+
+void MACOSInstance::enumerateComputer(){
+#ifdef Q_OS_MAC
+    
+    //get system name
+    size_t len=0;
+    sysctlbyname("hw.model",NULL, &len, NULL, 0);
+    char* model = (char *) malloc(sizeof(char)*len+1);
+    sysctlbyname("hw.model", model, &len, NULL,0);
+    
+    
+    json computer;
+    computer["computerModel"]=std::string(model);
+    
+    _computer.push_back(computer);
+    
+    free(model);
+    
+#endif
+}
+

@@ -40,3 +40,8 @@ void LinuxInstance::enumerateMemory() {
 
     _memory.push_back(ram);
 }
+
+void LinuxInstance::::enumerateComputer(){
+    //no implememntation at this time
+}
+

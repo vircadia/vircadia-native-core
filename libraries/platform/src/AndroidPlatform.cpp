@@ -38,3 +38,8 @@ void AndroidInstance::enumerateMemory() {
     ram["totalMemory"]="";
     _memory.push_back(ram);
 }
+
+void AndroidInstance::::enumerateComputer(){
+    //no implememntation at this time
+}
+

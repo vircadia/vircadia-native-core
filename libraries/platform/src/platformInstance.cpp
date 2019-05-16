@@ -8,13 +8,13 @@
 
 
 #include "platform.h"
-
-#include <QtGlobal>
 #include "platformInstance.h"
+#include <QtGlobal>
 
 using namespace platform;
 
 bool Instance::enumeratePlatform() {
+    enumerateComputer();
     enumerateCpu();
     enumerateGpu();
     enumerateMemory();
@@ -47,6 +47,14 @@ json Instance::getGPU(int index) {
     return _gpu.at(index);
 }
 
+json Instance::getComputer(<#int index#>){
+    if(index >=(int) _computer.size()){
+        return json();
+    }
+    
+    return _computer.at(index);
+    
+}
 json Instance::getDisplay(int index) {
     assert(index <(int) _display.size());
     
@@ -65,12 +73,15 @@ Instance::~Instance() {
         _memory.clear();
     }
 
-
     if (_gpu.size() > 0) {
         _gpu.clear();
     }
 
     if (_display.size() > 0) {
         _display.clear();
+    }
+    
+    if(_computer.size()>0){
+        _computer.clear();
     }
 }

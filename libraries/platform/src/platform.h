@@ -32,7 +32,8 @@ json getDisplay(int index);
 int getNumMemory();
 json getMemory(int index);
 
-std::string getComputerModel();
+int getNumComputer();
+json getComputer(int index);
 }  // namespace platform
 
 #endif  // hifi_platform_h
