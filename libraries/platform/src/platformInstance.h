@@ -31,6 +31,8 @@ public:
     int getNumDisplay() { return (int)_display.size(); }
     json getDisplay(int index);
 
+    std::string getComputerModel(){return _computerModel;}
+    
     void virtual enumerateCpu()=0;
     void virtual enumerateMemory()=0;
     void virtual enumerateGpu()=0;
@@ -42,6 +44,7 @@ protected:
     std::vector<json>  _memory;
     std::vector<json>  _gpu;
     std::vector<json>  _display;
+    std::string _computerModel;
 };
 
 }  // namespace platform

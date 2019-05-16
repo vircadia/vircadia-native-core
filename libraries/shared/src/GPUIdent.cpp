@@ -22,6 +22,7 @@
 
 #elif defined(Q_OS_MAC)
 #include <OpenGL/OpenGL.h>
+#include<sys/sysctl.h>
 #endif
 
 #include <QtCore/QtGlobal>
@@ -56,6 +57,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
             }
         }
     }
+
     _dedicatedMemoryMB = bestVRAM;
     CGLDestroyRendererInfo(rendererInfo);
 

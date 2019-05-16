@@ -16,6 +16,7 @@
 #ifdef Q_OS_MAC
 #include <unistd.h>
 #include <cpuid.h>
+#include <sys/sysctl.h>
 #endif
 
 using namespace platform;
@@ -33,6 +34,7 @@ static void getCpuId( uint32_t* p, uint32_t ax )
      );
 #endif
 }
+
 
 void MACOSInstance::enumerateCpu() {
     json cpu = {};
@@ -62,6 +64,16 @@ void MACOSInstance::enumerateCpu() {
      cpu[jsonKeys::cpuNumCores] = std::thread::hardware_concurrency();
 
     _cpu.push_back(cpu);
+    
+    
+    //get system name
+    size_t len=0;
+    sysctlbyname("hw.model",NULL, &len, NULL, 0);
+    char* model = (char *) malloc(sizeof(char)*len+1);
+    sysctlbyname("hw.model", model, &len, NULL,0);
+    
+    _computerModel=std::string(model);
+    free(model);
 }
 
 void MACOSInstance::enumerateGpu() {
@@ -73,6 +85,7 @@ void MACOSInstance::enumerateGpu() {
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
+
 }
 
 void MACOSInstance::enumerateMemory() {
