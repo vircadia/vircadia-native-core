@@ -196,17 +196,6 @@ unset(JS_SRC)
 
 set_packaging_parameters()
 
-if (NOT DEV_BUILD)
-    # add options to strip symbols for PRODUCTION and PR builds
-    # TODO?: call set_packaging_parameters() earlier and move this symbol stripping into compiler.cmake
-    if (APPLE)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-s")
-    elseif(UNIX)
-        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
-    endif()
-endif()
-
 # Locate the required Qt build on the filesystem
 setup_qt()
 list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
