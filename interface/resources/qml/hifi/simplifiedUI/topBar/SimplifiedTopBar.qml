@@ -277,8 +277,34 @@ Rectangle {
             }
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
-                // TODO: actually do this right and change the display plugin
-                HMD.active = !HMD.active;
+                var displayPluginCount = Window.getDisplayPluginCount();
+                if (HMD.active) {
+                    // This next line seems backwards and shouldn't be necessary - the NOTIFY handler should
+                    // result in `displayModeImage.source` changing automatically - but that's not working.
+                    // This is working. So, I'm keeping it. 
+                    displayModeImage.source = "./images/vrMode.svg";
+
+                    // Switch to desktop mode - selects first VR display plugin
+                    for (var i = 0; i < displayPluginCount; i++) {
+                        if (!Window.isDisplayPluginHmd(i)) {
+                            Window.setActiveDisplayPlugin(i);
+                            return;
+                        }
+                    }
+                } else {
+                    // This next line seems backwards and shouldn't be necessary - the NOTIFY handler should
+                    // result in `displayModeImage.source` changing automatically - but that's not working.
+                    // This is working. So, I'm keeping it.
+                    displayModeImage.source = "./images/desktopMode.svg";
+
+                    // Switch to VR mode - selects first HMD display plugin
+                    for (var i = 0; i < displayPluginCount; i++) {
+                        if (Window.isDisplayPluginHmd(i)) {
+                            Window.setActiveDisplayPlugin(i);
+                            return;
+                        }
+                    }
+                }
             }
         }
     }
