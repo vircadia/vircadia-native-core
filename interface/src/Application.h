@@ -1,4 +1,4 @@
-﻿//
+//
 //  Application.h
 //  interface/src
 //
@@ -48,7 +48,6 @@
 #include <ThreadSafeValueCache.h>
 #include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
-
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
