@@ -5,13 +5,15 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "MaterialCache.h"
+#include "ProceduralMaterialCache.h"
 
 #include "QJsonObject"
 #include "QJsonDocument"
 #include "QJsonArray"
 
 #include "RegisteredMetaTypes.h"
+
+#include "Procedural.h"
 
 NetworkMaterialResource::NetworkMaterialResource(const QUrl& url) :
     Resource(url) {}
@@ -112,18 +114,18 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * A material such as may be used by a {@link Entities.EntityType|Material} entity.
  * @typedef {object} Material
  * @property {string} model="hifi_pbr" - Different material models support different properties and rendering modes.
- *     Supported models are: "hifi_pbr"
+ *     Supported models are: "hifi_pbr", "hifi_shader_simple"
  * @property {string} name="" - A name for the material. Supported by all material models.
  * @property {Color|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A {@link Color} value
  *     is treated as sRGB. A {@link RGBS} value can be either RGB or sRGB.  Set to <code>"fallthrough"</code> to fallthrough to
  *     the material below.  "hifi_pbr" model only.
  * @property {number|string} opacity=1.0 - The opacity, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
+ *     the material below.  Supported by all material models.
  * @property {boolean|string} unlit=false - If <code>true</code>, the material is not lit.  Set to <code>"fallthrough"</code> to fallthrough to
  *     the material below.  "hifi_pbr" model only.
  * @property {Color|RGBS|string} albedo - The albedo color. A {@link Color} value is treated as sRGB. A {@link RGBS} value can
  *     be either RGB or sRGB.  Set to <code>"fallthrough"</code> to fallthrough to the material below.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
+ *     the material below.  Supported by all material models.
  * @property {number|string} roughness - The roughness, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
  *     the material below.  "hifi_pbr" model only.
  * @property {number|string} metallic - The metallicness, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
@@ -163,23 +165,25 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     to fallthrough to the material below.  "hifi_pbr" model only.
  * @property {bool} defaultFallthrough=false - If <code>true</code>, all properties will fallthrough to the material below unless they are set.  If
  *     <code>false</code>, they will respect the individual properties' fallthrough state.  "hifi_pbr" model only.
+ * @property {ProceduralData} procedural - The definition of a procedural shader material.  "hifi_shader_simple" model only.
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
 std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl) {
     std::string name = "";
-    std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
+    std::shared_ptr<NetworkMaterial> networkMaterial;
 
-    const std::string HIFI_PBR = "hifi_pbr";
+    static const std::string HIFI_PBR = "hifi_pbr";
+    static const std::string HIFI_SHADER_SIMPLE = "hifi_shader_simple";
     std::string modelString = HIFI_PBR;
     auto modelJSONIter = materialJSON.find("model");
     if (modelJSONIter != materialJSON.end() && modelJSONIter.value().isString()) {
         modelString = modelJSONIter.value().toString().toStdString();
-        material->setModel(modelString);
     }
 
     std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texcoordTransforms;
 
     if (modelString == HIFI_PBR) {
+        auto material = std::make_shared<NetworkMaterial>();
         const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {
             if (key == "name") {
@@ -187,11 +191,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 if (nameJSON.isString()) {
                     name = nameJSON.toString().toStdString();
                     material->setName(name);
-                }
-            } else if (key == "model") {
-                auto modelJSON = materialJSON.value(key);
-                if (modelJSON.isString()) {
-                    material->setModel(modelJSON.toString().toStdString());
                 }
             } else if (key == "emissive") {
                 auto value = materialJSON.value(key);
@@ -416,17 +415,57 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 }
             }
         }
-    }
 
-    // Do this after the texture maps are defined, so it overrides the default transforms
-    for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
-        mat4 newTransform = texcoordTransforms[i];
-        if (newTransform != mat4() || newTransform != material->getTexCoordTransform(i)) {
-            material->setTexCoordTransform(i, newTransform);
+        // Do this after the texture maps are defined, so it overrides the default transforms
+        for (int i = 0; i < graphics::Material::NUM_TEXCOORD_TRANSFORMS; i++) {
+            mat4 newTransform = texcoordTransforms[i];
+            if (newTransform != mat4() || newTransform != material->getTexCoordTransform(i)) {
+                material->setTexCoordTransform(i, newTransform);
+            }
         }
+        networkMaterial = material;
+    } else if (modelString == HIFI_SHADER_SIMPLE) {
+        auto material = std::make_shared<graphics::ProceduralMaterial>();
+        const QString FALLTHROUGH("fallthrough");
+        for (auto& key : materialJSON.keys()) {
+            if (key == "name") {
+                auto nameJSON = materialJSON.value(key);
+                if (nameJSON.isString()) {
+                    name = nameJSON.toString().toStdString();
+                    material->setName(name);
+                }
+            } else if (key == "opacity") {
+                auto value = materialJSON.value(key);
+                if (value.isString() && value.toString() == FALLTHROUGH) {
+                    material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::OPACITY_VAL_BIT);
+                } else if (value.isDouble()) {
+                    material->setOpacity(value.toDouble());
+                }
+            } else if (key == "albedo") {
+                auto value = materialJSON.value(key);
+                if (value.isString() && value.toString() == FALLTHROUGH) {
+                    material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::ALBEDO_VAL_BIT);
+                } else {
+                    glm::vec3 color;
+                    bool isSRGB;
+                    bool valid = parseJSONColor(value, color, isSRGB);
+                    if (valid) {
+                        material->setAlbedo(color, isSRGB);
+                    }
+                }
+            } else if (key == "procedural") {
+                auto value = materialJSON.value(key);
+                material->setProceduralData(QJsonDocument::fromVariant(value.toVariant()).toJson());
+            }
+        }
+        networkMaterial = material;
     }
 
-    return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, material);
+    if (networkMaterial) {
+        networkMaterial->setModel(modelString);
+    }
+
+    return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, networkMaterial);
 }
 
 MaterialCache& MaterialCache::instance() {

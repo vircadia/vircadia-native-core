@@ -11,6 +11,8 @@
 #include "RenderPipelines.h"
 #include "GeometryCache.h"
 
+#include <procedural/Procedural.h>
+
 using namespace render;
 using namespace render::entities;
 
@@ -249,31 +251,31 @@ ItemKey MaterialEntityRenderer::getKey() {
 }
 
 ShapeKey MaterialEntityRenderer::getShapeKey() {
+    ShapeKey::Builder builder;
     graphics::MaterialKey drawMaterialKey;
     const auto drawMaterial = getMaterial();
     if (drawMaterial) {
         drawMaterialKey = drawMaterial->getKey();
     }
 
-    bool isTranslucent = drawMaterialKey.isTranslucent();
-    bool hasTangents = drawMaterialKey.isNormalMap();
-    bool hasLightmap = drawMaterialKey.isLightmapMap();
-    bool isUnlit = drawMaterialKey.isUnlit();
-    
-    ShapeKey::Builder builder;
-    builder.withMaterial();
-
-    if (isTranslucent) {
+    if (drawMaterialKey.isTranslucent()) {
         builder.withTranslucent();
     }
-    if (hasTangents) {
-        builder.withTangents();
-    }
-    if (hasLightmap) {
-        builder.withLightmap();
-    }
-    if (isUnlit) {
-        builder.withUnlit();
+
+    if (drawMaterial && drawMaterial->isProcedural() && drawMaterial->isReady()) {
+        builder.withOwnPipeline();
+    } else {
+        builder.withMaterial();
+
+        if (drawMaterialKey.isNormalMap()) {
+            builder.withTangents();
+        }
+        if (drawMaterialKey.isLightmapMap()) {
+            builder.withLightmap();
+        }
+        if (drawMaterialKey.isUnlit()) {
+            builder.withUnlit();
+        }
     }
 
     if (_primitiveMode == PrimitiveMode::LINES) {
@@ -299,6 +301,7 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
 
     Transform renderTransform;
     graphics::MaterialPointer drawMaterial;
+    bool proceduralRender = false;
     Transform textureTransform;
     withReadLock([&] {
         renderTransform = _renderTransform;
@@ -306,6 +309,10 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
         textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));
         textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
         textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
+
+        if (drawMaterial && drawMaterial->isProcedural() && drawMaterial->isReady()) {
+            proceduralRender = true;
+        }
     });
     if (!drawMaterial) {
         return;
@@ -313,14 +320,27 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
 
     batch.setModelTransform(renderTransform);
 
-    drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);
-    // bind the material
-    if (RenderPipelines::bindMaterial(drawMaterial, batch, args->_renderMode, args->_enableTexturing)) {
-        args->_details._materialSwitches++;
-    }
+    if (!proceduralRender) {
+        drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);
+        // bind the material
+        if (RenderPipelines::bindMaterial(drawMaterial, batch, args->_renderMode, args->_enableTexturing)) {
+            args->_details._materialSwitches++;
+        }
 
-    // Draw!
-    DependencyManager::get<GeometryCache>()->renderSphere(batch);
+        // Draw!
+        DependencyManager::get<GeometryCache>()->renderSphere(batch);
+    } else {
+        auto proceduralDrawMaterial = std::static_pointer_cast<graphics::ProceduralMaterial>(drawMaterial);
+        glm::vec4 outColor = glm::vec4(drawMaterial->getAlbedo(), drawMaterial->getOpacity());
+        outColor = proceduralDrawMaterial->getColor(outColor);
+        proceduralDrawMaterial->prepare(batch, renderTransform.getTranslation(), renderTransform.getScale(),
+                                        renderTransform.getRotation(), _created, ProceduralProgramKey(outColor.a < 1.0f));
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
+            DependencyManager::get<GeometryCache>()->renderWireSphere(batch, outColor);
+        } else {
+            DependencyManager::get<GeometryCache>()->renderSphere(batch, outColor);
+        }
+    }
 
     args->_details._trianglesRendered += (int)DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
 }

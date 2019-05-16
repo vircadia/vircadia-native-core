@@ -35,27 +35,111 @@ layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 #define _position    _positionMS
 #define _eyePosition _positionES
 
+<@include procedural/ProceduralCommon.slh@>
+
+#line 1001
+//PROCEDURAL_BLOCK_BEGIN
+
+vec3 getProceduralColor() {
+    return _color.rgb;
+}
+
+float getProceduralColors(inout vec3 diffuse, inout vec3 specular, inout float shininess) {
+    return 1.0;
+}
+
+float getProceduralFragment(inout ProceduralFragment proceduralData) {
+    return 1.0;
+}
+
+float getProceduralFragmentWithPosition(inout ProceduralFragmentWithPosition proceduralData) {
+    return 1.0;
+}
+
+//PROCEDURAL_BLOCK_END
+
 layout(location=0) out vec4 _fragColor0;
 
+#line 2030
 void main(void) {
     vec3 normal = normalize(_normalWS.xyz);
     vec3 diffuse = _color.rgb;
-    vec3 specular = DEFAULT_SPECULAR;
-    float shininess = DEFAULT_SHININESS;
+    float roughness = DEFAULT_ROUGHNESS;
+    float metallic = DEFAULT_METALLIC;
+    vec3 emissive = DEFAULT_EMISSIVE;
+    float occlusion = DEFAULT_OCCLUSION;
+    float scattering = DEFAULT_SCATTERING;
+
     float emissiveAmount = 0.0;
 
     TransformCamera cam = getTransformCamera();
-    vec3 fragPosition = _positionES.xyz;
 
-    _fragColor0 = vec4(evalSkyboxGlobalColor(
-        cam._viewInverse,
-        1.0,
-        DEFAULT_OCCLUSION,
-        fragPosition,
+#if defined(PROCEDURAL_V1)
+    diffuse = getProceduralColor().rgb;
+    emissiveAmount = 1.0;
+    emissive = vec3(1.0);
+#elif defined(PROCEDURAL_V2)
+    vec3 specular = DEFAULT_SPECULAR;
+    float shininess = DEFAULT_SHININESS;
+    emissiveAmount = getProceduralColors(diffuse, specular, shininess);
+    roughness = max(0.0, 1.0 - shininess / 128.0);
+    metallic = length(specular);
+    emissive = vec3(clamp(emissiveAmount, 0.0, 1.0));
+#elif defined(PROCEDURAL_V3) || defined(PROCEDURAL_V4)
+#if defined(PROCEDURAL_V3)
+    ProceduralFragment proceduralData = ProceduralFragment(
+#else
+    vec4 position = cam._viewInverse * _positionES;
+    ProceduralFragmentWithPosition proceduralData = ProceduralFragmentWithPosition(
+        position.xyz,
+#endif
         normal,
         diffuse,
-        DEFAULT_FRESNEL,
-        length(specular),
-        max(0.0, 1.0 - shininess / 128.0)),
-        1.0);
+        DEFAULT_SPECULAR,
+        emissive,
+        1.0,
+        roughness,
+        metallic,
+        occlusion,
+        scattering
+    );
+
+#if defined(PROCEDURAL_V3)
+    emissiveAmount = getProceduralFragment(proceduralData);
+#else
+    emissiveAmount = getProceduralFragmentWithPosition(proceduralData);
+#endif
+    normal = proceduralData.normal;
+    diffuse = proceduralData.diffuse;
+    roughness = proceduralData.roughness;
+    metallic = proceduralData.metallic;
+    emissive = proceduralData.emissive;
+    occlusion = proceduralData.occlusion;
+    scattering = proceduralData.scattering;
+
+#if defined(PROCEDURAL_V4)
+    position = vec4(proceduralData.position, 1.0);
+    vec4 posClip = cam._projection * (cam._view * position);
+    gl_FragDepth = 0.5 * (posClip.z / posClip.w + 1.0);
+#endif
+
+#endif
+
+    if (emissiveAmount > 0.0) {
+        _fragColor0 = vec4(diffuse, 1.0);
+    } else {
+        vec3 fragPosition = _positionES.xyz;
+        vec3 fresnel = getFresnelF0(metallic, diffuse);
+        _fragColor0 = vec4(evalSkyboxGlobalColor(
+            cam._viewInverse,
+            1.0,
+            occlusion,
+            fragPosition,
+            normal,
+            diffuse,
+            fresnel,
+            metallic,
+            roughness),
+            1.0);
+    }
 }

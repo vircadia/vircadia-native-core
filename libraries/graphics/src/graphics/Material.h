@@ -343,6 +343,10 @@ public:
     bool getPropertyFallthrough(uint property) { return _propertyFallthroughs[property]; }
     void setPropertyDoesFallthrough(uint property) { _propertyFallthroughs[property] = true; }
 
+    virtual bool isProcedural() const { return false; }
+    virtual bool isEnabled() const { return true; }
+    virtual bool isReady() const { return true; }
+
 protected:
     std::string _name { "" };
 

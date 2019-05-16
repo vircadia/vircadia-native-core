@@ -18,7 +18,7 @@
 #include "Engine.h"
 #include "BakerTypes.h"
 
-#include <material-networking/MaterialCache.h>
+#include <procedural/ProceduralMaterialCache.h>
 
 class ParseMaterialMappingTask {
 public:

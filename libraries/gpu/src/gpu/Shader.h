@@ -118,9 +118,6 @@ protected:
     Shader(Type type, const Source& source, bool dynamic);
     Shader(Type type, const Pointer& vertex, const Pointer& geometry, const Pointer& pixel);
 
-    Shader(const Shader& shader);             // deep copy of the sysmem shader
-    Shader& operator=(const Shader& shader);  // deep copy of the sysmem texture
-
     // Source contains the actual source code or nothing if the shader is a program
     const Source _source;
 

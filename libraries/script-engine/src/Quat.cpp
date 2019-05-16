@@ -16,8 +16,6 @@
 
 #include <QDebug>
 
-#include <OctreeConstants.h>
-
 #include "ScriptEngineLogging.h"
 #include "ScriptEngine.h"
 

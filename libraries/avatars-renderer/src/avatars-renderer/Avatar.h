@@ -544,8 +544,8 @@ public:
     virtual void setEnableMeshVisible(bool isEnabled);
     virtual bool getEnableMeshVisible() const;
 
-    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
-    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
+    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
+    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
 

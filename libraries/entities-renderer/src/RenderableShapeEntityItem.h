@@ -35,14 +35,14 @@ private:
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
 
-    bool useMaterialPipeline(const graphics::MultiMaterial& materials) const;
+    enum Pipeline { SIMPLE, MATERIAL, PROCEDURAL };
+    Pipeline getPipelineType(const graphics::MultiMaterial& materials) const;
 
-    Procedural _procedural;
-    QString _lastUserData;
+    QString _proceduralData;
     entity::Shape _shape { entity::Sphere };
 
     PulsePropertyGroup _pulseProperties;
-    std::shared_ptr<graphics::Material> _material { std::make_shared<graphics::Material>() };
+    std::shared_ptr<graphics::ProceduralMaterial> _material { std::make_shared<graphics::ProceduralMaterial>() };
     glm::u8vec3 _color;
     float _alpha;
 

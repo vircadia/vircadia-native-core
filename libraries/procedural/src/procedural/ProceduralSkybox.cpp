@@ -18,10 +18,11 @@
 #include <shaders/Shaders.h>
 
 ProceduralSkybox::ProceduralSkybox(uint64_t created) : graphics::Skybox(), _created(created) {
-    _procedural._vertexSource = gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource();
-    _procedural._opaqueFragmentSource = shader::Source::get(shader::procedural::fragment::proceduralSkybox);
-    // Adjust the pipeline state for background using the stencil test
+    _procedural._vertexSource = gpu::Shader::Source::get(shader::graphics::vertex::skybox);
+    _procedural._opaqueFragmentSource = gpu::Shader::Source::get(shader::procedural::fragment::proceduralSkybox);
     _procedural.setDoesFade(false);
+
+    // Adjust the pipeline state for background using the stencil test
     // Must match PrepareStencil::STENCIL_BACKGROUND
     const int8_t STENCIL_BACKGROUND = 0;
     _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL,
