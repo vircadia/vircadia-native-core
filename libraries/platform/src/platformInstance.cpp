@@ -47,7 +47,7 @@ json Instance::getGPU(int index) {
     return _gpu.at(index);
 }
 
-json Instance::getComputer(<#int index#>){
+json Instance::getComputer(int index){
     if(index >= (int)_computer.size()){
         return json();
     }
