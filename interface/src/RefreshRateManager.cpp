@@ -13,12 +13,7 @@
 #include "RefreshRateManager.h"
 
 #include <array>
-#include <map>
 
-
-#include <Application.h>
-
-#include <display-plugins/hmd/HmdDisplayPlugin.h>
 
 static const int VR_TARGET_RATE = 90;
 

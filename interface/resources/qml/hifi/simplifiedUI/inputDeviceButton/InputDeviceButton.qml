@@ -48,9 +48,6 @@ Rectangle {
         }
     }
 
-    height: 30
-    width: 34
-
     opacity: 0.7
 
     onLevelChanged: {
@@ -67,13 +64,8 @@ Rectangle {
 
     MouseArea {
         id: mouseArea
-
-        anchors {
-            left: icon.left
-            right: bar.right
-            top: icon.top
-            bottom: icon.bottom
-        }
+        
+        anchors.fill: parent
 
         hoverEnabled: true
         scrollGestureEnabled: false
@@ -109,9 +101,10 @@ Rectangle {
     Item {
         id: icon
         anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.left
-        width: parent.width - bar.width - bar.anchors.leftMargin
-        height: parent.height
+        anchors.right: parent.horizontalCenter
+        anchors.rightMargin: 2
+        width: 13
+        height: 21
 
         Item {
             anchors.fill: parent
@@ -136,14 +129,12 @@ Rectangle {
     Item {
         id: bar
 
-        anchors {
-            left: icon.right
-            leftMargin: 0
-            verticalCenter: icon.verticalCenter
-        }
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: parent.horizontalCenter
+        anchors.leftMargin: 2
 
         width: 4
-        height: parent.height
+        height: 21
 
         Rectangle { // base
             id: baseBar

@@ -879,34 +879,39 @@ void Wallet::sendChallengeOwnershipResponses() {
         textByteArraySize = textByteArray.size();
         int idSize = id.size();
         // setup the packet
-        Node& sendingNode = *nodeList->nodeWithLocalID(packet->getSourceID());
-        if (challengeOriginatedFromClient) {
-            auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-                idSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
-                true);
+        const SharedNodePointer sendingNode = nodeList->nodeWithLocalID(packet->getSourceID());
+        if (!sendingNode.isNull()) {
+            if (challengeOriginatedFromClient) {
+                auto textPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
+                    idSize + textByteArraySize + challengingNodeUUIDByteArraySize + 3 * sizeof(int),
+                    true);
 
-            textPacket->writePrimitive(idSize);
-            textPacket->writePrimitive(textByteArraySize);
-            textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
-            textPacket->write(id);
-            textPacket->write(textByteArray);
-            textPacket->write(challengingNodeUUID);
+                textPacket->writePrimitive(idSize);
+                textPacket->writePrimitive(textByteArraySize);
+                textPacket->writePrimitive(challengingNodeUUIDByteArraySize);
+                textPacket->write(id);
+                textPacket->write(textByteArray);
+                textPacket->write(challengingNodeUUID);
 
-            qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for id" << id;
+                qCDebug(commerce) << "Sending ChallengeOwnershipReply Packet containing signed text" << textByteArray << "for id" << id;
 
-            nodeList->sendPacket(std::move(textPacket), sendingNode);
+                nodeList->sendPacket(std::move(textPacket), *sendingNode);
+            } else {
+                auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, idSize + textByteArraySize + 2 * sizeof(int), true);
+
+                textPacket->writePrimitive(idSize);
+                textPacket->writePrimitive(textByteArraySize);
+                textPacket->write(id);
+                textPacket->write(textByteArray);
+
+                qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for id" << id;
+
+                nodeList->sendPacket(std::move(textPacket), *sendingNode);
+            }
         } else {
-            auto textPacket = NLPacket::create(PacketType::ChallengeOwnership, idSize + textByteArraySize + 2 * sizeof(int), true);
-
-            textPacket->writePrimitive(idSize);
-            textPacket->writePrimitive(textByteArraySize);
-            textPacket->write(id);
-            textPacket->write(textByteArray);
-
-            qCDebug(commerce) << "Sending ChallengeOwnership Packet containing signed text" << textByteArray << "for id" << id;
-
-            nodeList->sendPacket(std::move(textPacket), sendingNode);
+            qCDebug(commerce) << "Challenging Node Local ID" << packet->getSourceID() << "disconnected before response";
         }
+
 
         if (status == -1) {
             qCDebug(commerce) << "During entity ownership challenge, signing the text failed.";

@@ -92,7 +92,7 @@ Rectangle {
 
     AvatarAppComponents.DisplayNameHeader {
         id: displayNameHeader
-        previewUrl: avatarPreviewUrl
+        previewUrl: root.avatarPreviewUrl
         loading: !inventoryContentsList.visible
         anchors.top: parent.top
         anchors.topMargin: 30
@@ -210,7 +210,10 @@ Rectangle {
             downloadUrl = avatarAppInventoryModel.get(i).download_url;
             previewUrl = avatarAppInventoryModel.get(i).preview;
             if (MyAvatar.skeletonModelURL === downloadUrl) {
-                avatarPreviewUrl = previewUrl;
+                if (previewUrl.indexOf("missing.png") > -1) {
+                    previewUrl = "../../images/defaultAvatar.svg"; // Extra `../` because the image is stored 2 levels up from `DisplayNameHeader.qml`
+                }
+                root.avatarPreviewUrl = previewUrl;
                 return;
             }
         }

@@ -15,7 +15,6 @@
 
 // START CONFIG OPTIONS
 var DOCKED_QML_SUPPORTED = true;
-var REMOVE_EXISTING_UI = true;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -24,7 +23,7 @@ var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/
 var DEFAULT_SCRIPTS_SEPARATE = [
     DEFAULT_SCRIPTS_PATH_PREFIX + "system/controllers/controllerScripts.js"
 ];
-function loadSeparateDefaults() {
+function loadNewSeparateDefaults() {
     for (var i in DEFAULT_SCRIPTS_SEPARATE) {
         Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
     }
@@ -36,7 +35,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     DEFAULT_SCRIPTS_PATH_PREFIX + "system/progress.js",
     DEFAULT_SCRIPTS_PATH_PREFIX + "system/away.js"
 ];
-function runDefaultsTogether() {
+function runNewDefaultsTogether() {
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
         Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
     }
@@ -47,10 +46,13 @@ function runDefaultsTogether() {
 // Until then, users are required to access some functionality from the top menu bar.
 //var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
 var MENU_NAMES = ["File", "Edit", "View", "Navigate", "Help"];
-function removeDesktopMenu() {    
-    MENU_NAMES.forEach(function(menu) {
-        Menu.removeMenu(menu);
-    });
+var keepMenusSetting = Settings.getValue("simplifiedUI/keepMenus", false);
+function maybeRemoveDesktopMenu() {    
+    if (!keepMenusSetting) {
+        MENU_NAMES.forEach(function(menu) {
+            Menu.removeMenu(menu);
+        });
+    }
 }
 
 
@@ -436,18 +438,21 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
 var simplifiedNametag = Script.require("../simplifiedNametag/simplifiedNametag.js");
 var oldShowAudioTools;
 var oldShowBubbleTools;
+var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
 function startup() {
-    if (REMOVE_EXISTING_UI) {
+    maybeRemoveDesktopMenu();
+
+    if (!keepExistingUIAndScriptsSetting) {
         pauseCurrentScripts();
-        removeDesktopMenu();
-        runDefaultsTogether();
-        loadSeparateDefaults();
+        runNewDefaultsTogether();
+        loadNewSeparateDefaults();
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
             toolbar.writeProperty("visible", false);
         }
     }
+
     loadSimplifiedTopBar();
 
     simplifiedNametag.create();
@@ -476,7 +481,7 @@ function restoreScripts() {
 function shutdown() {
     restoreScripts();
 
-    if (REMOVE_EXISTING_UI) {
+    if (!keepExistingUIAndScriptsSetting) {
         Window.confirm("You'll have to restart Interface to get full functionality back. Clicking yes or no will dismiss this dialog.");
 
         if (!HMD.active) {

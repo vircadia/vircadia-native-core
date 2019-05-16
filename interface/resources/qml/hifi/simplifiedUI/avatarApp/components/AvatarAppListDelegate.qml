@@ -51,12 +51,14 @@ Rectangle {
 
     Image {
         id: itemPreviewImage
-        source: root.itemPreviewImageUrl
+        source: root.itemPreviewImageUrl.indexOf("missing.png") > -1 ? "../../images/defaultAvatar.svg" : root.itemPreviewImageUrl
         anchors.left: parent.left
         anchors.leftMargin: 20
         anchors.verticalCenter: parent.verticalCenter
-        height: 60
-        width: height
+        width: 60
+        height: width
+        sourceSize.width: width
+        sourceSize.height: height
         fillMode: Image.PreserveAspectCrop
         mipmap: true
         layer.enabled: true

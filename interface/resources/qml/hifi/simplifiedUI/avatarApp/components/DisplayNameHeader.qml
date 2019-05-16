@@ -43,6 +43,8 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         height: 100
         width: height
+        sourceSize.width: width
+        sourceSize.height: height
         fillMode: Image.PreserveAspectCrop
         layer.enabled: true
         layer.effect: OpacityMask {
