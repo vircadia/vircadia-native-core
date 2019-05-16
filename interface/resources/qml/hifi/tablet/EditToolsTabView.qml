@@ -91,23 +91,11 @@ TabBar {
 
                         NewEntityButton {
                             icon: "icons/create-icons/21-cube-01.svg"
-                            text: "CUBE"
+                            text: "SHAPE"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
-                                    params: { buttonName: "newCubeButton" }
-                                });
-                                editTabView.currentIndex = tabIndex.properties
-                            }
-                        }
-
-                        NewEntityButton {
-                            icon: "icons/create-icons/22-sphere-01.svg"
-                            text: "SPHERE"
-                            onClicked: {
-                                editRoot.sendToScript({
-                                    method: "newEntityButtonClicked",
-                                    params: { buttonName: "newSphereButton" }
+                                    params: { buttonName: "newShapeButton" }
                                 });
                                 editTabView.currentIndex = tabIndex.properties
                             }

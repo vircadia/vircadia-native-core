@@ -86,6 +86,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_NAME;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_PRIVATE_USER_DATA;
     requestedProperties += PROP_HREF;
     requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_POSITION;
@@ -154,7 +155,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 }
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData) const {
+                                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
+                                            const bool destinationNodeCanGetAndSetPrivateUserData) const {
 
     // ALL this fits...
     //    object ID [16 bytes]
@@ -196,6 +198,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
         requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
+    }
+
+    QString privateUserData = "";
+    if (destinationNodeCanGetAndSetPrivateUserData) {
+        privateUserData = getPrivateUserData();
     }
 
     EntityPropertyFlags propertiesDidntFit = requestedProperties;
@@ -266,8 +273,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
+        auto nodeList = DependencyManager::get<NodeList>();
         if (actualParentID == AVATAR_SELF_ID) {
-            auto nodeList = DependencyManager::get<NodeList>();
             actualParentID = nodeList->getSessionUUID();
         }
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
@@ -276,6 +283,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
+        APPEND_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, privateUserData);
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
@@ -812,6 +820,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
+    READ_ENTITY_PROPERTY(PROP_PRIVATE_USER_DATA, QString, setPrivateUserData);
     READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
@@ -1331,6 +1340,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(privateUserData, getPrivateUserData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
@@ -1479,6 +1489,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(privateUserData, setPrivateUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
@@ -3121,6 +3132,20 @@ void EntityItem::setUserData(const QString& value) {
     });
 }
 
+QString EntityItem::getPrivateUserData() const {
+    QString result;
+    withReadLock([&] {
+        result = _privateUserData;
+    });
+    return result;
+}
+
+void EntityItem::setPrivateUserData(const QString& value) {
+    withWriteLock([&] {
+        _privateUserData = value;
+    });
+}
+
 // Certifiable Properties
 #define DEFINE_PROPERTY_GETTER(type, accessor, var) \
 type EntityItem::get##accessor() const {            \
@@ -3430,6 +3455,10 @@ bool EntityItem::isWearable() const {
     return isVisible() &&
         (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
+
+bool EntityItem::isMyAvatarEntity() const {
+    return _hostType == entity::HostType::AVATAR && Physics::getSessionUUID() == _owningAvatarID;
+};
 
 void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();

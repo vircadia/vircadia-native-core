@@ -94,6 +94,7 @@ signals:
 
 private slots:
     void handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void sendChallengeOwnershipResponses();
 
 private:
     friend class Ledger;
@@ -104,6 +105,7 @@ private:
     QByteArray _ckey;
     QString* _passphrase { nullptr };
     bool _isOverridingServer { false };
+    std::vector<QSharedPointer<ReceivedMessage>> _pendingChallenges;
 
     bool writeWallet(const QString& newPassphrase = QString(""));
     void updateImageProvider();

@@ -351,10 +351,18 @@ float LODManager::getHMDLODTargetFPS() const {
 }
 
 float LODManager::getLODTargetFPS() const {
+    auto refreshRateFPS = qApp->getRefreshRateManager().getActiveRefreshRate();
+    auto lodTargetFPS = getDesktopLODTargetFPS();
     if (qApp->isHMDMode()) {
-        return getHMDLODTargetFPS();
+        lodTargetFPS = getHMDLODTargetFPS();
     }
-    return getDesktopLODTargetFPS();
+    
+    // if RefreshRate is slower than LOD target then it becomes the true LOD target
+    if (lodTargetFPS > refreshRateFPS) {
+        return refreshRateFPS;
+    } else {
+        return lodTargetFPS;
+    }
 }
 
 void LODManager::setWorldDetailQuality(float quality) {

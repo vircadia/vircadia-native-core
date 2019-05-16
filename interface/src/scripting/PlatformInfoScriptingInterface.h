@@ -13,69 +13,90 @@
 
 class QScriptValue;
 
+/**jsdoc
+ * The <code>PlatformInfo</code> API provides information about the computer and controllers being used.
+ *
+ * @namespace PlatformInfo
+ *
+ * @hifi-interface
+ * @hifi-client-entity
+ * @hifi-avatar
+ */
 class PlatformInfoScriptingInterface : public QObject {
     Q_OBJECT
 
 public slots:
+    /**jsdoc
+     * @function PlatformInfo.getInstance
+     * @deprecated This function is deprecated and will be removed.
+     */
     static PlatformInfoScriptingInterface* getInstance();
 
     /**jsdoc
-    * Returns the Operating Sytem type
-    * @function Test.getOperatingSystemType
-    * @returns {string} "WINDOWS", "MACOS" or "UNKNOWN"
-    */
+     * Gets the operating system type.
+     * @function PlatformInfo.getOperatingSystemType
+     * @returns {string} <code>"WINDOWS"</code>, <code>"MACOS"</code>, or <code>"UNKNOWN"</code>.
+     */
     QString getOperatingSystemType();
 
     /**jsdoc
-    * Returns the CPU brand
-    *function PlatformInfo.getCPUBrand()
-    * @returns {string} brand of CPU
-    */
+     * Gets information on the CPU.
+     * @function PlatformInfo.getCPUBrand
+     * @returns {string} Information on the CPU.
+     * @example <caption>Report the CPU being used.</caption>
+     * print("CPU: " + PlatformInfo.getCPUBrand());
+     * // Example: Intel(R) Core(TM) i7-7820HK CPU @ 2.90GHz
+     */
     QString getCPUBrand();
 
     /**jsdoc
-    * Returns the number of logical CPU cores
-    *function PlatformInfo.getNumLogicalCores()
-    * @returns {int} number of logical CPU cores
-    */
+     * Gets the number of logical CPU cores.
+     * @function PlatformInfo.getNumLogicalCores
+     * @returns {number} The number of logical CPU cores.
+     */
     unsigned int getNumLogicalCores();
 
     /**jsdoc
-    * Returns the total system memory in megabyte
-    *function PlatformInfo.getTotalSystemMemory()
-    * @returns {int} size of memory in megabytes
-    */
+     * Returns the total system memory in megabytes.
+     * @function PlatformInfo.getTotalSystemMemoryMB
+     * @returns {number} The total system memory in megabytes.
+     */
     int getTotalSystemMemoryMB();
 
     /**jsdoc
-    * Returns the graphics card type
-    * @function Test.getGraphicsCardType
-    * @returns {string} graphics card type
-    */
+     * Gets the graphics card type.
+     * @function PlatformInfo.getGraphicsCardType
+     * @returns {string} The graphics card type.
+     */
     QString getGraphicsCardType();
 
     /**jsdoc
-       * Returns true if Oculus Rift is connected (looks for hand controllers)
-       * @function Window.hasRift
-       * @returns {boolean} <code>true</code> if running on Windows, otherwise <code>false</code>.*/
+     * Checks whether Oculus Touch controllers are connected.
+     * @function PlatformInfo.hasRiftControllers
+     * @returns {boolean} <code>true</code> if Oculus Touch controllers are connected, <code>false</code> if they aren't.
+     */
     bool hasRiftControllers();
 
     /**jsdoc
-    * Returns true if HTC Vive is connected (looks for hand controllers)
-    * @function Window.hasRift
-    * @returns {boolean} <code>true</code> if running on Windows, otherwise <code>false</code>.*/
+     * Checks whether Vive controllers are connected.
+     * @function PlatformInfo.hasViveControllers
+     * @returns {boolean} <code>true</code> if Vive controllers are connected, <code>false</code> if they aren't.
+     */
     bool hasViveControllers();
 
     /**jsdoc
-    * Returns true if device supports 3d HTML
-    * @function Window.has3DHTML
-    * @returns {boolean} <code>true</code> if device supports 3d HTML, otherwise <code>false</code>.*/
+     * Checks whether HTML on 3D surfaces (e.g., Web entities) is supported.
+     * @function PlatformInfo.has3DHTML
+     * @returns {boolean} <code>true</code> if the current display supports HTML on 3D surfaces, <code>false</code> if it 
+     * doesn't.
+     */
     bool has3DHTML();
 
     /**jsdoc
-    * Returns true if device is standalone
-    * @function Window.hasRift
-    * @returns {boolean} <code>true</code> if device is a standalone device, otherwise <code>false</code>.*/
+     * Checks whether Interface is running on a stand-alone HMD device (CPU incorporated into the HMD display).
+     * @function PlatformInfo.isStandalone
+     * @returns {boolean} <code>true</code> if Interface is running on a stand-alone device, <code>false</code> if it isn't.
+     */
     bool isStandalone();
 };
 

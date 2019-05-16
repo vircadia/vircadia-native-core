@@ -53,6 +53,10 @@ Open `%HIFI_DIR%\build\hifi.sln` using Visual Studio.
 
 Change the Solution Configuration (menu ribbon under the menu bar, next to the green play button) from "Debug" to "Release" for best performance.
 
+Create another environment variable (see Step #4)
+* Set "Variable name": `PreferredToolArchitecture`
+* Set "Variable value": `x64`
+
 Run from the menu bar `Build > Build Solution`.
 
 ### Step 7. Testing Interface

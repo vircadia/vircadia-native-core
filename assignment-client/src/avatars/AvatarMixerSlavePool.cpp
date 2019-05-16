@@ -117,6 +117,19 @@ void AvatarMixerSlavePool::each(std::function<void(AvatarMixerSlave& slave)> fun
     }
 }
 
+#ifdef DEBUG_EVENT_QUEUE
+void AvatarMixerSlavePool::queueStats(QJsonObject& stats) {
+    unsigned i = 0;
+    for (auto& slave : _slaves) {
+        int queueSize = ::hifi::qt::getEventQueueSize(slave.get());
+        QString queueName = QString("avatar_thread_event_queue_%1").arg(i);
+        stats[queueName] = queueSize;
+
+        i++;
+    }
+}
+#endif // DEBUG_EVENT_QUEUE
+
 void AvatarMixerSlavePool::setNumThreads(int numThreads) {
     // clamp to allowed size
     {

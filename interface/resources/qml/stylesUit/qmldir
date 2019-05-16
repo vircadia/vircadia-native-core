@@ -5,12 +5,16 @@ FiraSansRegular 1.0 FiraSansRegular.qml
 FiraSansSemiBold 1.0 FiraSansSemiBold.qml
 HifiConstants 1.0 HifiConstants.qml
 HiFiGlyphs 1.0 HiFiGlyphs.qml
+GraphikMedium 1.0 GraphikMedium.qml
+GraphikRegular 1.0 GraphikRegular.qml
+GraphikSemiBold 1.0 GraphikSemiBold.qml
 IconButton 1.0 IconButton.qml
 InfoItem 1.0 InfoItem.qml
 InputLabel 1.0 InputLabel.qml
 ListItem 1.0 ListItem.qml
 Logs 1.0 Logs.qml
 OverlayTitle 1.0 OverlayTitle.qml
+Rawline 1.0 Rawline.qml
 RalewayBold 1.0 RalewayBold.qml
 RalewayLight 1.0 RalewayLight.qml
 RalewayRegular 1.0 RalewayRegular.qml
