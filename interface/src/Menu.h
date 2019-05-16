@@ -228,7 +228,8 @@ namespace MenuOption {
     const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
     const QString ForceCoarsePicking = "Force Coarse Picking";
     const QString ComputeBlendshapes = "Compute Blendshapes";
-}
+    const QString MeshShaders = "Enable Shaders on Meshes";
+    }
 
 #endif // hifi_Menu_h
 

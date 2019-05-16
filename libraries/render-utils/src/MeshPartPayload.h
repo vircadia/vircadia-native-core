@@ -73,6 +73,8 @@ public:
     void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
+    static bool enableMeshShaders;
+
 protected:
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
 };

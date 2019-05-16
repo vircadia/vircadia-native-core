@@ -22,9 +22,6 @@
 <$declareMeshDeformer(1, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
 <$declareMeshDeformerActivation(1, 1)$>
 
-<@include LightingModel.slh@>
-
-
 <@include render-utils/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;

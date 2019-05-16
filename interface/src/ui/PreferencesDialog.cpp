@@ -102,6 +102,16 @@ void setupPreferences() {
 
         preference->setItems(refreshRateProfiles);
         preferences->addPreference(preference);
+
+        auto getterMeshShaders = []() -> bool {
+            auto menu = Menu::getInstance();
+            return menu->isOptionChecked(MenuOption::MeshShaders);
+        };
+        auto setterMeshShaders = [](bool value) {
+            auto menu = Menu::getInstance();
+            menu->setIsOptionChecked(MenuOption::MeshShaders, value);
+        };
+        preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Enable Procedural Materials on Meshes", getterMeshShaders, setterMeshShaders));
     }
 
     // UI
