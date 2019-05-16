@@ -22,7 +22,10 @@
 
 #elif defined(Q_OS_MAC)
 #include <OpenGL/OpenGL.h>
-#include<sys/sysctl.h>
+#include <sstream>
+#include <QString>
+#include <qstringlist.h>
+
 #endif
 
 #include <QtCore/QtGlobal>
@@ -55,6 +58,26 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
                 bestVRAM = deviceVRAM;
                 _isValid = true;
             }
+        }
+    }
+ 
+    //get gpu name
+    FILE* stream = popen("system_profiler SPDisplaysDataType | grep Chipset", "r");
+    
+    std::ostringstream hostStream;
+    while (!feof(stream) && !ferror(stream)) {
+        char buf[128];
+        int bytesRead = fread(buf, 1, 128, stream);
+        hostStream.write(buf, bytesRead);
+    }
+    
+    QString result = QString::fromStdString(hostStream.str());
+    QStringList parts = result.split('\n');
+    std::string name;
+    
+    for (int i = 0; i < parts.size(); ++i) {
+        if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
+            _name=parts[i];
         }
     }
 
