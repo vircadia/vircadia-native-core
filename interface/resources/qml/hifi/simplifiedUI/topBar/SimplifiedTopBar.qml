@@ -122,21 +122,14 @@ Rectangle {
         width: 48
         height: width
 
-        AnimatedImage {
-            visible: avatarButtonImage.source === ""
-            anchors.centerIn: parent
-            width: parent.width - 10
-            height: width
-            source: "../images/loading.gif"
-        }
-
         Image {
             id: avatarButtonImage
-            visible: source !== ""
-            source: ""
+            source: "./images/defaultAvatar.svg"
             anchors.centerIn: parent
-            width: parent.width - 10
+            width: 32
             height: width
+            sourceSize.width: width
+            sourceSize.height: height
             mipmap: true
             fillMode: Image.PreserveAspectCrop
             layer.enabled: true
@@ -194,7 +187,9 @@ Rectangle {
         id: inputDeviceButton
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: avatarButtonContainer.right
-        anchors.leftMargin: 8
+        anchors.leftMargin: 6
+        width: 32
+        height: width
     }
 
 
@@ -202,8 +197,8 @@ Rectangle {
         id: outputDeviceButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: inputDeviceButton.right
-        anchors.leftMargin: 24
-        width: 30
+        anchors.leftMargin: 2
+        width: 32
         height: width
 
         Image {
@@ -252,13 +247,13 @@ Rectangle {
         id: hmdButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: settingsButtonContainer.left
-        anchors.rightMargin: 8
-        width: 48
+        anchors.rightMargin: 14
+        width: 32
         height: width
 
         Image {
             id: displayModeImage
-            source: HMD.active ? "./images/vrMode.svg" : "./images/desktopMode.svg"
+            source: HMD.active ? "./images/desktopMode.svg" : "./images/vrMode.svg"
             anchors.centerIn: parent
             width: 29
             height: 16
@@ -295,7 +290,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: 16
-        width: 48
+        width: 32
         height: width
 
         Image {
@@ -340,6 +335,9 @@ Rectangle {
             downloadUrl = topBarInventoryModel.get(i).download_url;
             previewUrl = topBarInventoryModel.get(i).preview;
             if (MyAvatar.skeletonModelURL === downloadUrl) {
+                if (previewUrl.indexOf("missing.png") > -1) {
+                    previewUrl = "../images/defaultAvatar.svg";
+                }
                 avatarButtonImage.source = previewUrl;
                 return;
             }
@@ -354,7 +352,11 @@ Rectangle {
 
         switch (message.method) {
             case "updateAvatarThumbnailURL":
-                avatarButtonImage.source = message.data.avatarThumbnailURL;
+                if (message.data.avatarThumbnailURL.indexOf("defaultAvatar.svg") > -1) {
+                    avatarButtonImage.source = "../images/defaultAvatar.svg";
+                } else {
+                    avatarButtonImage.source = message.data.avatarThumbnailURL;
+                }
                 break;
 
             case "updateOutputMuted":
