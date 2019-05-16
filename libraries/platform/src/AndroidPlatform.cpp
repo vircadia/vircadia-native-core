@@ -15,19 +15,19 @@ using namespace platform;
 
 void AndroidInstance::enumerateCpu() {
      json cpu;
-     cpu[jsonKeys::cpuBrand] = "";
-     cpu[jsonKeys::cpuModel] = "";
-     cpu[jsonKeys::cpuClockSpeed] = "";
-     cpu[jsonKeys::cpuNumCores] = "";
+     cpu["cpuBrand"] = "";
+     cpu["cpuModel"] = "";
+     cpu["cpuClockSpeed"] = "";
+     cpu["cpuNumCores"] = "";
     _cpu.push_back(cpu);
 }
 
 void AndroidInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
-    gpu[jsonKeys::gpuName] = ident->getName().toUtf8().constData();
-    gpu[jsonKeys::gpuMemory] = ident->getMemory();
-    gpu[jsonKeys::gpuDriver] = ident->getDriver().toUtf8().constData();
+    gpu["gpuName"] = ident->getName().toUtf8().constData();
+    gpu["gpuMemory"] = ident->getMemory();
+    gpu["gpuDriver"] = ident->getDriver().toUtf8().constData();
     
     _gpu.push_back(gpu);
     _display = ident->getOutput();
@@ -35,6 +35,6 @@ void AndroidInstance::enumerateGpu() {
 
 void AndroidInstance::enumerateMemory() {
     json ram = {};
-    ram[jsonKeys::totalMemory]="";
+    ram["totalMemory"]="";
     _memory.push_back(ram);
 }

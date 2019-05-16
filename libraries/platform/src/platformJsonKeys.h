@@ -11,6 +11,7 @@
 
 namespace platform {
     namespace jsonKeys{
+#if 0
         static const char*  cpuBrand { "cpuBrand"};
         static const char*  cpuModel {"cpuModel"};
         static const char*  cpuClockSpeed {"clockSpeed"};
@@ -25,6 +26,8 @@ namespace platform {
         static const char*  displayCoordsRight { "coordinatesright"};
         static const char*  displayCoordsTop { "coordinatestop"};
         static const char*  displayCoordsBottom { "coordinatesbottom"};
+#endif
+        
     }
 
 } // namespace platform

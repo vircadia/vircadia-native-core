@@ -58,10 +58,10 @@ void MACOSInstance::enumerateCpu() {
         }
     }
  
-     cpu[jsonKeys::cpuBrand] = CPUBrandString;
-     cpu[jsonKeys::cpuModel] = CPUModelString;
-     cpu[jsonKeys::cpuClockSpeed] = CPUClockString;
-     cpu[jsonKeys::cpuNumCores] = std::thread::hardware_concurrency();
+     cpu["cpuBrand"] = CPUBrandString;
+     cpu["cpuModel"] = CPUModelString;
+     cpu["cpuClockSpeed"] = CPUClockString;
+     cpu["cpuNumCores"] = std::thread::hardware_concurrency();
 
     _cpu.push_back(cpu);
     
@@ -79,9 +79,9 @@ void MACOSInstance::enumerateCpu() {
 void MACOSInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
-    gpu[jsonKeys::gpuName] = ident->getName().toUtf8().constData();
-    gpu[jsonKeys::gpuMemory] = ident->getMemory();
-    gpu[jsonKeys::gpuDriver] = ident->getDriver().toUtf8().constData();
+    gpu["gpuName"] = ident->getName().toUtf8().constData();
+    gpu["gpuMemory"] = ident->getMemory();
+    gpu["gpuDriver"] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
@@ -94,7 +94,7 @@ void MACOSInstance::enumerateMemory() {
 #ifdef Q_OS_MAC
     long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
-    ram[jsonKeys::totalMemory] =  pages * page_size;;
+    ram["totalMemory"] =  pages * page_size;;
 #endif
     _memory.push_back(ram);
 }
