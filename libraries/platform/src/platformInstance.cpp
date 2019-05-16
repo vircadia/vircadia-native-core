@@ -71,8 +71,4 @@ Instance::~Instance() {
     if (_display.size() > 0) {
         _display.clear();
     }
-    
-    if(_computer.size()>0){
-        _computer.clear();
-    }
 }
