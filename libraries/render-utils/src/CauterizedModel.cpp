@@ -76,7 +76,6 @@ void CauterizedModel::createRenderItemSet() {
         // Run through all of the meshes, and place them into their segregated, but unsorted buckets
         int shapeID = 0;
         uint32_t numMeshes = (uint32_t)meshes.size();
-        const HFMModel& hfmModel = getHFMModel();
         for (uint32_t i = 0; i < numMeshes; i++) {
             const auto& mesh = meshes.at(i);
             if (!mesh) {

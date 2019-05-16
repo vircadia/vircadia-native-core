@@ -1477,7 +1477,6 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
-    auto& hfmModel = getHFMModel();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1735,7 +1734,6 @@ void Blender::run() {
     DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     int numBlendshapeOffsets = 0;  // number of offsets required for all meshes.
     int numMeshes = 0;  // number of meshes in this model.
-    int maxVertsInMesh = 0;  // number of vertices in the largest mesh.
     for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
         numMeshes++;
         int numVertsInMesh = meshIter->vertices.size();
