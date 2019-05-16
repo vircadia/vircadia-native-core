@@ -9,7 +9,6 @@
 #include "LinuxPlatform.h"
 #include "platformJsonKeys.h"
 #include <GPUIdent.h>
-#include <string>
 
 using namespace platform;
 void LinuxInstance::enumerateCpu() {
@@ -41,7 +40,7 @@ void LinuxInstance::enumerateMemory() {
     _memory.push_back(ram);
 }
 
-void LinuxInstance::::enumerateComputer(){
+void LinuxInstance::enumerateComputer(){
     //no implememntation at this time
 }
 

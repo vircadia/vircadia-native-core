@@ -7,7 +7,6 @@
 //
 
 
-#include "platform.h"
 #include "platformInstance.h"
 #include <QtGlobal>
 
@@ -45,14 +44,6 @@ json Instance::getGPU(int index) {
         return json();
     
     return _gpu.at(index);
-}
-
-json Instance::getComputer(int index){
-    if(index >= (int)_computer.size()){
-        return json();
-    }
-    
-    return _computer.at(index);
 }
 
 json Instance::getDisplay(int index) {

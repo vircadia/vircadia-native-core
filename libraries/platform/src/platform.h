@@ -9,8 +9,7 @@
 #ifndef hifi_Platform_h
 #define hifi_Platform_h
 
-#include "platformInstance.h"
-#include <vector>
+
 #include <nlohmann/json.hpp>
 
 namespace platform {
@@ -32,8 +31,8 @@ json getDisplay(int index);
 int getNumMemory();
 json getMemory(int index);
 
-int getNumComputer();
-json getComputer(int index);
+json getComputer();
+    
 }  // namespace platform
 
 #endif  // hifi_platform_h

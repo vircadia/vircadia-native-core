@@ -98,12 +98,8 @@ void MACOSInstance::enumerateComputer(){
     char* model = (char *) malloc(sizeof(char)*len+1);
     sysctlbyname("hw.model", model, &len, NULL,0);
     
-    
-    json computer;
-    computer["computerModel"]=std::string(model);
-    
-    _computer.push_back(computer);
-    
+    _computer["computerModel"]=std::string(model);
+
     free(model);
     
 #endif
