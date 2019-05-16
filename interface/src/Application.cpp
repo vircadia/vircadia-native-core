@@ -192,7 +192,7 @@
 #include "scripting/WalletScriptingInterface.h"
 #include "scripting/TTSScriptingInterface.h"
 #include "scripting/KeyboardScriptingInterface.h"
-#include "scripting/RefreshRateScriptingInterface.h"
+#include "scripting/PerformanceScriptingInterface.h"
 
 
 
@@ -3274,7 +3274,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     surfaceContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-    surfaceContext->setContextProperty("RefreshRate", new RefreshRateScriptingInterface());
+    surfaceContext->setContextProperty("Performance", new PerformanceScriptingInterface());
     _fileDownload = new FileScriptingInterface(engine);
     surfaceContext->setContextProperty("File", _fileDownload);
     connect(_fileDownload, &FileScriptingInterface::unzipResult, this, &Application::handleUnzip);
@@ -3424,7 +3424,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
 
         surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-        surfaceContext->setContextProperty("RefreshRate", new RefreshRateScriptingInterface());
+        surfaceContext->setContextProperty("Performance", new PerformanceScriptingInterface());
 
         surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
@@ -7392,7 +7392,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
 
     scriptEngine->registerGlobalObject("Keyboard", DependencyManager::get<KeyboardScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("RefreshRate", new RefreshRateScriptingInterface);
+    scriptEngine->registerGlobalObject("Performance", new PerformanceScriptingInterface());
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 
