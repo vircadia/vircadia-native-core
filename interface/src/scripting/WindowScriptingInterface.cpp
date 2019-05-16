@@ -611,28 +611,23 @@ float WindowScriptingInterface::domainLoadingProgress() {
     return qApp->getOctreePacketProcessor().domainLoadingProgress();
 }
 
-const DisplayPluginList& getDisplayPlugins() {
-    static const auto& list = PluginManager::getInstance()->getDisplayPlugins();
-    return list;
-}
-
 int WindowScriptingInterface::getDisplayPluginCount() {
-    return getDisplayPlugins().size();
+    return (int)PluginManager::getInstance()->getDisplayPlugins().size();
 }
 
 QString WindowScriptingInterface::getDisplayPluginName(int index) {
-    return getDisplayPlugins().at(index)->getName();
+    return PluginManager::getInstance()->getDisplayPlugins().at(index)->getName();
 }
 
 bool WindowScriptingInterface::isDisplayPluginHmd(int index) {
-    return getDisplayPlugins().at(index)->isHmd();
+    return PluginManager::getInstance()->getDisplayPlugins().at(index)->isHmd();
 }
 
 int WindowScriptingInterface::getActiveDisplayPlugin() {
     auto active = qApp->getActiveDisplayPlugin();
     auto size = getDisplayPluginCount();
     for (int i = 0; i < size; ++i) {
-        if (getDisplayPlugins().at(i) == active) {
+        if (PluginManager::getInstance()->getDisplayPlugins().at(i) == active) {
             return i;
         }
     }
@@ -640,5 +635,6 @@ int WindowScriptingInterface::getActiveDisplayPlugin() {
 }
 
 void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
-    qApp->setActiveDisplayPlugin(getDisplayPlugins().at(index)->getName());
+    auto name = PluginManager::getInstance()->getDisplayPlugins().at(index)->getName();
+    qApp->setActiveDisplayPlugin(name);
 }
