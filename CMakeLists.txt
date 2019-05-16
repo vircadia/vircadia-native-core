@@ -36,8 +36,8 @@ endif()
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
     message(FATAL_ERROR "vcpkg configuration missing.")
 endif()
-
 include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
+
 project(hifi)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
@@ -196,7 +196,9 @@ unset(JS_SRC)
 
 set_packaging_parameters()
 
-if (PRODUCTION_BUILD)
+if (NOT DEV_BUILD)
+    # add options to strip symbols for PRODUCTION and PR builds
+    # TODO?: call set_packaging_parameters() earlier and move this symbol stripping into compiler.cmake
     if (APPLE)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-s")
     elseif(UNIX)
