@@ -36,6 +36,11 @@ public slots:
     void setRefreshRateProfile(RefreshRateProfile refreshRateProfile);
     RefreshRateProfile getRefreshRateProfile() const;
 
+    int getActiveRefreshRate() const;
+    RefreshRateManager::UXMode getUXMode() const;
+    RefreshRateManager::RefreshRateRegime getRefreshRateRegime() const;
+
+
 private:
     static std::once_flag registry_flag;
 };

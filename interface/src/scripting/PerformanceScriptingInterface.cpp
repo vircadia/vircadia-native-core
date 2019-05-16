@@ -26,3 +26,15 @@ void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile ref
 PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface::getRefreshRateProfile() const {
     return (PerformanceScriptingInterface::RefreshRateProfile)qApp->getRefreshRateManager().getRefreshRateProfile();
 }
+
+int PerformanceScriptingInterface::getActiveRefreshRate() const {
+    return qApp->getRefreshRateManager().getActiveRefreshRate();
+}
+
+RefreshRateManager::UXMode PerformanceScriptingInterface::getUXMode() const {
+    return qApp->getRefreshRateManager().getUXMode();
+}
+
+RefreshRateManager::RefreshRateRegime PerformanceScriptingInterface::getRefreshRateRegime() const {
+    return qApp->getRefreshRateManager().getRefreshRateRegime();
+}
