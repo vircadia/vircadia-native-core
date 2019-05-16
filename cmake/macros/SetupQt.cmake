@@ -78,9 +78,7 @@ macro(setup_qt)
         message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
     endif()
 
-    message("adebug")
-    message("adebug Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
-    message("adebug")
+    message(STATUS "Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
 
     # Instruct CMake to run moc automatically when needed.
     set(CMAKE_AUTOMOC ON)
