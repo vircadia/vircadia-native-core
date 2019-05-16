@@ -203,39 +203,45 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: inputDeviceButton.right
         anchors.leftMargin: 24
-        width: 20
+        width: 30
         height: width
 
-        HifiStylesUit.HiFiGlyphs {
-            property bool outputMuted: false
+        Image {
             id: outputDeviceButton
-            text: (outputDeviceButton.outputMuted ? simplifiedUI.glyphs.vol_0 : simplifiedUI.glyphs.vol_3)
-            color: (outputDeviceButton.outputMuted ? simplifiedUI.colors.controls.outputVolumeButton.text.muted : simplifiedUI.colors.controls.outputVolumeButton.text.noisy)
-            opacity: outputDeviceButtonMouseArea.containsMouse ? 1.0 : 0.7
-            size: 32
+            property bool outputMuted: false
+            source: outputDeviceButton.outputMuted ? "./images/outputDeviceMuted.svg" : "./images/outputDeviceLoud.svg"
             anchors.centerIn: parent
-            width: parent.width
-            height: parent.height
-            horizontalAlignment: Text.AlignHCenter
-            MouseArea {
-                id: outputDeviceButtonMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: {
-                    Tablet.playSound(TabletEnums.ButtonHover);
-                }
-                onClicked: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
-                    outputDeviceButton.outputMuted = !outputDeviceButton.outputMuted;
+            width: 20
+            height: 20
+            fillMode: Image.PreserveAspectFit
+            visible: false
+        }
 
-                    sendToScript({
-                        "source": "SimplifiedTopBar.qml",
-                        "method": "setOutputMuted",
-                        "data": {
-                            "outputMuted": outputDeviceButton.outputMuted
-                        }
-                    });
-                }
+        ColorOverlay {
+            anchors.fill: outputDeviceButton
+            opacity: outputDeviceButtonMouseArea.containsMouse ? 1.0 : 0.7
+            source: outputDeviceButton
+            color: (outputDeviceButton.outputMuted ? simplifiedUI.colors.controls.outputVolumeButton.text.muted : simplifiedUI.colors.controls.outputVolumeButton.text.noisy)
+        }
+
+        MouseArea {
+            id: outputDeviceButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                outputDeviceButton.outputMuted = !outputDeviceButton.outputMuted;
+
+                sendToScript({
+                    "source": "SimplifiedTopBar.qml",
+                    "method": "setOutputMuted",
+                    "data": {
+                        "outputMuted": outputDeviceButton.outputMuted
+                    }
+                });
             }
         }
     }
@@ -244,34 +250,40 @@ Rectangle {
 
     Item {
         id: hmdButtonContainer
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+        anchors.verticalCenter: parent.verticalCenter
         anchors.right: settingsButtonContainer.left
         anchors.rightMargin: 8
-        width: height
+        width: 48
+        height: width
 
-        HifiStylesUit.HiFiGlyphs {
-            id: hmdGlyph
-            text: HMD.active ? simplifiedUI.glyphs.hmd : simplifiedUI.glyphs.screen
-            color: simplifiedUI.colors.text.white
-            opacity: hmdGlyphMouseArea.containsMouse ? 1.0 : 0.7
-            size: 40
+        Image {
+            id: displayModeImage
+            source: HMD.active ? "./images/vrMode.svg" : "./images/desktopMode.svg"
             anchors.centerIn: parent
-            width: 35
-            height: parent.height
-            horizontalAlignment: Text.AlignHCenter
-            MouseArea {
-                id: hmdGlyphMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: {
-                    Tablet.playSound(TabletEnums.ButtonHover);
-                }
-                onClicked: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
-                    // TODO: actually do this right and change the display plugin
-                    HMD.active = !HMD.active;
-                }
+            width: 29
+            height: 16
+            fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+
+        ColorOverlay {
+            anchors.fill: displayModeImage
+            opacity: displayModeMouseArea.containsMouse ? 1.0 : 0.7
+            source: displayModeImage
+            color: simplifiedUI.colors.text.white
+        }
+
+        MouseArea {
+            id: displayModeMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                // TODO: actually do this right and change the display plugin
+                HMD.active = !HMD.active;
             }
         }
     }
@@ -280,36 +292,42 @@ Rectangle {
 
     Item {
         id: settingsButtonContainer
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
+        anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
         anchors.rightMargin: 16
-        width: height
+        width: 48
+        height: width
 
-        HifiStylesUit.HiFiGlyphs {
-            id: settingsGlyph
-            text: simplifiedUI.glyphs.gear
-            color: simplifiedUI.colors.text.white
-            opacity: settingsGlyphMouseArea.containsMouse ? 1.0 : 0.7
-            size: 40
+        Image {
+            id: settingsButtonImage
+            source: "./images/settings.svg"
             anchors.centerIn: parent
-            width: 35
-            height: parent.height
-            horizontalAlignment: Text.AlignHCenter
-            MouseArea {
-                id: settingsGlyphMouseArea
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: {
-                    Tablet.playSound(TabletEnums.ButtonHover);
-                }
-                onClicked: {
-                    Tablet.playSound(TabletEnums.ButtonClick);
-                    sendToScript({
-                        "source": "SimplifiedTopBar.qml",
-                        "method": "toggleSettingsApp"
-                    });
-                }
+            width: 20
+            height: 20
+            fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+
+        ColorOverlay {
+            opacity: settingsButtonMouseArea.containsMouse ? 1.0 : 0.7
+            anchors.fill: settingsButtonImage
+            source: settingsButtonImage
+            color: simplifiedUI.colors.text.white
+        }
+
+        MouseArea {
+            id: settingsButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                sendToScript({
+                    "source": "SimplifiedTopBar.qml",
+                    "method": "toggleSettingsApp"
+                });
             }
         }
     }
