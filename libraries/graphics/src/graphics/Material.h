@@ -271,6 +271,7 @@ public:
 
     Material();
     Material(const Material& material);
+    virtual ~Material() = default;
     Material& operator= (const Material& material);
 
     const MaterialKey& getKey() const { return _key; }
