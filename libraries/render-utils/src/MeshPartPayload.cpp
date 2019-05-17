@@ -21,7 +21,7 @@
 
 #include "RenderPipelines.h"
 
-bool MeshPartPayload::enableMeshShaders = true;
+bool MeshPartPayload::enableMeshShaders = false;
 
 using namespace render;
 

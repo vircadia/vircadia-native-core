@@ -196,7 +196,6 @@ class ProceduralMaterial : public NetworkMaterial {
 public:
     ProceduralMaterial() : NetworkMaterial() { initializeProcedural(); }
     ProceduralMaterial(const NetworkMaterial& material) : NetworkMaterial(material) { initializeProcedural(); }
-    //ProceduralMaterial(const ProceduralMaterial& material) : NetworkMaterial(material), _procedural(material._procedural) {}
 
     bool isProcedural() const override { return true; }
     bool isEnabled() const override { return _procedural.isEnabled(); }

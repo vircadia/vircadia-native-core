@@ -18,8 +18,9 @@ namespace platform {
         void enumerateCpu() override;
         void enumerateMemory() override;
         void enumerateGpu() override;
+        void enumerateComputer () override;
     };
 
 }  // namespace platform
 
-#endif //hifi_winplatform_h
+#endif //hifi_macosplatform_h

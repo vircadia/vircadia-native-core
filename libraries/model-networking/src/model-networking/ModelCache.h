@@ -46,6 +46,7 @@ public:
     bool isHFMModelLoaded() const { return (bool)_hfmModel; }
 
     const HFMModel& getHFMModel() const { return *_hfmModel; }
+    const HFMModel::ConstPointer& getConstHFMModelPointer() const { return _hfmModel; }
     const MaterialMapping& getMaterialMapping() const { return _materialMapping; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
@@ -59,7 +60,7 @@ public:
 
 protected:
     // Shared across all geometries, constant throughout lifetime
-    std::shared_ptr<const HFMModel> _hfmModel;
+    HFMModel::ConstPointer _hfmModel;
     MaterialMapping _materialMapping;
     std::shared_ptr<const GeometryMeshes> _meshes;
     std::shared_ptr<const GeometryMeshParts> _meshParts;

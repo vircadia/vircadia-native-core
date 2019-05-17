@@ -109,7 +109,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     withReadLock([&] {
         auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isEnabled()) {
+        if (mat != _materials.end() && mat->second.top().material && mat->second.top().material->isProcedural() && mat->second.top().material->isEnabled()) {
             auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(mat->second.top().material);
             if (procedural->isFading()) {
                 procedural->setIsFading(Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) < 1.0f);

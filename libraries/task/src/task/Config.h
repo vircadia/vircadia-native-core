@@ -220,7 +220,6 @@ public:
     TaskConfig() = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
-
     /**jsdoc
      * @function Render.getConfig
      * @param {string} name
@@ -262,7 +261,7 @@ public:
 
 class SwitchConfig : public JobConfig {
     Q_OBJECT
-    Q_PROPERTY(bool branch READ getBranch WRITE setBranch NOTIFY dirtyEnabled)
+    Q_PROPERTY(int branch READ getBranch WRITE setBranch NOTIFY dirtyEnabled)
 
 public:
     uint8_t getBranch() const { return _branch; }

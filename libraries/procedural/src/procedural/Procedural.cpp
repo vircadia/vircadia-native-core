@@ -91,7 +91,7 @@ void ProceduralData::parse(const QJsonObject& proceduralData) {
         }
     }
 
-    { // Fragment shader URL (either fragmentShaderUrl or shaderUrl)
+    { // Fragment shader URL (either fragmentShaderURL or shaderUrl)
         auto rawShaderUrl = proceduralData[FRAGMENT_URL_KEY].toString();
         fragmentShaderUrl = DependencyManager::get<ResourceManager>()->normalizeURL(rawShaderUrl);
 

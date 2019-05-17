@@ -524,7 +524,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ComputeBlendshapes, 0, true,
         DependencyManager::get<ModelBlender>().data(), SLOT(setComputeBlendshapes(bool)));
 
-    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::MeshShaders, 0, true);
+    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::MeshShaders, 0, false);
     connect(action, &QAction::triggered, [action] {
         MeshPartPayload::enableMeshShaders = action->isChecked();
     });

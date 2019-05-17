@@ -13,6 +13,7 @@ import "../../simplifiedConstants" as SimplifiedConstants
 import "../../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
 import QtQuick.Layouts 1.3
+import PerformanceEnums 1.0
 
 Flickable {
     property string avatarNametagMode: Settings.getValue("simplifiedNametag/avatarNametagMode", "on")
@@ -113,16 +114,28 @@ Flickable {
                 SimplifiedControls.RadioButton {
                     id: performanceLow
                     text: "Eco"
+                    checked: Performance.getRefreshRateProfile() === RefreshRate.ECO
+                    onClicked: {
+                        Performance.setRefreshRateProfile(RefreshRate.ECO);
+                    }
                 }
 
                 SimplifiedControls.RadioButton {
                     id: performanceMedium
                     text: "Interactive"
+                    checked: Performance.getRefreshRateProfile() === RefreshRate.INTERACTIVE
+                    onClicked: {
+                        Performance.setRefreshRateProfile(RefreshRate.INTERACTIVE);
+                    }
                 }
 
                 SimplifiedControls.RadioButton {
                     id: performanceHigh
                     text: "Realtime"
+                    checked: Performance.getRefreshRateProfile() === RefreshRate.REALTIME
+                    onClicked: {
+                        Performance.setRefreshRateProfile(RefreshRate.REALTIME);
+                    }
                 }
             }
         }
