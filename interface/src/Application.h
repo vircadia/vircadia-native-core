@@ -290,7 +290,6 @@ public:
     render::EnginePointer getRenderEngine() override { return  _graphicsEngine.getRenderEngine(); }
     gpu::ContextPointer getGPUContext() const { return _graphicsEngine.getGPUContext(); }
 
-
     const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
     virtual void pushPostUpdateLambda(void* key, const std::function<void()>& func) override;

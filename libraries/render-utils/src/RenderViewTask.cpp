@@ -15,8 +15,6 @@
 #include "RenderDeferredTask.h"
 #include "RenderForwardTask.h"
 
-#include <RenderForward.h>
-
 void RenderShadowsAndDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
     task.addJob<SetRenderMethod>("SetRenderMethodTask", render::Args::DEFERRED);
 
@@ -34,9 +32,9 @@ void RenderShadowsAndDeferredTask::build(JobModel& task, const render::Varying& 
 }
 
 void DeferredForwardSwitchJob::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
-    task.addBranch<RenderShadowsAndDeferredTask>("RenderShadowsAndDeferredTask", RENDER_FORWARD ? 1 : 0, input, cullFunctor, tagBits, tagMask);
+    task.addBranch<RenderShadowsAndDeferredTask>("RenderShadowsAndDeferredTask", 0, input, cullFunctor, tagBits, tagMask);
 
-    task.addBranch<RenderForwardTask>("RenderForwardTask", RENDER_FORWARD ? 0 : 1, input);
+    task.addBranch<RenderForwardTask>("RenderForwardTask", 1, input);
 }
 
 void RenderViewTask::build(JobModel& task, const render::Varying& input, render::Varying& output, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask) {
