@@ -622,6 +622,13 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
+#ifdef DEBUG_EVENT_QUEUE
+    {
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+        qCDebug(networking) << "DomainList received, pending count =" << _domainHandler.getCheckInPacketsSinceLastReply()
+            << "NodeList thread event queue size =" << nodeListQueueSize;
+    }
+#endif
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _domainHandler.clearPendingCheckins();
