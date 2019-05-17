@@ -430,7 +430,7 @@ void Procedural::setupUniforms() {
         }
 
         _standardInputsBuffer->setSubData(0, _standardInputs);
-        batch.setUniformBuffer(0, _standardInputsBuffer, 0, sizeof(StandardInputs));
+        batch.setUniformBuffer(procedural::slot::buffer::Inputs, _standardInputsBuffer, 0, sizeof(StandardInputs));
     });
 }
 

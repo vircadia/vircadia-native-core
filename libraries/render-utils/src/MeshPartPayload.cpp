@@ -174,6 +174,7 @@ void MeshPartPayload::render(RenderArgs* args) {
         outColor = procedural->getColor(outColor);
         procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), 0, // FIXME: pass in _created
                             ProceduralProgramKey(outColor.a < 1.0f));
+        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
     } else {
         // apply material properties
         if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
@@ -469,6 +470,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         outColor = procedural->getColor(outColor);
         procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), 0,// FIXME: pass in _created
                             ProceduralProgramKey(outColor.a < 1.0f, _shapeKey.isDeformed(), _shapeKey.isDualQuatSkinned()));
+        batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
     } else {
         // apply material properties
         if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
