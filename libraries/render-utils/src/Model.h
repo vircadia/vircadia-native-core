@@ -99,7 +99,7 @@ public:
 
     static void setAbstractViewStateInterface(AbstractViewStateInterface* viewState) { _viewState = viewState; }
 
-    Model(QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr);
+    Model(QObject* parent = nullptr, SpatiallyNestable* spatiallyNestableOverride = nullptr, uint64_t created = 0);
     virtual ~Model();
 
     inline ModelPointer getThisPointer() const {
@@ -510,6 +510,8 @@ protected:
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
 
     void initializeBlendshapes(const HFMMesh& mesh, int index);
+
+    uint64_t _created;
 
 private:
     float _loadingPriority { 0.0f };

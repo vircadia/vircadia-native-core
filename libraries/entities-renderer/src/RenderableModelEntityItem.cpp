@@ -1325,7 +1325,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     // Check for addition
     if (_hasModel && !model) {
-        model = std::make_shared<Model>(nullptr, entity.get());
+        model = std::make_shared<Model>(nullptr, entity.get(), _created);
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);

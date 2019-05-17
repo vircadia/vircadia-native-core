@@ -24,6 +24,9 @@ const float Material::DEFAULT_METALLIC { 0.0f };
 const float Material::DEFAULT_ROUGHNESS { 1.0f };
 const float Material::DEFAULT_SCATTERING { 0.0f };
 
+const std::string Material::HIFI_PBR { "hifi_pbr" };
+const std::string Material::HIFI_SHADER_SIMPLE { "hifi_shader_simple" };
+
 Material::Material() {
     for (int i = 0; i < NUM_TOTAL_FLAGS; i++) {
         _propertyFallthroughs[i] = false;

@@ -172,9 +172,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
     std::string name = "";
     std::shared_ptr<NetworkMaterial> networkMaterial;
 
-    static const std::string HIFI_PBR = "hifi_pbr";
-    static const std::string HIFI_SHADER_SIMPLE = "hifi_shader_simple";
-    std::string modelString = HIFI_PBR;
+    std::string modelString = graphics::Material::HIFI_PBR;
     auto modelJSONIter = materialJSON.find("model");
     if (modelJSONIter != materialJSON.end() && modelJSONIter.value().isString()) {
         modelString = modelJSONIter.value().toString().toStdString();
@@ -182,7 +180,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
 
     std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texcoordTransforms;
 
-    if (modelString == HIFI_PBR) {
+    if (modelString == graphics::Material::HIFI_PBR) {
         auto material = std::make_shared<NetworkMaterial>();
         const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {
@@ -424,7 +422,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
             }
         }
         networkMaterial = material;
-    } else if (modelString == HIFI_SHADER_SIMPLE) {
+    } else if (modelString == graphics::Material::HIFI_SHADER_SIMPLE) {
         auto material = std::make_shared<graphics::ProceduralMaterial>();
         const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {

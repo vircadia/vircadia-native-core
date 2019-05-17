@@ -52,7 +52,9 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
+MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material, const uint64_t& created) :
+    _created(created)
+{
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
 }
@@ -172,7 +174,7 @@ void MeshPartPayload::render(RenderArgs* args) {
         auto& schema = _drawMaterials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
         glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
         outColor = procedural->getColor(outColor);
-        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), 0, // FIXME: pass in _created
+        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), _created,
                             ProceduralProgramKey(outColor.a < 1.0f));
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
     } else {
@@ -220,7 +222,8 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 
 }
 
-ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
+ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex,
+                                           const Transform& transform, const Transform& offsetTransform, const uint64_t& created) :
     _meshIndex(meshIndex),
     _shapeID(shapeIndex) {
 
@@ -272,6 +275,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     }
 #endif
 
+    _created = created;
 }
 
 void ModelMeshPartPayload::initCache(const ModelPointer& model) {
@@ -468,7 +472,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         auto& schema = _drawMaterials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
         glm::vec4 outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
         outColor = procedural->getColor(outColor);
-        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), 0,// FIXME: pass in _created
+        procedural->prepare(batch, _drawTransform.getTranslation(), _drawTransform.getScale(), _drawTransform.getRotation(), _created,
                             ProceduralProgramKey(outColor.a < 1.0f, _shapeKey.isDeformed(), _shapeKey.isDualQuatSkinned()));
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
     } else {

@@ -346,12 +346,16 @@ public:
     virtual bool isProcedural() const { return false; }
     virtual bool isEnabled() const { return true; }
     virtual bool isReady() const { return true; }
+    virtual QString getProceduralString() const { return QString(); }
+
+    static const std::string HIFI_PBR;
+    static const std::string HIFI_SHADER_SIMPLE;
 
 protected:
     std::string _name { "" };
 
 private:
-    std::string _model { "hifi_pbr" };
+    std::string _model { HIFI_PBR };
     mutable MaterialKey _key { 0 };
 
     // Material properties

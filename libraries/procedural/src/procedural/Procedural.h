@@ -201,7 +201,12 @@ public:
     bool isProcedural() const override { return true; }
     bool isEnabled() const override { return _procedural.isEnabled(); }
     bool isReady() const override { return _procedural.isReady(); }
-    void setProceduralData(const QString& data) { _procedural.setProceduralData(ProceduralData::parse(data)); }
+    QString getProceduralString() const override { return _proceduralString; }
+
+    void setProceduralData(const QString& data) {
+        _proceduralString = data;
+        _procedural.setProceduralData(ProceduralData::parse(data));
+    }
     glm::vec4 getColor(const glm::vec4& color) const { return _procedural.getColor(color); }
     bool isFading() const { return _procedural.isFading(); }
     void setIsFading(bool isFading) { _procedural.setIsFading(isFading); }
@@ -214,6 +219,7 @@ public:
     void initializeProcedural();
 
 private:
+    QString _proceduralString;
     Procedural _procedural;
 };
 typedef std::shared_ptr<ProceduralMaterial> ProceduralMaterialPointer;

@@ -64,6 +64,7 @@ namespace scriptable {
      * @property {string} lightmapParams
      * @property {string} materialParams
      * @property {boolean} defaultFallthrough
+     * @property {string} procedural
      */
     class ScriptableMaterial {
     public:
@@ -97,6 +98,8 @@ namespace scriptable {
 
         bool defaultFallthrough;
         std::unordered_map<uint, bool> propertyFallthroughs; // not actually exposed to script
+
+        QString procedural;
 
         graphics::MaterialKey key { 0 };
     };

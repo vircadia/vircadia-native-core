@@ -13,7 +13,7 @@
 
 class CauterizedMeshPartPayload : public ModelMeshPartPayload {
 public:
-    CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform);
+    CauterizedMeshPartPayload(ModelPointer model, int meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform, const uint64_t& created);
 
     // matrix palette skinning
     void updateClusterBuffer(const std::vector<glm::mat4>& clusterMatrices,
