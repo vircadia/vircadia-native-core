@@ -45,7 +45,8 @@ function runNewDefaultsTogether() {
 // Uncomment this out once the work is actually complete.
 // Until then, users are required to access some functionality from the top menu bar.
 //var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
-var MENU_NAMES = ["File", "Edit", "View", "Navigate", "Help"];
+var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Help",
+    "Settings > General...", "Settings > Controls...", "Settings > Audio...", "Settings > Graphics...", "Settings > Security..."];
 var keepMenusSetting = Settings.getValue("simplifiedUI/keepMenus", false);
 function maybeRemoveDesktopMenu() {    
     if (!keepMenusSetting) {
