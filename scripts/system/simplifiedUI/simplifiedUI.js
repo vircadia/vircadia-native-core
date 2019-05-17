@@ -435,8 +435,7 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
     }
 }
 
-
-var simplifiedNametag = Script.require("../simplifiedNametag/simplifiedNametag.js");
+var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);

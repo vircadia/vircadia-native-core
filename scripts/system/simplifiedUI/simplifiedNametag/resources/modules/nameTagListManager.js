@@ -10,7 +10,6 @@
 //  Helps manage the list of avatars added to the nametag list
 //
 
-
 var ON = 'ON';
 var OFF = 'OFF';
 var DEBUG_ON = true;
@@ -63,7 +62,7 @@ function maybeClearInterval() {
 var Z_SIZE = 0.01;
 var LINE_HEIGHT_SCALER = 0.99;
 var DISTANCE_SCALER_ON = 0.35;
-var DISTANCE_SCALER_ALWAYS_ON = 0.65;
+var DISTANCE_SCALER_ALWAYS_ON = 0.45;
 var distanceScaler = DISTANCE_SCALER_ON;
 var userScaler = 1.0;
 var DEFAULT_LINE_HEIGHT = entityProps.lineHeight;
@@ -251,11 +250,11 @@ var RIGHT_MARGIN_SCALER = 0.10;
 var TOP_MARGIN_SCALER = 0.07;
 var BOTTOM_MARGIN_SCALER = 0.03;
 var ABOVE_HEAD_OFFSET = 0.30;
-var DISTANCE_SCALER_INTERPOLATION_OFFSET_ALWAYSON = 25;
+var DISTANCE_SCALER_INTERPOLATION_OFFSET_ALWAYSON = 15;
 var DISTANCE_SCALER_INTERPOLATION_OFFSET_ON = 10;
 var maxDistance = MAX_RADIUS_IGNORE_METERS;
-var onModeScalar = 0.60;
-var alwaysOnModeScalar = -0.55;
+var onModeScalar = 0.55;
+var alwaysOnModeScalar = -0.75;
 function makeNameTag(uuid) {
     var avatar = _this.avatars[uuid];
     var avatarInfo = avatar.avatarInfo;
@@ -334,7 +333,7 @@ function makeNameTag(uuid) {
 
 // Check to see if the display named changed or if the distance is big enough to need a redraw.
 var MAX_RADIUS_IGNORE_METERS = 22;
-var MAX_ON_MODE_DISTANCE = 30;
+var MAX_ON_MODE_DISTANCE = 35;
 var CHECK_AVATAR = true;
 var MIN_DISTANCE = 0.2;
 function maybeRedraw(uuid) {
