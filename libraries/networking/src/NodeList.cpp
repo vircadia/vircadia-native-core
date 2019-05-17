@@ -292,6 +292,13 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
+    // On ThreadedAssignments (assignment clients), this function
+    // is called by the server check-in timer thread
+    // not the NodeList thread.  Calling it on the NodeList thread
+    // resulted in starvation of the server check-in function.
+    // be VERY CAREFUL modifying this code as members of NodeList
+    // may be called by multiple threads.
+
     if (!_sendDomainServerCheckInEnabled) {
         qCDebug(networking_ice) << "Refusing to send a domain-server check in while it is disabled.";
         return;
