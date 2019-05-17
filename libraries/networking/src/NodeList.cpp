@@ -292,7 +292,8 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
-    // This function is called by the server check-in timer thread
+    // On ThreadedAssignments (assignment clients), this function
+    // is called by the server check-in timer thread
     // not the NodeList thread.  Calling it on the NodeList thread
     // resulted in starvation of the server check-in function.
     // be VERY CAREFUL modifying this code as members of NodeList
