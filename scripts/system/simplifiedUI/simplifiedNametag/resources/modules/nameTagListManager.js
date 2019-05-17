@@ -333,7 +333,7 @@ function makeNameTag(uuid) {
 
 // Check to see if the display named changed or if the distance is big enough to need a redraw.
 var MAX_RADIUS_IGNORE_METERS = 22;
-var MAX_ON_MODE_DISTANCE = 30;
+var MAX_ON_MODE_DISTANCE = 35;
 var CHECK_AVATAR = true;
 var MIN_DISTANCE = 0.2;
 function maybeRedraw(uuid) {
