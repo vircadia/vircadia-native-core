@@ -8,6 +8,7 @@
 
 #include "WINPlatform.h"
 #include "platformJsonKeys.h"
+
 #ifdef Q_OS_WINDOWS
 #include <intrin.h>
 #include <Windows.h>
@@ -76,7 +77,12 @@ void WINInstance::enumerateMemory() {
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    ram[jsonKeys::totalMemory] = totalRam;
+    ram["totalMemory"] = totalRam;
 #endif
     _memory.push_back(ram);
 }
+
+void WINInstance::enumerateComputer(){
+    //no implememntation at this time
+}
+

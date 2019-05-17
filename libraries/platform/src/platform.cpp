@@ -77,3 +77,7 @@ int platform::getNumMemory() {
 json platform::getMemory(int index) {
     return _instance->getMemory(index);
 }
+
+json platform::getComputer(){
+    return _instance->getComputer();
+}

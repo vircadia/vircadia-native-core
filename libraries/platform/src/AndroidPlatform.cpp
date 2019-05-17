@@ -8,9 +8,8 @@
 
 #include "AndroidPlatform.h"
 #include "platformJsonKeys.h"
-
 #include <GPUIdent.h>
-#include <string>
+
 using namespace platform;
 
 void AndroidInstance::enumerateCpu() {
@@ -35,6 +34,11 @@ void AndroidInstance::enumerateGpu() {
 
 void AndroidInstance::enumerateMemory() {
     json ram = {};
-
+    ram["totalMemory"]="";
     _memory.push_back(ram);
 }
+
+void AndroidInstance::enumerateComputer(){
+    //no implememntation at this time
+}
+

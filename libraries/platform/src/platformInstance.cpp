@@ -7,24 +7,13 @@
 //
 
 
-#include "platform.h"
-
+#include "platformInstance.h"
 #include <QtGlobal>
-
-#ifdef Q_OS_WIN
-#include "WINPlatform.h"
-#endif
-
-#ifdef Q_OS_MACOS
-#include "MACOSPlatform.h"
-#endif
-
-#ifdef Q_OS_LINUX
-#endif
 
 using namespace platform;
 
 bool Instance::enumeratePlatform() {
+    enumerateComputer();
     enumerateCpu();
     enumerateGpu();
     enumerateMemory();
@@ -74,7 +63,6 @@ Instance::~Instance() {
     if (_memory.size() > 0) {
         _memory.clear();
     }
-
 
     if (_gpu.size() > 0) {
         _gpu.clear();
