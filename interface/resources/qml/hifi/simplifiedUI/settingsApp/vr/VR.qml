@@ -19,8 +19,8 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: vrColumnLayout.height
-    topMargin: 16
-    bottomMargin: 16
+    topMargin: 24
+    bottomMargin: 24
     clip: true
 
     function changePeakValuesEnabled(enabled) {
@@ -70,6 +70,7 @@ Flickable {
                 id: controlsRadioButtonGroup
                 width: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
 
                 ButtonGroup { id: controlsButtonGroup }
 
@@ -202,7 +203,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
                 delegate: Item {
@@ -301,7 +302,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output
                 delegate: Item {

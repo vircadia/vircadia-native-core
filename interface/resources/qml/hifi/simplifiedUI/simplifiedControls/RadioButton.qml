@@ -87,7 +87,6 @@ RadioButton {
 
     contentItem: Text {
         id: radioButtonLabel
-        height: root.radioButtonRadius
         font.pixelSize: 14
         font.family: "Graphik"
         font.weight: Font.Normal
@@ -99,5 +98,6 @@ RadioButton {
         enabled: root.enabled
         verticalAlignment: Text.AlignVCenter
         leftPadding: radioButtonIndicator.width + root.labelLeftMargin
+        topPadding: -3 // For perfect alignment when using Graphik
     }
 }

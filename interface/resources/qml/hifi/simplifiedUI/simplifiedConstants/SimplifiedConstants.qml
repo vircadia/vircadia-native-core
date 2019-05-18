@@ -182,9 +182,10 @@ QtObject {
         }
 
         readonly property QtObject settings: QtObject {
-            property real subtitleTopMargin: 2
-            property real settingsGroupTopMargin: 10
-            property real spacingBetweenSettings: 48
+            property int subtitleTopMargin: 2
+            property int settingsGroupTopMargin: 24
+            property int spacingBetweenSettings: 48
+            property int spacingBetweenRadiobuttons: 14
         }
     }
 

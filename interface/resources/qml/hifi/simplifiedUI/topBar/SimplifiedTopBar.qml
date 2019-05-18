@@ -242,6 +242,56 @@ Rectangle {
     }
 
 
+    Item {
+        id: statusButtonContainer
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: outputDeviceButtonContainer.right
+        anchors.leftMargin: 2
+        width: 32
+        height: width
+
+        Rectangle {
+            id: statusButton
+            property string currentStatus: ""
+            anchors.centerIn: parent
+            width: 20
+            height: width
+            radius: width/2
+            visible: false
+        }
+
+        ColorOverlay {
+            anchors.fill: statusButton
+            opacity: statusButtonMouseArea.containsMouse ? 1.0 : 0.7
+            source: statusButton
+            color: if (statusButton.currentStatus === "busy") {
+                "red"
+            } else if (statusButton.currentStatus === "available") {
+                "green"
+            } else {
+                "yellow"
+            }
+        }
+
+        MouseArea {
+            id: statusButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+
+                sendToScript({
+                    "source": "SimplifiedTopBar.qml",
+                    "method": "toggleStatus"
+                });
+            }
+        }
+    }
+
+
 
     Item {
         id: hmdButtonContainer
@@ -399,6 +449,10 @@ Rectangle {
 
             case "updateOutputMuted":
                 outputDeviceButton.outputMuted = message.data.outputMuted;
+                break;
+
+            case "updateStatusButton":
+                statusButton.currentStatus = message.data.currentStatus;
                 break;
 
             default:

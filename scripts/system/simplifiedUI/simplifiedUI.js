@@ -276,6 +276,11 @@ function setOutputMuted(outputMuted) {
 }
 
 
+function toggleStatus() {
+
+}
+
+
 var TOP_BAR_MESSAGE_SOURCE = "SimplifiedTopBar.qml";
 function onMessageFromTopBar(message) {
     if (message.source !== TOP_BAR_MESSAGE_SOURCE) {
@@ -293,6 +298,10 @@ function onMessageFromTopBar(message) {
 
         case "setOutputMuted":
             setOutputMuted(message.data.outputMuted);
+            break;
+
+        case "toggleStatus":
+            si.toggleStatus();
             break;
 
         default:
@@ -435,7 +444,25 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
     }
 }
 
+
+function onStatusChanged() {
+    var currentStatus = si.getLocalStatus();
+
+    if (topBarWindow) {
+        topBarWindow.sendToQml({
+            "source": "simplifiedUI.js",
+            "method": "updateStatusButton",
+            "data": {
+                "currentStatus": currentStatus
+            }
+        });
+    }
+}
+
+
 var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
+var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
+var si;
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -456,6 +483,10 @@ function startup() {
     loadSimplifiedTopBar();
 
     simplifiedNametag.create();
+    si = new SimplifiedStatusIndicator({
+        statusChanged: onStatusChanged
+    });
+    si.startup();
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
@@ -506,6 +537,7 @@ function shutdown() {
     maybeDeleteOutputDeviceMutedOverlay();
 
     simplifiedNametag.destroy();
+    si.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
