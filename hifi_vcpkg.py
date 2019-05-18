@@ -213,6 +213,17 @@ endif()
         with open(self.tagFile, 'w') as f:
             f.write(self.tagContents)
 
+    def getQt5InstallPath(self):
+        qt5InstallPath  = os.path.join(self.path, 'installed', 'qt5-install')
+        if platform.system() == "Darwin" and self.args.release_type != "DEV":
+            # HACK for MacOS Jenkins PRODUCTION and PR builds during Qt-5.12.3 transition
+            # we always supply /var/tmp/qt5-install for QT_CMAKE_PREFIX_PATH
+            qt5InstallPath = "/var/tmp/qt5-install"
+        elif self.args.android:
+            precompiled = os.path.realpath(self.androidPackagePath)
+            qt5InstallPath = os.path.realpath(os.path.join(precompiled, 'qt'))
+        return qt5InstallPath
+
     def writeConfig(self):
         print("Writing cmake config to {}".format(self.configFilePath))
         # Write out the configuration for use by CMake
@@ -221,14 +232,13 @@ endif()
         toolsPath = os.path.join(self.path, 'installed', self.hostTriplet, 'tools')
 
         cmakeTemplate = VcpkgRepo.CMAKE_TEMPLATE
-        qtCmakePrefixPath  = os.path.join(self.path, 'installed', 'qt5-install/lib/cmake')
         if self.args.android:
             precompiled = os.path.realpath(self.androidPackagePath)
             cmakeTemplate += 'set(HIFI_ANDROID_PRECOMPILED "{}")\n'.format(precompiled)
-            qtCmakePrefixPath = os.path.realpath(os.path.join(precompiled, 'qt/lib/cmake'))
         else:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
 
+        qtCmakePrefixPath = os.path.join(self.getQt5InstallPath(), "lib/cmake")
         cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath, qtCmakePrefixPath).replace('\\', '/')
         with open(self.configFilePath, 'w') as f:
             f.write(cmakeConfig)
@@ -241,9 +251,10 @@ endif()
 
 
     def installQt(self):
-        if not os.path.isdir(os.path.join(self.path, 'installed', 'qt5-install')):
+        qt5InstallPath = self.getQt5InstallPath()
+        if not os.path.isdir(qt5InstallPath):
             print ('Downloading Qt from AWS')
-            dest = os.path.join(self.path, 'installed')
+            dest, tail = os.path.split(qt5InstallPath)
 
             url = 'NOT DEFINED'
             if platform.system() == 'Windows':

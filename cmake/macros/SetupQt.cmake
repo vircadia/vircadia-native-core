@@ -54,7 +54,13 @@ macro(setup_qt)
     if (NOT DEFINED ENV{QT_CMAKE_PREFIX_PATH} OR NOT DEV_BUILD)
         # HACK we ignore QT_CMAKE_PREFIX_PATH for PRODUCTION and PR builds
         # so we can punt updating the automated build OS images while switching to vcpkg for Qt
-        set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
+        if (APPLE AND NOT DEV_BUILD)
+            # DOUBLE HACK for Jenkins + macos build: always store qt5 in /var/tmp/
+            # because that is where the manually-edited hard-coded path thinks it is
+            set(QT_CMAKE_PREFIX_PATH "/var/tmp/qt5-install/lib/cmake")
+        else()
+            set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
+        endif()
     else()
         set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
     endif()
