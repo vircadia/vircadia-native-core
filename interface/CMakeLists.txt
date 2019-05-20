@@ -401,8 +401,8 @@ else()
   endif()
 endif()
 
-if (APPLE OR UNIX)
-  # need to worry about hard-coded search paths in the Qt libraries
+if (DEV_BUILD AND (APPLE OR UNIX))
+  # create a qt.conf file to override hard-coded search paths in Qt libs
   set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
   if (APPLE)
     set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
