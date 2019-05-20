@@ -17,14 +17,19 @@ if (APPLE)
   set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
 endif()
 
+set(RELEASE_TYPE "$ENV{RELEASE_TYPE}")
+if ((NOT "${RELEASE_TYPE}" STREQUAL "PRODUCTION") AND (NOT "${RELEASE_TYPE}" STREQUAL "PR"))
+    set(RELEASE_TYPE "DEV")
+endif()
+
 if (HIFI_ANDROID)
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 else()
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --release-type ${RELEASE_TYPE} --build-root ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
     # squelch the Policy CMP0074 warning without requiring an update to cmake 3.12.
@@ -36,8 +41,8 @@ endif()
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/vcpkg.cmake")
     message(FATAL_ERROR "vcpkg configuration missing.")
 endif()
-
 include("${CMAKE_BINARY_DIR}/vcpkg.cmake")
+
 project(hifi)
 include("cmake/init.cmake")
 include("cmake/compiler.cmake")
@@ -93,9 +98,9 @@ if (ANDROID)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
   add_definitions(-DHIFI_ANDROID_APP=\"${HIFI_ANDROID_APP}\")
   if (
-      (${HIFI_ANDROID_APP} STREQUAL "questInterface") OR 
+      (${HIFI_ANDROID_APP} STREQUAL "questInterface") OR
       (${HIFI_ANDROID_APP} STREQUAL "questFramePlayer") OR
-      (${HIFI_ANDROID_APP} STREQUAL "framePlayer") 
+      (${HIFI_ANDROID_APP} STREQUAL "framePlayer")
     )
     # We know the quest hardware has this extension, so we can force the use of instanced stereo
     add_definitions(-DHAVE_EXT_clip_cull_distance)
@@ -105,18 +110,18 @@ if (ANDROID)
     # We can also use our own foveated textures
     add_definitions(-DHAVE_QCOM_texture_foveated)
 
-    # if set, the application itself or some library it depends on MUST implement 
+    # if set, the application itself or some library it depends on MUST implement
     # `DisplayPluginList getDisplayPlugins()` and `InputPluginList getInputPlugins()`
-    add_definitions(-DCUSTOM_INPUT_PLUGINS) 
-    add_definitions(-DCUSTOM_DISPLAY_PLUGINS) 
+    add_definitions(-DCUSTOM_INPUT_PLUGINS)
+    add_definitions(-DCUSTOM_DISPLAY_PLUGINS)
     set(PLATFORM_PLUGIN_LIBRARIES oculusMobile oculusMobilePlugin)
   endif()
 
   # Allow client code to use preprocessor macros to distinguish between quest and non-quest builds
   if (${HIFI_ANDROID_APP} STREQUAL "questInterface")
-    add_definitions(-DANDROID_APP_QUEST_INTERFACE) 
+    add_definitions(-DANDROID_APP_QUEST_INTERFACE)
   elseif(${HIFI_ANDROID_APP} STREQUAL "interface")
-    add_definitions(-DANDROID_APP_INTERFACE) 
+    add_definitions(-DANDROID_APP_INTERFACE)
   endif()
 else ()
   set(PLATFORM_QT_COMPONENTS WebEngine Xml)
@@ -194,6 +199,8 @@ GroupSources("scripts")
 GroupSources("unpublishedScripts")
 unset(JS_SRC)
 
+set_packaging_parameters()
+
 # Locate the required Qt build on the filesystem
 setup_qt()
 list(APPEND CMAKE_PREFIX_PATH "${QT_CMAKE_PREFIX_PATH}")
@@ -203,6 +210,12 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
+
+if (WIN32)
+    # Deal with fakakta Visual Studo 2017 bug
+    add_definitions(-DQT_NO_FLOAT16_OPERATORS)
+endif()
+
 if (HIFI_USE_OPTIMIZED_IK)
   MESSAGE(STATUS "SET THE USE IK DEFINITION ")
   add_definitions(-DHIFI_USE_OPTIMIZED_IK)
@@ -214,8 +227,6 @@ set_property(DIRECTORY PROPERTY EP_PREFIX ${EXTERNAL_PROJECT_PREFIX})
 setup_externals_binary_dir()
 
 option(USE_NSIGHT "Attempt to find the nSight libraries" 1)
-
-set_packaging_parameters()
 
 # FIXME hack to work on the proper Android toolchain
 if (ANDROID)
@@ -250,11 +261,11 @@ add_subdirectory(tools)
 
 if (BUILD_TESTS)
   # Turn on testing so that add_test works
-  # MUST be in the root cmake file for ctest to work 
+  # MUST be in the root cmake file for ctest to work
   include(CTest)
   enable_testing()
   add_subdirectory(tests)
-  if (BUILD_MANUAL_TESTS) 
+  if (BUILD_MANUAL_TESTS)
     add_subdirectory(tests-manual)
   endif()
 endif()
