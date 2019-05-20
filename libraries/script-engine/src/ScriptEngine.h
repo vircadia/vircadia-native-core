@@ -196,8 +196,8 @@ public:
     /**jsdoc
      * @function Script.registerGetterSetter
      * @param {string} name - Name.
-     * @param {object} getter - Getter.
-     * @param {object} setter - Setter.
+     * @param {function} getter - Getter.
+     * @param {function} setter - Setter.
      * @param {string} [parent=""] - Parent.
      * @deprecated This function is deprecated and will be removed.
      */
@@ -208,7 +208,7 @@ public:
     /**jsdoc
      * @function Script.registerFunction
      * @param {string} name - Name.
-     * @param {object} function - Function.
+     * @param {function} function - Function.
      * @param {number} [numArguments=-1] - Number of arguments.
      * @deprecated This function is deprecated and will be removed.
      */
@@ -219,7 +219,7 @@ public:
      * @function Script.registerFunction
      * @param {string} parent - Parent.
      * @param {string} name - Name.
-     * @param {object} function - Function.
+     * @param {function} function - Function.
      * @param {number} [numArguments=-1] - Number of arguments.
      * @deprecated This function is deprecated and will be removed.
      */
@@ -286,20 +286,20 @@ public:
     /**jsdoc
      * Checks whether the application was compiled as a debug build.
      * @function Script.isDebugMode
-     * @returns {boolean} <code>true</code> if the software was compiled as a debug build, <code>false</code> if it was 
+     * @returns {boolean} <code>true</code> if the application was compiled as a debug build, <code>false</code> if it was 
      *     compiled as a release build.
      */
     Q_INVOKABLE bool isDebugMode() const;
 
     /**jsdoc
-     * Checks whether the script content is a client entity script.
+     * Checks whether the script is running as a client entity script.
      * @function Script.isEntityClientScript
      * @returns {boolean} <code>true</code> if the script is running as a client entity script, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isEntityClientScript() const { return _context == ENTITY_CLIENT_SCRIPT; }
 
     /**jsdoc
-     * Checks whether the script context is a server entity script.
+     * Checks whether the script is running as a server entity script.
      * @function Script.isEntityServerScript
      * @returns {boolean} <code>true</code> if the script is running as a server entity script, <code>false</code> if it isn't.
      */
@@ -317,7 +317,7 @@ public:
     // NOTE - these are intended to be public interfaces available to scripts
 
     /**jsdoc
-     * Adds a function to the list of functions called upon the occurrence of an entity event on a particular entity.
+     * Adds a function to the list of functions called when an entity event occurs on a particular entity.
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Script.EntityEvent} eventName - The name of the entity event.
@@ -340,7 +340,7 @@ public:
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
     /**jsdoc
-     * Removes a function from the list of functions called upon the occurrence of an entity event on a particular entity.
+     * Removes a function from the list of functions called when an entity event occurs on a particular entity.
      * @function Script.removeEventHandler
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Script.EntityEvent} eventName - The name of the entity event.
@@ -412,7 +412,7 @@ public:
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
      * See {@link https://docs.highfidelity.com/script/js-tips.html} for further details.
      * @function Script.require
-     * @param {string} module - The module to use. May be a JavaScript file or the name of system model such as 
+     * @param {string} module - The module to use. May be a JavaScript file or the name of a system module such as 
      *     <code>"sppUi"</code>.
      */
     Q_INVOKABLE QScriptValue require(const QString& moduleId);
@@ -435,7 +435,7 @@ public:
      * @function Script.setInterval
      * @param {function} function - The function to call. This can be either the name of a function or an in-line definition.
      * @param {number} interval - The interval at which to call the function, in ms.
-     * @returns {object} A handle to the interval timer. This can be used by {@link Script.clearInterval}.
+     * @returns {object} A handle to the interval timer. This can be used in {@link Script.clearInterval}.
      * @example <caption>Print a message every second.</caption>
      * Script.setInterval(function () {
      *     print("Interval timer fired");
@@ -448,7 +448,7 @@ public:
      * @function Script.setTimeout
      * @param {function} function - The function to call. This can be either the name of a function or an in-line definition.
      * @param {number} timeout - The delay after which to call the function, in ms.
-     * @returns {object} A handle to the timeout timer. This can be used by {@link Script.clearTimeout}.
+     * @returns {object} A handle to the timeout timer. This can be used in {@link Script.clearTimeout}.
      * @example <caption>Print a message once, after a second.</caption>
      * Script.setTimeout(function () {
      *     print("Timeout timer fired");
@@ -559,7 +559,7 @@ public:
 
     /**jsdoc
      * @function Script.loadEntityScript
-     * @param {Uuid} entityID - Entity IUD.
+     * @param {Uuid} entityID - Entity ID.
      * @param {string} script - Script.
      * @param {boolean} forceRedownload - Force re-download.
      * @deprecated This function is deprecated and will be removed.
@@ -669,7 +669,7 @@ public slots:
 
     /**jsdoc
      * @function Script.callAnimationStateHandler
-     * @param {function} callback - Callback.
+     * @param {function} callback - Callback function.
      * @param {object} parameters - Parameters.
      * @param {string[]} names - Names.
      * @param {boolean} useNames - Use names.
@@ -867,7 +867,7 @@ protected:
 
     /**jsdoc
      * @function Script.executeOnScriptThread
-     * @param {object} function - Function.
+     * @param {function} function - Function.
      * @param {ConnectionType} [type=2] - Connection type.
      * @deprecated This function is deprecated and will be removed.
      */
@@ -904,7 +904,7 @@ protected:
      * @param {Uuid} entityID - Entity ID.
      * @param {string} scriptOrURL - Path.
      * @param {string} contents - Contents.
-     * @param {boolean} isURL - Is URL.
+     * @param {boolean} isURL - Is a URL.
      * @param {boolean} success - Success.
      * @param {string} status - Status.
      * @deprecated This function is deprecated and will be removed.

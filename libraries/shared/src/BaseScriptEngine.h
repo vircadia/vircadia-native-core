@@ -44,7 +44,7 @@ public:
     /**jsdoc
      * @function Script.makeError
      * @param {object} [other] - Other.
-     * @param {string} [type="Error"] - Errorl
+     * @param {string} [type="Error"] - Error.
      * @returns {object} Object.
      * @deprecated This function is deprecated and will be removed.
      */
