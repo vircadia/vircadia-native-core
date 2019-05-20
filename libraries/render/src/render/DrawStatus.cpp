@@ -143,7 +143,7 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
 
                     Item::Status::Value status;
                     status.setColor(Item::Status::Value::CYAN);
-                    status.setIcon(3); // RenderItemStatusIcon::SIMULATION_OWNER (RenderableModelEntityItem.cpp)
+                    status.setIcon((unsigned char)Item::Status::Icon::SIMULATION_OWNER);
                     if (itemScene.getTransitionId() != INVALID_INDEX) {
                         // We have a transition. Show this icon.
                         status.setScale(1.0f);
