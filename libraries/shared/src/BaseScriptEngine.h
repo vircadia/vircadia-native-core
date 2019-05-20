@@ -33,10 +33,11 @@ public:
 
     /**jsdoc
      * @function Script.lintScript
-     * @param {string} sourceCode
-     * @param {string} fileName
-     * @param {number} [lineNumber=1]
-     * @returns {object}
+     * @param {string} sourceCode - Source code.
+     * @param {string} fileName - File name.
+     * @param {number} [lineNumber=1] - Line number.
+     * @returns {object} Object.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE QScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
 
@@ -80,9 +81,15 @@ signals:
     // Script.signalHandlerException is exposed by QScriptEngine.
     
     /**jsdoc
+     * Triggered when a script generates an unhandled exception.
      * @function Script.unhandledException
-     * @param {object} exception
+     * @param {object} exception - The details of the exception.
      * @returns {Signal}
+     * @example <caption>Report the details of an unhandled exception.</caption>
+     * Script.unhandledException.connect(function (exception) {
+     *     print("Unhandled exception: " + JSON.stringify(exception));
+     * });
+     * var properties = JSON.parse("{ x: 1"); // Invalid JSON string.
      */
     void unhandledException(const QScriptValue& exception);
 

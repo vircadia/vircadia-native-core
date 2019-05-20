@@ -110,7 +110,14 @@ public:
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {string} context
+ * @property {string} context - The context that the script is running in:
+ *     <ul>
+ *       <li><code>"client"</code>: An Interface or avatar script.</li>
+ *       <li><code>"entity_client"</code>: A client entity script.</li>
+ *       <li><code>"entity_server"</code>: A server entity script.</li>
+ *       <li><code>"agent"</code>: An assignment client script.</li>
+ *     </ul>
+ *     <em>Read-only.</em>
  */
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
@@ -153,6 +160,7 @@ public:
 
     /**jsdoc
      * Stops and unloads the current script.
+     * <p><strong>Warning:</strong> If an assignment client script, the script gets restarted after stopping.</p>
      * @function Script.stop
      * @param {boolean} [marshal=false] - Marshal.
      *     <p class="important">Deprecated: This parameter is deprecated and will be removed.</p>
@@ -255,38 +263,53 @@ public:
     bool hasValidScriptSuffix(const QString& scriptFileName);
 
     /**jsdoc
+     * Gets the context that the script is running in: Interface/avatar, client entity, server entity, or assignment client.
      * @function Script.getContext
-     * @returns {string}
+     * @returns {string} The context that the script is running in:
+     * <ul>
+     *   <li><code>"client"</code>: An Interface or avatar script.</li>
+     *   <li><code>"entity_client"</code>: A client entity script.</li>
+     *   <li><code>"entity_server"</code>: A server entity script.</li>
+     *   <li><code>"agent"</code>: An assignment client script.</li>
+     * </ul>
      */
     Q_INVOKABLE QString getContext() const;
 
     /**jsdoc
+     * Checks whether the script is running as an Interface or avatar script.
      * @function Script.isClientScript
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the script is running as an Interface or avatar script, <code>false</code> if it 
+     *     isn't.
      */
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
 
     /**jsdoc
+     * Checks whether the application was compiled as a debug build.
      * @function Script.isDebugMode
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the software was compiled as a debug build, <code>false</code> if it was 
+     *     compiled as a release build.
      */
     Q_INVOKABLE bool isDebugMode() const;
 
     /**jsdoc
+     * Checks whether the script content is a client entity script.
      * @function Script.isEntityClientScript
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the script is running as a client entity script, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isEntityClientScript() const { return _context == ENTITY_CLIENT_SCRIPT; }
 
     /**jsdoc
+     * Checks whether the script context is a server entity script.
      * @function Script.isEntityServerScript
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the script is running as a server entity script, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool isEntityServerScript() const { return _context == ENTITY_SERVER_SCRIPT; }
 
     /**jsdoc
+     * Checks whether the script is running as an assignment client script.
      * @function Script.isAgentScript
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the script is running as an assignment client script, <code>false</code> if it 
+     *     isn't.
      */
     Q_INVOKABLE bool isAgentScript() const { return _context == AGENT_SCRIPT; }
 
@@ -294,24 +317,40 @@ public:
     // NOTE - these are intended to be public interfaces available to scripts
 
     /**jsdoc
+     * Adds a function to the list of functions called upon the occurrence of an entity event on a particular entity.
      * @function Script.addEventHandler
-     * @param {Uuid} entityID
-     * @param {string} eventName
-     * @param {function} handler
+     * @param {Uuid} entityID - The ID of the entity.
+     * @param {Script.EntityEvent} eventName - The name of the entity event.
+     * @param {function} handler - The function to call when the entity event occurs on the entity. It can be either the name 
+     *     of a function or an in-line definition.
+     * @example <caption>Report when a mouse press occurs on a particular entity.</caption>
+     * var entityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * function reportMousePress(entityID, event) {
+     *     print("Mouse pressed on entity: " + JSON.stringify(event));
+     * }
+     * 
+     * Script.addEventHandler(entityID, "mousePressOnEntity", reportMousePress);
      */
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
     /**jsdoc
+     * Removes a function from the list of functions called upon the occurrence of an entity event on a particular entity.
      * @function Script.removeEventHandler
-     * @param {Uuid} entityID
-     * @param {string} eventName
-     * @param {function} handler
+     * @param {Uuid} entityID - The ID of the entity.
+     * @param {Script.EntityEvent} eventName - The name of the entity event.
+     * @param {function} handler - The name of the function to no longer call when the entity event occurs on the entity.
      */
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
     /**jsdoc
      * Starts running another script in Interface.
-     * <p><strong>Note:</strong> Only works for Interface and avatar scripts.</p>
+     * <table><tr><th>Available in:</th><td>Interface Scripts</td><td>Avatar Scripts</td></tr></table>
      * @function Script.load
      * @param {string} filename - The URL of the script to load. This can be relative to the current script's URL.
      * @example <caption>Load a script from another script.</caption>
@@ -336,8 +375,8 @@ public:
      * @function Script.include
      * @variation 0
      * @param {string[]} filenames - The URLs of the scripts to include. Each can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be an in-line 
-     * function or the name of a function.
+     * @param {function} [callback=null] - The function to call back when the scripts have been included. It can be either the 
+     *     name of a function or an in-line definition.
      */
     Q_INVOKABLE void include(const QStringList& includeFiles, QScriptValue callback = QScriptValue());
 
@@ -346,8 +385,8 @@ public:
      * asynchronously, otherwise it is included synchronously (i.e., script execution blocks while the file is included).
      * @function Script.include
      * @param {string} filename - The URL of the script to include. It can be relative to the current script.
-     * @param {function} [callback=null] - The function to call back when the script has been included. It can be an in-line 
-     * function or the name of a function.
+     * @param {function} [callback=null] - The function to call back when the script has been included. It can be either the 
+     *     name of a function or an in-line definition.
      * @example <caption>Include a script file asynchronously.</caption>
      * // First file: scriptA.js
      * print("This is script A");
@@ -370,14 +409,18 @@ public:
     // MODULE related methods
 
     /**jsdoc
+     * Provides access to methods or objects provided in an external JavaScript or JSON file. 
+     * See {@link https://docs.highfidelity.com/script/js-tips.html} for further details.
      * @function Script.require
-     * @param {string} module
+     * @param {string} module - The module to use. May be a JavaScript file or the name of system model such as 
+     *     <code>"sppUi"</code>.
      */
     Q_INVOKABLE QScriptValue require(const QString& moduleId);
 
     /**jsdoc
      * @function Script.resetModuleCache
-     * @param {boolean} [deleteScriptCache=false]
+     * @param {boolean} [deleteScriptCache=false] - Delete script cache.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void resetModuleCache(bool deleteScriptCache = false);
 
@@ -390,7 +433,7 @@ public:
     /**jsdoc
      * Calls a function repeatedly, at a set interval.
      * @function Script.setInterval
-     * @param {function} function - The function to call. This can be an in-line function or the name of a function.
+     * @param {function} function - The function to call. This can be either the name of a function or an in-line definition.
      * @param {number} interval - The interval at which to call the function, in ms.
      * @returns {object} A handle to the interval timer. This can be used by {@link Script.clearInterval}.
      * @example <caption>Print a message every second.</caption>
@@ -403,7 +446,7 @@ public:
     /**jsdoc
      * Calls a function once, after a delay.
      * @function Script.setTimeout
-     * @param {function} function - The function to call. This can be an in-line function or the name of a function.
+     * @param {function} function - The function to call. This can be either the name of a function or an in-line definition.
      * @param {number} timeout - The delay after which to call the function, in ms.
      * @returns {object} A handle to the timeout timer. This can be used by {@link Script.clearTimeout}.
      * @example <caption>Print a message once, after a second.</caption>
@@ -447,8 +490,16 @@ public:
     Q_INVOKABLE void clearTimeout(QObject* timer) { stopTimer(reinterpret_cast<QTimer*>(timer)); }
 
     /**jsdoc
+     * Prints a message to the program log.
+     * <p>Alternatively, you can use {@link print}, {@link console.log}, or one of the other {@link console} methods.</p>
      * @function Script.print
-     * @param {string} message
+     * @param {string} message - The message to print.
+     */
+    /**jsdoc
+     * Prints a message to the program log.
+     * <p>This is an alias of {@link Script.print}.</p>
+     * @function print
+     * @param {string} message - The message to print.
      */
     Q_INVOKABLE void print(const QString& message);
 
@@ -467,20 +518,25 @@ public:
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
 
     /**jsdoc
+     * Gets the path to the resources directory for QML files.
      * @function Script.resourcesPath
-     * @returns {string}
+     * @returns {string} The path to the resources directory for QML files.
      */
     Q_INVOKABLE QUrl resourcesPath() const;
 
     /**jsdoc
+     * Starts timing a section of code in order to send usage data about it to High Fidelity. Shouldn't be used outside of the 
+     * standard scripts.
      * @function Script.beginProfileRange
-     * @param {string} label
+     * @param {string} label - A name that identifies the section of code.
      */
     Q_INVOKABLE void beginProfileRange(const QString& label) const;
 
     /**jsdoc
+     * Finishes timing a section of code in order to send usage data about it to High Fidelity. Shouldn't be used outside of 
+     * the standard scripts.
      * @function Script.endProfileRange
-     * @param {string} label
+     * @param {string} label - A name that identifies the section of code.
      */
     Q_INVOKABLE void endProfileRange(const QString& label) const;
 
@@ -488,9 +544,10 @@ public:
     // Entity Script Related methods
 
     /**jsdoc
+     * Checks whether an entity has an entity script running.
      * @function Script.isEntityScriptRunning
-     * @param {Uuid} entityID
-     * @returns {boolean}
+     * @param {Uuid} entityID - The ID of the entity.
+     * @returns {boolean} <code>true</code> if the entity has an entity script running, <code>false</code> if it doesn't.
      */
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
         QReadLocker locker { &_entityScriptsLock };
@@ -524,34 +581,41 @@ public:
     Q_INVOKABLE void unloadAllEntityScripts();
 
     /**jsdoc
+     * Calls a method in an entity script.
      * @function Script.callEntityScriptMethod
-     * @param {Uuid} entityID
-     * @param {string} methodName
-     * @param {string[]} [parameters=[]]
-     * @param {Uuid} [remoteCallerID=Uuid.NULL]
+     * @param {Uuid} entityID - The ID of the entity running the entity script.
+     * @param {string} methodName - The name of the method to call.
+     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
+     * @param {Uuid} [remoteCallerID=Uuid.NULL] - An ID that identifies the caller.
      */
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName,
                                             const QStringList& params = QStringList(),
                                             const QUuid& remoteCallerID = QUuid()) override;
 
     /**jsdoc
+     * Calls a method in an entity script.
      * @function Script.callEntityScriptMethod
-     * @param {Uuid} entityID
-     * @param {string} methodName
-     * @param {PointerEvent} event
+     * @param {Uuid} entityID - Entity ID.
+     * @param {string} methodName - Method name.
+     * @param {PointerEvent} event - Pointer event.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const PointerEvent& event);
 
     /**jsdoc
+     * Calls a method in an entity script.
      * @function Script.callEntityScriptMethod
-     * @param {Uuid} entityID
-     * @param {string} methodName
-     * @param {Uuid} otherID
-     * @param {Collision} collision
+     * @param {Uuid} entityID - Entity ID.
+     * @param {string} methodName - Method name.
+     * @param {Uuid} otherID - Other entity ID.
+     * @param {Collision} collision - Collision.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void callEntityScriptMethod(const EntityItemID& entityID, const QString& methodName, const EntityItemID& otherID, const Collision& collision);
 
     /**jsdoc
+     * Manually runs the JavaScript garbage collector which reclaims memory by disposing of objects that are no longer 
+     * reachable.
      * @function Script.requestGarbageCollection
      */
     Q_INVOKABLE void requestGarbageCollection() { collectGarbage(); }
@@ -625,15 +689,17 @@ signals:
 
     /**jsdoc
      * @function Script.scriptLoaded
-     * @param {string} filename
+     * @param {string} filename - File name.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void scriptLoaded(const QString& scriptFilename);
 
     /**jsdoc
      * @function Script.errorLoadingScript
-     * @param {string} filename
+     * @param {string} filename - File name.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void errorLoadingScript(const QString& scriptFilename);
 
@@ -685,38 +751,44 @@ signals:
     void cleanupMenuItem(const QString& menuItemString);
 
     /**jsdoc
+     * Triggered when a script prints a message to the program log via {@link Script.print}, {@link  print}, 
+     * {@link console.log}, {@link console.info}, {@link console.warn}, {@link console.error}, or {@link console.debug}.
      * @function Script.printedMessage
-     * @param {string} message
-     * @param {string} scriptName
+     * @param {string} message - The message.
+     * @param {string} scriptName - The name of the script that generated the message.
      * @returns {Signal}
      */
     void printedMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
+     * Triggered when a script generates an error or {@link console.error} is called.
      * @function Script.errorMessage
-     * @param {string} message
-     * @param {string} scriptName
+     * @param {string} message - The error message.
+     * @param {string} scriptName - The name of the script that generated the error message.
      * @returns {Signal}
      */
     void errorMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
+     * Triggered when a script generates a warning or {@link console.warn} is called.
      * @function Script.warningMessage
-     * @param {string} message
-     * @param {string} scriptName
+     * @param {string} message - The warning message.
+     * @param {string} scriptName - The name of the script that generated the warning message.
      * @returns {Signal}
      */
     void warningMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
+     * Triggered when a script generates an information message or {@link console.info} is called.
      * @function Script.infoMessage
-     * @param {string} message
-     * @param {string} scriptName
+     * @param {string} message - The information message.
+     * @param {string} scriptName - The name of the script that generated the information message.
      * @returns {Signal}
      */
     void infoMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
+     * Triggered when the running state of the script changes, e.g., from running to stopping.
      * @function Script.runningStateChanged
      * @returns {Signal}
      */
@@ -731,21 +803,24 @@ signals:
 
     /**jsdoc
      * @function Script.loadScript
-     * @param {string} scriptName
-     * @param {boolean} isUserLoaded
+     * @param {string} scriptName - Script name.
+     * @param {boolean} isUserLoaded - Is user loaded.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void loadScript(const QString& scriptName, bool isUserLoaded);
 
     /**jsdoc
      * @function Script.reloadScript
-     * @param {string} scriptName
-     * @param {boolean} isUserLoaded
+     * @param {string} scriptName - Script name.
+     * @param {boolean} isUserLoaded - Is user loaded.
      * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
      */
     void reloadScript(const QString& scriptName, bool isUserLoaded);
 
     /**jsdoc
+     * Triggered when the script has stopped.
      * @function Script.doneRunning
      * @returns {Signal}
      */
@@ -761,9 +836,28 @@ signals:
     void entityScriptDetailsUpdated();
 
     /**jsdoc
+     * Triggered when the script starts for the user. See also, {@link Entities.preload}.
+     * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
      * @function Script.entityScriptPreloadFinished
-     * @param {Uuid} entityID
+     * @param {Uuid} entityID - The ID of the entity that the script is running in.
      * @returns {Signal}
+     * @example <caption>Get the ID of the entity that a client entity script is running in.</caption>
+     * var entityScript = (function () {
+     *     this.entityID = Uuid.NULL;
+     *
+     * Script.entityScriptPreloadFinished.connect(function (entityID) {
+     *     this.entityID = entityID;
+     *     print("Entity ID: " + this.entityID);
+     * });
+     *
+     * var entityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     color: { red: 255, green: 0, blue: 0 },
+     *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
      */
     // Emitted when an entity script has finished running preload
     void entityScriptPreloadFinished(const EntityItemID& entityID);
