@@ -1519,18 +1519,19 @@ void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
 }
 
 void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
-    AvatarData::setSkeletonModelURL(skeletonModelURL);
-    if (QThread::currentThread() == thread()) {
-
-        if (!isMyAvatar() && !DependencyManager::get<NodeList>()->isIgnoringNode(getSessionUUID())) {
-            createOrb();
-        }
-
-        _skeletonModel->setURL(_skeletonModelURL);
-        indicateLoadingStatus(LoadingStatus::LoadModel);
-    } else {
-        QMetaObject::invokeMethod(_skeletonModel.get(), "setURL", Qt::QueuedConnection, Q_ARG(QUrl, _skeletonModelURL));
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setSkeletonModelURL", Q_ARG(const QUrl&, skeletonModelURL));
+        return;
     }
+
+    AvatarData::setSkeletonModelURL(skeletonModelURL);
+
+    if (!isMyAvatar() && !DependencyManager::get<NodeList>()->isIgnoringNode(getSessionUUID())) {
+        createOrb();
+    }
+    indicateLoadingStatus(LoadingStatus::LoadModel);
+
+    _skeletonModel->setURL(_skeletonModelURL);
 }
 
 void Avatar::setModelURLFinished(bool success) {

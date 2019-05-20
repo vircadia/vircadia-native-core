@@ -62,7 +62,7 @@ void OtherAvatar::removeOrb() {
 }
 
 void OtherAvatar::updateOrbPosition() {
-    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+    if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
         EntityItemProperties properties;
         properties.setPosition(getHead()->getPosition());
         DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
