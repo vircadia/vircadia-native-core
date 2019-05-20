@@ -32,8 +32,8 @@
 using namespace render;
 using namespace render::entities;
 
-// These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawItemStatus
-// job in the current rendering pipeline defined as of now  (11/2015) in render-utils/RenderDeferredTask.cpp.
+// These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawStatus
+// job in the current rendering pipeline defined as of now  (2019/05) in render-utils/RenderDeferredTask.cpp.
 enum class RenderItemStatusIcon {
     ACTIVE_IN_BULLET = 0,
     PACKET_SENT = 1,
