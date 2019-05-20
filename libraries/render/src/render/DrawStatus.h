@@ -27,10 +27,12 @@ namespace render {
 
         bool showDisplay{ false };
         bool showNetwork{ false };
+        bool showFade{ false };
 
     public slots:
         void setShowDisplay(bool enabled) { showDisplay = enabled; dirtyHelper(); }
         void setShowNetwork(bool enabled) { showNetwork = enabled; dirtyHelper(); }
+        void setShowFade(bool enabled) { showFade = enabled; dirtyHelper(); }
 
     signals:
         void dirty();
@@ -57,6 +59,7 @@ namespace render {
     protected:
         bool _showDisplay; // initialized by Config
         bool _showNetwork; // initialized by Config
+        bool _showFade; // initialized by Config
 
         gpu::Stream::FormatPointer _drawItemFormat;
         gpu::PipelinePointer _drawItemBoundsPipeline;
