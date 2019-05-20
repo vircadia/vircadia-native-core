@@ -403,25 +403,16 @@ endif()
 
 if (APPLE OR UNIX)
   # need to worry about hard-coded search paths in the Qt libraries
-  set(QT_LIB_PATH "${VCPKG_INSTALL_ROOT}/../qt5-install")
+  set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
   if (APPLE)
     set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
   else ()
     set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
   endif ()
-  if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
-    # using VCPKG-installed Qt rather than a custom install
-    # TODO: erase old qt.conf file if it exists
-    # HINT: the file(REMOVE) operation below does not succeed
-    #file(REMOVE ${QT_CONF_FILE})
-  else ()
-    # using VCPKG-installed Qt rather than a custom install
-    # need to create qt.conf file to override hard coded 
-    file(GENERATE
-      OUTPUT "${QT_CONF_FILE}"
-      CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
-    )
-  endif()
+  file(GENERATE
+    OUTPUT "${QT_CONF_FILE}"
+    CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+  )
 endif()
 
 if (SCRIPTS_INSTALL_DIR)
