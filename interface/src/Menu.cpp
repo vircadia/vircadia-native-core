@@ -529,6 +529,12 @@ Menu::Menu() {
         MeshPartPayload::enableMeshShaders = action->isChecked();
     });
 
+    {
+        auto drawStatusConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<render::DrawStatus>("RenderMainView.DrawStatus");
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::HighlightTransitions, 0, false,
+            drawStatusConfig, SLOT(setShowFade(bool)));
+    }
+
     // Developer > Assets >>>
     // Menu item is not currently needed but code should be kept in case it proves useful again at some stage.
 //#define WANT_ASSET_MIGRATION

@@ -559,39 +559,47 @@ public slots:
     float domainLoadingProgress();
 
     /**jsdoc
-     * Return the number of display plugins currently available
+     * Gets the number of display plugins currently available.
      * @function Window.getDisplayPluginCount
-     * @returns {int} The number of currently available display plugins
+     * @returns {number} The number of display plugins currently available.
      */
     int getDisplayPluginCount();
 
     /**jsdoc
-     * Return the human readable name of a display plugin
+     * Gets the name of a display plugin.
      * @function Window.getDisplayPluginName
-     * @param {int} index - The index of the display plugin.  Must be less than the value returned by {@link Window.getDisplayPluginCount|getDisplayPluginCount}.
-     * @returns {string} The name of the specified display plugin
+     * @param {number} index - The index of the display plugin. Must be less than the value returned by 
+     *     {@link Window.getDisplayPluginCount|getDisplayPluginCount}. The first display plugin has an index of <code>0</code>.
+     * @returns {string} The name of the display plugin.
+     * @example <caption>Print the names of all available display plugins.</caption>
+     * for (var i = 0, length = Window.getDisplayPluginCount(); i < length; i++) {
+     *     print(Window.getDisplayPluginName(i));
+     * }
      */
     QString getDisplayPluginName(int index);
 
     /**jsdoc
-     * Return whether a given display plugin is an HMD
+     * Checks whether a display plugin is an HMD.
      * @function Window.isDisplayPluginHmd
-     * @param {int} index - The index of the display plugin.  Must be less than the value returned by {@link Window.getDisplayPluginCount|getDisplayPluginCount}.
-     * @returns {bool} True if the specified display plugin is a HMD
+     * @param {number} index - The index of the display plugin. Must be less than the value returned by 
+     *     {@link Window.getDisplayPluginCount|getDisplayPluginCount}. The first display plugin has an index of <code>0</code>.
+     * @returns {boolean} <code>true</code> if the display plugin is a HMD, <code>false</code> if it isn't.
      */
     bool isDisplayPluginHmd(int index);
 
     /**jsdoc
-     * Return the currently active display plugin
+     * Gets the index of the currently active display plugin.
      * @function Window.getActiveDisplayPlugin
-     * @returns {int} The index of the currently active display plugin
+     * @returns {number} The index of the currently active display plugin. The first display plugin has an index of 
+     *     <code>0</code>.
      */
     int getActiveDisplayPlugin();
 
     /**jsdoc
-     * Return the currently active display plugin
+     * Sets the currently active display plugin.
      * @function Window.setActiveDisplayPlugin
-     * @param {int} index - The index of the display plugin.  Must be less than the value returned by {@link Window.getDisplayPluginCount|getDisplayPluginCount}.
+     * @param {number} index - The index of the display plugin. Must be less than the value returned by 
+     *     {@link Window.getDisplayPluginCount|getDisplayPluginCount}. The first display plugin has an index of <code>0</code>.
      */
     void setActiveDisplayPlugin(int index);
 

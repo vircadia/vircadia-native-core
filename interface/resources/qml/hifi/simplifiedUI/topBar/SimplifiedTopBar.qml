@@ -250,6 +250,7 @@ Rectangle {
         anchors.rightMargin: 14
         width: 32
         height: width
+        visible: false
 
         Image {
             id: displayModeImage
@@ -303,6 +304,17 @@ Rectangle {
                             Window.setActiveDisplayPlugin(i);
                             return;
                         }
+                    }
+                }
+            }
+
+            Component.onCompleted: {
+                // Don't show VR button unless they have a VR headset.
+                var displayPluginCount = Window.getDisplayPluginCount();
+                for (var i = 0; i < displayPluginCount; i++) {
+                    if (Window.isDisplayPluginHmd(i)) {
+                        hmdButtonContainer.visible = true;
+                        return;
                     }
                 }
             }

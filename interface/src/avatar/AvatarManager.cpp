@@ -412,7 +412,7 @@ AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
     auto otherAvatar = new OtherAvatar(qApp->thread());
     otherAvatar->setSessionUUID(sessionUUID);
     auto nodeList = DependencyManager::get<NodeList>();
-    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+    if (nodeList && !nodeList->isIgnoringNode(sessionUUID)) {
         otherAvatar->createOrb();
     }
     return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });

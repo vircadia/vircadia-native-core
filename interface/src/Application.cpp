@@ -1191,13 +1191,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeListWeak] {
-        auto nodeList = nodeListWeak.lock();
-        if (!isServerlessMode() && nodeList) {
-            nodeList->sendDomainServerCheckIn();
-        }
-    });
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
         domainCheckInTimer->stop();
@@ -3889,6 +3883,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
 }
 
 void Application::setIsServerlessMode(bool serverlessDomain) {
+    DependencyManager::get<NodeList>()->setSendDomainServerCheckInEnabled(!serverlessDomain);
     auto tree = getEntities()->getTree();
     if (tree) {
         tree->setIsServerlessMode(serverlessDomain);
@@ -5442,9 +5437,7 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     // fire off an immediate domain-server check in now that settings are loaded
-    if (!isServerlessMode()) {
-        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
-    }
+    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "sendDomainServerCheckIn");
 
     // This allows collision to be set up properly for shape entities supported by GeometryCache.
     // This is before entity setup to ensure that it's ready for whenever instance collision is initialized.

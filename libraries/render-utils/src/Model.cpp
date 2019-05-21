@@ -1578,9 +1578,11 @@ void Model::applyMaterialMapping() {
             priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
-                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap]() {
-            if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
+        std::weak_ptr<Model> weakSelf = shared_from_this();
+        auto materialLoaded = [networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
+                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap, weakSelf]() {
+            std::shared_ptr<Model> self = weakSelf.lock();
+            if (!self || networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
             render::Transaction transaction;
@@ -1608,8 +1610,8 @@ void Model::applyMaterialMapping() {
                     bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKeyMap.at(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
                     {
-                        std::unique_lock<std::mutex> lock(_materialMappingMutex);
-                        _materialMapping[shapeID].push_back(material);
+                        std::unique_lock<std::mutex> lock(self->_materialMappingMutex);
+                        self->_materialMapping[shapeID].push_back(material);
                     }
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {

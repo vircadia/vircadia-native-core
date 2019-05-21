@@ -44,6 +44,7 @@ void AvatarCertifyBanner::show(const QUuid& avatarID) {
         entityProperties.setParentJointIndex(CAMERA_MATRIX_INDEX);
         entityProperties.setLocalPosition(position);
         entityProperties.setDimensions(glm::vec3(1.0f, 1.0f, 0.3f) * scaleFactor);
+        entityProperties.setEmissive(true);
         entityProperties.setRenderLayer(tabletShown ? RenderLayer::WORLD : RenderLayer::FRONT);
         entityProperties.getGrab().setGrabbable(false);
         QString scriptPath = QUrl(PathUtils::defaultScriptsLocation("")).toString() + AVATAR_THEFT_BANNER_SCRIPT;
