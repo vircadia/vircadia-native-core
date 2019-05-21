@@ -26,13 +26,6 @@ layout(location=0) in vec3  _normal;
 layout(location=0) out vec4 _fragColor;
 
 void main(void) {
-    vec3 coord = normalize(_normal);
-    vec3 color = skybox.color.rgb;
-
-    // blend is only set if there is a cubemap
-    float check = float(skybox.color.a > 0.0);
-    color = mix(color, texture(cubeMap, coord).rgb, check);
-    color *= mix(vec3(1.0), skybox.color.rgb, check * float(skybox.color.a < 1.0));
-
-    _fragColor = vec4(color, 0.0);
+    vec3 skyboxColor = texture(cubeMap, normalize(_normal)).rgb;
+    _fragColor = vec4(mix(skybox.color.rgb, skyboxColor, skybox.color.a), 1.0);
 }
