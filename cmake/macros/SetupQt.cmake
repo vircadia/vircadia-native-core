@@ -55,11 +55,10 @@ macro(setup_qt)
         if (APPLE)
             # HACK: manually set the QT_CMAKE_PREFIX_PATH so that hard-coded paths find new QT libs where we'll put them
             set(QT_CMAKE_PREFIX_PATH "/var/tmp/qt5-install/lib/cmake")
-        elseif (UNIX)
+        elseif (UNIX AND DEFINED ENV{QT_CMAKE_PREFIX_PATH})
             # HACK: obey QT_CMAKE_PREFIX_PATH to allow UNIX to use older QT libs
             set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
         else()
-            # WIN32: ignore QT_CMAKE_PREFIX_PATH so Win32 uses new QT libs for installers
             set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
         endif()
     else()
