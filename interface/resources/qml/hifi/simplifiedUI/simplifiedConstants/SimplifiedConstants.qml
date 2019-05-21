@@ -147,7 +147,7 @@ QtObject {
         }
 
         readonly property color darkSeparator: "#595959"
-        readonly property color darkBackground: "#1A1A1A"
+        readonly property color darkBackground: "#000000"
         readonly property color darkBackgroundHighlight: "#575757"
         readonly property color highlightOnDark: Qt.rgba(1, 1, 1, 0.2)
         readonly property color white: "#FFFFFF"

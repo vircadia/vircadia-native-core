@@ -276,8 +276,21 @@ function setOutputMuted(outputMuted) {
 }
 
 
-function toggleStatus() {
-
+var WAIT_FOR_TOP_BAR_MS = 1000;
+function sendLocalStatusToQml() {
+    var currentStatus = si.getLocalStatus();
+    
+    if (topBarWindow && currentStatus) {
+        topBarWindow.sendToQml({
+            "source": "simplifiedUI.js",
+            "method": "updateStatusButton",
+            "data": {
+                "currentStatus": currentStatus
+            }
+        });
+    } else {
+        Script.setTimeout(sendLocalStatusToQml, WAIT_FOR_TOP_BAR_MS);
+    }
 }
 
 
@@ -355,13 +368,19 @@ function loadSimplifiedTopBar() {
     topBarWindow.fromQml.connect(onMessageFromTopBar);
     topBarWindow.closed.connect(onTopBarClosed);
 
-    topBarWindow.sendToQml({
-        "source": "simplifiedUI.js",
-        "method": "updateOutputMuted",
-        "data": {
-            "outputMuted": isOutputMuted()
-        }
-    })
+    // The eventbridge takes a nonzero time to initialize, so we have to wait a bit
+    // for the QML to load and for that to happen before updating the UI.
+    Script.setTimeout(function() {
+        topBarWindow.sendToQml({
+            "source": "simplifiedUI.js",
+            "method": "updateOutputMuted",
+            "data": {
+                "outputMuted": isOutputMuted()
+            }
+        });
+    
+        sendLocalStatusToQml();
+    },  WAIT_FOR_TOP_BAR_MS);
 }
 
 
@@ -446,17 +465,7 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
 
 
 function onStatusChanged() {
-    var currentStatus = si.getLocalStatus();
-
-    if (topBarWindow) {
-        topBarWindow.sendToQml({
-            "source": "simplifiedUI.js",
-            "method": "updateStatusButton",
-            "data": {
-                "currentStatus": currentStatus
-            }
-        });
-    }
+    sendLocalStatusToQml();
 }
 
 

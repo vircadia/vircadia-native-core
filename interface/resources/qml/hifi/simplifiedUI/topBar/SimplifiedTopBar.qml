@@ -246,15 +246,17 @@ Rectangle {
         id: statusButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: outputDeviceButtonContainer.right
-        anchors.leftMargin: 2
-        width: 32
+        anchors.leftMargin: 8
+        width: 36
         height: width
 
         Rectangle {
             id: statusButton
-            property string currentStatus: ""
+            property string currentStatus
             anchors.centerIn: parent
-            width: 20
+            anchors.horizontalCenterOffset: 1
+            anchors.verticalCenterOffset: 2
+            width: 13
             height: width
             radius: width/2
             visible: false
@@ -262,20 +264,31 @@ Rectangle {
 
         ColorOverlay {
             anchors.fill: statusButton
-            opacity: statusButtonMouseArea.containsMouse ? 1.0 : 0.7
+            opacity: statusButton.currentStatus ? 1 : 0
             source: statusButton
             color: if (statusButton.currentStatus === "busy") {
-                "red"
+                "#ff001a"
             } else if (statusButton.currentStatus === "available") {
-                "green"
-            } else {
-                "yellow"
+                "#009036"
+            } else if (statusButton.currentStatus) {
+                "#ffed00"
             }
+        }
+
+        Image {
+            id: focusIcon
+            source: "./images/focus.svg"
+            opacity: statusButtonMouseArea.containsMouse ? 1.0 : (statusButton.currentStatus === "busy" ? 0.7 : 0.3)
+            anchors.centerIn: parent
+            width: 36
+            height: 20
+            fillMode: Image.PreserveAspectFit
         }
 
         MouseArea {
             id: statusButtonMouseArea
             anchors.fill: parent
+            enabled: statusButton.currentStatus
             hoverEnabled: true
             onEntered: {
                 Tablet.playSound(TabletEnums.ButtonHover);
@@ -330,11 +343,6 @@ Rectangle {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 var displayPluginCount = Window.getDisplayPluginCount();
                 if (HMD.active) {
-                    // This next line seems backwards and shouldn't be necessary - the NOTIFY handler should
-                    // result in `displayModeImage.source` changing automatically - but that's not working.
-                    // This is working. So, I'm keeping it. 
-                    displayModeImage.source = "./images/vrMode.svg";
-
                     // Switch to desktop mode - selects first VR display plugin
                     for (var i = 0; i < displayPluginCount; i++) {
                         if (!Window.isDisplayPluginHmd(i)) {
@@ -343,11 +351,6 @@ Rectangle {
                         }
                     }
                 } else {
-                    // This next line seems backwards and shouldn't be necessary - the NOTIFY handler should
-                    // result in `displayModeImage.source` changing automatically - but that's not working.
-                    // This is working. So, I'm keeping it.
-                    displayModeImage.source = "./images/desktopMode.svg";
-
                     // Switch to VR mode - selects first HMD display plugin
                     for (var i = 0; i < displayPluginCount; i++) {
                         if (Window.isDisplayPluginHmd(i)) {
