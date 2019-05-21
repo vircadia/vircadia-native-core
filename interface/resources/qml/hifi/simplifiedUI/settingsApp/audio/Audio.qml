@@ -19,8 +19,8 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: audioColumnLayout.height
-    topMargin: 16
-    bottomMargin: 16
+    topMargin: 24
+    bottomMargin: 24
     clip: true
 
     function changePeakValuesEnabled(enabled) {
@@ -189,7 +189,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
                 delegate: Item {
@@ -200,6 +200,8 @@ Flickable {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width - inputLevel.width
+                        height: paintedHeight
+                        wrapLabel: false
                         checked: selectedDesktop
                         text: model.devicename
                         ButtonGroup.group: inputDeviceButtonGroup
@@ -288,7 +290,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output
                 delegate: Item {
@@ -299,8 +301,10 @@ Flickable {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width
+                        height: paintedHeight
                         checked: selectedDesktop
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: outputDeviceButtonGroup
                         onClicked: {
                             AudioScriptingInterface.setOutputDevice(model.info, false); // `false` argument for Desktop mode setting

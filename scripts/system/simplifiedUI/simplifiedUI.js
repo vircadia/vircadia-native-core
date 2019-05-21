@@ -276,6 +276,24 @@ function setOutputMuted(outputMuted) {
 }
 
 
+var WAIT_FOR_TOP_BAR_MS = 1000;
+function sendLocalStatusToQml() {
+    var currentStatus = si.getLocalStatus();
+    
+    if (topBarWindow && currentStatus) {
+        topBarWindow.sendToQml({
+            "source": "simplifiedUI.js",
+            "method": "updateStatusButton",
+            "data": {
+                "currentStatus": currentStatus
+            }
+        });
+    } else {
+        Script.setTimeout(sendLocalStatusToQml, WAIT_FOR_TOP_BAR_MS);
+    }
+}
+
+
 var TOP_BAR_MESSAGE_SOURCE = "SimplifiedTopBar.qml";
 function onMessageFromTopBar(message) {
     if (message.source !== TOP_BAR_MESSAGE_SOURCE) {
@@ -293,6 +311,10 @@ function onMessageFromTopBar(message) {
 
         case "setOutputMuted":
             setOutputMuted(message.data.outputMuted);
+            break;
+
+        case "toggleStatus":
+            si.toggleStatus();
             break;
 
         default:
@@ -346,13 +368,19 @@ function loadSimplifiedTopBar() {
     topBarWindow.fromQml.connect(onMessageFromTopBar);
     topBarWindow.closed.connect(onTopBarClosed);
 
-    topBarWindow.sendToQml({
-        "source": "simplifiedUI.js",
-        "method": "updateOutputMuted",
-        "data": {
-            "outputMuted": isOutputMuted()
-        }
-    })
+    // The eventbridge takes a nonzero time to initialize, so we have to wait a bit
+    // for the QML to load and for that to happen before updating the UI.
+    Script.setTimeout(function() {
+        topBarWindow.sendToQml({
+            "source": "simplifiedUI.js",
+            "method": "updateOutputMuted",
+            "data": {
+                "outputMuted": isOutputMuted()
+            }
+        });
+    
+        sendLocalStatusToQml();
+    },  WAIT_FOR_TOP_BAR_MS);
 }
 
 
@@ -435,7 +463,15 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
     }
 }
 
+
+function onStatusChanged() {
+    sendLocalStatusToQml();
+}
+
+
 var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
+var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
+var si;
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -456,6 +492,10 @@ function startup() {
     loadSimplifiedTopBar();
 
     simplifiedNametag.create();
+    si = new SimplifiedStatusIndicator({
+        statusChanged: onStatusChanged
+    });
+    si.startup();
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
@@ -506,6 +546,7 @@ function shutdown() {
     maybeDeleteOutputDeviceMutedOverlay();
 
     simplifiedNametag.destroy();
+    si.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
