@@ -1211,7 +1211,7 @@ public:
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
     virtual void setSessionDisplayName(const QString& sessionDisplayName) {
