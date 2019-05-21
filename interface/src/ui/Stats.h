@@ -320,6 +320,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, nodeListThreadQueueDepth, -1);
 #else
     STATS_PROPERTY(bool, eventQueueDebuggingOn, false)
+    STATS_PROPERTY(int, mainThreadQueueDepth, 0);
+    STATS_PROPERTY(int, nodeListThreadQueueDepth, 0);
 #endif // DEBUG_EVENT_QUEUE
 
 public:
