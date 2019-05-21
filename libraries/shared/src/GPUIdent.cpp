@@ -28,9 +28,8 @@
 
 #endif
 
-#include <sstream>
-#include <QtCore/QtGlobal>
 
+#include <QtCore/QtGlobal>
 #include "SharedLogging.h"
 
 GPUIdent GPUIdent::_instance {};
