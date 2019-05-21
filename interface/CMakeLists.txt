@@ -334,11 +334,11 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
-     #copy serverless for android
-     COMMAND "${CMAKE_COMMAND}" -E copy_directory
-     "${PROJECT_SOURCE_DIR}/resources/serverless"
-     "${RESOURCES_DEV_DIR}/serverless"
-      # add redirect json to macOS builds.
+    #copy serverless for android
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${PROJECT_SOURCE_DIR}/resources/serverless"
+      "${RESOURCES_DEV_DIR}/serverless"
+    # add redirect json to macOS builds.
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
@@ -399,6 +399,20 @@ else()
 
     optional_win_executable_signing()
   endif()
+endif()
+
+if (DEV_BUILD AND (APPLE OR UNIX))
+  # create a qt.conf file to override hard-coded search paths in Qt libs
+  set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
+  if (APPLE)
+    set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
+  else ()
+    set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
+  endif ()
+  file(GENERATE
+    OUTPUT "${QT_CONF_FILE}"
+    CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+  )
 endif()
 
 if (SCRIPTS_INSTALL_DIR)
