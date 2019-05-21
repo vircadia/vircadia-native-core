@@ -987,6 +987,31 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
+        /**jsdoc
+         * The name of an entity event. When the entity event occurs, any function that has been registered for that event via 
+         * {@link Script.addEventHandler} is called with parameters per the entity event.
+         * <table>
+         *   <thead>
+         *     <tr><th>Event Name</th><th>Entity Event</th></tr>
+         *   </thead>
+         *   <tbody>
+         *     <tr><td><code>"enterEntity"</code></td><td>{@link Entities.enterEntity}</td></tr>
+         *     <tr><td><code>"leaveEntity"</code></td><td>{@link Entities.leaveEntity}</td></tr>
+         *     <tr><td><code>"mousePressOnEntity"</code></td><td>{@link Entities.mousePressOnEntity}</td></tr>
+         *     <tr><td><code>"mouseMoveOnEntity"</code></td><td>{@link Entities.mouseMoveOnEntity}</td></tr>
+         *     <tr><td><code>"mouseReleaseOnEntity"</code></td><td>{@link Entities.mouseReleaseOnEntity}</td></tr>
+         *     <tr><td><code>"clickDownOnEntity"</code></td><td>{@link Entities.clickDownOnEntity}</td></tr>
+         *     <tr><td><code>"holdingClickOnEntity"</code></td><td>{@link Entities.holdingClickOnEntity}</td></tr>
+         *     <tr><td><code>"clickReleaseOnEntity"</code></td><td>{@link Entities.clickReleaseOnEntity}</td></tr>
+         *     <tr><td><code>"hoverEnterEntity"</code></td><td>{@link Entities.hoverEnterEntity}</td></tr>
+         *     <tr><td><code>"hoverOverEntity"</code></td><td>{@link Entities.hoverOverEntity}</td></tr>
+         *     <tr><td><code>"hoverLeaveEntity"</code></td><td>{@link Entities.hoverLeaveEntity}</td></tr>
+         *     <tr><td><code>"collisionWithEntity"</code></td><td>{@link Entities.collisionWithEntity}</td></tr>
+         *   </tbody>
+         * </table>
+         *
+         * @typedef {string} Script.EntityEvent
+         */
         connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
         connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
 
@@ -2147,7 +2172,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
 }
 
 /**jsdoc
- * Triggered when the script starts for a user.
+ * Triggered when the script starts for a user. See also, {@link Script.entityScriptPreloadFinished}.
  * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
  * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
  * @function Entities.preload
@@ -2161,7 +2186,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
  *         this.entityID = entityID;
  *         print("Entity ID: " + this.entityID);
  *     };
- * );
+ * });
  *
  * var entityID = Entities.addEntity({
  *     type: "Box",
