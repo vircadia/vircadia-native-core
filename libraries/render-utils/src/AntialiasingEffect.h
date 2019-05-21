@@ -107,6 +107,7 @@ public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
     void setDebugFXAA(bool debug) { debugFXAAX = (debug ? 0.0f : 1.0f); emit dirty();}
+    bool debugFXAA() const { return (debugFXAAX == 0.0f ? true : false); }
 
     float blend{ 0.25f };
     float sharpen{ 0.05f };
