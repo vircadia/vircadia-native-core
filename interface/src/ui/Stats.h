@@ -314,14 +314,13 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(QVector3D, parabolaPicksUpdated, QVector3D(0, 0, 0))
     STATS_PROPERTY(QVector3D, collisionPicksUpdated, QVector3D(0, 0, 0))
 
-#ifdef DEBUG_EVENT_QUEUE
-    STATS_PROPERTY(bool, eventQueueDebuggingOn, true)
     STATS_PROPERTY(int, mainThreadQueueDepth, -1);
     STATS_PROPERTY(int, nodeListThreadQueueDepth, -1);
+
+#ifdef DEBUG_EVENT_QUEUE
+    STATS_PROPERTY(bool, eventQueueDebuggingOn, true)
 #else
     STATS_PROPERTY(bool, eventQueueDebuggingOn, false)
-    STATS_PROPERTY(int, mainThreadQueueDepth, 0);
-    STATS_PROPERTY(int, nodeListThreadQueueDepth, 0);
 #endif // DEBUG_EVENT_QUEUE
 
 public:
