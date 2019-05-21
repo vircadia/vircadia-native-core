@@ -648,6 +648,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
     if (!_defaultLight || !_defaultBackground) {
         auto defaultSkyboxURL = PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json";
+        auto defaultAmbientURL = PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap-ambient.texmeta.json";
 
         if (!_defaultSkyboxNetworkTexture) {
             PROFILE_RANGE(render, "Process Default Skybox");
@@ -658,7 +659,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
         if (!_defaultAmbientNetworkTexture) {
             PROFILE_RANGE(render, "Process Default Ambient map");
             _defaultAmbientNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
-                defaultSkyboxURL, image::TextureUsage::AMBIENT_TEXTURE);
+                defaultAmbientURL, image::TextureUsage::AMBIENT_TEXTURE);
         }
 
         if (_defaultSkyboxNetworkTexture && _defaultSkyboxNetworkTexture->isLoaded() && _defaultSkyboxNetworkTexture->getGPUTexture()) {
