@@ -15,7 +15,7 @@ using namespace platform;
 static void getLCpuId( uint32_t* p, uint32_t ax )
 {
 
-#if Q_OS_LINUX
+#ifdef Q_OS_LINUX
     __asm __volatile
     (   "movl %%ebx, %%esi\n\t" 
      "cpuid\n\t"
