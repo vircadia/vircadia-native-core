@@ -84,26 +84,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
     _dedicatedMemoryMB = bestVRAM;
     CGLDestroyRendererInfo(rendererInfo);
-#elif defined(Q_OS_LINUX)
-//get gpu name
-    FILE* stream = popen("system_profiler SPDisplaysDataType | grep Chipset", "r");
-    
-    std::ostringstream hostStream;
-    while (!feof(stream) && !ferror(stream)) {
-        char buf[128];
-        int bytesRead = fread(buf, 1, 128, stream);
-        hostStream.write(buf, bytesRead);
-    }
-    
-    QString result = QString::fromStdString(hostStream.str());
-    QStringList parts = result.split('\n');
-    std::string name;
-    
-    for (int i = 0; i < parts.size(); ++i) {
-        if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
-            _name=parts[i];
-        }
-    }
+
 #elif defined(Q_OS_WIN)
 
     struct ConvertLargeIntegerToQString {
