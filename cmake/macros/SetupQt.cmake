@@ -51,18 +51,24 @@ macro(setup_qt)
     if(NOT DEFINED VCPKG_QT_CMAKE_PREFIX_PATH)
         message(FATAL_ERROR "VCPKG_QT_CMAKE_PREFIX_PATH should have been set by hifi_vcpkg.py")
     endif()
-    if (NOT DEFINED ENV{QT_CMAKE_PREFIX_PATH} OR NOT DEV_BUILD)
-        # HACK we ignore QT_CMAKE_PREFIX_PATH for PRODUCTION and PR builds
-        # so we can punt updating the automated build OS images while switching to vcpkg for Qt
-        if (APPLE AND NOT DEV_BUILD)
-            # DOUBLE HACK for Jenkins + macos build: always store qt5 in /var/tmp/
-            # because that is where the manually-edited hard-coded path thinks it is
+    if (NOT DEV_BUILD)
+        if (APPLE)
+            # HACK: manually set the QT_CMAKE_PREFIX_PATH so that hard-coded paths find new QT libs where we'll put them
             set(QT_CMAKE_PREFIX_PATH "/var/tmp/qt5-install/lib/cmake")
+        elseif (UNIX)
+            # HACK: obey QT_CMAKE_PREFIX_PATH to allow UNIX to use older QT libs
+            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
         else()
+            # WIN32: ignore QT_CMAKE_PREFIX_PATH so Win32 uses new QT libs for installers
             set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
         endif()
     else()
-        set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+        # DEV_BUILD
+        if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+        else()
+            set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
+        endif()
     endif()
 
     # figure out where the qt dir is
