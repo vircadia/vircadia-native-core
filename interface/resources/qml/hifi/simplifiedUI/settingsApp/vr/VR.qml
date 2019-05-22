@@ -216,6 +216,7 @@ Flickable {
                         width: parent.width - inputLevel.width
                         checked: selectedHMD
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: inputDeviceButtonGroup
                         onClicked: {
                             AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
@@ -315,6 +316,7 @@ Flickable {
                         width: parent.width
                         checked: selectedDesktop
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: outputDeviceButtonGroup
                         onClicked: {
                             AudioScriptingInterface.setOutputDevice(model.info, true); // `false` argument for Desktop mode setting
