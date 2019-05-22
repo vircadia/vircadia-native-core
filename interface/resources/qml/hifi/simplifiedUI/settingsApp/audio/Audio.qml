@@ -73,7 +73,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 height: 30
                 labelText: "People Volume"
-                from: -60.0
+                from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
                 stepSize: 5.0
@@ -101,7 +101,7 @@ Flickable {
                 Layout.topMargin: 2
                 height: 30
                 labelText: "Environment Volume"
-                from: -60.0
+                from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
                 stepSize: 5.0
@@ -130,7 +130,7 @@ Flickable {
                 Layout.topMargin: 2
                 height: 30
                 labelText: "System Sound Volume"
-                from: -60.0
+                from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
                 stepSize: 5.0

@@ -203,8 +203,10 @@ Rectangle {
 
         Image {
             id: outputDeviceButton
-            property bool outputMuted: AudioScriptingInterface.avatarGain === -60 &&
-                AudioScriptingInterface.serverInjectorGain === -60 && AudioScriptingInterface.localInjectorGain === -60 && AudioScriptingInterface.systemInjectorGain === -60
+            property bool outputMuted: AudioScriptingInterface.avatarGain === simplifiedUI.numericConstants.mutedValue &&
+                AudioScriptingInterface.serverInjectorGain === simplifiedUI.numericConstants.mutedValue &&
+                AudioScriptingInterface.localInjectorGain === simplifiedUI.numericConstants.mutedValue &&
+                AudioScriptingInterface.systemInjectorGain === simplifiedUI.numericConstants.mutedValue
             source: outputDeviceButton.outputMuted ? "./images/outputDeviceMuted.svg" : "./images/outputDeviceLoud.svg"
             anchors.centerIn: parent
             width: 20
@@ -230,7 +232,7 @@ Rectangle {
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
 
-                if (outputDeviceButton.outputMuted && !AudioScriptingInterface.muted) {
+                if (!outputDeviceButton.outputMuted && !AudioScriptingInterface.muted) {
                     AudioScriptingInterface.muted = true;
                 }
 

@@ -242,33 +242,32 @@ var savedAvatarGain = Audio.avatarGain;
 var savedServerInjectorGain = Audio.serverInjectorGain;
 var savedLocalInjectorGain = Audio.localInjectorGain;
 var savedSystemInjectorGain = Audio.systemInjectorGain;
+var MUTED_VALUE_DB = -60; // This should always match `SimplifiedConstants.qml` -> numericConstants -> mutedValue!
 function setOutputMuted(outputMuted) {
-    updateOutputDeviceMutedOverlay(outputMuted);
-
     if (outputMuted) {
         savedAvatarGain = Audio.avatarGain;
         savedServerInjectorGain = Audio.serverInjectorGain;
         savedLocalInjectorGain = Audio.localInjectorGain;
         savedSystemInjectorGain = Audio.systemInjectorGain;
 
-        Audio.avatarGain = -60;
-        Audio.serverInjectorGain = -60;
-        Audio.localInjectorGain = -60;
-        Audio.systemInjectorGain = -60;
+        Audio.avatarGain = MUTED_VALUE_DB;
+        Audio.serverInjectorGain = MUTED_VALUE_DB;
+        Audio.localInjectorGain = MUTED_VALUE_DB;
+        Audio.systemInjectorGain = MUTED_VALUE_DB;
     } else {
-        if (savedAvatarGain === -60) {
+        if (savedAvatarGain === MUTED_VALUE_DB) {
             savedAvatarGain = 0;
         }
         Audio.avatarGain = savedAvatarGain;
-        if (savedServerInjectorGain === -60) {
+        if (savedServerInjectorGain === MUTED_VALUE_DB) {
             savedServerInjectorGain = 0;
         }
         Audio.serverInjectorGain = savedServerInjectorGain;
-        if (savedLocalInjectorGain === -60) {
+        if (savedLocalInjectorGain === MUTED_VALUE_DB) {
             savedLocalInjectorGain = 0;
         }
         Audio.localInjectorGain = savedLocalInjectorGain;
-        if (savedSystemInjectorGain === -60) {
+        if (savedSystemInjectorGain === MUTED_VALUE_DB) {
             savedSystemInjectorGain = 0;
         }
         Audio.systemInjectorGain = savedSystemInjectorGain;
@@ -334,7 +333,10 @@ function onTopBarClosed() {
 
 
 function isOutputMuted() {
-    return Audio.avatarGain === -60 && Audio.serverInjectorGain === -60 && Audio.localInjectorGain === -60 && Audio.systemInjectorGain === -60;
+    return Audio.avatarGain === MUTED_VALUE_DB &&
+        Audio.serverInjectorGain === MUTED_VALUE_DB &&
+        Audio.localInjectorGain === MUTED_VALUE_DB &&
+        Audio.systemInjectorGain === MUTED_VALUE_DB;
 }
 
 
@@ -461,6 +463,11 @@ function onStatusChanged() {
 }
 
 
+function maybeUpdateOutputDeviceMutedOverlay() {
+    updateOutputDeviceMutedOverlay(isOutputMuted());
+}
+
+
 var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
 var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
 var si;
@@ -493,6 +500,10 @@ function startup() {
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(ensureFirstPersonCameraInHMD);
+    Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.serverInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.systemInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
 
     oldShowAudioTools = AvatarInputs.showAudioTools;
     AvatarInputs.showAudioTools = false;
@@ -543,6 +554,10 @@ function shutdown() {
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(ensureFirstPersonCameraInHMD);
+    Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.serverInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.systemInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
 
     AvatarInputs.showAudioTools = oldShowAudioTools;
     AvatarInputs.showBubbleTools = oldShowBubbleTools;
