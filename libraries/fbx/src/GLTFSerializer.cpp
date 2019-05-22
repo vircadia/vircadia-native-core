@@ -841,7 +841,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             parents[child] = nodecount;
         }
         sortedNodes.push_back(nodecount);
-        nodecount++;
+        ++nodecount;
     }
     
 
@@ -857,7 +857,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
             _file.nodes[nodecount].transforms.push_back(getModelTransform(parentNode));
             parentIndex = parents[parentIndex];
         }
-        nodecount++;
+        ++nodecount;
     }
 
 
@@ -871,7 +871,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         int parentIndex = parents[currentNode];
         if (parentIndex == -1 || hasBeenSorted[parentIndex]) {
             hasBeenSorted[currentNode] = true;
-            i++;
+            ++i;
         } else {
             int j = i + 1; // index of node to be sorted
             while (j < numNodes) {
@@ -882,10 +882,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     hasBeenSorted[nextNode] = true;
                     sortedNodes[i] = nextNode;
                     sortedNodes[j] = currentNode;
-                    i++;
+                    ++i;
                     currentNode = sortedNodes[i];
                 }
-                j++;
+                ++j;
             }
         }
     }
@@ -894,7 +894,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
      // Build map from original to new indices
     QVector<int> originalToNewNodeIndexMap;
     originalToNewNodeIndexMap.fill(-1, numNodes);
-    for (int i = 0; i < numNodes; i++) {
+    for (int i = 0; i < numNodes; ++i) {
         originalToNewNodeIndexMap[sortedNodes[i]] = i;
     }
 
@@ -903,6 +903,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     HFMJoint joint;
     joint.distanceToParent = 0;
     hfmModel.jointIndices["x"] = numNodes;
+    QVector<glm::mat4> globalTransforms;
+    globalTransforms.resize(numNodes);
 
     for (int nodeIndex : sortedNodes) {
         auto& node = _file.nodes[nodeIndex];
@@ -917,6 +919,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform = glm::scale(glm::mat4(), scale);
 
+		joint.parentIndex = parents[nodeIndex];
+        globalTransforms[nodeIndex] = joint.transform;
+        if (joint.parentIndex != -1) {
+            globalTransforms[nodeIndex] = globalTransforms[joint.parentIndex] * globalTransforms[nodeIndex];
+            joint.parentIndex = originalToNewNodeIndexMap[joint.parentIndex];
+        }
+
         joint.name = node.name;
         joint.isSkeletonJoint = false;
         hfmModel.joints.push_back(joint);
@@ -926,18 +935,19 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
     // Build skeleton
     std::vector<glm::mat4> jointInverseBindTransforms;
+    std::vector<glm::mat4> globalBindTransforms;
     jointInverseBindTransforms.resize(numNodes);
+    globalBindTransforms.resize(numNodes);
     hfmModel.hasSkeletonJoints = !_file.skins.isEmpty();
     if (hfmModel.hasSkeletonJoints) {
-        hfmModel.hasSkeletonJoints = true;
         std::vector<std::vector<float>> inverseBindValues;
         getSkinInverseBindMatrices(inverseBindValues);
 
-        for (int jointIndex = 0; jointIndex < numNodes; jointIndex++) {
+        for (int jointIndex = 0; jointIndex < numNodes; ++jointIndex) {
             int nodeIndex = sortedNodes[jointIndex];
             auto joint = hfmModel.joints[jointIndex];
 
-            for (int s = 0; s < _file.skins.size(); s++) {
+            for (int s = 0; s < _file.skins.size(); ++s) {
                 const auto& skin = _file.skins[s];
                 int matrixIndex = skin.joints.indexOf(nodeIndex);
                 joint.isSkeletonJoint = skin.joints.contains(nodeIndex);
@@ -954,6 +964,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 } else {
                     jointInverseBindTransforms[jointIndex] = glm::mat4();
                 }
+                globalBindTransforms[jointIndex] = jointInverseBindTransforms[jointIndex];
+                if (joint.parentIndex != -1) {
+                    globalBindTransforms[jointIndex] = globalBindTransforms[joint.parentIndex] * globalBindTransforms[jointIndex];
+                }
                 glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * glm::inverse(jointInverseBindTransforms[jointIndex]));
                 hfmModel.bindExtents.addPoint(bindTranslation);
             }
@@ -962,13 +976,13 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     }
 
 
-    //Build materials
+    // Build materials
     QVector<QString> materialIDs;
     QString unknown = "Default";
     int ukcount = 0;
     foreach(auto material, _file.materials) {
         if (!material.defined["name"]) {
-            QString name = unknown + QString::number(ukcount++);
+            QString name = unknown + QString::number(++ukcount);
             material.name = name;
             material.defined.insert("name", true);
         }
@@ -977,7 +991,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
         materialIDs.push_back(mid);
     }
 
-    for (int i = 0; i < materialIDs.size(); i++) {
+    for (int i = 0; i < materialIDs.size(); ++i) {
         QString& matid = materialIDs[i];
         hfmModel.materials[matid] = HFMMaterial();
         HFMMaterial& hfmMaterial = hfmModel.materials[matid];
@@ -989,6 +1003,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     
     // Build meshes
     nodecount = 0;
+    hfmModel.meshExtents.reset();
     for (int nodeIndex : sortedNodes) {
         auto& node = _file.nodes[nodeIndex];
 
@@ -1003,7 +1018,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
                 mesh.clusters.append(cluster);
             } else { // skinned model
-                for (int j = 0; j < numNodes; j++) {
+                for (int j = 0; j < numNodes; ++j) {
                     HFMCluster cluster;
                     cluster.jointIndex = j;
                     cluster.inverseBindMatrix = jointInverseBindTransforms[j];
@@ -1300,7 +1315,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                 }
 
                 QVector<int> validatedIndices;
-                for (int n = 0; n < indices.count(); n++) {
+                for (int n = 0; n < indices.count(); ++n) {
                     if (indices[n] < partVerticesCount) {
                         validatedIndices.push_back(indices[n] + prevMeshVerticesCount);
                     } else {
@@ -1332,7 +1347,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 } else {
                     if (meshAttributes.contains("TANGENT")) {
-                        for (int i = 0; i < partVerticesCount; i++) {
+                        for (int i = 0; i < partVerticesCount; ++i) {
                             mesh.tangents.push_back(glm::vec3(0.0f, 0.0f, 0.0f));
                         }
                     }
@@ -1344,7 +1359,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 } else {
                     if (meshAttributes.contains("TEXCOORD_0")) {
-                        for (int i = 0; i < partVerticesCount; i++) {
+                        for (int i = 0; i < partVerticesCount; ++i) {
                             mesh.texCoords.push_back(glm::vec2(0.0f, 0.0f));
                         }
                     }
@@ -1356,7 +1371,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 } else {
                     if (meshAttributes.contains("TEXCOORD_1")) {
-                        for (int i = 0; i < partVerticesCount; i++) {
+                        for (int i = 0; i < partVerticesCount; ++i) {
                             mesh.texCoords1.push_back(glm::vec2(0.0f, 0.0f));
                         }
                     }
@@ -1368,7 +1383,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 } else {
                     if (meshAttributes.contains("COLOR_0")) {
-                        for (int i = 0; i < partVerticesCount; i++) {
+                        for (int i = 0; i < partVerticesCount; ++i) {
                             mesh.colors.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
                         }
                     }
@@ -1398,8 +1413,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 } else {
                     if (meshAttributes.contains("JOINTS_0")) {
-                        for (int i = 0; i < partVerticesCount; i++) {
-                            for (int j = 0; j < 4; j++) {
+                        for (int i = 0; i < partVerticesCount; ++i) {
+                            for (int j = 0; j < 4; ++j) {
                                 clusterJoints.push_back(0);
                             }
                         }
@@ -1430,9 +1445,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 } else {
                     if (meshAttributes.contains("WEIGHTS_0")) {
-                        for (int i = 0; i < partVerticesCount; i++) {
+                        for (int i = 0; i < partVerticesCount; ++i) {
                             clusterWeights.push_back(1.0f);
-                            for (int j = 1; j < 4; j++) {
+                            for (int j = 1; j < 4; ++j) {
                                 clusterWeights.push_back(0.0f);
                             }
                         }
@@ -1448,12 +1463,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     int numVertices = mesh.vertices.size() - prevMeshVerticesCount;
 
                     // Append new cluster indices and weights for this mesh part
-                    for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; i++) {
+                    for (int i = 0; i < numVertices * WEIGHTS_PER_VERTEX; ++i) {
                         mesh.clusterIndices.push_back(mesh.clusters.size() - 1);
                         mesh.clusterWeights.push_back(0);
                     }
 
-                    for (int c = 0; c < clusterJoints.size(); c++) {
+                    for (int c = 0; c < clusterJoints.size(); ++c) {
                         mesh.clusterIndices[prevMeshClusterIndexCount + c] =
                             originalToNewNodeIndexMap[_file.skins[node.skin].joints[clusterJoints[c]]];
                     }
@@ -1484,7 +1499,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
 
                 // populate the texture coordinates if they don't exist
                 if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
-                    for (int i = 0; i < part.triangleIndices.size(); i++) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
+                    for (int i = 0; i < part.triangleIndices.size(); ++i) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
                 }
 
                 // Build morph targets (blend shapes)
@@ -1495,7 +1510,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     hifi::VariantHash blendshapeMappings = mapping.value("bs").toHash();
                     QMultiHash<QString, WeightedIndex> blendshapeIndices;
 
-                    for (int i = 0;; i++) {
+                    for (int i = 0;; ++i) {
                         hifi::ByteArray blendshapeName = FACESHIFT_BLENDSHAPES[i];
                         if (blendshapeName.isEmpty()) {
                             break;
@@ -1515,7 +1530,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     auto names = _file.meshes[node.mesh].extras.targetNames;
                     QVector<double> weights = _file.meshes[node.mesh].weights;
 
-                    for (int weightedIndex = 0; weightedIndex < values.size(); weightedIndex++) {
+                    for (int weightedIndex = 0; weightedIndex < values.size(); ++weightedIndex) {
                         float weight = 0.1f;
                         int indexFromMapping = weightedIndex;
                         int targetIndex = weightedIndex;
@@ -1556,32 +1571,30 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                             } else {
                                 blendshape.vertices[count] = blendshape.vertices[count] + vertices[i];
                                 blendshape.normals[count] = blendshape.normals[count] + normals[i];
-                                count++;
+                                ++count;
                             }
                         }
                     }
                 }
 
-                for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; clusterIndex++) {
+                for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; ++clusterIndex) {
                     ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
+                    // TODO: fix modelTransform value
+                    const glm::mat4 modelTransform = glm::inverse(globalBindTransforms[originalToNewNodeIndexMap[nodeIndex]]) *
+                        globalTransforms[originalToNewNodeIndexMap[clusterIndex]] * glm::mat4(0.1f);
                     for (glm::vec3 vertex : mesh.vertices) {
-                        points.push_back(vertex);
+                        glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
+                        points.push_back(transformedVertex);
                     }
                 }
 
-                mesh.meshExtents.reset();
                 foreach(const glm::vec3& vertex, mesh.vertices) {
-                    mesh.meshExtents.addPoint(vertex);
-                    hfmModel.meshExtents.addPoint(vertex);
+                    glm::vec3 transformedVertex = glm::vec3(globalTransforms[nodeIndex] * glm::vec4(vertex, 1.0f));
+                    mesh.meshExtents.addPoint(transformedVertex);
+                    hfmModel.meshExtents.addPoint(transformedVertex);
                 }
                
                 mesh.meshIndex = hfmModel.meshes.size();
-            }
-
-            mesh.meshExtents.reset();
-            foreach(const glm::vec3& vertex, mesh.vertices) {
-                mesh.meshExtents.addPoint(vertex);
-                hfmModel.meshExtents.addPoint(vertex);
             }
 
             // Add epsilon to mesh extents to compensate for planar meshes
@@ -1592,7 +1605,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
            
             mesh.meshIndex = hfmModel.meshes.size();
         }
-        nodecount++;
+        ++nodecount;
     }
 
     return true;
@@ -1839,8 +1852,8 @@ bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int c
         blobstream.unsetDevice();
         return false;
     }
-    for (int i = 0; i < count; i++) {
-        for (int j = 0; j < bufferCount; j++) {
+    for (int i = 0; i < count; ++i) {
+        for (int j = 0; j < bufferCount; ++j) {
             if (!blobstream.atEnd()) {
                 T value;
                 blobstream >> value;
@@ -1893,7 +1906,7 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
         success = addArrayOfType(buffer.blob, bufferview.byteOffset + accBoffset, accessor.count, outarray, accessor.type,
                                  accessor.componentType);
     } else {
-        for (int i = 0; i < accessor.count; i++) {
+        for (int i = 0; i < accessor.count; ++i) {
             T value;
             memset(&value, 0, sizeof(T));  // Make sure the dummy array is initalised to zero.
             outarray.push_back(value);
@@ -1924,10 +1937,10 @@ bool GLTFSerializer::addArrayFromAccessor(GLTFAccessor& accessor, QVector<T>& ou
                                          accessor.sparse.count, out_sparse_values_array, accessor.type, accessor.componentType);
 
                 if (success) {
-                    for (int i = 0; i < accessor.sparse.count; i++) {
+                    for (int i = 0; i < accessor.sparse.count; ++i) {
                         if ((i * 3) + 2 < out_sparse_values_array.size()) { 
                             if ((out_sparse_indices_array[i] * 3) + 2 < outarray.length()) {
-                                for (int j = 0; j < 3; j++) {
+                                for (int j = 0; j < 3; ++j) {
                                     outarray[(out_sparse_indices_array[i] * 3) + j] = out_sparse_values_array[(i * 3) + j];
                                 }
                             } else {
