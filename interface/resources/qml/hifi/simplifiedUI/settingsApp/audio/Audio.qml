@@ -68,57 +68,88 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: peopleVolume
+                property real lastValueSent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 height: 30
                 labelText: "People Volume"
-                from: -60
-                to: 10
+                from: -60.0
+                to: 20.0
                 defaultValue: 0.0
+                stepSize: 5.0
                 value: AudioScriptingInterface.getAvatarGain()
                 live: true
+                function updatePeopleGain(sliderValue) {
+                    if (AudioScriptingInterface.getAvatarGain() !== sliderValue) {
+                        AudioScriptingInterface.setAvatarGain(sliderValue);
+                    }
+                }
                 onValueChanged: {
-                    if (AudioScriptingInterface.getAvatarGain() != peopleVolume.value) {
-                        AudioScriptingInterface.setAvatarGain(peopleVolume.value);
+                    updatePeopleGain(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updatePeopleGain(value);
                     }
                 }
             }
 
             SimplifiedControls.Slider {
                 id: environmentVolume
+                property real lastValueSent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: 2
                 height: 30
                 labelText: "Environment Volume"
-                from: -60
-                to: 10
+                from: -60.0
+                to: 20.0
                 defaultValue: 0.0
+                stepSize: 5.0
                 value: AudioScriptingInterface.getInjectorGain()
                 live: true
+                function updateEnvironmentGain(sliderValue) {
+                    if (AudioScriptingInterface.getInjectorGain() !== sliderValue) {
+                        AudioScriptingInterface.setInjectorGain(sliderValue);
+                        AudioScriptingInterface.setLocalInjectorGain(sliderValue);
+                    }
+                }
                 onValueChanged: {
-                    if (AudioScriptingInterface.getInjectorGain() != environmentVolume.value) {
-                        AudioScriptingInterface.setInjectorGain(environmentVolume.value);
+                    updateEnvironmentGain(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateEnvironmentGain(value);
                     }
                 }
             }
 
             SimplifiedControls.Slider {
                 id: systemSoundVolume
+                property real lastValueSent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: 2
                 height: 30
                 labelText: "System Sound Volume"
-                from: -60
-                to: 10
+                from: -60.0
+                to: 20.0
                 defaultValue: 0.0
+                stepSize: 5.0
                 value: AudioScriptingInterface.getSystemInjectorGain()
                 live: true
+                function updateSystemGain(sliderValue) {
+                    if (AudioScriptingInterface.getSystemInjectorGain() !== sliderValue) {
+                        AudioScriptingInterface.setSystemInjectorGain(sliderValue);
+                    }
+                }
                 onValueChanged: {
-                    if (AudioScriptingInterface.getSystemInjectorGain() != systemSoundVolume.value) {
-                        AudioScriptingInterface.setSystemInjectorGain(systemSoundVolume.value);
+                    updateSystemGain(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateSystemGain(value);
                     }
                 }
             }
