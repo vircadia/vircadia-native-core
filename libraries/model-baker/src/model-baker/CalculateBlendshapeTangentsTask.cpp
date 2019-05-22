@@ -42,8 +42,8 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
                 continue;
             }
 
-            // Check if we can and should calculate tangents (we need normals to calculate the tangents)
-            if (normals.empty()) {
+            // Check if we can calculate tangents (we need normals and texcoords to calculate the tangents)
+            if (normals.empty() || normals.size() != (size_t)mesh.texCoords.size()) {
                 continue;
             }
             tangentsOut.resize(normals.size());
