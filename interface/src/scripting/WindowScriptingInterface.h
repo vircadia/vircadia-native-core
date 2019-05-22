@@ -313,8 +313,9 @@ public slots:
      * Takes a snapshot of the current Interface view from the primary camera. When a still image only is captured, 
      * {@link Window.stillSnapshotTaken|stillSnapshotTaken} is emitted; when a still image plus moving images are captured, 
      * {@link Window.processingGifStarted|processingGifStarted} and {@link Window.processingGifCompleted|processingGifCompleted}
-     * are emitted. The path to store the snapshots and the length of the animated GIF to capture are specified in Settings >
-     * General > Snapshots.
+     * are emitted.
+     * <p>Snapshots are saved to the path specified in Settings &gt; General &gt; Snapshots, which can be accessed via the 
+     * {@link Snapshot} API.</p>
      *
      * @function Window.takeSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
@@ -358,6 +359,8 @@ public slots:
 
     /**jsdoc
      * Takes a still snapshot of the current view from the secondary camera that can be set up through the {@link Render} API.
+     * <p>Snapshots are saved to the path specified in Settings &gt; General &gt; Snapshots, which can be accessed via the
+     * {@link Snapshot} API.</p>
      * @function Window.takeSecondaryCameraSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
@@ -372,6 +375,8 @@ public slots:
     /**jsdoc
      * Takes a 360&deg; snapshot at a given position for the secondary camera. The secondary camera does not need to have been 
      *     set up.
+     * <p>Snapshots are saved to the path specified in Settings &gt; General &gt; Snapshots, which can be accessed via the
+     * {@link Snapshot} API.</p>
      * @function Window.takeSecondaryCamera360Snapshot
      * @param {Vec3} cameraPosition - The position of the camera for the snapshot.
      * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
