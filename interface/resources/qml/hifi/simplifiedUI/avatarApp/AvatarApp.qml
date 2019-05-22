@@ -58,7 +58,8 @@ Rectangle {
             if (isLoggedIn) {
                 Commerce.getWalletStatus();
             } else {
-                // Show some error to the user
+                errorText.text = "There was a problem while retrieving your inventory. " +
+                    "Please try closing and re-opening the Avatar app.\n\nLogin status result: " + isLoggedIn;
             }
         }
 
@@ -66,11 +67,17 @@ Rectangle {
             if (walletStatus === 5) {
                 getInventory();
             } else {
-                // Show some error to the user
+                errorText.text = "There was a problem while retrieving your inventory. " +
+                    "Please try closing and re-opening the Avatar app.\n\nWallet status result: " + walletStatus;
             }
         }
 
         onInventoryResult: {
+            if (result.status !== "success") {
+                errorText.text = "There was a problem while retrieving your inventory. " +
+                    "Please try closing and re-opening the Avatar app.\n\nInventory status: " + result.status + "\nMessage: " + result.message;
+            }
+
             avatarAppInventoryModel.handlePage(result.status !== "success" && result.message, result);
             root.updatePreviewUrl();
         }
@@ -172,7 +179,7 @@ Rectangle {
         anchors.bottom: parent.bottom
             
         AnimatedImage {
-            visible: !inventoryContentsList.visible
+            visible: !inventoryContentsList.visible && !errorText.visible
             anchors.centerIn: parent
             width: 72
             height: width
@@ -181,7 +188,7 @@ Rectangle {
 
         ListView {
             id: inventoryContentsList
-            visible: avatarAppInventoryModel.count !== 0
+            visible: avatarAppInventoryModel.count !== 0 && !errorText.visible
             interactive: contentItem.height > height
             clip: true
             model: avatarAppInventoryModel
@@ -195,6 +202,18 @@ Rectangle {
                 standaloneOptimized: model.standalone_optimized
                 standaloneIncompatible: model.standalone_incompatible
             }
+        }
+
+        HifiStylesUit.GraphikRegular {
+            id: errorText
+            text: ""
+            visible: text !== ""
+            anchors.fill: parent
+            size: 22
+            color: simplifiedUI.colors.text.white
+            wrapMode: Text.Wrap 
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
