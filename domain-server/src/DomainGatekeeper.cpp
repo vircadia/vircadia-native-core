@@ -358,7 +358,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setNodeVersion(it->second.getNodeVersion());
     nodeData->setHardwareAddress(nodeConnection.hardwareAddress);
     nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
-
+    nodeData->setLastDomainCheckinTimestamp(nodeConnection.lastPingTimestamp);
     nodeData->setWasAssigned(true);
 
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
@@ -498,6 +498,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     // set the machine fingerprint passed in the connect request
     nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
+
+    // set the last ping timestamp passed in the connect request
+    nodeData->setLastDomainCheckinTimestamp(nodeConnection.lastPingTimestamp);
 
     // also add an interpolation to DomainServerNodeData so that servers can get username in stats
     nodeData->addOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
