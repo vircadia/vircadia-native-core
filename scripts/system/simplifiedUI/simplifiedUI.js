@@ -238,40 +238,40 @@ function updateOutputDeviceMutedOverlay(isMuted) {
 }
 
 
-var savedAvatarGain = Audio.getAvatarGain();
-var savedInjectorGain = Audio.getInjectorGain();
-var savedLocalInjectorGain = Audio.getLocalInjectorGain();
-var savedSystemInjectorGain = Audio.getSystemInjectorGain();
+var savedAvatarGain = Audio.avatarGain;
+var savedInjectorGain = Audio.serverInjectorGain;
+var savedLocalInjectorGain = Audio.localInjectorGain;
+var savedSystemInjectorGain = Audio.systemInjectorGain;
 function setOutputMuted(outputMuted) {
     updateOutputDeviceMutedOverlay(outputMuted);
 
     if (outputMuted) {
-        savedAvatarGain = Audio.getAvatarGain();
-        savedInjectorGain = Audio.getInjectorGain();
-        savedLocalInjectorGain = Audio.getLocalInjectorGain();
-        savedSystemInjectorGain = Audio.getSystemInjectorGain();
+        savedAvatarGain = Audio.avatarGain;
+        savedInjectorGain = Audio.serverInjectorGain;
+        savedLocalInjectorGain = Audio.localInjectorGain;
+        savedSystemInjectorGain = Audio.systemInjectorGain;
 
-        Audio.setAvatarGain(-60);
-        Audio.setInjectorGain(-60);
-        Audio.setLocalInjectorGain(-60);
-        Audio.setSystemInjectorGain(-60);
+        Audio.avatarGain = -60;
+        Audio.serverInjectorGain = -60;
+        Audio.localInjectorGain = -60;
+        Audio.systemInjectorGain = -60;
     } else {
         if (savedAvatarGain === -60) {
             savedAvatarGain = 0;
         }
-        Audio.setAvatarGain(savedAvatarGain);
+        Audio.avatarGain = savedAvatarGain;
         if (savedInjectorGain === -60) {
             savedInjectorGain = 0;
         }
-        Audio.setInjectorGain(savedInjectorGain);
+        Audio.serverInjectorGain = savedInjectorGain;
         if (savedLocalInjectorGain === -60) {
             savedLocalInjectorGain = 0;
         }
-        Audio.setLocalInjectorGain(savedLocalInjectorGain);
+        Audio.localInjectorGain = savedLocalInjectorGain;
         if (savedSystemInjectorGain === -60) {
             savedSystemInjectorGain = 0;
         }
-        Audio.setSystemInjectorGain(savedSystemInjectorGain);
+        Audio.systemInjectorGain = savedSystemInjectorGain;
     }
 }
 
@@ -334,7 +334,7 @@ function onTopBarClosed() {
 
 
 function isOutputMuted() {
-    return Audio.getAvatarGain() === -60 && Audio.getInjectorGain() === -60 && Audio.getLocalInjectorGain() === -60 && Audio.getSystemInjectorGain() === -60;
+    return Audio.avatarGain === -60 && Audio.serverInjectorGain === -60 && Audio.localInjectorGain === -60 && Audio.systemInjectorGain === -60;
 }
 
 
@@ -370,15 +370,7 @@ function loadSimplifiedTopBar() {
 
     // The eventbridge takes a nonzero time to initialize, so we have to wait a bit
     // for the QML to load and for that to happen before updating the UI.
-    Script.setTimeout(function() {
-        topBarWindow.sendToQml({
-            "source": "simplifiedUI.js",
-            "method": "updateOutputMuted",
-            "data": {
-                "outputMuted": isOutputMuted()
-            }
-        });
-    
+    Script.setTimeout(function() {    
         sendLocalStatusToQml();
     },  WAIT_FOR_TOP_BAR_MS);
 }

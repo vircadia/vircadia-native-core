@@ -203,7 +203,8 @@ Rectangle {
 
         Image {
             id: outputDeviceButton
-            property bool outputMuted: false
+            property bool outputMuted: AudioScriptingInterface.avatarGain === -60 &&
+                AudioScriptingInterface.serverInjectorGain === -60 && AudioScriptingInterface.localInjectorGain === -60 && AudioScriptingInterface.systemInjectorGain === -60
             source: outputDeviceButton.outputMuted ? "./images/outputDeviceMuted.svg" : "./images/outputDeviceLoud.svg"
             anchors.centerIn: parent
             width: 20
@@ -228,7 +229,6 @@ Rectangle {
             }
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
-                outputDeviceButton.outputMuted = !outputDeviceButton.outputMuted;
 
                 if (outputDeviceButton.outputMuted && !AudioScriptingInterface.muted) {
                     AudioScriptingInterface.muted = true;
@@ -238,7 +238,7 @@ Rectangle {
                     "source": "SimplifiedTopBar.qml",
                     "method": "setOutputMuted",
                     "data": {
-                        "outputMuted": outputDeviceButton.outputMuted
+                        "outputMuted": !outputDeviceButton.outputMuted
                     }
                 });
             }
@@ -452,10 +452,6 @@ Rectangle {
                 } else {
                     avatarButtonImage.source = message.data.avatarThumbnailURL;
                 }
-                break;
-
-            case "updateOutputMuted":
-                outputDeviceButton.outputMuted = message.data.outputMuted;
                 break;
 
             case "updateStatusButton":
