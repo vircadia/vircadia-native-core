@@ -44,13 +44,14 @@ SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
 /**jsdoc
+ * The type of an item in a selection list.
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>"avatar"</code></td><td></td></tr>
- *     <tr><td><code>"entity"</code></td><td></td></tr>
+ *     <tr><td><code>"avatar"</code></td><td>The item is an avatar.</td></tr>
+ *     <tr><td><code>"entity"</code></td><td>The item is an entity.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {string} Selection.ItemType
@@ -245,9 +246,10 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 }
 
 /**jsdoc
+ * A selection list.
  * @typedef {object} Selection.SelectedItemsList
- * @property {Uuid[]} avatars - The IDs of the avatars in the selection.
- * @property {Uuid[]} entities - The IDs of the entities in the selection.
+ * @property {Uuid[]} avatars - The IDs of the avatars in the selection list.
+ * @property {Uuid[]} entities - The IDs of the entities in the selection list.
  */
 QVariantMap SelectionScriptingInterface::getSelectedItemsList(const QString& listName) const {
     QReadLocker lock(&_selectionListsLock);
@@ -438,18 +440,19 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 }
 
 /**jsdoc
+ * The highlighting style of a selection list.
  * @typedef {object} Selection.HighlightStyle
- * @property {Color} outlineUnoccludedColor - Color of the specified highlight region.
- * @property {Color} outlineOccludedColor - ""
- * @property {Color} fillUnoccludedColor- ""
- * @property {Color} fillOccludedColor- ""
- * @property {number} outlineUnoccludedAlpha - Alpha value ranging from <code>0.0</code> (not visible) to <code>1.0</code> 
- *     (fully opaque) for the specified highlight region.
- * @property {number} outlineOccludedAlpha - ""
- * @property {number} fillUnoccludedAlpha - ""
- * @property {number} fillOccludedAlpha - ""
- * @property {number} outlineWidth - Width of the outline, in pixels.
- * @property {boolean} isOutlineSmooth - <code>true</code> to enable outline smooth fall-off.
+ * @property {Color} outlineUnoccludedColor=255,178,51 - Unoccluded outline color.
+ * @property {Color} outlineOccludedColor=255,178,51 - Occluded outline color.
+ * @property {Color} fillUnoccludedColor=51,178,255 - Unoccluded fill color.
+ * @property {Color} fillOccludedColor=51,178,255 - Occluded fill color.
+ * @property {number} outlineUnoccludedAlpha=0.9 - Unoccluded outline alpha, range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} outlineOccludedAlpha=0.9 - Occluded outline alpha, range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} fillUnoccludedAlpha=0.0 - Unoccluded fill alpha, range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} fillOccludedAlpha=0.0 - Occluded fill alpha, range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} outlineWidth=2 - Width of the outline, in pixels.
+ * @property {boolean} isOutlineSmooth=false - <code>true</code> to fade the outside edge of the outline, <code>false</code> 
+ *     to have a sharp edge.
  */
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
