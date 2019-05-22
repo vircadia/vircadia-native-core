@@ -469,8 +469,8 @@ function onStatusChanged() {
 }
 
 
-var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
-var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js");
+var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
+var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
 var si;
 var oldShowAudioTools;
 var oldShowBubbleTools;

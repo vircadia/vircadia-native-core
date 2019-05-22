@@ -230,6 +230,10 @@ Rectangle {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 outputDeviceButton.outputMuted = !outputDeviceButton.outputMuted;
 
+                if (outputDeviceButton.outputMuted && !AudioScriptingInterface.muted) {
+                    AudioScriptingInterface.muted = true;
+                }
+
                 sendToScript({
                     "source": "SimplifiedTopBar.qml",
                     "method": "setOutputMuted",
