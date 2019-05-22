@@ -239,7 +239,7 @@ function updateOutputDeviceMutedOverlay(isMuted) {
 
 
 var savedAvatarGain = Audio.avatarGain;
-var savedInjectorGain = Audio.serverInjectorGain;
+var savedServerInjectorGain = Audio.serverInjectorGain;
 var savedLocalInjectorGain = Audio.localInjectorGain;
 var savedSystemInjectorGain = Audio.systemInjectorGain;
 function setOutputMuted(outputMuted) {
@@ -247,7 +247,7 @@ function setOutputMuted(outputMuted) {
 
     if (outputMuted) {
         savedAvatarGain = Audio.avatarGain;
-        savedInjectorGain = Audio.serverInjectorGain;
+        savedServerInjectorGain = Audio.serverInjectorGain;
         savedLocalInjectorGain = Audio.localInjectorGain;
         savedSystemInjectorGain = Audio.systemInjectorGain;
 
@@ -260,10 +260,10 @@ function setOutputMuted(outputMuted) {
             savedAvatarGain = 0;
         }
         Audio.avatarGain = savedAvatarGain;
-        if (savedInjectorGain === -60) {
-            savedInjectorGain = 0;
+        if (savedServerInjectorGain === -60) {
+            savedServerInjectorGain = 0;
         }
-        Audio.serverInjectorGain = savedInjectorGain;
+        Audio.serverInjectorGain = savedServerInjectorGain;
         if (savedLocalInjectorGain === -60) {
             savedLocalInjectorGain = 0;
         }
