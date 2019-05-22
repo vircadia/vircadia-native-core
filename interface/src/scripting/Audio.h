@@ -66,6 +66,10 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} pushToTalkHMD - <code>true</code> if HMD push-to-talk is enabled, otherwise <code>false</code>.
      * @property {boolean} pushingToTalk - <code>true</code> if the user is currently pushing-to-talk, otherwise 
      *     <code>false</code>.
+     * @property {float} avatarGain - The gain (relative volume) that avatars' voices are played at. This gain is used at the server.
+     * @property {float} localInjectorGain - The gain (relative volume) that local injectors (local environment sounds) are played at.
+     * @property {float} serverInjectorGain - The gain (relative volume) that server injectors (server environment sounds) are played at. This gain is used at the server.
+     * @property {float} systemInjectorGain - The gain (relative volume) that system sounds are played at.
      *
      * @comment The following properties are from AudioScriptingInterface.h.
      * @property {boolean} isStereoInput - <code>true</code> if the input audio is being used in stereo, otherwise
