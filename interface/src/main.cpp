@@ -83,6 +83,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
+    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
 
     parser.addOption(urlOption);
     parser.addOption(noLauncherOption);
@@ -93,6 +94,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(overrideAppLocalDataPathOption);
     parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
+    parser.addOption(responseTokensOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
@@ -121,7 +123,7 @@ int main(int argc, const char* argv[]) {
     static const QString APPLICATION_CONFIG_FILENAME = "config.json";
     QDir applicationDir(applicationPath);
     QFile configFile(applicationDir.filePath(APPLICATION_CONFIG_FILENAME));
-
+    bool isConfigFileValid = false;
     if (configFile.exists()) {
         if (!configFile.open(QIODevice::ReadOnly)) {
             qWarning() << "Found application config, but could not open it";
@@ -136,6 +138,7 @@ int main(int argc, const char* argv[]) {
                 static const QString LAUNCHER_PATH_KEY = "launcherPath";
                 QString launcherPath = doc.object()[LAUNCHER_PATH_KEY].toString();
                 if (!launcherPath.isEmpty()) {
+                    isConfigFileValid = true;
                     if (!parser.isSet(noLauncherOption)) {
                         qDebug() << "Found a launcherPath in application config. Starting launcher.";
                         QProcess launcher;
@@ -146,6 +149,7 @@ int main(int argc, const char* argv[]) {
                         qDebug() << "Found a launcherPath in application config, but the launcher"
                                     " has been suppressed. Continuing normal execution.";
                     }
+                    configFile.close();
                 }
             }
         }
@@ -397,6 +401,18 @@ int main(int argc, const char* argv[]) {
                          &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
         printSystemInformation();
+
+        if (isConfigFileValid || parser.isSet(responseTokensOption)) {
+            auto accountManager = DependencyManager::get<AccountManager>();
+            if (!accountManager.isNull()) {
+                if (parser.isSet(responseTokensOption)) {
+                    QString tokens = QString(parser.value(responseTokensOption));
+                    accountManager->setAccessTokens(tokens);
+                } else if (isConfigFileValid) {
+                    accountManager->setConfigFileURL(configFile.fileName());
+                }
+            }
+        }
 
         QTranslator translator;
         translator.load("i18n/interface_en");

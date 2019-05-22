@@ -102,6 +102,10 @@ public:
     bool getLimitedCommerce() { return _limitedCommerce; }
     void setLimitedCommerce(bool isLimited);
 
+    void setAccessTokens(const QString& response);
+    void setConfigFileURL(const QUrl& fileURL) { _configFileURL = fileURL; }
+    void saveLoginStatus(bool isLoggedIn);
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
@@ -162,6 +166,7 @@ private:
     QUuid _sessionID { QUuid::createUuid() };
 
     bool _limitedCommerce { false };
+    QUrl _configFileURL;
 };
 
 #endif  // hifi_AccountManager_h
