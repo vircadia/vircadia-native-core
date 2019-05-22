@@ -71,6 +71,11 @@ void SafeLanding::stopEntitySequence() {
 void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
     if (_trackingEntities) {
         Locker lock(_lock);
+
+        if (_entityTreeRenderer.isNull() || _entityTreeRenderer->getTree() == nullptr) {
+            return;
+        }
+
         EntityItemPointer entity = _entityTreeRenderer->getTree()->findEntityByID(entityID);
 
         if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
