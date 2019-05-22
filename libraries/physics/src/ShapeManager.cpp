@@ -49,11 +49,15 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     const btCollisionShape* shape = nullptr;
     if (info.getType() == SHAPE_TYPE_STATIC_MESH) {
         uint64_t hash = info.getHash();
+
+        // bump the request count to the caller knows we're 
+        // starting or waiting on a thread.
+        ++_workRequestCount;
+
         const auto itr = std::find(_pendingMeshShapes.begin(), _pendingMeshShapes.end(), hash);
         if (itr == _pendingMeshShapes.end()) {
             // start a worker
             _pendingMeshShapes.push_back(hash);
-            ++_workRequestCount;
             // try to recycle old deadWorker
             ShapeFactory::Worker* worker = _deadWorker;
             if (!worker) {

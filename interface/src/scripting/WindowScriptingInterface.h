@@ -23,9 +23,9 @@
 #include <DependencyManager.h>
 
 /**jsdoc
- * The Window API provides various facilities not covered elsewhere: window dimensions, window focus, normal or entity camera
- * view, clipboard, announcements, user connections, common dialog boxes, snapshots, file import, domain changes, domain 
- * physics.
+ * The <code>Window</code> API provides various facilities not covered elsewhere, including: window dimensions, window focus, 
+ * camera view, announcements, user connections, common dialog boxes, snapshots, file import, domain navigation, domain changes, 
+ * domain physics, OS clipboard, build number.
  *
  * @namespace Window
  *
@@ -37,13 +37,13 @@
  *     chrome), in pixels. <em>Read-only.</em>
  * @property {number} innerHeight - The height of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
- * @property {object} location - Provides facilities for working with your current metaverse location. See {@link location}.
  * @property {number} x - The x display coordinate of the top left corner of the drawable area of the Interface window. 
  *     <em>Read-only.</em>
  * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
  *     <em>Read-only.</em>
- * @property {boolean} interstitialModeEnabled=true - <code>true</code> if the interstitial graphics are displayed when the 
+ * @property {boolean} interstitialModeEnabled=false - <code>true</code> if the interstitial graphics are displayed when a 
  *     domain is loading, otherwise <code>false</code>.
+ * @property {location} location - Provides facilities for working with your current metaverse location.
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -65,27 +65,27 @@ public:
 public slots:
 
     /**jsdoc
-     * Check if the Interface window has focus.
+     * Checks whether the Interface window has focus.
      * @function Window.hasFocus
-     * @returns {boolean} <code>true</code> if the Interface window has focus, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the Interface window has focus, <code>false</code> if it doesn't.
      */
     QScriptValue hasFocus();
 
     /**jsdoc
-     * Make the Interface window have focus. On Windows, if Interface doesn't already have focus, the task bar icon flashes to 
+     * Makes the Interface window have focus. On Windows, if Interface doesn't already have focus, the task bar icon flashes to 
      * indicate that Interface wants attention but focus isn't taken away from the application that the user is using.
      * @function Window.setFocus
      */
     void setFocus();
 
     /**jsdoc
-     * Raise the Interface window if it is minimized. If raised, the window gains focus.
+     * Raises the Interface window if it is minimized. If raised, the window gains focus.
      * @function Window.raise
      */
     void raise();
 
     /**jsdoc
-     * Display a dialog with the specified message and an "OK" button. The dialog is non-modal; the script continues without
+     * Displays a dialog with the specified message and an "OK" button. The dialog is non-modal; the script continues without
      * waiting for a user response.
      * @function Window.alert
      * @param {string} [message=""] - The message to display.
@@ -96,8 +96,7 @@ public slots:
     void alert(const QString& message = "");
 
     /**jsdoc
-     * Prompt the user to confirm something. Displays a modal dialog with a message plus "Yes" and "No" buttons.
-     * responds.
+     * Prompts the user to confirm something. Displays a modal dialog with a message plus "Yes" and "No" buttons.
      * @function Window.confirm
      * @param {string} [message=""] - The question to display.
      * @returns {boolean} <code>true</code> if the user selects "Yes", otherwise <code>false</code>.
@@ -108,7 +107,7 @@ public slots:
     QScriptValue confirm(const QString& message = "");
 
     /**jsdoc
-     * Prompt the user to enter some text. Displays a modal dialog with a message and a text box, plus "OK" and "Cancel" 
+     * Prompts the user to enter some text. Displays a modal dialog with a message and a text box, plus "OK" and "Cancel" 
      * buttons.
      * @function Window.prompt
      * @param {string} message - The question to display.
@@ -125,7 +124,7 @@ public slots:
     QScriptValue prompt(const QString& message, const QString& defaultText);
 
     /**jsdoc
-     * Prompt the user to enter some text. Displays a non-modal dialog with a message and a text box, plus "OK" and "Cancel" 
+     * Prompts the user to enter some text. Displays a non-modal dialog with a message and a text box, plus "OK" and "Cancel" 
      * buttons. A {@link Window.promptTextChanged|promptTextChanged} signal is emitted when the user OKs the dialog; no signal 
      * is emitted if the user cancels the dialog.
      * @function Window.promptAsync
@@ -143,7 +142,7 @@ public slots:
     void promptAsync(const QString& message = "", const QString& defaultText = "");
 
     /**jsdoc
-     * Prompt the user to choose a directory. Displays a modal dialog that navigates the directory tree.
+     * Prompts the user to choose a directory. Displays a modal dialog that navigates the directory tree.
      * @function Window.browseDir
      * @param {string} [title=""] - The title to display at the top of the dialog.
      * @param {string} [directory=""] - The initial directory to start browsing at.
@@ -155,7 +154,7 @@ public slots:
     QScriptValue browseDir(const QString& title = "", const QString& directory = "");
     
     /**jsdoc
-     * Prompt the user to choose a directory. Displays a non-modal dialog that navigates the directory tree. A
+     * Prompts the user to choose a directory. Displays a non-modal dialog that navigates the directory tree. A
      * {@link Window.browseDirChanged|browseDirChanged} signal is emitted when a directory is chosen; no signal is emitted if
      * the user cancels the dialog.
      * @function Window.browseDirAsync
@@ -173,7 +172,7 @@ public slots:
     void browseDirAsync(const QString& title = "", const QString& directory = "");
 
     /**jsdoc
-     * Prompt the user to choose a file. Displays a modal dialog that navigates the directory tree.
+     * Prompts the user to choose a file. Displays a modal dialog that navigates the directory tree.
      * @function Window.browse
      * @param {string} [title=""] - The title to display at the top of the dialog.
      * @param {string} [directory=""] - The initial directory to start browsing at.
@@ -187,7 +186,7 @@ public slots:
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompt the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
+     * Prompts the user to choose a file. Displays a non-modal dialog that navigates the directory tree. A
      * {@link Window.browseChanged|browseChanged} signal is emitted when a file is chosen; no signal is emitted if the user
      * cancels the dialog.
      * @function Window.browseAsync
@@ -207,7 +206,7 @@ public slots:
     void browseAsync(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompt the user to specify the path and name of a file to save to. Displays a model dialog that navigates the directory
+     * Prompts the user to specify the path and name of a file to save to. Displays a model dialog that navigates the directory
      * tree and allows the user to type in a file name.
      * @function Window.save
      * @param {string} [title=""] - The title to display at the top of the dialog.
@@ -223,7 +222,7 @@ public slots:
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompt the user to specify the path and name of a file to save to. Displays a non-model dialog that navigates the
+     * Prompts the user to specify the path and name of a file to save to. Displays a non-model dialog that navigates the
      * directory tree and allows the user to type in a file name. A {@link Window.saveFileChanged|saveFileChanged} signal is
      * emitted when a file is specified; no signal is emitted if the user cancels the dialog.
      * @function Window.saveAsync
@@ -243,7 +242,7 @@ public slots:
     void saveAsync(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompt the user to choose an Asset Server item. Displays a modal dialog that navigates the tree of assets on the Asset
+     * Prompts the user to choose an Asset Server item. Displays a modal dialog that navigates the tree of assets on the Asset
      * Server.
      * @function Window.browseAssets
      * @param {string} [title=""] - The title to display at the top of the dialog.
@@ -258,8 +257,8 @@ public slots:
     QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
 
     /**jsdoc
-     * Prompt the user to choose an Asset Server item. Displays a non-modal dialog that navigates the tree of assets on the 
-     * Asset Server. A {@link Window.assetsDirChanged|assetsDirChanged} signal is emitted when an asset is chosen; no signal is
+     * Prompts the user to choose an Asset Server item. Displays a non-modal dialog that navigates the tree of assets on the 
+     * Asset Server. An {@link Window.assetsDirChanged|assetsDirChanged} signal is emitted when an asset is chosen; no signal is
      * emitted if the user cancels the dialog.
      * @function Window.browseAssetsAsync
      * @param {string} [title=""] - The title to display at the top of the dialog.
@@ -278,7 +277,7 @@ public slots:
     void browseAssetsAsync(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
 
     /**jsdoc
-     * Open the Asset Browser dialog. If a file to upload is specified, the user is prompted to enter the folder and name to
+     * Opens the Asset Browser dialog. If a file to upload is specified, the user is prompted to enter the folder and name to
      * map the file to on the asset server.
      * @function Window.showAssetServer
      * @param {string} [uploadFile=""] - The path and name of a file to upload to the asset server.
@@ -290,14 +289,14 @@ public slots:
     void showAssetServer(const QString& upload = "");
 
     /**jsdoc
-     * Get Interface's build number.
+     * Gets Interface's build number.
      * @function Window.checkVersion
      * @returns {string} Interface's build number.
      */
     QString checkVersion();
 
     /**jsdoc
-     * Get the signature for Interface's protocol version.
+     * Gets the signature for Interface's protocol version.
      * @function Window.protocolSignature
      * @returns {string} A string uniquely identifying the version of the metaverse protocol that Interface is using.
      */
@@ -317,25 +316,19 @@ public slots:
      * are emitted. The path to store the snapshots and the length of the animated GIF to capture are specified in Settings >
      * General > Snapshots.
      *
-     * If user has supplied a specific filename for the snapshot:
-     *     If the user's requested filename has a suffix that's contained within SUPPORTED_IMAGE_FORMATS,
-     *         DON'T append ".jpg" to the filename. QT will save the image in the format associated with the
-     *         filename's suffix.
-     *         If you want lossless Snapshots, supply a `.png` filename. Otherwise, use `.jpeg` or `.jpg`.
-     *     Otherwise, ".jpg" is appended to the user's requested filename so that the image is saved in JPG format.
-     * If the user hasn't supplied a specific filename for the snapshot:
-     *     Save the snapshot in JPG format according to FILENAME_PATH_FORMAT
      * @function Window.takeSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
      * @param {boolean} [includeAnimated=false] - If <code>true</code>, a moving image is captured as an animated GIF in addition 
      *     to a still image.
-     * @param {number} [aspectRatio=0] - The width/height ratio of the snapshot required. If the value is <code>0</code> the
+     * @param {number} [aspectRatio=0] - The width/height ratio of the snapshot required. If the value is <code>0</code>, the
      *     full resolution is used (window dimensions in desktop mode; HMD display dimensions in HMD mode), otherwise one of the
      *     dimensions is adjusted in order to match the aspect ratio.
-     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt-YYYY-MM-DD_HH-MM-SS".
-     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
-     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user 
+     *     name&gt-on-YYYY-MM-DD_HH-MM-SS".<br />
+     *     Still images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>, 
+     *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of 
+     *     <code>".jpg"</code>. Animated images are saved in GIF format.
      *
      * @example <caption>Using the snapshot function and signals.</caption>
      * function onStillSnapshotTaken(path, notify) {
@@ -368,9 +361,11 @@ public slots:
      * @function Window.takeSecondaryCameraSnapshot
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {string} [filename=""] - If this parameter is not given, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
-     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
-     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
+     *     name&gt-on-YYYY-MM-DD_HH-MM-SS".<br />
+     *     Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
+     *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
+     *     <code>".jpg"</code>.
      */
     void takeSecondaryCameraSnapshot(const bool& notify = true, const QString& filename = QString());
 
@@ -380,17 +375,19 @@ public slots:
      * @function Window.takeSecondaryCamera360Snapshot
      * @param {Vec3} cameraPosition - The position of the camera for the snapshot.
      * @param {boolean} [cubemapOutputFormat=false] - If <code>true</code> then the snapshot is saved as a cube map image, 
-     *     otherwise is saved as an equirectangular image.
+     *     otherwise it is saved as an equirectangular image.
      * @param {boolean} [notify=true] - This value is passed on through the {@link Window.stillSnapshotTaken|stillSnapshotTaken}
      *     signal.
-     * @param {string} [filename=""] - If this parameter is not supplied, the image will be saved as "hifi-snap-by-&lt;user name&gt;-YYYY-MM-DD_HH-MM-SS".
-     *     If this parameter is <code>""</code> then the image will be saved as ".jpg".
-     *     Otherwise, the image will be saved to this filename, with an appended ".jpg".
+     * @param {string} [filename=""] - If a filename is not provided, the image is saved as "hifi-snap-by-&lt;user
+     *     name&gt-on-YYYY-MM-DD_HH-MM-SS".<br />
+     *     Images are saved in JPEG or PNG format according to the extension provided &mdash; <code>".jpg"</code>,
+     *     <code>".jpeg"</code>, or <code>".png"</code> &mdash; or if not provided then in JPEG format with an extension of
+     *     <code>".jpg"</code>.
      */
     void takeSecondaryCamera360Snapshot(const glm::vec3& cameraPosition, const bool& cubemapOutputFormat = false, const bool& notify = true, const QString& filename = QString());
 
     /**jsdoc
-     * Emit a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
+     * Emits a {@link Window.connectionAdded|connectionAdded} or a {@link Window.connectionError|connectionError} signal that
      * indicates whether or not a user connection was successfully made using the Web API.
      * @function Window.makeConnection
      * @param {boolean} success - If <code>true</code> then {@link Window.connectionAdded|connectionAdded} is emitted, otherwise
@@ -400,7 +397,7 @@ public slots:
     void makeConnection(bool success, const QString& userNameOrError);
 
     /**jsdoc
-     * Display a notification message. Notifications are displayed in panels by the default script, nofications.js. An
+     * Displays a notification message. Notifications are displayed in panels by the default script, nofications.js. An
      * {@link Window.announcement|announcement} signal is emitted when this function is called.
      * @function Window.displayAnnouncement
      * @param {string} message - The announcement message.
@@ -416,7 +413,7 @@ public slots:
     void displayAnnouncement(const QString& message);
 
     /**jsdoc
-     * Prepare a snapshot ready for sharing. A {@link Window.snapshotShared|snapshotShared} signal is emitted when the snapshot
+     * Prepares a snapshot ready for sharing. A {@link Window.snapshotShared|snapshotShared} signal is emitted when the snapshot
      * has been prepared.
      * @function Window.shareSnapshot
      * @param {string} path - The path and name of the image file to share.
@@ -425,7 +422,7 @@ public slots:
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
 
     /**jsdoc
-     * Check to see if physics is active for you in the domain you're visiting - there is a delay between your arrival at a
+     * Checks to see if physics is active for you in the domain you're visiting - there is a delay between your arrival at a
      * domain and physics becoming active for you in that domain.
      * @function Window.isPhysicsEnabled
      * @returns {boolean} <code>true</code> if physics is currently active for you, otherwise <code>false</code>.
@@ -448,39 +445,16 @@ public slots:
     bool isPhysicsEnabled();
 
     /**jsdoc
-     * Set what to show on the PC display: normal view or entity camera view. The entity camera is configured using
+     * Sets what to show on the PC display. For entity camera view, the entity camera is configured using 
      * {@link Camera.setCameraEntity} and {@link Camera|Camera.mode}.
      * @function Window.setDisplayTexture
      * @param {Window.DisplayTexture} texture - The view to display.
      * @returns {boolean} <code>true</code> if the display texture was successfully set, otherwise <code>false</code>.
      */
-    // See spectatorCamera.js for Valid parameter values.
-    /**jsdoc
-     * <p>The views that may be displayed on the PC display.</p>
-     * <table>
-     *   <thead>
-     *     <tr>
-     *       <th>Value</th>
-     *       <th>View Displayed</th>
-     *     </tr>
-     *   </thead>
-     *   <tbody>
-     *     <tr>
-     *       <td><code>""</code></td>
-     *       <td>Normal view.</td>
-     *     </tr>
-     *     <tr>
-     *       <td><code>"resource://spectatorCameraFrame"</code></td>
-     *       <td>Entity camera view.</td>
-     *     </tr>
-     *   </tbody>
-     * </table>
-     * @typedef {string} Window.DisplayTexture
-     */
     bool setDisplayTexture(const QString& name);
 
     /**jsdoc
-     * Check if a 2D point is within the desktop window if in desktop mode, or the drawable area of the HUD overlay if in HMD
+     * Checks if a 2D point is within the desktop window if in desktop mode, or the drawable area of the HUD overlay if in HMD
      * mode.
      * @function Window.isPointOnDesktopWindow
      * @param {Vec2} point - The point to check.
@@ -489,7 +463,7 @@ public slots:
     bool isPointOnDesktopWindow(QVariant point);
 
     /**jsdoc
-     * Get the size of the drawable area of the Interface window if in desktop mode or the HMD rendering surface if in HMD mode.
+     * Gets the size of the drawable area of the Interface window if in desktop mode or the HMD rendering surface if in HMD mode.
      * @function Window.getDeviceSize
      * @returns {Vec2} The width and height of the Interface window or HMD rendering surface, in pixels.
      */
@@ -503,7 +477,7 @@ public slots:
     int getLastDomainConnectionError() const;
 
     /**jsdoc
-     * Open a non-modal message box that can have a variety of button combinations. See also, 
+     * Opens a non-modal message box that can have a variety of button combinations. See also, 
      * {@link Window.updateMessageBox|updateMessageBox} and {@link Window.closeMessageBox|closeMessageBox}.
      * @function Window.openMessageBox
      * @param {string} title - The title to display for the message box.
@@ -535,17 +509,21 @@ public slots:
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
-     * Open a URL in the Interface window or other application, depending on the URL's scheme. The following schemes are supported:
-     * <code>hifi</code> (navigate to the URL in Interface), <code>hifiapp<code> (open a system app in Interface).  Other schemes will either be handled by the OS
-     * (e.g. <code>http</code>, <code>https</code>, <code>mailto</code>) or will create a confirmation dialog asking the user to confirm that they want to try to open
-     * the URL.
+     * Opens a URL in the Interface window or other application, depending on the URL's scheme. The following schemes are 
+     * supported:<br />
+     * <ul>
+     *   <li><code>hifi</code>: Navigate to the URL in Interface.</li>
+     *   <li><code>hifiapp</code>: Open a system app in Interface.</li>
+     * </ul>
+     * Other schemes will either be handled by the OS (e.g. <code>http</code>, <code>https</code>, or <code>mailto</code>) or 
+     * will display a dialog asking the user to confirm that they want to try to open the URL.
      * @function Window.openUrl
      * @param {string} url - The URL to open.
      */
     void openUrl(const QUrl& url);
 
     /**jsdoc
-     * Open an Android activity and optionally return back to the scene when the activity is completed. <em>Android only.</em>
+     * Opens an Android activity and optionally return back to the scene when the activity is completed. <em>Android only.</em>
      * @function Window.openAndroidActivity
      * @param {string} activityName - The name of the activity to open: one of <code>"Home"</code>, <code>"Login"</code>, or 
      *     <code>"Privacy Policy"</code>.
@@ -555,7 +533,7 @@ public slots:
     void openAndroidActivity(const QString& activityName, const bool backToScene);
 
     /**jsdoc
-     * Update the content of a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
+     * Updates the content of a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
      * @function Window.updateMessageBox
      * @param {number} id - The ID of the message box.
      * @param {string} title - The title to display for the message box.
@@ -567,13 +545,64 @@ public slots:
     void updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton);
 
     /**jsdoc
-     * Close a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
+     * Closes a message box that was opened with {@link Window.openMessageBox|openMessageBox}.
      * @function Window.closeMessageBox
      * @param {number} id - The ID of the message box.
      */
     void closeMessageBox(int id);
 
+    /**jsdoc
+     * @function Window.domainLoadingProgress
+     * @returns {number} Progress.
+     * @deprecated This function is deprecated and will be removed.
+     */
     float domainLoadingProgress();
+
+    /**jsdoc
+     * Gets the number of display plugins currently available.
+     * @function Window.getDisplayPluginCount
+     * @returns {number} The number of display plugins currently available.
+     */
+    int getDisplayPluginCount();
+
+    /**jsdoc
+     * Gets the name of a display plugin.
+     * @function Window.getDisplayPluginName
+     * @param {number} index - The index of the display plugin. Must be less than the value returned by 
+     *     {@link Window.getDisplayPluginCount|getDisplayPluginCount}. The first display plugin has an index of <code>0</code>.
+     * @returns {string} The name of the display plugin.
+     * @example <caption>Print the names of all available display plugins.</caption>
+     * for (var i = 0, length = Window.getDisplayPluginCount(); i < length; i++) {
+     *     print(Window.getDisplayPluginName(i));
+     * }
+     */
+    QString getDisplayPluginName(int index);
+
+    /**jsdoc
+     * Checks whether a display plugin is an HMD.
+     * @function Window.isDisplayPluginHmd
+     * @param {number} index - The index of the display plugin. Must be less than the value returned by 
+     *     {@link Window.getDisplayPluginCount|getDisplayPluginCount}. The first display plugin has an index of <code>0</code>.
+     * @returns {boolean} <code>true</code> if the display plugin is a HMD, <code>false</code> if it isn't.
+     */
+    bool isDisplayPluginHmd(int index);
+
+    /**jsdoc
+     * Gets the index of the currently active display plugin.
+     * @function Window.getActiveDisplayPlugin
+     * @returns {number} The index of the currently active display plugin. The first display plugin has an index of 
+     *     <code>0</code>.
+     */
+    int getActiveDisplayPlugin();
+
+    /**jsdoc
+     * Sets the currently active display plugin.
+     * @function Window.setActiveDisplayPlugin
+     * @param {number} index - The index of the display plugin. Must be less than the value returned by 
+     *     {@link Window.getDisplayPluginCount|getDisplayPluginCount}. The first display plugin has an index of <code>0</code>.
+     */
+    void setActiveDisplayPlugin(int index);
+
 
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);

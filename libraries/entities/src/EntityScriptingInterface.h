@@ -237,6 +237,14 @@ public slots:
     Q_INVOKABLE bool canReplaceContent();
 
     /**jsdoc
+     * Check whether or not you can get and set private user data.
+     * @function Entities.canGetAndSetPrivateUserData
+     * @returns {boolean} <code>true</code> if the domain server will allow the user to get and set private user data,
+     *     otherwise <code>false</code>.
+     */
+    Q_INVOKABLE bool canGetAndSetPrivateUserData();
+
+    /**jsdoc
      * <p>How an entity is sent over the wire.</p>
      * <table>
      *   <thead>
@@ -1762,6 +1770,7 @@ signals:
     /**jsdoc
      * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered 
      * for a collision with an avatar.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.collisionWithEntity
      * @param {Uuid} idA - The ID of one entity in the collision. For an entity script, this is the ID of the entity containing 
      *     the script.
@@ -1861,10 +1870,20 @@ signals:
      */
     void canWriteAssetsChanged(bool canWriteAssets);
 
+    /**jsdoc
+     * Triggered when your ability to get and set private user data changes.
+     * @function Entities.canGetAndSetPrivateUserDataChanged
+     * @param {boolean} canGetAndSetPrivateUserData - <code>true</code> if you can change the <code>privateUserData</code> property of an entity,
+     *     otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    void canGetAndSetPrivateUserDataChanged(bool canGetAndSetPrivateUserData);
+
 
     /**jsdoc
      * Triggered when a mouse button is clicked while the mouse cursor is on an entity, or a controller trigger is fully 
      * pressed while its laser is on an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.mousePressOnEntity
      * @param {Uuid} entityID - The ID of the entity that was pressed.
      * @param {PointerEvent} event - Details of the event.
@@ -1889,6 +1908,7 @@ signals:
 
     /**jsdoc
      * Repeatedly triggered while the mouse cursor or controller laser moves on an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.mouseMoveOnEntity
      * @param {Uuid} entityID - The ID of the entity that was moved on.
      * @param {PointerEvent} event - Details of the event.
@@ -1899,6 +1919,7 @@ signals:
     /**jsdoc
      * Triggered when a mouse button is released after clicking on an entity or the controller trigger is partly or fully 
      * released after pressing on an entity, even if the mouse pointer or controller laser has moved off the entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.mouseReleaseOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally pressed.
      * @param {PointerEvent} event - Details of the event.
@@ -1925,6 +1946,7 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is clicked while the mouse cursor is on an entity. Note: Not triggered by controller.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.clickDownOnEntity
      * @param {Uuid} entityID - The ID of the entity that was clicked.
      * @param {PointerEvent} event - Details of the event.
@@ -1935,6 +1957,7 @@ signals:
     /**jsdoc
      * Repeatedly triggered while a mouse button continues to be held after clicking an entity, even if the mouse cursor has 
      * moved off the entity. Note: Not triggered by controller.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.holdingClickOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally clicked.
      * @param {PointerEvent} event - Details of the event.
@@ -1945,6 +1968,7 @@ signals:
     /**jsdoc
      * Triggered when a mouse button is released after clicking on an entity, even if the mouse cursor has moved off the 
      * entity. Note: Not triggered by controller.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.clickReleaseOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally clicked.
      * @param {PointerEvent} event - Details of the event.
@@ -1954,6 +1978,7 @@ signals:
 
     /**jsdoc
      * Triggered when the mouse cursor or controller laser starts hovering on an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.hoverEnterEntity
      * @param {Uuid} entityID - The ID of the entity that is being hovered.
      * @param {PointerEvent} event - Details of the event.
@@ -1963,6 +1988,7 @@ signals:
 
     /**jsdoc
      * Repeatedly triggered when the mouse cursor or controller laser moves while hovering over an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.hoverOverEntity
      * @param {Uuid} entityID - The ID of the entity that is being hovered.
      * @param {PointerEvent} event - Details of the event.
@@ -1972,6 +1998,7 @@ signals:
 
     /**jsdoc
      * Triggered when the mouse cursor or controller laser stops hovering over an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.hoverLeaveEntity
      * @param {Uuid} entityID - The ID of the entity that was being hovered.
      * @param {PointerEvent} event - Details of the event.
@@ -1982,6 +2009,7 @@ signals:
 
     /**jsdoc
      * Triggered when an avatar enters an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.enterEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar entered.
      * @returns {Signal}
@@ -2015,6 +2043,7 @@ signals:
 
     /**jsdoc
      * Triggered when an avatar leaves an entity.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.leaveEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar left.
      * @returns {Signal}

@@ -147,7 +147,7 @@ public:
     
     /**jsdoc
      * Subscribes the scripting environment &mdash; Interface, the entity script server, or assignment client instance &mdash; 
-     * to receive messages on a specific channel.This means, for example, that if there are two Interface scripts that 
+     * to receive messages on a specific channel. This means, for example, that if there are two Interface scripts that 
      * subscribe to different channels, both scripts will receive messages on both channels.
      * @function Messages.subscribe
      * @param {string} channel - The channel to subscribe to.

@@ -363,8 +363,6 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
-    std::unordered_map<int, QVector<BlendshapeOffset>> _blendshapeOffsets;
-
 public slots:
     void loadURLFinished(bool success);
 
@@ -446,7 +444,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber { 0 };
-    bool _blendshapeOffsetsInitialized { false };
 
     mutable QMutex _mutex{ QMutex::Recursive };
 
@@ -508,8 +505,6 @@ protected:
     bool _cauterized { false };
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
-
-    void initializeBlendshapes(const HFMMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };

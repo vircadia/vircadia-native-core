@@ -249,12 +249,19 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
                 btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShapeByKey(requestItr->shapeHash));
                 if (shape) {
                     // shape is ready at last!
-                    // But the entity's desired shape might have changed since last requested
-                    // --> rebuild the ShapeInfo to verify hash
+                    // but the entity's physics desired physics status may have changed since last requested
+                    if (!entity->shouldBePhysical()) {
+                        requestItr = _shapeRequests.erase(requestItr);
+                        continue;
+                    }
+                    // rebuild the ShapeInfo to verify hash because entity's desired shape may have changed
                     // TODO? is there a better way to do this?
                     ShapeInfo shapeInfo;
                     entity->computeShapeInfo(shapeInfo);
-                    if (shapeInfo.getHash() != requestItr->shapeHash) {
+
+                    if (shapeInfo.getType() == SHAPE_TYPE_NONE) {
+                        requestItr = _shapeRequests.erase(requestItr);
+                    } else if (shapeInfo.getHash() != requestItr->shapeHash) {
                         // bummer, the hashes are different and we no longer want the shape we've received
                         ObjectMotionState::getShapeManager()->releaseShape(shape);
                         // try again

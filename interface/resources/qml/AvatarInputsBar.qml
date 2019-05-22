@@ -16,6 +16,7 @@ import TabletScriptingInterface 1.0
 
 Item {
     id: root;
+    visible: AvatarInputs.showAudioTools || AvatarInputs.showBubbleTools
     objectName: "AvatarInputsBar"
     property int modality: Qt.NonModal
     readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
@@ -58,6 +59,6 @@ Item {
 
     BubbleIcon {
         dragTarget: parent
-        visible: !root.hmdActive;
+        visible: !root.hmdActive && AvatarInputs.showBubbleTools;
     }
 }

@@ -192,9 +192,8 @@
 #include "scripting/WalletScriptingInterface.h"
 #include "scripting/TTSScriptingInterface.h"
 #include "scripting/KeyboardScriptingInterface.h"
-#include "scripting/RefreshRateScriptingInterface.h"
-
-
+#include "scripting/PerformanceScriptingInterface.h"
+#include "scripting/RenderScriptingInterface.h"
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -249,17 +248,6 @@
 
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
-
-#ifdef DEBUG_EVENT_QUEUE
-// This is a HACK that uses private headers included with the qt source distrubution.
-// To use this feature you need to add these directores to your include path:
-// E:/Qt/5.10.1/Src/qtbase/include/QtCore/5.10.1/QtCore
-// E:/Qt/5.10.1/Src/qtbase/include/QtCore/5.10.1
-#define QT_BOOTSTRAPPED
-#include <private/qthread_p.h>
-#include <private/qobject_p.h>
-#undef QT_BOOTSTRAPPED
-#endif
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -441,6 +429,7 @@ public:
             auto elapsedMovingAverage = _movingAverage.getAverage();
 
             if (elapsedMovingAverage > _maxElapsedAverage) {
+#if !defined(NDEBUG)
                 qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
@@ -448,9 +437,11 @@ public:
                     << "PREVIOUS maxElapsedAverage:" << _maxElapsedAverage
                     << "NEW maxElapsedAverage:" << elapsedMovingAverage << "** NEW MAX ELAPSED AVERAGE **"
                     << "samples:" << _movingAverage.getSamples();
+#endif
                 _maxElapsedAverage = elapsedMovingAverage;
             }
             if (lastHeartbeatAge > _maxElapsed) {
+#if !defined(NDEBUG)
                 qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
                     << "elapsedMovingAverage:" << elapsedMovingAverage
@@ -458,8 +449,11 @@ public:
                     << "NEW maxElapsed:" << lastHeartbeatAge << "** NEW MAX ELAPSED **"
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
+#endif
                 _maxElapsed = lastHeartbeatAge;
             }
+
+#if !defined(NDEBUG)
             if (elapsedMovingAverage > WARNING_ELAPSED_HEARTBEAT) {
                 qCDebug(interfaceapp_deadlock) << "DEADLOCK WATCHDOG WARNING:"
                     << "lastHeartbeatAge:" << lastHeartbeatAge
@@ -468,6 +462,7 @@ public:
                     << "maxElapsedAverage:" << _maxElapsedAverage
                     << "samples:" << _movingAverage.getSamples();
             }
+#endif
 
             if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
                 qCDebug(interfaceapp_deadlock) << "DEADLOCK DETECTED -- "
@@ -1116,6 +1111,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Cairo-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-SemiBold.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Medium.ttf");
     _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
@@ -1192,13 +1190,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeListWeak] {
-        auto nodeList = nodeListWeak.lock();
-        if (!isServerlessMode() && nodeList) {
-            nodeList->sendDomainServerCheckIn();
-        }
-    });
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
         domainCheckInTimer->stop();
@@ -1300,8 +1292,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &Application::notifyPacketVersionMismatch);
 
     // you might think we could just do this in NodeList but we only want this connection for Interface
-    connect(&nodeList->getDomainHandler(), SIGNAL(limitOfSilentDomainCheckInsReached()),
-            nodeList.data(), SLOT(reset()));
+    connect(&nodeList->getDomainHandler(), &DomainHandler::limitOfSilentDomainCheckInsReached,
+        nodeList.data(), [nodeList]() {nodeList->reset("Domain checkin limit"); });
 
     auto dialogsManager = DependencyManager::get<DialogsManager>();
 #if defined(Q_OS_ANDROID)
@@ -2221,31 +2213,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
 
-        _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
-        foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-            if (displayPlugin->isHmd() &&
-                displayPlugin->getSupportsAutoSwitch()) {
-                _autoSwitchDisplayModeSupportedHMDPlugin = displayPlugin;
-                _autoSwitchDisplayModeSupportedHMDPluginName =
-                    _autoSwitchDisplayModeSupportedHMDPlugin->getName();
-                _previousHMDWornStatus =
-                    _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
-                break;
-            }
-        }
-
-        if (_autoSwitchDisplayModeSupportedHMDPlugin) {
-            if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin &&
-                !_autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
-                    startHMDStandBySession();
-            }
-            // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
-            // If the user wears HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
-            QTimer* autoSwitchDisplayModeTimer = new QTimer(this);
-            connect(autoSwitchDisplayModeTimer, SIGNAL(timeout()), this, SLOT(switchDisplayMode()));
-            autoSwitchDisplayModeTimer->start(INTERVAL_TO_CHECK_HMD_WORN_STATUS);
-        }
-
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
         properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemSize());
@@ -3002,9 +2969,19 @@ void Application::initializeDisplayPlugins() {
         if (displayPlugin->getName() == lastActiveDisplayPluginName) {
             targetDisplayPlugin = displayPlugin;
         }
+
+        if (!_autoSwitchDisplayModeSupportedHMDPlugin) {
+            if (displayPlugin->isHmd() && displayPlugin->getSupportsAutoSwitch()) {
+                _autoSwitchDisplayModeSupportedHMDPlugin = displayPlugin;
+                _autoSwitchDisplayModeSupportedHMDPluginName = _autoSwitchDisplayModeSupportedHMDPlugin->getName();
+                _previousHMDWornStatus = _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible() && _autoSwitchDisplayModeSupportedHMDPlugin->isActive();
+            }
+        }
+
         QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged,
             [this](const QSize& size) { resizeGL(); });
         QObject::connect(displayPlugin.get(), &DisplayPlugin::resetSensorsRequested, this, &Application::requestReset);
+
         if (displayPlugin->isHmd()) {
             auto hmdDisplayPlugin = dynamic_cast<HmdDisplayPlugin*>(displayPlugin.get());
             QObject::connect(hmdDisplayPlugin, &HmdDisplayPlugin::hmdMountedChanged,
@@ -3020,6 +2997,17 @@ void Application::initializeDisplayPlugins() {
     // Now set the desired plugin if it's not the same as the default plugin
     if (targetDisplayPlugin && (targetDisplayPlugin != defaultDisplayPlugin)) {
         setDisplayPlugin(targetDisplayPlugin);
+    }
+
+    if (_autoSwitchDisplayModeSupportedHMDPlugin) {
+        if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin && !_autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
+            startHMDStandBySession();
+        }
+        // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
+        // If the user wears HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
+        QTimer* autoSwitchDisplayModeTimer = new QTimer(this);
+        connect(autoSwitchDisplayModeTimer, SIGNAL(timeout()), this, SLOT(switchDisplayMode()));
+        autoSwitchDisplayModeTimer->start(INTERVAL_TO_CHECK_HMD_WORN_STATUS);
     }
 
     // Submit a default frame to render until the engine starts up
@@ -3074,6 +3062,7 @@ void Application::initializeUi() {
     QmlContextCallback commerceCallback = [](QQmlContext* context) {
         context->setContextProperty("Commerce", DependencyManager::get<QmlCommerce>().data());
     };
+
     OffscreenQmlSurface::addWhitelistContextHandler({
         QUrl{ "hifi/commerce/checkout/Checkout.qml" },
         QUrl{ "hifi/commerce/common/CommerceLightbox.qml" },
@@ -3099,6 +3088,8 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
         QUrl{ "hifi/tablet/TabletMenu.qml" },
         QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
+        QUrl{ "hifi/simplifiedUI/avatarApp/AvatarApp.qml" },
+        QUrl{ "hifi/simplifiedUI/topBar/SimplifiedTopBar.qml" },
     }, commerceCallback);
 
     QmlContextCallback marketplaceCallback = [](QQmlContext* context) {
@@ -3272,7 +3263,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
 
     surfaceContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     surfaceContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-    surfaceContext->setContextProperty("RefreshRate", new RefreshRateScriptingInterface());
+    surfaceContext->setContextProperty("Performance", new PerformanceScriptingInterface());
     _fileDownload = new FileScriptingInterface(engine);
     surfaceContext->setContextProperty("File", _fileDownload);
     connect(_fileDownload, &FileScriptingInterface::unzipResult, this, &Application::handleUnzip);
@@ -3330,7 +3321,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    surfaceContext->setContextProperty("Render", _graphicsEngine.getRenderEngine()->getConfiguration().get());
+    surfaceContext->setContextProperty("Render", RenderScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
@@ -3422,7 +3413,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
 
         surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-        surfaceContext->setContextProperty("RefreshRate", new RefreshRateScriptingInterface());
+        surfaceContext->setContextProperty("Performance", new PerformanceScriptingInterface());
 
         surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
@@ -3445,7 +3436,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
         surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
         surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
-        surfaceContext->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
+        surfaceContext->setContextProperty("Render", RenderScriptingInterface::getInstance());
         surfaceContext->setContextProperty("Workload", qApp->getGameWorkload()._engine->getConfiguration().get());
         surfaceContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
         surfaceContext->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
@@ -3889,6 +3880,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
 }
 
 void Application::setIsServerlessMode(bool serverlessDomain) {
+    DependencyManager::get<NodeList>()->setSendDomainServerCheckInEnabled(!serverlessDomain);
     auto tree = getEntities()->getTree();
     if (tree) {
         tree->setIsServerlessMode(serverlessDomain);
@@ -4022,24 +4014,6 @@ bool Application::handleFileOpenEvent(QFileOpenEvent* fileEvent) {
     return false;
 }
 
-#ifdef DEBUG_EVENT_QUEUE
-static int getEventQueueSize(QThread* thread) {
-    auto threadData = QThreadData::get2(thread);
-    QMutexLocker locker(&threadData->postEventList.mutex);
-    return threadData->postEventList.size();
-}
-
-static void dumpEventQueue(QThread* thread) {
-    auto threadData = QThreadData::get2(thread);
-    QMutexLocker locker(&threadData->postEventList.mutex);
-    qDebug() << "Event list, size =" << threadData->postEventList.size();
-    for (auto& postEvent : threadData->postEventList) {
-        QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
-        qDebug() << "    " << type;
-    }
-}
-#endif // DEBUG_EVENT_QUEUE
-
 bool Application::notify(QObject * object, QEvent * event) {
     if (thread() == QThread::currentThread()) {
         PROFILE_RANGE_IF_LONGER(app, "notify", 2)
@@ -4075,14 +4049,16 @@ bool Application::event(QEvent* event) {
         case ApplicationEvent::Idle:
             idle();
 
-#ifdef DEBUG_EVENT_QUEUE
+#ifdef DEBUG_EVENT_QUEUE_DEPTH
+            // The event queue may very well grow beyond 400, so 
+            // this code should only be enabled on local builds
             {
-                int count = getEventQueueSize(QThread::currentThread());
+                int count = ::hifi::qt::getEventQueueSize(QThread::currentThread());
                 if (count > 400) {
-                    dumpEventQueue(QThread::currentThread());
+                    ::hifi::qt::dumpEventQueue(QThread::currentThread());
                 }
             }
-#endif // DEBUG_EVENT_QUEUE
+#endif // DEBUG_EVENT_QUEUE_DEPTH
 
             _pendingIdleEvent.store(false);
 
@@ -5458,9 +5434,7 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     // fire off an immediate domain-server check in now that settings are loaded
-    if (!isServerlessMode()) {
-        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
-    }
+    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "sendDomainServerCheckIn");
 
     // This allows collision to be set up properly for shape entities supported by GeometryCache.
     // This is before entity setup to ensure that it's ready for whenever instance collision is initialized.
@@ -7406,7 +7380,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
 
     scriptEngine->registerGlobalObject("Keyboard", DependencyManager::get<KeyboardScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("RefreshRate", new RefreshRateScriptingInterface);
+    scriptEngine->registerGlobalObject("Performance", new PerformanceScriptingInterface());
 
     scriptEngine->registerGlobalObject("Paths", DependencyManager::get<PathUtils>().data());
 
@@ -7415,7 +7389,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Render", _graphicsEngine.getRenderEngine()->getConfiguration().get());
+    scriptEngine->registerGlobalObject("Render", RenderScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Workload", _gameWorkload._engine->getConfiguration().get());
 
     GraphicsScriptingInterface::registerMetaTypes(scriptEngine.data());
@@ -8956,6 +8930,7 @@ void Application::switchDisplayMode() {
     if (!_autoSwitchDisplayModeSupportedHMDPlugin) {
         return;
     }
+
     bool currentHMDWornStatus = _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
     if (currentHMDWornStatus != _previousHMDWornStatus) {
         // Switch to respective mode as soon as currentHMDWornStatus changes

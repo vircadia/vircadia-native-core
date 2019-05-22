@@ -10,7 +10,6 @@
 //
 
 #include "SafeLanding.h"
-
 #include <SharedUtil.h>
 
 #include "EntityTreeRenderer.h"
@@ -35,24 +34,26 @@ bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const
 }
 
 void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
-    auto entityTree = entityTreeRenderer->getTree();
 
-    if (entityTree) {
-        Locker lock(_lock);
-        _entityTree = entityTree;
-        _trackedEntities.clear();
-        _trackingEntities = true;
-        _maxTrackedEntityCount = 0;
-        connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
-            &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
-        connect(std::const_pointer_cast<EntityTree>(_entityTree).get(),
-            &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
+    if (!entityTreeRenderer.isNull()) {
+        auto entityTree = entityTreeRenderer->getTree();
+        if (entityTree) {
+            Locker lock(_lock);
+            _entityTreeRenderer = entityTreeRenderer;
+            _trackedEntities.clear();
+            _trackingEntities = true;
+            _maxTrackedEntityCount = 0;
+            connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity, Qt::DirectConnection);
+            connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
 
-        _sequenceNumbers.clear();
-        _initialStart = INVALID_SEQUENCE;
-        _initialEnd = INVALID_SEQUENCE;
-        _startTime = usecTimestampNow();
-        EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
+            _sequenceNumbers.clear();
+            _initialStart = INVALID_SEQUENCE;
+            _initialEnd = INVALID_SEQUENCE;
+            _startTime = usecTimestampNow();
+            EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
+        }
     }
 }
 
@@ -70,7 +71,12 @@ void SafeLanding::stopEntitySequence() {
 void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
     if (_trackingEntities) {
         Locker lock(_lock);
-        EntityItemPointer entity = _entityTree->findEntityByID(entityID);
+
+        if (_entityTreeRenderer.isNull() || _entityTreeRenderer->getTree() == nullptr) {
+            return;
+        }
+
+        EntityItemPointer entity = _entityTreeRenderer->getTree()->findEntityByID(entityID);
 
         if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
 
@@ -111,7 +117,7 @@ bool SafeLanding::isLoadSequenceComplete() {
         Locker lock(_lock);
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;
-        _entityTree = nullptr;
+        _entityTreeRenderer.clear();
         _trackingEntities = false; // Don't track anything else that comes in.
         EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
     }
@@ -158,7 +164,7 @@ bool SafeLanding::isSequenceNumbersComplete() {
     return false;
 }
 
-bool isEntityPhysicsReady(const EntityItemPointer& entity) {
+bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
     if (entity && !entity->getCollisionless()) {
         const auto& entityType = entity->getType();
         if (entityType == EntityTypes::Model) {
@@ -168,7 +174,10 @@ bool isEntityPhysicsReady(const EntityItemPointer& entity) {
             bool hasAABox;
             entity->getAABox(hasAABox);
             if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
-                return (!entity->shouldBePhysical() || entity->isInPhysicsSimulation() || modelEntity->computeShapeFailedToLoad());
+                auto space = _entityTreeRenderer->getWorkloadSpace();
+                uint8_t region = space ? space->getRegion(entity->getSpaceIndex()) : (uint8_t)workload::Region::INVALID;
+                bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+                return (!shouldBePhysical || entity->isInPhysicsSimulation() || modelEntity->computeShapeFailedToLoad());
             }
         }
     }

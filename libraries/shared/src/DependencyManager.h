@@ -89,7 +89,7 @@ private:
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
 
-    mutable QMutex _instanceHashMutex;
+    mutable QMutex _instanceHashMutex { QMutex::Recursive };
     mutable QMutex _inheritanceHashMutex;
 
     bool _exiting { false };

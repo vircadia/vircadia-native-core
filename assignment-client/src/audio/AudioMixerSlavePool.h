@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <QThread>
-
+#include <shared/QtHelpers.h>
 #include <TBBHelpers.h>
 
 #include "AudioMixerSlave.h"
@@ -71,6 +71,10 @@ public:
 
     // iterate over all slaves
     void each(std::function<void(AudioMixerSlave& slave)> functor);
+
+#ifdef DEBUG_EVENT_QUEUE
+    void queueStats(QJsonObject& stats);
+#endif
 
     void setNumThreads(int numThreads);
     int numThreads() { return _numThreads; }

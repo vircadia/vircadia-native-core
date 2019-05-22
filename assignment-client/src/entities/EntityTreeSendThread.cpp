@@ -372,7 +372,7 @@ bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstream
                     // Record explicitly filtered-in entity so that extra entities can be flagged.
                     entityNodeData->insertSentFilteredEntity(entityID);
                 }
-                OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
+                OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData, entityNode->getCanGetAndSetPrivateUserData());
 
                 if (appendEntityState != OctreeElement::COMPLETED) {
                     if (appendEntityState == OctreeElement::PARTIAL) {

@@ -412,7 +412,7 @@ AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
     auto otherAvatar = new OtherAvatar(qApp->thread());
     otherAvatar->setSessionUUID(sessionUUID);
     auto nodeList = DependencyManager::get<NodeList>();
-    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+    if (nodeList && !nodeList->isIgnoringNode(sessionUUID)) {
         otherAvatar->createOrb();
     }
     return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });
@@ -532,12 +532,31 @@ void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction
 }
 
 void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     for (auto entity : deadEntities) {
-        QUuid sessionID = entity->getOwningAvatarID();
-        AvatarSharedPointer avatar = getAvatarBySessionID(sessionID);
+        QUuid entityOwnerID = entity->getOwningAvatarID();
+        AvatarSharedPointer avatar = getAvatarBySessionID(entityOwnerID);
+        const bool REQUIRES_REMOVAL_FROM_TREE = false;
         if (avatar) {
-            const bool REQUIRES_REMOVAL_FROM_TREE = false;
             avatar->clearAvatarEntity(entity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+        }
+        if (entityTree && entity->isMyAvatarEntity()) {
+            entityTree->withWriteLock([&] {
+                // We only need to delete the direct children (rather than the descendants) because
+                // when the child is deleted, it will take care of its own children.  If the child
+                // is also an avatar-entity, we'll end up back here.  If it's not, the entity-server
+                // will take care of it in the usual way.
+                entity->forEachChild([&](SpatiallyNestablePointer child) {
+                    EntityItemPointer childEntity = std::dynamic_pointer_cast<EntityItem>(child);
+                    if (childEntity) {
+                        entityTree->deleteEntity(childEntity->getID(), true, true);
+                        if (avatar) {
+                            avatar->clearAvatarEntity(childEntity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+                        }
+                    }
+                });
+            });
         }
     }
 }

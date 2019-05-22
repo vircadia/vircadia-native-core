@@ -1,4 +1,4 @@
-﻿//
+//
 //  Application.h
 //  interface/src
 //
@@ -48,7 +48,6 @@
 #include <ThreadSafeValueCache.h>
 #include <shared/ConicalViewFrustum.h>
 #include <shared/FileLogger.h>
-
 #include <RunningMarker.h>
 
 #include "avatar/MyAvatar.h"
@@ -290,7 +289,6 @@ public:
     render::ScenePointer getMain3DScene() override { return _graphicsEngine.getRenderScene(); }
     render::EnginePointer getRenderEngine() override { return  _graphicsEngine.getRenderEngine(); }
     gpu::ContextPointer getGPUContext() const { return _graphicsEngine.getGPUContext(); }
-
 
     const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
@@ -808,7 +806,7 @@ private:
     std::queue<SnapshotOperator> _snapshotOperators;
     bool _hasPrimarySnapshot { false };
 
-    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
+    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin { nullptr };
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
     bool _previousHMDWornStatus;
     void startHMDStandBySession();

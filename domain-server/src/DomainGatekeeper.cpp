@@ -282,6 +282,7 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
             userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
             userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
+            userPerms.permissions |= NodePermissions::Permission::canGetAndSetPrivateUserData;
         } else {
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
@@ -374,6 +375,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
     userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
     userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
+    userPerms.permissions |= NodePermissions::Permission::canGetAndSetPrivateUserData;
     newNode->setPermissions(userPerms);
     return newNode;
 }
