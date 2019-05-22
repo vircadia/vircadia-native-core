@@ -68,21 +68,20 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: peopleVolume
-                property real lastValueSent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 height: 30
                 labelText: "People Volume"
-                from: -60.0
+                from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
                 stepSize: 5.0
-                value: AudioScriptingInterface.getAvatarGain()
+                value: AudioScriptingInterface.avatarGain
                 live: true
                 function updatePeopleGain(sliderValue) {
-                    if (AudioScriptingInterface.getAvatarGain() !== sliderValue) {
-                        AudioScriptingInterface.setAvatarGain(sliderValue);
+                    if (AudioScriptingInterface.avatarGain !== sliderValue) {
+                        AudioScriptingInterface.avatarGain = sliderValue;
                     }
                 }
                 onValueChanged: {
@@ -97,22 +96,21 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: environmentVolume
-                property real lastValueSent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: 2
                 height: 30
                 labelText: "Environment Volume"
-                from: -60.0
+                from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
                 stepSize: 5.0
-                value: AudioScriptingInterface.getInjectorGain()
+                value: AudioScriptingInterface.serverInjectorGain
                 live: true
                 function updateEnvironmentGain(sliderValue) {
-                    if (AudioScriptingInterface.getInjectorGain() !== sliderValue) {
-                        AudioScriptingInterface.setInjectorGain(sliderValue);
-                        AudioScriptingInterface.setLocalInjectorGain(sliderValue);
+                    if (AudioScriptingInterface.serverInjectorGain !== sliderValue) {
+                        AudioScriptingInterface.serverInjectorGain = sliderValue;
+                        AudioScriptingInterface.localInjectorGain = sliderValue;
                     }
                 }
                 onValueChanged: {
@@ -127,21 +125,20 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: systemSoundVolume
-                property real lastValueSent
                 anchors.left: parent.left
                 anchors.right: parent.right
                 Layout.topMargin: 2
                 height: 30
                 labelText: "System Sound Volume"
-                from: -60.0
+                from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
                 stepSize: 5.0
-                value: AudioScriptingInterface.getSystemInjectorGain()
+                value: AudioScriptingInterface.systemInjectorGain
                 live: true
                 function updateSystemGain(sliderValue) {
-                    if (AudioScriptingInterface.getSystemInjectorGain() !== sliderValue) {
-                        AudioScriptingInterface.setSystemInjectorGain(sliderValue);
+                    if (AudioScriptingInterface.systemInjectorGain !== sliderValue) {
+                        AudioScriptingInterface.systemInjectorGain = sliderValue;
                     }
                 }
                 onValueChanged: {
