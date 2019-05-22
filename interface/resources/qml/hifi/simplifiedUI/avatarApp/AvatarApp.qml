@@ -76,6 +76,8 @@ Rectangle {
             if (result.status !== "success") {
                 errorText.text = "There was a problem while retrieving your inventory. " +
                     "Please try closing and re-opening the Avatar app.\n\nInventory status: " + result.status + "\nMessage: " + result.message;
+            } else if (result.data && result.data.assets && result.data.assets.length === 0) {
+                errorText.text = "You have not created any avatars yet! Create an avatar with the Avatar Creator, then close and re-open the Avatar App."
             }
 
             avatarAppInventoryModel.handlePage(result.status !== "success" && result.message, result);
