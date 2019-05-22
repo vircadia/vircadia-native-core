@@ -352,7 +352,7 @@ public slots:
      * var notify = true;
      * var animated = true;
      * var aspect = 1920 / 1080;
-     * var filename = "";
+     * var filename = "example-snapshot";
      * Window.takeSnapshot(notify, animated, aspect, filename);
      */
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f, const QString& filename = QString());
