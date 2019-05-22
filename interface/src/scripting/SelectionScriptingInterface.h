@@ -167,7 +167,7 @@ public:
      * Removes all items from a selection list.
      * @function Selection.clearSelectedItemsList
      * @param {string} listName - The name of the selection list.
-     * @returns {boolean} <code>true</code> zlways.
+     * @returns {boolean} <code>true</code> always.
      */
     Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 

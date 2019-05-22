@@ -44,7 +44,7 @@ SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
 /**jsdoc
- * The type of an item in a selection list.
+ * The type of a specific item in a selection list.
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
