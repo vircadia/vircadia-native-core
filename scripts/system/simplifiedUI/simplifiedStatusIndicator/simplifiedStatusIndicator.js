@@ -57,22 +57,21 @@ function simplifiedStatusIndicator(properties) {
             that.statusChanged();
         }
 
+        var queryParamString = "type=heartbeat";
+        queryParamString += "&username=" + AccountServices.username;
+
         var displayNameToSend = MyAvatar.sessionDisplayName;
-        queryParamString += currentStatus;
         if (displayNameToSend === "") {
             displayNameToSend = MyAvatar.displayName;
         }
-
-        var queryParamString = "type=heartbeat";
-        queryParamString += "&username=" + AccountServices.username;
         queryParamString += "&displayName=" + displayNameToSend;
-        queryParamString += "&status=";
-        queryParamString += currentStatus;
+        queryParamString += "&status=" + currentStatus;
+        queryParamString += "&organization=" + location.hostname;
 
         var uri = REQUEST_URL + "?" + queryParamString;
 
         if (DEBUG) {
-            console.log("setStatus: " + uri);
+            console.log("simplifiedStatusIndicator: setStatus: " + uri);
         }
 
         request({
@@ -95,7 +94,7 @@ function simplifiedStatusIndicator(properties) {
         var uri = REQUEST_URL + "?" + queryParamString;
 
         if (DEBUG) {
-            console.log("getStatus: " + uri);
+            console.log("simplifiedStatusIndicator: getStatus: " + uri);
         }
 
         request({
@@ -173,7 +172,7 @@ function simplifiedStatusIndicator(properties) {
         var uri = REQUEST_URL + "?" + queryParamString;
 
         if (DEBUG) {
-            console.log("simplifiedStatusIndicator onDomainChanged: " + uri);
+            console.log("simplifiedStatusIndicator: onDomainChanged: " + uri);
         }
 
         request({
@@ -184,7 +183,7 @@ function simplifiedStatusIndicator(properties) {
             } else {
                 // successfully sent updateLocation
                 if (DEBUG) {
-                    console.log("Successfully updated location after domain change.");
+                    console.log("simplifiedStatusIndicator: Successfully updated location after domain change.");
                 }
             }
         });
