@@ -1068,6 +1068,8 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     // update the connecting hostname in case it has changed
     nodeData->setPlaceName(nodeRequestData.placeName);
 
+    nodeData->setLastDomainCheckinTimestamp(nodeRequestData.lastPingTimestamp);
+
     sendDomainListToNode(sendingNode, message->getSenderSockAddr());
 }
 
@@ -1173,6 +1175,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     QDataStream domainListStream(domainListPackets.get());
 
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+
+    domainListStream << nodeData->getLastDomainCheckinTimestamp();
+
+    domainListStream << usecTimestampNow();
 
     // store the nodeInterestSet on this DomainServerNodeData, in case it has changed
     auto& nodeInterestSet = nodeData->getNodeInterestSet();
