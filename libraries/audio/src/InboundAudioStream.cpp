@@ -366,8 +366,9 @@ int InboundAudioStream::popSamples(int maxSamples, bool allOrNothing) {
             _consecutiveNotMixedCount++;
             //Kick PLC to generate a filler frame, reducing 'click'
             lostAudioData(allOrNothing ? (maxSamples - samplesAvailable) / _ringBuffer.getNumFrameSamples() : 1);
-            samplesPopped = _ringBuffer.samplesAvailable();
-            if (samplesPopped) {
+            samplesAvailable = _ringBuffer.samplesAvailable();
+            if (samplesAvailable > 0) {
+                samplesPopped = std::min(samplesAvailable, maxSamples);
                 popSamplesNoCheck(samplesPopped);
             } else {
                 // No samples available means a packet is currently being
