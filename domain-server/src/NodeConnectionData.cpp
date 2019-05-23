@@ -36,8 +36,6 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
         // now the machine fingerprint
         dataStream >> newHeader.machineFingerprint;
     }
-
-    dataStream >> newHeader.lastPingTimestamp;
     
     dataStream >> newHeader.nodeType
         >> newHeader.publicSockAddr >> newHeader.localSockAddr
