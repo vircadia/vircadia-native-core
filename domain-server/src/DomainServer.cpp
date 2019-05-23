@@ -1160,7 +1160,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     // this data is at the beginning of each of the domain list packets
     QByteArray extendedHeader(NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES, 0);
     QDataStream extendedHeaderStream(&extendedHeader, QIODevice::WriteOnly);
-
+    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
     auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
     extendedHeaderStream << limitedNodeList->getSessionUUID();
@@ -1169,16 +1169,12 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     extendedHeaderStream << node->getLocalID();
     extendedHeaderStream << node->getPermissions();
     extendedHeaderStream << limitedNodeList->getAuthenticatePackets();
+    extendedHeaderStream << nodeData->getLastDomainCheckinTimestamp();
+    extendedHeaderStream << usecTimestampNow();
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
     QDataStream domainListStream(domainListPackets.get());
-
-    DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
-
-    domainListStream << nodeData->getLastDomainCheckinTimestamp();
-
-    domainListStream << usecTimestampNow();
 
     // store the nodeInterestSet on this DomainServerNodeData, in case it has changed
     auto& nodeInterestSet = nodeData->getNodeInterestSet();

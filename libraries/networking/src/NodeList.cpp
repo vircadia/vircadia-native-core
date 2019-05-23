@@ -646,14 +646,14 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     packetStream >> isAuthenticated;
 
     quint64 connectRequestTimestamp;
-    quint64 now = usecTimestampNow();
+    qint64 now = (qint64)usecTimestampNow();
     packetStream >> connectRequestTimestamp;
-    quint64 pingLagTime = (now - connectRequestTimestamp) / USECS_PER_MSEC;
+    qint64 pingLagTime = (now - (qint64)connectRequestTimestamp) / (qint64)USECS_PER_MSEC;
     quint64 domainServerPingReceiveTime;
 
     packetStream >> domainServerPingReceiveTime;
-    quint64 domainServerRequestLag = (domainServerPingReceiveTime - connectRequestTimestamp) / USECS_PER_MSEC;
-    quint64 domainServerResponseLag = (now - domainServerPingReceiveTime) / USECS_PER_MSEC;
+    qint64 domainServerRequestLag = ((qint64)domainServerPingReceiveTime - (qint64)connectRequestTimestamp) / (qint64)USECS_PER_MSEC;
+    qint64 domainServerResponseLag = (now - (qint64)domainServerPingReceiveTime) / (qint64)USECS_PER_MSEC;
 
     if (_domainHandler.getSockAddr().isNull()) {
         qWarning(networking) << "IGNORING DomainList packet while not connected to a Domain Server: sent " << pingLagTime << " msec ago.";
