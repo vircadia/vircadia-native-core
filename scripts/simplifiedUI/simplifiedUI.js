@@ -103,6 +103,8 @@ var AVATAR_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var AVATAR_APP_WIDTH_PX = 480;
 var AVATAR_APP_HEIGHT_PX = 615;
 var avatarAppWindow = false;
+var POPOUT_SAFE_MARGIN_X = 30;
+var POPOUT_SAFE_MARGIN_Y = 30;
 function toggleAvatarApp() {
     if (avatarAppWindow) {
         avatarAppWindow.close();
@@ -119,6 +121,10 @@ function toggleAvatarApp() {
         size: {
             x: AVATAR_APP_WIDTH_PX,
             y: AVATAR_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - AVATAR_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - AVATAR_APP_HEIGHT_PX / 2)
         }
     });
 
@@ -181,6 +187,10 @@ function toggleSettingsApp() {
         size: {
             x: SETTINGS_APP_WIDTH_PX,
             y: SETTINGS_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - SETTINGS_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - SETTINGS_APP_HEIGHT_PX / 2)
         }
     });
 

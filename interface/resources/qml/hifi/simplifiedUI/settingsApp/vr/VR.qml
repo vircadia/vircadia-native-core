@@ -198,8 +198,7 @@ Flickable {
 
             ListView {
                 id: inputDeviceListView
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
@@ -214,8 +213,10 @@ Flickable {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width - inputLevel.width
+                        height: 16
                         checked: selectedHMD
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: inputDeviceButtonGroup
                         onClicked: {
                             AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
@@ -262,7 +263,6 @@ Flickable {
 
                 id: testYourMicButton
                 enabled: HMD.active
-                anchors.left: parent.left
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
                 height: 32
@@ -297,8 +297,7 @@ Flickable {
 
             ListView {
                 id: outputDeviceListView
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
@@ -313,11 +312,13 @@ Flickable {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width
-                        checked: selectedDesktop
+                        height: 16
+                        checked: selectedHMD
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: outputDeviceButtonGroup
                         onClicked: {
-                            AudioScriptingInterface.setOutputDevice(model.info, true); // `false` argument for Desktop mode setting
+                            AudioScriptingInterface.setOutputDevice(model.info, true); // `true` argument for VR mode setting
                         }
                     }
                 }
@@ -363,7 +364,6 @@ Flickable {
 
                 id: testYourSoundButton
                 enabled: HMD.active
-                anchors.left: parent.left
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
                 height: 32
