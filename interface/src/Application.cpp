@@ -9355,6 +9355,16 @@ void Application::showUrlHandler(const QUrl& url) {
     });
 }
 
+void Application::forceDisplayName(const QString& displayName) {
+    getMyAvatar()->setDisplayName(displayName);
+}
+void Application::forceLogginWithTokens(const QString& tokens) {
+    DependencyManager::get<AccountManager>()->setAccessTokens(tokens);
+}
+void Application::setConfigFileURL(const QString& fileUrl) {
+    DependencyManager::get<AccountManager>()->setConfigFileURL(fileUrl);
+}
+
 #if defined(Q_OS_ANDROID)
 void Application::beforeEnterBackground() {
     auto nodeList = DependencyManager::get<NodeList>();

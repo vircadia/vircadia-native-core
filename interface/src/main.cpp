@@ -84,6 +84,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
     QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
+    QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
 
     parser.addOption(urlOption);
     parser.addOption(noLauncherOption);
@@ -95,6 +96,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
     parser.addOption(responseTokensOption);
+    parser.addOption(displayNameOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
@@ -403,16 +405,18 @@ int main(int argc, const char* argv[]) {
 
         printSystemInformation();
 
-        if (!launcherPath.isEmpty() || parser.isSet(responseTokensOption)) {
-            auto accountManager = DependencyManager::get<AccountManager>();
-            if (!accountManager.isNull()) {
-                if (!launcherPath.isEmpty()) {
-                    accountManager->setConfigFileURL(configFileName);
-                }
-                if (parser.isSet(responseTokensOption)) {
-                    QString tokens = QString(parser.value(responseTokensOption));
-                    accountManager->setAccessTokens(tokens);
-                } 
+        auto appPointer = dynamic_cast<Application*>(&app);
+        if (appPointer) {
+            if (parser.isSet(displayNameOption)) {
+                QString displayName = QString(parser.value(displayNameOption));
+                appPointer->forceDisplayName(displayName);
+            }
+            if (!launcherPath.isEmpty()) {
+                appPointer->setConfigFileURL(configFileName);
+            }
+            if (parser.isSet(responseTokensOption)) {
+                QString tokens = QString(parser.value(responseTokensOption));
+                appPointer->forceLogginWithTokens(tokens);
             }
         }
 

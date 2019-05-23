@@ -356,6 +356,10 @@ public:
 
     void openDirectory(const QString& path);
 
+    void forceDisplayName(const QString& displayName);
+    void forceLogginWithTokens(const QString& tokens);
+    void setConfigFileURL(const QString& fileUrl);
+
 signals:
     void svoImportRequested(const QString& url);
 
