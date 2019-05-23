@@ -60,7 +60,7 @@ Flickable {
             HifiStylesUit.GraphikRegular {
                 id: volumeControlsTitle
                 text: "Volume Controls"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
@@ -68,8 +68,7 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: peopleVolume
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 height: 30
                 labelText: "People Volume"
@@ -96,8 +95,7 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: environmentVolume
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: 2
                 height: 30
                 labelText: "Environment Volume"
@@ -125,8 +123,7 @@ Flickable {
 
             SimplifiedControls.Slider {
                 id: systemSoundVolume
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: 2
                 height: 30
                 labelText: "System Sound Volume"
@@ -212,8 +209,7 @@ Flickable {
 
             ListView {
                 id: inputDeviceListView
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
@@ -228,7 +224,7 @@ Flickable {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width - inputLevel.width
-                        height: paintedHeight
+                        height: 16
                         wrapLabel: false
                         checked: selectedDesktop
                         text: model.devicename
@@ -251,6 +247,7 @@ Flickable {
             }
 
             SimplifiedControls.Button {
+                id: audioLoopbackButton
                 property bool audioLoopedBack: AudioScriptingInterface.getLocalEcho()
                 
                 function startAudioLoopback() {
@@ -266,29 +263,23 @@ Flickable {
                     }
                 }
 
-                Timer {
-                    id: loopbackTimer
-                    interval: 8000
-                    running: false
-                    repeat: false
-                    onTriggered: {
+                Component.onDestruction: stopAudioLoopback();
+
+                onVisibleChanged: {
+                    if (!visible) {
                         stopAudioLoopback();
                     }
                 }
 
-                id: testYourMicButton
                 enabled: !HMD.active
-                anchors.left: parent.left
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
                 height: 32
                 text: audioLoopedBack ? "STOP TESTING" : "TEST YOUR MIC"
                 onClicked: {
                     if (audioLoopedBack) {
-                        loopbackTimer.stop();
                         stopAudioLoopback();
                     } else {
-                        loopbackTimer.restart();
                         startAudioLoopback();
                     }
                 }
@@ -313,8 +304,7 @@ Flickable {
 
             ListView {
                 id: outputDeviceListView
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
@@ -329,7 +319,7 @@ Flickable {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width
-                        height: paintedHeight
+                        height: 16
                         checked: selectedDesktop
                         text: model.devicename
                         wrapLabel: false
@@ -381,7 +371,6 @@ Flickable {
 
                 id: testYourSoundButton
                 enabled: !HMD.active
-                anchors.left: parent.left
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
                 height: 32
