@@ -641,11 +641,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // pull the permissions/right/privileges for this node out of the stream
     NodePermissions newPermissions;
     packetStream >> newPermissions;
-    setPermissions(newPermissions);
     // Is packet authentication enabled?
     bool isAuthenticated;
     packetStream >> isAuthenticated;
-    setAuthenticatePackets(isAuthenticated);
 
     quint64 connectRequestTimestamp;
     quint64 now = usecTimestampNow();
@@ -688,6 +686,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         qWarning(networking) << "DomainList response lag (with skew): " << domainServerResponseLag << "msec";
         return;
     }
+
+    setPermissions(newPermissions);
+    setAuthenticatePackets(isAuthenticated);
 
     // when connected, if the session ID or local ID were not null and changed, we should reset
     auto currentLocalID = getSessionLocalID();
