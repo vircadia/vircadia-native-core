@@ -667,7 +667,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     }
 
     // warn if ping lag is getting long
-    if (pingLagTime > MSECS_PER_SECOND) {
+    if (pingLagTime > qint64(MSECS_PER_SECOND)) {
         qCDebug(networking) << "DomainList ping is lagging: " << pingLagTime << "msec";
         qCDebug(networking) << "DomainList request lag (with skew): " << domainServerRequestLag << "msec";
         qCDebug(networking) << "DomainList response lag (with skew): " << domainServerResponseLag << "msec";
