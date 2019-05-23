@@ -378,6 +378,8 @@ void JitterSample::configure(const Config& config) {
         }
     } else if (config.stop) {
         _sampleSequence.currentIndex = -1;
+    } else {
+        _sampleSequence.currentIndex = config.getIndex();
     }
     _scale = config.scale;
 }
@@ -392,10 +394,10 @@ void JitterSample::run(const render::RenderContextPointer& renderContext, Output
         }
     }
 
-    jitter.x = 0.0f;
-    jitter.y = 0.0f;
     if (current >= 0) {
         jitter = _sampleSequence.offsets[current];
+    } else {
+        jitter = glm::vec2(0.0f);
     }
 }
 

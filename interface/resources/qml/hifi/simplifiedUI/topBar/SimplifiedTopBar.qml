@@ -203,7 +203,10 @@ Rectangle {
 
         Image {
             id: outputDeviceButton
-            property bool outputMuted: false
+            property bool outputMuted: AudioScriptingInterface.avatarGain === simplifiedUI.numericConstants.mutedValue &&
+                AudioScriptingInterface.serverInjectorGain === simplifiedUI.numericConstants.mutedValue &&
+                AudioScriptingInterface.localInjectorGain === simplifiedUI.numericConstants.mutedValue &&
+                AudioScriptingInterface.systemInjectorGain === simplifiedUI.numericConstants.mutedValue
             source: outputDeviceButton.outputMuted ? "./images/outputDeviceMuted.svg" : "./images/outputDeviceLoud.svg"
             anchors.centerIn: parent
             width: 20
@@ -228,14 +231,80 @@ Rectangle {
             }
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
-                outputDeviceButton.outputMuted = !outputDeviceButton.outputMuted;
+
+                if (!outputDeviceButton.outputMuted && !AudioScriptingInterface.muted) {
+                    AudioScriptingInterface.muted = true;
+                }
 
                 sendToScript({
                     "source": "SimplifiedTopBar.qml",
                     "method": "setOutputMuted",
                     "data": {
-                        "outputMuted": outputDeviceButton.outputMuted
+                        "outputMuted": !outputDeviceButton.outputMuted
                     }
+                });
+            }
+        }
+    }
+
+
+    Item {
+        id: statusButtonContainer
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.left: outputDeviceButtonContainer.right
+        anchors.leftMargin: 8
+        width: 36
+        height: width
+
+        Rectangle {
+            id: statusButton
+            property string currentStatus
+            anchors.centerIn: parent
+            anchors.horizontalCenterOffset: 1
+            anchors.verticalCenterOffset: 2
+            width: 13
+            height: width
+            radius: width/2
+            visible: false
+        }
+
+        ColorOverlay {
+            anchors.fill: statusButton
+            opacity: statusButton.currentStatus ? 1 : 0
+            source: statusButton
+            color: if (statusButton.currentStatus === "busy") {
+                "#ff001a"
+            } else if (statusButton.currentStatus === "available") {
+                "#009036"
+            } else if (statusButton.currentStatus) {
+                "#ffed00"
+            }
+        }
+
+        Image {
+            id: focusIcon
+            source: "./images/focus.svg"
+            opacity: statusButtonMouseArea.containsMouse ? 1.0 : (statusButton.currentStatus === "busy" ? 0.7 : 0.3)
+            anchors.centerIn: parent
+            width: 36
+            height: 20
+            fillMode: Image.PreserveAspectFit
+        }
+
+        MouseArea {
+            id: statusButtonMouseArea
+            anchors.fill: parent
+            enabled: statusButton.currentStatus
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+
+                sendToScript({
+                    "source": "SimplifiedTopBar.qml",
+                    "method": "toggleStatus"
                 });
             }
         }
@@ -280,11 +349,6 @@ Rectangle {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 var displayPluginCount = Window.getDisplayPluginCount();
                 if (HMD.active) {
-                    // This next line seems backwards and shouldn't be necessary - the NOTIFY handler should
-                    // result in `displayModeImage.source` changing automatically - but that's not working.
-                    // This is working. So, I'm keeping it. 
-                    displayModeImage.source = "./images/vrMode.svg";
-
                     // Switch to desktop mode - selects first VR display plugin
                     for (var i = 0; i < displayPluginCount; i++) {
                         if (!Window.isDisplayPluginHmd(i)) {
@@ -293,11 +357,6 @@ Rectangle {
                         }
                     }
                 } else {
-                    // This next line seems backwards and shouldn't be necessary - the NOTIFY handler should
-                    // result in `displayModeImage.source` changing automatically - but that's not working.
-                    // This is working. So, I'm keeping it.
-                    displayModeImage.source = "./images/desktopMode.svg";
-
                     // Switch to VR mode - selects first HMD display plugin
                     for (var i = 0; i < displayPluginCount; i++) {
                         if (Window.isDisplayPluginHmd(i)) {
@@ -397,8 +456,8 @@ Rectangle {
                 }
                 break;
 
-            case "updateOutputMuted":
-                outputDeviceButton.outputMuted = message.data.outputMuted;
+            case "updateStatusButton":
+                statusButton.currentStatus = message.data.currentStatus;
                 break;
 
             default:

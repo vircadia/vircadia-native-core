@@ -238,40 +238,57 @@ function updateOutputDeviceMutedOverlay(isMuted) {
 }
 
 
-var savedAvatarGain = Audio.getAvatarGain();
-var savedInjectorGain = Audio.getInjectorGain();
-var savedLocalInjectorGain = Audio.getLocalInjectorGain();
-var savedSystemInjectorGain = Audio.getSystemInjectorGain();
+var savedAvatarGain = Audio.avatarGain;
+var savedServerInjectorGain = Audio.serverInjectorGain;
+var savedLocalInjectorGain = Audio.localInjectorGain;
+var savedSystemInjectorGain = Audio.systemInjectorGain;
+var MUTED_VALUE_DB = -60; // This should always match `SimplifiedConstants.qml` -> numericConstants -> mutedValue!
 function setOutputMuted(outputMuted) {
-    updateOutputDeviceMutedOverlay(outputMuted);
-
     if (outputMuted) {
-        savedAvatarGain = Audio.getAvatarGain();
-        savedInjectorGain = Audio.getInjectorGain();
-        savedLocalInjectorGain = Audio.getLocalInjectorGain();
-        savedSystemInjectorGain = Audio.getSystemInjectorGain();
+        savedAvatarGain = Audio.avatarGain;
+        savedServerInjectorGain = Audio.serverInjectorGain;
+        savedLocalInjectorGain = Audio.localInjectorGain;
+        savedSystemInjectorGain = Audio.systemInjectorGain;
 
-        Audio.setAvatarGain(-60);
-        Audio.setInjectorGain(-60);
-        Audio.setLocalInjectorGain(-60);
-        Audio.setSystemInjectorGain(-60);
+        Audio.avatarGain = MUTED_VALUE_DB;
+        Audio.serverInjectorGain = MUTED_VALUE_DB;
+        Audio.localInjectorGain = MUTED_VALUE_DB;
+        Audio.systemInjectorGain = MUTED_VALUE_DB;
     } else {
-        if (savedAvatarGain === -60) {
+        if (savedAvatarGain === MUTED_VALUE_DB) {
             savedAvatarGain = 0;
         }
-        Audio.setAvatarGain(savedAvatarGain);
-        if (savedInjectorGain === -60) {
-            savedInjectorGain = 0;
+        Audio.avatarGain = savedAvatarGain;
+        if (savedServerInjectorGain === MUTED_VALUE_DB) {
+            savedServerInjectorGain = 0;
         }
-        Audio.setInjectorGain(savedInjectorGain);
-        if (savedLocalInjectorGain === -60) {
+        Audio.serverInjectorGain = savedServerInjectorGain;
+        if (savedLocalInjectorGain === MUTED_VALUE_DB) {
             savedLocalInjectorGain = 0;
         }
-        Audio.setLocalInjectorGain(savedLocalInjectorGain);
-        if (savedSystemInjectorGain === -60) {
+        Audio.localInjectorGain = savedLocalInjectorGain;
+        if (savedSystemInjectorGain === MUTED_VALUE_DB) {
             savedSystemInjectorGain = 0;
         }
-        Audio.setSystemInjectorGain(savedSystemInjectorGain);
+        Audio.systemInjectorGain = savedSystemInjectorGain;
+    }
+}
+
+
+var WAIT_FOR_TOP_BAR_MS = 1000;
+function sendLocalStatusToQml() {
+    var currentStatus = si.getLocalStatus();
+    
+    if (topBarWindow && currentStatus) {
+        topBarWindow.sendToQml({
+            "source": "simplifiedUI.js",
+            "method": "updateStatusButton",
+            "data": {
+                "currentStatus": currentStatus
+            }
+        });
+    } else {
+        Script.setTimeout(sendLocalStatusToQml, WAIT_FOR_TOP_BAR_MS);
     }
 }
 
@@ -295,6 +312,10 @@ function onMessageFromTopBar(message) {
             setOutputMuted(message.data.outputMuted);
             break;
 
+        case "toggleStatus":
+            si.toggleStatus();
+            break;
+
         default:
             console.log("Unrecognized message from " + TOP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
@@ -312,7 +333,10 @@ function onTopBarClosed() {
 
 
 function isOutputMuted() {
-    return Audio.getAvatarGain() === -60 && Audio.getInjectorGain() === -60 && Audio.getLocalInjectorGain() === -60 && Audio.getSystemInjectorGain() === -60;
+    return Audio.avatarGain === MUTED_VALUE_DB &&
+        Audio.serverInjectorGain === MUTED_VALUE_DB &&
+        Audio.localInjectorGain === MUTED_VALUE_DB &&
+        Audio.systemInjectorGain === MUTED_VALUE_DB;
 }
 
 
@@ -346,13 +370,11 @@ function loadSimplifiedTopBar() {
     topBarWindow.fromQml.connect(onMessageFromTopBar);
     topBarWindow.closed.connect(onTopBarClosed);
 
-    topBarWindow.sendToQml({
-        "source": "simplifiedUI.js",
-        "method": "updateOutputMuted",
-        "data": {
-            "outputMuted": isOutputMuted()
-        }
-    })
+    // The eventbridge takes a nonzero time to initialize, so we have to wait a bit
+    // for the QML to load and for that to happen before updating the UI.
+    Script.setTimeout(function() {    
+        sendLocalStatusToQml();
+    },  WAIT_FOR_TOP_BAR_MS);
 }
 
 
@@ -435,7 +457,20 @@ function ensureFirstPersonCameraInHMD(isHMDMode) {
     }
 }
 
-var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js");
+
+function onStatusChanged() {
+    sendLocalStatusToQml();
+}
+
+
+function maybeUpdateOutputDeviceMutedOverlay() {
+    updateOutputDeviceMutedOverlay(isOutputMuted());
+}
+
+
+var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
+var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
+var si;
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -456,11 +491,19 @@ function startup() {
     loadSimplifiedTopBar();
 
     simplifiedNametag.create();
+    si = new SimplifiedStatusIndicator({
+        statusChanged: onStatusChanged
+    });
+    si.startup();
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(ensureFirstPersonCameraInHMD);
+    Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.serverInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.systemInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
 
     oldShowAudioTools = AvatarInputs.showAudioTools;
     AvatarInputs.showAudioTools = false;
@@ -506,10 +549,15 @@ function shutdown() {
     maybeDeleteOutputDeviceMutedOverlay();
 
     simplifiedNametag.destroy();
+    si.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(ensureFirstPersonCameraInHMD);
+    Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.serverInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.systemInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
 
     AvatarInputs.showAudioTools = oldShowAudioTools;
     AvatarInputs.showBubbleTools = oldShowBubbleTools;

@@ -19,8 +19,8 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: audioColumnLayout.height
-    topMargin: 16
-    bottomMargin: 16
+    topMargin: 24
+    bottomMargin: 24
     clip: true
 
     function changePeakValuesEnabled(enabled) {
@@ -73,14 +73,23 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 height: 30
                 labelText: "People Volume"
-                from: -60
-                to: 10
+                from: simplifiedUI.numericConstants.mutedValue
+                to: 20.0
                 defaultValue: 0.0
-                value: AudioScriptingInterface.getAvatarGain()
+                stepSize: 5.0
+                value: AudioScriptingInterface.avatarGain
                 live: true
+                function updatePeopleGain(sliderValue) {
+                    if (AudioScriptingInterface.avatarGain !== sliderValue) {
+                        AudioScriptingInterface.avatarGain = sliderValue;
+                    }
+                }
                 onValueChanged: {
-                    if (AudioScriptingInterface.getAvatarGain() != peopleVolume.value) {
-                        AudioScriptingInterface.setAvatarGain(peopleVolume.value);
+                    updatePeopleGain(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updatePeopleGain(value);
                     }
                 }
             }
@@ -92,14 +101,24 @@ Flickable {
                 Layout.topMargin: 2
                 height: 30
                 labelText: "Environment Volume"
-                from: -60
-                to: 10
+                from: simplifiedUI.numericConstants.mutedValue
+                to: 20.0
                 defaultValue: 0.0
-                value: AudioScriptingInterface.getInjectorGain()
+                stepSize: 5.0
+                value: AudioScriptingInterface.serverInjectorGain
                 live: true
+                function updateEnvironmentGain(sliderValue) {
+                    if (AudioScriptingInterface.serverInjectorGain !== sliderValue) {
+                        AudioScriptingInterface.serverInjectorGain = sliderValue;
+                        AudioScriptingInterface.localInjectorGain = sliderValue;
+                    }
+                }
                 onValueChanged: {
-                    if (AudioScriptingInterface.getInjectorGain() != environmentVolume.value) {
-                        AudioScriptingInterface.setInjectorGain(environmentVolume.value);
+                    updateEnvironmentGain(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateEnvironmentGain(value);
                     }
                 }
             }
@@ -111,14 +130,23 @@ Flickable {
                 Layout.topMargin: 2
                 height: 30
                 labelText: "System Sound Volume"
-                from: -60
-                to: 10
+                from: simplifiedUI.numericConstants.mutedValue
+                to: 20.0
                 defaultValue: 0.0
-                value: AudioScriptingInterface.getSystemInjectorGain()
+                stepSize: 5.0
+                value: AudioScriptingInterface.systemInjectorGain
                 live: true
+                function updateSystemGain(sliderValue) {
+                    if (AudioScriptingInterface.systemInjectorGain !== sliderValue) {
+                        AudioScriptingInterface.systemInjectorGain = sliderValue;
+                    }
+                }
                 onValueChanged: {
-                    if (AudioScriptingInterface.getSystemInjectorGain() != systemSoundVolume.value) {
-                        AudioScriptingInterface.setSystemInjectorGain(systemSoundVolume.value);
+                    updateSystemGain(value);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateSystemGain(value);
                     }
                 }
             }
@@ -189,7 +217,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
                 delegate: Item {
@@ -200,6 +228,8 @@ Flickable {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width - inputLevel.width
+                        height: paintedHeight
+                        wrapLabel: false
                         checked: selectedDesktop
                         text: model.devicename
                         ButtonGroup.group: inputDeviceButtonGroup
@@ -288,7 +318,7 @@ Flickable {
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output
                 delegate: Item {
@@ -299,8 +329,10 @@ Flickable {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width
+                        height: paintedHeight
                         checked: selectedDesktop
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: outputDeviceButtonGroup
                         onClicked: {
                             AudioScriptingInterface.setOutputDevice(model.info, false); // `false` argument for Desktop mode setting

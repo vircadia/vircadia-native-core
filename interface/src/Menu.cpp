@@ -49,17 +49,13 @@
 #include "DeferredLightingEffect.h"
 #include "PickManager.h"
 
-#include "LightingModel.h"
-#include "AmbientOcclusionEffect.h"
-#include "RenderShadowTask.h"
-#include "AntialiasingEffect.h"
-
 #include "scripting/SettingsScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
 
 #include "MeshPartPayload.h"
+#include "scripting/RenderScriptingInterface.h"
 
 extern bool DEV_DECIMATE_TEXTURES;
 
@@ -369,45 +365,14 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
 
-    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, true);
-    connect(action, &QAction::triggered, [action] {
-        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
-        if (renderConfig) {
-            auto mainViewJitterCamConfig = renderConfig->getConfig<JitterSample>("RenderMainView.JitterCam");
-            auto mainViewAntialiasingConfig = renderConfig->getConfig<Antialiasing>("RenderMainView.Antialiasing");
-            if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
-                if (action->isChecked()) {
-                    mainViewJitterCamConfig->play();
-                    mainViewAntialiasingConfig->setDebugFXAA(false);
-                } else {
-                    mainViewJitterCamConfig->none();
-                    mainViewAntialiasingConfig->setDebugFXAA(true);
-                }
-            }
-        }
-    });
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AntiAliasing, 0, RenderScriptingInterface::getInstance()->getAntialiasingEnabled(),
+        RenderScriptingInterface::getInstance(), SLOT(setAntialiasingEnabled(bool)));
 
-    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, true);
-    connect(action, &QAction::triggered, [action] {
-        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
-        if (renderConfig) {
-            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
-            if (lightingModelConfig) {
-                lightingModelConfig->setShadow(action->isChecked());
-            }
-        }
-    });
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, RenderScriptingInterface::getInstance()->getShadowsEnabled(),
+        RenderScriptingInterface::getInstance(), SLOT(setShadowsEnabled(bool)));
 
-    action = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion, 0, false);
-    connect(action, &QAction::triggered, [action] {
-        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
-        if (renderConfig) {
-            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
-            if (lightingModelConfig) {
-                lightingModelConfig->setAmbientOcclusion(action->isChecked());
-            }
-         }
-    });
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::AmbientOcclusion, 0, RenderScriptingInterface::getInstance()->getAmbientOcclusionEnabled(),
+        RenderScriptingInterface::getInstance(), SLOT(setAmbientOcclusionEnabled(bool)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DefaultSkybox, 0, true);
