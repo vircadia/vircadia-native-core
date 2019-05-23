@@ -521,6 +521,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             }
         }
     }
+    _otherAvatarsToChangeInPhysics.clear();
 }
 
 void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
@@ -645,7 +646,7 @@ void AvatarManager::clearOtherAvatars() {
 }
 
 void AvatarManager::deleteAllAvatars() {
-    assert(_otherAvatarsToChangeInPhysics.empty());
+    _otherAvatarsToChangeInPhysics.clear();
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
