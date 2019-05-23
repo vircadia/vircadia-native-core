@@ -5,7 +5,7 @@
 //  simplifiedUI.js
 //
 //  Authors: Wayne Chen & Zach Fox
-//  Created on: 5/1/2019
+//  Created: 2019-05-01
 //  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
