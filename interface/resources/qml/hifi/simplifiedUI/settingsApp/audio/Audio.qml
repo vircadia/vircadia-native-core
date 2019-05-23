@@ -247,6 +247,7 @@ Flickable {
             }
 
             SimplifiedControls.Button {
+                id: audioLoopbackButton
                 property bool audioLoopedBack: AudioScriptingInterface.getLocalEcho()
                 
                 function startAudioLoopback() {
@@ -262,17 +263,14 @@ Flickable {
                     }
                 }
 
-                Timer {
-                    id: loopbackTimer
-                    interval: 8000
-                    running: false
-                    repeat: false
-                    onTriggered: {
+                Component.onDestruction: stopAudioLoopback();
+
+                onVisibleChanged: {
+                    if (!visible) {
                         stopAudioLoopback();
                     }
                 }
 
-                id: testYourMicButton
                 enabled: !HMD.active
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
@@ -280,10 +278,8 @@ Flickable {
                 text: audioLoopedBack ? "STOP TESTING" : "TEST YOUR MIC"
                 onClicked: {
                     if (audioLoopedBack) {
-                        loopbackTimer.stop();
                         stopAudioLoopback();
                     } else {
-                        loopbackTimer.restart();
                         startAudioLoopback();
                     }
                 }
