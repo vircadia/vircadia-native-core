@@ -674,7 +674,7 @@ void AccountManager::setAccessTokens(const QString& response) {
             emit loginComplete(rootURL);
 
             persistAccountToFile();
-
+            saveLoginStatus(true);
             requestProfile();
         }
     } else {
@@ -931,8 +931,8 @@ void AccountManager::setLimitedCommerce(bool isLimited) {
 }
 
 void AccountManager::saveLoginStatus(bool isLoggedIn) {
-    if (_configFileURL.isValid()) {
-        QFile configFile(_configFileURL.toString());
+    if (!_configFileURL.isEmpty()) {
+        QFile configFile(_configFileURL);
         configFile.open(QIODevice::ReadOnly | QIODevice::Text);
         QJsonParseError error;
         QJsonDocument jsonDocument = QJsonDocument::fromJson(configFile.readAll(), &error);
@@ -940,12 +940,14 @@ void AccountManager::saveLoginStatus(bool isLoggedIn) {
         QString launcherPath;
         if (error.error == QJsonParseError::NoError) {
             QJsonObject rootObject = jsonDocument.object();
+            if (rootObject.contains("launcherPath")) {
+                launcherPath = rootObject["launcherPath"].toString();
+            }
             if (rootObject.contains("loggedIn")) {
                 rootObject["loggedIn"] = isLoggedIn;
             }
-            if (rootObject.contains("laucherPath")) {
-                launcherPath = rootObject["launcherPath"].isString();
-            }
+            jsonDocument = QJsonDocument(rootObject);
+
         }
         configFile.open(QFile::WriteOnly | QFile::Text | QFile::Truncate);
         configFile.write(jsonDocument.toJson());

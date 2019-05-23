@@ -122,8 +122,10 @@ int main(int argc, const char* argv[]) {
 
     static const QString APPLICATION_CONFIG_FILENAME = "config.json";
     QDir applicationDir(applicationPath);
-    QFile configFile(applicationDir.filePath(APPLICATION_CONFIG_FILENAME));
-    bool isConfigFileValid = false;
+    QString configFileName = applicationDir.filePath(APPLICATION_CONFIG_FILENAME);
+    QFile configFile(configFileName);
+    QString launcherPath;
+    
     if (configFile.exists()) {
         if (!configFile.open(QIODevice::ReadOnly)) {
             qWarning() << "Found application config, but could not open it";
@@ -136,9 +138,8 @@ int main(int argc, const char* argv[]) {
                 qWarning() << "Found application config, but could not parse it: " << error.errorString();
             } else {
                 static const QString LAUNCHER_PATH_KEY = "launcherPath";
-                QString launcherPath = doc.object()[LAUNCHER_PATH_KEY].toString();
+                launcherPath = doc.object()[LAUNCHER_PATH_KEY].toString();
                 if (!launcherPath.isEmpty()) {
-                    isConfigFileValid = true;
                     if (!parser.isSet(noLauncherOption)) {
                         qDebug() << "Found a launcherPath in application config. Starting launcher.";
                         QProcess launcher;
@@ -402,15 +403,16 @@ int main(int argc, const char* argv[]) {
 
         printSystemInformation();
 
-        if (isConfigFileValid || parser.isSet(responseTokensOption)) {
+        if (!launcherPath.isEmpty() || parser.isSet(responseTokensOption)) {
             auto accountManager = DependencyManager::get<AccountManager>();
             if (!accountManager.isNull()) {
+                if (!launcherPath.isEmpty()) {
+                    accountManager->setConfigFileURL(configFileName);
+                }
                 if (parser.isSet(responseTokensOption)) {
                     QString tokens = QString(parser.value(responseTokensOption));
                     accountManager->setAccessTokens(tokens);
-                } else if (isConfigFileValid) {
-                    accountManager->setConfigFileURL(configFile.fileName());
-                }
+                } 
             }
         }
 

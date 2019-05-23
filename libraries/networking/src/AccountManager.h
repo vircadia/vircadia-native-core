@@ -103,7 +103,7 @@ public:
     void setLimitedCommerce(bool isLimited);
 
     void setAccessTokens(const QString& response);
-    void setConfigFileURL(const QUrl& fileURL) { _configFileURL = fileURL; }
+    void setConfigFileURL(const QString& fileURL) { _configFileURL = fileURL; }
     void saveLoginStatus(bool isLoggedIn);
 
 public slots:
@@ -166,7 +166,7 @@ private:
     QUuid _sessionID { QUuid::createUuid() };
 
     bool _limitedCommerce { false };
-    QUrl _configFileURL;
+    QString _configFileURL;
 };
 
 #endif  // hifi_AccountManager_h
