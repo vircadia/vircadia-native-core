@@ -356,8 +356,9 @@ public:
 
     void openDirectory(const QString& path);
 
+    void overrideEntry();
     void forceDisplayName(const QString& displayName);
-    void forceLogginWithTokens(const QString& tokens);
+    void forceLoginWithTokens(const QString& tokens);
     void setConfigFileURL(const QString& fileUrl);
 
 signals:
@@ -832,5 +833,6 @@ private:
     bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
     bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
     bool _startUpFinished { false };
+    bool _overrideEntry { false };
 };
 #endif // hifi_Application_h

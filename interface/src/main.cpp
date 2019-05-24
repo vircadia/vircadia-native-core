@@ -407,6 +407,9 @@ int main(int argc, const char* argv[]) {
 
         auto appPointer = dynamic_cast<Application*>(&app);
         if (appPointer) {
+            if (parser.isSet(urlOption)) {
+                appPointer->overrideEntry();
+            }
             if (parser.isSet(displayNameOption)) {
                 QString displayName = QString(parser.value(displayNameOption));
                 appPointer->forceDisplayName(displayName);
@@ -416,7 +419,7 @@ int main(int argc, const char* argv[]) {
             }
             if (parser.isSet(responseTokensOption)) {
                 QString tokens = QString(parser.value(responseTokensOption));
-                appPointer->forceLogginWithTokens(tokens);
+                appPointer->forceLoginWithTokens(tokens);
             }
         }
 
