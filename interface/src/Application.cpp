@@ -6401,6 +6401,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("simulation");
 
         getEntities()->preUpdate();
+        _entitySimulation->removeDeadEntities();
 
         auto t0 = std::chrono::high_resolution_clock::now();
         auto t1 = t0;
