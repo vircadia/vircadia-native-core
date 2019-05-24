@@ -52,8 +52,8 @@ ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, Pa
                 const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID) :
     _data(byteArray),
     _headData(_data.mid(0, HEAD_DATA_SIZE)),
-    _firstPacketReceiveTime(0),
     _numPackets(1),
+    _firstPacketReceiveTime(0),
     _sourceID(sourceID),
     _packetType(packetType),
     _packetVersion(packetVersion),
