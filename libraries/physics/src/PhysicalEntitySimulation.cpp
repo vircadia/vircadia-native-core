@@ -214,6 +214,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _entitiesToRemoveFromPhysics.clear();
     _entitiesToAddToPhysics.clear();
     _incomingChanges.clear();
+    _entitiesToDeleteLater.clear();
 }
 
 // virtual
