@@ -307,15 +307,10 @@ void OffscreenQmlSurface::onRootContextCreated(QQmlContext* qmlContext) {
 #endif
 }
 
-void OffscreenQmlSurface::widgetContextForUrl(const QUrl& url, QQmlContext* context) {
-    
-    // Get any whitelist functionality
+void OffscreenQmlSurface::applyWhiteList(const QUrl& url, QQmlContext* context) {
     QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(url);
-    // If we have whitelisted content, we must load a new context
-    if(!callbacks.empty()){
-        for(const auto& callback : callbacks){
-            callback(context);
-        }
+    for(const auto& callback : callbacks){
+        callback(context);
     }
 }
 
