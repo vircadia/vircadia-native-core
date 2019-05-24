@@ -91,6 +91,7 @@ def parse_args():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force-bootstrap', action='store_true')
     parser.add_argument('--force-build', action='store_true')
+    parser.add_argument('--release-type', type=str, default="DEV", help="DEV, PR, or PRODUCTION")
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)

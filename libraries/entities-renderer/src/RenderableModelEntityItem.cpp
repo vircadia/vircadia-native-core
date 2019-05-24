@@ -363,7 +363,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     ShapeType type = getShapeType();
 
     auto model = getModel();
-    if (!model) {
+    if (!model || !model->isLoaded()) {
         type = SHAPE_TYPE_NONE;
     }
 

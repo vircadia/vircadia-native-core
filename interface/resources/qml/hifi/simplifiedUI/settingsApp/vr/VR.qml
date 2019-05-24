@@ -19,8 +19,8 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: vrColumnLayout.height
-    topMargin: 16
-    bottomMargin: 16
+    topMargin: 24
+    bottomMargin: 24
     clip: true
 
     function changePeakValuesEnabled(enabled) {
@@ -70,6 +70,7 @@ Flickable {
                 id: controlsRadioButtonGroup
                 width: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
 
                 ButtonGroup { id: controlsButtonGroup }
 
@@ -197,12 +198,11 @@ Flickable {
 
             ListView {
                 id: inputDeviceListView
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
                 delegate: Item {
@@ -213,8 +213,10 @@ Flickable {
                         id: inputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width - inputLevel.width
+                        height: 16
                         checked: selectedHMD
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: inputDeviceButtonGroup
                         onClicked: {
                             AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
@@ -234,6 +236,7 @@ Flickable {
             }
 
             SimplifiedControls.Button {
+                id: audioLoopbackButton
                 property bool audioLoopedBack: AudioScriptingInterface.getLocalEcho()
                 
                 function startAudioLoopback() {
@@ -249,29 +252,23 @@ Flickable {
                     }
                 }
 
-                Timer {
-                    id: loopbackTimer
-                    interval: 8000
-                    running: false
-                    repeat: false
-                    onTriggered: {
+                Component.onDestruction: stopAudioLoopback();
+
+                onVisibleChanged: {
+                    if (!visible) {
                         stopAudioLoopback();
                     }
                 }
 
-                id: testYourMicButton
                 enabled: HMD.active
-                anchors.left: parent.left
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
                 height: 32
                 text: audioLoopedBack ? "STOP TESTING" : "TEST YOUR MIC"
                 onClicked: {
                     if (audioLoopedBack) {
-                        loopbackTimer.stop();
                         stopAudioLoopback();
                     } else {
-                        loopbackTimer.restart();
                         startAudioLoopback();
                     }
                 }
@@ -296,12 +293,11 @@ Flickable {
 
             ListView {
                 id: outputDeviceListView
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
                 height: contentItem.height
-                spacing: 4
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output
                 delegate: Item {
@@ -312,11 +308,13 @@ Flickable {
                         id: outputDeviceCheckbox
                         anchors.left: parent.left
                         width: parent.width
-                        checked: selectedDesktop
+                        height: 16
+                        checked: selectedHMD
                         text: model.devicename
+                        wrapLabel: false
                         ButtonGroup.group: outputDeviceButtonGroup
                         onClicked: {
-                            AudioScriptingInterface.setOutputDevice(model.info, true); // `false` argument for Desktop mode setting
+                            AudioScriptingInterface.setOutputDevice(model.info, true); // `true` argument for VR mode setting
                         }
                     }
                 }
@@ -362,7 +360,6 @@ Flickable {
 
                 id: testYourSoundButton
                 enabled: HMD.active
-                anchors.left: parent.left
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 width: 160
                 height: 32

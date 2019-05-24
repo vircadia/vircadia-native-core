@@ -339,7 +339,7 @@ public:
      */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void updateDisplayNameAlpha(bool showDisplayName);

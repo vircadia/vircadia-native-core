@@ -2162,6 +2162,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         }
 
         bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
+        assert(bytesWritten <= maxSize);
+
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
         memset(data, 0, maxSize);
@@ -2173,7 +2175,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         Lock lock(_recordMutex);
         _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
     }
-
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);

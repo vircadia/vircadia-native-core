@@ -26,6 +26,9 @@
 class RenderScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString renderMethod READ getRenderMethod WRITE setRenderMethod)
+    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled)
+    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled)
+    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled)
 
 public:
     RenderScriptingInterface();
@@ -37,8 +40,8 @@ public slots:
      * Get a config for a job by name
      * @function Render.getConfig
      * @param {string} name - Can be:
-     *     - <job_name>.  Search for the first job named job_name traversing the the sub graph of task and jobs (from this task as root)
-     *     - <parent_name>.[<sub_parent_names>.]<job_name>.  Allows you to first look for the parent_name job (from this task as root) and then search from there for the
+     *     - <job_name>: Search for the first job named job_name traversing the the sub graph of task and jobs (from this task as root)
+     *     - <parent_name>.[<sub_parent_names>.]<job_name>:  Allows you to first look for the parent_name job (from this task as root) and then search from there for the
      *    optional sub_parent_names and finally from there looking for the job_name (assuming every job in the path is found)
      * @returns {object} The sub job config.
      */
@@ -58,8 +61,53 @@ public slots:
      */
     void setRenderMethod(const QString& renderMethod);
 
+    /**jsdoc
+     * Whether or not shadows are enabled
+     * @function Render.getShadowsEnabled
+     * @returns {bool} <code>true</code> if shadows are enabled, otherwise <code>false</code>
+     */
+    bool getShadowsEnabled();
+
+    /**jsdoc
+     * Enables or disables shadows
+     * @function Render.setShadowsEnabled
+     * @param {bool} enabled - <code>true</code> to enable shadows, <code>false</code> to disable them
+     */
+    void setShadowsEnabled(bool enabled);
+
+    /**jsdoc
+     * Whether or not ambient occlusion is enabled
+     * @function Render.getAmbientOcclusionEnabled
+     * @returns {bool} <code>true</code> if ambient occlusion is enabled, otherwise <code>false</code>
+     */
+    bool getAmbientOcclusionEnabled();
+
+    /**jsdoc
+     * Enables or disables ambient occlusion
+     * @function Render.setAmbientOcclusionEnabled
+     * @param {bool} enabled - <code>true</code> to enable ambient occlusion, <code>false</code> to disable it
+     */
+    void setAmbientOcclusionEnabled(bool enabled);
+
+    /**jsdoc
+     * Whether or not anti-aliasing is enabled
+     * @function Render.getAntialiasingEnabled
+     * @returns {bool} <code>true</code> if anti-aliasing is enabled, otherwise <code>false</code>
+     */
+    bool getAntialiasingEnabled();
+
+    /**jsdoc
+     * Enables or disables anti-aliasing
+     * @function Render.setAntialiasingEnabled
+     * @param {bool} enabled - <code>true</code> to enable anti-aliasing, <code>false</code> to disable it
+     */
+    void setAntialiasingEnabled(bool enabled);
+
 private:
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
+    Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
+    Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
+    Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
 };
 
 #endif  // hifi_RenderScriptingInterface_h

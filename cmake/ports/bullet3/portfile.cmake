@@ -25,14 +25,13 @@ vcpkg_from_github(
     HEAD_REF master
 )
 
-
 vcpkg_configure_cmake(
     SOURCE_PATH ${SOURCE_PATH}
     OPTIONS
         -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON
         -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON
-        -DUSE_GLUT=0 
-        -DUSE_DX11=0	
+        -DUSE_GLUT=0
+        -DUSE_DX11=0
         -DBUILD_DEMOS=OFF
         -DBUILD_OPENGL3_DEMOS=OFF
         -DBUILD_BULLET3=OFF

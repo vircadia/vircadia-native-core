@@ -20,8 +20,8 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: generalColumnLayout.height
-    topMargin: 16
-    bottomMargin: 16
+    topMargin: 24
+    bottomMargin: 24
     clip: true
 
     onAvatarNametagModeChanged: {
@@ -63,6 +63,7 @@ Flickable {
             ColumnLayout {
                 id: avatarNameTagsRadioButtonGroup
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
 
                 SimplifiedControls.RadioButton {
                     id: avatarNameTagsOff
@@ -110,6 +111,7 @@ Flickable {
             ColumnLayout {
                 id: performanceRadioButtonGroup
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
 
                 SimplifiedControls.RadioButton {
                     id: performanceLow
@@ -157,6 +159,7 @@ Flickable {
             ColumnLayout {
                 id: cameraRadioButtonGroup
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
 
                 SimplifiedControls.RadioButton {
                     id: firstPerson

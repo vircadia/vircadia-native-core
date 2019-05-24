@@ -91,10 +91,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished and we know our new username
-    connect(accountManager.data(), SIGNAL(usernameChanged(QString)) , this, SLOT(reset()));
+    connect(accountManager.data(), &AccountManager::usernameChanged , this, [this]{ reset("Username changed"); });
 
     // clear our NodeList when logout is requested
-    connect(accountManager.data(), SIGNAL(logoutComplete()) , this, SLOT(reset()));
+    connect(accountManager.data(), &AccountManager::logoutComplete , this, [this]{ reset("Logged out"); });
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -292,7 +292,8 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
-    // This function is called by the server check-in timer thread
+    // On ThreadedAssignments (assignment clients), this function
+    // is called by the server check-in timer thread
     // not the NodeList thread.  Calling it on the NodeList thread
     // resulted in starvation of the server check-in function.
     // be VERY CAREFUL modifying this code as members of NodeList

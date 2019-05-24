@@ -8,7 +8,6 @@
 //
 //    Click on someone to get a nametag for them
 //    
-
 var PickRayController = Script.require('./resources/modules/pickRayController.js?' + Date.now());
 var NameTagListManager = Script.require('./resources/modules/nameTagListManager.js?' + Date.now());
 var pickRayController = new PickRayController();
