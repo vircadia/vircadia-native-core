@@ -238,13 +238,15 @@ function getCorrectName(uuid) {
     var avatar = _this.avatars[uuid];
     var avatarInfo = avatar.avatarInfo;
 
-    var displayNameToUse = avatarInfo.sessionDisplayName;
+    var displayNameToUse = avatarInfo.sessionDisplayName.trim();
+    
     if (displayNameToUse === "") {
-        displayNameToUse = avatarInfo.displayName;
+        displayNameToUse = avatarInfo.displayName.trim();
     }
 
-
-    displayNameToUse= displayNameToUse === "" ? "anonymous" : displayNameToUse.trim();
+    if (displayNameToUse === "") {
+        displayNameToUse = "anonymous";
+    }
 
     return displayNameToUse;
 }
