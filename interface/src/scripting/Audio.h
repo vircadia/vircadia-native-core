@@ -66,6 +66,10 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} pushToTalkHMD - <code>true</code> if HMD push-to-talk is enabled, otherwise <code>false</code>.
      * @property {boolean} pushingToTalk - <code>true</code> if the user is currently pushing-to-talk, otherwise 
      *     <code>false</code>.
+     * @property {float} avatarGain - The gain (relative volume) that avatars' voices are played at. This gain is used at the server.
+     * @property {float} localInjectorGain - The gain (relative volume) that local injectors (local environment sounds) are played at.
+     * @property {float} serverInjectorGain - The gain (relative volume) that server injectors (server environment sounds) are played at. This gain is used at the server.
+     * @property {float} systemInjectorGain - The gain (relative volume) that system sounds are played at.
      *
      * @comment The following properties are from AudioScriptingInterface.h.
      * @property {boolean} isStereoInput - <code>true</code> if the input audio is being used in stereo, otherwise
@@ -90,6 +94,10 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool pushToTalkDesktop READ getPTTDesktop WRITE setPTTDesktop NOTIFY pushToTalkDesktopChanged)
     Q_PROPERTY(bool pushToTalkHMD READ getPTTHMD WRITE setPTTHMD NOTIFY pushToTalkHMDChanged)
     Q_PROPERTY(bool pushingToTalk READ getPushingToTalk WRITE setPushingToTalk NOTIFY pushingToTalkChanged)
+    Q_PROPERTY(float avatarGain READ getAvatarGain WRITE setAvatarGain NOTIFY avatarGainChanged)
+    Q_PROPERTY(float localInjectorGain READ getLocalInjectorGain WRITE setLocalInjectorGain NOTIFY localInjectorGainChanged)
+    Q_PROPERTY(float serverInjectorGain READ getInjectorGain WRITE setInjectorGain NOTIFY serverInjectorGainChanged)
+    Q_PROPERTY(float systemInjectorGain READ getSystemInjectorGain WRITE setSystemInjectorGain NOTIFY systemInjectorGainChanged)
 
 public:
     static QString AUDIO;
@@ -411,6 +419,38 @@ signals:
      * @returns {Signal}
      */
     void pushingToTalkChanged(bool talking);
+
+    /**jsdoc
+     * Triggered when the avatar gain changes.
+     * @function Audio.avatarGainChanged
+     * @param {float} gain - The new avatar gain value.
+     * @returns {Signal}
+     */
+    void avatarGainChanged(float gain);
+
+    /**jsdoc
+     * Triggered when the local injector gain changes.
+     * @function Audio.localInjectorGainChanged
+     * @param {float} gain - The new local injector gain value.
+     * @returns {Signal}
+     */
+    void localInjectorGainChanged(float gain);
+
+    /**jsdoc
+     * Triggered when the server injector gain changes.
+     * @function Audio.serverInjectorGainChanged
+     * @param {float} gain - The new server injector gain value.
+     * @returns {Signal}
+     */
+    void serverInjectorGainChanged(float gain);
+
+    /**jsdoc
+     * Triggered when the system injector gain changes.
+     * @function Audio.systemInjectorGainChanged
+     * @param {float} gain - The new system injector gain value.
+     * @returns {Signal}
+     */
+    void systemInjectorGainChanged(float gain);
 
 public slots:
 

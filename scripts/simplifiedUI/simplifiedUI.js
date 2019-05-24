@@ -5,7 +5,7 @@
 //  simplifiedUI.js
 //
 //  Authors: Wayne Chen & Zach Fox
-//  Created on: 5/1/2019
+//  Created: 2019-05-01
 //  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -103,6 +103,8 @@ var AVATAR_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var AVATAR_APP_WIDTH_PX = 480;
 var AVATAR_APP_HEIGHT_PX = 615;
 var avatarAppWindow = false;
+var POPOUT_SAFE_MARGIN_X = 30;
+var POPOUT_SAFE_MARGIN_Y = 30;
 function toggleAvatarApp() {
     if (avatarAppWindow) {
         avatarAppWindow.close();
@@ -119,6 +121,10 @@ function toggleAvatarApp() {
         size: {
             x: AVATAR_APP_WIDTH_PX,
             y: AVATAR_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - AVATAR_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - AVATAR_APP_HEIGHT_PX / 2)
         }
     });
 
@@ -181,6 +187,10 @@ function toggleSettingsApp() {
         size: {
             x: SETTINGS_APP_WIDTH_PX,
             y: SETTINGS_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - SETTINGS_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - SETTINGS_APP_HEIGHT_PX / 2)
         }
     });
 
@@ -238,40 +248,39 @@ function updateOutputDeviceMutedOverlay(isMuted) {
 }
 
 
-var savedAvatarGain = Audio.getAvatarGain();
-var savedInjectorGain = Audio.getInjectorGain();
-var savedLocalInjectorGain = Audio.getLocalInjectorGain();
-var savedSystemInjectorGain = Audio.getSystemInjectorGain();
+var savedAvatarGain = Audio.avatarGain;
+var savedServerInjectorGain = Audio.serverInjectorGain;
+var savedLocalInjectorGain = Audio.localInjectorGain;
+var savedSystemInjectorGain = Audio.systemInjectorGain;
+var MUTED_VALUE_DB = -60; // This should always match `SimplifiedConstants.qml` -> numericConstants -> mutedValue!
 function setOutputMuted(outputMuted) {
-    updateOutputDeviceMutedOverlay(outputMuted);
-
     if (outputMuted) {
-        savedAvatarGain = Audio.getAvatarGain();
-        savedInjectorGain = Audio.getInjectorGain();
-        savedLocalInjectorGain = Audio.getLocalInjectorGain();
-        savedSystemInjectorGain = Audio.getSystemInjectorGain();
+        savedAvatarGain = Audio.avatarGain;
+        savedServerInjectorGain = Audio.serverInjectorGain;
+        savedLocalInjectorGain = Audio.localInjectorGain;
+        savedSystemInjectorGain = Audio.systemInjectorGain;
 
-        Audio.setAvatarGain(-60);
-        Audio.setInjectorGain(-60);
-        Audio.setLocalInjectorGain(-60);
-        Audio.setSystemInjectorGain(-60);
+        Audio.avatarGain = MUTED_VALUE_DB;
+        Audio.serverInjectorGain = MUTED_VALUE_DB;
+        Audio.localInjectorGain = MUTED_VALUE_DB;
+        Audio.systemInjectorGain = MUTED_VALUE_DB;
     } else {
-        if (savedAvatarGain === -60) {
+        if (savedAvatarGain === MUTED_VALUE_DB) {
             savedAvatarGain = 0;
         }
-        Audio.setAvatarGain(savedAvatarGain);
-        if (savedInjectorGain === -60) {
-            savedInjectorGain = 0;
+        Audio.avatarGain = savedAvatarGain;
+        if (savedServerInjectorGain === MUTED_VALUE_DB) {
+            savedServerInjectorGain = 0;
         }
-        Audio.setInjectorGain(savedInjectorGain);
-        if (savedLocalInjectorGain === -60) {
+        Audio.serverInjectorGain = savedServerInjectorGain;
+        if (savedLocalInjectorGain === MUTED_VALUE_DB) {
             savedLocalInjectorGain = 0;
         }
-        Audio.setLocalInjectorGain(savedLocalInjectorGain);
-        if (savedSystemInjectorGain === -60) {
+        Audio.localInjectorGain = savedLocalInjectorGain;
+        if (savedSystemInjectorGain === MUTED_VALUE_DB) {
             savedSystemInjectorGain = 0;
         }
-        Audio.setSystemInjectorGain(savedSystemInjectorGain);
+        Audio.systemInjectorGain = savedSystemInjectorGain;
     }
 }
 
@@ -334,7 +343,10 @@ function onTopBarClosed() {
 
 
 function isOutputMuted() {
-    return Audio.getAvatarGain() === -60 && Audio.getInjectorGain() === -60 && Audio.getLocalInjectorGain() === -60 && Audio.getSystemInjectorGain() === -60;
+    return Audio.avatarGain === MUTED_VALUE_DB &&
+        Audio.serverInjectorGain === MUTED_VALUE_DB &&
+        Audio.localInjectorGain === MUTED_VALUE_DB &&
+        Audio.systemInjectorGain === MUTED_VALUE_DB;
 }
 
 
@@ -370,15 +382,7 @@ function loadSimplifiedTopBar() {
 
     // The eventbridge takes a nonzero time to initialize, so we have to wait a bit
     // for the QML to load and for that to happen before updating the UI.
-    Script.setTimeout(function() {
-        topBarWindow.sendToQml({
-            "source": "simplifiedUI.js",
-            "method": "updateOutputMuted",
-            "data": {
-                "outputMuted": isOutputMuted()
-            }
-        });
-    
+    Script.setTimeout(function() {    
         sendLocalStatusToQml();
     },  WAIT_FOR_TOP_BAR_MS);
 }
@@ -469,6 +473,11 @@ function onStatusChanged() {
 }
 
 
+function maybeUpdateOutputDeviceMutedOverlay() {
+    updateOutputDeviceMutedOverlay(isOutputMuted());
+}
+
+
 var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
 var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
 var si;
@@ -501,6 +510,10 @@ function startup() {
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(ensureFirstPersonCameraInHMD);
+    Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.serverInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.systemInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
 
     oldShowAudioTools = AvatarInputs.showAudioTools;
     AvatarInputs.showAudioTools = false;
@@ -551,6 +564,10 @@ function shutdown() {
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(ensureFirstPersonCameraInHMD);
+    Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.serverInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Audio.systemInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
 
     AvatarInputs.showAudioTools = oldShowAudioTools;
     AvatarInputs.showBubbleTools = oldShowBubbleTools;

@@ -30,6 +30,7 @@ Item {
     property alias live: sliderControl.live
     property alias stepSize: sliderControl.stepSize
     property alias snapMode: sliderControl.snapMode
+    property alias pressed: sliderControl.pressed
     property real defaultValue: 0.0
 
     HifiStylesUit.GraphikRegular {

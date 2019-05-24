@@ -221,4 +221,8 @@ QtObject {
             }
         }
     }
+
+    readonly property QtObject numericConstants: QtObject {
+        readonly property real mutedValue: -60.0
+    }
 }
