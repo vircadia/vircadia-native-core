@@ -1065,21 +1065,6 @@ void NetworkTexture::loadMetaContent(const QByteArray& content) {
         return;
     }
 
-    // Version 0 ktx skyboxes and ambient maps don't work on AMD anymore, so we fallback to the original texture
-    if (meta.version == 0 && _type == image::TextureUsage::Type::SKY_TEXTURE ||
-        _type == image::TextureUsage::Type::AMBIENT_TEXTURE && !meta.original.isEmpty()) {
-        _currentlyLoadingResourceType = ResourceType::ORIGINAL;
-        _activeUrl = _activeUrl.resolved(meta.original);
-
-        auto textureCache = DependencyManager::get<TextureCache>();
-        auto self = _self.lock();
-        if (!self) {
-            return;
-        }
-        QMetaObject::invokeMethod(this, "attemptRequest", Qt::QueuedConnection);
-        return;
-    }
-
     auto& backend = DependencyManager::get<TextureCache>()->getGPUContext()->getBackend();
     for (auto pair : meta.availableTextureTypes) {
         gpu::Element elFormat;

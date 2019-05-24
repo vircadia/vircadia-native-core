@@ -18,7 +18,6 @@
 #include "Batch.h"
 #include "TextureTable.h"
 
-
 #include "FrameIOKeys.h"
 
 namespace gpu {
@@ -324,6 +323,13 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     readOptional(ktxFile, node, keys::ktxFile);
     Element ktxTexelFormat, ktxMipFormat;
     if (!ktxFile.empty()) {
+        // If we get a texture that starts with ":" we need to re-route it to the resources directory
+        if (ktxFile.at(0) == ':') {
+            QString frameReaderPath = __FILE__;
+            frameReaderPath.replace("\\", "/");
+            frameReaderPath.replace("libraries/gpu/src/gpu/framereader.cpp", "interface/resources", Qt::CaseInsensitive);
+            ktxFile.replace(0, 1, frameReaderPath.toStdString());
+        }
         if (QFileInfo(ktxFile.c_str()).isRelative()) {
             ktxFile = basedir + ktxFile;
         }
