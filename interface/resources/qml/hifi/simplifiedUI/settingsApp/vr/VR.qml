@@ -199,9 +199,9 @@ Flickable {
             ListView {
                 id: inputDeviceListView
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: contentItem.height
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
-                height: contentItem.height
                 spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
@@ -294,9 +294,9 @@ Flickable {
             ListView {
                 id: outputDeviceListView
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: contentItem.height
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
-                height: contentItem.height
                 spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output

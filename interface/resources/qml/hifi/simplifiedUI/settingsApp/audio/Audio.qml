@@ -69,8 +69,8 @@ Flickable {
             SimplifiedControls.Slider {
                 id: peopleVolume
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: 30
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
-                height: 30
                 labelText: "People Volume"
                 from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
@@ -96,8 +96,8 @@ Flickable {
             SimplifiedControls.Slider {
                 id: environmentVolume
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: 30
                 Layout.topMargin: 2
-                height: 30
                 labelText: "Environment Volume"
                 from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
@@ -124,8 +124,8 @@ Flickable {
             SimplifiedControls.Slider {
                 id: systemSoundVolume
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: 30
                 Layout.topMargin: 2
-                height: 30
                 labelText: "System Sound Volume"
                 from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
@@ -169,8 +169,8 @@ Flickable {
 
                 SimplifiedControls.Switch {
                     id: muteMicrophoneSwitch
-                    width: parent.width
-                    height: 18
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
                     labelTextOn: "Mute Microphone"
                     checked: AudioScriptingInterface.mutedDesktop
                     onClicked: {
@@ -180,8 +180,8 @@ Flickable {
 
                 SimplifiedControls.Switch {
                     id: pushToTalkSwitch
-                    width: parent.width
-                    height: 18
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
                     labelTextOn: "Push to Talk - Press and Hold \"T\" to Talk"
                     checked: AudioScriptingInterface.pushToTalkDesktop
                     onClicked: {
@@ -210,9 +210,9 @@ Flickable {
             ListView {
                 id: inputDeviceListView
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: contentItem.height
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
-                height: contentItem.height
                 spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.input
@@ -305,9 +305,9 @@ Flickable {
             ListView {
                 id: outputDeviceListView
                 Layout.preferredWidth: parent.width
+                Layout.preferredHeight: contentItem.height
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
                 interactive: false
-                height: contentItem.height
                 spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
                 clip: true
                 model: AudioScriptingInterface.devices.output
