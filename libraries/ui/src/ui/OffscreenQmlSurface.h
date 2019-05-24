@@ -36,7 +36,7 @@ public:
     Q_INVOKABLE void lowerKeyboard();
     PointerEvent::EventType choosePointerEventType(QEvent::Type type);
     Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
-    QQmlContext* widgetContextForUrl(const QUrl& url);
+    void widgetContextForUrl(const QUrl& url,QQmlContext* context);
     
 signals:
     void focusObjectChanged(QObject* newFocus);
