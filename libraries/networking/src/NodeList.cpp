@@ -416,7 +416,7 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << FingerprintUtils::getMachineFingerprint();
         }
 
-        packetStream << duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count();
+        packetStream << quint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count());
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
@@ -662,7 +662,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
 
-    qint64 domainServerRequestLag = (qint64(connectRequestTimestamp) - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
+    qint64 domainServerRequestLag = (qint64(domainServerRequestReceiveTime) - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
     quint64 domainServerCheckinProcessingTime = domainServerPingSendTime - domainServerRequestReceiveTime;
     qint64 domainServerResponseLag = (now - qint64(domainServerPingSendTime)) / qint64(USECS_PER_MSEC);
 

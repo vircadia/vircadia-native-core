@@ -1175,7 +1175,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 r
     extendedHeaderStream << limitedNodeList->getAuthenticatePackets();
     extendedHeaderStream << nodeData->getLastDomainCheckinTimestamp();
     extendedHeaderStream << requestPacketReceiveTime;
-    extendedHeaderStream << duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count();
+    extendedHeaderStream << quint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count());
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
