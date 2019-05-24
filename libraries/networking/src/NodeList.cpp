@@ -11,6 +11,8 @@
 
 #include "NodeList.h"
 
+#include <chrono>
+
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
@@ -36,6 +38,8 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include <Trace.h>
+
+using namespace std::chrono;
 
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
@@ -412,7 +416,7 @@ void NodeList::sendDomainServerCheckIn() {
             packetStream << FingerprintUtils::getMachineFingerprint();
         }
 
-        packetStream << usecTimestampNow();
+        packetStream << duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count();
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
@@ -645,23 +649,28 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     bool isAuthenticated;
     packetStream >> isAuthenticated;
 
-    quint64 connectRequestTimestamp;
-    qint64 now = qint64(usecTimestampNow());
+    qint64 now = qint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count());
 
+    quint64 connectRequestTimestamp;
     packetStream >> connectRequestTimestamp;
 
+    quint64 domainServerRequestReceiveTime;
+    packetStream >> domainServerRequestReceiveTime;
+
+    quint64 domainServerPingSendTime;
+    packetStream >> domainServerPingSendTime;
+
     qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
-    quint64 domainServerPingReceiveTime;
 
-    packetStream >> domainServerPingReceiveTime;
-
-    qint64 domainServerRequestLag = (qint64(domainServerPingReceiveTime) - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
-    qint64 domainServerResponseLag = (now - qint64(domainServerPingReceiveTime)) / qint64(USECS_PER_MSEC);
+    qint64 domainServerRequestLag = (qint64(connectRequestTimestamp) - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
+    quint64 domainServerCheckinProcessingTime = domainServerPingSendTime - domainServerRequestReceiveTime;
+    qint64 domainServerResponseLag = (now - qint64(domainServerPingSendTime)) / qint64(USECS_PER_MSEC);
 
     if (_domainHandler.getSockAddr().isNull()) {
         qWarning(networking) << "IGNORING DomainList packet while not connected to a Domain Server: sent " << pingLagTime << " msec ago.";
-        qWarning(networking) << "DomainList request lag (with skew): " << domainServerRequestLag << "msec";
-        qWarning(networking) << "DomainList response lag (with skew): " << domainServerResponseLag << "msec";
+        qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
+        qWarning(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
+        qWarning(networking) << "DomainList response lag (ds->interface): " << domainServerResponseLag << "msec";
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
@@ -669,8 +678,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // warn if ping lag is getting long
     if (pingLagTime > qint64(MSECS_PER_SECOND)) {
         qCDebug(networking) << "DomainList ping is lagging: " << pingLagTime << "msec";
-        qCDebug(networking) << "DomainList request lag (with skew): " << domainServerRequestLag << "msec";
-        qCDebug(networking) << "DomainList response lag (with skew): " << domainServerResponseLag << "msec";
+        qCDebug(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
+        qCDebug(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
+        qCDebug(networking) << "DomainList response lag (ds->interface): " << domainServerResponseLag << "msec";
     }
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
@@ -685,13 +695,11 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // Recieved packet from different domain.
         qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" 
                    << _domainHandler.getUUID() << ": sent " << pingLagTime << " msec ago.";
-        qWarning(networking) << "DomainList request lag (with skew): " << domainServerRequestLag << "msec";
-        qWarning(networking) << "DomainList response lag (with skew): " << domainServerResponseLag << "msec";
+        qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
+        qWarning(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
+        qWarning(networking) << "DomainList response lag (ds->interface): " << domainServerResponseLag << "msec";
         return;
     }
-
-    setPermissions(newPermissions);
-    setAuthenticatePackets(isAuthenticated);
 
     // when connected, if the session ID or local ID were not null and changed, we should reset
     auto currentLocalID = getSessionLocalID();
@@ -722,6 +730,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // give the address manager a chance to lookup a default one now
         DependencyManager::get<AddressManager>()->lookupShareableNameForDomainID(domainUUID);
     }
+
+    setPermissions(newPermissions);
+    setAuthenticatePackets(isAuthenticated);
 
     // pull each node in the packet
     while (packetStream.device()->pos() < message->getSize()) {

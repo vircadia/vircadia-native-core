@@ -128,7 +128,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
-        emit connectedNode(node);
+        emit connectedNode(node, message->getFirstPacketReceiveTime());
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
             << "with hardware address" << nodeConnection.hardwareAddress
@@ -358,6 +358,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setNodeVersion(it->second.getNodeVersion());
     nodeData->setHardwareAddress(nodeConnection.hardwareAddress);
     nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
+    // client-side send time of last connect/domain list request
     nodeData->setLastDomainCheckinTimestamp(nodeConnection.lastPingTimestamp);
     nodeData->setWasAssigned(true);
 
@@ -499,7 +500,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     // set the machine fingerprint passed in the connect request
     nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
 
-    // set the last ping timestamp passed in the connect request
+    // set client-side send time of last connect/domain list request
     nodeData->setLastDomainCheckinTimestamp(nodeConnection.lastPingTimestamp);
 
     // also add an interpolation to DomainServerNodeData so that servers can get username in stats

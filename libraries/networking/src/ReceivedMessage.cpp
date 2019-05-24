@@ -12,6 +12,7 @@
 #include "ReceivedMessage.h"
 
 #include <algorithm>
+#include <chrono>
 
 #include "QSharedPointer"
 
@@ -19,6 +20,8 @@ int receivedMessageMetaTypeId = qRegisterMetaType<ReceivedMessage*>("ReceivedMes
 int sharedPtrReceivedMessageMetaTypeId = qRegisterMetaType<QSharedPointer<ReceivedMessage>>("QSharedPointer<ReceivedMessage>");
 
 static const int HEAD_DATA_SIZE = 512;
+
+using namespace std::chrono;
 
 ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
     : _data(packetList.getMessage()),
@@ -29,6 +32,7 @@ ReceivedMessage::ReceivedMessage(const NLPacketList& packetList)
       _packetVersion(packetList.getVersion()),
       _senderSockAddr(packetList.getSenderSockAddr())
 {
+    _firstPacketReceiveTime = duration_cast<microseconds>(packetList.getFirstPacketReceiveTime().time_since_epoch()).count();
 }
 
 ReceivedMessage::ReceivedMessage(NLPacket& packet)
@@ -41,12 +45,14 @@ ReceivedMessage::ReceivedMessage(NLPacket& packet)
       _senderSockAddr(packet.getSenderSockAddr()),
       _isComplete(packet.getPacketPosition() == NLPacket::ONLY)
 {
+    _firstPacketReceiveTime = duration_cast<microseconds>(packet.getReceiveTime().time_since_epoch()).count();
 }
 
 ReceivedMessage::ReceivedMessage(QByteArray byteArray, PacketType packetType, PacketVersion packetVersion,
                 const HifiSockAddr& senderSockAddr, NLPacket::LocalID sourceID) :
     _data(byteArray),
     _headData(_data.mid(0, HEAD_DATA_SIZE)),
+    _firstPacketReceiveTime(0),
     _numPackets(1),
     _sourceID(sourceID),
     _packetType(packetType),
@@ -77,7 +83,13 @@ void ReceivedMessage::appendPacket(NLPacket& packet) {
         emit progress(getSize());
     }
 
-    if (packet.getPacketPosition() == NLPacket::PacketPosition::LAST) {
+    auto packetPosition = packet.getPacketPosition();
+    if ((packetPosition == NLPacket::PacketPosition::FIRST) ||
+        (packetPosition == NLPacket::PacketPosition::ONLY)) {
+        _firstPacketReceiveTime = duration_cast<microseconds>(packet.getReceiveTime().time_since_epoch()).count();
+    }
+
+    if (packetPosition == NLPacket::PacketPosition::LAST) {
         _isComplete = true;
         emit completed();
     }
