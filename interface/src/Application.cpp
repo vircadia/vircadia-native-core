@@ -3800,10 +3800,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-       DependencyManager::get<AddressManager>()->goToEntry();
-       sentTo = SENT_TO_ENTRY;
-        _firstRun.set(false);
-
+        if (!_overrideEntry) {
+            DependencyManager::get<AddressManager>()->goToEntry();
+            sentTo = SENT_TO_ENTRY;
+        } else {
+            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            sentTo = SENT_TO_PREVIOUS_LOCATION;
+        }
+       _firstRun.set(false);
     } else {
         QString goingTo = "";
         if (addressLookupString.isEmpty()) {
@@ -3819,7 +3823,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
     }
-
+    
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
         { "sandbox_is_running", sandboxIsRunning },
@@ -9353,6 +9357,19 @@ void Application::showUrlHandler(const QUrl& url) {
             QDesktopServices::setUrlHandler(url.scheme(), this, "showUrlHandler");
         }
     });
+}
+void Application::overrideEntry(){
+    _overrideEntry = true;
+}
+void Application::forceDisplayName(const QString& displayName) {
+    getMyAvatar()->setDisplayName(displayName);
+}
+void Application::forceLoginWithTokens(const QString& tokens) {
+    DependencyManager::get<AccountManager>()->setAccessTokens(tokens);
+    Setting::Handle<bool>(KEEP_ME_LOGGED_IN_SETTING_NAME, true).set(true);
+}
+void Application::setConfigFileURL(const QString& fileUrl) {
+    DependencyManager::get<AccountManager>()->setConfigFileURL(fileUrl);
 }
 
 #if defined(Q_OS_ANDROID)
