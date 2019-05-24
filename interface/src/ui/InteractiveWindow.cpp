@@ -111,6 +111,14 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         auto quickView = _dockWidget->getQuickView();
         Application::setupQmlSurface(quickView->rootContext(), true);
 
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        // Build the event bridge and wrapper on the main thread
+        auto context = offscreenUi->widgetContextForUrl(sourceUrl);
+    
+    
+        if(context!=nullptr){
+            _dockWidget->getQuickView()->rootContext()->setContextObject(context);
+        }
         /**jsdoc
          * Configures how a <code>NATIVE</code> window is displayed.
          * @typedef {object} InteractiveWindow.PresentationWindowInfo
