@@ -10,7 +10,6 @@
 //  Helps manage the list of avatars added to the nametag list
 //
 
-console.log("\nm\n\n\n\n\n\n\n\n\nTEST!!!\n\n\n\n\n\n")
 var EntityMaker = Script.require('./entityMaker.js?' + Date.now());
 var entityProps = Script.require('./defaultLocalEntityProps.js?' + Date.now());
 var textHelper = new (Script.require('./textHelper.js?' + Date.now()));
