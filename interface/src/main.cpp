@@ -83,6 +83,8 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
+    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
+    QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
 
     parser.addOption(urlOption);
     parser.addOption(noLauncherOption);
@@ -93,6 +95,8 @@ int main(int argc, const char* argv[]) {
     parser.addOption(overrideAppLocalDataPathOption);
     parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
+    parser.addOption(responseTokensOption);
+    parser.addOption(displayNameOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
@@ -120,8 +124,10 @@ int main(int argc, const char* argv[]) {
 
     static const QString APPLICATION_CONFIG_FILENAME = "config.json";
     QDir applicationDir(applicationPath);
-    QFile configFile(applicationDir.filePath(APPLICATION_CONFIG_FILENAME));
-
+    QString configFileName = applicationDir.filePath(APPLICATION_CONFIG_FILENAME);
+    QFile configFile(configFileName);
+    QString launcherPath;
+    
     if (configFile.exists()) {
         if (!configFile.open(QIODevice::ReadOnly)) {
             qWarning() << "Found application config, but could not open it";
@@ -134,7 +140,7 @@ int main(int argc, const char* argv[]) {
                 qWarning() << "Found application config, but could not parse it: " << error.errorString();
             } else {
                 static const QString LAUNCHER_PATH_KEY = "launcherPath";
-                QString launcherPath = doc.object()[LAUNCHER_PATH_KEY].toString();
+                launcherPath = doc.object()[LAUNCHER_PATH_KEY].toString();
                 if (!launcherPath.isEmpty()) {
                     if (!parser.isSet(noLauncherOption)) {
                         qDebug() << "Found a launcherPath in application config. Starting launcher.";
@@ -146,6 +152,7 @@ int main(int argc, const char* argv[]) {
                         qDebug() << "Found a launcherPath in application config, but the launcher"
                                     " has been suppressed. Continuing normal execution.";
                     }
+                    configFile.close();
                 }
             }
         }
@@ -397,6 +404,24 @@ int main(int argc, const char* argv[]) {
                          &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
         printSystemInformation();
+
+        auto appPointer = dynamic_cast<Application*>(&app);
+        if (appPointer) {
+            if (parser.isSet(urlOption)) {
+                appPointer->overrideEntry();
+            }
+            if (parser.isSet(displayNameOption)) {
+                QString displayName = QString(parser.value(displayNameOption));
+                appPointer->forceDisplayName(displayName);
+            }
+            if (!launcherPath.isEmpty()) {
+                appPointer->setConfigFileURL(configFileName);
+            }
+            if (parser.isSet(responseTokensOption)) {
+                QString tokens = QString(parser.value(responseTokensOption));
+                appPointer->forceLoginWithTokens(tokens);
+            }
+        }
 
         QTranslator translator;
         translator.load("i18n/interface_en");
