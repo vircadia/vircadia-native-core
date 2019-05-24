@@ -232,6 +232,7 @@ function nameTagListManager() {
     _this.redrawTimeout = null;
 }
 
+
 // Get the correct display name
 function getCorrectName(uuid) {
     var avatar = _this.avatars[uuid];
