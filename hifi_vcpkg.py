@@ -214,11 +214,10 @@ endif()
             f.write(self.tagContents)
 
     def getQt5InstallPath(self):
-        qt5InstallPath  = os.path.join(self.path, 'installed', 'qt5-install')
-        if platform.system() == "Darwin" and self.args.release_type != "DEV":
-            # HACK for MacOS Jenkins PRODUCTION and PR builds during Qt-5.12.3 transition
-            # we always supply /var/tmp/qt5-install for QT_CMAKE_PREFIX_PATH
-            qt5InstallPath = "/var/tmp/qt5-install"
+        qt5InstallPath = os.path.join(self.path, 'installed', 'qt5-install')
+        if os.getenv('HIFI_QT_INSTALL_ROOT'):
+            # Allow qt install path to be overriden by an environment variable
+            qt5InstallPath = os.getenv('HIFI_QT_INSTALL_ROOT')
         elif self.args.android:
             precompiled = os.path.realpath(self.androidPackagePath)
             qt5InstallPath = os.path.realpath(os.path.join(precompiled, 'qt'))
@@ -260,7 +259,7 @@ endif()
             if platform.system() == 'Windows':
                 url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows2.tar.gz'
             elif platform.system() == 'Darwin':
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz'
+                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos2.tar.gz'
             elif platform.system() == 'Linux':
                 if platform.linux_distribution()[1][:3] == '16.':
                     url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04.tar.gz'
