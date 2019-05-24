@@ -16,7 +16,7 @@ var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/
 
 var DEFAULT_SCRIPTS_SEPARATE = [
     DEFAULT_SCRIPTS_PATH_PREFIX + "system/controllers/controllerScripts.js",
-    Script.resolvePath("simplifiedUI.js")
+    DEFAULT_SCRIPTS_PATH_PREFIX + "ui/simplifiedUI.js"
 ];
 function loadSeparateDefaults() {
     for (var i in DEFAULT_SCRIPTS_SEPARATE) {
