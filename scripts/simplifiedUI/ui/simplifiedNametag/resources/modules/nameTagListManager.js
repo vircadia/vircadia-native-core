@@ -10,15 +10,6 @@
 //  Helps manage the list of avatars added to the nametag list
 //
 
-var ON = 'ON';
-var OFF = 'OFF';
-var DEBUG_ON = true;
-var DEBUG_OFF = false;
-var log = Script.require(
-    'https://hifi-content.s3.amazonaws.com/milad/ROLC/d/ROLC_High-Fidelity/02_Organize/O_Projects/Repos/hifi-content/developerTools/sharedLibraries/easyLog/easyLog.js?'
-    + Date.now())(DEBUG_OFF, 'nameTagListManager.js');
-
-
 var EntityMaker = Script.require('./entityMaker.js?' + Date.now());
 var entityProps = Script.require('./defaultLocalEntityProps.js?' + Date.now());
 var textHelper = new (Script.require('./textHelper.js?' + Date.now()));
@@ -68,7 +59,6 @@ var userScaler = 1.0;
 var DEFAULT_LINE_HEIGHT = entityProps.lineHeight;
 function calculateInitialProperties(uuid) {
     var avatar = _this.avatars[uuid];
-    var avatarInfo = avatar.avatarInfo;
 
     var adjustedScaler = null;
     var distance = null;
@@ -78,7 +68,7 @@ function calculateInitialProperties(uuid) {
     var name = null;
 
     // Handle if we are asking for the main or sub properties
-    name = avatarInfo.displayName;
+    name = getCorrectName(uuid);
 
     // Use the text helper to calculate what our dimensions for the text box should be
     textHelper
@@ -243,6 +233,25 @@ function nameTagListManager() {
 }
 
 
+// Get the correct display name
+function getCorrectName(uuid) {
+    var avatar = _this.avatars[uuid];
+    var avatarInfo = avatar.avatarInfo;
+
+    var displayNameToUse = avatarInfo.sessionDisplayName.trim();
+    
+    if (displayNameToUse === "") {
+        displayNameToUse = avatarInfo.displayName.trim();
+    }
+
+    if (displayNameToUse === "") {
+        displayNameToUse = "anonymous";
+    }
+
+    return displayNameToUse;
+}
+
+
 // Create or make visible either the sub or the main tag.
 var REDRAW_TIMEOUT_AMOUNT_MS = 500;
 var LEFT_MARGIN_SCALER = 0.15;
@@ -257,13 +266,12 @@ var onModeScalar = 0.55;
 var alwaysOnModeScalar = -0.75;
 function makeNameTag(uuid) {
     var avatar = _this.avatars[uuid];
-    var avatarInfo = avatar.avatarInfo;
     var nametag = avatar.nametag;
 
-    // Make sure an anonymous name is covered before sending to calculate
-
-    avatarInfo.displayName = avatarInfo.displayName === "" ? "anonymous" : avatarInfo.displayName.trim();
-    avatar.previousName = avatarInfo.displayName;
+    // Get the correct name for the nametag
+    var name = getCorrectName(uuid);
+    avatar.previousName = name;
+    nametag.add("text", name);
 
     // Returns back the properties we need based on what we are looking for and the distance from the avatar
     var calculatedProps = calculateInitialProperties(uuid);
@@ -271,14 +279,12 @@ function makeNameTag(uuid) {
     var scaledDimensions = calculatedProps.scaledDimensions;
     var lineHeight = calculatedProps.lineHeight;
 
-    // Capture the inital dimensions, distance, and displayName in case we need to redraw
-    avatar.previousDisplayName = avatarInfo.displayName;
+    // Capture the inital dimensions and distance in case we need to redraw
     avatar.initialDimensions = scaledDimensions;
     avatar.initialDistance = distance;
-    var name = avatarInfo.displayName;
+
     var parentID = uuid;
 
-    nametag.add("text", name);
 
     // Multiply the new dimensions and line height with the user selected scaler
     scaledDimensions = Vec3.multiply(scaledDimensions, userScaler);
@@ -338,7 +344,6 @@ var CHECK_AVATAR = true;
 var MIN_DISTANCE = 0.2;
 function maybeRedraw(uuid) {
     var avatar = _this.avatars[uuid];
-    var avatarInfo = avatar.avatarInfo;
     getAvatarData(uuid);
 
     getDistance(uuid);
@@ -351,10 +356,10 @@ function maybeRedraw(uuid) {
         showHide(uuid, "show");
     }
 
-    avatarInfo.displayName = avatarInfo.displayName === "" ? "anonymous" : avatarInfo.displayName.trim();
+    var name = getCorrectName(uuid);
 
-    if (avatar.previousName !== avatarInfo.displayName) {
-        updateName(uuid, avatarInfo.displayName);
+    if (avatar.previousName !== name) {
+        updateName(uuid, name);
     } else {
         redraw(uuid);
     }
