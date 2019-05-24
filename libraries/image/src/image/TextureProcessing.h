@@ -57,6 +57,7 @@ namespace TextureUsage {
  * @typedef {number} TextureCache.TextureType
  */
 enum Type {
+    // NOTE: add new texture types at the bottom here
     DEFAULT_TEXTURE,
     STRICT_TEXTURE,
     ALBEDO_TEXTURE,
