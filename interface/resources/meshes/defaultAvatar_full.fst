@@ -1,6 +1,6 @@
 name = mannequin
 type = body+head
-scale = 2
+scale = 1
 filename = mannequin/mannequin.baked.fbx
 joint = jointNeck = Neck
 joint = jointLean = Spine

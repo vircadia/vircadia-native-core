@@ -7038,7 +7038,8 @@ void Application::updateWindowTitle() const {
         }
     }
 
-    QString title = "Anna was here :)";
+    QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
+        + currentPlaceName + connectionStatus + loginStatus + buildVersion;
 
 #ifndef WIN32
     // crashes with vs2013/win32
