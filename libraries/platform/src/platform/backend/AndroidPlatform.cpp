@@ -7,38 +7,42 @@
 //
 
 #include "AndroidPlatform.h"
-#include "platformJsonKeys.h"
+#include "../PlatformKeys.h"
 #include <GPUIdent.h>
 
 using namespace platform;
 
 void AndroidInstance::enumerateCpu() {
      json cpu;
-     cpu["cpuBrand"] = "";
-     cpu["cpuModel"] = "";
-     cpu["cpuClockSpeed"] = "";
-     cpu["cpuNumCores"] = "";
+     cpu[keys::cpu::vendor] = "";
+     cpu[keys::cpu::model] = "";
+     cpu[keys::cpu::clockSpeed] = "";
+     cpu[keys::cpu::numCores] = 0;
     _cpu.push_back(cpu);
 }
 
 void AndroidInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
-    gpu["gpuName"] = ident->getName().toUtf8().constData();
-    gpu["gpuMemory"] = ident->getMemory();
-    gpu["gpuDriver"] = ident->getDriver().toUtf8().constData();
-    
+    gpu[keys::gpu::vendor] = ident->getName().toUtf8().constData();
+    gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
+    gpu[keys::gpu::videoMemory] = ident->getMemory();
+    gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
+
     _gpu.push_back(gpu);
     _display = ident->getOutput();
 }
 
 void AndroidInstance::enumerateMemory() {
     json ram = {};
-    ram["totalMemory"]="";
+    ram[keys::memTotal]=0;
     _memory.push_back(ram);
 }
 
 void AndroidInstance::enumerateComputer(){
-    //no implememntation at this time
+    _computer[keys::computer::OS] = keys::computer::OS_ANDROID;
+    _computer[keys::computer::vendor] = "";
+    _computer[keys::computer::model] = "";
+    
 }
 

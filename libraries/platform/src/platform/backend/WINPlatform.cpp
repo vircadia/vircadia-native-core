@@ -7,15 +7,15 @@
 //
 
 #include "WINPlatform.h"
-#include "platformJsonKeys.h"
+#include "../PlatformKeys.h"
+#include <GPUIdent.h>
 
-#ifdef Q_OS_WINDOWS
+#ifdef Q_OS_WIN
 #include <intrin.h>
 #include <Windows.h>
 #endif
 
 #include <thread>
-#include <GPUIdent.h>
 #include <string>
 
 
@@ -24,7 +24,7 @@ using namespace platform;
 void WINInstance::enumerateCpu() {
     json cpu = {};
     
-#ifdef Q_OS_WINDOWS
+#ifdef Q_OS_WIN
     int CPUInfo[4] = { -1 };
     unsigned nExIds;
     unsigned int i = 0;
@@ -47,10 +47,10 @@ void WINInstance::enumerateCpu() {
         }
     }
 
-    cpu["cpuBrand"] = CPUBrandString;
-    cpu["cpuModel"] = CPUModelString;
-    cpu["cpuClockSpeed"] = CPUClockString;
-    cpu["cpuNumCores"] = std::thread::hardware_concurrency();
+    cpu[keys::cpu::vendor] = CPUBrandString;
+    cpu[keys::cpu::model] = CPUModelString;
+    cpu[keys::cpu::clockSpeed] = CPUClockString;
+    cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
 #endif
    
     _cpu.push_back(cpu);
@@ -61,9 +61,10 @@ void WINInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
    
     json gpu = {};
-    gpu["gpuName"] = ident->getName().toUtf8().constData();
-    gpu["gpuMemory"] = ident->getMemory();
-    gpu["gpuDriver"] = ident->getDriver().toUtf8().constData();
+    gpu[keys::gpu::vendor] = ident->getName().toUtf8().constData();
+    gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
+    gpu[keys::gpu::videoMemory] = ident->getMemory();
+    gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
     _display = ident->getOutput();
@@ -77,12 +78,15 @@ void WINInstance::enumerateMemory() {
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    ram["totalMemory"] = totalRam;
+    ram[keys.memTotal] = totalRam;
 #endif
     _memory.push_back(ram);
 }
 
 void WINInstance::enumerateComputer(){
-    //no implememntation at this time
+    _computer[keys::computer::OS] = keys::computer::OS_WINDOWS;
+    _computer[keys::computer::vendor] = "";
+    _computer[keys::computer::model] = "";
+    
 }
 

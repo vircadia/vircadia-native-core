@@ -9,7 +9,7 @@
 #ifndef hifi_AndroidPlatform_h
 #define hifi_AndroidPlatform_h
 
-#include "platformInstance.h"
+#include "PlatformInstance.h"
 
 namespace platform {
     class AndroidInstance : public Instance {
