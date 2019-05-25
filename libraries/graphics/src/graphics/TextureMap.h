@@ -14,6 +14,7 @@
 #include "gpu/Texture.h"
 
 #include "Transform.h"
+#include "MaterialMappingMode.h"
 
 namespace graphics {
 
@@ -30,6 +31,12 @@ public:
     void setTextureTransform(const Transform& texcoordTransform);
     const Transform& getTextureTransform() const { return _texcoordTransform; }
 
+    void setMappingMode(MaterialMappingMode mode) { _mappingMode = mode; }
+    MaterialMappingMode getMappingMode() const { return _mappingMode; }
+
+    void setRepeat(bool repeat) { _repeat = repeat; }
+    bool getRepeat() const { return _repeat; }
+
     void setUseAlphaChannel(bool useAlpha) { _useAlphaChannel = useAlpha; }
     bool useAlphaChannel() const { return _useAlphaChannel; }
 
@@ -41,6 +48,8 @@ protected:
 
     Transform _texcoordTransform;
     glm::vec2 _lightmapOffsetScale{ 0.0f, 1.0f };
+    MaterialMappingMode _mappingMode { MaterialMappingMode::UV };
+    bool _repeat { true };
 
     bool _useAlphaChannel{ false };
 };

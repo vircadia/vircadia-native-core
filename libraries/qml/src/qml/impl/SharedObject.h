@@ -66,12 +66,12 @@ public:
     void resume();
     bool isPaused() const;
     bool fetchTexture(TextureAndFence& textureAndFence);
-
+    void addToDeletionList(QObject* object);
 
 private:
     bool event(QEvent* e) override;
 
-    bool preRender();
+    bool preRender(bool sceneGraphSync);
     void shutdownRendering(OffscreenGLCanvas& canvas, const QSize& size);
     // Called by the render event handler, from the render thread
     void initializeRenderControl(QOpenGLContext* context);
@@ -90,6 +90,8 @@ private:
     void onTimer();
     void onAboutToQuit();
     void updateTextureAndFence(const TextureAndFence& newTextureAndFence);
+
+    QList<QPointer<QObject>> _deletionList;
 
     // Texture management
     TextureAndFence _latestTextureAndFence{ 0, 0 };

@@ -12,9 +12,8 @@
 #include <qglobal.h>
 #include <QtCore/QString>
 
+#if 0
 // Work around for a bug in the MSVC compiler that chokes when you use GLI and Qt headers together.
-#define gli glm
-
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-variable"
@@ -44,5 +43,7 @@
 #include <gpu/Forward.h>
 
 gpu::TexturePointer processTexture(const QString& file);
+
+#endif
 
 #endif

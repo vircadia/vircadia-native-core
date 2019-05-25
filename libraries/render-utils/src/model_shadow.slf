@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_shadow.frag
-//  fragment shader
 //
 //  Created by Andrzej Kapolka on 3/24/14.
 //  Copyright 2013 High Fidelity, Inc.
@@ -11,10 +9,26 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
+
+<$declareMaterialTextures(ALBEDO, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
 
 layout(location=0) out vec4 _fragColor;
 
 void main(void) {
+    Material mat = getMaterial();
+    BITFIELD matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL, _SCRIBE_NULL)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
+
     // pass-through to set z-buffer
     _fragColor = vec4(1.0, 1.0, 1.0, 0.0);
 }

@@ -16,7 +16,7 @@
 #include <QtCore/QFile>
 #include <QtNetwork/QNetworkReply>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 #include <ktx/KTX.h>
 #include <NetworkAccessManager.h>
 #include <SharedUtil.h>
@@ -33,20 +33,27 @@ const QString BAKED_META_TEXTURE_SUFFIX = ".texmeta.json";
 bool TextureBaker::_compressionEnabled = true;
 
 TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                           const QDir& outputDirectory, const QString& metaTexturePathPrefix,
-                           const QString& baseFilename, const QByteArray& textureContent) :
+                           const QDir& outputDirectory, const QString& baseFilename,
+                           const QByteArray& textureContent) :
     _textureURL(textureURL),
     _originalTexture(textureContent),
     _textureType(textureType),
     _baseFilename(baseFilename),
-    _outputDirectory(outputDirectory),
-    _metaTexturePathPrefix(metaTexturePathPrefix)
+    _outputDirectory(outputDirectory)
 {
     if (baseFilename.isEmpty()) {
         // figure out the baked texture filename
         auto originalFilename = textureURL.fileName();
         _baseFilename = originalFilename.left(originalFilename.lastIndexOf('.'));
     }
+
+    auto textureFilename = _textureURL.fileName();
+    QString originalExtension;
+    int extensionStart = textureFilename.indexOf(".");
+    if (extensionStart != -1) {
+        originalExtension = textureFilename.mid(extensionStart);
+    }
+    _originalCopyFilePath = _outputDirectory.absoluteFilePath(_baseFilename + originalExtension);
 }
 
 void TextureBaker::bake() {
@@ -123,12 +130,17 @@ void TextureBaker::handleTextureNetworkReply() {
 void TextureBaker::processTexture() {
     // the baked textures need to have the source hash added for cache checks in Interface
     // so we add that to the processed texture before handling it off to be serialized
-    auto hashData = QCryptographicHash::hash(_originalTexture, QCryptographicHash::Md5);
+    QCryptographicHash hasher(QCryptographicHash::Md5);
+    hasher.addData(_originalTexture);
+    hasher.addData((const char*)&_textureType, sizeof(_textureType));
+    auto hashData = hasher.result();
     std::string hash = hashData.toHex().toStdString();
 
     TextureMeta meta;
 
-    auto originalCopyFilePath = _outputDirectory.absoluteFilePath(_textureURL.fileName());
+    QString originalCopyFilePath = _originalCopyFilePath.toString();
+
+    // Copy the original file into the baked output directory if it doesn't exist yet
     {
         QFile file { originalCopyFilePath };
         if (!file.open(QIODevice::WriteOnly) || file.write(_originalTexture) == -1) {
@@ -138,9 +150,10 @@ void TextureBaker::processTexture() {
         // IMPORTANT: _originalTexture is empty past this point
         _originalTexture.clear();
         _outputFiles.push_back(originalCopyFilePath);
-        meta.original = _metaTexturePathPrefix + _textureURL.fileName();
+        meta.original = _originalCopyFilePath.fileName();
     }
 
+    // Load the copy of the original file from the baked output directory. New images will be created using the original as the source data.
     auto buffer = std::static_pointer_cast<QIODevice>(std::make_shared<QFile>(originalCopyFilePath));
     if (!buffer->open(QIODevice::ReadOnly)) {
         handleError("Could not open original file at " + originalCopyFilePath);
@@ -154,7 +167,7 @@ void TextureBaker::processTexture() {
             gpu::BackendTarget::GLES32
         }};
         for (auto target : BACKEND_TARGETS) {
-            auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(),
+            auto processedTexture = image::processImage(buffer, _textureURL.toString().toStdString(), image::ColorChannel::NONE,
                                                         ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, true,
                                                         target, _abortProcessing);
             if (!processedTexture) {
@@ -190,14 +203,14 @@ void TextureBaker::processTexture() {
                 return;
             }
             _outputFiles.push_back(filePath);
-            meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = _metaTexturePathPrefix + fileName;
+            meta.availableTextureTypes[memKTX->_header.getGLInternaFormat()] = fileName;
         }
     }
 
     // Uncompressed KTX
-    if (_textureType == image::TextureUsage::Type::CUBE_TEXTURE) {
+    if (_textureType == image::TextureUsage::Type::SKY_TEXTURE || _textureType == image::TextureUsage::Type::AMBIENT_TEXTURE) {
         buffer->reset();
-        auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(),
+        auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(), image::ColorChannel::NONE,
                                                     ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);
         if (!processedTexture) {
             handleError("Could not process texture " + _textureURL.toString());
@@ -226,7 +239,7 @@ void TextureBaker::processTexture() {
             return;
         }
         _outputFiles.push_back(filePath);
-        meta.uncompressed = _metaTexturePathPrefix + fileName;
+        meta.uncompressed = fileName;
     } else {
         buffer.reset();
     }

@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "qrc:////qml//styles-uit" as HifiStylesUit
-import "qrc:////qml//controls-uit" as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
 import "qrc:////qml//hifi//commerce//common" as HifiCommerceCommon
 
@@ -256,7 +256,7 @@ Rectangle {
                 color: hifi.colors.baseGrayHighlight;
 
                 HifiStylesUit.RalewaySemiBold {
-                    text: "Wallet";
+                    text: "Secure Transactions";
                     anchors.fill: parent;
                     anchors.leftMargin: 20;
                     color: hifi.colors.white;
@@ -287,7 +287,7 @@ Rectangle {
 
                 HifiStylesUit.RalewaySemiBold {
                     id: securityPictureText;
-                    text: "Wallet Security Picture";
+                    text: "Security Picture";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.bottom: parent.bottom;
@@ -328,7 +328,7 @@ Rectangle {
 
                 HifiStylesUit.RalewayRegular {
                     text: "Your wallet is not set up.\n" +
-                        "Open the ASSETS app to get started.";
+                        "Open the INVENTORY app to get started.";
                     // Anchors
                     anchors.fill: parent;
                     // Text size

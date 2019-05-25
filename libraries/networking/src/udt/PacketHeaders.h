@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         SetAvatarTraits,
-        AvatarIdentityRequest,
+        InjectorGainSet,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -126,15 +126,15 @@ public:
         EntityScriptCallMethod,
         ChallengeOwnershipRequest,
         ChallengeOwnershipReply,
-
         OctreeDataFileRequest,
         OctreeDataFileReply,
         OctreeDataPersist,
-
         EntityClone,
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
-
+        AudioSoloRequest,
+        BulkAvatarTraitsAck,
+        StopInjector,
         NUM_PACKET_TYPE
     };
 
@@ -245,7 +245,36 @@ enum class EntityVersion : PacketVersion {
     BloomEffect,
     GrabProperties,
     ScriptGlmVectors,
-    FixedLightSerialization
+    FixedLightSerialization,
+    MaterialRepeat,
+    EntityHostTypes,
+    CleanupProperties,
+    ImageEntities,
+    GridEntities,
+    MissingTextProperties,
+    GrabTraits,
+    MorePropertiesCleanup,
+    FixPropertiesFromCleanup,
+    UpdatedPolyLines,
+    FixProtocolVersionBumpMismatch,
+    MigrateOverlayRenderProperties,
+    MissingWebEntityProperties,
+    PulseProperties,
+    RingGizmoEntities,
+    AvatarPriorityZone,
+    ShowKeyboardFocusHighlight,
+    WebBillboardMode,
+    ModelScale,
+    ReOrderParentIDProperties,
+    CertificateTypeProperty,
+    DisableWebMedia,
+    ParticleShapeType,
+    ParticleShapeTypeDeadlockFix,
+    PrivateUserData,
+
+    // Add new versions above here
+    NUM_PACKET_TYPE,
+    LAST_PACKET_TYPE = NUM_PACKET_TYPE - 1
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -297,7 +326,16 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FarGrabJoints,
     MigrateSkeletonURLToTraits,
     MigrateAvatarEntitiesToTraits,
-    FarGrabJointsRedux
+    FarGrabJointsRedux,
+    JointTransScaled,
+    GrabTraits,
+    CollisionFlag,
+    AvatarTraitsAck,
+    FasterAvatarEntities,
+    SendMaxTranslationDimension,
+    FBXJointOrderChange,
+    HandControllerSection,
+    SendVerificationFailed
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -336,6 +374,7 @@ enum class AudioVersion : PacketVersion {
     SpaceBubbleChanges,
     HasPersonalMute,
     HighDynamicRangeVolume,
+    StopInjectors
 };
 
 enum class MessageDataVersion : PacketVersion {

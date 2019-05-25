@@ -11,8 +11,8 @@
 import QtQuick 2.5
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../windows"
 
 import "messageDialog"
@@ -75,7 +75,7 @@ ModalWindow {
 
         QtObject {
             id: d
-            readonly property int minWidth: 480
+            readonly property int minWidth: 1100
             readonly property int maxWidth: 1280
             readonly property int minHeight: 120
             readonly property int maxHeight: 720
@@ -95,6 +95,7 @@ ModalWindow {
             id: mainTextContainer
             onTextChanged: d.resize();
             wrapMode: Text.WordWrap
+            width: messageBox.width
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
             anchors {

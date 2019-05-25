@@ -1,7 +1,7 @@
 //
-//  deferredLighting.qml
+//  EngineInspector.qml
 //
-//  Created by Sam Gateau on 6/6/2016
+//  Created by Sam Gateau on 06/07/2018
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -11,20 +11,20 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "qrc:///qml/styles-uit"
-import "qrc:///qml/controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 
 import "../lib/jet/qml" as Jet
 
 Item {
     HifiConstants { id: hifi;}
-    id: render;   
+    id: root;   
     anchors.fill: parent
 
-    property var mainViewTask: Render.getConfig("RenderMainView")
+    property var rootConfig: Render.getConfig("")
 
     Jet.TaskListView {
-        rootConfig: Render
-        anchors.fill: render        
+        rootConfig: root.rootConfig
+        anchors.fill: root        
     }
 }

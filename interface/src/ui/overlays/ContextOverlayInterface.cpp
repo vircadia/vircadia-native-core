@@ -46,32 +46,33 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_DIMENSIONS;
     _entityPropertyFlags += PROP_REGISTRATION_POINT;
     _entityPropertyFlags += PROP_CERTIFICATE_ID;
-    _entityPropertyFlags += PROP_CLIENT_ONLY;
+    _entityPropertyFlags += PROP_ENTITY_HOST_TYPE;
     _entityPropertyFlags += PROP_OWNING_AVATAR_ID;
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
-    connect(entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity, this, &ContextOverlayInterface::clickDownOnEntity);
-    connect(entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity, this, &ContextOverlayInterface::holdingClickOnEntity);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &ContextOverlayInterface::clickDownOnEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, &ContextOverlayInterface::mouseReleaseOnEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, &ContextOverlayInterface::contextOverlays_hoverEnterEntity);
     connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, &ContextOverlayInterface::contextOverlays_hoverLeaveEntity);
+
+    connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
+    connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
+
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
         if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             glm::quat cameraOrientation = qApp->getCamera().getOrientation();
-            QVariantMap props;
+
+            EntityItemProperties properties;
             float sensorToWorldScale = myAvatar->getSensorToWorldScale();
-            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT))));
-            props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
-            qApp->getOverlays().editOverlay(tabletFrameID, props);
+            properties.setPosition(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT)));
+            properties.setRotation(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f))));
+            DependencyManager::get<EntityScriptingInterface>()->editEntity(tabletFrameID, properties);
             _contextOverlayJustClicked = false;
         }
     });
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
-    connect(&qApp->getOverlays(), &Overlays::mousePressOnOverlay, this, &ContextOverlayInterface::contextOverlays_mousePressOnOverlay);
-    connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
-    connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
     {
         _selectionScriptingInterface->enableListHighlight("contextOverlayHighlightList", QVariantMap());
@@ -93,7 +94,6 @@ static const float CONTEXT_OVERLAY_HOVERED_ALPHA = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMAX = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD = 1.0f;
-static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
     _enabled = enabled;
@@ -103,10 +103,14 @@ void ContextOverlayInterface::setEnabled(bool enabled) {
     }
 }
 
-void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(entityItemID)) {
-        _mouseDownEntity = entityItemID;
+void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& id, const PointerEvent& event) {
+    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(id)) {
+        _mouseDownEntity = id;
         _mouseDownEntityTimestamp = usecTimestampNow();
+    } else if ((event.shouldFocus() || event.getButton() == PointerEvent::PrimaryButton) && id == _contextOverlayID) {
+        qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "ID:" << id;
+        emit contextOverlayClicked(_currentEntityWithContextOverlay);
+        _contextOverlayJustClicked = true;
     } else {
         if (!_currentEntityWithContextOverlay.isNull()) {
             disableEntityHighlight(_currentEntityWithContextOverlay);
@@ -116,13 +120,10 @@ void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID
 }
 
 static const float CONTEXT_OVERLAY_CLICK_HOLD_TIME_MSEC = 400.0f;
-void ContextOverlayInterface::holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
+void ContextOverlayInterface::mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (!_mouseDownEntity.isNull() && ((usecTimestampNow() - _mouseDownEntityTimestamp) > (CONTEXT_OVERLAY_CLICK_HOLD_TIME_MSEC * USECS_PER_MSEC))) {
         _mouseDownEntity = EntityItemID();
     }
-}
-
-void ContextOverlayInterface::mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(entityItemID) && _mouseDownEntity == entityItemID) {
         createOrDestroyContextOverlay(entityItemID, event);
     }
@@ -192,22 +193,28 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             }
 
             // Finally, setup and draw the Context Overlay
-            if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
-                _contextOverlay = std::make_shared<Image3DOverlay>();
-                _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
-                _contextOverlay->setPulseMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
-                _contextOverlay->setPulseMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
-                _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-                _contextOverlay->setIgnorePickIntersection(false);
-                _contextOverlay->setDrawInFront(true);
-                _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
-                _contextOverlay->setIsFacingAvatar(true);
-                _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
+            auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+            if (_contextOverlayID == UNKNOWN_ENTITY_ID || !entityScriptingInterface->isAddedEntity(_contextOverlayID)) {
+                EntityItemProperties properties;
+                properties.setType(EntityTypes::Image);
+                properties.setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
+                properties.getPulse().setMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
+                properties.getPulse().setMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
+                properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+                properties.setIgnorePickIntersection(false);
+                properties.setRenderLayer(RenderLayer::FRONT);
+                properties.setImageURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
+                properties.setBillboardMode(BillboardMode::FULL);
+
+                _contextOverlayID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
             }
-            _contextOverlay->setWorldPosition(contextOverlayPosition);
-            _contextOverlay->setDimensions(contextOverlayDimensions);
-            _contextOverlay->setWorldOrientation(entityProperties.getRotation());
-            _contextOverlay->setVisible(true);
+
+            EntityItemProperties properties;
+            properties.setPosition(contextOverlayPosition);
+            properties.setDimensions(glm::vec3(contextOverlayDimensions, 0.01f));
+            properties.setRotation(entityProperties.getRotation());
+            properties.setVisible(true);
+            entityScriptingInterface->editEntity(_contextOverlayID, properties);
 
             return true;
         }
@@ -227,15 +234,13 @@ bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& ent
 }
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
+    if (_contextOverlayID != UNKNOWN_ENTITY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
         disableEntityHighlight(entityItemID);
         setCurrentEntityWithContextOverlay(QUuid());
         _entityMarketplaceID.clear();
-        // Destroy the Context Overlay
-        qApp->getOverlays().deleteOverlay(_contextOverlayID);
-        _contextOverlay = NULL;
-        _contextOverlayID = UNKNOWN_OVERLAY_ID;
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_contextOverlayID);
+        _contextOverlayID = UNKNOWN_ENTITY_ID;
         return true;
     }
     return false;
@@ -245,45 +250,41 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     return ContextOverlayInterface::destroyContextOverlay(entityItemID, PointerEvent());
 }
 
-void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
-        qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        emit contextOverlayClicked(_currentEntityWithContextOverlay);
-        _contextOverlayJustClicked = true;
+void ContextOverlayInterface::contextOverlays_hoverEnterOverlay(const QUuid& id, const PointerEvent& event) {
+    if (_contextOverlayID == id) {
+        qCDebug(context_overlay) << "Started hovering over Context Overlay. ID:" << id;
+        EntityItemProperties properties;
+        properties.setColor(CONTEXT_OVERLAY_COLOR);
+        properties.getPulse().setColorMode(PulseMode::NONE);
+        properties.getPulse().setPeriod(0.0f);
+        properties.setAlpha(CONTEXT_OVERLAY_HOVERED_ALPHA);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_contextOverlayID, properties);
     }
 }
 
-void ContextOverlayInterface::contextOverlays_hoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
-        qCDebug(context_overlay) << "Started hovering over Context Overlay. Overlay ID:" << overlayID;
-        _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
-        _contextOverlay->setColorPulse(0.0f); // pulse off
-        _contextOverlay->setPulsePeriod(0.0f); // pulse off
-        _contextOverlay->setAlpha(CONTEXT_OVERLAY_HOVERED_ALPHA);
+void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const QUuid& id, const PointerEvent& event) {
+    if (_contextOverlayID == id) {
+        qCDebug(context_overlay) << "Stopped hovering over Context Overlay. ID:" << id;
+        EntityItemProperties properties;
+        properties.setColor(CONTEXT_OVERLAY_COLOR);
+        properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+        properties.getPulse().setPeriod(CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD);
+        properties.setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_contextOverlayID, properties);
     }
 }
 
-void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
-        qCDebug(context_overlay) << "Stopped hovering over Context Overlay. Overlay ID:" << overlayID;
-        _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
-        _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-        _contextOverlay->setPulsePeriod(CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD);
-        _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
-    }
-}
-
-void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& id, const PointerEvent& event) {
     bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
-    if (contextOverlayFilterPassed(entityID) && _enabled && !isMouse) {
-        enableEntityHighlight(entityID);
+    if (contextOverlayFilterPassed(id) && _enabled && !isMouse) {
+        enableEntityHighlight(id);
     }
 }
 
-void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& id, const PointerEvent& event) {
     bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
-    if (_currentEntityWithContextOverlay != entityID && _enabled && !isMouse) {
-        disableEntityHighlight(entityID);
+    if (_currentEntityWithContextOverlay != id && _enabled && !isMouse) {
+        disableEntityHighlight(id);
     }
 }
 
@@ -291,12 +292,12 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
 
     setLastInspectedEntity(entityID);
 
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityID, _entityPropertyFlags);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
     if (entityProperties.verifyStaticCertificateProperties()) {
-        if (entityProperties.getClientOnly()) {
+        if (entityProperties.getEntityHostType() == entity::HostType::AVATAR) {
                 SharedNodePointer entityServer = nodeList->soloNodeOfType(NodeType::EntityServer);
 
                 if (entityServer) {
@@ -327,35 +328,35 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                             } else {
                                 QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
-                                QByteArray certID = entityProperties.getCertificateID().toUtf8();
-                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
+                                QByteArray id = entityID.toByteArray();
+                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(entityID, ownerKey);
                                 QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
 
-                                int certIDByteArraySize = certID.length();
+                                int idByteArraySize = id.length();
                                 int textByteArraySize = text.length();
                                 int nodeToChallengeByteArraySize = nodeToChallengeByteArray.length();
 
                                 auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-                                    certIDByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
+                                    idByteArraySize + textByteArraySize + nodeToChallengeByteArraySize + 3 * sizeof(int),
                                     true);
-                                challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+                                challengeOwnershipPacket->writePrimitive(idByteArraySize);
                                 challengeOwnershipPacket->writePrimitive(textByteArraySize);
                                 challengeOwnershipPacket->writePrimitive(nodeToChallengeByteArraySize);
-                                challengeOwnershipPacket->write(certID);
+                                challengeOwnershipPacket->write(id);
                                 challengeOwnershipPacket->write(text);
                                 challengeOwnershipPacket->write(nodeToChallengeByteArray);
                                 nodeList->sendPacket(std::move(challengeOwnershipPacket), *entityServer);
 
                                 // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
                                 if (thread() != QThread::currentThread()) {
-                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
+                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityID));
                                     return;
                                 } else {
-                                    startChallengeOwnershipTimer();
+                                    startChallengeOwnershipTimer(entityID);
                                 }
                             }
                         } else {
-                            qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() <<
+                            qCDebug(entities) << "Call failed with error" << networkReply->error() <<
                                 "More info:" << networkReply->readAll();
                         }
 
@@ -369,23 +370,23 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
             // so they always pass Ownership Verification. It's necessary to emit this signal
             // so that the Inspection Certificate can continue its information-grabbing process.
             auto ledger = DependencyManager::get<Ledger>();
-            emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+            emit ledger->updateCertificateStatus(entityID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
         }
     } else {
         auto ledger = DependencyManager::get<Ledger>();
         _challengeOwnershipTimeoutTimer.stop();
-        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
-        qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
+        emit ledger->updateCertificateStatus(entityID, (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(entityID);
+        qCDebug(context_overlay) << "Entity" << entityID << "failed static certificate verification!";
     }
 }
 
-void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
+void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityID) {
+    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
 }
 
-void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
+void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityID) {
+    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
@@ -394,14 +395,14 @@ void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
     }
 }
 
-void ContextOverlayInterface::startChallengeOwnershipTimer() {
+void ContextOverlayInterface::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
     auto ledger = DependencyManager::get<Ledger>();
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
 
     connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
-        qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
-        emit ledger->updateCertificateStatus(entityProperties.getCertificateID(), (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        qCDebug(entities) << "Ownership challenge timed out for" << entityItemID;
+        emit ledger->updateCertificateStatus(entityItemID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(entityItemID);
     });
 
     _challengeOwnershipTimeoutTimer.start(5000);
@@ -412,23 +413,22 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
 
     _challengeOwnershipTimeoutTimer.stop();
 
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
 
-    packet->readPrimitive(&certIDByteArraySize);
+    packet->readPrimitive(&idByteArraySize);
     packet->readPrimitive(&textByteArraySize);
 
-    QString certID(packet->read(certIDByteArraySize));
+    EntityItemID id(packet->read(idByteArraySize));
     QString text(packet->read(textByteArraySize));
 
-    EntityItemID id;
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text, id);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(id, text);
 
     if (verificationSuccess) {
-        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(_lastInspectedEntity);
+        emit ledger->updateCertificateStatus(id, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(id);
     } else {
-        emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        emit ledger->updateCertificateStatus(id, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(id);
     }
 }

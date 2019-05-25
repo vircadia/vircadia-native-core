@@ -39,6 +39,8 @@ const int32_t BULLET_COLLISION_GROUP_DYNAMIC = 1 << 1;
 const int32_t BULLET_COLLISION_GROUP_KINEMATIC = 1 << 2;
 const int32_t BULLET_COLLISION_GROUP_MY_AVATAR = 1 << 3;
 const int32_t BULLET_COLLISION_GROUP_OTHER_AVATAR = 1 << 4;
+const int32_t BULLET_COLLISION_GROUP_DETAILED_AVATAR = 1 << 5;
+const int32_t BULLET_COLLISION_GROUP_DETAILED_RAY = 1 << 6;
 // ...
 const int32_t BULLET_COLLISION_GROUP_COLLISIONLESS = 1 << 31;
 
@@ -64,12 +66,13 @@ const int32_t BULLET_COLLISION_MASK_MY_AVATAR = ~(BULLET_COLLISION_GROUP_COLLISI
 // to move its avatar around correctly and to communicate its motion through the avatar-mixer.
 // Therefore, they only need to collide against things that can be affected by their motion: dynamic and MyAvatar
 const int32_t BULLET_COLLISION_MASK_OTHER_AVATAR = BULLET_COLLISION_GROUP_DYNAMIC | BULLET_COLLISION_GROUP_MY_AVATAR;
-
+const int32_t BULLET_COLLISION_MASK_DETAILED_AVATAR = BULLET_COLLISION_GROUP_DETAILED_RAY;
+const int32_t BULLET_COLLISION_MASK_DETAILED_RAY = BULLET_COLLISION_GROUP_DETAILED_AVATAR;
 // COLLISIONLESS gets an empty mask.
 const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
 
 /**jsdoc
- * <p>An entity may collide with the following types of items:</p>
+ * <p>A collision may occur with the following types of items:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th>
@@ -85,7 +88,7 @@ const int32_t BULLET_COLLISION_MASK_COLLISIONLESS = 0;
  * </table>
  * <p>The values for the collision types that are enabled are added together to give the CollisionMask value. For example, a
  * value of <code>31</code> means that an entity will collide with all item types.</p>
- * @typedef {number} Entities.CollisionMask
+ * @typedef {number} CollisionMask
  */
 
 // The USER collision groups are exposed to script and can be used to generate per-object collision masks.

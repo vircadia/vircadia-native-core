@@ -145,10 +145,14 @@ public:
     virtual bool rootElementHasData() const { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
 
-    virtual void update() { } // nothing to do by default
+    // Why preUpdate() and update()?
+    // Because EntityTree needs them.
+    virtual void preUpdate() { }
+    virtual void update(bool simulate = true) { }
 
     OctreeElementPointer getRoot() { return _rootElement; }
 
+    virtual void eraseDomainAndNonOwnedEntities() { _isDirty = true; };
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,  uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args);
@@ -202,11 +206,13 @@ public:
 
     // Octree exporters
     bool toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& element = nullptr);
+    bool toJSONString(QString& jsonString, const OctreeElementPointer& element = nullptr);
     bool toJSON(QByteArray* data, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     bool writeToFile(const char* filename, const OctreeElementPointer& element = nullptr, QString persistAsFileType = "json.gz");
     bool writeToJSONFile(const char* filename, const OctreeElementPointer& element = nullptr, bool doGzip = false);
     virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
                             bool skipThoseWithBadParents) = 0;
+    virtual bool writeToJSON(QString& jsonString, const OctreeElementPointer& element) = 0;
 
     // Octree importers
     bool readFromFile(const char* filename);

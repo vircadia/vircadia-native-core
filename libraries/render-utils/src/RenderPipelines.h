@@ -12,10 +12,13 @@
 #define hifi_RenderPipelines_h
 
 #include <graphics/Material.h>
+#include <render/Args.h>
 
 class RenderPipelines {
 public:
-    static void bindMaterial(const graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures);
+    static void updateMultiMaterial(graphics::MultiMaterial& multiMaterial);
+    static bool bindMaterial(graphics::MaterialPointer& material, gpu::Batch& batch, render::Args::RenderMode renderMode, bool enableTextures);
+    static bool bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, render::Args::RenderMode renderMode, bool enableTextures);
 };
 
 

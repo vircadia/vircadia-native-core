@@ -14,7 +14,7 @@
 
 #include <functional>
 
-#include <glm/detail/func_common.hpp>
+#include <glm/common.hpp>
 
 namespace udt {
 

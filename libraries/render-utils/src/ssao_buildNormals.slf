@@ -1,0 +1,42 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ssao_buildNormals.frag
+//
+//  Created by Olivier Prat on 09/19/18.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include ssao.slh@>
+<$declareAmbientOcclusion()$>
+<$declareFetchDepthPyramidMap()$>
+
+layout(location=0) in vec2 varTexCoord0;
+
+layout(location=0) out vec4 outFragColor;
+
+void main(void) {
+    // Pixel being shaded
+    vec2 fragCoord = gl_FragCoord.xy; 
+    ivec2 fragPixelPos = ivec2(fragCoord.xy);
+    vec2 fragUVPos = varTexCoord0;
+
+    // Stereo side info based on the real viewport size of this pass
+    ivec2 sideNormalsSize = ivec2( getNormalsSideSize() );
+    ivec4 side = getStereoSideInfoFromWidth(fragPixelPos.x, sideNormalsSize.x);
+
+    vec2 deltaDepthUV = vec2(1.0) / getDepthTextureSideSize(0);
+
+    // From now on, fragUVPos is the UV pos in the side
+    fragUVPos = getSideUVFromFramebufferUV(side, fragUVPos);
+
+    // The position and normal of the pixel fragment in Eye space
+    vec3 fragPositionES = buildPosition(side, fragUVPos);
+    vec3 fragNormalES = buildNormal(side, fragUVPos, fragPositionES, deltaDepthUV);
+
+    outFragColor = vec4(packNormal(fragNormalES), 1.0);
+}

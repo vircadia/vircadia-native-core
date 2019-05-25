@@ -12,8 +12,6 @@
 #include <shared/Bilateral.h>
 #include <RegisteredMetaTypes.h>
 
-#include "ui/overlays/Overlay.h"
-
 #include "StylusPick.h"
 
 class StylusPointer : public Pointer {
@@ -21,7 +19,8 @@ class StylusPointer : public Pointer {
     using Ptr = std::shared_ptr<StylusPointer>;
 
 public:
-    StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled);
+    StylusPointer(const QVariant& props, const QUuid& stylus, bool hover, bool enabled,
+                  const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions);
     ~StylusPointer();
 
     void updateVisuals(const PickResultPointer& pickResult) override;
@@ -35,7 +34,7 @@ public:
 
     QVariantMap toVariantMap() const override;
 
-    static OverlayID buildStylusOverlay(const QVariantMap& properties);
+    static QUuid buildStylus(const QVariantMap& properties);
 
 protected:
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;
@@ -73,13 +72,17 @@ private:
 
     RenderState _renderState { EVENTS_ON };
 
-    const OverlayID _stylusOverlay;
+    QUuid _stylus;
 
     static bool isWithinBounds(float distance, float min, float max, float hysteresis);
     static glm::vec3 findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction);
     static glm::vec2 findPos2D(const PickedObject& pickedObject, const glm::vec3& origin);
 
     bool _showing { true };
+
+    glm::vec3 _modelPositionOffset;
+    glm::vec3 _modelDimensions;
+    glm::quat _modelRotationOffset;
 
 };
 

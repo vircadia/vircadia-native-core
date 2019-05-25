@@ -24,6 +24,7 @@
 #include <QtNetwork/QAbstractSocket>
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
+#include <QJsonDocument>
 
 int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int u8vec3MetaTypeId = qRegisterMetaType<u8vec3>();
@@ -39,6 +40,7 @@ int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
 int voidLambdaType = qRegisterMetaType<std::function<void()>>();
 int variantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+int stencilModeMetaTypeId = qRegisterMetaType<StencilMaskMode>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec2ToScriptValue, vec2FromScriptValue);
@@ -63,6 +65,8 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
+
+    qScriptRegisterMetaType(engine, stencilMaskModeToScriptValue, stencilMaskModeFromScriptValue);
 }
 
 QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
@@ -635,6 +639,81 @@ void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4) {
     mat4[3][3] = object.property("r3c3").toVariant().toFloat();
 }
 
+QVariant mat4ToVariant(const glm::mat4& mat4) {
+    if (mat4 != mat4) {
+        // NaN
+        return QVariant();
+    }
+    QVariantMap object;
+
+    object["r0c0"] = mat4[0][0];
+    object["r1c0"] = mat4[0][1];
+    object["r2c0"] = mat4[0][2];
+    object["r3c0"] = mat4[0][3];
+    object["r0c1"] = mat4[1][0];
+    object["r1c1"] = mat4[1][1];
+    object["r2c1"] = mat4[1][2];
+    object["r3c1"] = mat4[1][3];
+    object["r0c2"] = mat4[2][0];
+    object["r1c2"] = mat4[2][1];
+    object["r2c2"] = mat4[2][2];
+    object["r3c2"] = mat4[2][3];
+    object["r0c3"] = mat4[3][0];
+    object["r1c3"] = mat4[3][1];
+    object["r2c3"] = mat4[3][2];
+    object["r3c3"] = mat4[3][3];
+
+    return object;
+}
+
+glm::mat4 mat4FromVariant(const QVariant& object, bool& valid) {
+    glm::mat4 mat4;
+    valid = false;
+    if (!object.isValid() || object.isNull()) {
+        return mat4;
+    } else {
+        const static auto getElement = [](const QVariantMap& map, const char * key, float& value, bool& everyConversionValid) {
+            auto variantValue = map[key];
+            if (variantValue.canConvert<float>()) {
+                value = variantValue.toFloat();
+            } else {
+                everyConversionValid = false;
+            }
+        };
+
+        auto map = object.toMap();
+        bool everyConversionValid = true;
+
+        getElement(map, "r0c0", mat4[0][0], everyConversionValid);
+        getElement(map, "r1c0", mat4[0][1], everyConversionValid);
+        getElement(map, "r2c0", mat4[0][2], everyConversionValid);
+        getElement(map, "r3c0", mat4[0][3], everyConversionValid);
+        getElement(map, "r0c1", mat4[1][0], everyConversionValid);
+        getElement(map, "r1c1", mat4[1][1], everyConversionValid);
+        getElement(map, "r2c1", mat4[1][2], everyConversionValid);
+        getElement(map, "r3c1", mat4[1][3], everyConversionValid);
+        getElement(map, "r0c2", mat4[2][0], everyConversionValid);
+        getElement(map, "r1c2", mat4[2][1], everyConversionValid);
+        getElement(map, "r2c2", mat4[2][2], everyConversionValid);
+        getElement(map, "r3c2", mat4[2][3], everyConversionValid);
+        getElement(map, "r0c3", mat4[3][0], everyConversionValid);
+        getElement(map, "r1c3", mat4[3][1], everyConversionValid);
+        getElement(map, "r2c3", mat4[3][2], everyConversionValid);
+        getElement(map, "r3c3", mat4[3][3], everyConversionValid);
+
+        if (everyConversionValid) {
+            valid = true;
+        }
+
+        return mat4;
+    }
+}
+
+glm::mat4 mat4FromVariant(const QVariant& object) {
+    bool valid = false;
+    return mat4FromVariant(object, valid);
+}
+
 QScriptValue qVectorVec3ColorToScriptValue(QScriptEngine* engine, const QVector<glm::vec3>& vector) {
     QScriptValue array = engine->newArray();
     for (int i = 0; i < vector.size(); i++) {
@@ -1068,13 +1147,14 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
 }
 
 /**jsdoc
+ * Details of a collision between avatars and entities.
  * @typedef {object} Collision
  * @property {ContactEventType} type - The contact type of the collision event.
- * @property {Uuid} idA - The ID of one of the entities in the collision.
- * @property {Uuid} idB - The ID of the other of the entities in the collision.
- * @property {Vec3} penetration - The amount of penetration between the two entities.
+ * @property {Uuid} idA - The ID of one of the avatars or entities in the collision.
+ * @property {Uuid} idB - The ID of the other of the avatars or entities in the collision.
+ * @property {Vec3} penetration - The amount of penetration between the two items.
  * @property {Vec3} contactPoint - The point of contact.
- * @property {Vec3} velocityChange - The change in relative velocity of the two entities, in m/s.
+ * @property {Vec3} velocityChange - The change in relative velocity of the two items, in m/s.
  */
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
@@ -1146,19 +1226,21 @@ AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float prio
 }
 
 /**jsdoc
+ * The details of an animation that is playing.
  * @typedef {object} Avatar.AnimationDetails
- * @property {string} role
- * @property {string} url
- * @property {number} fps
- * @property {number} priority
- * @property {boolean} loop
- * @property {boolean} hold
- * @property {boolean} startAutomatically
- * @property {number} firstFrame
- * @property {number} lastFrame
- * @property {boolean} running
- * @property {number} currentFrame
- * @property {boolean} allowTranslation
+ * @property {string} role - <em>Not used.</em>
+ * @property {string} url - The URL to the animation file. Animation files need to be in .FBX format but only need to contain
+*     the avatar skeleton and animation data.
+ * @property {number} fps - The frames per second(FPS) rate for the animation playback. 30 FPS is normal speed.
+ * @property {number} priority - <em>Not used.</em>
+ * @property {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
+ * @property {boolean} hold - <em>Not used.</em>
+ * @property {number} firstFrame - The frame the animation should start at.
+ * @property {number} lastFrame - The frame the animation should stop at.
+ * @property {boolean} running - <em>Not used.</em>
+ * @property {number} currentFrame - The current frame being played.
+ * @property {boolean} startAutomatically - <em>Not used.</em>
+ * @property {boolean} allowTranslation - <em>Not used.</em>
  */
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& details) {
     QScriptValue obj = engine->newObject();
@@ -1244,4 +1326,47 @@ void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>
         meshFaceFromScriptValue(array.property(i), meshFace);
         result << meshFace;
     }
+}
+
+QVariantMap parseTexturesToMap(QString newTextures, const QVariantMap& defaultTextures) {
+    // If textures are unset, revert to original textures
+    if (newTextures.isEmpty()) {
+        return defaultTextures;
+    }
+
+    // Legacy: a ,\n-delimited list of filename:"texturepath"
+    if (*newTextures.cbegin() != '{') {
+        newTextures = "{\"" + newTextures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    }
+
+    QJsonParseError error;
+    QJsonDocument newTexturesJson = QJsonDocument::fromJson(newTextures.toUtf8(), &error);
+    // If textures are invalid, revert to original textures
+    if (error.error != QJsonParseError::NoError) {
+        qWarning() << "Could not evaluate textures property value:" << newTextures;
+        return defaultTextures;
+    }
+
+    QVariantMap newTexturesMap = newTexturesJson.toVariant().toMap();
+    QVariantMap toReturn = defaultTextures;
+    for (auto& texture : newTexturesMap.keys()) {
+        auto newURL = newTexturesMap[texture];
+        if (newURL.canConvert<QUrl>()) {
+            toReturn[texture] = newURL.toUrl();
+        } else if (newURL.canConvert<QString>()) {
+            toReturn[texture] = QUrl(newURL.toString());
+        } else {
+            toReturn[texture] = newURL;
+        }
+    }
+
+    return toReturn;
+}
+
+QScriptValue stencilMaskModeToScriptValue(QScriptEngine* engine, const StencilMaskMode& stencilMode) {
+    return engine->newVariant((int)stencilMode);
+}
+
+void stencilMaskModeFromScriptValue(const QScriptValue& object, StencilMaskMode& stencilMode) {
+    stencilMode = StencilMaskMode(object.toVariant().toInt());
 }

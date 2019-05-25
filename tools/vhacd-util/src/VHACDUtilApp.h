@@ -15,7 +15,7 @@
 
 #include <QCoreApplication>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 
 const int VHACD_RETURN_CODE_FAILURE_TO_READ = 1;
 const int VHACD_RETURN_CODE_FAILURE_TO_WRITE = 2;

@@ -1,28 +1,32 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model_translucent_fade.frag
+//
 //  Created by Olivier Prat on 06/05/17.
 //  Copyright 2017 High Fidelity, Inc.
+//
 //  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
+<@include DefaultMaterials.slh@>
 <@include graphics/Material.slh@>
+<@include graphics/MaterialTextures.slh@>
+<@include render-utils/ShaderConstants.h@>
+
+<@include LightLocal.slh@>
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
-<@include LightLocal.slh@>
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-<@include graphics/MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION)$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
-
-<@include render-utils/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
@@ -37,13 +41,12 @@ layout(location=0) out vec4 _fragColor;
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
-
     <$fetchFadeObjectParams(fadeParams)$>
     applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex)$>
     <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
 
     float opacity = getMaterialOpacity(mat) * _color.a;
@@ -58,10 +61,15 @@ void main(void) {
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
     float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+
     vec3 fresnel = getFresnelF0(metallic, albedo);
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+
+    float occlusion = DEFAULT_OCCLUSION;
+    <$evalMaterialOcclusion(occlusionTex, matKey, occlusion)$>;
 
     vec3 fragPositionES = _positionES.xyz;
     vec3 fragPositionWS = _positionWS.xyz;
@@ -74,7 +82,6 @@ void main(void) {
     SurfaceData surfaceWS = initSurfaceData(roughness, fragNormalWS, fragToEyeDirWS);
 
     vec4 localLighting = vec4(0.0);
-
     <$fetchClusterInfo(_positionWS)$>;
     if (hasLocalLights(numLights, clusterPos, dims)) {
         localLighting = evalLocalLighting(cluster, numLights, fragPositionWS, surfaceWS,
@@ -85,7 +92,7 @@ void main(void) {
     _fragColor =  vec4(evalGlobalLightingAlphaBlendedWithHaze(
         cam._viewInverse,
         1.0,
-        occlusionTex,
+        occlusion,
         fragPositionES,
         fragPositionWS,
         albedo,

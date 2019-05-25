@@ -161,7 +161,8 @@ ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId 
 // hit(overlay) on the one overlay intersected by pickRay, if any.
 // noHit() if no ExtendedOverlay was intersected (helps with hover)
 ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
-    var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
+    // TODO: this could just include the necessary overlays for better performance
+    var pickedOverlay = Overlays.findRayIntersection(pickRay, true); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
         if (noHit) {
             return noHit();
@@ -283,7 +284,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
                 print("Error: unable to remove connection", connectionUserName, error || response.status);
                 return;
             }
-            sendToQml({ method: 'refreshConnections' });
+            sendToQml({ method: 'connectionRemoved', params: connectionUserName });
         });
         break;
 
@@ -326,7 +327,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         ui.messagesWaiting(shouldShowDot);
         break;
     default:
-        print('Unrecognized message from Pal.qml:', JSON.stringify(message));
+        print('Unrecognized message from Pal.qml');
     }
 }
 
@@ -347,7 +348,7 @@ function requestJSON(url, callback) { // callback(data) if successfull. Logs oth
         uri: url
     }, function (error, response) {
         if (error || (response.status !== 'success')) {
-            print("Error: unable to get", url,  error || response.status);
+            print("Error: unable to get request",  error || response.status);
             return;
         }
         callback(response.data);

@@ -1,0 +1,76 @@
+Index: hifi-interface-84/cmake/macros/SetupQt.cmake
+===================================================================
+--- hifi-interface-84.orig/cmake/macros/SetupQt.cmake
++++ hifi-interface-84/cmake/macros/SetupQt.cmake
+@@ -18,19 +18,19 @@ function(calculate_default_qt_dir _QT_VE
+     elseif(WIN32)
+         set(QT_DEFAULT_ARCH "msvc2017_64")
+     else()
+-        set(QT_DEFAULT_ARCH "gcc_64")
++        set(QT_DEFAULT_ARCH "x86_64-linux-gnu")
+     endif()
+ 
+     if (WIN32 OR (ANDROID AND ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")))
+         set(QT_DEFAULT_ROOT "c:/Qt")
+     else()
+-        set(QT_DEFAULT_ROOT "$ENV{HOME}/Qt")
++        set(QT_DEFAULT_ROOT "/usr/lib")
+     endif()
+ 
+     set_from_env(QT_ROOT QT_ROOT ${QT_DEFAULT_ROOT})
+     set_from_env(QT_ARCH QT_ARCH ${QT_DEFAULT_ARCH})
+ 
+-    set(${_RESULT_NAME} "${QT_ROOT}/${_QT_VERSION}/${QT_ARCH}" PARENT_SCOPE)
++    set(${_RESULT_NAME} "${QT_ROOT}/${QT_ARCH}" PARENT_SCOPE)
+ endfunction()
+ 
+ # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
+@@ -44,7 +44,7 @@ macro(setup_qt)
+     endif()
+     if (("QT_CMAKE_PREFIX_PATH" STREQUAL "") OR (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}"))
+         calculate_default_qt_dir(${QT_VERSION} QT_DIR)
+-        set(QT_CMAKE_PREFIX_PATH "${QT_DIR}/lib/cmake")
++        set(QT_CMAKE_PREFIX_PATH "${QT_DIR}/cmake")
+     else()
+         # figure out where the qt dir is
+         get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+Index: hifi-interface-84/interface/CMakeLists.txt
+===================================================================
+--- hifi-interface-84.orig/interface/CMakeLists.txt
++++ hifi-interface-84/interface/CMakeLists.txt
+@@ -35,7 +35,7 @@ else ()
+   add_custom_command(
+     OUTPUT ${RESOURCES_RCC}
+     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+-    COMMAND "${QT_DIR}/bin/rcc"
++    COMMAND "rcc"
+     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+   )
+ endif()
+@@ -399,6 +399,13 @@ else()
+ 
+     optional_win_executable_signing()
+   endif()
++
++  install(
++      DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
++      DESTINATION ${INTERFACE_INSTALL_DIR}
++      COMPONENT ${CLIENT_COMPONENT}
++  )
++
+ endif()
+ 
+ if (SCRIPTS_INSTALL_DIR)
+Index: hifi-interface-84/tools/nitpick/CMakeLists.txt
+===================================================================
+--- hifi-interface-84.orig/tools/nitpick/CMakeLists.txt
++++ hifi-interface-84/tools/nitpick/CMakeLists.txt
+@@ -12,7 +12,7 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PAT
+ add_custom_command(
+     OUTPUT ${RESOURCES_RCC}
+     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+-    COMMAND "${QT_DIR}/bin/rcc"
++    COMMAND "rcc"
+     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+ )
+ 

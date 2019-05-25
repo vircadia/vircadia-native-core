@@ -53,6 +53,16 @@
                 position: absolute;
                 top: 0; left: 0; bottom: 0; right: 0;
             }
+			
+            #image_button {
+                position: absolute;
+                width: 463;
+                height: 410;
+                top: 155;
+                left: 8;
+                right: 8;
+                bottom: 146;
+            }
 
             #report_problem {
                 position: fixed;
@@ -66,18 +76,24 @@
         <script>
             var handControllerImageURL = null;
             var index = 0;
-            var count = 5;
+            var count = 3;
+			var handControllerRefURL = "https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#vr-controls";
+			var keyboardRefURL = "https://docs.highfidelity.com/en/rc81/explore/get-started/desktop.html#movement-controls";
+			var gamepadRefURL = "https://docs.highfidelity.com/en/rc81/explore/get-started/vr-controls.html#gamepad";
 
             function showKbm() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-keyboard.jpg");
+                document.getElementById("image_button").setAttribute("href", keyboardRefURL);
             }
 
             function showHandControllers() {
                 document.getElementById("main_image").setAttribute("src", handControllerImageURL);
+                document.getElementById("image_button").setAttribute("href", handControllerRefURL);
             }
 
             function showGamepad() {
                 document.getElementById("main_image").setAttribute("src", "img/tablet-help-gamepad.jpg");
+                document.getElementById("image_button").setAttribute("href", gamepadRefURL);
             }
 
             function cycleRight() {
@@ -94,24 +110,14 @@
                 switch (index) 
                 {
                     case 0:
-                        handControllerImageURL = "img/tablet-help-oculus.jpg";
-                        showHandControllers();
-                        break;
-                    case 1:
-                        handControllerImageURL = "img/tablet-help-vive.jpg";
-                        showHandControllers();
-                        break;
-                    case 2:
-                        handControllerImageURL = "img/tablet-help-windowsMR.jpg";
-                        showHandControllers();
-                        break;
-                    case 3:
                         showGamepad();
                         break;
-                    case 4:
+                    case 1:
                         showKbm();
                         break;
-
+                    case 2:
+                        showHandControllers();
+                        break;
                     default:
                 }
             }
@@ -144,34 +150,33 @@
                 }
 
                 switch (params.handControllerName) {
-                    case "oculus":
-                        handControllerImageURL = "img/tablet-help-oculus.jpg";
-                        index = 0;
-                        break;
                     case "windowsMR":
                         handControllerImageURL = "img/tablet-help-windowsMR.jpg";
-                        index = 2;
                         break;
                     case "vive":
-                    default:
                         handControllerImageURL = "img/tablet-help-vive.jpg";
-                        index = 1;
+                        break;
+                    case "oculus":
+						handControllerImageURL = "img/tablet-help-oculus.jpg";
+						break;
+                    default:
+                        handControllerImageURL = "";
+						count = 2;
                 }
 
                 switch (params.defaultTab) {
-                    case "gamepad":
-                        showGamepad();
-                        index = 3;
-                        break;
-
                     case "handControllers":
                         showHandControllers();
+                        index = 2;
                         break;
-
+                    case "gamepad":
+                        showGamepad();
+                        index = 0;
+                        break;
                     case "kbm":
                     default:
                         showKbm();
-                        index = 4;
+                        index = 1;
                 }
             }
         </script>
@@ -182,6 +187,7 @@
             <img id="main_image" src="img/tablet-help-keyboard.jpg" width="480px" height="720px"></img>
             <a href="#" id="left_button" onmousedown="cycleLeft()"></a>
             <a href="#" id="right_button" onmousedown="cycleRight()"></a>
+			<a href="#" id="image_button"></a>
         </div>
         <a href="mailto:support@highfidelity.com" id="report_problem">Report Problem</a>
     </body>

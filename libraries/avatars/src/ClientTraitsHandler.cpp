@@ -22,7 +22,7 @@ ClientTraitsHandler::ClientTraitsHandler(AvatarData* owningAvatar) :
     _owningAvatar(owningAvatar)
 {
     auto nodeList = DependencyManager::get<NodeList>();
-    QObject::connect(nodeList.data(), &NodeList::nodeAdded, [this](SharedNodePointer addedNode){
+    QObject::connect(nodeList.data(), &NodeList::nodeAdded, this, [this](SharedNodePointer addedNode) {
         if (addedNode->getType() == NodeType::AvatarMixer) {
             resetForNewMixer();
         }
@@ -65,8 +65,9 @@ void ClientTraitsHandler::resetForNewMixer() {
     _owningAvatar->prepareResetTraitInstances();
 }
 
-void ClientTraitsHandler::sendChangedTraitsToMixer() {
-    Lock lock(_traitLock);
+int ClientTraitsHandler::sendChangedTraitsToMixer() {
+    std::unique_lock<Mutex> lock(_traitLock);
+    int bytesWritten = 0;
 
     if (hasChangedTraits() || _shouldPerformInitialSend) {
         // we have at least one changed trait to send
@@ -75,7 +76,7 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         auto avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (!avatarMixer || !avatarMixer->getActiveSocket()) {
             // we don't have an avatar mixer with an active socket, we can't send changed traits at this time
-            return;
+            return 0;
         }
 
         // we have a mixer to send to, setup our set traits packet
@@ -90,16 +91,24 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         _traitStatuses.reset();
         _hasChangedTraits = false;
 
+        // if this was an initial send of all traits, consider it completed
+        bool initialSend = _shouldPerformInitialSend;
+        _shouldPerformInitialSend = false;
+
+        // we can release the lock here since we've taken a copy of statuses
+        // and will setup the packet using the information in the copy
+        lock.unlock();
+
         auto simpleIt = traitStatusesCopy.simpleCBegin();
         while (simpleIt != traitStatusesCopy.simpleCEnd()) {
             // because the vector contains all trait types (for access using trait type as index)
             // we double check that it is a simple iterator here
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitStatusesCopy.simpleCBegin(), simpleIt));
 
-            if (_shouldPerformInitialSend || *simpleIt == Updated) {
+            if (initialSend || *simpleIt == Updated) {
+                bytesWritten += AvatarTraits::packTrait(traitType, *traitsPacketList, *_owningAvatar);
+                
                 if (traitType == AvatarTraits::SkeletonModelURL) {
-                    _owningAvatar->packTrait(traitType, *traitsPacketList);
-
                     // keep track of our skeleton version in case we get an override back
                     _currentSkeletonVersion = _currentTraitVersion;
                 }
@@ -111,14 +120,16 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         auto instancedIt = traitStatusesCopy.instancedCBegin();
         while (instancedIt != traitStatusesCopy.instancedCEnd()) {
             for (auto& instanceIDValuePair : instancedIt->instances) {
-                if ((_shouldPerformInitialSend && instanceIDValuePair.value != Deleted)
+                if ((initialSend && instanceIDValuePair.value != Deleted)
                     || instanceIDValuePair.value == Updated) {
                     // this is a changed trait we need to send or we haven't send out trait information yet
                     // ask the owning avatar to pack it
-                    _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList);
-                } else if (!_shouldPerformInitialSend && instanceIDValuePair.value == Deleted) {
+                    bytesWritten += AvatarTraits::packTraitInstance(instancedIt->traitType, instanceIDValuePair.id,
+                                                                    *traitsPacketList, *_owningAvatar);
+
+                } else if (!initialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
-                    AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
+                    bytesWritten += AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
                                                            *traitsPacketList);
                 }
             }
@@ -127,16 +138,24 @@ void ClientTraitsHandler::sendChangedTraitsToMixer() {
         }
 
         nodeList->sendPacketList(std::move(traitsPacketList), *avatarMixer);
-
-        // if this was an initial send of all traits, consider it completed
-        _shouldPerformInitialSend = false;
     }
+
+    return bytesWritten;
 }
 
 void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (sendingNode->getType() == NodeType::AvatarMixer) {
         Lock lock(_traitLock);
-        while (message->getBytesLeftToRead()) {
+
+        while (message->getBytesLeftToRead() > 0) {
+            // Trying to read more bytes than available, bail
+            if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitType) +
+                                                       sizeof(AvatarTraits::TraitVersion) +
+                                                       sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Malformed trait override packet, bailling";
+                return;
+            }
+
             AvatarTraits::TraitType traitType;
             message->readPrimitive(&traitType);
 
@@ -146,6 +165,12 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
             AvatarTraits::TraitWireSize traitBinarySize;
             message->readPrimitive(&traitBinarySize);
 
+            // Trying to read more bytes than available, bail
+            if (traitBinarySize < -1 || message->getBytesLeftToRead() < traitBinarySize) {
+                qWarning() << "Malformed trait override packet, bailling";
+                return;
+            }
+
             // only accept an override if this is for a trait type we override
             // and the version matches what we last sent for skeleton
             if (traitType == AvatarTraits::SkeletonModelURL
@@ -154,11 +179,11 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
 
                 // override the skeleton URL but do not mark the trait as having changed
                 // so that we don't unecessarily send a new trait packet to the mixer with the overriden URL
-                auto encodedSkeletonURL = QUrl::fromEncoded(message->readWithoutCopy(traitBinarySize));
 
                 auto hasChangesBefore = _hasChangedTraits;
 
-                _owningAvatar->setSkeletonModelURL(encodedSkeletonURL);
+                auto traitBinaryData = message->readWithoutCopy(traitBinarySize);
+                _owningAvatar->processTrait(traitType, traitBinaryData);
 
                 // setSkeletonModelURL will flag us for changes to the SkeletonModelURL so we reset some state here to
                 // avoid unnecessarily sending the overriden skeleton model URL back to the mixer

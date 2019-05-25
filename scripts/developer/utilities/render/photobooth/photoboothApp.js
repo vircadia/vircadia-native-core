@@ -47,7 +47,7 @@
 
 
     function onWebEventReceived(event) {
-        print("photobooth.js received a web event:" + event);
+        print("photobooth.js received a web event");
         // Converts the event to a JavasScript Object
         if (typeof event === "string") {
             event = JSON.parse(event);

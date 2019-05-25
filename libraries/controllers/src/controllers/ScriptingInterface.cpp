@@ -89,17 +89,17 @@ namespace controller {
 
     float ScriptingInterface::getValue(const int& source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        return userInputMapper->getValue(Input((uint32_t)source));
+        return userInputMapper->getValue(Input((uint32_t)source)).value;
     }
 
     float ScriptingInterface::getAxisValue(int source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        return userInputMapper->getValue(Input((uint32_t)source));
+        return userInputMapper->getValue(Input((uint32_t)source)).value;
     }
 
     Pose ScriptingInterface::getPoseValue(const int& source) const {
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
-        return userInputMapper->getPose(Input((uint32_t)source)); 
+        return userInputMapper->getPose(Input((uint32_t)source));
     }
     
     QVector<Action> ScriptingInterface::getAllActions() {
@@ -227,6 +227,7 @@ namespace controller {
     }
 
     QObject* ScriptingInterface::loadMapping(const QString& jsonUrl) {
+        // FIXME: Implement. https://highfidelity.manuscript.com/f/cases/14188/Implement-Controller-loadMappping
         return nullptr;
     }
 

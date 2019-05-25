@@ -19,61 +19,103 @@
 
 #include <ResourceCache.h>
 
+#include "AudioConstants.h"
+
+class AudioData;
+using AudioDataPointer = std::shared_ptr<const AudioData>;
+
+Q_DECLARE_METATYPE(AudioDataPointer);
+
+// AudioData is designed to be immutable
+// All of its members and methods are const
+// This makes it perfectly safe to access from multiple threads at once
+class AudioData {
+public:
+    using AudioSample = AudioConstants::AudioSample;
+
+    // Allocates the buffer memory contiguous with the object
+    static AudioDataPointer make(uint32_t numSamples, uint32_t numChannels,
+                                 const AudioSample* samples);
+
+    uint32_t getNumSamples() const { return _numSamples; }
+    uint32_t getNumChannels() const { return _numChannels; }
+    const AudioSample* data() const { return _data; }
+    const char* rawData() const { return reinterpret_cast<const char*>(_data); }
+
+    float isStereo() const { return _numChannels == 2; }
+    float isAmbisonic() const { return _numChannels == 4; }
+    float getDuration() const { return (float)_numSamples / (_numChannels * AudioConstants::SAMPLE_RATE); }
+    uint32_t getNumFrames() const { return _numSamples / _numChannels; }
+    uint32_t getNumBytes() const { return _numSamples * sizeof(AudioSample); }
+
+private:
+    AudioData(uint32_t numSamples, uint32_t numChannels, const AudioSample* samples);
+
+    const uint32_t _numSamples { 0 };
+    const uint32_t _numChannels { 0 };
+    const AudioSample* const _data { nullptr };
+};
+
 class Sound : public Resource {
     Q_OBJECT
 
 public:
     Sound(const QUrl& url, bool isStereo = false, bool isAmbisonic = false);
-    
-    bool isStereo() const { return _isStereo; }    
-    bool isAmbisonic() const { return _isAmbisonic; }    
-    bool isReady() const { return _isReady; }
-    float getDuration() const { return _duration; }
- 
-    const QByteArray& getByteArray() const { return _byteArray; }
+    Sound(const Sound& other) : Resource(other), _audioData(other._audioData), _numChannels(other._numChannels) {}
+
+    bool isReady() const { return (bool)_audioData; }
+
+    bool isStereo() const { return _audioData ? _audioData->isStereo() : false; }
+    bool isAmbisonic() const { return _audioData ? _audioData->isAmbisonic() : false; }
+    float getDuration() const { return _audioData ? _audioData->getDuration() : 0.0f; }
+
+    AudioDataPointer getAudioData() const { return _audioData; }
+
+    int getNumChannels() const { return _numChannels; }
 
 signals:
     void ready();
 
 protected slots:
-    void soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);
+    void soundProcessSuccess(AudioDataPointer audioData);
     void soundProcessError(int error, QString str);
     
 private:
-    QByteArray _byteArray;
-    bool _isStereo;
-    bool _isAmbisonic;
-    bool _isReady;
-    float _duration; // In seconds
-    
     virtual void downloadFinished(const QByteArray& data) override;
+
+    AudioDataPointer _audioData;
+
+     // Only used for caching until the download has finished
+    int _numChannels { 0 };
 };
 
 class SoundProcessor : public QObject, public QRunnable {
     Q_OBJECT
 
 public:
-    SoundProcessor(const QUrl& url, const QByteArray& data, bool stereo, bool ambisonic)
-        : _url(url), _data(data), _isStereo(stereo), _isAmbisonic(ambisonic)
-    {
-    }
+    struct AudioProperties {
+        uint8_t numChannels { 0 };
+        uint32_t sampleRate { 0 };
+    };
+
+    SoundProcessor(QWeakPointer<Resource> sound, QByteArray data);
 
     virtual void run() override;
 
-    void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
-    int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
-    int interpretAsMP3(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
+    QByteArray downSample(const QByteArray& rawAudioByteArray,
+                          AudioProperties properties);
+    AudioProperties interpretAsWav(const QByteArray& inputAudioByteArray,
+                                   QByteArray& outputAudioByteArray);
+    AudioProperties interpretAsMP3(const QByteArray& inputAudioByteArray,
+                                   QByteArray& outputAudioByteArray);
 
 signals:
-    void onSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);
+    void onSuccess(AudioDataPointer audioData);
     void onError(int error, QString str);
 
 private:
-    QUrl _url;
-    QByteArray _data;
-    bool _isStereo;
-    bool _isAmbisonic;
-    float _duration;
+    const QWeakPointer<Resource> _sound;
+    const QByteArray _data;
 };
 
 typedef QSharedPointer<Sound> SharedSoundPointer;
@@ -82,21 +124,22 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * An audio resource, created by {@link SoundCache.getSound}, to be played back using {@link Audio.playSound}.
  * <p>Supported formats:</p>
  * <ul>
- *   <li>WAV: 16-bit uncompressed WAV at any sample rate, with 1 (mono), 2(stereo), or 4 (ambisonic) channels.</li>
+ *   <li>WAV: 16-bit uncompressed at any sample rate, with 1 (mono), 2 (stereo), or 4 (ambisonic) channels.</li>
  *   <li>MP3: Mono or stereo, at any sample rate.</li>
- *   <li>RAW: 48khz 16-bit mono or stereo. Filename must include <code>".stereo"</code> to be interpreted as stereo.</li>
+ *   <li>RAW: 48khz 16-bit mono or stereo. File name must include <code>".stereo"</code> to be interpreted as stereo.</li>
  * </ul>
  *
  * @class SoundObject
  * 
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  *
  * @property {boolean} downloaded - <code>true</code> if the sound has been downloaded and is ready to be played, otherwise 
- *     <code>false</code>.
- * @property {number} duration - The duration of the sound, in seconds.
+ *     <code>false</code>. <em>Read-only.</em>
+ * @property {number} duration - The duration of the sound, in seconds. <em>Read-only.</em>
  */
 class SoundScriptingInterface : public QObject {
     Q_OBJECT

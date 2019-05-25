@@ -38,24 +38,14 @@ void AudioScriptingInterface::setLocalAudioInterface(AbstractAudioInterface* aud
     }
 }
 
-ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer sound, const QVector3D& position) {
+ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer sound) {
     AudioInjectorOptions options;
-    options.position = glm::vec3(position.x(), position.y(), position.z());
     options.localOnly = true;
+    options.positionSet = false;    // system sound
     return playSound(sound, options);
 }
 
 ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
-    if (QThread::currentThread() != thread()) {
-        ScriptAudioInjector* injector = NULL;
-
-        BLOCKING_INVOKE_METHOD(this, "playSound",
-                                  Q_RETURN_ARG(ScriptAudioInjector*, injector),
-                                  Q_ARG(SharedSoundPointer, sound),
-                                  Q_ARG(const AudioInjectorOptions&, injectorOptions));
-        return injector;
-    }
-
     if (sound) {
         // stereo option isn't set from script, this comes from sound metadata or filename
         AudioInjectorOptions optionsCopy = injectorOptions;
@@ -63,15 +53,15 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
         optionsCopy.ambisonic = sound->isAmbisonic();
         optionsCopy.localOnly = optionsCopy.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
 
-        auto injector = AudioInjector::playSound(sound->getByteArray(), optionsCopy);
+        auto injector = DependencyManager::get<AudioInjectorManager>()->playSound(sound, optionsCopy);
         if (!injector) {
-            return NULL;
+            return nullptr;
         }
         return new ScriptAudioInjector(injector);
 
     } else {
         qCDebug(scriptengine) << "AudioScriptingInterface::playSound called with null Sound object.";
-        return NULL;
+        return nullptr;
     }
 }
 
@@ -87,4 +77,44 @@ bool AudioScriptingInterface::isStereoInput() {
         stereoEnabled = _localAudioInterface->isStereoInput();
     }
     return stereoEnabled;
+}
+
+bool AudioScriptingInterface::getServerEcho() {
+    bool serverEchoEnabled = false;
+    if (_localAudioInterface) {
+        serverEchoEnabled = _localAudioInterface->getServerEcho();
+    }
+    return serverEchoEnabled;
+}
+
+void AudioScriptingInterface::setServerEcho(bool serverEcho) {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "setServerEcho", Q_ARG(bool, serverEcho));
+    }
+}
+
+void AudioScriptingInterface::toggleServerEcho() {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "toggleServerEcho");
+    }
+}
+
+bool AudioScriptingInterface::getLocalEcho() {
+    bool localEchoEnabled = false;
+    if (_localAudioInterface) {
+        localEchoEnabled = _localAudioInterface->getLocalEcho();
+    }
+    return localEchoEnabled;
+}
+
+void AudioScriptingInterface::setLocalEcho(bool localEcho) {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "setLocalEcho", Q_ARG(bool, localEcho));
+    }
+}
+
+void AudioScriptingInterface::toggleLocalEcho() {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "toggleLocalEcho");
+    }
 }

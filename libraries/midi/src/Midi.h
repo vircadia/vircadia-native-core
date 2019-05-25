@@ -21,10 +21,17 @@
 #include <string>
 
 /**jsdoc
+ * The <code>Midi</code> API provides the ability to connect Interface with musical instruments and other external or virtual 
+ * devices via the MIDI protocol. For further information and examples, see the tutorial: 
+ * <a href="https://docs.highfidelity.com/en/rc81/script/midi-tutorial.html">Use MIDI to Control Your Environment</a>.</p>
+ *
+ * <p><strong>Note:</strong> Only works on Windows.</p>
+ *
  * @namespace Midi
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class Midi : public QObject, public Dependency {
@@ -48,88 +55,112 @@ private:
     void MidiCleanup();
 
 signals:
-    void midiNote(QVariantMap eventData);
-    void midiMessage(QVariantMap eventData);
-    void midiReset();
-
-    public slots:
 
     /**jsdoc
-     * Send Raw MIDI packet to a particular device.
+     * Triggered when a connected device sends an output.
+     * @function Midi.midiNote
+     * @param {Midi.MidiMessage} message - The MIDI message.
+     * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed. Use {@link Midi.midiMessage|midiMessage} instead.
+     */
+    void midiNote(QVariantMap eventData);
+
+    /**jsdoc
+     * Triggered when a connected device sends an output.
+     * @function Midi.midiMessage
+     * @param {Midi.MidiMessage} message - The MIDI message.
+     * @returns {Signal}
+     */
+    void midiMessage(QVariantMap eventData);
+
+    /**jsdoc
+     * Triggered when the system detects there was a reset such as when a device is plugged in or unplugged.
+     * @function Midi.midiReset
+     * @returns {Signal}
+     */
+    void midiReset();
+
+public slots:
+
+    /**jsdoc
+     * Sends a raw MIDI packet to a particular device.
      * @function Midi.sendRawDword
      * @param {number} device - Integer device number.
-     * @param {number} raw - Integer (DWORD) raw MIDI message.
+     * @param {Midi.RawMidiMessage} raw - Raw MIDI message.
      */
     Q_INVOKABLE void sendRawDword(int device, int raw);
 
     /**jsdoc
-     * Send MIDI message to a particular device.
+     * Sends a MIDI message to a particular device.
      * @function Midi.sendMidiMessage
      * @param {number} device - Integer device number.
      * @param {number} channel - Integer channel number.
-     * @param {number} type - 0x8 is note off, 0x9 is note on (if velocity=0, note off), etc.
-     * @param {number} note - MIDI note number.
-     * @param {number} velocity - Note velocity (0 means note off).
+     * @param {Midi.MidiStatus} type - Integer status value.
+     * @param {number} note - Note number.
+     * @param {number} velocity - Note velocity. (<code>0</code> means "note off".)
+     * @comment The "type" parameter has that name to match up with {@link Midi.MidiMessage}.
      */
     Q_INVOKABLE void sendMidiMessage(int device, int channel, int type, int note, int velocity);
 
     /**jsdoc
-     * Play a note on all connected devices.
+     * Plays a note on all connected devices.
      * @function Midi.playMidiNote
-     * @param {number} status - 0x80 is note off, 0x90 is note on (if velocity=0, note off), etc.
-     * @param {number} note - MIDI note number.
-     * @param {number} velocity - Note velocity (0 means note off).
+     * @param {MidiStatus} status - Note status.
+     * @param {number} note - Note number.
+     * @param {number} velocity - Note velocity. (<code>0</code> means "note off".)
      */
     Q_INVOKABLE void playMidiNote(int status, int note, int velocity);
 
     /**jsdoc
-     * Turn off all notes on all connected devices.
+     * Turns off all notes on all connected MIDI devices.
      * @function Midi.allNotesOff
      */
     Q_INVOKABLE void allNotesOff();
 
     /**jsdoc
-     * Clean up and re-discover attached devices.
+     * Cleans up and rediscovers attached MIDI devices.
      * @function Midi.resetDevices
      */
     Q_INVOKABLE void resetDevices();
 
     /**jsdoc
-     * Get a list of inputs/outputs.
+     * Gets a list of MIDI input or output devices.
      * @function Midi.listMidiDevices
-     * @param {boolean} output
+     * @param {boolean} output - <code>true</code> to list output devices, <code>false</code> to list input devices.
      * @returns {string[]}
      */
     Q_INVOKABLE QStringList listMidiDevices(bool output);
 
     /**jsdoc
-     * Block an input/output by name.
+     * Blocks a MIDI device's input or output.
      * @function Midi.blockMidiDevice
-     * @param {string} name
-     * @param {boolean} output
+     * @param {string} name - The name of the MIDI device to block.
+     * @param {boolean} output -  <code>true</code> to block the device's output, <code>false</code> to block its input.
      */
     Q_INVOKABLE void blockMidiDevice(QString name, bool output);
 
     /**jsdoc
-     * Unblock an input/output by name.
+     * Unblocks a MIDI device's input or output.
      * @function Midi.unblockMidiDevice
-     * @param {string} name
-     * @param {boolean} output
+     * @param {string} name- The name of the MIDI device to unblock.
+     * @param {boolean} output -  <code>true</code> to unblock the device's output, <code>false</code> to unblock its input.
      */
     Q_INVOKABLE void unblockMidiDevice(QString name, bool output);
 
     /**jsdoc
-     * Repeat all incoming notes to all outputs (default disabled).
+     * Enables or disables repeating all incoming notes to all outputs. (Default is disabled.)
      * @function Midi.thruModeEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable repeating all incoming notes to all output, <code>false</code> to 
+     *     disable.
      */
     Q_INVOKABLE void thruModeEnable(bool enable);
 
 
     /**jsdoc
-     * Broadcast on all unblocked devices.
+     * Enables or disables broadcasts to all unblocked devices.
      * @function Midi.broadcastEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to have "send" functions broadcast to all devices, <code>false</code> to 
+     *     have them send to specific output devices.
      */
     Q_INVOKABLE void broadcastEnable(bool enable);
     
@@ -137,50 +168,58 @@ signals:
     /// filter by event types
 
     /**jsdoc
+     * Enables or disables note off events.
      * @function Midi.typeNoteOffEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeNoteOffEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables note on events.
      * @function Midi.typeNoteOnEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeNoteOnEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables poly key pressure events.
      * @function Midi.typePolyKeyPressureEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typePolyKeyPressureEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables control change events.
      * @function Midi.typeControlChangeEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeControlChangeEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables program change events.
      * @function Midi.typeProgramChangeEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeProgramChangeEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables channel pressure events.
      * @function Midi.typeChanPressureEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeChanPressureEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables pitch bend events.
      * @function Midi.typePitchBendEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typePitchBendEnable(bool enable);
 
     /**jsdoc
+     * Enables or disables system message events.
      * @function Midi.typeSystemMessageEnable
-     * @param {boolean} enable
+     * @param {boolean} enable - <code>true</code> to enable, <code>false</code> to disable.
      */
     Q_INVOKABLE void typeSystemMessageEnable(bool enable);
 

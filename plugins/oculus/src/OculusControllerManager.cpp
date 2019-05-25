@@ -17,6 +17,7 @@
 #include <controllers/UserInputMapper.h>
 #include <controllers/StandardControls.h>
 
+#include <AvatarConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <NumericalConstants.h>
@@ -29,6 +30,7 @@
 using namespace hifi;
 
 const char* OculusControllerManager::NAME = "Oculus";
+const QString OCULUS_LAYOUT = "OculusConfiguration.qml";
 
 const quint64 LOST_TRACKING_DELAY = 3000000;
 
@@ -40,6 +42,22 @@ bool OculusControllerManager::activate() {
     InputPlugin::activate();
     checkForConnectedDevices();
     return true;
+}
+
+QString OculusControllerManager::configurationLayout() {
+    return OCULUS_LAYOUT;
+}
+
+void OculusControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
+    if (configurationSettings.contains("trackControllersInOculusHome")) {
+        _touch->_trackControllersInOculusHome.set(configurationSettings["trackControllersInOculusHome"].toBool());
+    }
+}
+
+QJsonObject OculusControllerManager::configurationSettings() {
+    QJsonObject configurationSettings;
+    configurationSettings["trackControllersInOculusHome"] = _touch->_trackControllersInOculusHome.get();
+    return configurationSettings;
 }
 
 void OculusControllerManager::checkForConnectedDevices() {
@@ -214,13 +232,14 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
     quint64 currentTime = usecTimestampNow();
     static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked | ovrStatus_PositionTracked;
     bool hasInputFocus = ovr::hasInputFocus();
+    bool trackControllersInOculusHome = _trackControllersInOculusHome.get();
     auto tracking = ovr::getTrackingState(); // ovr_GetTrackingState(_parent._session, 0, false);
     ovr::for_each_hand([&](ovrHandType hand) {
         ++numTrackedControllers;
         int controller = (hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND);
 
         // Disable hand tracking while in Oculus Dash (Dash renders it's own hands)
-        if (!hasInputFocus) {
+        if (!hasInputFocus && !trackControllersInOculusHome) {
             _poseStateMap.erase(controller);
             _poseStateMap[controller].valid = false;
             return;
@@ -258,15 +277,15 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
     using namespace controller;
     // Axes
     const auto& inputState = _parent._touchInputState;
-    _axisStateMap[LX] = inputState.Thumbstick[ovrHand_Left].x;
-    _axisStateMap[LY] = inputState.Thumbstick[ovrHand_Left].y;
-    _axisStateMap[LT] = inputState.IndexTrigger[ovrHand_Left];
-    _axisStateMap[LEFT_GRIP] = inputState.HandTrigger[ovrHand_Left];
+    _axisStateMap[LX].value = inputState.Thumbstick[ovrHand_Left].x;
+    _axisStateMap[LY].value = inputState.Thumbstick[ovrHand_Left].y;
+    _axisStateMap[LT].value = inputState.IndexTrigger[ovrHand_Left];
+    _axisStateMap[LEFT_GRIP].value = inputState.HandTrigger[ovrHand_Left];
 
-    _axisStateMap[RX] = inputState.Thumbstick[ovrHand_Right].x;
-    _axisStateMap[RY] = inputState.Thumbstick[ovrHand_Right].y;
-    _axisStateMap[RT] = inputState.IndexTrigger[ovrHand_Right];
-    _axisStateMap[RIGHT_GRIP] = inputState.HandTrigger[ovrHand_Right];
+    _axisStateMap[RX].value = inputState.Thumbstick[ovrHand_Right].x;
+    _axisStateMap[RY].value = inputState.Thumbstick[ovrHand_Right].y;
+    _axisStateMap[RT].value = inputState.IndexTrigger[ovrHand_Right];
+    _axisStateMap[RIGHT_GRIP].value = inputState.HandTrigger[ovrHand_Right];
 
     // Buttons
     for (const auto& pair : BUTTON_MAP) {
@@ -327,8 +346,14 @@ void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
                           ovr::toGlm(headPose.AngularVelocity));
 
     glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) *
-        inputCalibrationData.defaultHeadMat;
+    glm::mat4 defaultHeadOffset;
+    if (inputCalibrationData.hmdAvatarAlignmentType == controller::HmdAvatarAlignmentType::Eyes) {
+        // align the eyes of the user with the eyes of the avatar
+        defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+    } else {
+        // align the head of the user with the head of the avatar
+        defaultHeadOffset = createMatFromQuatAndPos(Quaternions::IDENTITY, -DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET);
+    }
 
     pose.valid = true;
     _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);
@@ -384,9 +409,10 @@ void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
 }
 
 /**jsdoc
- * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing Oculus Rift. The property values are 
- * integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
- * <code>Controller.Standard</code> items in a {@link RouteObject} mapping.</p>
+ * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing the Oculus Rift. The property values 
+ * are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
+ * <p>These outputs can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
+ * mapping.</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>

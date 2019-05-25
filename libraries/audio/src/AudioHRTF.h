@@ -30,6 +30,10 @@ static const float HRTF_NEARFIELD_MAX = 1.0f;   // distance in meters
 static const float HRTF_NEARFIELD_MIN = 0.125f; // distance in meters
 static const float HRTF_HEAD_RADIUS = 0.0875f;  // average human head in meters
 
+// Distance attenuation
+static const float ATTN_DISTANCE_REF = 2.0f;    // distance where attn is 0dB
+static const float ATTN_GAIN_MAX = 16.0f;       // max gain allowed by distance attn (+24dB)
+
 class AudioHRTF {
 
 public:
@@ -45,6 +49,12 @@ public:
     // numFrames: must be HRTF_BLOCK in this version
     //
     void render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
+
+    //
+    // Non-spatialized direct mix (accumulates into existing output)
+    //
+    void mixMono(int16_t* input, float* output, float gain, int numFrames);
+    void mixStereo(int16_t* input, float* output, float gain, int numFrames);
 
     //
     // Fast path when input is known to be silent and state as been flushed

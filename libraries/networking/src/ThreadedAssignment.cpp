@@ -18,6 +18,7 @@
 #include <QtCore/QTimer>
 
 #include <LogHandler.h>
+#include <shared/QtHelpers.h>
 
 #include "NetworkLogging.h"
 
@@ -58,7 +59,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
             packetReceiver.setShouldDropPackets(true);
 
             // send a disconnect packet to the domain
-            nodeList->getDomainHandler().disconnect();
+            nodeList->getDomainHandler().disconnect("Finished");
 
             // stop our owned timers
             _domainServerTimer.stop();
@@ -94,17 +95,22 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    float packetsInPerSecond, bytesInPerSecond, packetsOutPerSecond, bytesOutPerSecond;
-    nodeList->getPacketStats(packetsInPerSecond, bytesInPerSecond, packetsOutPerSecond, bytesOutPerSecond);
-    nodeList->resetPacketStats();
+#ifdef DEBUG_EVENT_QUEUE
+    statsObject["nodelist_event_queue_size"] = ::hifi::qt::getEventQueueSize(nodeList->thread());
+#endif
 
     QJsonObject ioStats;
-    ioStats["inbound_bytes_per_s"] = bytesInPerSecond;
-    ioStats["inbound_packets_per_s"] = packetsInPerSecond;
-    ioStats["outbound_bytes_per_s"] = bytesOutPerSecond;
-    ioStats["outbound_packets_per_s"] = packetsOutPerSecond;
+    ioStats["inbound_kbps"] = nodeList->getInboundKbps();
+    ioStats["inbound_pps"] = nodeList->getInboundPPS();
+    ioStats["outbound_kbps"] = nodeList->getOutboundKbps();
+    ioStats["outbound_pps"] = nodeList->getOutboundPPS();
 
     statsObject["io_stats"] = ioStats;
+
+    QJsonObject assignmentStats;
+    assignmentStats["numQueuedCheckIns"] = _numQueuedCheckIns;
+
+    statsObject["assignmentStats"] = assignmentStats;
 
     nodeList->sendStatsToDomainServer(statsObject);
 }
@@ -123,10 +129,16 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
         stop();
     } else {
         auto nodeList = DependencyManager::get<NodeList>();
-        QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn");
+        // Call sendDomainServerCheckIn directly instead of putting it on
+        // the event queue.  Under high load, the event queue can back up
+        // longer than the total timeout period and cause a restart
+        nodeList->sendDomainServerCheckIn();
 
         // increase the number of queued check ins
         _numQueuedCheckIns++;
+        if (_numQueuedCheckIns > 1) {
+            qCDebug(networking) << "Number of queued checkins = " << _numQueuedCheckIns;
+        }
     }
 }
 

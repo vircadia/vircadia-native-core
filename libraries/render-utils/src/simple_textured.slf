@@ -12,6 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Color.slh@>
 <@include DeferredBufferWrite.slh@>
 
 <@include render-utils/ShaderConstants.h@>
@@ -28,11 +29,13 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0);
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
+    texel.rgb *= _color.rgb;
 
     packDeferredFragment(
         normalize(_normalWS),
         1.0,
-        _color.rgb * texel.rgb,
+        texel.rgb,
         DEFAULT_ROUGHNESS,
         DEFAULT_METALLIC,
         DEFAULT_EMISSIVE,

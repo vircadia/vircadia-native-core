@@ -40,13 +40,13 @@ namespace scriptable {
      * @typedef {object} Graphics.Material
      * @property {string} name
      * @property {string} model
-     * @property {number} opacity
-     * @property {number} roughness
-     * @property {number} metallic
-     * @property {number} scattering
-     * @property {boolean} unlit
-     * @propety {Vec3} emissive
-     * @propety {Vec3} albedo
+     * @property {number|string} opacity
+     * @property {number|string} roughness
+     * @property {number|string} metallic
+     * @property {number|string} scattering
+     * @property {boolean|string} unlit
+     * @propety {Vec3|string} emissive
+     * @propety {Vec3|string} albedo
      * @property {string} emissiveMap
      * @property {string} albedoMap
      * @property {string} opacityMap
@@ -59,6 +59,11 @@ namespace scriptable {
      * @property {string} occlusionMap
      * @property {string} lightmapMap
      * @property {string} scatteringMap
+     * @property {Mat4|string} texCoordTransform0
+     * @property {Mat4|string} texCoordTransform1
+     * @property {string} lightmapParams
+     * @property {string} materialParams
+     * @property {boolean} defaultFallthrough
      */
     class ScriptableMaterial {
     public:
@@ -88,6 +93,12 @@ namespace scriptable {
         QString occlusionMap;
         QString lightmapMap;
         QString scatteringMap;
+        std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texCoordTransforms;
+
+        bool defaultFallthrough;
+        std::unordered_map<uint, bool> propertyFallthroughs; // not actually exposed to script
+
+        graphics::MaterialKey key { 0 };
     };
 
     /**jsdoc
@@ -149,7 +160,7 @@ namespace scriptable {
         // QVariantMap armature;
     };
 
-    // mixin class for Avatar/Entity/Overlay Rendering that expose their in-memory graphics::Meshes
+    // mixin class for Avatar + Entity Rendering that expose their in-memory graphics::Meshes
     class ModelProvider {
     public:
         NestableType modelProviderType;

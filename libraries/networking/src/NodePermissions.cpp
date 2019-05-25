@@ -67,6 +67,7 @@ NodePermissions::NodePermissions(QMap<QString, QVariant> perms) {
         Permission::canConnectPastMaxCapacity : Permission::none;
     permissions |= perms["id_can_kick"].toBool() ? Permission::canKick : Permission::none;
     permissions |= perms["id_can_replace_content"].toBool() ? Permission::canReplaceDomainContent : Permission::none;
+    permissions |= perms["id_can_get_and_set_private_user_data"].toBool() ? Permission::canGetAndSetPrivateUserData : Permission::none;
 }
 
 QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
@@ -94,6 +95,7 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["id_can_connect_past_max_capacity"] = can(Permission::canConnectPastMaxCapacity);
     values["id_can_kick"] = can(Permission::canKick);
     values["id_can_replace_content"] = can(Permission::canReplaceDomainContent);
+    values["id_can_get_and_set_private_user_data"] = can(Permission::canGetAndSetPrivateUserData);
     return QVariant(values);
 }
 
@@ -165,6 +167,9 @@ QDebug operator<<(QDebug debug, const NodePermissions& perms) {
     }
     if (perms.can(NodePermissions::Permission::canReplaceDomainContent)) {
         debug << " can_replace_content";
+    }
+    if (perms.can(NodePermissions::Permission::canGetAndSetPrivateUserData)) {
+        debug << " get-and-set-private-user-data";
     }
     debug.nospace() << "]";
     return debug.nospace();

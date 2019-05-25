@@ -973,8 +973,8 @@ FORCEINLINE static void ifft_radix8_first(complex_t* x, complex_t* y, int n, int
 // n >= 32
 static void rfft_post(complex_t* x, const complex_t* w, int n) {
 
-    size_t t = n/4;
-    assert(n/4 >= 8);   // SIMD8
+    int t = n/4;
+    assert(t >= 8); // SIMD8
 
     // NOTE: x[n/2].re is packed into x[0].im
     float tr = x[0].re;
@@ -985,7 +985,7 @@ static void rfft_post(complex_t* x, const complex_t* w, int n) {
     complex_t* xp0 = &x[1];
     complex_t* xp1 = &x[n/2 - 8];
 
-    for (size_t i = 0; i < t; i += 8) {
+    for (int i = 0; i < t; i += 8) {
 
         __m256 z0 = _mm256_loadu_ps(&xp0[i+0].re);
         __m256 z1 = _mm256_loadu_ps(&xp0[i+4].re);
@@ -1033,8 +1033,8 @@ static void rfft_post(complex_t* x, const complex_t* w, int n) {
 // n >= 32
 static void rifft_pre(complex_t* x, const complex_t* w, int n) {
 
-    size_t t = n/4;
-    assert(n/4 >= 8);   // SIMD8
+    int t = n/4;
+    assert(t >= 8); // SIMD8
 
     // NOTE: x[n/2].re is packed into x[0].im
     float tr = x[0].re;
@@ -1045,7 +1045,7 @@ static void rifft_pre(complex_t* x, const complex_t* w, int n) {
     complex_t* xp0 = &x[1];
     complex_t* xp1 = &x[n/2 - 8];
 
-    for (size_t i = 0; i < t; i += 8) {
+    for (int i = 0; i < t; i += 8) {
 
         __m256 z0 = _mm256_loadu_ps(&xp0[i+0].re);
         __m256 z1 = _mm256_loadu_ps(&xp0[i+4].re);
@@ -1289,14 +1289,16 @@ void convertInput_AVX2(int16_t* src, float *dst[4], float gain, int numFrames) {
 
 #endif
 
-// in-place rotation of the soundfield
-// crossfade between old and new rotation, to prevent artifacts
-void rotate_3x3_AVX2(float* buf[4], const float m0[3][3], const float m1[3][3], const float* win, int numFrames) {
+// in-place rotation and scaling of the soundfield
+// crossfade between old and new matrix, to prevent artifacts
+void rotate_4x4_AVX2(float* buf[4], const float m0[4][4], const float m1[4][4], const float* win, int numFrames) {
 
-    const float md[3][3] = { 
-        { m0[0][0] - m1[0][0], m0[0][1] - m1[0][1], m0[0][2] - m1[0][2] },
-        { m0[1][0] - m1[1][0], m0[1][1] - m1[1][1], m0[1][2] - m1[1][2] },
-        { m0[2][0] - m1[2][0], m0[2][1] - m1[2][1], m0[2][2] - m1[2][2] },
+    // matrix difference
+    const float md[4][4] = { 
+        { m0[0][0] - m1[0][0], m0[0][1] - m1[0][1], m0[0][2] - m1[0][2], m0[0][3] - m1[0][3] },
+        { m0[1][0] - m1[1][0], m0[1][1] - m1[1][1], m0[1][2] - m1[1][2], m0[1][3] - m1[1][3] },
+        { m0[2][0] - m1[2][0], m0[2][1] - m1[2][1], m0[2][2] - m1[2][2], m0[2][3] - m1[2][3] },
+        { m0[3][0] - m1[3][0], m0[3][1] - m1[3][1], m0[3][2] - m1[3][2], m0[3][3] - m1[3][3] },
     };
 
     assert(numFrames % 8 == 0);
@@ -1307,30 +1309,35 @@ void rotate_3x3_AVX2(float* buf[4], const float m0[3][3], const float m1[3][3], 
 
         // interpolate the matrix
         __m256 m00 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[0][0]), _mm256_broadcast_ss(&m1[0][0]));
-        __m256 m10 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[1][0]), _mm256_broadcast_ss(&m1[1][0]));
-        __m256 m20 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[2][0]), _mm256_broadcast_ss(&m1[2][0]));
 
-        __m256 m01 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[0][1]), _mm256_broadcast_ss(&m1[0][1]));
         __m256 m11 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[1][1]), _mm256_broadcast_ss(&m1[1][1]));
         __m256 m21 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[2][1]), _mm256_broadcast_ss(&m1[2][1]));
+        __m256 m31 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[3][1]), _mm256_broadcast_ss(&m1[3][1]));
 
-        __m256 m02 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[0][2]), _mm256_broadcast_ss(&m1[0][2]));
         __m256 m12 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[1][2]), _mm256_broadcast_ss(&m1[1][2]));
         __m256 m22 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[2][2]), _mm256_broadcast_ss(&m1[2][2]));
+        __m256 m32 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[3][2]), _mm256_broadcast_ss(&m1[3][2]));
+
+        __m256 m13 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[1][3]), _mm256_broadcast_ss(&m1[1][3]));
+        __m256 m23 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[2][3]), _mm256_broadcast_ss(&m1[2][3]));
+        __m256 m33 = _mm256_fmadd_ps(frac, _mm256_broadcast_ss(&md[3][3]), _mm256_broadcast_ss(&m1[3][3]));
 
         // matrix multiply
-        __m256 x = _mm256_mul_ps(m00, _mm256_loadu_ps(&buf[1][i]));
-        __m256 y = _mm256_mul_ps(m10, _mm256_loadu_ps(&buf[1][i]));
-        __m256 z = _mm256_mul_ps(m20, _mm256_loadu_ps(&buf[1][i]));
+        __m256 w = _mm256_mul_ps(m00, _mm256_loadu_ps(&buf[0][i]));
 
-        x = _mm256_fmadd_ps(m01, _mm256_loadu_ps(&buf[2][i]), x);
-        y = _mm256_fmadd_ps(m11, _mm256_loadu_ps(&buf[2][i]), y);
-        z = _mm256_fmadd_ps(m21, _mm256_loadu_ps(&buf[2][i]), z);
+        __m256 x = _mm256_mul_ps(m11, _mm256_loadu_ps(&buf[1][i]));
+        __m256 y = _mm256_mul_ps(m21, _mm256_loadu_ps(&buf[1][i]));
+        __m256 z = _mm256_mul_ps(m31, _mm256_loadu_ps(&buf[1][i]));
 
-        x = _mm256_fmadd_ps(m02, _mm256_loadu_ps(&buf[3][i]), x);
-        y = _mm256_fmadd_ps(m12, _mm256_loadu_ps(&buf[3][i]), y);
-        z = _mm256_fmadd_ps(m22, _mm256_loadu_ps(&buf[3][i]), z);
+        x = _mm256_fmadd_ps(m12, _mm256_loadu_ps(&buf[2][i]), x);
+        y = _mm256_fmadd_ps(m22, _mm256_loadu_ps(&buf[2][i]), y);
+        z = _mm256_fmadd_ps(m32, _mm256_loadu_ps(&buf[2][i]), z);
 
+        x = _mm256_fmadd_ps(m13, _mm256_loadu_ps(&buf[3][i]), x);
+        y = _mm256_fmadd_ps(m23, _mm256_loadu_ps(&buf[3][i]), y);
+        z = _mm256_fmadd_ps(m33, _mm256_loadu_ps(&buf[3][i]), z);
+
+        _mm256_storeu_ps(&buf[0][i], w);
         _mm256_storeu_ps(&buf[1][i], x);
         _mm256_storeu_ps(&buf[2][i], y);
         _mm256_storeu_ps(&buf[3][i], z);

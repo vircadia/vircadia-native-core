@@ -24,6 +24,8 @@ void GrabPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProp
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_FOLLOWS_CONTROLLER, Grab, grab, GrabFollowsController, grabFollowsController);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_TRIGGERABLE, Grab, grab, Triggerable, triggerable);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_EQUIPPABLE, Grab, grab, Equippable, equippable);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_DELEGATE_TO_PARENT, Grab, grab,
+                                        GrabDelegateToParent, grabDelegateToParent);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
                                         EquippableLeftPosition, equippableLeftPosition);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
@@ -47,6 +49,7 @@ void GrabPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _d
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, grabFollowsController, bool, setGrabFollowsController);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, triggerable, bool, setTriggerable);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippable, bool, setEquippable);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, grabDelegateToParent, bool, setGrabDelegateToParent);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableLeftPosition, vec3, setEquippableLeftPosition);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableLeftRotation, quat, setEquippableLeftRotation);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(grab, equippableRightPosition, vec3, setEquippableRightPosition);
@@ -62,6 +65,7 @@ void GrabPropertyGroup::merge(const GrabPropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(grabFollowsController);
     COPY_PROPERTY_IF_CHANGED(triggerable);
     COPY_PROPERTY_IF_CHANGED(equippable);
+    COPY_PROPERTY_IF_CHANGED(grabDelegateToParent);
     COPY_PROPERTY_IF_CHANGED(equippableLeftPosition);
     COPY_PROPERTY_IF_CHANGED(equippableLeftRotation);
     COPY_PROPERTY_IF_CHANGED(equippableRightPosition);
@@ -104,6 +108,9 @@ void GrabPropertyGroup::listChangedProperties(QList<QString>& out) {
     if (equippableChanged()) {
         out << "grab-equippable";
     }
+    if (grabDelegateToParentChanged()) {
+        out << "grab-grabDelegateToParent";
+    }
     if (equippableLeftPositionChanged()) {
         out << "grab-equippableLeftPosition";
     }
@@ -141,6 +148,7 @@ bool GrabPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_GRAB_FOLLOWS_CONTROLLER, getGrabFollowsController());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_TRIGGERABLE, getTriggerable());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_EQUIPPABLE, getEquippable());
+    APPEND_ENTITY_PROPERTY(PROP_GRAB_DELEGATE_TO_PARENT, getGrabDelegateToParent());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, getEquippableLeftPosition());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, getEquippableLeftRotation());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, getEquippableRightPosition());
@@ -164,6 +172,7 @@ bool GrabPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     READ_ENTITY_PROPERTY(PROP_GRAB_FOLLOWS_CONTROLLER, bool, setGrabFollowsController);
     READ_ENTITY_PROPERTY(PROP_GRAB_TRIGGERABLE, bool, setTriggerable);
     READ_ENTITY_PROPERTY(PROP_GRAB_EQUIPPABLE, bool, setEquippable);
+    READ_ENTITY_PROPERTY(PROP_GRAB_DELEGATE_TO_PARENT, bool, setGrabDelegateToParent);
     READ_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, glm::vec3, setEquippableLeftPosition);
     READ_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, glm::quat, setEquippableLeftRotation);
     READ_ENTITY_PROPERTY(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, glm::vec3, setEquippableRightPosition);
@@ -177,6 +186,7 @@ bool GrabPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlags,
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_FOLLOWS_CONTROLLER, GrabFollowsController);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_TRIGGERABLE, Triggerable);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_EQUIPPABLE, Equippable);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_DELEGATE_TO_PARENT, GrabDelegateToParent);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, EquippableLeftPosition);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, EquippableLeftRotation);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, EquippableRightPosition);
@@ -198,6 +208,7 @@ void GrabPropertyGroup::markAllChanged() {
     _grabFollowsControllerChanged = true;
     _triggerableChanged = true;
     _equippableChanged = true;
+    _grabDelegateToParentChanged = true;
     _equippableLeftPositionChanged = true;
     _equippableLeftRotationChanged = true;
     _equippableRightPositionChanged = true;
@@ -215,6 +226,7 @@ EntityPropertyFlags GrabPropertyGroup::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_GRAB_FOLLOWS_CONTROLLER, grabFollowsController);
     CHECK_PROPERTY_CHANGE(PROP_GRAB_TRIGGERABLE, triggerable);
     CHECK_PROPERTY_CHANGE(PROP_GRAB_EQUIPPABLE, equippable);
+    CHECK_PROPERTY_CHANGE(PROP_GRAB_DELEGATE_TO_PARENT, grabDelegateToParent);
     CHECK_PROPERTY_CHANGE(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, equippableLeftPosition);
     CHECK_PROPERTY_CHANGE(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, equippableLeftRotation);
     CHECK_PROPERTY_CHANGE(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, equippableRightPosition);
@@ -232,6 +244,7 @@ void GrabPropertyGroup::getProperties(EntityItemProperties& properties) const {
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, GrabFollowsController, getGrabFollowsController);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, Triggerable, getTriggerable);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, Equippable, getEquippable);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, GrabDelegateToParent, getGrabDelegateToParent);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableLeftPosition, getEquippableLeftPosition);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableLeftRotation, getEquippableLeftRotation);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(Grab, EquippableRightPosition, getEquippableRightPosition);
@@ -249,6 +262,7 @@ bool GrabPropertyGroup::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, GrabFollowsController, grabFollowsController, setGrabFollowsController);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, Triggerable, triggerable, setTriggerable);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, Equippable, equippable, setEquippable);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, GrabDelegateToParent, grabDelegateToParent, setGrabDelegateToParent);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableLeftPosition, equippableLeftPosition, setEquippableLeftPosition);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableLeftRotation, equippableLeftRotation, setEquippableLeftRotation);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(Grab, EquippableRightPosition, equippableRightPosition,
@@ -273,6 +287,7 @@ EntityPropertyFlags GrabPropertyGroup::getEntityProperties(EncodeBitstreamParams
     requestedProperties += PROP_GRAB_FOLLOWS_CONTROLLER;
     requestedProperties += PROP_GRAB_TRIGGERABLE;
     requestedProperties += PROP_GRAB_EQUIPPABLE;
+    requestedProperties += PROP_GRAB_DELEGATE_TO_PARENT;
     requestedProperties += PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET;
     requestedProperties += PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET;
     requestedProperties += PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET;
@@ -299,6 +314,7 @@ void GrabPropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeB
     APPEND_ENTITY_PROPERTY(PROP_GRAB_FOLLOWS_CONTROLLER, getGrabFollowsController());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_TRIGGERABLE, getTriggerable());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_EQUIPPABLE, getEquippable());
+    APPEND_ENTITY_PROPERTY(PROP_GRAB_DELEGATE_TO_PARENT, getGrabDelegateToParent());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, getEquippableLeftPosition());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, getEquippableLeftRotation());
     APPEND_ENTITY_PROPERTY(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, getEquippableRightPosition());
@@ -321,6 +337,7 @@ int GrabPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* dat
     READ_ENTITY_PROPERTY(PROP_GRAB_FOLLOWS_CONTROLLER, bool, setGrabFollowsController);
     READ_ENTITY_PROPERTY(PROP_GRAB_TRIGGERABLE, bool, setTriggerable);
     READ_ENTITY_PROPERTY(PROP_GRAB_EQUIPPABLE, bool, setEquippable);
+    READ_ENTITY_PROPERTY(PROP_GRAB_DELEGATE_TO_PARENT, bool, setGrabDelegateToParent);
     READ_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, glm::vec3, setEquippableLeftPosition);
     READ_ENTITY_PROPERTY(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, glm::quat, setEquippableLeftRotation);
     READ_ENTITY_PROPERTY(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, glm::vec3, setEquippableRightPosition);

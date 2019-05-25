@@ -9,6 +9,10 @@
 
 #include "OpenGLDisplayPlugin.h"
 
+#if defined(Q_OS_ANDROID)
+#include "VirtualPadManager.h"
+#endif
+
 const float TARGET_FRAMERATE_Basic2DWindowOpenGL = 60.0f;
 
 class QScreen;
@@ -31,6 +35,8 @@ public:
 
     virtual void compositeExtra() override;
 
+    virtual void pluginUpdate() override {};
+
 protected:
     mutable bool _isThrottled = false;
 
@@ -49,5 +55,23 @@ private:
 
     gpu::TexturePointer _virtualPadJumpBtnTexture;
     qreal _virtualPadJumpBtnPixelSize;
+
+    gpu::TexturePointer _virtualPadRbBtnTexture;
+    qreal _virtualPadRbBtnPixelSize;
+
+    class VirtualPadButton {
+    public:
+
+        VirtualPadButton() {}
+        VirtualPadButton(qreal pixelSize, QString iconPath, VirtualPad::Manager::Button button);
+
+        void draw(gpu::Batch& batch, glm::vec2 buttonPosition);
+
+        gpu::TexturePointer _texture;
+        qreal _pixelSize;
+        VirtualPad::Manager::Button _button;
+    };
+    QVector<VirtualPadButton> _virtualPadButtons;
+
 #endif
 };

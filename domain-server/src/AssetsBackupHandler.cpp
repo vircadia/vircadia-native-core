@@ -15,8 +15,17 @@
 #include <QDate>
 #include <QtCore/QLoggingCategory>
 
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+
 #include <quazip5/quazipfile.h>
 #include <quazip5/quazipdir.h>
+
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <AssetClient.h>
 #include <AssetRequest.h>
@@ -237,6 +246,7 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 
     if (_assetServerEnabled && _lastMappingsRefresh.time_since_epoch().count() == 0) {
         qCWarning(asset_backup) << "Current mappings not yet loaded.";
+        _backups.emplace_back(backupName, AssetUtils::Mappings(), true);
         return;
     }
 

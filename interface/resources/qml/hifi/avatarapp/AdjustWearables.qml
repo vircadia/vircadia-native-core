@@ -1,9 +1,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Layouts 1.3
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
-import "../../controls" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 
 Rectangle {
     id: root;
@@ -49,17 +48,37 @@ Rectangle {
         refresh(avatar);
     }
 
+    function extractTitleFromUrl(url) {
+        for (var j = (url.length - 1); j >= 0; --j) {
+            if (url[j] === '/') {
+                return url.substring(j + 1);
+            }
+        }
+        return url;
+    }
+
     function refresh(avatar) {
         wearablesCombobox.model.clear();
         wearablesCombobox.currentIndex = -1;
 
         for (var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
-            for (var j = (wearable.modelURL.length - 1); j >= 0; --j) {
-                if (wearable.modelURL[j] === '/') {
-                    wearable.text = wearable.modelURL.substring(j + 1);
-                    break;
+            if (wearable.modelURL) {
+                wearable.text = extractTitleFromUrl(wearable.modelURL);
+            } else if (wearable.materialURL) {
+                var materialUrlOrJson = '';
+                if (!wearable.materialURL.startsWith('materialData')) {
+                    materialUrlOrJson = extractTitleFromUrl(wearable.materialURL);
+                } else if (wearable.materialData) {
+                    materialUrlOrJson = JSON.stringify(JSON.parse(wearable.materialData))
                 }
+                if(materialUrlOrJson) {
+                    wearable.text = 'Material: ' + materialUrlOrJson;
+                }
+            } else if (wearable.sourceUrl) {
+                wearable.text = extractTitleFromUrl(wearable.sourceUrl);
+            } else if (wearable.name) {
+                wearable.text = wearable.name;
             }
             wearablesCombobox.model.append(wearable);
         }
@@ -94,6 +113,7 @@ Rectangle {
                 } else if (prop === 'dimensions') {
                     scalespinner.set(wearable[prop].x / wearable.naturalDimensions.x);
                 }
+                modified = true;
             }
         }
 
@@ -138,7 +158,7 @@ Rectangle {
         visible = false;
         adjustWearablesClosed(status, avatarName);
     }
-    
+
 
     HifiConstants { id: hifi }
 
@@ -158,8 +178,9 @@ Rectangle {
         repeat: true
         onTriggered: {
             var currentWearable = getCurrentWearable();
-            var soft = currentWearable ? currentWearable.relayParentJoints : false;
-            var softEnabled = currentWearable ? entityHasAvatarJoints(currentWearable.id) : false;
+            var hasSoft = currentWearable && currentWearable.relayParentJoints !== undefined;
+            var soft = hasSoft ? currentWearable.relayParentJoints : false;
+            var softEnabled = hasSoft ? entityHasAvatarJoints(currentWearable.id) : false;
             isSoft.set(soft);
             isSoft.enabled = softEnabled;
         }
@@ -211,7 +232,7 @@ Rectangle {
                     lineHeightMode: Text.FixedHeight
                     lineHeight: 18;
                     text: "Wearable"
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 spacing: 10
@@ -222,7 +243,7 @@ Rectangle {
                     lineHeight: 18;
                     text: "<a href='#'>Get more</a>"
                     linkColor: hifi.colors.blueHighlight
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     onLinkActivated: {
                         popup.showGetWearables(function() {
                             emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
@@ -246,7 +267,6 @@ Rectangle {
                         anchors.right: parent.right
                         onLinkActivated: {
                             popup.showSpecifyWearableUrl(function(url) {
-                                console.debug('popup.showSpecifyWearableUrl: ', url);
                                 addWearable(root.avatarName, url);
                                 modified = true;
                             });
@@ -493,7 +513,7 @@ Rectangle {
 
                 function set(value) {
                     notify = false;
-                    checked = value
+                    checked = value;
                     notify = true;
                 }
 

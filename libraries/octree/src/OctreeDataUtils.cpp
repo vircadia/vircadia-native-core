@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 #include "OctreeDataUtils.h"
+#include "OctreeEntitiesFileParser.h"
 
 #include <Gzip.h>
 #include <udt/PacketHeaders.h>
@@ -18,34 +19,13 @@
 #include <QJsonDocument>
 #include <QFile>
 
-// Reads octree file and parses it into a QJsonDocument. Handles both gzipped and non-gzipped files.
-// Returns true if the file was successfully opened and parsed, otherwise false.
-// Example failures: file does not exist, gzipped file cannot be unzipped, invalid JSON.
-bool readOctreeFile(QString path, QJsonDocument* doc) {
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "Cannot open json file for reading: " << path;
-        return false;
+bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromMap(const QVariantMap& map) {
+    if (map.contains("Id") && map.contains("DataVersion") && map.contains("Version")) {
+        id = map["Id"].toUuid();
+        dataVersion = map["DataVersion"].toInt();
+        version = map["Version"].toInt();
     }
-
-    QByteArray data = file.readAll();
-    QByteArray jsonData;
-
-    if (!gunzip(data, jsonData)) {
-        jsonData = data;
-    }
-
-    *doc = QJsonDocument::fromJson(jsonData);
-    return !doc->isNull();
-}
-
-bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromJSON(QJsonObject root) {
-    if (root.contains("Id") && root.contains("DataVersion") && root.contains("Version")) {
-        id = root["Id"].toVariant().toUuid();
-        dataVersion = root["DataVersion"].toInt();
-        version = root["Version"].toInt();
-    }
-    readSubclassData(root);
+    readSubclassData(map);
     return true;
 }
 
@@ -55,40 +35,41 @@ bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromData(QByteArray data) {
         data = jsonData;
     }
 
-    auto doc = QJsonDocument::fromJson(data);
-    if (doc.isNull()) {
+    OctreeEntitiesFileParser jsonParser;
+    jsonParser.setEntitiesString(data);
+    QVariantMap entitiesMap;
+    if (!jsonParser.parseEntities(entitiesMap)) {
+        qCritical() << "Can't parse Entities JSON: " << jsonParser.getErrorString().c_str();
         return false;
     }
 
-    auto root = doc.object();
-    return readOctreeDataInfoFromJSON(root);
+    return readOctreeDataInfoFromMap(entitiesMap);
 }
 
 // Reads octree file and parses it into a RawOctreeData object.
 // Returns false if readOctreeFile fails.
 bool OctreeUtils::RawOctreeData::readOctreeDataInfoFromFile(QString path) {
-    QJsonDocument doc;
-    if (!readOctreeFile(path, &doc)) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qCritical() << "Cannot open json file for reading: " << path;
         return false;
     }
 
-    auto root = doc.object();
-    return readOctreeDataInfoFromJSON(root);
+    QByteArray data = file.readAll();
+
+    return readOctreeDataInfoFromData(data);
 }
 
 QByteArray OctreeUtils::RawOctreeData::toByteArray() {
-    QJsonObject obj {
-        { "DataVersion", QJsonValue((qint64)dataVersion) },
-        { "Id", QJsonValue(id.toString()) },
-        { "Version", QJsonValue((qint64)version) },
-    };
+    QByteArray jsonString;
 
-    writeSubclassData(obj);
+    jsonString += QString("{\n  \"DataVersion\": %1,\n").arg(dataVersion);
 
-    QJsonDocument doc;
-    doc.setObject(obj);
+    writeSubclassData(jsonString);
 
-    return doc.toJson();
+    jsonString += QString(",\n  \"Id\": \"%1\",\n  \"Version\": %2\n}").arg(id.toString()).arg(version);
+
+    return jsonString;
 }
 
 QByteArray OctreeUtils::RawOctreeData::toGzippedByteArray() {
@@ -115,14 +96,21 @@ void OctreeUtils::RawOctreeData::resetIdAndVersion() {
     qDebug() << "Reset octree data to: " << id << dataVersion;
 }
 
-void OctreeUtils::RawEntityData::readSubclassData(const QJsonObject& root) {
-    if (root.contains("Entities")) {
-        entityData = root["Entities"].toArray();
-    }
+void OctreeUtils::RawEntityData::readSubclassData(const QVariantMap& root) {
+    variantEntityData = root["Entities"].toList();
 }
 
-void OctreeUtils::RawEntityData::writeSubclassData(QJsonObject& root) const {
-    root["Entities"] = entityData;
+void OctreeUtils::RawEntityData::writeSubclassData(QByteArray& root) const {
+    root += "  \"Entities\": [";
+    for (auto entityIter = variantEntityData.begin(); entityIter != variantEntityData.end(); ++entityIter) {
+        if (entityIter != variantEntityData.begin()) {
+            root += ",";
+        }
+        root += "\n    ";
+        // Convert to string and remove trailing LF.
+        root += QJsonDocument(entityIter->toJsonObject()).toJson().chopped(1);
+    }
+    root += "]";
 }
 
 PacketType OctreeUtils::RawEntityData::dataPacketType() const { return PacketType::EntityData; }

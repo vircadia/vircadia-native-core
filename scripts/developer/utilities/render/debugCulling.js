@@ -10,7 +10,7 @@
 //
 
 // Set up the qml ui
-var qml = Script.resolvePath('culling.qml');
+var qml = Script.resolvePath('luci/Culling.qml');
 var window = new OverlayWindow({
     title: 'Render Draws',
     source: qml,

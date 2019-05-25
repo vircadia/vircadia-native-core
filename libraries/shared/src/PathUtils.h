@@ -19,12 +19,13 @@
 #include "DependencyManager.h"
 
 /**jsdoc
- * The Paths API provides absolute paths to the scripts and resources directories.
+ * The <code>Paths</code> API provides absolute paths to the scripts and resources directories.
  *
  * @namespace Paths
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @deprecated The Paths API is deprecated. Use {@link Script.resolvePath} and {@link Script.resourcesPath} instead.
  * @readonly
@@ -55,6 +56,7 @@ public:
     static QString getAppLocalDataFilePath(const QString& filename);
 
     static QString generateTemporaryDir();
+    static bool deleteMyTemporaryDir(QString dirName);
 
     static int removeTemporaryApplicationDirs(QString appName = QString::null);
 

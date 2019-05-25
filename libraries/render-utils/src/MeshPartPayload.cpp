@@ -49,8 +49,6 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-const graphics::MaterialPointer MeshPartPayload::DEFAULT_MATERIAL = std::make_shared<graphics::Material>();
-
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
@@ -85,11 +83,13 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.shouldUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
@@ -104,10 +104,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
-    }
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     ShapeKey::Builder builder;
     builder.withMaterial();
@@ -157,8 +154,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
@@ -239,7 +235,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     initCache(model);
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_ANDROID)
     // On mac AMD, we specifically need to have a _meshBlendshapeBuffer bound when using a deformed mesh pipeline
     // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
     if (_isBlendShaped) {
@@ -332,26 +328,29 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withDeformed();
     }
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.shouldUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
 }
 
-void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {
+void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning) {
     if (invalidateShapeKey) {
         _shapeKey = ShapeKey::Builder::invalid();
         return;
     }
 
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
+    if (_drawMaterials.shouldUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
+
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
@@ -359,6 +358,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isDeformed = _isBlendShaped || _isSkinned;
+    bool isWireframe = primitiveMode == PrimitiveMode::LINES;
 
     if (isWireframe) {
         isTranslucent = hasTangents = hasLightmap = false;
@@ -415,7 +415,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!args) {
+    if (!args || (args->_renderMode == RenderArgs::RenderMode::DEFAULT_RENDER_MODE && _cauterized)) {
         return;
     }
 
@@ -433,8 +433,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
@@ -451,9 +450,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
     _adjustedLocalBound = _localBound;
     if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
+        _adjustedLocalBound.transform(clusterMatrices.back());
 
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
+        for (int i = 0; i < (int)clusterMatrices.size() - 1; ++i) {
             AABox clusterBound = _localBound;
             clusterBound.transform(clusterMatrices[i]);
             _adjustedLocalBound += clusterBound;
@@ -464,12 +463,12 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4
 void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions) {
     _adjustedLocalBound = _localBound;
     if (clusterDualQuaternions.size() > 0) {
-        Transform rootTransform(clusterDualQuaternions[0].getRotation(),
-                                clusterDualQuaternions[0].getScale(),
-                                clusterDualQuaternions[0].getTranslation());
+        Transform rootTransform(clusterDualQuaternions.back().getRotation(),
+                                clusterDualQuaternions.back().getScale(),
+                                clusterDualQuaternions.back().getTranslation());
         _adjustedLocalBound.transform(rootTransform);
 
-        for (int i = 1; i < (int)clusterDualQuaternions.size(); ++i) {
+        for (int i = 0; i < (int)clusterDualQuaternions.size() - 1; ++i) {
             AABox clusterBound = _localBound;
             Transform transform(clusterDualQuaternions[i].getRotation(),
                                 clusterDualQuaternions[i].getScale(),

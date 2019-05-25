@@ -22,16 +22,17 @@
 #include <QtCore/QThread>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
+#include <QSaveFile>
 
 #include <AccountManager.h>
 #include <Assignment.h>
+#include <AvatarData.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SettingHelpers.h>
-#include <AvatarData.h> //for KillAvatarReason
 #include <FingerprintUtils.h>
 
 #include "DomainServerNodeData.h"
@@ -439,6 +440,12 @@ void DomainServerSettingsManager::setupConfigMap(const QString& userConfigFilena
                 auto migratedBackupsVariant = _configMap.valueForKeyPath(AUTO_CONTENT_ARCHIVES_RULES_KEYPATH, true);
                 *migratedBackupsVariant = *previousBackupsVariant;
             }
+        }
+
+        if (oldVersion < 2.3) {
+            unpackPermissions();
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canGetAndSetPrivateUserData);
+            packPermissions();
         }
 
 
@@ -869,14 +876,6 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         }
                     }
                 }
-
-                // if we are here, then we kicked them, so send the KillAvatar message
-                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
-                packet->write(nodeUUID.toRfc4122());
-                packet->writePrimitive(KillAvatarReason::NoReason);
-
-                // send to avatar mixer, it sends the kill to everyone else
-                limitedNodeList->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
 
                 if (newPermissions) {
                     qDebug() << "Removing connect permission for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
@@ -1714,28 +1713,44 @@ void DomainServerSettingsManager::sortPermissions() {
 }
 
 void DomainServerSettingsManager::persistToFile() {
-    sortPermissions();
-
-    // make sure we have the dir the settings file is supposed to live in
-    QFileInfo settingsFileInfo(_configMap.getUserConfigFilename());
-
-    if (!settingsFileInfo.dir().exists()) {
-        settingsFileInfo.dir().mkpath(".");
-    }
-
-    QFile settingsFile(_configMap.getUserConfigFilename());
-
-    if (settingsFile.open(QIODevice::WriteOnly)) {
-        // take a read lock so we can grab the config and write it to file
-        QReadLocker locker(&_settingsLock);
-        settingsFile.write(QJsonDocument::fromVariant(_configMap.getConfig()).toJson());
-    } else {
-        qCritical("Could not write to JSON settings file. Unable to persist settings.");
-
-        // failed to write, reload whatever the current config state is
-        // with a write lock since we're about to overwrite the config map
+    QString settingsFilename = _configMap.getUserConfigFilename();
+    QDir settingsDir = QFileInfo(settingsFilename).dir();
+    if (!settingsDir.exists() && !settingsDir.mkpath(".")) {
+        // If the path already exists when the `mkpath` method is
+        // called, it will return true. It will only return false if the
+        // path doesn't exist after the call returns.
+        qCritical("Could not create the settings file parent directory. Unable to persist settings.");
         QWriteLocker locker(&_settingsLock);
         _configMap.loadConfig();
+        return;
+    }
+    QSaveFile settingsFile(settingsFilename);
+    if (!settingsFile.open(QIODevice::WriteOnly)) {
+        qCritical("Could not open the JSON settings file. Unable to persist settings.");
+        QWriteLocker locker(&_settingsLock);
+        _configMap.loadConfig();
+        return;
+    }
+
+    sortPermissions();
+
+    QVariantMap conf;
+    {
+        QReadLocker locker(&_settingsLock);
+        conf = _configMap.getConfig();
+    }
+    QByteArray json = QJsonDocument::fromVariant(conf).toJson();
+    if (settingsFile.write(json) == -1) {
+        qCritical("Could not write to JSON settings file. Unable to persist settings.");
+        QWriteLocker locker(&_settingsLock);
+        _configMap.loadConfig();
+        return;
+    }
+    if (!settingsFile.commit()) {
+        qCritical("Could not commit writes to JSON settings file. Unable to persist settings.");
+        QWriteLocker locker(&_settingsLock);
+        _configMap.loadConfig();
+        return; // defend against future code
     }
 }
 

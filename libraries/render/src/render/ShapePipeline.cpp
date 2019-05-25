@@ -97,7 +97,6 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightingModelBufferUnit = reflection.validUniformBuffer(render_utils::slot::buffer::LightModel);
     locations->skinClusterBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::Skinning);
     locations->materialBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::Material);
-    locations->texMapArrayBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::TexMapArray);
     locations->keyLightBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::KeyLight);
     locations->lightBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::Light);
     locations->lightAmbientBufferUnit = reflection.validUniformBuffer(graphics::slot::buffer::AmbientLight);

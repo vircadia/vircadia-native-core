@@ -13,6 +13,8 @@
 
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
 
+#include <graphics/Geometry.h>
+
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
 namespace gl {
@@ -37,6 +39,7 @@ class OpenVrDisplayPlugin : public HmdDisplayPlugin {
 public:
     bool isSupported() const override;
     const QString getName() const override;
+    bool getSupportsAutoSwitch() override final { return true; }
 
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;
@@ -66,6 +69,9 @@ public:
 
     QRectF getPlayAreaRect() override;
 
+    virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::MESH; }
+    virtual StencilMaskMeshOperator getStencilMaskMeshOperator() override;
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
@@ -78,7 +84,6 @@ protected:
 
 private:
     vr::IVRSystem* _system { nullptr };
-    std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
     std::atomic<uint32_t> _keyboardSupressionCount{ 0 };
 
     vr::HmdMatrix34_t _lastGoodHMDPose;
@@ -94,4 +99,7 @@ private:
     bool _asyncReprojectionActive { false };
 
     bool _hmdMounted { false };
+
+    std::array<graphics::MeshPointer, 2> _stencilMeshes;
+    bool _stencilMeshesInitialized { false };
 };

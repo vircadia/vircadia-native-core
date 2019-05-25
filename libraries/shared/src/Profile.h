@@ -18,6 +18,7 @@ Q_DECLARE_LOGGING_CATEGORY(trace_app)
 Q_DECLARE_LOGGING_CATEGORY(trace_app_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_metadata)
 Q_DECLARE_LOGGING_CATEGORY(trace_network)
+Q_DECLARE_LOGGING_CATEGORY(trace_picks)
 Q_DECLARE_LOGGING_CATEGORY(trace_render)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu)
@@ -34,18 +35,33 @@ Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_startup)
 Q_DECLARE_LOGGING_CATEGORY(trace_workload)
+Q_DECLARE_LOGGING_CATEGORY(trace_baker)
 
-class Duration {
+class DurationBase {
+
+protected:
+    DurationBase(const QLoggingCategory& category, const QString& name);
+    const QString _name;
+    const QLoggingCategory& _category;
+};
+
+class Duration : public DurationBase {
 public:
     Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor = 0xff0000ff, uint64_t payload = 0, const QVariantMap& args = QVariantMap());
     ~Duration();
 
     static uint64_t beginRange(const QLoggingCategory& category, const char* name, uint32_t argbColor);
     static void endRange(const QLoggingCategory& category, uint64_t rangeId);
+};
+
+class ConditionalDuration : public DurationBase {
+public:
+    ConditionalDuration(const QLoggingCategory& category, const QString& name, uint32_t minTime);
+    ~ConditionalDuration();
 
 private:
-    QString _name;
-    const QLoggingCategory& _category;
+    const int64_t _startTime;
+    const int64_t _minTime;
 };
 
 
@@ -93,6 +109,7 @@ inline void metadata(const QString& metadataType, const QVariantMap& args) {
 }
 
 #define PROFILE_RANGE(category, name) Duration profileRangeThis(trace_##category(), name);
+#define PROFILE_RANGE_IF_LONGER(category, name, ms) ConditionalDuration profileRangeThis(trace_##category(), name, ms);
 #define PROFILE_RANGE_EX(category, name, argbColor, payload, ...) Duration profileRangeThis(trace_##category(), name, argbColor, (uint64_t)payload, ##__VA_ARGS__);
 #define PROFILE_RANGE_BEGIN(category, rangeId, name, argbColor) rangeId = Duration::beginRange(trace_##category(), name, argbColor)
 #define PROFILE_RANGE_END(category, rangeId) Duration::endRange(trace_##category(), rangeId)

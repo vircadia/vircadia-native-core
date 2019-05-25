@@ -12,6 +12,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <gpu/Frame.h>
 #include <gl/Config.h>
+#include <shared/GlobalAppProperties.h>
 
 #include "OculusHelpers.h"
 
@@ -23,13 +24,14 @@ void OculusBaseDisplayPlugin::resetSensors() {
 }
 
 bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    ovrSessionStatus status{};
-    if (!OVR_SUCCESS(ovr_GetSessionStatus(_session, &status))) {
+    ovrResult getStatusResult;
+    ovrSessionStatus status = ovr::getStatus(getStatusResult);
+    if (!OVR_SUCCESS(getStatusResult)) {
         qCWarning(oculusLog) << "Unable to fetch Oculus session status" << ovr::getError();
         return false;
     }
 
-    if (ovr::quitRequested(status)) {
+    if (ovr::quitRequested(status) || ovr::displayLost(status)) {
         QMetaObject::invokeMethod(qApp, "quit");
         return false;
     }
@@ -40,11 +42,15 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _hmdMounted = !_hmdMounted;
         emit hmdMountedChanged();
     }
+    if (ovr::isVisible(status) != _visible) {
+        _visible = !_visible;
+        emit hmdVisibleChanged(_visible);
+    }
 
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
+    auto trackingState = ovr::getTrackingState(_currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = ovr::toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
 
@@ -167,7 +173,7 @@ void OculusBaseDisplayPlugin::updatePresentPose() {
     ovrTrackingState trackingState;
     _currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, 0);
-    trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
+    trackingState = ovr::getTrackingState(_currentRenderFrameInfo.predictedDisplayTime);
     _currentPresentFrameInfo.presentPose = ovr::toGlm(trackingState.HeadPose.ThePose);
     _currentPresentFrameInfo.renderPose = _currentPresentFrameInfo.presentPose;
 }
@@ -220,4 +226,67 @@ QVector<glm::vec3> OculusBaseDisplayPlugin::getSensorPositions() {
     }
 
     return result;
+}
+
+DisplayPlugin::StencilMaskMeshOperator OculusBaseDisplayPlugin::getStencilMaskMeshOperator() {
+    if (_session) {
+        if (!_stencilMeshesInitialized) {
+            _stencilMeshesInitialized = true;
+            ovr::for_each_eye([&](ovrEyeType eye) {
+                ovrFovStencilDesc stencilDesc = {
+                    ovrFovStencil_HiddenArea, 0, eye,
+                    _eyeRenderDescs[eye].Fov, _eyeRenderDescs[eye].HmdToEyePose.Orientation
+                };
+                // First we get the size of the buffer we need
+                ovrFovStencilMeshBuffer buffer = { 0, 0, nullptr, 0, 0, nullptr };
+                ovrResult result = ovr_GetFovStencil(_session, &stencilDesc, &buffer);
+                if (!OVR_SUCCESS(result)) {
+                    _stencilMeshesInitialized = false;
+                    return;
+                }
+
+                std::vector<ovrVector2f> ovrVertices(buffer.UsedVertexCount);
+                std::vector<uint16_t> ovrIndices(buffer.UsedIndexCount);
+
+                // Now we populate the actual buffer
+                buffer = { (int)ovrVertices.size(), 0, ovrVertices.data(), (int)ovrIndices.size(), 0, ovrIndices.data() };
+                result = ovr_GetFovStencil(_session, &stencilDesc, &buffer);
+
+                if (!OVR_SUCCESS(result)) {
+                    _stencilMeshesInitialized = false;
+                    return;
+                }
+
+                std::vector<glm::vec3> vertices;
+                vertices.reserve(ovrVertices.size());
+                for (auto& ovrVertex : ovrVertices) {
+                    // We need the vertices in clip space
+                    vertices.emplace_back(ovrVertex.x - (1.0f - (float)eye),  2.0f * ovrVertex.y - 1.0f, 0.0f);
+                }
+
+                std::vector<uint32_t> indices;
+                indices.reserve(ovrIndices.size());
+                for (auto& ovrIndex : ovrIndices) {
+                    indices.push_back(ovrIndex);
+                }
+
+                _stencilMeshes[eye] = graphics::Mesh::createIndexedTriangles_P3F((uint32_t)vertices.size(), (uint32_t)indices.size(), vertices.data(), indices.data());
+            });
+        }
+
+        if (_stencilMeshesInitialized) {
+            return [&](gpu::Batch& batch) {
+                for (auto& mesh : _stencilMeshes) {
+                    batch.setIndexBuffer(mesh->getIndexBuffer());
+                    batch.setInputFormat((mesh->getVertexFormat()));
+                    batch.setInputStream(0, mesh->getVertexStream());
+
+                    // Draw
+                    auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
+                    batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+                }
+            };
+        }
+    }
+    return nullptr;
 }

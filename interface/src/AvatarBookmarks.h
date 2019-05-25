@@ -21,6 +21,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  */
 
@@ -74,6 +75,9 @@ protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) override {};
     void readFromFile() override;
     QVariantMap getAvatarDataToBookmark();
+
+protected slots: 
+    void deleteBookmark() override;
 
 private:
     const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";

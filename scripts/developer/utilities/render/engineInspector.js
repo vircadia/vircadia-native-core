@@ -1,13 +1,57 @@
-    function openEngineTaskView() {
-    // Set up the qml ui
-        var qml = Script.resolvePath('engineInspector.qml');
-        var window = new OverlayWindow({
-            title: 'Render Engine',
-            source: qml,
-            width: 300, 
-            height: 400
+    (function() {
+        var TABLET_BUTTON_NAME = "Inspector";
+        var QMLAPP_URL = Script.resolvePath("./engineInspector.qml");
+        var ICON_URL = Script.resolvePath("../../../system/assets/images/luci-i.svg");
+        var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/luci-a.svg");
+
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        var button = tablet.addButton({
+            text: TABLET_BUTTON_NAME,
+            icon: ICON_URL,
+            activeIcon: ACTIVE_ICON_URL
         });
-        window.setPosition(200, 50);
-        //window.closed.connect(function() { Script.stop(); });
-    }
-    openEngineTaskView();
+
+        Script.scriptEnding.connect(function () {
+            killWindow()
+            button.clicked.disconnect(onClicked);
+            tablet.removeButton(button);
+        });
+
+        button.clicked.connect(onClicked);
+         
+        var onScreen = false;
+        var window;
+
+        function onClicked() {
+            if (onScreen) {
+                killWindow()
+            } else {
+                createWindow()
+            }
+        }
+
+        function createWindow() {
+            var qml = Script.resolvePath(QMLAPP_URL);
+            window = new OverlayWindow({
+                title: 'Render Engine Inspector',
+                source: qml,
+                width: 250, 
+                height: 500
+            });
+            window.setPosition(200, 50);
+            window.closed.connect(killWindow);
+            onScreen = true
+            button.editProperties({isActive: true});
+        }
+
+        function killWindow() {
+            if (window !==  undefined) { 
+                window.closed.disconnect(killWindow);
+                window.close()
+                window = undefined
+            }
+            onScreen = false
+            button.editProperties({isActive: false})
+        }
+    }()); 
+    

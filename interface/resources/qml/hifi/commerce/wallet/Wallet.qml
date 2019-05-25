@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
 import "../common/sendAsset"
@@ -32,6 +32,7 @@ Rectangle {
     property string initialActiveViewAfterStatus5: "walletInventory";
     property bool keyboardRaised: false;
     property bool isPassword: false;
+    property bool has3DHTML: PlatformInfo.has3DHTML();
 
     anchors.fill: (typeof parent === undefined) ? undefined : parent;
 
@@ -96,6 +97,9 @@ Rectangle {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
                 exchangeMoneyButtonContainer.messagesWaiting = result.data.updates.length > 0;
+                if (!exchangeMoneyButtonContainer.messagesWaiting) {
+                    sendToScript({method: 'clearShouldShowDotUpdates'});
+                }
             }
         }
     }
@@ -332,8 +336,10 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'transactionHistory_usernameLinkClicked') {
-                    userInfoViewer.url = msg.usernameLink;
-                    userInfoViewer.visible = true;
+                    if (has3DHTML) {
+                        userInfoViewer.url = msg.usernameLink;
+                        userInfoViewer.visible = true;
+                    }
                 } else {
                     sendToScript(msg);
                 }
@@ -532,8 +538,8 @@ Rectangle {
             Rectangle {
                 id: exchangeMoneyMessagesWaitingLight;
                 visible: parent.messagesWaiting;
-                anchors.right: exchangeMoneyTabIcon.left;
-                anchors.rightMargin: 9;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
                 anchors.top: exchangeMoneyTabIcon.top;
                 anchors.topMargin: 4;
                 height: 10;
@@ -799,7 +805,7 @@ Rectangle {
                 }
             break;
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('Wallet.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendToScript(var message);

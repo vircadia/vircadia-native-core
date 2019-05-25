@@ -2,7 +2,7 @@ set(TARGET_NAME oven)
 
 setup_hifi_project(Widgets Gui Concurrent)
 
-link_hifi_libraries(networking shared image gpu ktx fbx baking graphics)
+link_hifi_libraries(shared shaders image gpu ktx fbx hfm baking graphics networking material-networking model-baker task)
 
 setup_memory_debugger()
 
@@ -18,6 +18,4 @@ elseif (APPLE)
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif()
 
-if (BUILD_SERVER)
-  install_beside_console()
-endif ()
+install_beside_console()

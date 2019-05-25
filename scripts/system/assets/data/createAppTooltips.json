@@ -11,14 +11,41 @@
     "textColor": {
         "tooltip": "The color of the text."
     },
+    "textAlpha": {
+        "tooltip": "The alpha of the text."
+    },
     "backgroundColor": {
         "tooltip": "The color of the background."
+    },
+    "backgroundAlpha": {
+        "tooltip": "The alpha of the background."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
     },
-    "faceCamera": {
-        "tooltip": "If enabled, the entity follows the camera of each user, creating a billboard effect."
+    "textBillboardMode": {
+        "tooltip": "If enabled, determines how the entity will face the camera.",
+        "jsPropertyName": "billboardMode"
+    },
+    "topMargin": {
+        "tooltip": "The top margin, in meters."
+    },
+    "rightMargin": {
+        "tooltip": "The right margin, in meters."
+    },
+    "bottomMargin": {
+        "tooltip": "The bottom margin, in meters."
+    },
+    "leftMargin": {
+        "tooltip": "The left margin, in meters."
+    },
+    "zoneShapeType": {
+        "tooltip": "The shape of the volume in which the zone's lighting effects and avatar permissions have effect.",
+        "jsPropertyName": "shapeType"
+    },
+    "zoneCompoundShapeURL": {
+        "tooltip": "The model file to use for the compound shape if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
     },
     "flyingAllowed": {
         "tooltip": "If enabled, users can fly in the zone."
@@ -107,6 +134,9 @@
     "bloom.bloomSize": {
         "tooltip": "The radius of bloom. The higher the value, the larger the bloom."
     },
+    "avatarPriority": {
+        "tooltip":  "Alter Avatars' update priorities."
+    },
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
     },
@@ -114,7 +144,7 @@
         "tooltip": "The shape of the collision hull used if collisions are enabled. This affects how an entity collides."
     },
     "compoundShapeURL": {
-        "tooltip": "The OBJ file to use for the compound shape if Collision Shape is \"compound\"."
+        "tooltip": "The model file to use for the compound shape if Collision Shape is \"Compound\"."
     },
     "animation.url": {
         "tooltip": "An animation to play on the model."
@@ -149,9 +179,25 @@
     "originalTextures": {
         "tooltip": "A JSON string containing the original texture used on the model."
     },
-    "image": {
-        "tooltip": "The URL for the image source.",
-        "jsPropertyName": "textures"
+    "imageURL": {
+        "tooltip": "The URL for the image source."
+    },
+    "imageColor": {
+        "tooltip": "The tint to be applied to the image.",
+        "jsPropertyName": "color"
+    },
+    "emissive": {
+        "tooltip": "If enabled, the image will display at full brightness."
+    },
+    "subImage": {
+        "tooltip": "The area of the image that is displayed."
+    },
+    "imageBillboardMode": {
+        "tooltip": "If enabled, determines how the entity will face the camera.",
+        "jsPropertyName": "billboardMode"
+    },
+    "keepAspectRatio": {
+        "tooltip": "If enabled, the image will maintain its original aspect ratio."
     },
     "sourceUrl": {
         "tooltip": "The URL for the web page source."
@@ -181,6 +227,14 @@
     "speedSpread": {
         "tooltip": "The spread in speeds at which particles are emitted at, resulting in a variety of speeds."
     },
+    "particleShapeType": {
+        "tooltip": "The shape of the surface from which to emit particles.",
+        "jsPropertyName": "shapeType"
+    },
+    "particleCompoundShapeURL": {
+        "tooltip": "The model file to use for the particle emitter if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
+    },
     "emitDimensions": {
         "tooltip": "The outer limit radius in dimensions that the particles can be emitted from."
     },
@@ -193,33 +247,51 @@
     "emitterShouldTrail": {
         "tooltip": "If enabled, then particles are \"left behind\" as the emitter moves, otherwise they are not."
     },
+    "particleRadiusTriple": {
+        "tooltip": "The size of each particle.",
+        "jsPropertyName": "particleRadius"
+    },
     "particleRadius": {
         "tooltip": "The size of each particle."
     },
     "radiusStart": {
-        "tooltip": ""
+        "tooltip": "The start size of each particle."
     },
     "radiusFinish": {
-        "tooltip": ""
+        "tooltip": "The finish size of each particle."
     },
     "radiusSpread": {
         "tooltip": "The spread in size that each particle is given, resulting in a variety of sizes."
+    },
+    "particleColorTriple": {
+        "tooltip": "The color of each particle.",
+        "jsPropertyName": "color"
     },
     "particleColor": {
         "tooltip": "The color of each particle.",
         "jsPropertyName": "color"
     },
+    "colorStart": {
+        "tooltip": "The start color of each particle."
+    },
+    "colorFinish": {
+        "tooltip": "The finish color of each particle."
+    },
     "colorSpread": {
         "tooltip": "The spread in color that each particle is given, resulting in a variety of colors."
+    },
+    "particleAlphaTriple": {
+        "tooltip": "The alpha of each particle.",
+        "jsPropertyName": "alpha"
     },
     "alpha": {
         "tooltip": "The alpha of each particle."
     },
     "alphaStart": {
-        "tooltip": ""
+        "tooltip": "The start alpha of each particle."
     },
     "alphaFinish": {
-        "tooltip": ""
+        "tooltip": "The finish alpha of each particle."
     },
     "alphaSpread": {
         "tooltip": "The spread in alpha that each particle is given, resulting in a variety of alphas."
@@ -230,32 +302,44 @@
     "accelerationSpread": {
         "tooltip": "The spread in accelerations that each particle is given, resulting in a variety of accelerations."
     },
+    "particleSpinTriple": {
+        "tooltip": "The spin of each particle.",
+        "jsPropertyName": "particleSpin"
+    },
     "particleSpin": {
-        "tooltip": "The spin of each particle in the system."
+        "tooltip": "The spin of each particle."
     },
     "spinStart": {
-        "tooltip": ""
+        "tooltip": "The start spin of each particle."
     },
     "spinFinish": {
-        "tooltip": ""
+        "tooltip": "The finish spin of each particle."
     },
     "spinSpread": {
         "tooltip": "The spread in spin that each particle is given, resulting in a variety of spins."
     },
     "rotateWithEntity": {
-        "tooltip": "If enabled, each particle will spin relative to the roation of the entity as a whole."
+        "tooltip": "If enabled, each particle will spin relative to the rotation of the entity as a whole."
+    },
+    "particlePolarTriple": {
+        "tooltip": "The angle range in deg at which particles are emitted. Starts in the entity's -z direction, and rotates around its y axis.",
+        "skipJSProperty": true
     },
     "polarStart": {
-        "tooltip": "The angle in deg at which particles are emitted. Starts in the entity's -z direction, and rotates around its y axis."
+        "tooltip": "The start angle in deg at which particles are emitted. Starts in the entity's -z direction, and rotates around its y axis."
     },
     "polarFinish": {
-        "tooltip": ""
+        "tooltip": "The finish angle in deg at which particles are emitted. Starts in the entity's -z direction, and rotates around its y axis."
+    },
+    "particleAzimuthTriple": {
+        "tooltip": "The angle range in deg at which particles are emitted.  Starts in the entity's -x direction, and rotates around its z axis.",
+        "skipJSProperty": true
     },
     "azimuthStart": {
-        "tooltip": "The angle in deg at which particles are emitted.  Starts in the entity's -z direction, and rotates around its y axis."
+        "tooltip": "The start angle in deg at which particles are emitted.  Starts in the entity's -x direction, and rotates around its z axis."
     },
     "azimuthFinish": {
-        "tooltip": ""
+        "tooltip": "The finish angle in deg at which particles are emitted.  Starts in the entity's -x direction, and rotates around its z axis."
     },
     "lightColor": {
         "tooltip": "The color of the light emitted.",
@@ -282,20 +366,14 @@
     "materialData": {
         "tooltip": "Can be used instead of a JSON file when material set to materialData."
     },
-    "materialNameToReplace": {
-        "tooltip": "Material name of parent entity to map this material entity on.",
-        "jsPropertyName": "parentMaterialName"
-    },
-    "submeshToReplace": {
-        "tooltip": "Submesh index of the parent entity to map this material on.",
-        "jsPropertyName": "parentMaterialName"
-    },
-    "selectSubmesh": {
-        "tooltip": "If enabled, \"Select Submesh\" property will show up, otherwise \"Material Name to Replace\" will be shown.",
-        "skipJSProperty": true
+    "parentMaterialName": {
+        "tooltip": "The target mesh indices or material names that this material entity should be assigned to on it's parent. This only supports parents that are Avatars as well as Shape or Model entity types."
     },
     "priority": {
         "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
+    },
+    "materialMappingMode": {
+        "tooltip": "How the material is mapped to the entity. If set to \"UV space\", then the material will be applied with the target entity's UV coordinates. If set to \"3D Projected\", then the 3D transform of the material entity will be used."
     },
     "materialMappingPos": {
         "tooltip": "The offset position of the bottom left of the material within the parent's UV space."
@@ -305,6 +383,18 @@
     },
     "materialMappingRot": {
         "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
+    },
+    "materialRepeat": {
+        "tooltip": "If enabled, the material will repeat, otherwise it will clamp."
+    },
+    "followCamera": {
+        "tooltip": "If enabled, the grid is always visible even as the camera moves to another position."
+    },
+    "majorGridEvery": {
+        "tooltip": "The number of \"Minor Grid Every\" intervals at which to draw a thick grid line."
+    },
+    "minorGridEvery": {
+        "tooltip": "The real number of meters at which to draw thin grid lines."
     },
     "id": {
         "tooltip": "The unique identifier of this entity."
@@ -318,11 +408,20 @@
     "position": {
         "tooltip": "The global position of this entity."
     },
+    "localPosition": {
+        "tooltip": "The local position of this entity."
+    },
     "rotation": {
-        "tooltip": "The rotation of the entity with respect to world coordinates."
+        "tooltip": "The global rotation of this entity."
+    },
+    "localRotation": {
+        "tooltip": "The local rotation of this entity."
     },
     "dimensions": {
         "tooltip": "The global dimensions of this entity."
+    },
+    "localDimensions": {
+        "tooltip": "The local dimensions of this entity."
     },
     "scale": {
         "tooltip": "The global scaling of this entity.",
@@ -367,7 +466,7 @@
         "tooltip": "The URL of a sound to play when the entity collides with something else."
     },
     "grab.grabbable": {
-        "tooltip": "If enabled, this entity will allow grabbing input and will be moveable."
+        "tooltip": "If enabled, this entity will allow grabbing input and will be movable."
     },
     "grab.triggerable": {
         "tooltip": "If enabled, the collider on this entity is used for triggering events."
@@ -422,13 +521,13 @@
     "userData": {
         "tooltip": "Used to store extra data about the entity in JSON format."
     },
-    "velocity": {
+    "localVelocity": {
         "tooltip": "The linear velocity vector of the entity. The velocity at which this entity moves forward in space."
     },
     "damping": {
         "tooltip": "The linear damping to slow down the linear velocity of an entity over time."
     },
-    "angularVelocity": {
+    "localAngularVelocity": {
         "tooltip": "The angular velocity of the entity in rad/s with respect to its axes, about its pivot point."
     },
     "angularDamping": {
@@ -448,6 +547,27 @@
     },
     "acceleration": {
         "tooltip": "A acceleration that the entity should move with, in world space."
+    },
+    "renderLayer": {
+        "tooltip": "The layer on which this entity is rendered."
+    },
+    "primitiveMode": {
+        "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
+    },
+    "groupCulled": {
+        "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
+    },
+    "webColor": {
+        "tooltip": "The tint of the web entity."
+    },
+    "webAlpha": {
+        "tooltip": "The alpha of the web entity."
+    },
+    "maxFPS": {
+        "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
+    },
+    "scriptURL": {
+        "tooltip": "The URL of a script to inject into the web page."
     },
     "alignToGrid": {
         "tooltip": "Used to align entities to the grid, or floor of the environment.",

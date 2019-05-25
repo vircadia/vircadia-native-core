@@ -16,6 +16,11 @@
 #include "LaserPointer.h"
 #include "StylusPointer.h"
 #include "ParabolaPointer.h"
+#include "StylusPick.h"
+
+static const glm::quat X_ROT_NEG_90{ 0.70710678f, -0.70710678f, 0.0f, 0.0f };
+static const glm::vec3 DEFAULT_POSITION_OFFSET{0.0f, 0.0f, -StylusPick::WEB_STYLUS_LENGTH / 2.0f};
+static const glm::vec3 DEFAULT_MODEL_DIMENSIONS{0.01f, 0.01f, StylusPick::WEB_STYLUS_LENGTH};
 
 void PointerScriptingInterface::setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems) const {
     DependencyManager::get<PointerManager>()->setIgnoreItems(uid, qVectorQUuidFromScriptValue(ignoreItems));
@@ -50,7 +55,17 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  * @typedef {object} Pointers.StylusPointerProperties
  * @property {boolean} [hover=false] If this pointer should generate hover events.
  * @property {boolean} [enabled=false]
+ * @property {Vec3} [tipOffset] The specified offset of the from the joint index.
+ * @property {Pointers.StylusPointerProperties.model} [model] Data to replace the default model url, positionOffset and rotationOffset.
  */
+ /**jsdoc
+  * properties defining stylus pick model that can be included to {@link Pointers.StylusPointerProperties}
+  * @typedef {object} Pointers.StylusPointerProperties.model
+  * @property {string} [url] url to the model
+  * @property {Vec3} [dimensions] the dimensions of the model
+  * @property {Vec3} [positionOffset] the position offset of the model from the stylus tip.
+  * @property {Vec3} [rotationOffset] the rotation offset of the model from the parent joint index
+  */
 unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
@@ -64,7 +79,28 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
         enabled = propertyMap["enabled"].toBool();
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylusOverlay(propertyMap), hover, enabled));
+    glm::vec3 modelPositionOffset = DEFAULT_POSITION_OFFSET;
+    glm::quat modelRotationOffset = X_ROT_NEG_90;
+    glm::vec3 modelDimensions = DEFAULT_MODEL_DIMENSIONS;
+
+    if (propertyMap["model"].isValid()) {
+        QVariantMap modelData = propertyMap["model"].toMap();
+
+        if (modelData["positionOffset"].isValid()) {
+            modelPositionOffset = vec3FromVariant(modelData["positionOffset"]);
+        }
+
+        if (modelData["rotationOffset"].isValid()) {
+            modelRotationOffset = quatFromVariant(modelData["rotationOffset"]);
+        }
+
+        if (modelData["dimensions"].isValid()) {
+            modelDimensions = vec3FromVariant(modelData["dimensions"]);
+        }
+    }
+
+    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylus(propertyMap), hover, enabled, modelPositionOffset,
+                                                                                                modelRotationOffset, modelDimensions));
 }
 
 /**jsdoc
@@ -80,15 +116,15 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  *
  * @typedef {object} Pointers.RayPointerRenderState
  * @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
- * @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Ray Pointer,
+ * @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined object to represent the beginning of the Ray Pointer,
  * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
- * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
- * @property {Overlays.OverlayProperties|QUuid} [path] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the path of the Ray Pointer,
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created object if it exists, or a null ID otherwise.
+ * @property {Overlays.OverlayProperties|QUuid} [path] When using {@link Pointers.createPointer}, an optionally defined object to represent the path of the Ray Pointer,
  * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field), which <b>must</b> be <code>"line3d"</code>.
- * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
- * @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the end of the Ray Pointer,
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created object if it exists, or a null ID otherwise.
+ * @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined object to represent the end of the Ray Pointer,
  * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
- * When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+ * When returned from {@link Pointers.getPointerProperties}, the ID of the created object if it exists, or a null ID otherwise.
  */
 /**jsdoc
  * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.
@@ -113,6 +149,17 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  */
 unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
+
+#if defined (Q_OS_ANDROID)
+    QString jointName { "" };
+    if (propertyMap["joint"].isValid()) {
+        QString jointName = propertyMap["joint"].toString();
+        const QString MOUSE_JOINT = "Mouse";
+        if (jointName == MOUSE_JOINT) {
+            return PointerEvent::INVALID_POINTER_ID;
+        }
+    }
+#endif
 
     bool faceAvatar = false;
     if (propertyMap["faceAvatar"].isValid()) {
@@ -235,14 +282,14 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
 *
 * @typedef {object} Pointers.ParabolaPointerRenderState
 * @property {string} name When using {@link Pointers.createPointer}, the name of this render state, used by {@link Pointers.setRenderState} and {@link Pointers.editRenderState}
-* @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the beginning of the Parabola Pointer,
+* @property {Overlays.OverlayProperties|QUuid} [start] When using {@link Pointers.createPointer}, an optionally defined object to represent the beginning of the Parabola Pointer,
 * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
-* When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+* When returned from {@link Pointers.getPointerProperties}, the ID of the created object if it exists, or a null ID otherwise.
 * @property {Pointers.ParabolaProperties} [path]  When using {@link Pointers.createPointer}, the optionally defined rendering properties of the parabolic path defined by the Parabola Pointer.
 * Not defined in {@link Pointers.getPointerProperties}.
-* @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined overlay to represent the end of the Parabola Pointer,
+* @property {Overlays.OverlayProperties|QUuid} [end] When using {@link Pointers.createPointer}, an optionally defined object to represent the end of the Parabola Pointer,
 * using the properties you would normally pass to {@link Overlays.addOverlay}, plus the type (as a <code>type</code> field).
-* When returned from {@link Pointers.getPointerProperties}, the ID of the created overlay if it exists, or a null ID otherwise.
+* When returned from {@link Pointers.getPointerProperties}, the ID of the created object if it exists, or a null ID otherwise.
 */
 /**jsdoc
 * A set of properties that can be passed to {@link Pointers.createPointer} to create a new Pointer. Contains the relevant {@link Picks.PickProperties} to define the underlying Pick.

@@ -62,12 +62,10 @@ void main(void) {
    
    float relClusterId = float(clusterPos.z * summedDims.x + clusterPos.y * summedDims.y + clusterPos.x) / float(frustumGrid_numClusters());
    
-   if (relClusterId < 0.0) {
-       _fragColor = vec4(0.0);
-   } else if (relClusterId >= 1.0) {
-       _fragColor = vec4(vec3(1.0), 0.2);
-   } else {
-       _fragColor = vec4(colorWheel(fract(relClusterId)), (numLights > 0 ? 0.05 + 0.95 * numLightsScale : 0.0));
-   }
+   _fragColor = mix(mix(vec4(colorWheel(fract(relClusterId)), float(numLights > 0) * (0.05 + 0.95 * numLightsScale)),
+                        vec4(vec3(1.0), 0.2),
+                        float(relClusterId >= 1.0)),
+                    vec4(0.0),
+                    float(relClusterId < 0.0));
 }
 

@@ -64,7 +64,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     connect(this, &DomainHandler::redirectToErrorDomainURL, &_apiRefreshTimer, &QTimer::stop);
 }
 
-void DomainHandler::disconnect() {
+void DomainHandler::disconnect(QString reason) {
     // if we're currently connected to a domain, send a disconnect packet on our way out
     if (_isConnected) {
         sendDisconnectPacket();
@@ -81,6 +81,8 @@ void DomainHandler::disconnect() {
         _sockAddr.clear();
     }
 
+    qCDebug(networking_ice) << "Disconnecting from domain server.";
+    qCDebug(networking_ice) << "REASON:" << reason;
     setIsConnected(false);
 }
 
@@ -100,9 +102,9 @@ void DomainHandler::clearSettings() {
     _settingsObject = QJsonObject();
 }
 
-void DomainHandler::softReset() {
+void DomainHandler::softReset(QString reason) {
     qCDebug(networking) << "Resetting current domain connection information.";
-    disconnect();
+    disconnect(reason);
 
     clearSettings();
 
@@ -118,10 +120,10 @@ void DomainHandler::softReset() {
     }
 }
 
-void DomainHandler::hardReset() {
+void DomainHandler::hardReset(QString reason) {
     emit resetting();
 
-    softReset();
+    softReset(reason);
     _isInErrorState = false;
     emit redirectErrorStateChanged(_isInErrorState);
 
@@ -166,7 +168,7 @@ void DomainHandler::setErrorDomainURL(const QUrl& url) {
 void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hostname) {
     if (_sockAddr != sockAddr) {
         // we should reset on a sockAddr change
-        hardReset();
+        hardReset("Changing domain sockAddr");
         // change the sockAddr
         _sockAddr = sockAddr;
     }
@@ -196,7 +198,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         _sockAddr.clear();
 
         // if this is a file URL we need to see if it has a ~ for us to expand
-        if (domainURL.scheme() == URL_SCHEME_FILE) {
+        if (domainURL.scheme() == HIFI_URL_SCHEME_FILE) {
             domainURL = PathUtils::expandToLocalDataAbsolutePath(domainURL);
         }
     }
@@ -209,7 +211,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
     // if it's in the error state, reset and try again.
     if ((_domainURL != domainURL || _sockAddr.getPort() != domainPort) || _isInErrorState) {
         // re-set the domain info so that auth information is reloaded
-        hardReset();
+        hardReset("Changing domain URL");
 
         QString previousHost = _domainURL.host();
         _domainURL = domainURL;
@@ -242,10 +244,24 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
 
 void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
 
+    auto newIceServer = _iceServerSockAddr.getAddress().toString() != iceServerHostname;
+    auto newDomainID = id != _pendingDomainID;
+
     // if it's in the error state, reset and try again.
-    if ((_iceServerSockAddr.getAddress().toString() != iceServerHostname || id != _pendingDomainID) || _isInErrorState) {
+    if (newIceServer || newDomainID || _isInErrorState) {
+        QString reason;
+        if (newIceServer) {
+            reason += "New ICE server;";
+        }
+        if (newDomainID) {
+            reason += "New domain ID;";
+        }
+        if (_isInErrorState) {
+            reason += "Domain in error state;";
+        }
+
         // re-set the domain info to connect to new domain
-        hardReset();
+        hardReset(reason);
 
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();
@@ -268,7 +284,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
             completedIceServerHostnameLookup();
         }
 
-        qCDebug(networking) << "ICE required to connect to domain via ice server at" << iceServerHostname;
+        qCDebug(networking_ice) << "ICE required to connect to domain via ice server at" << iceServerHostname;
     }
 }
 
@@ -322,7 +338,7 @@ void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
 }
 
 void DomainHandler::completedIceServerHostnameLookup() {
-    qCDebug(networking) << "ICE server socket is at" << _iceServerSockAddr;
+    qCDebug(networking_ice) << "ICE server socket is at" << _iceServerSockAddr;
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::SetICEServerSocket);
 
@@ -409,7 +425,7 @@ void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> pa
 
 void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
-    qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
+    qCDebug(networking_ice) << "Received reply from domain-server on" << senderSockAddr;
 
     if (getIP().isNull()) {
         // we're hearing back from this domain-server, no need to refresh API information
@@ -417,13 +433,13 @@ void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> me
 
         // for now we're unsafely assuming this came back from the domain
         if (senderSockAddr == _icePeer.getLocalSocket()) {
-            qCDebug(networking) << "Connecting to domain using local socket";
+            qCDebug(networking_ice) << "Connecting to domain using local socket";
             activateICELocalSocket();
         } else if (senderSockAddr == _icePeer.getPublicSocket()) {
-            qCDebug(networking) << "Conecting to domain using public socket";
+            qCDebug(networking_ice) << "Conecting to domain using public socket";
             activateICEPublicSocket();
         } else {
-            qCDebug(networking) << "Reply does not match either local or public socket for domain. Will not connect.";
+            qCDebug(networking_ice) << "Reply does not match either local or public socket for domain. Will not connect.";
         }
     }
 }
@@ -442,7 +458,7 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage>
 
 void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
-        qCDebug(networking) << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
+        qCDebug(networking_ice) << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer already has sockets
         return;
     }
@@ -457,10 +473,10 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> mes
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSPeerInformation);
 
     if (_icePeer.getUUID() != _pendingDomainID) {
-        qCDebug(networking) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
+        qCDebug(networking_ice) << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
         _icePeer.reset();
     } else {
-        qCDebug(networking) << "Received network peer object for domain -" << _icePeer;
+        qCDebug(networking_ice) << "Received network peer object for domain -" << _icePeer;
 
         // ask the peer object to start its ping timer
         _icePeer.startPingTimer();
@@ -546,10 +562,24 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 bool DomainHandler::checkInPacketTimeout() {
     ++_checkInPacketsSinceLastReply;
 
+    if (_checkInPacketsSinceLastReply > 1) {
+        qCDebug(networking_ice) << "Silent domain checkins:" << _checkInPacketsSinceLastReply;
+    }
+
     if (_checkInPacketsSinceLastReply > MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+
+        auto nodeList = DependencyManager::get<NodeList>();
+
         // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
         // so emit our signal that says that
+
+#ifdef DEBUG_EVENT_QUEUE
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(nodeList->thread());
+        qCDebug(networking) << "Limit of silent domain checkins reached (network qt queue: " << nodeListQueueSize << ")";
+#else  // DEBUG_EVENT_QUEUE
         qCDebug(networking) << "Limit of silent domain checkins reached";
+#endif // DEBUG_EVENT_QUEUE
+
         emit limitOfSilentDomainCheckInsReached();
         return true;
     } else {

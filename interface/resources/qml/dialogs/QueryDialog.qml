@@ -11,8 +11,8 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.3
 
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../windows"
 
 ModalWindow {
@@ -168,11 +168,7 @@ ModalWindow {
             shortcut: "Esc"
             onTriggered: {
                 root.canceled();
-                // FIXME we are leaking memory to avoid a crash
-                // root.destroy();
-
-                root.disableFade = true
-                visible = false;
+                root.destroy();
             }
         }
 
@@ -183,11 +179,7 @@ ModalWindow {
             onTriggered: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
-                // FIXME we are leaking memory to avoid a crash
-                // root.destroy();
-
-                root.disableFade = true
-                visible = false;
+                root.destroy();
             }
         }
     }

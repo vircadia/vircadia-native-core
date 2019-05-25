@@ -30,8 +30,11 @@ const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
-const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
+const uint32_t PENDING_FLAG_UPDATE_COLLISION_MASK = 1U << 4;
 const uint32_t PENDING_FLAG_RECOMPUTE_FLYING = 1U << 5;
+const uint32_t PENDING_FLAG_ADD_DETAILED_TO_SIMULATION = 1U << 6;
+const uint32_t PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION = 1U << 7;
+
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
 class btRigidBody;
@@ -62,10 +65,10 @@ public:
     // overrides from btCharacterControllerInterface
     virtual void setWalkDirection(const btVector3 &walkDirection) override { assert(false); }
     virtual void setVelocityForTimeInterval(const btVector3 &velocity, btScalar timeInterval) override { assert(false); }
-    virtual void reset(btCollisionWorld* collisionWorld) override { }
-    virtual void warp(const btVector3& origin) override { }
-    virtual void debugDraw(btIDebugDraw* debugDrawer) override { }
-    virtual void setUpInterpolate(bool value) override { }
+    virtual void reset(btCollisionWorld* collisionWorld) override {}
+    virtual void warp(const btVector3& origin) override {}
+    virtual void debugDraw(btIDebugDraw* debugDrawer) override {}
+    virtual void setUpInterpolate(bool value) override {}
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) override;
     virtual void preStep(btCollisionWorld *collisionWorld) override;
     virtual void playerStep(btCollisionWorld *collisionWorld, btScalar dt) override;
@@ -87,7 +90,7 @@ public:
     void preSimulation();
     void postSimulation();
 
-    void setPositionAndOrientation( const glm::vec3& position, const glm::quat& orientation);
+    void setPositionAndOrientation(const glm::vec3& position, const glm::quat& orientation);
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setParentVelocity(const glm::vec3& parentVelocity);
@@ -120,14 +123,18 @@ public:
     bool isStuck() const { return _isStuck; }
 
     void setCollisionless(bool collisionless);
-    int32_t computeCollisionGroup() const;
-    void handleChangedCollisionGroup();
+
+    virtual int32_t computeCollisionMask() const = 0;
+    virtual void handleChangedCollisionMask() = 0;
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
-    void setFlyingAllowed(bool value);
+    void setZoneFlyingAllowed(bool value) { _zoneFlyingAllowed = value; }
+    void setComfortFlyingAllowed(bool value) { _comfortFlyingAllowed = value; }
+    void setHoverWhenUnsupported(bool value) { _hoverWhenUnsupported = value; }
     void setCollisionlessAllowed(bool value);
 
+    void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
 
 protected:
 #ifdef DEBUG_STATE_CHANGE
@@ -207,7 +214,9 @@ protected:
     uint32_t _pendingFlags { 0 };
     uint32_t _previousFlags { 0 };
 
-    bool _flyingAllowed { true };
+    bool _zoneFlyingAllowed { true };
+    bool _comfortFlyingAllowed { true };
+    bool _hoverWhenUnsupported{ true };
     bool _collisionlessAllowed { true };
     bool _collisionless { false };
 

@@ -29,6 +29,8 @@ namespace gpu {
     }
 }
 
+class RefreshRateController;
+
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
     Q_PROPERTY(float hudAlpha MEMBER _hudAlpha)
@@ -41,13 +43,16 @@ public:
     ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
+
+    static std::function<void(int)> getRefreshRateOperator();
+
     bool activate() override final;
     void deactivate() override final;
     bool startStandBySession() override final;
     void endSession() override final;
     bool eventFilter(QObject* receiver, QEvent* event) override;
     bool isDisplayVisible() const override { return true; }
-
+    void captureFrame(const std::string& outputName) const override;
     void submitFrame(const gpu::FramePointer& newFrame) override;
 
     glm::uvec2 getRecommendedRenderSize() const override {
@@ -60,8 +65,6 @@ public:
 
     virtual bool setDisplayTexture(const QString& name) override;
     virtual bool onDisplayTextureReset() { return false; };
-    QImage getScreenshot(float aspectRatio = 0.0f) const override;
-    QImage getSecondaryCameraScreenshot() const override;
 
     float presentRate() const override;
 
@@ -88,6 +91,11 @@ protected:
 
     glm::uvec2 getSurfaceSize() const;
     glm::uvec2 getSurfacePixels() const;
+    // Some display plugins require us to always execute some present logic,
+    // whether we have a frame or not (Oculus Mobile plugin)
+    // Such plugins must be prepared to do the right thing if the `_currentFrame`
+    // is not populated
+    virtual bool alwaysPresent() const { return false; }
 
     void updateCompositeFramebuffer();
 
@@ -113,14 +121,14 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
-    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer fbo);
-    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& fbo);
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor);
     virtual void updateFrameData();
     virtual glm::mat4 getViewCorrection() { return glm::mat4(); }
 
     void withOtherThreadContext(std::function<void()> f) const;
 
-    void present();
+    void present(const std::shared_ptr<RefreshRateController>& refreshRateController);
     virtual void swapBuffers();
     ivec4 eyeViewport(Eye eye) const;
 
@@ -180,5 +188,8 @@ protected:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
+
+    QImage getScreenshot(float aspectRatio);
+    QImage getSecondaryCameraScreenshot();
 };
 

@@ -21,6 +21,7 @@
         ui = null,
         State,
         miniState = null,
+        miniTabletEnabled = true,
 
         // Hands.
         NO_HAND = -1,
@@ -113,7 +114,7 @@
             uiHand = LEFT_HAND,
             miniUIOverlay = null,
             MINI_UI_HTML = Script.resolvePath("./html/miniTablet.html"),
-            MINI_UI_DIMENSIONS = { x: 0.059, y: 0.0865 },
+            MINI_UI_DIMENSIONS = { x: 0.059, y: 0.0865, z: 0.001 },
             MINI_UI_WIDTH_PIXELS = 150,
             METERS_TO_INCHES = 39.3701,
             MINI_UI_DPI = MINI_UI_WIDTH_PIXELS / (MINI_UI_DIMENSIONS.x * METERS_TO_INCHES),
@@ -170,19 +171,23 @@
 
 
         function updateMutedStatus() {
-            var isMuted = Audio.muted;
-            miniOverlayObject.emitScriptEvent(JSON.stringify({
-                type: MUTE_MESSAGE,
-                on: isMuted,
-                icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
-            }));
+            if (miniOverlayObject) {
+                var isMuted = Audio.muted;
+                miniOverlayObject.emitScriptEvent(JSON.stringify({
+                    type: MUTE_MESSAGE,
+                    on: isMuted,
+                    icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
+                }));
+            }
         }
 
         function setGotoIcon() {
-            miniOverlayObject.emitScriptEvent(JSON.stringify({
-                type: GOTO_MESSAGE,
-                icon: GOTO_ICON
-            }));
+            if (miniOverlayObject) {
+                miniOverlayObject.emitScriptEvent(JSON.stringify({
+                    type: GOTO_MESSAGE,
+                    icon: GOTO_ICON
+                }));
+            }
         }
 
         function onWebEventReceived(data) {
@@ -250,11 +255,8 @@
         }
 
 
-        function getUIPositionAndRotation(hand) {
-            return {
-                position: MINI_POSITIONS[hand],
-                rotation: MINI_ROTATIONS[hand]
-            };
+        function getUIPosition(hand) {
+            return MINI_POSITIONS[hand];
         }
 
         function getMiniTabletID() {
@@ -447,6 +449,19 @@
             });
         }
 
+        function checkEventBridge() {
+            // The miniUIOverlay overlay's overlay object is not available immediately the overlay is created so we have to 
+            // provide a means to check for and connect it when it does become available.
+            if (miniOverlayObject) {
+                return;
+            }
+
+            miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
+            if (miniOverlayObject) {
+                miniOverlayObject.webEventReceived.connect(onWebEventReceived);
+            }
+        }
+
         function create() {
             miniOverlay = Overlays.addOverlay("model", {
                 url: MINI_MODEL,
@@ -454,7 +469,7 @@
                 solid: true,
                 grabbable: true,
                 showKeyboardFocusHighlight: false,
-                displayInFront: true,
+                drawInFront: true,
                 visible: false
             });
             miniUIOverlay = Overlays.addOverlay("web3d", {
@@ -467,14 +482,13 @@
                 alpha: 0, // Hide overlay while its content is being created.
                 grabbable: false,
                 showKeyboardFocusHighlight: false,
-                displayInFront: true,
+                drawInFront: true,
                 visible: false
             });
 
             miniUIOverlayEnabled = false; // This and alpha = 0 hides overlay while its content is being created.
 
-            miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
-            miniOverlayObject.webEventReceived.connect(onWebEventReceived);
+            checkEventBridge();
         }
 
         function destroy() {
@@ -492,7 +506,7 @@
         create();
 
         return {
-            getUIPositionAndRotation: getUIPositionAndRotation,
+            getUIPosition: getUIPosition,
             getMiniTabletID: getMiniTabletID,
             getMiniTabletProperties: getMiniTabletProperties,
             isLaserPointingAt: isLaserPointingAt,
@@ -504,6 +518,7 @@
             updateRotation: updateRotation,
             release: release,
             hide: hide,
+            checkEventBridge: checkEventBridge,
             destroy: destroy
         };
 
@@ -551,14 +566,23 @@
             // Trigger values.
             leftTriggerOn = 0,
             rightTriggerOn = 0,
-            MAX_TRIGGER_ON_TIME = 100,
+            MAX_TRIGGER_ON_TIME = 400,
 
             // Visibility.
-            MAX_HAND_CAMERA_ANGLE = 30,
-            MAX_CAMERA_HAND_ANGLE = 30,
+            MAX_MEDIAL_FINGER_CAMERA_ANGLE = 25, // From palm normal along palm towards fingers.
+            MAX_MEDIAL_WRIST_CAMERA_ANGLE = 65, // From palm normal along palm towards wrist.
+            MAX_LATERAL_THUMB_CAMERA_ANGLE = 25, // From palm normal across palm towards of thumb.
+            MAX_LATERAL_PINKY_CAMERA_ANGLE = 25, // From palm normal across palm towards pinky.
             DEGREES_180 = 180,
-            MAX_HAND_CAMERA_ANGLE_COS = Math.cos(Math.PI * MAX_HAND_CAMERA_ANGLE / DEGREES_180),
-            MAX_CAMERA_HAND_ANGLE_COS = Math.cos(Math.PI * MAX_CAMERA_HAND_ANGLE / DEGREES_180),
+            DEGREES_TO_RADIANS = Math.PI / DEGREES_180,
+            MAX_MEDIAL_FINGER_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_MEDIAL_FINGER_CAMERA_ANGLE,
+            MAX_MEDIAL_WRIST_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_MEDIAL_WRIST_CAMERA_ANGLE,
+            MAX_LATERAL_THUMB_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_LATERAL_THUMB_CAMERA_ANGLE,
+            MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD = DEGREES_TO_RADIANS * MAX_LATERAL_PINKY_CAMERA_ANGLE,
+            MAX_CAMERA_MINI_ANGLE = 30,
+            MAX_CAMERA_MINI_ANGLE_COS = Math.cos(MAX_CAMERA_MINI_ANGLE * DEGREES_TO_RADIANS),
+            SHOWING_DELAY = 1000, // ms
+            lastInvisible = [0, 0],
             HIDING_DELAY = 1000, // ms
             lastVisible = [0, 0];
 
@@ -597,11 +621,18 @@
                 jointIndex,
                 handPosition,
                 handOrientation,
-                uiPositionAndOrientation,
                 miniPosition,
-                miniOrientation,
                 miniToCameraDirection,
-                cameraToHand;
+                normalHandVector,
+                medialHandVector,
+                lateralHandVector,
+                normalDot,
+                medialDot,
+                lateralDot,
+                medialAngle,
+                lateralAngle,
+                cameraToMini,
+                now;
 
             // Shouldn't show mini tablet if hand isn't being controlled.
             pose = Controller.getPoseValue(hand === LEFT_HAND ? Controller.Standard.LeftHand : Controller.Standard.RightHand);
@@ -646,27 +677,48 @@
                     Vec3.multiplyQbyV(MyAvatar.orientation, MyAvatar.getAbsoluteJointTranslationInObjectFrame(jointIndex)));
                 handOrientation =
                     Quat.multiply(MyAvatar.orientation, MyAvatar.getAbsoluteJointRotationInObjectFrame(jointIndex));
-                uiPositionAndOrientation = ui.getUIPositionAndRotation(hand);
+                var uiPosition = ui.getUIPosition(hand);
                 miniPosition = Vec3.sum(handPosition, Vec3.multiply(MyAvatar.sensorToWorldScale,
-                    Vec3.multiplyQbyV(handOrientation, uiPositionAndOrientation.position)));
-                miniOrientation = Quat.multiply(handOrientation, uiPositionAndOrientation.rotation);
+                    Vec3.multiplyQbyV(handOrientation, uiPosition)));
                 miniToCameraDirection = Vec3.normalize(Vec3.subtract(Camera.position, miniPosition));
-                show = Vec3.dot(miniToCameraDirection, Quat.getForward(miniOrientation)) > MAX_HAND_CAMERA_ANGLE_COS;
-                show = show || (-Vec3.dot(miniToCameraDirection, Quat.getForward(handOrientation)) > MAX_HAND_CAMERA_ANGLE_COS);
-                cameraToHand = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
-                show = show && (cameraToHand > MAX_CAMERA_HAND_ANGLE_COS);
+
+                // Mini tablet aimed toward camera?
+                medialHandVector = Vec3.multiplyQbyV(handOrientation, Vec3.UNIT_Y);
+                lateralHandVector = Vec3.multiplyQbyV(handOrientation, hand === LEFT_HAND ? Vec3.UNIT_X : Vec3.UNIT_NEG_X);
+                normalHandVector = Vec3.multiplyQbyV(handOrientation, Vec3.UNIT_Z);
+                medialDot = Vec3.dot(medialHandVector, miniToCameraDirection);
+                lateralDot = Vec3.dot(lateralHandVector, miniToCameraDirection);
+                normalDot = Vec3.dot(normalHandVector, miniToCameraDirection);
+                medialAngle = Math.atan2(medialDot, normalDot);
+                lateralAngle = Math.atan2(lateralDot, normalDot);
+                show = -MAX_MEDIAL_WRIST_CAMERA_ANGLE_RAD <= medialAngle
+                    && medialAngle <= MAX_MEDIAL_FINGER_CAMERA_ANGLE_RAD
+                    && -MAX_LATERAL_THUMB_CAMERA_ANGLE_RAD <= lateralAngle
+                    && lateralAngle <= MAX_LATERAL_PINKY_CAMERA_ANGLE_RAD;
+
+                // Camera looking at mini tablet?
+                cameraToMini = -Vec3.dot(miniToCameraDirection, Quat.getForward(Camera.orientation));
+                show = show && (cameraToMini > MAX_CAMERA_MINI_ANGLE_COS);
+
+                // Delay showing for a while after it would otherwise be shown, unless it was showing on the other hand.
+                now = Date.now();
+                if (show) {
+                    show = now - lastInvisible[hand] >= SHOWING_DELAY || now - lastVisible[otherHand(hand)] <= HIDING_DELAY;
+                } else {
+                    lastInvisible[hand] = now;
+                }
 
                 // Persist showing for a while after it would otherwise be hidden.
                 if (show) {
-                    lastVisible[hand] = Date.now();
+                    lastVisible[hand] = now;
                 } else {
-                    show = Date.now() - lastVisible[hand] <= HIDING_DELAY;
+                    show = now - lastVisible[hand] <= HIDING_DELAY;
                 }
             }
 
             return {
                 show: show,
-                cameraToHand: cameraToHand
+                cameraToMini: cameraToMini
             };
         }
 
@@ -689,7 +741,7 @@
             showRight = shouldShowMini(RIGHT_HAND);
             if (showLeft.show && showRight.show) {
                 // Both hands would be pointing at camera; show the one the camera is gazing at.
-                if (showLeft.cameraToHand > showRight.cameraToHand) {
+                if (showLeft.cameraToMini > showRight.cameraToMini) {
                     setState(MINI_SHOWING, LEFT_HAND);
                 } else {
                     setState(MINI_SHOWING, RIGHT_HAND);
@@ -751,7 +803,7 @@
             showLeft = shouldShowMini(LEFT_HAND);
             showRight = shouldShowMini(RIGHT_HAND);
             if (showLeft.show && showRight.show) {
-                if (showLeft.cameraToHand > showRight.cameraToHand) {
+                if (showLeft.cameraToMini > showRight.cameraToMini) {
                     if (miniHand !== LEFT_HAND) {
                         setState(MINI_HIDING);
                     }
@@ -943,6 +995,8 @@
         }
 
         function updateState() {
+            ui.checkEventBridge();
+
             if (STATE_MACHINE[STATE_STRINGS[miniState]].update) {
                 STATE_MACHINE[STATE_STRINGS[miniState]].update();
             }
@@ -994,6 +1048,7 @@
         // Track grabbed state and item.
         switch (message.action) {
             case "grab":
+            case "equip":
                 grabbingHand = HAND_NAMES.indexOf(message.joint);
                 grabbedItem = message.grabbedEntity;
                 break;
@@ -1002,27 +1057,32 @@
                 grabbedItem = null;
                 break;
             default:
-                error("Unexpected grab message!");
+                error("Unexpected grab message: " + JSON.stringify(message));
                 return;
         }
 
-        if (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID()) {
+        if (miniState.getState() === miniState.MINI_DISABLED
+                || (message.grabbedEntity !== HMD.tabletID && message.grabbedEntity !== ui.getMiniTabletID())) {
             return;
         }
 
         if (message.action === "grab" && message.grabbedEntity === HMD.tabletID && HMD.active) {
             // Tablet may have been grabbed after it replaced expanded mini tablet.
-            miniState.setState(miniState.MINI_HIDDEN);
+            if (miniTabletEnabled) {
+                miniState.setState(miniState.MINI_HIDDEN);
+            }
         } else if (message.action === "grab" && miniState.getState() === miniState.MINI_VISIBLE) {
-            miniHand = miniState.getHand();
-            hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
-            miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
+            if (miniTabletEnabled) {
+                miniHand = miniState.getHand();
+                hand = message.joint === HAND_NAMES[miniHand] ? miniHand : otherHand(miniHand);
+                miniState.setState(miniState.MINI_EXPANDING, { hand: hand, goto: false });
+            }
         }
     }
 
     function onWentAway() {
         // Mini tablet only available when user is not away.
-        if (HMD.active) {
+        if (HMD.active && miniTabletEnabled) {
             miniState.setState(miniState.MINI_HIDDEN);
         }
     }
@@ -1030,8 +1090,21 @@
     function onDisplayModeChanged() {
         // Mini tablet only available when HMD is active.
         if (HMD.active) {
-            miniState.setState(miniState.MINI_HIDDEN);
-        } else {
+            if (miniTabletEnabled && miniState.getState() !== miniState.MINI_HIDDEN) {
+                miniState.setState(miniState.MINI_HIDDEN);
+            }
+        } else if (miniState.getState() !== miniState.MINI_DISABLED) {
+            miniState.setState(miniState.MINI_DISABLED);
+        }
+    }
+
+    function onMiniTabletEnabledChanged(enabled) {
+        miniTabletEnabled = enabled;
+        if (miniTabletEnabled) {
+            if (HMD.active && miniState.getState() !== miniState.MINI_HIDDEN) {
+                miniState.setState(miniState.MINI_HIDDEN);
+            }
+        } else if (miniState.getState() !== miniState.MINI_DISABLED) {
             miniState.setState(miniState.MINI_DISABLED);
         }
     }
@@ -1040,12 +1113,16 @@
     function setUp() {
         miniState = new State();
 
+        HMD.miniTabletEnabledChanged.connect(onMiniTabletEnabledChanged);
+        miniTabletEnabled = HMD.miniTabletEnabled;
+
         Messages.subscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
         Messages.messageReceived.connect(onMessageReceived);
 
         MyAvatar.wentAway.connect(onWentAway);
         HMD.displayModeChanged.connect(onDisplayModeChanged);
-        if (HMD.active) {
+
+        if (HMD.active && miniTabletEnabled) {
             miniState.setState(miniState.MINI_HIDDEN);
         }
     }
@@ -1058,6 +1135,8 @@
 
         Messages.messageReceived.disconnect(onMessageReceived);
         Messages.unsubscribe(HIFI_OBJECT_MANIPULATION_CHANNEL);
+
+        HMD.miniTabletEnabledChanged.disconnect(onMiniTabletEnabledChanged);
 
         miniState.destroy();
         miniState = null;

@@ -15,8 +15,9 @@ import QtQuick 2.10
 import QtQuick.Layouts 1.1
 import QtQuick.Controls 2.3
 import Hifi 1.0 as Hifi
-import "qrc:////qml//styles-uit" as HifiStylesUit
-import "qrc:////qml//controls-uit" as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
+import controlsUit 1.0 as HifiControlsUit
+
 
 
 

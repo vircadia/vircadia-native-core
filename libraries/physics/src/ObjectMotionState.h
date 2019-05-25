@@ -18,7 +18,7 @@
 #include <QSet>
 #include <QVector>
 
-#include <EntityItem.h>
+#include <SimulationFlags.h>
 
 #include "ContactInfo.h"
 #include "ShapeManager.h"
@@ -58,7 +58,8 @@ inline QString motionTypeToString(PhysicsMotionType motionType) {
 enum MotionStateType {
     MOTIONSTATE_TYPE_INVALID,
     MOTIONSTATE_TYPE_ENTITY,
-    MOTIONSTATE_TYPE_AVATAR
+    MOTIONSTATE_TYPE_AVATAR,
+    MOTIONSTATE_TYPE_DETAILED
 };
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled
@@ -99,7 +100,6 @@ public:
     virtual ~ObjectMotionState();
 
     virtual void handleEasyChanges(uint32_t& flags);
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
     void updateBodyVelocities();
@@ -122,11 +122,12 @@ public:
     glm::vec3 getBodyAngularVelocity() const;
     virtual glm::vec3 getObjectLinearVelocityChange() const;
 
-    virtual uint32_t getIncomingDirtyFlags() = 0;
-    virtual void clearIncomingDirtyFlags() = 0;
+    virtual uint32_t getIncomingDirtyFlags() const = 0;
+    virtual void clearIncomingDirtyFlags(uint32_t mask = DIRTY_PHYSICS_FLAGS) = 0;
 
     virtual PhysicsMotionType computePhysicsMotionType() const = 0;
 
+    virtual bool needsNewShape() const { return _shape == nullptr || getIncomingDirtyFlags() & Simulation::DIRTY_SHAPE; }
     const btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
 
@@ -153,6 +154,7 @@ public:
     virtual void bump(uint8_t priority) {}
 
     virtual QString getName() const { return ""; }
+    virtual ShapeType getShapeType() const = 0;
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const = 0;
 
@@ -160,8 +162,9 @@ public:
 
     bool hasInternalKinematicChanges() const { return _hasInternalKinematicChanges; }
 
-    void dirtyInternalKinematicChanges() { _hasInternalKinematicChanges = true; }
-    void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
+    // these methods are declared const so they can be called inside other const methods
+    void dirtyInternalKinematicChanges() const { _hasInternalKinematicChanges = true; }
+    void clearInternalKinematicChanges() const { _hasInternalKinematicChanges = false; }
 
     virtual bool isLocallyOwned() const { return false; }
     virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
@@ -170,8 +173,6 @@ public:
     friend class PhysicsEngine;
 
 protected:
-    virtual bool isReadyToComputeShape() const = 0;
-    virtual const btCollisionShape* computeNewShape() = 0;
     virtual void setMotionType(PhysicsMotionType motionType);
     void updateCCDConfiguration();
 
@@ -185,8 +186,11 @@ protected:
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
+    // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK: These data members allow an Action
+    // to operate on a kinematic object without screwing up our default kinematic integration
+    // which is done in the MotionState::getWorldTransform().
     mutable uint32_t _lastKinematicStep;
-    bool _hasInternalKinematicChanges { false };
+    mutable bool _hasInternalKinematicChanges { false };
 };
 
 using SetOfMotionStates = QSet<ObjectMotionState*>;

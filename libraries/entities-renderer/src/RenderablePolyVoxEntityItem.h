@@ -72,7 +72,6 @@ public:
     glm::mat4 localToVoxelMatrix() const;
 
     virtual ShapeType getShapeType() const override;
-    virtual bool shouldBePhysical() const override { return !isDead(); }
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& info) override;
 
@@ -173,7 +172,7 @@ public:
     }
     
 protected:
-    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(getTagMask()); }
+    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()); }
     virtual ShapeKey getShapeKey() override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;

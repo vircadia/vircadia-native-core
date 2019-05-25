@@ -19,6 +19,7 @@
 
 #include "AudioInjectorOptions.h"
 #include "AudioInjector.h"
+#include "AudioSolo.h"
 
 class AudioInjector;
 class AudioInjectorLocalBuffer;
@@ -38,12 +39,21 @@ public:
     // take care to delete it when ~AudioInjector, as parenting Qt semantics will not work
     virtual bool outputLocalInjector(const AudioInjectorPointer& injector) = 0;
 
+    virtual AudioSolo& getAudioSolo() = 0;
+
 public slots:
     virtual bool shouldLoopbackInjectors() { return false; }
 
     virtual bool setIsStereoInput(bool stereo) = 0;
-
     virtual bool isStereoInput() = 0;
+
+    virtual bool getLocalEcho() = 0;
+    virtual void setLocalEcho(bool localEcho) = 0;
+    virtual void toggleLocalEcho() = 0;
+
+    virtual bool getServerEcho() = 0;
+    virtual void setServerEcho(bool serverEcho) = 0;
+    virtual void toggleServerEcho() = 0;
 
 signals:
     void isStereoInputChanged(bool isStereo);

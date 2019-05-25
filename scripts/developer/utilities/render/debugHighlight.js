@@ -86,22 +86,23 @@
         type: "sphere",
         dimensions: END_DIMENSIONS,
         color: COLOR1,
-        ignoreRayIntersection: true
+        ignorePickIntersection: true
     }
     var end2 = {
         type: "sphere",
         dimensions: END_DIMENSIONS,
         color: COLOR2,
-        ignoreRayIntersection: true
+        ignorePickIntersection: true
     }
     var laser = Pointers.createPointer(PickType.Ray, {
         joint: "Mouse",
-        filter: Picks.PICK_ENTITIES,
+        filter: Picks.PICK_ENTITIES | Picks.PICK_OVERLAYS | Picks.PICK_AVATARS,
         renderStates: [{name: "one", end: end1}],
         defaultRenderStates: [{name: "one", end: end2, distance: 2.0}],
         enabled: true
     });
     Pointers.setRenderState(laser, "one");
+    var hoveredObject = undefined;
 
     var HoveringList = "Hovering"
     var hoveringStyle = {
@@ -124,7 +125,7 @@
      
     function fromQml(message) {
         tokens = message.split(' ')
-        print("Received '"+message+"' from hightlight.qml")
+        print("Received message from QML")
         if (tokens[0]=="highlight") {
             currentSelectionName = tokens[1];
             print("Switching to highlight name "+currentSelectionName)
@@ -140,21 +141,41 @@
             time = 0
         }
     }
-    
-    Entities.hoverEnterEntity.connect(function (id, event) {
-      //  print("hoverEnterEntity");
-        if (isSelectionEnabled) Selection.addToSelectedItemsList(HoveringList, "entity", id)
-    })
-    
-    Entities.hoverOverEntity.connect(function (id, event) {
-       // print("hoverOverEntity");
-    })
 
-    
-    Entities.hoverLeaveEntity.connect(function (id, event) {
-        if (isSelectionEnabled)  Selection.removeFromSelectedItemsList(HoveringList, "entity", id)        
-       // print("hoverLeaveEntity");   
-    })
+    function getIntersectionTypeString(type) {
+        if (type === Picks.INTERSECTED_ENTITY) {
+            return "entity";
+        } else if (type === Picks.INTERSECTED_OVERLAY) {
+            return "overlay";
+        } else if (type === Picks.INTERSECTED_AVATAR) {
+            return "avatar";
+        }
+    }
+
+    function update() {
+        var result = Pointers.getPrevPickResult(laser);
+        if (result.intersects) {
+            // Hovering on something different
+            if (hoveredObject !== undefined && result.objectID !== hoveredObject.objectID) {
+                if (isSelectionEnabled) {
+                    Selection.removeFromSelectedItemsList(HoveringList, getIntersectionTypeString(hoveredObject.type), hoveredObject.objectID)
+                }
+            }
+
+            // Hovering over something new
+            if (isSelectionEnabled) {
+                Selection.addToSelectedItemsList(HoveringList, getIntersectionTypeString(result.type), result.objectID);
+                hoveredObject = result;
+            }
+        } else if (hoveredObject !== undefined) {
+            // Stopped hovering
+            if (isSelectionEnabled) {
+                Selection.removeFromSelectedItemsList(HoveringList, getIntersectionTypeString(hoveredObject.type), hoveredObject.objectID)
+                hoveredObject = undefined;
+            }
+        }
+    }
+    Script.update.connect(update);
     
     function cleanup() {
         Pointers.removePointer(laser);

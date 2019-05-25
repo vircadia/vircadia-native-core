@@ -50,7 +50,7 @@
 #include "OctreeLogging.h"
 #include "OctreeQueryNode.h"
 #include "OctreeUtils.h"
-
+#include "OctreeEntitiesFileParser.h"
 
 QVector<QString> PERSIST_EXTENSIONS = {"json", "json.gz"};
 
@@ -679,15 +679,12 @@ bool Octree::readFromFile(const char* fileName) {
     QFile file(qFileName);
 
     if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "unable to open for reading: " << fileName;
         return false;
     }
 
     QDataStream fileInputStream(&file);
     QFileInfo fileInfo(qFileName);
     uint64_t fileLength = fileInfo.size();
-
-    qCDebug(octree) << "Loading file" << qFileName << "...";
 
     bool success = readFromStream(fileLength, fileInputStream);
 
@@ -795,28 +792,26 @@ bool Octree::readFromStream(
 }
 
 
+namespace {
 // hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
 // the entity later, but this helps us move things along for now
-QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QString& marketplaceID) {
+QVariantMap addMarketplaceIDToDocumentEntities(QVariantMap& doc, const QString& marketplaceID) {
     if (!marketplaceID.isEmpty()) {
-        QJsonDocument newDoc;
-        QJsonObject rootObj = doc.object();
-        QJsonArray newEntitiesArray;
+        QVariantList newEntitiesArray;
 
         // build a new entities array
-        auto entitiesArray = rootObj["Entities"].toArray();
-        for(auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
-            auto entity = (*it).toObject();
+        auto entitiesArray = doc["Entities"].toList();
+        for (auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
+            auto entity = (*it).toMap();
             entity["marketplaceID"] = marketplaceID;
             newEntitiesArray.append(entity);
         }
-        rootObj["Entities"] = newEntitiesArray;
-        newDoc.setObject(rootObj);
-        return newDoc;
+        doc["Entities"] = newEntitiesArray;
     }
     return doc;
 }
 
+}  // Unnamed namepsace
 const int READ_JSON_BUFFER_SIZE = 2048;
 
 bool Octree::readJSONFromStream(
@@ -842,12 +837,18 @@ bool Octree::readJSONFromStream(
         jsonBuffer += QByteArray(rawData, got);
     }
 
-    QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
-    if (!marketplaceID.isEmpty()) {
-        asDocument = addMarketplaceIDToDocumentEntities(asDocument, marketplaceID);
+    OctreeEntitiesFileParser octreeParser;
+    octreeParser.setEntitiesString(jsonBuffer);
+    QVariantMap asMap;
+    if (!octreeParser.parseEntities(asMap)) {
+        qCritical() << "Couldn't parse Entities JSON:" << octreeParser.getErrorString().c_str();
+        return false;
     }
-    QVariant asVariant = asDocument.toVariant();
-    QVariantMap asMap = asVariant.toMap();
+
+    if (!marketplaceID.isEmpty()) {
+        addMarketplaceIDToDocumentEntities(asMap, marketplaceID);
+    }
+
     bool success = readFromMap(asMap);
     delete[] rawData;
     return success;
@@ -892,26 +893,52 @@ bool Octree::toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& elem
         return false;
     }
 
-    *doc = QJsonDocument::fromVariant(entityDescription);
+
+    bool noEntities = entityDescription["Entities"].toList().empty();
+    QJsonDocument jsonDocTree = QJsonDocument::fromVariant(entityDescription);
+    QJsonValue entitiesJson = jsonDocTree["Entities"];
+    if (entitiesJson.isNull() || (entitiesJson.toArray().empty() && !noEntities)) {
+        // Json version of entities too large.
+        return false;
+    } else {
+        *doc = jsonDocTree;
+    }
+
+    return true;
+}
+
+bool Octree::toJSONString(QString& jsonString, const OctreeElementPointer& element) {
+    OctreeElementPointer top;
+    if (element) {
+        top = element;
+    } else {
+        top = _rootElement;
+    }
+
+    jsonString += QString("{\n  \"DataVersion\": %1,\n  \"Entities\": [").arg(_persistDataVersion);
+
+    writeToJSON(jsonString, top);
+
+    // include the "bitstream" version
+    PacketType expectedType = expectedDataPacketType();
+    PacketVersion expectedVersion = versionForPacketType(expectedType);
+
+    jsonString += QString("\n    ],\n  \"Id\": \"%1\",\n  \"Version\": %2\n}\n").arg(_persistID.toString()).arg((int)expectedVersion);
+
     return true;
 }
 
 bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool doGzip) {
-    QJsonDocument doc;
-    if (!toJSONDocument(&doc, element)) {
-        qCritical("Failed to convert Entities to QVariantMap while converting to json.");
-        return false;
-    }
+    QString jsonString;
+    toJSONString(jsonString);
 
     if (doGzip) {
-        QByteArray jsonData = doc.toJson();
-
-        if (!gzip(jsonData, *data, -1)) {
+        if (!gzip(jsonString.toUtf8(), *data, -1)) {
             qCritical("Unable to gzip data while saving to json.");
             return false;
         }
     } else {
-        *data = doc.toJson();
+        *data = jsonString.toUtf8();
     }
 
     return true;

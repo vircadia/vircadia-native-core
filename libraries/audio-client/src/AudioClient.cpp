@@ -170,6 +170,86 @@ static void channelDownmix(int16_t* source, int16_t* dest, int numSamples) {
     }
 }
 
+static float computeLoudness(int16_t* samples, int numSamples, int numChannels, bool& isClipping) {
+
+    const int32_t CLIPPING_THRESHOLD = 32392;   // -0.1 dBFS
+    const int32_t CLIPPING_DETECTION = 3;       // consecutive samples over threshold
+
+    float scale = numSamples ? 1.0f / numSamples : 0.0f;
+
+    int32_t loudness = 0;
+    isClipping = false;
+
+    if (numChannels == 2) {
+        int32_t oversLeft = 0;
+        int32_t oversRight = 0;
+
+        for (int i = 0; i < numSamples/2; i++) {
+            int32_t left = std::abs((int32_t)samples[2*i+0]);
+            int32_t right = std::abs((int32_t)samples[2*i+1]);
+
+            loudness += left;
+            loudness += right;
+
+            if (left > CLIPPING_THRESHOLD) {
+                isClipping |= (++oversLeft >= CLIPPING_DETECTION);
+            } else {
+                oversLeft = 0;
+            }
+            if (right > CLIPPING_THRESHOLD) {
+                isClipping |= (++oversRight >= CLIPPING_DETECTION);
+            } else {
+                oversRight = 0;
+            }
+        }
+    } else {
+        int32_t overs = 0;
+
+        for (int i = 0; i < numSamples; i++) {
+            int32_t sample = std::abs((int32_t)samples[i]);
+
+            loudness += sample;
+
+            if (sample > CLIPPING_THRESHOLD) {
+                isClipping |= (++overs >= CLIPPING_DETECTION);
+            } else {
+                overs = 0;
+            }
+        }
+    }
+
+    return (float)loudness * scale;
+}
+
+template <int NUM_CHANNELS>
+static void applyGainSmoothing(float* buffer, int numFrames, float gain0, float gain1) {
+
+    // fast path for unity gain
+    if (gain0 == 1.0f && gain1 == 1.0f) {
+        return;
+    }
+
+    // cubic poly from gain0 to gain1
+    float c3 = -2.0f * (gain1 - gain0);
+    float c2 = 3.0f * (gain1 - gain0);
+    float c0 = gain0;
+
+    float t = 0.0f;
+    float tStep = 1.0f / numFrames;
+
+    for (int i = 0; i < numFrames; i++) {
+
+        // evaluate poly over t=[0,1)
+        float gain = (c3 * t + c2) * t * t + c0;
+        t += tStep;
+
+        // apply gain to all channels
+        for (int ch = 0; ch < NUM_CHANNELS; ch++) {
+            buffer[NUM_CHANNELS*i + ch] *= gain;
+        }
+    }
+}
+
 static inline float convertToFloat(int16_t sample) {
     return (float)sample * (1 / 32768.0f);
 }
@@ -198,6 +278,8 @@ AudioClient::AudioClient() :
     _outputBufferSizeFrames("audioOutputBufferFrames", DEFAULT_BUFFER_FRAMES),
     _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
     _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled", DEFAULT_STARVE_DETECTION_ENABLED),
+    _lastRawInputLoudness(0.0f),
+    _lastSmoothedRawInputLoudness(0.0f),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
     _muted(false),
@@ -270,7 +352,8 @@ AudioClient::AudioClient() :
 
     configureReverb();
 
-    auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    auto nodeList = DependencyManager::get<NodeList>();
+    auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AudioStreamStats, &_stats, "processStreamStatsPacket");
     packetReceiver.registerListener(PacketType::AudioEnvironment, this, "handleAudioEnvironmentDataPacket");
     packetReceiver.registerListener(PacketType::SilentAudioFrame, this, "handleAudioDataPacket");
@@ -278,6 +361,16 @@ AudioClient::AudioClient() :
     packetReceiver.registerListener(PacketType::NoisyMute, this, "handleNoisyMutePacket");
     packetReceiver.registerListener(PacketType::MuteEnvironment, this, "handleMuteEnvironmentPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+
+    auto& domainHandler = nodeList->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this] {
+        _solo.reset();
+    });
+    connect(nodeList.data(), &NodeList::nodeActivated, this, [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::AudioMixer) {
+            _solo.resend();
+        }
+    });
 }
 
 AudioClient::~AudioClient() {
@@ -291,7 +384,6 @@ void AudioClient::customDeleter() {
 #if defined(Q_OS_ANDROID)
     _shouldRestartInputSetup = false;
 #endif
-    stop();
     deleteLater();
 }
 
@@ -472,7 +564,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
 
 #if defined (Q_OS_ANDROID)
     if (mode == QAudio::AudioInput) {
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
         bool aecEnabled = enableAEC.get();
         auto audioClient = DependencyManager::get<AudioClient>();
         bool headsetOn = audioClient? audioClient->isHeadsetPluggedIn() : false;
@@ -989,7 +1081,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
-    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
+    if ((_muted && !_shouldEchoLocally) || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
         return;
     }
 
@@ -1065,45 +1157,28 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
     if (!_audioPaused) {
-        if (_muted) {
-            _lastInputLoudness = 0.0f;
-            _timeSinceLastClip = 0.0f;
-        } else {
+
+        bool audioGateOpen = false;
+
+        if (!_muted) {
             int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
             int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
             int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
 
             if (_isNoiseGateEnabled) {
                 // The audio gate includes DC removal
-                _audioGate->render(samples, samples, numFrames);
+                audioGateOpen = _audioGate->render(samples, samples, numFrames);
             } else {
-                _audioGate->removeDC(samples, samples, numFrames);
-            }
-
-            int32_t loudness = 0;
-            assert(numSamples < 65536); // int32_t loudness cannot overflow
-            bool didClip = false;
-            for (int i = 0; i < numSamples; ++i) {
-                const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
-                int32_t sample = std::abs((int32_t)samples[i]);
-                loudness += sample;
-                didClip |= (sample > CLIPPING_THRESHOLD);
-            }
-            _lastInputLoudness = (float)loudness / numSamples;
-
-            if (didClip) {
-                _timeSinceLastClip = 0.0f;
-            } else if (_timeSinceLastClip >= 0.0f) {
-                _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+                audioGateOpen = _audioGate->removeDC(samples, samples, numFrames);
             }
 
             emit inputReceived(audioBuffer);
         }
 
-        emit inputLoudnessChanged(_lastInputLoudness);
+        // loudness after mute/gate
+        _lastInputLoudness = (_muted || !audioGateOpen) ? 0.0f : _lastRawInputLoudness;
 
-        // state machine to detect gate opening and closing
-        bool audioGateOpen = (_lastInputLoudness != 0.0f);
+        // detect gate opening and closing
         bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
         bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
         _audioGateOpen = audioGateOpen;
@@ -1176,10 +1251,30 @@ void AudioClient::handleMicAudioInput() {
     static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
-        if (_muted) {
-            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
-        } else {
-            _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+
+        _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+
+        // detect loudness and clipping on the raw input
+        bool isClipping = false;
+        float loudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
+        _lastRawInputLoudness = loudness;
+
+        // envelope detection
+        float tc = (loudness > _lastSmoothedRawInputLoudness) ? 0.378f : 0.967f;  // 10ms attack, 300ms release @ 100Hz
+        loudness += tc * (_lastSmoothedRawInputLoudness - loudness);
+        _lastSmoothedRawInputLoudness = loudness;
+
+        // clipping indicator
+        if (isClipping) {
+            _timeSinceLastClip = 0.0f;
+        } else if (_timeSinceLastClip >= 0.0f) {
+            _timeSinceLastClip += AudioConstants::NETWORK_FRAME_SECS;
+        }
+        isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);   // 2 second hold time
+
+        emit inputLoudnessChanged(_lastSmoothedRawInputLoudness, isClipping);
+
+        if (!_muted) {
             possibleResampling(_inputToNetworkResampler,
                 inputAudioSamples.get(), networkAudioSamples,
                 inputSamplesRequired, numNetworkSamples,
@@ -1288,28 +1383,39 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
     for (const AudioInjectorPointer& injector : _activeLocalAudioInjectors) {
         // the lock guarantees that injectorBuffer, if found, is invariant
-        AudioInjectorLocalBuffer* injectorBuffer = injector->getLocalBuffer();
+        auto injectorBuffer = injector->getLocalBuffer();
         if (injectorBuffer) {
+
+            auto options = injector->getOptions();
 
             static const int HRTF_DATASET_INDEX = 1;
 
-            int numChannels = injector->isAmbisonic() ? AudioConstants::AMBISONIC : (injector->isStereo() ? AudioConstants::STEREO : AudioConstants::MONO);
+            int numChannels = options.ambisonic ? AudioConstants::AMBISONIC : (options.stereo ? AudioConstants::STEREO : AudioConstants::MONO);
             size_t bytesToRead = numChannels * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
 
             // get one frame from the injector
             memset(_localScratchBuffer, 0, bytesToRead);
             if (0 < injectorBuffer->readData((char*)_localScratchBuffer, bytesToRead)) {
 
-                if (injector->isAmbisonic()) {
+                bool isSystemSound = !options.positionSet && !options.ambisonic;
 
-                    // no distance attenuation
-                    float gain = injector->getVolume();
+                float gain = options.volume * (isSystemSound ? _systemInjectorGain : _localInjectorGain);
+
+                if (options.ambisonic) {
+
+                    if (options.positionSet) {
+
+                        // distance attenuation
+                        glm::vec3 relativePosition = options.position - _positionGetter();
+                        float distance = glm::max(glm::length(relativePosition), EPSILON);
+                        gain = gainForSource(distance, gain);
+                    }
 
                     //
                     // Calculate the soundfield orientation relative to the listener.
                     // Injector orientation can be used to align a recording to our world coordinates.
                     //
-                    glm::quat relativeOrientation = injector->getOrientation() * glm::inverse(_orientationGetter());
+                    glm::quat relativeOrientation = options.orientation * glm::inverse(_orientationGetter());
 
                     // convert from Y-up (OpenGL) to Z-up (Ambisonic) coordinate system
                     float qw = relativeOrientation.w;
@@ -1317,48 +1423,61 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     float qy = -relativeOrientation.x;
                     float qz = relativeOrientation.y;
 
-                    // Ambisonic gets spatialized into mixBuffer
+                    // spatialize into mixBuffer
                     injector->getLocalFOA().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
                                                    qw, qx, qy, qz, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                } else if (options.stereo) {
 
-                } else if (injector->isStereo()) {
+                    if (options.positionSet) {
 
-                    // stereo gets directly mixed into mixBuffer
-                    float gain = injector->getVolume();
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                        mixBuffer[i] += convertToFloat(_localScratchBuffer[i]) * gain;
+                        // distance attenuation
+                        glm::vec3 relativePosition = options.position - _positionGetter();
+                        float distance = glm::max(glm::length(relativePosition), EPSILON);
+                        gain = gainForSource(distance, gain);
                     }
 
-                } else {
+                    // direct mix into mixBuffer
+                    injector->getLocalHRTF().mixStereo(_localScratchBuffer, mixBuffer, gain,
+                                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                } else {    // injector is mono
 
-                    // calculate distance, gain and azimuth for hrtf
-                    glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
-                    float distance = glm::max(glm::length(relativePosition), EPSILON);
-                    float gain = gainForSource(distance, injector->getVolume());
-                    float azimuth = azimuthForSource(relativePosition);
+                    if (options.positionSet) {
 
-                    // mono gets spatialized into mixBuffer
-                    injector->getLocalHRTF().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
-                                                    azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                        // distance attenuation
+                        glm::vec3 relativePosition = options.position - _positionGetter();
+                        float distance = glm::max(glm::length(relativePosition), EPSILON);
+                        gain = gainForSource(distance, gain);
+
+                        float azimuth = azimuthForSource(relativePosition);
+
+                        // spatialize into mixBuffer
+                        injector->getLocalHRTF().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
+                                                        azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    } else {
+
+                        // direct mix into mixBuffer
+                        injector->getLocalHRTF().mixMono(_localScratchBuffer, mixBuffer, gain,
+                                                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    }
                 }
 
             } else {
 
-                qCDebug(audioclient) << "injector has no more data, marking finished for removal";
+                //qCDebug(audioclient) << "injector has no more data, marking finished for removal";
                 injector->finishLocalInjection();
                 injectorsToRemove.append(injector);
             }
 
         } else {
 
-            qCDebug(audioclient) << "injector has no local buffer, marking as finished for removal";
+            //qCDebug(audioclient) << "injector has no local buffer, marking as finished for removal";
             injector->finishLocalInjection();
             injectorsToRemove.append(injector);
         }
     }
 
     for (const AudioInjectorPointer& injector : injectorsToRemove) {
-        qCDebug(audioclient) << "removing injector";
+        //qCDebug(audioclient) << "removing injector";
         _activeLocalAudioInjectors.removeOne(injector);
     }
 
@@ -1438,6 +1557,14 @@ void AudioClient::setNoiseReduction(bool enable, bool emitSignal) {
     }
 }
 
+void AudioClient::setWarnWhenMuted(bool enable, bool emitSignal) {
+    if (_warnWhenMuted != enable) {
+        _warnWhenMuted = enable;
+        if (emitSignal) {
+            emit warnWhenMutedChanged(_warnWhenMuted);
+        }
+    }
+}
 
 bool AudioClient::setIsStereoInput(bool isStereoInput) {
     bool stereoInputChanged = false;
@@ -1470,15 +1597,13 @@ bool AudioClient::setIsStereoInput(bool isStereoInput) {
 }
 
 bool AudioClient::outputLocalInjector(const AudioInjectorPointer& injector) {
-    AudioInjectorLocalBuffer* injectorBuffer = injector->getLocalBuffer();
+    auto injectorBuffer = injector->getLocalBuffer();
     if (injectorBuffer) {
         // local injectors are on the AudioInjectorsThread, so we must guard access
         Lock lock(_injectorsMutex);
         if (!_activeLocalAudioInjectors.contains(injector)) {
-            qCDebug(audioclient) << "adding new injector";
+            //qCDebug(audioclient) << "adding new injector";
             _activeLocalAudioInjectors.append(injector);
-            // move local buffer to the LocalAudioThread to avoid dataraces with AudioInjector (like stop())
-            injectorBuffer->setParent(nullptr);
 
             // update the flag
             _localInjectorsAvailable.exchange(true, std::memory_order_release);
@@ -1492,6 +1617,11 @@ bool AudioClient::outputLocalInjector(const AudioInjectorPointer& injector) {
         // no local buffer
         return false;
     }
+}
+
+int AudioClient::getNumLocalInjectors() {
+    Lock lock(_injectorsMutex);
+    return _activeLocalAudioInjectors.size();
 }
 
 void AudioClient::outputFormatChanged() {
@@ -1680,7 +1810,7 @@ void AudioClient::setHeadsetPluggedIn(bool pluggedIn) {
             QThread::msleep(200);
         }
 
-        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, false);
+        Setting::Handle<bool> enableAEC(SETTING_AEC_KEY, DEFAULT_AEC_ENABLED);
         bool aecEnabled = enableAEC.get();
 
         if ((pluggedIn || !aecEnabled) && _inputDeviceInfo.deviceName() != VOICE_RECOGNITION) {
@@ -1942,8 +2072,10 @@ float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
 float AudioClient::gainForSource(float distance, float volume) {
 
     // attenuation = -6dB * log2(distance)
-    // reference attenuation of 0dB at distance = 1.0m
-    float gain = volume / std::max(distance, HRTF_NEARFIELD_MIN);
+    // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
+    float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
+    float gain = volume / d;
+    gain = std::min(gain, ATTN_GAIN_MAX);
 
     return gain;
 }
@@ -2006,6 +2138,14 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     int framesPopped = samplesPopped / AudioConstants::STEREO;
     int bytesWritten;
     if (samplesPopped > 0) {
+
+        // apply output gain
+        float newGain = _audio->_outputGain.load(std::memory_order_acquire);
+        float oldGain = _audio->_lastOutputGain;
+        _audio->_lastOutputGain = newGain;
+
+        applyGainSmoothing<OUTPUT_CHANNEL_COUNT>(mixBuffer, framesPopped, oldGain, newGain);
+
         if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
             // limit the audio
             _audio->_audioLimiter.render(mixBuffer, (int16_t*)data, framesPopped);
@@ -2022,6 +2162,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         }
 
         bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
+        assert(bytesWritten <= maxSize);
+
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
         memset(data, 0, maxSize);
@@ -2033,7 +2175,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         Lock lock(_recordMutex);
         _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
     }
-
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);

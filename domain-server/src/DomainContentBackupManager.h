@@ -86,6 +86,7 @@ public slots:
     void createManualBackup(MiniPromise::Promise promise, const QString& name);
     void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
     void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup);
+    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
 
 signals:

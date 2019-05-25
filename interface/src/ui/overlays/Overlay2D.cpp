@@ -66,23 +66,3 @@ void Overlay2D::setProperties(const QVariantMap& properties) {
         setBounds(newBounds);
     }
 }
-
-QVariant Overlay2D::getProperty(const QString& property) {
-    if (property == "bounds") {
-        return qRectToVariant(_bounds);
-    }
-    if (property == "x") {
-        return _bounds.x();
-    }
-    if (property == "y") {
-        return _bounds.y();
-    }
-    if (property == "width") {
-        return _bounds.width();
-    }
-    if (property == "height") {
-        return _bounds.height();
-    }
-
-    return Overlay::getProperty(property);
-}

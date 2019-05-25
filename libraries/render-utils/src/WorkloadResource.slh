@@ -26,7 +26,7 @@ struct WorkloadProxy {
 };
 
 #if !defined(GPU_SSBO_TRANSFORM_OBJECT)
-LAYOUT(binding=0) uniform samplerBuffer workloadProxiesBuffer;
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT0_TEXTURE) uniform samplerBuffer workloadProxiesBuffer;
 WorkloadProxy getWorkloadProxy(int i) {
     int offset = 2 * i;
     WorkloadProxy proxy;
@@ -35,7 +35,7 @@ WorkloadProxy getWorkloadProxy(int i) {
     return proxy;
 }
 #else
-LAYOUT_STD140(binding=0) buffer workloadProxiesBuffer {
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT0_STORAGE) buffer workloadProxiesBuffer {
     WorkloadProxy _proxies[];
 };
 WorkloadProxy getWorkloadProxy(int i) {
@@ -58,7 +58,7 @@ struct WorkloadView {
 };
 
 #if !defined(GPU_SSBO_TRANSFORM_OBJECT)
-LAYOUT(binding=1) uniform samplerBuffer workloadViewsBuffer;
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT1_TEXTURE) uniform samplerBuffer workloadViewsBuffer;
 WorkloadView getWorkloadView(int i) {
     int offset = 8 * i;
     WorkloadView view;
@@ -73,7 +73,7 @@ WorkloadView getWorkloadView(int i) {
     return view;
 }
 #else
-LAYOUT_STD140(binding=1) buffer workloadViewsBuffer {
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT1_STORAGE) buffer workloadViewsBuffer {
     WorkloadView _views[];
 };
 WorkloadView getWorkloadView(int i) {

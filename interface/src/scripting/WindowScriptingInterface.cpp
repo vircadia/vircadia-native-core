@@ -19,6 +19,7 @@
 #include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 
+#include <plugins/PluginManager.h>
 #include <display-plugins/CompositorHelper.h>
 #include <AddressManager.h>
 #include "AndroidHelper.h"
@@ -27,6 +28,7 @@
 #include "MainWindow.h"
 #include "Menu.h"
 #include "OffscreenUi.h"
+#include "commerce/QmlCommerce.h"
 
 static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 static const QString LAST_BROWSE_LOCATION_SETTING = "LastBrowseLocation";
@@ -134,15 +136,17 @@ void WindowScriptingInterface::disconnectedFromDomain() {
 
 void WindowScriptingInterface::openUrl(const QUrl& url) {
     if (!url.isEmpty()) {
-        if (url.scheme() == URL_SCHEME_HIFI) {
+        auto scheme = url.scheme();
+        if (scheme == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
+        } else if (scheme == URL_SCHEME_HIFIAPP) {
+            DependencyManager::get<QmlCommerce>()->openSystemApp(url.path());
         } else {
 #if defined(Q_OS_ANDROID)
             QMap<QString, QString> args;
             args["url"] = url.toString();
             AndroidHelper::instance().requestActivity("WebView", true, args);
 #else
-            // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
 #endif
         }
@@ -411,11 +415,11 @@ QString WindowScriptingInterface::protocolSignature() {
 }
 
 int WindowScriptingInterface::getInnerWidth() {
-    return qApp->getWindow()->geometry().width();
+    return qApp->getPrimaryWidget()->geometry().width();
 }
 
 int WindowScriptingInterface::getInnerHeight() {
-    return qApp->getWindow()->geometry().height() - qApp->getPrimaryMenu()->geometry().height();
+    return qApp->getPrimaryWidget()->geometry().height();
 }
 
 glm::vec2 WindowScriptingInterface::getDeviceSize() const {
@@ -605,4 +609,32 @@ void WindowScriptingInterface::onMessageBoxSelected(int button) {
 
 float WindowScriptingInterface::domainLoadingProgress() {
     return qApp->getOctreePacketProcessor().domainLoadingProgress();
+}
+
+int WindowScriptingInterface::getDisplayPluginCount() {
+    return (int)PluginManager::getInstance()->getDisplayPlugins().size();
+}
+
+QString WindowScriptingInterface::getDisplayPluginName(int index) {
+    return PluginManager::getInstance()->getDisplayPlugins().at(index)->getName();
+}
+
+bool WindowScriptingInterface::isDisplayPluginHmd(int index) {
+    return PluginManager::getInstance()->getDisplayPlugins().at(index)->isHmd();
+}
+
+int WindowScriptingInterface::getActiveDisplayPlugin() {
+    auto active = qApp->getActiveDisplayPlugin();
+    auto size = getDisplayPluginCount();
+    for (int i = 0; i < size; ++i) {
+        if (PluginManager::getInstance()->getDisplayPlugins().at(i) == active) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
+    auto name = PluginManager::getInstance()->getDisplayPlugins().at(index)->getName();
+    qApp->setActiveDisplayPlugin(name);
 }

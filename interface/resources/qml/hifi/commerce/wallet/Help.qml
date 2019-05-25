@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
 import QtQuick.Controls 2.2
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 
 // references XXX from root context
@@ -250,7 +250,7 @@ At the moment, there is currently no way to convert HFC to other currencies. Sta
     function fromScript(message) {
         switch (message.method) {
             default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('Help.qml: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToWallet(var msg);

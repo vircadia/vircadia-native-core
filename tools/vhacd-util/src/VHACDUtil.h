@@ -18,9 +18,9 @@
 #include <vector>
 #include <chrono> //c++11 feature
 #include <QFile>
-#include <FBXReader.h>
-#include <OBJReader.h>
 #include <VHACD.h>
+
+#include <hfm/HFM.h>
 
 namespace vhacd {
     class VHACDUtil {

@@ -21,12 +21,12 @@
 
 class SetupZones {
 public:
-    using Inputs = render::ItemBounds;
-    using JobModel = render::Job::ModelI<SetupZones, Inputs>;
+    using Input = render::ItemBounds;
+    using JobModel = render::Job::ModelI<SetupZones, Input>;
 
     SetupZones() {}
 
-    void run(const render::RenderContextPointer& context, const Inputs& inputs);
+    void run(const render::RenderContextPointer& context, const Input& input);
 };
 
 class ZoneRendererConfig : public render::Task::Config {
@@ -51,13 +51,14 @@ public:
     static const render::Selection::Name ZONES_SELECTION;
 
 
-    using Inputs = render::ItemBounds;
+    using Input = render::ItemBounds;
+    using Output = render::ItemBounds;
     using Config = ZoneRendererConfig;
-    using JobModel = render::Task::ModelI<ZoneRendererTask, Inputs, Config>;
+    using JobModel = render::Task::ModelIO<ZoneRendererTask, Input, Output, Config>;
 
     ZoneRendererTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& output);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
 

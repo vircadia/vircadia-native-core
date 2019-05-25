@@ -1,2 +1,4 @@
 TaskList  1.0 TaskList.qml
 TaskViewList  1.0 TaskViewList.qml
+TaskTimeFrameView  1.0 TaskTimeFrameView.qml
+TaskPropView   1.0 TaskPropView.qml

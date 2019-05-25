@@ -60,23 +60,25 @@ protected:
 
 class CubicHermiteSplineFunctorWithArcLength : public CubicHermiteSplineFunctor {
 public:
-    enum Constants { NUM_SUBDIVISIONS = 30 };
+    enum Constants { NUM_SUBDIVISIONS = 15 };
 
     CubicHermiteSplineFunctorWithArcLength() : CubicHermiteSplineFunctor() {
         memset(_values, 0, sizeof(float) * (NUM_SUBDIVISIONS + 1));
     }
     CubicHermiteSplineFunctorWithArcLength(const glm::vec3& p0, const glm::vec3& m0, const glm::vec3& p1, const glm::vec3& m1) : CubicHermiteSplineFunctor(p0, m0, p1, m1) {
-        // initialize _values with the accumulated arcLength along the spline.
-        const float DELTA = 1.0f / NUM_SUBDIVISIONS;
-        float alpha = 0.0f;
-        float accum = 0.0f;
-        _values[0] = 0.0f;
-        for (int i = 1; i < NUM_SUBDIVISIONS + 1; i++) {
-            accum += glm::distance(this->operator()(alpha),
-                                   this->operator()(alpha + DELTA));
-            alpha += DELTA;
-            _values[i] = accum;
-        }
+
+        initValues();
+    }
+
+    CubicHermiteSplineFunctorWithArcLength(const glm::quat& tipRot, const glm::vec3& tipTrans, const glm::quat& baseRot, const glm::vec3& baseTrans, float baseGain = 1.0f, float tipGain = 1.0f) : CubicHermiteSplineFunctor() {
+
+        float linearDistance = glm::length(baseTrans - tipTrans);
+        _p0 = baseTrans;
+        _m0 = baseGain * linearDistance * (baseRot * Vectors::UNIT_Y);
+        _p1 = tipTrans;
+        _m1 = tipGain * linearDistance * (tipRot * Vectors::UNIT_Y);
+
+        initValues();
     }
 
     CubicHermiteSplineFunctorWithArcLength(const CubicHermiteSplineFunctorWithArcLength& orig) : CubicHermiteSplineFunctor(orig) {
@@ -108,6 +110,21 @@ public:
     }
 protected:
     float _values[NUM_SUBDIVISIONS + 1];
+
+    void initValues() {
+        // initialize _values with the accumulated arcLength along the spline.
+        const float DELTA = 1.0f / NUM_SUBDIVISIONS;
+        float alpha = 0.0f;
+        float accum = 0.0f;
+        _values[0] = 0.0f;
+        for (int i = 1; i < NUM_SUBDIVISIONS + 1; i++) {
+            accum += glm::distance(this->operator()(alpha),
+                this->operator()(alpha + DELTA));
+            alpha += DELTA;
+            _values[i] = accum;
+        }
+
+    }
 };
 
 #endif // hifi_CubicHermiteSpline_h

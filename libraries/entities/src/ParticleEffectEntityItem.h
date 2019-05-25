@@ -16,14 +16,15 @@
 #include "EntityItem.h"
 
 #include "ColorUtils.h"
+#include "PulsePropertyGroup.h"
 
 namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
     static const float UNINITIALIZED = NAN;
-    static const u8vec3 DEFAULT_COLOR = { 255, 255, 255 };
+    static const u8vec3 DEFAULT_COLOR = ENTITY_ITEM_DEFAULT_COLOR;
     static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
     static const u8vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
-    static const float DEFAULT_ALPHA = 1.0f;
+    static const float DEFAULT_ALPHA = ENTITY_ITEM_DEFAULT_ALPHA;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
     static const float DEFAULT_ALPHA_START = UNINITIALIZED;
     static const float DEFAULT_ALPHA_FINISH = UNINITIALIZED;
@@ -78,6 +79,7 @@ namespace particle {
     static const QString DEFAULT_TEXTURES = "";
     static const bool DEFAULT_EMITTER_SHOULD_TRAIL = false;
     static const bool DEFAULT_ROTATE_WITH_ENTITY = false;
+    static const ShapeType DEFAULT_SHAPE_TYPE = ShapeType::SHAPE_TYPE_ELLIPSOID;
 
     template <typename T>
     struct Range {
@@ -229,6 +231,8 @@ public:
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
+    bool shouldBePhysical() const override { return false; }
+
     void setColor(const glm::u8vec3& value);
     glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
 
@@ -254,7 +258,10 @@ public:
     float getAlphaSpread() const { return _particleProperties.alpha.gradient.spread; }
 
     void setShapeType(ShapeType type) override;
-    virtual ShapeType getShapeType() const override { return _shapeType; }
+    virtual ShapeType getShapeType() const override;
+
+    QString getCompoundShapeURL() const;
+    virtual void setCompoundShapeURL(const QString& url);
 
     virtual void debugDump() const override;
 
@@ -341,12 +348,15 @@ public:
     virtual bool supportsDetailedIntersection() const override { return false; }
 
     particle::Properties getParticleProperties() const;
+    PulsePropertyGroup getPulseProperties() const;
 
 protected:
     particle::Properties _particleProperties;
+    PulsePropertyGroup _pulseProperties;
     bool _isEmitting { true };
 
-    ShapeType _shapeType { SHAPE_TYPE_NONE };
+    ShapeType _shapeType{ particle::DEFAULT_SHAPE_TYPE };
+    QString _compoundShapeURL { "" };
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

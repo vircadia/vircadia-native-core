@@ -17,17 +17,48 @@
 #include "AnimationLogging.h"
 
 AnimSkeleton::AnimSkeleton(const HFMModel& hfmModel) {
+
+    _geometryOffset = hfmModel.offset;
+
     // convert to std::vector of joints
     std::vector<HFMJoint> joints;
     joints.reserve(hfmModel.joints.size());
     for (auto& joint : hfmModel.joints) {
         joints.push_back(joint);
     }
-    buildSkeletonFromJoints(joints);
+    buildSkeletonFromJoints(joints, hfmModel.jointRotationOffsets);
+
+    // we make a copy of the inverseBindMatrices in order to prevent mutating the model bind pose
+    // when we are dealing with a joint offset in the model
+    for (int i = 0; i < (int)hfmModel.meshes.size(); i++) {
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
+        std::vector<HFMCluster> dummyClustersList;
+
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            std::vector<glm::mat4> bindMatrices;
+            // cast into a non-const reference, so we can mutate the FBXCluster
+            HFMCluster& cluster = const_cast<HFMCluster&>(mesh.clusters.at(j));
+
+            HFMCluster localCluster;
+            localCluster.jointIndex = cluster.jointIndex;
+            localCluster.inverseBindMatrix = cluster.inverseBindMatrix;
+            localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
+
+            // if we have a joint offset in the fst file then multiply its inverse by the
+            // model cluster inverse bind matrix
+            if (hfmModel.jointRotationOffsets.contains(cluster.jointIndex)) {
+                AnimPose localOffset(hfmModel.jointRotationOffsets[cluster.jointIndex], glm::vec3());
+                localCluster.inverseBindMatrix = (glm::mat4)localOffset.inverse() * cluster.inverseBindMatrix;
+                localCluster.inverseBindTransform.evalFromRawMatrix(localCluster.inverseBindMatrix);
+            }
+            dummyClustersList.push_back(localCluster);
+        }
+        _clusterBindMatrixOriginalValues.push_back(dummyClustersList);
+    }
 }
 
-AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints) {
-    buildSkeletonFromJoints(joints);
+AnimSkeleton::AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+    buildSkeletonFromJoints(joints, jointOffsets);
 }
 
 int AnimSkeleton::nameToJointIndex(const QString& jointName) const {
@@ -48,7 +79,7 @@ int AnimSkeleton::getChainDepth(int jointIndex) const {
         int index = jointIndex;
         do {
             chainDepth++;
-            index = _joints[index].parentIndex;
+            index = _parentIndices[index];
         } while (index != -1);
         return chainDepth;
     } else {
@@ -74,17 +105,12 @@ const AnimPose& AnimSkeleton::getPostRotationPose(int jointIndex) const {
     return _relativePostRotationPoses[jointIndex];
 }
 
-int AnimSkeleton::getParentIndex(int jointIndex) const {
-    return _joints[jointIndex].parentIndex;
-}
-
 std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
     // Children and grandchildren, etc.
     std::vector<int> result;
     if (jointIndex != -1) {
-        for (int i = jointIndex + 1; i < (int)_joints.size(); i++) {
-            if (_joints[i].parentIndex == jointIndex 
-                    || (std::find(result.begin(), result.end(), _joints[i].parentIndex) != result.end())) {
+        for (int i = jointIndex + 1; i < (int)_parentIndices.size(); i++) {
+            if (_parentIndices[i] == jointIndex || (std::find(result.begin(), result.end(), _parentIndices[i]) != result.end())) {
                 result.push_back(i);
             }
         }
@@ -100,7 +126,7 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& relati
     if (jointIndex < 0 || jointIndex >= (int)relativePoses.size() || jointIndex >= _jointsSize) {
         return AnimPose::identity;
     } else {
-        return getAbsolutePose(_joints[jointIndex].parentIndex, relativePoses) * relativePoses[jointIndex];
+        return getAbsolutePose(_parentIndices[jointIndex], relativePoses) * relativePoses[jointIndex];
     }
 }
 
@@ -108,7 +134,7 @@ void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     // poses start off relative and leave in absolute frame
     int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = 0; i < lastIndex; ++i) {
-        int parentIndex = _joints[i].parentIndex;
+        int parentIndex = _parentIndices[i];
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex] * poses[i];
         }
@@ -119,18 +145,29 @@ void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
     // poses start off absolute and leave in relative frame
     int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
-        int parentIndex = _joints[i].parentIndex;
+        int parentIndex = _parentIndices[i];
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex].inverse() * poses[i];
         }
     }
 }
 
+void AnimSkeleton::convertRelativeRotationsToAbsolute(std::vector<glm::quat>& rotations) const {
+    // rotations start off relative and leave in absolute frame
+    int lastIndex = std::min((int)rotations.size(), _jointsSize);
+    for (int i = 0; i < lastIndex; ++i) {
+        int parentIndex = _parentIndices[i];
+        if (parentIndex != -1) {
+            rotations[i] = rotations[parentIndex] * rotations[i];
+        }
+    }
+}
+
 void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const {
-    // poses start off absolute and leave in relative frame
+    // rotations start off absolute and leave in relative frame
     int lastIndex = std::min((int)rotations.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
-        int parentIndex = _joints[i].parentIndex;
+        int parentIndex = _parentIndices[i];
         if (parentIndex != -1) {
             rotations[i] = glm::inverse(rotations[parentIndex]) * rotations[i];
         }
@@ -166,8 +203,17 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
     }
 }
 
-void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints) {
+void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
+
     _joints = joints;
+
+    // build a seperate vector of parentIndices for cache coherency
+    // AnimSkeleton::getParentIndex is called very frequently in tight loops.
+    _parentIndices.reserve(_joints.size());
+    for (auto& joint : _joints) {
+        _parentIndices.push_back(joint.parentIndex);
+    }
+
     _jointsSize = (int)joints.size();
     // build a cache of bind poses
 
@@ -189,7 +235,7 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints) 
         // build relative and absolute default poses
         glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * preRotationTransform * glm::mat4_cast(_joints[i].rotation) * postRotationTransform;
         AnimPose relDefaultPose(relDefaultMat);
-        _relativeDefaultPoses.push_back(relDefaultPose);
+
         int parentIndex = getParentIndex(i);
         if (parentIndex >= 0) {
             _absoluteDefaultPoses.push_back(_absoluteDefaultPoses[parentIndex] * relDefaultPose);
@@ -198,8 +244,27 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints) 
         }
     }
 
+    for (int k = 0; k < _jointsSize; k++) {
+        if (jointOffsets.contains(k)) {
+            AnimPose localOffset(jointOffsets[k], glm::vec3());
+            _absoluteDefaultPoses[k] = _absoluteDefaultPoses[k] * localOffset;
+        }
+    }
+    // re-compute relative poses
+    _relativeDefaultPoses = _absoluteDefaultPoses;
+    convertAbsolutePosesToRelative(_relativeDefaultPoses);
+
+    // build _jointIndicesByName hash
     for (int i = 0; i < _jointsSize; i++) {
-        _jointIndicesByName[_joints[i].name] = i;
+        auto iter = _jointIndicesByName.find(_joints[i].name);
+        if (iter != _jointIndicesByName.end()) {
+            // prefer joints over meshes if there is a name collision.
+            if (_joints[i].isSkeletonJoint && !_joints[iter.value()].isSkeletonJoint) {
+                iter.value() = i;
+            }
+        } else {
+            _jointIndicesByName.insert(_joints[i].name, i);
+        }
     }
 
     // build mirror map.
@@ -241,8 +306,6 @@ void AnimSkeleton::dump(bool verbose) const {
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
         if (verbose) {
             qCDebug(animation) << "        hfmJoint =";
-            qCDebug(animation) << "            isFree =" << _joints[i].isFree;
-            qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
             qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;
             qCDebug(animation) << "            translation =" << _joints[i].translation;
             qCDebug(animation) << "            preTransform =" << _joints[i].preTransform;
@@ -288,7 +351,7 @@ std::vector<int> AnimSkeleton::lookUpJointIndices(const std::vector<QString>& jo
     for (auto& name : jointNames) {
         int index = nameToJointIndex(name);
         if (index == -1) {
-            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with named " << name;
+            qWarning(animation) << "AnimSkeleton::lookUpJointIndices(): could not find bone with name " << name;
         }
         result.push_back(index);
     }

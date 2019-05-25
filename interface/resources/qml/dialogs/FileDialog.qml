@@ -9,15 +9,15 @@
 //
 
 import QtQuick 2.7
-import Qt.labs.folderlistmodel 2.1
+import Qt.labs.folderlistmodel 2.2
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import QtQuick.Controls 1.4 as QQC1
 import QtQuick.Controls 2.3
 
 import ".."
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../windows"
 
 import "fileDialog"
@@ -80,8 +80,6 @@ ModalWindow {
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
 	
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives);
-
         fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
@@ -322,6 +320,7 @@ ModalWindow {
         FolderListModel {
             id: folderListModel
             nameFilters: selectionType.currentFilter
+            caseSensitive: false
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
@@ -809,7 +808,6 @@ ModalWindow {
                     }
                 }
 
-                console.log("Selecting " + selection)
                 selectedFile(selection);
                 root.destroy();
             }
@@ -818,7 +816,7 @@ ModalWindow {
         Action {
             id: cancelAction
             text: "Cancel"
-            onTriggered: { canceled(); root.shown = false; }
+            onTriggered: { canceled(); root.destroy(); }
         }
     }
 

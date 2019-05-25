@@ -39,6 +39,7 @@ class ScriptingInterface;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 // TODO migrate functionality to a RouteBuilder class and make the proxy defer to that 
@@ -50,7 +51,7 @@ class RouteBuilderProxy : public QObject {
             : _parent(parent), _mapping(mapping), _route(route) { }
 
         /**jsdoc
-         * Terminate the route with a standard control, an action, or a script function. The output value from the route is 
+         * Terminates the route with a standard control, an action, or a script function. The output value from the route is 
          * sent to the specified destination.<br />
          * This is a QML-specific version of {@link MappingObject#to|to}: use this version in QML files.
          * @function RouteObject#toQml
@@ -61,7 +62,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE void toQml(const QJSValue& destination);
 
         /**jsdoc
-         * Process the route only if a condition is satisfied. The condition is evaluated before the route input is read, and
+         * Processes the route only if a condition is satisfied. The condition is evaluated before the route input is read, and
          * the input is read only if the condition is <code>true</code>. Thus, if the condition is not met then subsequent
          * routes using the same input are processed.<br />
          * This is a QML-specific version of {@link MappingObject#to|to}: use this version in QML files.
@@ -80,7 +81,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* whenQml(const QJSValue& expression);
 
         /**jsdoc
-         * Terminate the route with a standard control, an action, or a script function. The output value from the route is 
+         * Terminates the route with a standard control, an action, or a script function. The output value from the route is 
          * sent to the specified destination.
          * @function RouteObject#to
          * @param {Controller.Standard|Controller.Actions|function} destination - The standard control, action, or JavaScript 
@@ -116,7 +117,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE void to(const QScriptValue& destination);
 
         /**jsdoc
-         * Enable and disabling writing debug information for a route to the program log.
+         * Enables or disables writing debug information for a route to the program log.
          * @function RouteObject#debug
          * @param {boolean} [enable=true] - If <code>true</code> then writing debug information is enabled for the route, 
          *     otherwise it is disabled.
@@ -146,7 +147,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* debug(bool enable = true);
 
         /**jsdoc
-         * Process the route without marking the controller output as having been read, so that other routes from the same 
+         * Processes the route without marking the controller output as having been read, so that other routes from the same 
          * controller output can also process.
          * @function RouteObject#peek
          * @param {boolean} [enable=true] - If <code>true</code> then the route is processed without marking the route's 
@@ -156,7 +157,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* peek(bool enable = true);
 
         /**jsdoc
-         * Process the route only if a condition is satisfied. The condition is evaluated before the route input is read, and 
+         * Processes the route only if a condition is satisfied. The condition is evaluated before the route input is read, and 
          * the input is read only if the condition is <code>true</code>. Thus, if the condition is not met then subsequent 
          * routes using the same input are processed.
          * @function RouteObject#when
@@ -169,6 +170,8 @@ class RouteBuilderProxy : public QObject {
          *         definition.</li>
          *     </ul>
          * <p>If an array of conditions is provided, their values are ANDed together.</p>
+         * <p><strong>Warning:</strong> The use of <code>!</code> is not currently supported in JavaScript <code>.when()</code> 
+         * calls.</p>
          * @returns {RouteObject} The <code>RouteObject</code> with the condition added.
          * @example <caption>Process the right trigger differently in HMD and desktop modes.</caption>
          * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";
@@ -192,7 +195,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* when(const QScriptValue& expression);
 
         /**jsdoc
-         * Filter numeric route values to lie between two values; values outside this range are not passed on through the 
+         * Filters numeric route values to lie between two values; values outside this range are not passed on through the 
          * route.
          * @function RouteObject#clamp
          * @param {number} min - The minimum value to pass through.
@@ -213,7 +216,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* clamp(float min, float max);
 
         /**jsdoc
-         * Filter numeric route values such that they are rounded to <code>0</code> or <code>1</code> without output values 
+         * Filters numeric route values such that they are rounded to <code>0</code> or <code>1</code> without output values 
          * flickering when the input value hovers around <code>0.5</code>. For example, this enables you to use an analog input 
          * as if it were a toggle.
          * @function RouteObject#hysteresis
@@ -238,7 +241,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* hysteresis(float min, float max);
 
         /**jsdoc
-         * Filter numeric route values to send at a specified interval.
+         * Filters numeric route values to send at a specified interval.
          * @function RouteObject#pulse
          * @param {number} interval - The interval between sending values, in seconds.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
@@ -257,7 +260,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* pulse(float interval);
 
         /**jsdoc
-         * Filter numeric and {@link Pose} route values to be scaled by a constant amount.
+         * Filters numeric and {@link Pose} route values to be scaled by a constant amount.
          * @function RouteObject#scale
          * @param {number} multiplier - The scale to multiply the value by.
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
@@ -279,7 +282,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* scale(float multiplier);
 
         /**jsdoc
-         * Filter numeric and {@link Pose} route values to have the opposite sign, e.g., <code>0.5</code> is changed to 
+         * Filters numeric and {@link Pose} route values to have the opposite sign, e.g., <code>0.5</code> is changed to 
          * <code>-0.5</code>.
          * @function RouteObject#invert
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
@@ -301,7 +304,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* invert();
 
         /**jsdoc
-         * Filter numeric route values such that they're sent only when the input value is outside a dead-zone. When the input 
+         * Filters numeric route values such that they're sent only when the input value is outside a dead-zone. When the input 
          * passes the dead-zone value, output is sent starting at <code>0.0</code> and catching up with the input value. As the 
          * input returns toward the dead-zone value, output values reduce to <code>0.0</code> at the dead-zone value.
          * @function RouteObject#deadZone
@@ -323,7 +326,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* deadZone(float min);
 
         /**jsdoc
-         * Filter numeric route values such that they are rounded to <code>-1</code>, <code>0</code>, or <code>1</code>.
+         * Filters numeric route values such that they are rounded to <code>-1</code>, <code>0</code>, or <code>1</code>.
          * For example, this enables you to use an analog input as if it were a toggle or, in the case of a bidirectional axis, 
          * a tri-state switch.
          * @function RouteObject#constrainToInteger
@@ -344,7 +347,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* constrainToInteger();
 
         /**jsdoc
-         * Filter numeric route values such that they are rounded to <code>0</code> or <code>1</code>. For example, this 
+         * Filters numeric route values such that they are rounded to <code>0</code> or <code>1</code>. For example, this 
          * enables you to use an analog input as if it were a toggle.
          * @function RouteObject#constrainToPositiveInteger
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.
@@ -363,7 +366,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* constrainToPositiveInteger();
 
         /**jsdoc
-         * Filter {@link Pose} route values to have a pre-translation applied.
+         * Filters {@link Pose} route values to have a pre-translation applied.
          * @function RouteObject#translate
          * @param {Vec3} translate - The pre-translation to add to the pose.
          * @returns {RouteObject} The <code>RouteObject</code> with the pre-translation applied.
@@ -372,7 +375,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* translate(glm::vec3 translate);
 
         /**jsdoc
-         * Filter {@link Pose} route values to have a pre-transform applied.
+         * Filters {@link Pose} route values to have a pre-transform applied.
          * @function RouteObject#transform
          * @param {Mat4} transform - The pre-transform to apply.
          * @returns {RouteObject} The <code>RouteObject</code> with the pre-transform applied.
@@ -381,7 +384,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* transform(glm::mat4 transform);
 
         /**jsdoc
-         * Filter {@link Pose} route values to have a post-transform applied.
+         * Filters {@link Pose} route values to have a post-transform applied.
          * @function RouteObject#postTransform
          * @param {Mat4} transform - The post-transform to apply.
          * @returns {RouteObject} The <code>RouteObject</code> with the post-transform applied.
@@ -390,7 +393,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* postTransform(glm::mat4 transform);
 
         /**jsdoc
-         * Filter {@link Pose} route values to have a pre-rotation applied.
+         * Filters {@link Pose} route values to have a pre-rotation applied.
          * @function RouteObject#rotate
          * @param {Quat} rotation - The pre-rotation to add to the pose.
          * @returns {RouteObject} The <code>RouteObject</code> with the pre-rotation applied.
@@ -399,7 +402,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* rotate(glm::quat rotation);
 
         /**jsdoc
-         * Filter {@link Pose} route values to be smoothed by a low velocity filter. The filter's rotation and translation 
+         * Filters {@link Pose} route values to be smoothed by a low velocity filter. The filter's rotation and translation 
          * values are calculated as: <code>(1 - f) * currentValue + f * previousValue</code> where 
          * <code>f = currentVelocity / filterConstant</code>. At low velocities, the filter value is largely the previous 
          * value; at high velocities the value is wholly the current controller value.
@@ -414,7 +417,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* lowVelocity(float rotationConstant, float translationConstant);
 
         /**jsdoc
-         * Filter {@link Pose} route values to be smoothed by an exponential decay filter. The filter's rotation and 
+         * Filters {@link Pose} route values to be smoothed by an exponential decay filter. The filter's rotation and 
          * translation values are calculated as: <code>filterConstant * currentValue + (1 - filterConstant) * 
          * previousValue</code>. Values near 1 are less smooth with lower latency; values near 0 are more smooth with higher 
          * latency.
@@ -427,7 +430,7 @@ class RouteBuilderProxy : public QObject {
         Q_INVOKABLE QObject* exponentialSmoothing(float rotationConstant, float translationConstant);
 
         /**jsdoc
-         * Filter numeric route values such that a value of <code>0.0</code> is changed to <code>1.0</code>, and other values 
+         * Filters numeric route values such that a value of <code>0.0</code> is changed to <code>1.0</code>, and other values 
          * are changed to <code>0.0</code>.
          * @function RouteObject#logicalNot
          * @returns {RouteObject} The <code>RouteObject</code> with the filter applied.

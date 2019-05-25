@@ -12,6 +12,9 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
+#include <ComponentMode.h>
+#include <model-networking/ModelCache.h>
+
 #include "KeyLightPropertyGroup.h"
 #include "AmbientLightPropertyGroup.h"
 #include "EntityItem.h"
@@ -19,7 +22,6 @@
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
 #include "BloomPropertyGroup.h"
-#include <ComponentMode.h>
 
 class ZoneEntityItem : public EntityItem {
 public:
@@ -58,12 +60,14 @@ public:
     static void setDrawZoneBoundaries(bool value) { _drawZoneBoundaries = value; }
 
     virtual bool isReadyToComputeShape() const override { return false; }
-    void setShapeType(ShapeType type) override { withWriteLock([&] { _shapeType = type; }); }
+    virtual void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
+    bool shouldBePhysical() const override { return false; }
 
-    virtual bool hasCompoundShapeURL() const;
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
+
+    virtual bool matchesJSONFilters(const QJsonObject& jsonFilters) const override;
 
     KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
     AmbientLightPropertyGroup getAmbientLightProperties() const { return resultWithReadLock<AmbientLightPropertyGroup>([&] { return _ambientLightProperties; }); }
@@ -95,13 +99,14 @@ public:
     QString getFilterURL() const;
     void setFilterURL(const QString url); 
 
+    uint32_t getAvatarPriority() const { return _avatarPriority; }
+    void setAvatarPriority(uint32_t value) { _avatarPriority = value; }
+
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
     bool hazePropertiesChanged() const { return _hazePropertiesChanged; }
     bool bloomPropertiesChanged() const { return _bloomPropertiesChanged; }
-
-    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
 
     void resetRenderingPropertiesChanged();
 
@@ -115,6 +120,8 @@ public:
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const override;
 
+    bool contains(const glm::vec3& point) const override;
+
     virtual void debugDump() const override;
 
     static const ShapeType DEFAULT_SHAPE_TYPE;
@@ -127,7 +134,7 @@ protected:
     KeyLightPropertyGroup _keyLightProperties;
     AmbientLightPropertyGroup _ambientLightProperties;
 
-    ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
+    ShapeType _shapeType { DEFAULT_SHAPE_TYPE };
     QString _compoundShapeURL;
 
     // The following 3 values are the defaults for zone creation
@@ -146,16 +153,22 @@ protected:
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
     QString _filterURL { DEFAULT_FILTER_URL };
 
+    // Avatar-updates priority
+    uint32_t _avatarPriority { COMPONENT_MODE_INHERIT };
+
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
     bool _ambientLightPropertiesChanged { false };
     bool _skyboxPropertiesChanged { false };
     bool _hazePropertiesChanged{ false };
     bool _bloomPropertiesChanged { false };
-    bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;
+
+    void fetchCollisionGeometryResource();
+    GeometryResource::Pointer _shapeResource;
+
 };
 
 #endif // hifi_ZoneEntityItem_h

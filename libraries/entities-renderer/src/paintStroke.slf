@@ -14,22 +14,27 @@
 
 <@include DeferredBufferWrite.slh@>
 
-// the albedo texture
-LAYOUT(binding=0) uniform sampler2D originalTexture;
+<@include paintStroke.slh@>
+<$declarePolyLineBuffers()$>
 
-// the interpolated normal
-layout(location=0) in vec3 interpolatedNormal;
-layout(location=1) in vec2 varTexcoord;
-layout(location=2) in vec4 varColor;
+LAYOUT(binding=0) uniform sampler2D _texture;
+
+layout(location=0) in vec3 _normalWS;
+layout(location=1) in vec2 _texCoord;
+layout(location=2) in vec4 _color;
+layout(location=3) in float _distanceFromCenter;
 
 void main(void) {
-    vec4 texel = texture(originalTexture, varTexcoord);
-    int frontCondition = 1 -int(gl_FrontFacing) * 2;
-    vec3 color = varColor.rgb;
+    vec4 texel = texture(_texture, _texCoord);
+    int frontCondition = 1 - 2 * int(gl_FrontFacing);
+    vec3 color = _color.rgb * texel.rgb;
+    float alpha = texel.a * _color.a;
+
+    alpha *= mix(1.0, pow(1.0 - abs(_distanceFromCenter), 10.0), _polylineData.faceCameraGlow.y);
+
     packDeferredFragmentTranslucent(
-        float(frontCondition) * interpolatedNormal,
-        texel.a * varColor.a,
-        color * texel.rgb,
-        vec3(0.01, 0.01, 0.01),
-        10.0);
+        float(frontCondition) * _normalWS,
+        alpha,
+        color,
+        DEFAULT_ROUGHNESS);
 }

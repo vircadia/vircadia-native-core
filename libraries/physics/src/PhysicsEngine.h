@@ -79,11 +79,13 @@ public:
         void clear() {
             objectsToRemove.clear();
             objectsToAdd.clear();
-            objectsToChange.clear();
+            objectsToReinsert.clear();
+            activeStaticObjects.clear();
         }
         std::vector<ObjectMotionState*> objectsToRemove;
         std::vector<ObjectMotionState*> objectsToAdd;
-        std::vector<ObjectMotionState*> objectsToChange;
+        std::vector<ObjectMotionState*> objectsToReinsert;
+        std::vector<ObjectMotionState*> activeStaticObjects;
     };
 
     PhysicsEngine(const glm::vec3& offset);
@@ -97,7 +99,7 @@ public:
     void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
 
     void addObjects(const VectorOfMotionStates& objects);
-    VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
+    void changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
 
     void processTransaction(Transaction& transaction);
@@ -147,6 +149,8 @@ public:
     // Function for getting colliding objects in the world of specified type
     // See PhysicsCollisionGroups.h for mask flags.
     std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC, float threshold = 0.0f) const;
+
+    void enableGlobalContactAddedCallback(bool enabled);
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);

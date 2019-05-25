@@ -33,14 +33,15 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return static_cast<PacketVersion>(EntityVersion::FixedLightSerialization);
+            return static_cast<PacketVersion>(EntityVersion::LAST_PACKET_TYPE);
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendVerificationFailed);
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::FarGrabJointsRedux);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendVerificationFailed);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
@@ -85,17 +86,19 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
+        case PacketType::StopInjector:
+            return static_cast<PacketVersion>(AudioVersion::StopInjectors);
         case PacketType::DomainSettings:
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         case PacketType::Ping:
             return static_cast<PacketVersion>(PingVersion::IncludeConnectionID);
         case PacketType::AvatarQuery:
             return static_cast<PacketVersion>(AvatarQueryVersion::ConicalFrustums);
-        case PacketType::AvatarIdentityRequest:
-            return 22;
         case PacketType::EntityQueryInitialResultsComplete:
             return static_cast<PacketVersion>(EntityVersion::ParticleSpin);
+        case PacketType::BulkAvatarTraitsAck:
+        case PacketType::BulkAvatarTraits:
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::AvatarTraitsAck);
         default:
             return 22;
     }

@@ -34,6 +34,9 @@ class ModalDialogListener : public QObject {
     Q_OBJECT
     friend class OffscreenUi;
 
+public:
+    QQuickItem* getDialogItem() { return _dialog; };
+
 protected:
     ModalDialogListener(QQuickItem* dialog);
     virtual ~ModalDialogListener();
@@ -43,7 +46,7 @@ signals:
     void response(const QVariant& value);
 
 protected slots:
-    void onDestroyed();
+    virtual void onDestroyed();
 
 protected:
     QQuickItem* _dialog;
@@ -244,6 +247,7 @@ signals:
 //    void assetDialogResponse(QString response);
 //    void inputDialogResponse(QVariant response);
     void desktopReady();
+    void keyboardFocusActive();
 
 public slots:
     void removeModalDialog(QObject* modal);

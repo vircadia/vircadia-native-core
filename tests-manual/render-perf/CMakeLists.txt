@@ -17,7 +17,7 @@ link_hifi_libraries(
     ktx image octree 
     shaders gl gpu ${PLATFORM_GL_BACKEND}
     render render-utils 
-    graphics fbx model-networking graphics-scripting
+    graphics hfm fbx model-networking graphics-scripting
     entities entities-renderer audio avatars script-engine 
     physics procedural midi qml ui
     ${PLATFORM_GL_BACKEND}

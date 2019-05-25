@@ -63,13 +63,14 @@ public:
     void negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node);
     void parseRequestsDomainListData(ReceivedMessage& message);
     void parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node);
+    void parseInjectorGainSet(ReceivedMessage& message, const SharedNodePointer& node);
     void parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
     void parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
+    void parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
+    void parseStopInjectorPacket(QSharedPointer<ReceivedMessage> packet);
 
     // attempt to pop a frame from each audio stream, and return the number of streams from this client
     int checkBuffersBeforeFrameSend();
-
-    void removeDeadInjectedStreams();
 
     QJsonObject getAudioStreamStats();
 
@@ -83,6 +84,8 @@ public:
 
     float getMasterAvatarGain() const { return _masterAvatarGain; }
     void setMasterAvatarGain(float gain) { _masterAvatarGain = gain; }
+    float getMasterInjectorGain() const { return _masterInjectorGain; }
+    void setMasterInjectorGain(float gain) { _masterInjectorGain = gain; }
 
     AudioLimiter audioLimiter;
 
@@ -150,13 +153,16 @@ public:
 
     const Node::IgnoredNodeIDs& getIgnoringNodeIDs() const { return _ignoringNodeIDs; }
 
+
+    const std::vector<QUuid>& getSoloedNodes() const { return _soloedNodes; }
+
     bool getHasReceivedFirstMix() const { return _hasReceivedFirstMix; }
     void setHasReceivedFirstMix(bool hasReceivedFirstMix) { _hasReceivedFirstMix = hasReceivedFirstMix; }
 
     // end of methods called non-concurrently from single AudioMixerSlave
 
 signals:
-    void injectorStreamFinished(const QUuid& streamIdentifier);
+    void injectorStreamFinished(const QUuid& streamID);
 
 public slots:
     void handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec);
@@ -172,7 +178,7 @@ private:
 
     void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 
-    void setGainForAvatar(QUuid nodeID, uint8_t gain);
+    void setGainForAvatar(QUuid nodeID, float gain);
 
     bool containsValidPosition(ReceivedMessage& message) const;
 
@@ -185,6 +191,7 @@ private:
     int _frameToSendStats { 0 };
 
     float _masterAvatarGain { 1.0f };   // per-listener mixing gain, applied only to avatars
+    float _masterInjectorGain { 1.0f }; // per-listener mixing gain, applied only to injectors
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
@@ -208,6 +215,8 @@ private:
     Node::IgnoredNodeIDs _ignoringNodeIDs;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
+
+    std::vector<QUuid> _soloedNodes;
 
     bool _hasReceivedFirstMix { false };
 };

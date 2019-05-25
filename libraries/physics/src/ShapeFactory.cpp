@@ -284,6 +284,19 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btSphereShape(radius);
         }
         break;
+        case SHAPE_TYPE_MULTISPHERE: {
+            std::vector<btVector3> positions;
+            std::vector<float> radiuses;
+            auto sphereCollection = info.getSphereCollection();
+            for (auto &sphereData : sphereCollection) {
+                positions.push_back(glmToBullet(glm::vec3(sphereData)));
+                radiuses.push_back(sphereData.w);
+            }
+            shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
+            const float MULTI_SPHERE_MARGIN = 0.001f;
+            shape->setMargin(MULTI_SPHERE_MARGIN);
+        }
+        break;
         case SHAPE_TYPE_ELLIPSOID: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
@@ -307,21 +320,21 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
         case SHAPE_TYPE_CAPSULE_Y: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
-            float height = 2.0f * halfExtents.y;
+            float height = 2.0f * (halfExtents.y - radius);
             shape = new btCapsuleShape(radius, height);
         }
         break;
         case SHAPE_TYPE_CAPSULE_X: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.y;
-            float height = 2.0f * halfExtents.x;
+            float height = 2.0f * (halfExtents.x - radius);
             shape = new btCapsuleShapeX(radius, height);
         }
         break;
         case SHAPE_TYPE_CAPSULE_Z: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
-            float height = 2.0f * halfExtents.z;
+            float height = 2.0f * (halfExtents.z - radius);
             shape = new btCapsuleShapeZ(radius, height);
         }
         break;
@@ -422,6 +435,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             }
         }
         break;
+        default:
+        break;
     }
     if (shape) {
         if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {
@@ -446,6 +461,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
                 shape = compound;
             }
         }
+    } else {
+        // TODO: warn about this case
     }
     return shape;
 }
@@ -469,4 +486,9 @@ void ShapeFactory::deleteShape(const btCollisionShape* shape) {
         }
     }
     delete nonConstShape;
+}
+
+void ShapeFactory::Worker::run() {
+    shape = ShapeFactory::createShapeFromInfo(shapeInfo);
+    emit submitWork(this);
 }

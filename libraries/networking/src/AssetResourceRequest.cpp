@@ -216,11 +216,6 @@ void AssetResourceRequest::onDownloadProgress(qint64 bytesReceived, qint64 bytes
     if (bytesReceived != bytesTotal
         && now - _lastProgressDebug > std::chrono::seconds(DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS)) {
 
-        int percentage =  roundf((float) bytesReceived / (float) bytesTotal * 100.0f);
-
-        qCDebug(networking).nospace() << "Progress for " << _url.path() << " - "
-            << bytesReceived << " of " << bytesTotal << " bytes - " << percentage << "%";
-
         _lastProgressDebug = now;
     }
 }

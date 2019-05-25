@@ -17,23 +17,44 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-// the interpolated normal
-layout(location=0) out vec3 interpolatedNormal;
+<@include paintStroke.slh@>
+<$declarePolyLineBuffers()$>
 
-//the diffuse texture
-layout(location=1) out vec2 varTexcoord;
-
-layout(location=2) out vec4 varColor;
+layout(location=0) out vec3 _normalWS;
+layout(location=1) out vec2 _texCoord;
+layout(location=2) out vec4 _color;
+layout(location=3) out float _distanceFromCenter;
 
 void main(void) {
-    varTexcoord = inTexCoord0.st;
+    PolylineVertex vertex = getPolylineVertex(gl_VertexID / 2);
+    float evenVertex = float(gl_VertexID % 2 == 0);
 
-    // pass along the diffuse color
-    varColor = color_sRGBAToLinear(inColor);
+    _texCoord = vec2(vertex.positionAndUCoord.w, mix(1.0, 0.0, evenVertex));
+    _color = color_sRGBAToLinear(vertex.color);
 
-    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, interpolatedNormal)$>
+    _distanceFromCenter = -1.0 + 2.0 * evenVertex;
+    vec4 position = vec4(vertex.positionAndUCoord.xyz, 1.0);
+    vec3 binormal = vertex.binormalAndHalfWidth.xyz;
+    if (_polylineData.faceCameraGlow.x != 0.0) {
+        vec4 posEye;
+        vec3 tangentEye;
+        <$transformModelToEyePos(cam, obj, position, posEye)$>
+        // See comment in RenderablePolyLineEntityItem.cpp: we actually pass in the tangent in faceCamera mode
+        <$transformModelToEyeDir(cam, obj, binormal, tangentEye)$>
+
+        // new normal faces the camera
+        vec3 normalEye = normalize(posEye.xyz);
+
+        vec3 binormalEye = normalize(cross(normalEye, tangentEye));
+        posEye.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormalEye;
+        <$transformEyeToClipPos(cam, posEye, gl_Position)$>
+        <$transformEyeToWorldDir(cam, normalEye, _normalWS)$>
+    } else {
+        vec3 normal = vertex.normal.xyz;
+        position.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormal;
+        <$transformModelToClipPos(cam, obj, position, gl_Position)$>
+        <$transformModelToWorldDir(cam, obj, normal, _normalWS)$>
+    }
 }

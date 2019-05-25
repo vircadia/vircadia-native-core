@@ -16,6 +16,7 @@
 
 #include <QtCore/QString>
 
+#include "AxisValue.h"
 #include "Pose.h"
 #include "Input.h"
 #include "StandardControls.h"
@@ -53,10 +54,9 @@ enum Hand {
 
 /**jsdoc
  * <p>The <code>Controller.Hardware</code> object has properties representing standard and hardware-specific controller and 
- * computer outputs, plus predefined actions on Interface and the user's avatar. <em>Read-only.</em> The outputs can be mapped 
- * to actions or functions in a {@link RouteObject} mapping. Additionally, hardware-specific controller outputs can be mapped 
- * to standard controller outputs. 
- * 
+ * computer outputs, plus predefined actions on Interface and the user's avatar. <em>Read-only.</em></p>
+ * <p>The outputs can be mapped to actions or functions in a {@link RouteObject} mapping. Additionally, hardware-specific 
+ * controller outputs can be mapped to standard controller outputs. 
  * <p>Controllers typically implement a subset of the {@link Controller.Standard} controls, plus they may implement some extras. 
  * Some common controllers are included in the table. You can see the outputs provided by these and others by 
  * viewing their {@link Controller.MappingJSON|MappingJSON} files at 
@@ -103,16 +103,16 @@ public:
     using Pointer = std::shared_ptr<InputDevice>;
 
     typedef std::unordered_set<int> ButtonPressedMap;
-    typedef std::map<int, float> AxisStateMap;
+    typedef std::map<int, AxisValue> AxisStateMap;
     typedef std::map<int, Pose> PoseStateMap;
 
     // Get current state for each channel
     float getButton(int channel) const;
-    float getAxis(int channel) const;
+    AxisValue getAxis(int channel) const;
     Pose getPose(int channel) const;
 
-    float getValue(const Input& input) const;
-    float getValue(ChannelType channelType, uint16_t channel) const;
+    AxisValue getValue(const Input& input) const;
+    AxisValue getValue(ChannelType channelType, uint16_t channel) const;
     Pose getPoseValue(uint16_t channel) const;
 
     const QString& getName() const { return _name; }

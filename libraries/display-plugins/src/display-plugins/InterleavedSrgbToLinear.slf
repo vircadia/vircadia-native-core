@@ -14,8 +14,6 @@ void main(void) {
     ivec2 texCoord = ivec2(floor(varTexCoord0 * vec2(textureData.textureSize)));
     texCoord.x /= 2;
     int row = int(floor(gl_FragCoord.y));
-    if (row % 2 > 0) {
-        texCoord.x += (textureData.textureSize.x / 2);
-    }
+    texCoord.x += int(row % 2 > 0) * (textureData.textureSize.x / 2);
     outFragColor = vec4(pow(texelFetch(colorMap, texCoord, 0).rgb, vec3(2.2)), 1.0);
 }

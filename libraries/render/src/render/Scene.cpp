@@ -47,6 +47,10 @@ void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {
     _queriedTransitions.emplace_back(id, func);
 }
 
+void Transaction::transitionFinishedOperator(ItemID id, TransitionFinishedFunc func) {
+    _transitionFinishedOperators.emplace_back(id, func);
+}
+
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
     _updatedItems.emplace_back(id, functor);
 }
@@ -75,6 +79,7 @@ void Transaction::reserve(const std::vector<Transaction>& transactionContainer) 
     size_t addedTransitionsCount = 0;
     size_t queriedTransitionsCount = 0;
     size_t reAppliedTransitionsCount = 0;
+    size_t transitionFinishedOperatorsCount = 0;
     size_t highlightResetsCount = 0;
     size_t highlightRemovesCount = 0;
     size_t highlightQueriesCount = 0;
@@ -85,6 +90,7 @@ void Transaction::reserve(const std::vector<Transaction>& transactionContainer) 
         updatedItemsCount += transaction._updatedItems.size();
         resetSelectionsCount += transaction._resetSelections.size();
         addedTransitionsCount += transaction._addedTransitions.size();
+        transitionFinishedOperatorsCount += transaction._transitionFinishedOperators.size();
         queriedTransitionsCount += transaction._queriedTransitions.size();
         reAppliedTransitionsCount += transaction._reAppliedTransitions.size();
         highlightResetsCount += transaction._highlightResets.size();
@@ -99,6 +105,7 @@ void Transaction::reserve(const std::vector<Transaction>& transactionContainer) 
     _addedTransitions.reserve(addedTransitionsCount);
     _queriedTransitions.reserve(queriedTransitionsCount);
     _reAppliedTransitions.reserve(reAppliedTransitionsCount);
+    _transitionFinishedOperators.reserve(transitionFinishedOperatorsCount);
     _highlightResets.reserve(highlightResetsCount);
     _highlightRemoves.reserve(highlightRemovesCount);
     _highlightQueries.reserve(highlightQueriesCount);
@@ -142,6 +149,7 @@ void Transaction::merge(Transaction&& transaction) {
     moveElements(_resetSelections, transaction._resetSelections);
     moveElements(_addedTransitions, transaction._addedTransitions);
     moveElements(_queriedTransitions, transaction._queriedTransitions);
+    moveElements(_transitionFinishedOperators, transaction._transitionFinishedOperators);
     moveElements(_reAppliedTransitions, transaction._reAppliedTransitions);
     moveElements(_highlightResets, transaction._highlightResets);
     moveElements(_highlightRemoves, transaction._highlightRemoves);
@@ -156,6 +164,7 @@ void Transaction::merge(const Transaction& transaction) {
     copyElements(_addedTransitions, transaction._addedTransitions);
     copyElements(_queriedTransitions, transaction._queriedTransitions);
     copyElements(_reAppliedTransitions, transaction._reAppliedTransitions);
+    copyElements(_transitionFinishedOperators, transaction._transitionFinishedOperators);
     copyElements(_highlightResets, transaction._highlightResets);
     copyElements(_highlightRemoves, transaction._highlightRemoves);
     copyElements(_highlightQueries, transaction._highlightQueries);
@@ -168,6 +177,7 @@ void Transaction::clear() {
     _resetSelections.clear();
     _addedTransitions.clear();
     _queriedTransitions.clear();
+    _transitionFinishedOperators.clear();
     _reAppliedTransitions.clear();
     _highlightResets.clear();
     _highlightRemoves.clear();
@@ -271,17 +281,13 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         transitionItems(transaction._addedTransitions);
         reApplyTransitions(transaction._reAppliedTransitions);
         queryTransitionItems(transaction._queriedTransitions);
+        resetTransitionFinishedOperator(transaction._transitionFinishedOperators);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
     }
 
-    if (transaction.touchTransactions()) {
-        std::unique_lock<std::mutex> lock(_selectionsMutex);
-
-        // resets and potential NEW items
-        resetSelections(transaction._resetSelections);
-    }
+    resetSelections(transaction._resetSelections);
 
     resetHighlights(transaction._highlightResets);
     removeHighlights(transaction._highlightRemoves);
@@ -381,6 +387,10 @@ void Scene::updateItems(const Transaction::Updates& transactions) {
 void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
+    if (!transitionStage) {
+        return;
+    }
+
     for (auto& add : transactions) {
         auto itemId = std::get<0>(add);
         // Access the true item
@@ -391,15 +401,22 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
 
         // Remove pre-existing transition, if need be
         if (!TransitionStage::isIndexInvalid(transitionId)) {
-            transitionStage->removeTransition(transitionId);
-            transitionId = TransitionStage::INVALID_INDEX;
+            // Only remove if:
+            // transitioning to something other than none or we're transitioning to none from ELEMENT_LEAVE_DOMAIN or USER_LEAVE_DOMAIN
+            const auto& oldTransitionType = transitionStage->getTransition(transitionId).eventType;
+            if (transitionType != oldTransitionType) {
+                resetItemTransition(itemId);
+            }
         }
+
         // Add a new one.
         if (transitionType != Transition::NONE) {
             transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
-        }
 
-        setItemTransition(itemId, transitionId);
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
+                setItemTransition(itemId, transitionId);
+            }
+        }
     }
 }
 
@@ -415,6 +432,10 @@ void Scene::reApplyTransitions(const Transaction::TransitionReApplies& transacti
 void Scene::queryTransitionItems(const Transaction::TransitionQueries& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
+    if (!transitionStage) {
+        return;
+    }
+
     for (auto& query : transactions) {
         auto itemId = std::get<0>(query);
         // Access the true item
@@ -428,6 +449,23 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
                 func(itemId, &transition);
             } else {
                 func(itemId, nullptr);
+            }
+        }
+    }
+}
+
+void Scene::resetTransitionFinishedOperator(const Transaction::TransitionFinishedOperators& operators) {
+    for (auto& finishedOperator : operators) {
+        auto itemId = std::get<0>(finishedOperator);
+        const auto& item = _items[itemId];
+        auto func = std::get<1>(finishedOperator);
+
+        if (item.exist() && func != nullptr) {
+            TransitionStage::Index transitionId = item.getTransitionId();
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
+                _transitionFinishedOperatorMap[transitionId].emplace_back(func);
+            } else if (func) {
+                func();
             }
         }
     }
@@ -518,43 +556,54 @@ void Scene::setItemTransition(ItemID itemId, Index transitionId) {
 }
 
 void Scene::resetItemTransition(ItemID itemId) {
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+    if (!transitionStage) {
+        return;
+    }
+
     auto& item = _items[itemId];
-    if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
-        auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-        transitionStage->removeTransition(item.getTransitionId());
+    TransitionStage::Index transitionId = item.getTransitionId();
+    if (!render::TransitionStage::isIndexInvalid(transitionId)) {
+        auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
+        for (auto finishedOperator : finishedOperators) {
+            if (finishedOperator) {
+                finishedOperator();
+            }
+        }
+        _transitionFinishedOperatorMap.erase(transitionId);
+        transitionStage->removeTransition(transitionId);
         setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
     }
 }
 
-// This function is thread safe
 Selection Scene::getSelection(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
         return Selection();
     } else {
-        return (*found).second;
+        return found->second;
     }
 }
 
-// This function is thread safe
 bool Scene::isSelectionEmpty(const Selection::Name& name) const {
     std::unique_lock<std::mutex> lock(_selectionsMutex);
     auto found = _selections.find(name);
     if (found == _selections.end()) {
         return true;
     } else {
-        return (*found).second.isEmpty();
+        return found->second.isEmpty();
     }
 }
 
 void Scene::resetSelections(const Transaction::SelectionResets& transactions) {
+    std::unique_lock<std::mutex> lock(_selectionsMutex);
     for (auto selection : transactions) {
         auto found = _selections.find(selection.getName());
         if (found == _selections.end()) {
-            _selections.insert(SelectionMap::value_type(selection.getName(), selection));
+            _selections[selection.getName()] = selection;
         } else {
-            (*found).second = selection;
+            found->second = selection;
         }
     }
 }

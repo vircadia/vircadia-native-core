@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 
 // references XXX from root context
@@ -24,11 +24,8 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string referrerURL: (Account.metaverseServerURL + "/marketplace?");
-    readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
-    property alias usernameDropdownVisible: usernameDropdown.visible;
 
-    height: mainContainer.height + additionalDropdownHeight;
+    height: mainContainer.height;
 
     Connections {
         target: Commerce;
@@ -93,77 +90,7 @@ Item {
             MouseArea {
                 anchors.fill: parent;
                 onClicked: {
-                    sendToParent({method: "header_marketplaceImageClicked", referrerURL: root.referrerURL});
-                }
-            }
-        }
-
-        Item {
-            id: buttonAndUsernameContainer;
-            anchors.left: marketplaceHeaderImage.right;
-            anchors.leftMargin: 8;
-            anchors.top: parent.top;
-            anchors.bottom: parent.bottom;
-            anchors.bottomMargin: 10;
-            anchors.right: securityImage.left;
-            anchors.rightMargin: 6;
-
-            TextMetrics {
-                id: textMetrics;
-                font.family: "Raleway"
-                text: usernameText.text;
-            }
-
-            Rectangle {
-                id: myUsernameButton;
-                anchors.right: parent.right;
-                anchors.verticalCenter: parent.verticalCenter;
-                height: 40;
-                width: usernameText.width + 25;
-                color: "white";
-                radius: 4;
-                border.width: 1;
-                border.color: hifi.colors.lightGray;
-
-                // Username Text
-                RalewayRegular {
-                    id: usernameText;
-                    text: Account.username;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    elide: Text.ElideRight;
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    width: Math.min(textMetrics.width + 25, 110);
-                    // Anchors
-                    anchors.centerIn: parent;
-                    rightPadding: 10;
-                }
-
-                HiFiGlyphs {
-                    id: dropdownIcon;
-                    text: hifi.glyphs.caratDn;
-                    // Size
-                    size: 50;
-                    // Anchors
-                    anchors.right: parent.right;
-                    anchors.rightMargin: -14;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    horizontalAlignment: Text.AlignHCenter;
-                    // Style
-                    color: hifi.colors.baseGray;
-                }
-
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: enabled;
-                    onClicked: {
-                        usernameDropdown.visible = !usernameDropdown.visible;
-                    }
-                    onEntered: usernameText.color = hifi.colors.baseGrayShadow;
-                    onExited: usernameText.color = hifi.colors.baseGray;
+                    sendToParent({method: "header_marketplaceImageClicked"});
                 }
             }
         }
@@ -205,92 +132,6 @@ Item {
             }
         }
 
-        Item {
-            id: usernameDropdown;
-            z: 998;
-            visible: false;
-            anchors.top: buttonAndUsernameContainer.bottom;
-            anchors.topMargin: -buttonAndUsernameContainer.anchors.bottomMargin;
-            anchors.right: buttonAndUsernameContainer.right;
-            height: childrenRect.height;
-            width: 150;
-
-            Rectangle {
-                id: myItemsButton;
-                color: hifi.colors.white;
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                anchors.right: parent.right;
-                height: 50;
-
-                RalewaySemiBold {
-                    anchors.fill: parent;
-                    text: "My Submissions"
-                    color: hifi.colors.baseGray;
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    size: 18;
-                }
-
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: true;
-                    onEntered: {
-                        myItemsButton.color = hifi.colors.blueHighlight;
-                    }
-                    onExited: {
-                        myItemsButton.color = hifi.colors.white;
-                    }
-                    onClicked: {
-                        sendToParent({method: "header_myItemsClicked"});
-                    }
-                }
-            }
-
-            Rectangle {
-                id: logOutButton;
-                color: hifi.colors.white;
-                anchors.top: myItemsButton.bottom;
-                anchors.left: parent.left;
-                anchors.right: parent.right;
-                height: 50;
-
-                RalewaySemiBold {
-                    anchors.fill: parent;
-                    text: "Log Out"
-                    color: hifi.colors.baseGray;
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    size: 18;
-                }
-
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: true;
-                    onEntered: {
-                        logOutButton.color = hifi.colors.blueHighlight;
-                    }
-                    onExited: {
-                        logOutButton.color = hifi.colors.white;
-                    }
-                    onClicked: {
-                        Account.logOut();
-                    }
-                }
-            }
-        }
-
-        DropShadow {
-            z: 997;
-            visible: usernameDropdown.visible;
-            anchors.fill: usernameDropdown;
-            horizontalOffset: 3;
-            verticalOffset: 3;
-            radius: 8.0;
-            samples: 17;
-            color: "#80000000";
-            source: usernameDropdown;
-        }
     }
 
 

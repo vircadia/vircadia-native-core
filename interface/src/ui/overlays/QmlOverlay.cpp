@@ -26,8 +26,8 @@ QmlOverlay::QmlOverlay(const QUrl& url) {
     buildQmlElement(url);
 }
 
-QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* textOverlay)
-    : Overlay2D(textOverlay) {
+QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* overlay)
+    : Overlay2D(overlay) {
     buildQmlElement(url);
 }
 
@@ -57,29 +57,15 @@ QmlOverlay::~QmlOverlay() {
 
 // QmlOverlay replaces Overlay's properties with those defined in the QML file used but keeps Overlay2D's properties.
 void QmlOverlay::setProperties(const QVariantMap& properties) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setProperties", Q_ARG(QVariantMap, properties));
-        return;
-    }
-
     Overlay2D::setProperties(properties);
-    auto bounds = _bounds;
+
     // check to see if qmlElement still exists
     if (_qmlElement) {
-        _qmlElement->setX(bounds.left());
-        _qmlElement->setY(bounds.top());
-        _qmlElement->setWidth(bounds.width());
-        _qmlElement->setHeight(bounds.height());
-        QMetaObject::invokeMethod(_qmlElement, "updatePropertiesFromScript", Qt::DirectConnection, Q_ARG(QVariant, properties));
-    }
-}
-
-void QmlOverlay::render(RenderArgs* args) {
-    if (!_qmlElement) {
-        return;
-    }
-
-    if (_visible != _qmlElement->isVisible()) {
+        _qmlElement->setX(_bounds.left());
+        _qmlElement->setY(_bounds.top());
+        _qmlElement->setWidth(_bounds.width());
+        _qmlElement->setHeight(_bounds.height());
         _qmlElement->setVisible(_visible);
+        QMetaObject::invokeMethod(_qmlElement, "updatePropertiesFromScript", Qt::DirectConnection, Q_ARG(QVariant, properties));
     }
 }

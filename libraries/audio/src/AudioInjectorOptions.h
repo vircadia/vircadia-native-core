@@ -21,6 +21,7 @@ class AudioInjectorOptions {
 public:
     AudioInjectorOptions();
     glm::vec3 position;
+    bool positionSet;
     float volume;
     bool loop;
     glm::quat orientation;

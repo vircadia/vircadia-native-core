@@ -3,23 +3,25 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQml.Models 2.1
 import QtGraphicalEffects 1.0
-import "../controls-uit" as HifiControls
-import "../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 import "avatarapp"
 
 Rectangle {
     id: root
     width: 480
-	height: 706
+    height: 706
 
     property bool keyboardEnabled: true
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
+    HifiConstants { id: hifi }
+
     HifiControls.Keyboard {
         id: keyboard
         z: 1000
-        raised: parent.keyboardEnabled && parent.keyboardRaised
+        raised: parent.keyboardEnabled && parent.keyboardRaised && HMD.active
         numeric: parent.punctuationMode
         anchors {
             left: parent.left
@@ -48,6 +50,7 @@ Rectangle {
 
     property var jointNames: []
     property var currentAvatarSettings;
+    property bool wearablesFrozen;
 
     function fetchAvatarModelName(marketId, avatar) {
         var xmlhttp = new XMLHttpRequest();
@@ -62,7 +65,7 @@ Rectangle {
                     }
                 }
                 catch(err) {
-                    console.error(err);
+                    //console.error(err);
                 }
             }
         }
@@ -187,6 +190,8 @@ Rectangle {
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if (message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
+        } else if (message.method === 'wearablesFrozenChanged') {
+            wearablesFrozen = message.wearablesFrozen;
         }
     }
 
@@ -204,7 +209,8 @@ Rectangle {
 
     property bool isInManageState: false
 
-    Component.onCompleted: {
+    Component.onDestruction: {
+        keyboard.raised = false;
     }
 
     AvatarAppStyle {
@@ -235,6 +241,8 @@ Rectangle {
         avatarIconVisible: mainPageVisible
         settingsButtonVisible: mainPageVisible
         onSettingsClicked: {
+            displayNameInput.focus = false;
+            root.keyboardRaised = false;
             settings.open(currentAvatarSettings, currentAvatar.avatarScale);
         }
     }
@@ -251,7 +259,9 @@ Rectangle {
         onSaveClicked: function() {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
-                collisionsEnabled : settings.avatarCollisionsOn,
+                hmdAvatarAlignmentType : settings.hmdAvatarAlignmentTypeIsEyes ? 'eyes' : 'head',
+                collisionsEnabled : settings.environmentCollisionsOn,
+                otherAvatarsCollisionsEnabled : settings.otherAvatarsCollisionsOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };
@@ -344,6 +354,10 @@ Rectangle {
                 emitSendToScript({'method' : 'changeDisplayName', 'displayName' : text})
                 focus = false;
             }
+
+            onFocusChanged: {
+                root.keyboardRaised = focus;
+            }
         }
 
         ShadowImage {
@@ -408,7 +422,7 @@ Rectangle {
                 width: 21.2
                 height: 19.3
                 source: isAvatarInFavorites ? '../../images/FavoriteIconActive.svg' : '../../images/FavoriteIconInActive.svg'
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             // TextStyle5
@@ -417,7 +431,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: isAvatarInFavorites ? avatarName : "Add to Favorites"
                 elide: Qt.ElideRight
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
         }
 
@@ -498,12 +512,24 @@ Rectangle {
         }
 
         SquareLabel {
+            id: adjustLabel
             anchors.right: parent.right
             anchors.verticalCenter: wearablesLabel.verticalCenter
             glyphText: "\ue02e"
 
             onClicked: {
                 adjustWearables.open(currentAvatar);
+            }
+        }
+
+        SquareLabel {
+            anchors.right: adjustLabel.left
+            anchors.verticalCenter: wearablesLabel.verticalCenter
+            anchors.rightMargin: 15
+            glyphText: wearablesFrozen ? hifi.glyphs.lock : hifi.glyphs.unlock;
+
+            onClicked: {
+                emitSendToScript({'method' : 'toggleWearablesFrozen'});
             }
         }
     }

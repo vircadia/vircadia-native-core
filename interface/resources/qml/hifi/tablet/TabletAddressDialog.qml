@@ -18,8 +18,8 @@ import "../../styles"
 import "../../windows"
 import "../"
 import "../toolbars"
-import "../../styles-uit" as HifiStyles
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0 as HifiStyles
+import controlsUit 1.0 as HifiControls
 import QtQuick.Controls 2.2 as QQC2
 import QtQuick.Templates 2.2 as T
 
@@ -35,6 +35,7 @@ StackView {
     property int cardWidth: 212;
     property int cardHeight: 152;
     property var tablet: null;
+    property bool has3DHTML: PlatformInfo.has3DHTML();
 
     RootHttpRequest { id: http; }
     signal sendToScript(var message);
@@ -56,10 +57,13 @@ StackView {
         Qt.callLater(function() {
             addressBarDialog.keyboardEnabled = HMD.active;
             addressLine.forceActiveFocus();
+            addressBarDialog.keyboardRaised = true;
         })
     }
+
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
+        keyboard.raised = false;
     }
 
     function center() {
@@ -70,16 +74,18 @@ StackView {
     function resetAfterTeleport() {
         //storyCardFrame.shown = root.shown = false;
     }
-    function goCard(targetString) {
+    function goCard(targetString, standaloneOptimized) {
         if (0 !== targetString.indexOf('hifi://')) {
-            var card = tabletWebView.createObject();
-            card.url = addressBarDialog.metaverseServerUrl + targetString;
+            if(has3DHTML) {
+                var card = tabletWebView.createObject();
+                card.url = addressBarDialog.metaverseServerUrl + targetString;
+            }
             card.parentStackItem = root;
             root.push(card);
             return;
         }
         location.text = targetString;
-        toggleOrGo(targetString, true);
+        toggleOrGo(targetString, true, standaloneOptimized);
         clearAddressLineTimer.start();
     }
 
@@ -218,11 +224,16 @@ StackView {
                     leftMargin: 8;
                     verticalCenter: addressLineContainer.verticalCenter;
                 }
+
+                onFocusChanged: {
+                    addressBarDialog.raised = focus;
+                }
+
                 onTextChanged: {
                     updateLocationText(text.length > 0);
                 }
                 onAccepted: {
-                    toggleOrGo();
+                    toggleOrGo(addressLine.text, false, places.isStandalone(addressLine.text));
                 }
 
                 // unfortunately TextField from Quick Controls 2 disallow customization of placeHolderText color without creation of new style
@@ -384,7 +395,18 @@ StackView {
                 right: parent.right
             }
         }
+    }
 
+    TADLightbox {
+        id: unoptimizedDomain
+        titleText: "Unoptimized Domain"
+        bodyText:  "You're trying to access a place that hasn't been optimized for your device. Are you sure you want to continue."
+        button1text: "CANCEL"
+        button2text: "YES CONTINUE"
+        visible: false
+        button1method: function() {
+            visible = false;
+        }
     }
 
     function updateLocationText(enteringAddress) {
@@ -399,14 +421,30 @@ StackView {
         }
     }
 
-    function toggleOrGo(address, fromSuggestions) {
-        if (address !== undefined && address !== "") {
-            addressBarDialog.loadAddress(address, fromSuggestions);
-            clearAddressLineTimer.start();
-        } else if (addressLine.text !== "") {
-            addressBarDialog.loadAddress(addressLine.text, fromSuggestions);
-            clearAddressLineTimer.start();
+    function toggleOrGo(address, fromSuggestions, standaloneOptimized) {
+
+        var goTarget = function () {
+            if (address !== undefined && address !== "") {
+                addressBarDialog.loadAddress(address, fromSuggestions);
+                clearAddressLineTimer.start();
+            } else if (addressLine.text !== "") {
+                addressBarDialog.loadAddress(addressLine.text, fromSuggestions);
+                clearAddressLineTimer.start();
+            }
+            DialogsManager.hideAddressBar();
         }
-        DialogsManager.hideAddressBar();
+
+        unoptimizedDomain.button2method = function() {
+            Settings.setValue("ShowUnoptimizedDomainWarning", false);
+            goTarget();
+        }
+
+        var showPopup = PlatformInfo.isStandalone() && !standaloneOptimized && Settings.getValue("ShowUnoptimizedDomainWarning", true);
+
+        if(!showPopup) {
+            goTarget();
+        } else {
+            unoptimizedDomain.visible = true;
+        }
     }
 }

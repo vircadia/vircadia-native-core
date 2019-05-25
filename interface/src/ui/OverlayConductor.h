@@ -25,8 +25,10 @@ private:
     bool headOutsideOverlay() const;
     bool updateAvatarIsAtRest();
 
+#if !defined(DISABLE_QML)
     bool _suppressedByHead { false };
     bool _hmdMode { false };
+#endif
 
     // used by updateAvatarIsAtRest
     uint64_t _desiredAtRestTimer { 0 };

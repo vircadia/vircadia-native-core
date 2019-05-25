@@ -16,12 +16,15 @@
 
 #include <DependencyManager.h>
 #include <NodeList.h>
+#include <EntityTree.h>
+#include <ZoneEntityItem.h>
+
+#include "AvatarLogging.h"
 
 #include "AvatarMixerSlave.h"
 
-AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) :
-    NodeData(nodeID, nodeLocalID)
-{
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : 
+    NodeData(nodeID, nodeLocalID) {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
 }
@@ -63,10 +66,13 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
 
         switch (packet->getType()) {
             case PacketType::AvatarData:
-                parseData(*packet);
+                parseData(*packet, slaveSharedData);
                 break;
             case PacketType::SetAvatarTraits:
                 processSetTraitsMessage(*packet, slaveSharedData, *node);
+                break;
+            case PacketType::BulkAvatarTraitsAck:
+                processBulkAvatarTraitsAckMessage(*packet);
                 break;
             default:
                 Q_UNREACHABLE();
@@ -75,27 +81,90 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
     }
     assert(_packetQueue.empty());
 
+    if (_avatar) {
+        _avatar->processCertifyEvents();
+    }
+
     return packetsProcessed;
 }
 
-int AvatarMixerClientData::parseData(ReceivedMessage& message) {
+namespace {
+    using std::static_pointer_cast;
 
+    // Operator to find if a point is within an avatar-priority (hero) Zone Entity.
+    struct FindPriorityZone {
+        glm::vec3 position;
+        bool isInPriorityZone { false };
+        float zoneVolume { std::numeric_limits<float>::max() };
+
+        static bool operation(const OctreeElementPointer& element, void* extraData) {
+            auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
+            if (element->getAACube().contains(findPriorityZone->position)) {
+                const EntityTreeElementPointer entityTreeElement = static_pointer_cast<EntityTreeElement>(element);
+                entityTreeElement->forEachEntity([&findPriorityZone](EntityItemPointer item) {
+                    if (item->getType() == EntityTypes::Zone 
+                        && item->contains(findPriorityZone->position)) {
+                        auto zoneItem = static_pointer_cast<ZoneEntityItem>(item);
+                        if (zoneItem->getAvatarPriority() != COMPONENT_MODE_INHERIT) {
+                            float volume = zoneItem->getVolumeEstimate();
+                            if (volume < findPriorityZone->zoneVolume) { // Smaller volume wins
+                                findPriorityZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
+                                findPriorityZone->zoneVolume = volume;
+                            }
+                        }
+                    }
+                });
+                return true;  // Keep recursing 
+            } else {  // Position isn't within this subspace, so end recursion.
+                return false;
+            }
+        }
+    };
+
+}  // Close anonymous namespace.
+
+int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveSharedData& slaveSharedData) {
     // pull the sequence number from the data first
     uint16_t sequenceNumber;
 
     message.readPrimitive(&sequenceNumber);
-    
+
     if (sequenceNumber < _lastReceivedSequenceNumber && _lastReceivedSequenceNumber != UINT16_MAX) {
         incrementNumOutOfOrderSends();
     }
     _lastReceivedSequenceNumber = sequenceNumber;
+    glm::vec3 oldPosition = _avatar->getClientGlobalPosition();
+    bool oldHasPriority = _avatar->getHasPriority();
 
     // compute the offset to the data payload
-    return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
+    if (!_avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()))) {
+        return false;
+    }
+
+    // Regardless of what the client says, restore the priority as we know it without triggering any update.
+    _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
+
+    auto newPosition = _avatar->getClientGlobalPosition();
+    if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
+        EntityTree& entityTree = *slaveSharedData.entityTree;
+        FindPriorityZone findPriorityZone { newPosition } ;
+        entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
+        _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
+        _avatar->setNeedsHeroCheck(false);
+    }
+
+    return true;
 }
 
 void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
-                                                    const SlaveSharedData& slaveSharedData, Node& sendingNode) {
+                                                    const SlaveSharedData& slaveSharedData,
+                                                    Node& sendingNode) {
+    // Trying to read more bytes than available, bail
+    if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitVersion))) {
+        qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+        return;
+    }
+
     // pull the trait version from the message
     AvatarTraits::TraitVersion packetTraitVersion;
     message.readPrimitive(&packetTraitVersion);
@@ -105,10 +174,22 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     while (message.getBytesLeftToRead() > 0) {
         // for each trait in the packet, apply it if the trait version is newer than what we have
 
+        // Trying to read more bytes than available, bail
+        if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitType))) {
+            qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+            return;
+        }
+
         AvatarTraits::TraitType traitType;
         message.readPrimitive(&traitType);
 
         if (AvatarTraits::isSimpleTrait(traitType)) {
+            // Trying to read more bytes than available, bail
+            if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+                return;
+            }
+
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
@@ -120,10 +201,13 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
-
                 if (traitType == AvatarTraits::SkeletonModelURL) {
                     // special handling for skeleton model URL, since we need to make sure it is in the whitelist
                     checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+#ifdef AVATAR_POP_CHECK
+                    // Deferred for UX work. With no PoP check, no need to get the .fst.
+                    _avatar->fetchAvatarFST();
+#endif
                 }
 
                 anyTraitsChanged = true;
@@ -131,27 +215,33 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                 message.seek(message.getPosition() + traitSize);
             }
         } else {
-            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-            if (message.getBytesLeftToRead() == 0) {
-                qWarning () << "Received an instanced trait with no size from" << message.getSenderSockAddr();
-                break;
+            // Trying to read more bytes than available, bail
+            if (message.getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                       sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+                return;
             }
+
+            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
             if (traitSize < -1 || traitSize > message.getBytesLeftToRead()) {
-                qWarning() << "Refusing to process instanced trait of size" << traitSize << "from" << message.getSenderSockAddr();
+                qWarning() << "Refusing to process instanced trait of size" << traitSize << "from"
+                           << message.getSenderSockAddr();
                 break;
             }
 
-            if (traitType == AvatarTraits::AvatarEntity) {
+            if (traitType == AvatarTraits::AvatarEntity ||
+                traitType == AvatarTraits::Grab) {
                 auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
 
                 if (packetTraitVersion > instanceVersionRef) {
                     if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
                         _avatar->processDeletedTraitInstance(traitType, instanceID);
+                        // Mixer doesn't need deleted IDs.
+                        _avatar->getAndClearRecentlyRemovedIDs();
 
                         // to track a deleted instance but keep version information
                         // the avatar mixer uses the negative value of the sent version
@@ -166,7 +256,8 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                     message.seek(message.getPosition() + traitSize);
                 }
             } else {
-                qWarning() << "Refusing to process traits packet with instanced trait of unprocessable type from" << message.getSenderSockAddr();
+                qWarning() << "Refusing to process traits packet with instanced trait of unprocessable type from"
+                           << message.getSenderSockAddr();
                 break;
             }
         }
@@ -177,7 +268,63 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     }
 }
 
-void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedData &slaveSharedData, Node& sendingNode,
+void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& message) {
+    // Avatar Traits flow control marks each outgoing avatar traits packet with a
+    // sequence number. The mixer caches the traits sent in the traits packet.
+    // Until an ack with the sequence number comes back, all updates to _traits
+    // in that packet_ are ignored.  Updates to traits not in that packet will
+    // be sent.
+
+    // Look up the avatar/trait data associated with this ack and update the 'last ack' list
+    // with it.
+    AvatarTraits::TraitMessageSequence seq;
+    message.readPrimitive(&seq);
+    auto sentAvatarTraitVersions = _perNodePendingTraitVersions.find(seq);
+    if (sentAvatarTraitVersions != _perNodePendingTraitVersions.end()) {
+        for (auto& perNodeTraitVersions : sentAvatarTraitVersions->second) {
+            auto& nodeId = perNodeTraitVersions.first;
+            auto& traitVersions = perNodeTraitVersions.second;
+            // For each trait that was sent in the traits packet,
+            // update the 'acked' trait version.  Traits not
+            // sent in the traits packet keep their version.
+
+            // process simple traits
+            auto simpleReceivedIt = traitVersions.simpleCBegin();
+            while (simpleReceivedIt != traitVersions.simpleCEnd()) {
+                if (*simpleReceivedIt != AvatarTraits::DEFAULT_TRAIT_VERSION) {
+                    auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
+                    _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+                }
+                simpleReceivedIt++;
+            }
+
+            // process instanced traits
+            auto instancedSentIt = traitVersions.instancedCBegin();
+            while (instancedSentIt != traitVersions.instancedCEnd()) {
+                auto traitType = instancedSentIt->traitType;
+
+                for (auto& sentInstance : instancedSentIt->instances) {
+                    auto instanceID = sentInstance.id;
+                    const auto sentVersion = sentInstance.value;
+                    _perNodeAckedTraitVersions[nodeId].instanceInsert(traitType, instanceID, sentVersion);
+                }
+                instancedSentIt++;
+            }
+        }
+        _perNodePendingTraitVersions.erase(sentAvatarTraitVersions);
+    } else {
+        // This can happen either the BulkAvatarTraits was sent with no simple traits,
+        // or if the avatar mixer restarts while there are pending
+        // BulkAvatarTraits messages in-flight.
+        if (seq > getTraitsMessageSequence()) {
+            qWarning() << "Received BulkAvatarTraitsAck with future seq (potential avatar mixer restart) " << seq << " from "
+                       << message.getSenderSockAddr();
+        }
+    }
+}
+
+void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedData& slaveSharedData,
+                                                             Node& sendingNode,
                                                              AvatarTraits::TraitVersion traitVersion) {
     const auto& whitelist = slaveSharedData.skeletonURLWhitelist;
 
@@ -211,7 +358,7 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
 
                 // the returned set traits packet uses the trait version from the incoming packet
                 // so the client knows they should not overwrite if they have since changed the trait
-                _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
+                AvatarTraits::packVersionedTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion, *_avatar);
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 nodeList->sendPacket(std::move(packet), sendingNode);
@@ -279,14 +426,18 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
 
 void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
-    _sentTraitVersions[nodeLocalID].reset();
+    _perNodeSentTraitVersions[nodeLocalID].reset();
+    _perNodeAckedTraitVersions[nodeLocalID].reset();
+    for (auto && pendingTraitVersions : _perNodePendingTraitVersions) {
+        pendingTraitVersions.second[nodeLocalID].reset();
+    }
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
     _currentViewFrustums.clear();
 
     auto sourceBuffer = reinterpret_cast<const unsigned char*>(message.constData());
-    
+
     uint8_t numFrustums = 0;
     memcpy(&numFrustums, sourceBuffer, sizeof(numFrustums));
     sourceBuffer += sizeof(numFrustums);
@@ -314,7 +465,8 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["total_num_out_of_order_sends"] = _numOutOfOrderSends;
 
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
-    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
+    jsonObject[OUTBOUND_AVATAR_TRAITS_STATS_KEY] = getOutboundAvatarTraitsKbps();
+    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float)BYTES_PER_KILOBIT;
 
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
     jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
@@ -335,5 +487,5 @@ void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLo
     removeLastBroadcastSequenceNumber(nodeLocalID);
     removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
-    _sentTraitVersions.erase(nodeLocalID);
+    _perNodeSentTraitVersions.erase(nodeLocalID);
 }

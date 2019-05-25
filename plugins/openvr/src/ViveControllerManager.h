@@ -63,7 +63,8 @@ public:
     enum class OutOfRangeDataStrategy {
         None,
         Freeze,
-        Drop
+        Drop,
+        DropAfterDelay
     };
 
 private:
@@ -205,6 +206,8 @@ private:
 
         bool _hmdTrackingEnabled { true };
 
+        std::map<uint32_t, uint64_t> _simDataRunningOkTimestampMap;
+
         QString configToString(Config config);
         friend class ViveControllerManager;
     };
@@ -213,12 +216,10 @@ private:
     bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
-    bool _resetMatCalculated { false };
 
     bool _desktopMode { false };
     bool _hmdDesktopTracking { false };
-    
-    glm::mat4 _resetMat { glm::mat4() };
+
     graphics::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 

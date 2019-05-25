@@ -21,10 +21,11 @@
 namespace SceneScripting {
     
     /**jsdoc
-     * @typedef {object} Scene.Stage.Location
-     * @property {number} longitude
-     * @property {number} latitude
-     * @property {number} altitude
+     * Stage location.
+     * @typedef {object} Stage.Location
+     * @property {number} longitude - Longitude.
+     * @property {number} latitude - Latitude.
+     * @property {number} altitude - Altitude.
      */
     class Location : public QObject {
         Q_OBJECT
@@ -49,9 +50,10 @@ namespace SceneScripting {
     using LocationPointer = std::unique_ptr<Location>;
     
     /**jsdoc
-     * @typedef {object} Scene.Stage.Time
-     * @property {number} hour
-     * @property {number} day
+     * Stage time.
+     * @typedef {object} Stage.Time
+     * @property {number} hour - Hour.
+     * @property {number} day - Day.
      */
     class Time : public QObject {
         Q_OBJECT
@@ -73,11 +75,12 @@ namespace SceneScripting {
     using TimePointer = std::unique_ptr<Time>;
 
     /**jsdoc
-     * @typedef {object} Scene.Stage.KeyLight
-     * @property {Vec3} color
-     * @property {number} intensity
-     * @property {number} ambientIntensity
-     * @property {Vec3} direction
+     * Stage key light.
+     * @typedef {object} Stage.KeyLight
+     * @property {Vec3} color - Color.
+     * @property {number} intensity - Intensity.
+     * @property {number} ambientIntensity - Ambient intensity.
+     * @property {Vec3} direction - Direction.
      */
     class KeyLight : public QObject {
         Q_OBJECT
@@ -111,16 +114,28 @@ namespace SceneScripting {
     using KeyLightPointer = std::unique_ptr<KeyLight>;
     
     /**jsdoc
-     * @class Scene.Stage
+     * The <code>Stage</code> class is no longer used.
+     *
+     * <p>Provided as a property in the {@link Scene} API.</p>
+     *
+     * <p class="important">Deprecated: This class is deprecated and will be removed.</p>
+     *
+     * @class Stage
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
-     * @property {string} backgroundMode
-     * @property {Scene.Stage.KeyLight} keyLight
-     * @property {Scene.Stage.Location} location
-     * @property {boolean} sunModel
-     * @property {Scene.Stage.Time} time
+     * @property {string} backgroundMode - Background mode.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {Stage.KeyLight} keyLight - Key light.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {Stage.Location} location - Location.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {boolean} sunModel - Sun model.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {Stage.Time} time - Time.
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
      */
     class Stage : public QObject {
         Q_OBJECT
@@ -131,8 +146,9 @@ namespace SceneScripting {
             _location{ new Location{ skyStage } }, _time{ new Time{ skyStage } }, _keyLight{ new KeyLight{ skyStage } }{}
 
         /**jsdoc
-         * @function Scene.Stage.setOrientation
-         * @param {Quat} orientation
+         * @function Stage.setOrientation
+         * @param {Quat} orientation - Orientation.
+         * @deprecated This method is deprecated and will be removed.
          */
         Q_INVOKABLE void setOrientation(const glm::quat& orientation) const;
 
@@ -141,10 +157,11 @@ namespace SceneScripting {
         Location* getLocation() const { return _location.get(); }
 
         /**jsdoc
-         * @function Scene.Stage.setLocation
-         * @param {number} longitude
-         * @param {number} latitude
-         * @param {number} altitude
+         * @function Stage.setLocation
+         * @param {number} longitude - Longitude.
+         * @param {number} latitude - Latitude.
+         * @param {number} altitude - Altitude.
+         * @deprecated This method is deprecated and will be removed.
          */
         Q_INVOKABLE void setLocation(float longitude, float latitude, float altitude);
 
@@ -174,14 +191,20 @@ namespace SceneScripting {
 };
 
 /**jsdoc
+ * The <code>Scene</code> API provides some control over what is rendered.
+ *
  * @namespace Scene
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
- * @property {boolean} shouldRenderAvatars
- * @property {boolean} shouldRenderEntities
- * @property {Scene.Stage} stage
+ * @property {boolean} shouldRenderAvatars - <code>true</code> if avatars are rendered, <code>false</code> if they aren't.
+ * @property {boolean} shouldRenderEntities - <code>true</code> if entities (domain, avatar, and local) are rendered, 
+ *     <code>false</code> if they aren't.
+ * @property {Stage} stage - Stage. <em>Read-only.</em>
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use {@link Entities| Zone entities} 
+ *     for lighting instead.</p>
  */
 class SceneScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -203,15 +226,22 @@ public:
 signals:
 
     /**jsdoc
+     * Triggered when whether or not avatars are rendered changes.
      * @function Scene.shouldRenderAvatarsChanged
-     * @param {boolean} shouldRenderAvatars
+     * @param {boolean} shouldRenderAvatars - <code>true</code> if avatars are rendered, <code>false</code> if they aren't.
      * @returns {Signal}
+     * @example <caption>Report when the rendering of avatars changes.</caption>
+     * Scene.shouldRenderAvatarsChanged.connect(function (shouldRenderAvatars) {
+     *     print("Should render avatars changed to: " + shouldRenderAvatars);
+     * });
      */
     void shouldRenderAvatarsChanged(bool shouldRenderAvatars);
 
     /**jsdoc
+     * Triggered when whether or not entities are rendered changes.
      * @function Scene.shouldRenderEntitiesChanged
-     * @param {boolean} shouldRenderEntities
+     * @param {boolean} shouldRenderEntities - <code>true</code> if entities (domain, avatar, and local) are rendered, 
+     *     <code>false</code> if they aren't.
      * @returns {Signal}
      */
     void shouldRenderEntitiesChanged(bool shouldRenderEntities);

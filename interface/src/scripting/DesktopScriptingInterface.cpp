@@ -22,6 +22,36 @@
 #include <DependencyManager.h>
 #include <OffscreenUi.h>
 
+/**jsdoc
+ * The possible docking locations of an <code>InteractiveWindow</code>.
+ * @typedef {object} InteractiveWindow.DockAreas
+ * @property {InteractiveWindow.DockArea} TOP - Dock to the top edge of the Interface window.
+ * @property {InteractiveWindow.DockArea} BOTTOM - Dock to the bottom edge of the Interface window.
+ * @property {InteractiveWindow.DockArea} LEFT - Dock to the left edge of the Interface window.
+ * @property {InteractiveWindow.DockArea} RIGHT - Dock to the right edge of the Interface window.
+ */
+/**jsdoc
+ * A docking location of an <code>InteractiveWindow</code>.
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Name</p><th>Description</th>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>TOP</td><td>Dock to the top edge of the Interface window.</td></tr>
+ *     <tr><td><code>1</code></td><td>BOTTOM</td><td>Dock to the bottom edge of the Interface window.</td></tr>
+ *     <tr><td><code>2</code></td><td>LEFT</td><td>Dock to the left edge of the Interface window.</td></tr>
+ *     <tr><td><code>3</code></td><td>RIGHT</td><td>Dock to the right edge of the Interface window.</td></tr>
+ *   <tbody>
+ * </table>
+ * @typedef {number} InteractiveWindow.DockArea
+ */
+static const QVariantMap DOCK_AREA {
+    { "TOP", DockArea::TOP },
+    { "BOTTOM", DockArea::BOTTOM },
+    { "LEFT", DockArea::LEFT },
+    { "RIGHT", DockArea::RIGHT }
+};
+
 int DesktopScriptingInterface::getWidth() {
     QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
     return size.width();
@@ -31,12 +61,39 @@ int DesktopScriptingInterface::getHeight() {
     return size.height();
 }
 
+/**jsdoc
+ * The possible display modes for an <code>InteractiveWindow</code>.
+ * @typedef {object} InteractiveWindow.PresentationModes
+ * @property {InteractiveWindow.PresentationMode} VIRTUAL - The window is displayed inside Interface: in the desktop window in 
+ *     desktop mode or on the HUD surface in HMD mode.
+ * @property {InteractiveWindow.PresentationMode} NATIVE - The window is displayed separately from the Interface window, as its 
+ *     own separate window.
+ */
+/**jsdoc
+ * A display mode for an <code>InteractiveWindow</code>.
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Name</p><th>Description</th>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>VIRTUAL</td><td>The window is displayed inside Interface: in the desktop window in 
+ *       desktop mode or on the HUD surface in HMD mode.</td></tr>
+ *     <tr><td><code>1</code></td><td>NATIVE</td><td>The window is displayed separately from the Interface window, as its 
+ *     own separate window.</td></tr>
+ *   <tbody>
+ * </table>
+ * @typedef {number} InteractiveWindow.PresentationMode
+ */
 QVariantMap DesktopScriptingInterface::getPresentationMode() {
     static QVariantMap presentationModes {
         { "VIRTUAL", Virtual },
         { "NATIVE", Native }
     };
     return presentationModes;
+}
+
+QVariantMap DesktopScriptingInterface::getDockArea() {
+    return DOCK_AREA;
 }
 
 void DesktopScriptingInterface::setHUDAlpha(float alpha) {

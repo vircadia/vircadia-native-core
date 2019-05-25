@@ -94,7 +94,7 @@ void makeTestFBXJoints(HFMModel& hfmModel) {
 
 void AnimInverseKinematicsTests::testSingleChain() {
 
-    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
 
     HFMModel hfmModel;
     makeTestFBXJoints(hfmModel);
@@ -143,7 +143,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         ikDoll.setTargetVars(QString("D"), QString("positionD"), QString("rotationD"), QString("targetTypeD"),
                              QString("weightD"), 1.0f, flexCoefficients, QString("poleVectorEnabledD"),
                              QString("poleReferenceVectorD"), QString("poleVectorD"));
-        AnimNode::Triggers triggers;
+        AnimVariantMap triggers;
 
         // the IK solution should be:
         //
@@ -236,7 +236,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         ikDoll.setTargetVars(QString("D"), QString("positionD"), QString("rotationD"), QString("targetTypeD"),
                              QString("weightD"), 1.0f, flexCoefficients, QString("poleVectorEnabledD"),
                              QString("poleReferenceVectorD"), QString("poleVectorD"));
-        AnimNode::Triggers triggers;
+        AnimVariantMap triggers;
 
         // the IK solution should be:
         //

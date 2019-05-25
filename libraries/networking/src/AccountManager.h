@@ -28,7 +28,8 @@
 
 class JSONCallbackParameters {
 public:
-    JSONCallbackParameters(QObject* callbackReceiver = nullptr, const QString& jsonCallbackMethod = QString(),
+    JSONCallbackParameters(QObject* callbackReceiver = nullptr,
+                           const QString& jsonCallbackMethod = QString(),
                            const QString& errorCallbackMethod = QString());
 
     bool isEmpty() const { return !callbackReceiver; }
@@ -39,11 +40,11 @@ public:
 };
 
 namespace AccountManagerAuth {
-    enum Type {
-        None,
-        Required,
-        Optional
-    };
+enum Type {
+    None,
+    Required,
+    Optional,
+};
 }
 
 Q_DECLARE_METATYPE(AccountManagerAuth::Type);
@@ -60,14 +61,14 @@ class AccountManager : public QObject, public Dependency {
 public:
     AccountManager(UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
 
+    QNetworkRequest createRequest(QString path, AccountManagerAuth::Type authType);
     Q_INVOKABLE void sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
                                  QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                                  const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                                  const QByteArray& dataByteArray = QByteArray(),
                                  QHttpMultiPart* dataMultiPart = NULL,
-                                 const QVariantMap& propertyMap = QVariantMap(),
-                                 QUrlQuery query = QUrlQuery());
+                                 const QVariantMap& propertyMap = QVariantMap());
 
     void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 
@@ -84,7 +85,7 @@ public:
     void requestProfile();
 
     DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
-    void setAccountInfo(const DataServerAccountInfo &newAccountInfo);
+    void setAccountInfo(const DataServerAccountInfo& newAccountInfo);
 
     static QJsonObject dataObjectFromResponse(QNetworkReply* requestReply);
 
@@ -101,9 +102,18 @@ public:
     bool getLimitedCommerce() { return _limitedCommerce; }
     void setLimitedCommerce(bool isLimited);
 
+    void setAccessTokens(const QString& response);
+    void setConfigFileURL(const QString& fileURL) { _configFileURL = fileURL; }
+    void saveLoginStatus(bool isLoggedIn);
+
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
+    void requestAccessTokenWithOculus(const QString& nonce, const QString& oculusID);
+    void requestAccessTokenWithAuthCode(const QString& authCode,
+                                        const QString& clientId,
+                                        const QString& clientSecret,
+                                        const QString& redirectUri);
     void refreshAccessToken();
 
     void requestAccessTokenFinished();
@@ -156,6 +166,7 @@ private:
     QUuid _sessionID { QUuid::createUuid() };
 
     bool _limitedCommerce { false };
+    QString _configFileURL;
 };
 
-#endif // hifi_AccountManager_h
+#endif  // hifi_AccountManager_h

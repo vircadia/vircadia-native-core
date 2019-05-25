@@ -112,7 +112,6 @@ void EntityScriptServer::handleReloadEntityServerScriptPacket(QSharedPointer<Rec
 
         if (_entityViewer.getTree() && !_shuttingDown) {
             qCDebug(entity_script_server) << "Reloading: " << entityID;
-            _entitiesScriptEngine->unloadEntityScript(entityID);
             checkAndCallPreload(entityID, true);
         }
     }
@@ -184,7 +183,6 @@ void EntityScriptServer::updateEntityPPS() {
         pps = std::min(_maxEntityPPS, pps);
     }
     _entityEditSender.setPacketsPerSecond(pps);
-    qDebug() << QString("Updating entity PPS to: %1 @ %2 PPS per script = %3 PPS").arg(numRunningScripts).arg(_entityPPSPerScript).arg(pps);
 }
 
 void EntityScriptServer::handleEntityServerScriptLogPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -525,23 +523,25 @@ void EntityScriptServer::deletingEntity(const EntityItemID& entityID) {
 
 void EntityScriptServer::entityServerScriptChanging(const EntityItemID& entityID, bool reload) {
     if (_entityViewer.getTree() && !_shuttingDown) {
-        _entitiesScriptEngine->unloadEntityScript(entityID, true);
         checkAndCallPreload(entityID, reload);
     }
 }
 
-void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, bool reload) {
+void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, bool forceRedownload) {
     if (_entityViewer.getTree() && !_shuttingDown && _entitiesScriptEngine) {
 
         EntityItemPointer entity = _entityViewer.getTree()->findEntityByEntityItemID(entityID);
         EntityScriptDetails details;
-        bool notRunning = !_entitiesScriptEngine->getEntityScriptDetails(entityID, details);
-        if (entity && (reload || notRunning || details.scriptText != entity->getServerScripts())) {
+        bool isRunning = _entitiesScriptEngine->getEntityScriptDetails(entityID, details);
+        if (entity && (forceRedownload || !isRunning || details.scriptText != entity->getServerScripts())) {
+            if (isRunning) {
+                _entitiesScriptEngine->unloadEntityScript(entityID, true);
+            }
+
             QString scriptUrl = entity->getServerScripts();
             if (!scriptUrl.isEmpty()) {
                 scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
-                qCDebug(entity_script_server) << "Loading entity server script" << scriptUrl << "for" << entityID;
-                _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
+                _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, forceRedownload);
             }
         }
     }
@@ -583,15 +583,29 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
 
+    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
+    DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<AudioScriptingInterface>();
+    DependencyManager::destroy<SoundCacheScriptingInterface>();
+    DependencyManager::destroy<ResourceScriptingInterface>();
+    DependencyManager::destroy<EntityScriptingInterface>();
+
+    DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<ScriptCache>();
+
+    DependencyManager::destroy<ResourceManager>();
+    DependencyManager::destroy<ResourceCacheSharedItems>();
+
+    DependencyManager::destroy<MessagesClient>();
+
     DependencyManager::destroy<AssignmentDynamicFactory>();
     DependencyManager::destroy<AssignmentParentFinder>();
+    DependencyManager::destroy<AvatarHashMap>();
 
-    DependencyManager::get<ResourceManager>()->cleanup();
 
     DependencyManager::destroy<PluginManager>();
 
-    DependencyManager::destroy<ResourceScriptingInterface>();
-    DependencyManager::destroy<EntityScriptingInterface>();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();

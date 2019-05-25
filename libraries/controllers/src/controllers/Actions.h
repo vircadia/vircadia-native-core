@@ -27,6 +27,10 @@ enum class Action {
     ROTATE_Y, YAW = ROTATE_Y,
     ROTATE_Z, ROLL = ROTATE_Z,
 
+    DELTA_PITCH,
+    DELTA_YAW,
+    DELTA_ROLL,
+
     STEP_YAW,
     // FIXME does this have a use case?
     STEP_PITCH,
@@ -56,6 +60,7 @@ enum class Action {
 
     CONTEXT_MENU,
     TOGGLE_MUTE,
+    TOGGLE_PUSHTOTALK,
     CYCLE_CAMERA,
     TOGGLE_OVERLAY,
 

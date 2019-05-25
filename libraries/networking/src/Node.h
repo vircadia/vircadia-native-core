@@ -35,10 +35,13 @@
 #include "MovingPercentile.h"
 #include "NodePermissions.h"
 #include "HMACAuth.h"
+#include "udt/ConnectionStats.h"
+#include "NumericalConstants.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
+    using Stats = udt::ConnectionStats::Stats;
 
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
@@ -80,6 +83,7 @@ public:
     bool getCanWriteToAssetServer() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
     bool getCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
+    bool getCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
 
     using NodesIgnoredPair = std::pair<std::vector<QUuid>, bool>;
 
@@ -93,6 +97,14 @@ public:
 
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
+
+    void updateStats(Stats stats);
+    const Stats& getConnectionStats() const;
+
+    int getInboundPPS() const;
+    int getOutboundPPS() const;
+    float getInboundKbps() const;
+    float getOutboundKbps() const;
 
 private:
     // privatize copy and assignment operator to disallow Node copying
@@ -115,6 +127,8 @@ private:
     IgnoredNodeIDs _ignoredNodeIDs;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
     std::vector<QString> _replicatedUsernames { };
+
+    Stats _stats;
 };
 
 Q_DECLARE_METATYPE(Node*)

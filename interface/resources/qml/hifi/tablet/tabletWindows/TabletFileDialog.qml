@@ -9,15 +9,15 @@
 //
 
 import QtQuick 2.7
-import Qt.labs.folderlistmodel 2.1
+import Qt.labs.folderlistmodel 2.2
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import QtQuick.Controls 1.4 as QQC1
 import QtQuick.Controls 2.3
 
 import ".."
-import "../../../controls-uit"
-import "../../../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 import "../../../windows"
 
 import "../../../dialogs/fileDialog"
@@ -68,8 +68,6 @@ Rectangle {
     signal canceled();
 
     Component.onCompleted: {
-        console.log("Helper " + helper + " drives " + drives);
-
         fileDialogItem.keyboardEnabled = HMD.active;
 
         // HACK: The following lines force the model to initialize properly such that the go-up button
@@ -281,6 +279,7 @@ Rectangle {
         FolderListModel {
             id: folderListModel
             nameFilters: selectionType.currentFilter
+            caseSensitive: false
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
@@ -762,7 +761,6 @@ Rectangle {
                     }
                 }
 
-                console.log("Selecting " + selection)
                 selectedFile(selection);
                 //root.destroy();
             }

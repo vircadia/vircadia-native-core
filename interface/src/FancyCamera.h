@@ -19,14 +19,23 @@ class FancyCamera : public Camera {
     Q_OBJECT
 
     /**jsdoc
-     * @namespace
-     * @augments Camera
-     */
-
-     // FIXME: JSDoc 3.5.5 doesn't augment @property definitions. The following definition is repeated in Camera.h.
-     /**jsdoc
-     * @property {Uuid} cameraEntity The ID of the entity that the camera position and orientation follow when the camera is in
-     *     entity mode.
+     * The <code>Camera</code> API provides access to the "camera" that defines your view in desktop and HMD display modes.
+     * The High Fidelity camera has axes <code>x</code> = right, <code>y</code> = up, </code>-z</code> = forward.
+     *
+     * @namespace Camera
+     *
+     * @hifi-interface
+     * @hifi-client-entity
+     * @hifi-avatar
+     *
+     * @property {Vec3} position - The position of the camera. You can set this value only when the camera is in independent 
+     *     mode.
+     * @property {Quat} orientation - The orientation of the camera. You can set this value only when the camera is in 
+     *     independent mode.
+     * @property {Camera.Mode} mode - The camera mode.
+     * @property {ViewFrustum} frustum - The camera frustum.
+     * @property {Uuid} cameraEntity - The ID of the entity that is used for the camera position and orientation when the 
+     *     camera is in entity mode.
      */
     Q_PROPERTY(QUuid cameraEntity READ getCameraEntity WRITE setCameraEntity)
 
@@ -38,25 +47,25 @@ public:
 
 
 public slots:
-   /**jsdoc
-   * Get the ID of the entity that the camera is set to use the position and orientation from when it's in entity mode. You can
-   *     also get the entity ID using the <code>Camera.cameraEntity</code> property.
-   * @function Camera.getCameraEntity
-   * @returns {Uuid} The ID of the entity that the camera is set to follow when in entity mode; <code>null</code> if no camera
-   *     entity has been set.
-   */
+    /**jsdoc
+     * Gets the ID of the entity that the camera is set to follow (i.e., use the position and orientation from) when it's in 
+     * entity mode. You can also get the entity ID using the {@link Camera|Camera.cameraEntity} property.
+     * @function Camera.getCameraEntity
+     * @returns {Uuid} The ID of the entity that the camera is set to follow when in entity mode; <code>null</code> if no 
+     *     camera entity has been set.
+     */
     QUuid getCameraEntity() const;
 
     /**jsdoc
-    * Set the entity that the camera should use the position and orientation from when it's in entity mode. You can also set the
-    *     entity using the <code>Camera.cameraEntity</code> property.
-    * @function Camera.setCameraEntity
-    * @param {Uuid} entityID The entity that the camera should follow when it's in entity mode.
-    * @example <caption>Move your camera to the position and orientation of the closest entity.</caption>
-    * Camera.setModeString("entity");
-    * var entity = Entities.findClosestEntity(MyAvatar.position, 100.0);
-    * Camera.setCameraEntity(entity);
-    */
+     * Sets the entity that the camera should follow (i.e., use the position and orientation from) when it's in entity mode. 
+     * You can also set the entity using the {@link Camera|Camera.cameraEntity} property.
+     * @function Camera.setCameraEntity
+     * @param {Uuid} entityID - The entity that the camera should follow when it's in entity mode.
+     * @example <caption>Move your camera to the position and orientation of the closest entity.</caption>
+     * Camera.setModeString("entity");
+     * var entity = Entities.findClosestEntity(MyAvatar.position, 100.0);
+     * Camera.setCameraEntity(entity);
+     */
     void setCameraEntity(QUuid entityID);
 
 private:

@@ -23,8 +23,11 @@ public:
         TRANSPARENT_SHAPE,
         LIGHT,
         META,
-        OVERLAY_OPAQUE_SHAPE,
-        OVERLAY_TRANSPARENT_SHAPE,
+        LAYER_FRONT_OPAQUE_SHAPE,
+        LAYER_FRONT_TRANSPARENT_SHAPE,
+        LAYER_HUD_OPAQUE_SHAPE,
+        LAYER_HUD_TRANSPARENT_SHAPE,
+
         BACKGROUND,
 
         NUM_BUCKETS
@@ -36,7 +39,7 @@ public:
 
     RenderFetchCullSortTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, uint8_t tagBits, uint8_t tagMask);
 };
 
 #endif // hifi_RenderFetchCullSortTask_h

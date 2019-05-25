@@ -9,7 +9,7 @@
 
 #include "Application.h"
 #include "EntityScriptingInterface.h"
-#include "ui/overlays/Overlays.h"
+#include "PickScriptingInterface.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
@@ -57,25 +57,25 @@ PickParabola ParabolaPick::getMathematicalPick() const {
 
 PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) {
     if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
-        bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
-        ParabolaToEntityIntersectionResult entityRes =
-            DependencyManager::get<EntityScriptingInterface>()->findParabolaIntersectionVector(pick, precisionPicking,
-                getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
-        if (entityRes.intersects) {
-            return std::make_shared<ParabolaPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
+        PickFilter searchFilter = getFilter();
+        if (DependencyManager::get<PickManager>()->getForceCoarsePicking()) {
+            searchFilter.setFlag(PickFilter::COARSE, true);
+            searchFilter.setFlag(PickFilter::PRECISE, false);
         }
-    }
-    return std::make_shared<ParabolaPickResult>(pick.toVariantMap());
-}
 
-PickResultPointer ParabolaPick::getOverlayIntersection(const PickParabola& pick) {
-    if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
-        bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
-        ParabolaToOverlayIntersectionResult overlayRes =
-            qApp->getOverlays().findParabolaIntersectionVector(pick, precisionPicking,
-                getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
-        if (overlayRes.intersects) {
-            return std::make_shared<ParabolaPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.parabolicDistance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
+        ParabolaToEntityIntersectionResult entityRes =
+            DependencyManager::get<EntityScriptingInterface>()->evalParabolaIntersectionVector(pick, searchFilter,
+                getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
+        if (entityRes.intersects) {
+            IntersectionType type = IntersectionType::ENTITY;
+            if (getFilter().doesPickLocalEntities()) {
+                EntityPropertyFlags desiredProperties;
+                desiredProperties += PROP_ENTITY_HOST_TYPE;
+                if (DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityRes.entityID, desiredProperties).getEntityHostType() == entity::HostType::LOCAL) {
+                    type = IntersectionType::LOCAL_ENTITY;
+                }
+            }
+            return std::make_shared<ParabolaPickResult>(type, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
         }
     }
     return std::make_shared<ParabolaPickResult>(pick.toVariantMap());

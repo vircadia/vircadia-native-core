@@ -28,25 +28,22 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord1 _texCoord01.zw
 
 void main(void) {
-    vec4 texel = texture(originalTexture, _texCoord0.st);
-    float colorAlpha = _color.a;
-    if (_color.a <= 0.0) {
-        texel = color_sRGBAToLinear(texel);
-        colorAlpha = -_color.a;
-    }
+    vec4 texel = texture(originalTexture, _texCoord0);
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
+    texel.rgb *= _color.rgb;
+    texel.a *= abs(_color.a);
 
     const float ALPHA_THRESHOLD = 0.999;
-    if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
+    if (texel.a < ALPHA_THRESHOLD) {
        packDeferredFragmentTranslucent(
             normalize(_normalWS),
-            colorAlpha * texel.a,
-            _color.rgb * texel.rgb,
-            DEFAULT_FRESNEL,
+            texel.a,
+            texel.rgb,
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(
             normalize(_normalWS),
             1.0,
-            _color.rgb * texel.rgb);
+            texel.rgb);
     }
 }

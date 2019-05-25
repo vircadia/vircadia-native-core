@@ -16,7 +16,7 @@
 #include <QtCore/QStack>
 #include <QtGui/QMouseEvent>
 
-#include <AbstractAudioInterface.h>
+#include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
 #include <PointerEvent.h>
@@ -73,10 +73,12 @@ public:
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
     void setMouseRayPickID(unsigned int rayPickID) { _mouseRayPickID = rayPickID; }
+    unsigned int getMouseRayPickID() { return _mouseRayPickID; }
     void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(unsigned int)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
     void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
     void shutdown();
+    void preUpdate();
     void update(bool simulate);
 
     EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }
@@ -86,14 +88,17 @@ public:
     virtual void init() override;
 
     /// clears the tree
+    virtual void clearDomainAndNonOwnedEntities() override;
     virtual void clear() override;
 
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
 
+    void fadeOutRenderable(const EntityRendererPointer& renderable);
+
     // event handles which may generate entity related events
+    QUuid mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
-    void mousePressEvent(QMouseEvent* event);
     void mouseDoublePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
 
@@ -104,7 +109,7 @@ public:
     // For Scene.shouldRenderEntities
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
-    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _layeredZones.getZone(); }
+    std::pair<bool, bool> getZoneInteractionProperties();
 
     bool wantsKeyboardFocus(const EntityItemID& id) const;
     QObject* getEventHandler(const EntityItemID& id);
@@ -116,6 +121,18 @@ public:
 
     // Access the workload Space
     workload::SpacePointer getWorkloadSpace() const { return _space; }
+
+    EntityEditPacketSender* getPacketSender();
+
+    static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
+    static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
+    static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
+    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
+    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
@@ -153,9 +170,10 @@ private:
 
     void resetEntitiesScriptEngine();
 
-    bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
+    void findBestZoneAndMaybeContainingEntities(QSet<EntityItemID>& entitiesContainingAvatar);
 
     bool applyLayeredZones();
+    void stopDomainAndNonOwnedEntities();
 
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);
 
@@ -163,12 +181,14 @@ private:
     EntityItemID _currentClickingOnEntityID;
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
-    bool checkEnterLeaveEntities();
+    void checkEnterLeaveEntities();
+    void leaveDomainAndNonOwnedEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 
     glm::vec3 _avatarPosition { 0.0f };
-    QVector<EntityItemID> _currentEntitiesInside;
+    bool _forceRecheckEntities { true };
+    QSet<EntityItemID> _currentEntitiesInside;
 
     bool _wantScripts;
     ScriptEnginePointer _entitiesScriptEngine;
@@ -191,60 +211,37 @@ private:
 
     class LayeredZone {
     public:
-        LayeredZone(std::shared_ptr<ZoneEntityItem> zone, QUuid id, float volume) : zone(zone), id(id), volume(volume) {}
-        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : LayeredZone(zone, zone->getID(), zone->getVolumeEstimate()) {}
+        LayeredZone(std::shared_ptr<ZoneEntityItem> zone) : zone(zone), id(zone->getID()), volume(zone->getVolumeEstimate()) {}
 
-        bool operator<(const LayeredZone& r) const { return std::tie(volume, id) < std::tie(r.volume, r.id); }
-        bool operator==(const LayeredZone& r) const { return id == r.id; }
+        // We need to sort on volume AND id so that different clients sort zones with identical volumes the same way
+        bool operator<(const LayeredZone& r) const { return volume < r.volume || (volume == r.volume && id < r.id); }
+        bool operator==(const LayeredZone& r) const { return zone.lock() && zone.lock() == r.zone.lock(); }
+        bool operator!=(const LayeredZone& r) const { return !(*this == r); }
         bool operator<=(const LayeredZone& r) const { return (*this < r) || (*this == r); }
 
-        std::shared_ptr<ZoneEntityItem> zone;
+        std::weak_ptr<ZoneEntityItem> zone;
         QUuid id;
         float volume;
     };
 
-    class LayeredZones : public std::set<LayeredZone> {
+    class LayeredZones : public std::vector<LayeredZone> {
     public:
-        LayeredZones(EntityTreeRenderer* parent) : _entityTreeRenderer(parent) {}
-        LayeredZones(LayeredZones&& other);
+        bool clearDomainAndNonOwnedZones(const QUuid& sessionUUID);
 
-        // avoid accidental misconstruction
-        LayeredZones() = delete;
-        LayeredZones(const LayeredZones&) = delete;
-        LayeredZones& operator=(const LayeredZones&) = delete;
-        LayeredZones& operator=(LayeredZones&&) = delete;
+        void sort() { std::sort(begin(), end(), std::less<LayeredZone>()); }
+        bool equals(const LayeredZones& other) const;
+        bool update(std::shared_ptr<ZoneEntityItem> zone, const glm::vec3& position, EntityTreeRenderer* entityTreeRenderer);
 
-        void clear();
-        std::pair<iterator, bool> insert(const LayeredZone& layer);
-
-        void apply();
-        void update(std::shared_ptr<ZoneEntityItem> zone);
-
-        bool contains(const LayeredZones& other);
-
-        std::shared_ptr<ZoneEntityItem> getZone() { return empty() ? nullptr : begin()->zone; }
-
-    private:
-        void applyPartial(iterator layer);
-
-        std::map<QUuid, iterator> _map;
-        iterator _skyboxLayer{ end() };
-        EntityTreeRenderer* _entityTreeRenderer;
+        void appendRenderIDs(render::ItemIDs& list, EntityTreeRenderer* entityTreeRenderer) const;
+        std::pair<bool, bool> getZoneInteractionProperties() const;
     };
 
     LayeredZones _layeredZones;
-    QString _zoneUserData;
-    NetworkTexturePointer _ambientTexture;
-    NetworkTexturePointer _skyboxTexture;
-    QString _ambientTextureURL;
-    QString _skyboxTextureURL;
-    float _avgRenderableUpdateCost { 0.0f };
-    bool _pendingAmbientTexture { false };
-    bool _pendingSkyboxTexture { false };
-
     uint64_t _lastZoneCheck { 0 };
     const uint64_t ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
     const float ZONE_CHECK_DISTANCE = 0.001f;
+
+    float _avgRenderableUpdateCost { 0.0f };
 
     ReadWriteLockable _changedEntitiesGuard;
     std::unordered_set<EntityItemID> _changedEntities;
@@ -252,6 +249,7 @@ private:
     std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
+
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 
@@ -262,6 +260,12 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space{ new workload::Space() };
     workload::Transaction::Updates _spaceUpdates;
+
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
+
 };
 
 

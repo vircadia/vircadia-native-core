@@ -21,9 +21,7 @@
 #include "EntityTreeElement.h"
 #include "OctreeConstants.h"
 
-const float LineEntityItem::DEFAULT_LINE_WIDTH = 2.0f;
 const int LineEntityItem::MAX_POINTS_PER_LINE = 70;
-
 
 EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new LineEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
@@ -42,7 +40,6 @@ EntityItemProperties LineEntityItem::getProperties(const EntityPropertyFlags& de
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
 
     return properties;
@@ -53,7 +50,6 @@ bool LineEntityItem::setProperties(const EntityItemProperties& properties) {
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
 
     if (somethingChanged) {
@@ -115,7 +111,6 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
-    READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
     READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
 
     return bytesRead;
@@ -125,7 +120,6 @@ int LineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 EntityPropertyFlags LineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_LINE_WIDTH;
     requestedProperties += PROP_LINE_POINTS;
     return requestedProperties;
 }
@@ -141,7 +135,6 @@ void LineEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
     APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
 }
 
@@ -164,20 +157,6 @@ void LineEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;
     });
-}
-
-void LineEntityItem::setLineWidth(float lineWidth) { 
-    withWriteLock([&] {
-        _lineWidth = lineWidth;
-    });
-}
-
-float LineEntityItem::getLineWidth() const { 
-    float result;
-    withReadLock([&] {
-        result = _lineWidth;
-    });
-    return result;
 }
 
 QVector<glm::vec3> LineEntityItem::getLinePoints() const { 

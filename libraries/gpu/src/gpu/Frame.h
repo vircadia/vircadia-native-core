@@ -9,6 +9,7 @@
 #define hifi_gpu_Frame_h
 
 #include <functional>
+#include <queue>
 
 #include "Forward.h"
 #include "Batch.h"
@@ -41,7 +42,11 @@ namespace gpu {
         /// How to process the framebuffer when the frame dies.  MUST BE THREAD SAFE
         FramebufferRecycler framebufferRecycler;
 
+        std::queue<std::tuple<std::function<void(const QImage&)>, float, bool>> snapshotOperators;
+
     protected:
+        friend class Deserializer;
+
         // Should be called once per frame, on the recording thred
         void finish();
         void preRender();

@@ -64,10 +64,6 @@ bool AudioMixerSlaveThread::try_pop(SharedNodePointer& node) {
     return _pool._queue.try_pop(node);
 }
 
-#ifdef AUDIO_SINGLE_THREADED
-static AudioMixerSlave slave;
-#endif
-
 void AudioMixerSlavePool::processPackets(ConstIter begin, ConstIter end) {
     _function = &AudioMixerSlave::processPackets;
     _configure = [](AudioMixerSlave& slave) {};
@@ -87,19 +83,9 @@ void AudioMixerSlavePool::run(ConstIter begin, ConstIter end) {
     _begin = begin;
     _end = end;
 
-#ifdef AUDIO_SINGLE_THREADED
-    _configure(slave);
-    std::for_each(begin, end, [&](const SharedNodePointer& node) {
-        _function(slave, node);
-    });
-#else
     // fill the queue
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
-#if defined(__clang__) && defined(Q_OS_LINUX)
         _queue.push(node);
-#else
-        _queue.emplace(node);
-#endif
     });
 
     {
@@ -119,18 +105,26 @@ void AudioMixerSlavePool::run(ConstIter begin, ConstIter end) {
     }
 
     assert(_queue.empty());
-#endif
 }
 
 void AudioMixerSlavePool::each(std::function<void(AudioMixerSlave& slave)> functor) {
-#ifdef AUDIO_SINGLE_THREADED
-    functor(slave);
-#else
     for (auto& slave : _slaves) {
         functor(*slave.get());
     }
-#endif
 }
+
+#ifdef DEBUG_EVENT_QUEUE
+void AudioMixerSlavePool::queueStats(QJsonObject& stats) {
+    unsigned i = 0;
+    for (auto& slave : _slaves) {
+        int queueSize = ::hifi::qt::getEventQueueSize(slave.get());
+        QString queueName = QString("audio_thread_event_queue_%1").arg(i);
+        stats[queueName] = queueSize;
+
+        i++;
+    }
+}
+#endif // DEBUG_EVENT_QUEUE
 
 void AudioMixerSlavePool::setNumThreads(int numThreads) {
     // clamp to allowed size
@@ -155,9 +149,6 @@ void AudioMixerSlavePool::setNumThreads(int numThreads) {
 void AudioMixerSlavePool::resize(int numThreads) {
     assert(_numThreads == (int)_slaves.size());
 
-#ifdef AUDIO_SINGLE_THREADED
-    qDebug("%s: running single threaded", __FUNCTION__, numThreads);
-#else
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
     Lock lock(_mutex);
@@ -205,5 +196,4 @@ void AudioMixerSlavePool::resize(int numThreads) {
 
     _numThreads = _numStarted = _numFinished = numThreads;
     assert(_numThreads == (int)_slaves.size());
-#endif
 }

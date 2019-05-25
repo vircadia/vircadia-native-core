@@ -17,7 +17,7 @@
 #include <ViewFrustum.h>
 #include <shaders/Shaders.h>
 
-ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
+ProceduralSkybox::ProceduralSkybox(uint64_t created) : graphics::Skybox(), _created(created) {
     _procedural._vertexSource = gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource();
     _procedural._opaqueFragmentSource = shader::Source::get(shader::procedural::fragment::proceduralSkybox);
     // Adjust the pipeline state for background using the stencil test
@@ -26,6 +26,7 @@ ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
     const int8_t STENCIL_BACKGROUND = 0;
     _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL,
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    _procedural._opaqueState->setDepthTest(gpu::State::DepthTest(false));
 }
 
 bool ProceduralSkybox::empty() {
@@ -35,7 +36,6 @@ bool ProceduralSkybox::empty() {
 void ProceduralSkybox::clear() {
     // Parse and prepare a procedural with no shaders to release textures
     parse(QString());
-    _procedural.isReady();
 
     Skybox::clear();
 }
@@ -59,7 +59,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     batch.setModelTransform(Transform()); // only for Mac
 
     auto& procedural = skybox._procedural;
-    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
+    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat(), skybox.getCreated());
     skybox.prepare(batch);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 }

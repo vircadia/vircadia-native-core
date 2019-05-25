@@ -37,7 +37,7 @@ void LineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
     if (_lineVerticesID == GeometryCache::UNKNOWN_ID) {
         _lineVerticesID = geometryCache->allocateID();
     }
-    glm::vec4 lineColor(toGlm(entity->getColor()), entity->getLocalRenderAlpha());
+    glm::vec4 lineColor(toGlm(entity->getColor()), 1.0f);
     geometryCache->updateVertices(_lineVerticesID, _linePoints, lineColor);
 }
 
@@ -55,7 +55,8 @@ void LineEntityRenderer::doRender(RenderArgs* args) {
     transform.setRotation(modelTransform.getRotation());
     batch.setModelTransform(transform);
     if (_linePoints.size() > 1) {
-        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
+        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, true, false, false, true,
+            _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
 }

@@ -11,8 +11,6 @@
 
 #include <glm/glm.hpp>
 
-#include "ui/overlays/Base3DOverlay.h"
-
 #include "Application.h"
 #include <DependencyManager.h>
 #include "avatar/AvatarManager.h"
@@ -20,12 +18,10 @@
 #include <controllers/StandardControls.h>
 #include <controllers/UserInputMapper.h>
 
-using namespace bilateral;
+#include <EntityTreeElement.h>
 
-// TODO: make these configurable per pick
-static const float WEB_STYLUS_LENGTH = 0.2f;
-static const float WEB_TOUCH_Y_OFFSET = 0.105f;  // how far forward (or back with a negative number) to slide stylus in hand
-static const glm::vec3 TIP_OFFSET = glm::vec3(0.0f, WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, 0.0f);
+using namespace bilateral;
+float StylusPick::WEB_STYLUS_LENGTH = 0.2f;
 
 struct SideData {
     QString avatarJoint;
@@ -64,8 +60,8 @@ bool StylusPickResult::checkOrFilterAgainstMaxDistance(float maxDistance) {
     return distance < maxDistance;
 }
 
-StylusPick::StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled) :
-    Pick(StylusTip(side), filter, maxDistance, enabled)
+StylusPick::StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled, const glm::vec3& tipOffset) :
+    Pick(StylusTip(side, tipOffset), filter, maxDistance, enabled)
 {
 }
 
@@ -90,7 +86,7 @@ static StylusTip getFingerWorldLocation(Side side) {
 }
 
 // controllerWorldLocation is where the controller would be, in-world, with an added offset
-static StylusTip getControllerWorldLocation(Side side) {
+static StylusTip getControllerWorldLocation(Side side, const glm::vec3& tipOffset) {
     static const std::array<controller::Input, 2> INPUTS{ { UserInputMapper::makeStandardInput(SIDES[0].channel),
                                                            UserInputMapper::makeStandardInput(SIDES[1].channel) } };
     const auto sideIndex = index(side);
@@ -114,7 +110,7 @@ static StylusTip getControllerWorldLocation(Side side) {
         // add to the real position so the grab-point is out in front of the hand, a bit
         result.position += result.orientation * (sideData.grabPointSphereOffset * sensorScaleFactor);
         // move the stylus forward a bit
-        result.position += result.orientation * (TIP_OFFSET * sensorScaleFactor);
+        result.position += result.orientation * (tipOffset * sensorScaleFactor);
 
         auto worldControllerPos = avatarPosition + avatarOrientation * pose.translation;
         // compute tip velocity from hand controller motion, it is more accurate than computing it from previous positions.
@@ -131,7 +127,7 @@ StylusTip StylusPick::getMathematicalPick() const {
     if (qApp->getPreferAvatarFingerOverStylus()) {
         result = getFingerWorldLocation(_mathPick.side);
     } else {
-        result = getControllerWorldLocation(_mathPick.side);
+        result = getControllerWorldLocation(_mathPick.side, _mathPick.tipOffset);
     }
     return result;
 }
@@ -141,80 +137,63 @@ PickResultPointer StylusPick::getDefaultResult(const QVariantMap& pickVariant) c
 }
 
 PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
-    std::vector<StylusPickResult> results;
+    auto entityTree = qApp->getEntities()->getTree();
+    StylusPickResult nearestTarget(pick.toVariantMap());
     for (const auto& target : getIncludeItems()) {
         if (target.isNull()) {
             continue;
         }
 
-        auto entity = qApp->getEntities()->getTree()->findEntityByEntityItemID(target);
+        auto entity = entityTree->findEntityByEntityItemID(target);
         if (!entity) {
             continue;
         }
 
-        if (!entity->getVisible() && !getFilter().doesPickInvisible()) {
+        if (!EntityTreeElement::checkFilterSettings(entity, getFilter())) {
             continue;
         }
 
         const auto entityRotation = entity->getWorldOrientation();
         const auto entityPosition = entity->getWorldPosition();
+        const auto entityType = entity->getType();
+        glm::vec3 normal;
 
-        glm::vec3 normal = entityRotation * Vectors::UNIT_Z;
+        // TODO: Use the xz projection method for Sphere and Quad.
+        if (entityType == EntityTypes::Gizmo) {
+            normal = entityRotation * Vectors::UNIT_Y;
+        } else {
+            normal = entityRotation * Vectors::UNIT_Z;
+        }
         float distance = glm::dot(pick.position - entityPosition, normal);
-        glm::vec3 intersection = pick.position - (normal * distance);
+        if (distance < nearestTarget.distance) {
+            const auto entityDimensions = entity->getScaledDimensions();
+            const auto entityRegistrationPoint = entity->getRegistrationPoint();
+            glm::vec3 intersection = pick.position - (normal * distance);
+            glm::vec2 pos2D;
 
-        glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(target, intersection, false);
-        if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            results.push_back(StylusPickResult(IntersectionType::ENTITY, target, distance, intersection, pick, normal));
+
+            auto entityType = entity->getType();
+
+            if (entityType == EntityTypes::Gizmo) {
+                pos2D = RayPick::projectOntoXZPlane(intersection, entityPosition, entityRotation,
+                                                    entityDimensions, entityRegistrationPoint, false);
+            } else {
+                pos2D = RayPick::projectOntoXYPlane(intersection, entityPosition, entityRotation,
+                                                    entityDimensions, entityRegistrationPoint, false);
+            }
+
+            if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
+                IntersectionType type = IntersectionType::ENTITY;
+                if (getFilter().doesPickLocalEntities()) {
+                    if (entity->getEntityHostType() == entity::HostType::LOCAL) {
+                        type = IntersectionType::LOCAL_ENTITY;
+                    }
+                }
+                nearestTarget = StylusPickResult(type, target, distance, intersection, pick, normal);
+            }
         }
     }
 
-    StylusPickResult nearestTarget(pick.toVariantMap());
-    for (const auto& result : results) {
-        if (result.distance < nearestTarget.distance) {
-            nearestTarget = result;
-        }
-    }
-    return std::make_shared<StylusPickResult>(nearestTarget);
-}
-
-PickResultPointer StylusPick::getOverlayIntersection(const StylusTip& pick) {
-    std::vector<StylusPickResult> results;
-    for (const auto& target : getIncludeItems()) {
-        if (target.isNull()) {
-            continue;
-        }
-
-        auto overlay = qApp->getOverlays().getOverlay(target);
-        // Don't interact with non-3D or invalid overlays
-        if (!overlay || !overlay->is3D()) {
-            continue;
-        }
-
-        if (!overlay->getVisible() && !getFilter().doesPickInvisible()) {
-            continue;
-        }
-
-        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-        const auto overlayRotation = overlay3D->getWorldOrientation();
-        const auto overlayPosition = overlay3D->getWorldPosition();
-
-        glm::vec3 normal = overlayRotation * Vectors::UNIT_Z;
-        float distance = glm::dot(pick.position - overlayPosition, normal);
-        glm::vec3 intersection = pick.position - (normal * distance);
-
-        glm::vec2 pos2D = RayPick::projectOntoOverlayXYPlane(target, intersection, false);
-        if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            results.push_back(StylusPickResult(IntersectionType::OVERLAY, target, distance, intersection, pick, normal));
-        }
-    }
-
-    StylusPickResult nearestTarget(pick.toVariantMap());
-    for (const auto& result : results) {
-        if (result.distance < nearestTarget.distance) {
-            nearestTarget = result;
-        }
-    }
     return std::make_shared<StylusPickResult>(nearestTarget);
 }
 

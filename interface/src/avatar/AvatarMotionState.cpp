@@ -15,10 +15,10 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 
-
 AvatarMotionState::AvatarMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
+    _collisionGroup = BULLET_COLLISION_GROUP_OTHER_AVATAR;
     cacheShapeDiameter();
 }
 
@@ -29,36 +29,25 @@ void AvatarMotionState::handleEasyChanges(uint32_t& flags) {
     }
 }
 
-bool AvatarMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
-}
-
 AvatarMotionState::~AvatarMotionState() {
     assert(_avatar);
     _avatar = nullptr;
 }
 
 // virtual
-uint32_t AvatarMotionState::getIncomingDirtyFlags() {
+uint32_t AvatarMotionState::getIncomingDirtyFlags() const {
     return _body ? _dirtyFlags : 0;
 }
 
-void AvatarMotionState::clearIncomingDirtyFlags() {
+void AvatarMotionState::clearIncomingDirtyFlags(uint32_t mask) {
     if (_body) {
-        _dirtyFlags = 0;
+        _dirtyFlags &= ~mask;
     }
 }
 
 PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
     // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
     return MOTION_TYPE_DYNAMIC;
-}
-
-// virtual and protected
-const btCollisionShape* AvatarMotionState::computeNewShape() {
-    ShapeInfo shapeInfo;
-    _avatar->computeShapeInfo(shapeInfo);
-    return getShapeManager()->getShape(shapeInfo);
 }
 
 // virtual
@@ -170,8 +159,11 @@ QUuid AvatarMotionState::getSimulatorID() const {
 
 // virtual
 void AvatarMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
-    group = BULLET_COLLISION_GROUP_OTHER_AVATAR;
+    group = _collisionGroup;
     mask = Physics::getDefaultCollisionMask(group);
+    if (!_avatar->getCollideWithOtherAvatars()) {
+        mask &= ~(BULLET_COLLISION_GROUP_MY_AVATAR | BULLET_COLLISION_GROUP_OTHER_AVATAR);
+    }
 }
 
 // virtual

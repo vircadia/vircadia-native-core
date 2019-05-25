@@ -57,6 +57,37 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
     }
 }
 
+/**jsdoc
+ * An intersection result for a collision pick.
+ *
+ * @typedef {object} CollisionPickResult
+ * @property {boolean} intersects - <code>true</code> if there is at least one intersection, <code>false</code> if there isn't.
+ * @property {IntersectingObject[]} intersectingObjects - All objects which intersect with the <code>collisionRegion</code>.
+ * @property {CollisionRegion} collisionRegion - The collision region that was used. Valid even if there was no intersection.
+ */
+
+/**jsdoc
+ * Information about a {@link CollisionPick}'s intersection with an object.
+ *
+ * @typedef {object} IntersectingObject
+ * @property {Uuid} id - The ID of the object.
+ * @property {IntersectionType} type - The type of the object, either <code>1</code> for INTERSECTED_ENTITY or <code>3</code> 
+ *     for INTERSECTED_AVATAR.
+ * @property {CollisionContact[]} collisionContacts - Information on the penetration between the pick and the object.
+ */
+
+/**jsdoc
+ * A pair of points that represents part of an overlap between a {@link CollisionPick} and an object in the physics engine. 
+ * Points which are further apart represent deeper overlap.
+ *
+ * @typedef {object} CollisionContact
+ * @property {Vec3} pointOnPick - A point representing a penetration of the object's surface into the volume of the pick, in 
+ *     world coordinates.
+ * @property {Vec3} pointOnObject - A point representing a penetration of the pick's surface into the volume of the object, in 
+ *     world coordinates.
+ * @property {Vec3} normalOnPick - The normal vector pointing away from the pick, representing the direction of collision.
+ */
+
 QVariantMap CollisionPickResult::toVariantMap() const {
     QVariantMap variantMap;
 
@@ -149,7 +180,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
                 uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % TRIANGLE_STRIDE == 0);
-                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                 for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
                     glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
@@ -170,7 +201,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
                 numIndices = (uint32_t)meshPart.quadIndices.size();
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % QUAD_STRIDE == 0);
-                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                 for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
                     glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
@@ -225,7 +256,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
         }
         const int32_t MAX_VERTICES_PER_STATIC_MESH = 1e6;
         if (totalNumVertices > MAX_VERTICES_PER_STATIC_MESH) {
-            qWarning() << "model" << resource->getURL() << "has too many vertices" << totalNumVertices << "and will collide as a box.";
+            qWarning() << "model" << "has too many vertices" << totalNumVertices << "and will collide as a box.";
             shapeInfo.setParams(SHAPE_TYPE_BOX, 0.5f * dimensions);
             return;
         }
@@ -305,7 +336,7 @@ void CollisionPick::computeShapeInfo(const CollisionRegion& pick, ShapeInfo& sha
                     auto numIndices = meshPart.triangleIndices.count();
                     // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                     //assert(numIndices% TRIANGLE_STRIDE == 0);
-                    numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                    numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                     auto indexItr = meshPart.triangleIndices.cbegin();
                     while (indexItr != meshPart.triangleIndices.cend()) {
@@ -407,10 +438,6 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
     auto entityIntersections = _physicsEngine->contactTest(USER_COLLISION_MASK_ENTITIES, *_mathPick.shapeInfo, pick.transform, pick.collisionGroup, pick.threshold);
     filterIntersections(entityIntersections);
     return std::make_shared<CollisionPickResult>(pick, entityIntersections, std::vector<ContactTestResult>());
-}
-
-PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
 }
 
 PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pick) {

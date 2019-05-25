@@ -92,8 +92,6 @@ namespace graphics {
 
         void setHazeBackgroundBlend(const float hazeBackgroundBlend);
 
-        void setTransform(const glm::mat4& transform);
-
         using UniformBufferView = gpu::BufferView;
         UniformBufferView getHazeParametersBuffer() const { return _hazeParametersBuffer; }
 
@@ -101,30 +99,32 @@ namespace graphics {
         class Parameters {
         public:
             // DO NOT CHANGE ORDER HERE WITHOUT UNDERSTANDING THE std140 LAYOUT
-            glm::vec3 hazeColor{ INITIAL_HAZE_COLOR };
-            float hazeGlareBlend{ convertGlareAngleToPower(INITIAL_HAZE_GLARE_ANGLE) };
+            glm::vec3 hazeColor { INITIAL_HAZE_COLOR };
+            float hazeGlareBlend { convertGlareAngleToPower(INITIAL_HAZE_GLARE_ANGLE) };
 
-            glm::vec3 hazeGlareColor{ INITIAL_HAZE_GLARE_COLOR };
-            float hazeBaseReference{ INITIAL_HAZE_BASE_REFERENCE };
+            glm::vec3 hazeGlareColor { INITIAL_HAZE_GLARE_COLOR };
+            float hazeBaseReference { INITIAL_HAZE_BASE_REFERENCE };
 
             glm::vec3 colorModulationFactor;
-            int hazeMode{ 0 };    // bit 0 - set to activate haze attenuation of fragment color
+            int hazeMode { 0 };   // bit 0 - set to activate haze attenuation of fragment color
                                   // bit 1 - set to add the effect of altitude to the haze attenuation
                                   // bit 2 - set to activate directional light attenuation mode
                                   // bit 3 - set to blend between blend-in and blend-out colours
 
-            glm::mat4 transform;
+            // Padding required to align the struct
+#if defined(__clang__)
+            __attribute__((unused))
+#endif
+            vec3 __padding;
 
             // Amount of background (skybox) to display, overriding the haze effect for the background
-            float hazeBackgroundBlend{ INITIAL_HAZE_BACKGROUND_BLEND };
+            float hazeBackgroundBlend { INITIAL_HAZE_BACKGROUND_BLEND };
             // The haze attenuation exponents used by both fragment and directional light attenuation
-            float hazeRangeFactor{ convertHazeRangeToHazeRangeFactor(INITIAL_HAZE_RANGE) };
-            float hazeHeightFactor{ convertHazeAltitudeToHazeAltitudeFactor(INITIAL_HAZE_HEIGHT) };
-            float hazeKeyLightRangeFactor{ convertHazeRangeToHazeRangeFactor(INITIAL_KEY_LIGHT_RANGE) };
+            float hazeRangeFactor { convertHazeRangeToHazeRangeFactor(INITIAL_HAZE_RANGE) };
+            float hazeHeightFactor { convertHazeAltitudeToHazeAltitudeFactor(INITIAL_HAZE_HEIGHT) };
+            float hazeKeyLightRangeFactor { convertHazeRangeToHazeRangeFactor(INITIAL_KEY_LIGHT_RANGE) };
 
-            float hazeKeyLightAltitudeFactor{ convertHazeAltitudeToHazeAltitudeFactor(INITIAL_KEY_LIGHT_ALTITUDE) };
-            // Padding required to align the structure to sizeof(vec4)
-            vec3 __padding;
+            float hazeKeyLightAltitudeFactor { convertHazeAltitudeToHazeAltitudeFactor(INITIAL_KEY_LIGHT_ALTITUDE) };
 
             Parameters() {}
         };

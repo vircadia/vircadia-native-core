@@ -25,6 +25,7 @@ public:
     enum Type {
         Initialize = QEvent::User + 1,
         Render,
+        RenderSync,
         Quit
     };
 
@@ -45,6 +46,8 @@ private:
     void onInitalize();
     void resize();
     void onRender();
+    void onRenderSync();
+    void qmlRender(bool sceneGraphSync);
     void onQuit();
 
     SharedObject* const _shared;
@@ -53,6 +56,8 @@ private:
 
     uint32_t _fbo{ 0 };
     uint32_t _depthStencil{ 0 };
+
+    bool _initialized { false };
 };
 
 }}}  // namespace hifi::qml::impl

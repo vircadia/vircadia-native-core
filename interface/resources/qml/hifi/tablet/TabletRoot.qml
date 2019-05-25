@@ -3,10 +3,13 @@ import Hifi 1.0
 
 import "../../dialogs"
 import "../../controls"
+import stylesUit 1.0
 
-Item {
+Rectangle {
+    HifiConstants { id: hifi; }
     id: tabletRoot
     objectName: "tabletRoot"
+    color: hifi.colors.baseGray
     property string username: "Unknown user"
     property string usernameShort: "Unknown user"
     property var rootMenu;
@@ -15,6 +18,7 @@ Item {
     property var openBrowser: null;
     property string subMenu: ""
     signal showDesktop();
+    signal screenChanged(var type, var url);
     property bool shown: true
     property int currentApp: -1;
     property alias tabletApps: tabletApps
@@ -113,6 +117,7 @@ Item {
                 if (loader.item.hasOwnProperty("gotoPreviousApp")) {
                     loader.item.gotoPreviousApp = true;
                 }
+                screenChanged("Web", url)
             });
         }
     }
@@ -131,8 +136,7 @@ Item {
         if (isWebPage) {
             var webUrl = tabletApps.get(currentApp).appWebUrl;
             var scriptUrl = tabletApps.get(currentApp).scriptUrl;
-            loadSource("hifi/tablet/TabletWebView.qml");
-            loadWebUrl(webUrl, scriptUrl);
+            loadWebBase(webUrl, scriptUrl);
         } else {
         	loader.load(tabletApps.get(currentApp).appUrl);
         }
@@ -145,16 +149,6 @@ Item {
         newWindow.profile = profile;
         request.openIn(newWindow.webView);
         tabletRoot.openBrowser = newWindow;
-    }
-
-    function loadWebUrl(url, injectedJavaScriptUrl) {
-        tabletApps.clear();
-        loader.item.url = url;
-        loader.item.scriptURL = injectedJavaScriptUrl;
-        tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
-        if (loader.item.hasOwnProperty("closeButtonVisible")) {
-            loader.item.closeButtonVisible = false;
-        }
     }
 
     // used to send a message from qml to interface script.
@@ -183,10 +177,10 @@ Item {
 
     function setUsername(newUsername) {
         username = newUsername;
-        usernameShort = newUsername.substring(0, 8);
+        usernameShort = newUsername.substring(0, 14);
 
-        if (newUsername.length > 8) {
-            usernameShort = usernameShort + "..."
+        if (newUsername.length > 14) {
+             usernameShort = usernameShort + "..."
         }
     }
 
@@ -266,6 +260,24 @@ Item {
 	            if (callback) {
 	            	callback();
 	            }
+
+                var type = "Unknown";
+                if (newSource === "") {
+                    type = "Closed";
+                } else if (newSource === "hifi/tablet/TabletMenu.qml") {
+                    type = "Menu";
+                } else if (newSource === "hifi/tablet/TabletHome.qml") {
+                    type = "Home";
+                } else if (newSource === "hifi/tablet/TabletWebView.qml") {
+                    // Handled in `callback()`
+                    return;
+                } else if (newSource.toLowerCase().indexOf(".qml") > -1) {
+                    type = "QML";
+                } else {
+                    console.log("newSource is of unknown type!");
+                }
+                
+                screenChanged(type, newSource);
 	        });
     	}
 	}

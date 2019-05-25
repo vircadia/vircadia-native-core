@@ -1,7 +1,7 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {
@@ -17,14 +17,13 @@ Rectangle {
     property alias dialogButtons: buttons
 
     property string imageSource: null
-    onImageSourceChanged: {
-        console.debug('imageSource = ', imageSource)
-    }
 
     property string button1color: hifi.buttons.noneBorderlessGray;
     property string button1text: ''
     property string button2color: hifi.buttons.blue;
     property string button2text: ''
+
+    property bool closeOnClickOutside: false;
 
     property var onButton2Clicked;
     property var onButton1Clicked;
@@ -59,6 +58,11 @@ Rectangle {
         anchors.fill: parent;
         propagateComposedEvents: false;
         hoverEnabled: true;
+        onClicked: {
+            if (closeOnClickOutside) {
+                root.close()
+            }
+        }
     }
 
     Rectangle {
@@ -69,6 +73,15 @@ Rectangle {
         height: childrenRect.height + margin * 2
         onHeightChanged: {
             console.debug('mainContainer: height = ', height)
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            propagateComposedEvents: false;
+            hoverEnabled: true;
+            onClicked: function(ev) {
+                ev.accepted = true;
+            }
         }
 
         anchors.centerIn: parent

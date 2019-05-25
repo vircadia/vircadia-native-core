@@ -28,6 +28,7 @@ const QVector<glm::vec3> ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC = QVector<glm::vec3
 
 const bool ENTITY_ITEM_DEFAULT_LOCKED = false;
 const QString ENTITY_ITEM_DEFAULT_USER_DATA = QString("");
+const QString ENTITY_ITEM_DEFAULT_PRIVATE_USER_DATA = QString("");
 const QUuid ENTITY_ITEM_DEFAULT_SIMULATOR_ID = QUuid();
 
 // Certifiable Properties
@@ -41,10 +42,11 @@ const QString ENTITY_ITEM_DEFAULT_MARKETPLACE_ID = QString("");
 const quint32 ENTITY_ITEM_DEFAULT_EDITION_NUMBER = 0;
 const quint32 ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER = 0;
 const QString ENTITY_ITEM_DEFAULT_CERTIFICATE_ID = QString("");
+const QString ENTITY_ITEM_DEFAULT_CERTIFICATE_TYPE = QString("");
 const quint32 ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION = 0;
 
+const glm::u8vec3 ENTITY_ITEM_DEFAULT_COLOR = { 255, 255, 255 };
 const float ENTITY_ITEM_DEFAULT_ALPHA = 1.0f;
-const float ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const bool ENTITY_ITEM_DEFAULT_VISIBLE = true;
 const bool ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA = true;
 const bool ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW { true };
@@ -53,6 +55,9 @@ const QString ENTITY_ITEM_DEFAULT_SCRIPT = QString("");
 const quint64 ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP = 0;
 const QString ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS = QString("");
 const QString ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL = QString("");
+
+const float ENTITY_ITEM_MIN_REGISTRATION_POINT = 0.0f;
+const float ENTITY_ITEM_MAX_REGISTRATION_POINT = 1.0f;
 const glm::vec3 ENTITY_ITEM_DEFAULT_REGISTRATION_POINT = ENTITY_ITEM_HALF_VEC3; // center
 
 const float ENTITY_ITEM_IMMORTAL_LIFETIME = -1.0f; /// special lifetime which means the entity lives for ever
@@ -75,6 +80,8 @@ const glm::vec3 ENTITY_ITEM_DEFAULT_VELOCITY = ENTITY_ITEM_ZERO_VEC3;
 const glm::vec3 ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY = ENTITY_ITEM_ZERO_VEC3;
 const glm::vec3 ENTITY_ITEM_DEFAULT_GRAVITY = ENTITY_ITEM_ZERO_VEC3;
 const glm::vec3 ENTITY_ITEM_DEFAULT_ACCELERATION = ENTITY_ITEM_ZERO_VEC3;
+const float ENTITY_ITEM_MIN_DAMPING = 0.0f;
+const float ENTITY_ITEM_MAX_DAMPING = 1.0f;
 const float ENTITY_ITEM_DEFAULT_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 const float ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING = 0.39347f;  // approx timescale = 2.0 sec (see damping timescale formula in header)
 

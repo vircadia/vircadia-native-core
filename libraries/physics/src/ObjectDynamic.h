@@ -17,7 +17,9 @@
 
 #include <btBulletDynamicsCommon.h>
 
+#include <EntityItemID.h>
 #include <shared/ReadWriteLockable.h>
+#include <SpatiallyNestable.h>
 
 #include "ObjectMotionState.h"
 #include "BulletUtil.h"
@@ -66,6 +68,7 @@ protected:
     EntityItemID _otherID;
     SpatiallyNestableWeakPointer _other;
     SpatiallyNestablePointer getOther();
+    int _otherJointIndex { -1 };
 
 private:
     qint64 getEntityServerClockSkew() const;

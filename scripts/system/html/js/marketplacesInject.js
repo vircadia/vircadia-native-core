@@ -19,6 +19,7 @@
     var CLARA_IO_CANCEL_DOWNLOAD = "CLARA.IO CANCEL DOWNLOAD";
     var CLARA_IO_CANCELLED_DOWNLOAD = "CLARA.IO CANCELLED DOWNLOAD";
     var GOTO_DIRECTORY = "GOTO_DIRECTORY";
+    var GOTO_MARKETPLACE = "GOTO_MARKETPLACE";
     var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
     var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
     var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
@@ -27,10 +28,6 @@
     var xmlHttpRequest = null;
     var isPreparing = false; // Explicitly track download request status.
 
-    var limitedCommerce = false;
-    var commerceMode = false;
-    var userIsLoggedIn = false;
-    var walletNeedsSetup = false;
     var marketplaceBaseURL = "https://highfidelity.com";
     var messagesWaiting = false;
 
@@ -72,7 +69,16 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
+            if (document.referrer !== "") {
+                window.history.back();
+            } else {
+                var params = { type: GOTO_MARKETPLACE };
+                var itemIdMatch = location.search.match(/itemId=([^&]*)/);
+                if (itemIdMatch && itemIdMatch.length === 2) {
+                    params.itemId = itemIdMatch[1];
+                }
+                EventBridge.emitWebEvent(JSON.stringify(params));
+            }
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(JSON.stringify({
@@ -93,353 +99,10 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = marketplaceBaseURL + "/marketplace?";
-        });
-    }
-
-    emitWalletSetupEvent = function () {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "WALLET_SETUP"
-        }));
-    };
-
-    function maybeAddSetupWalletButton() {
-        if (!$('body').hasClass("walletsetup-injected") && userIsLoggedIn && walletNeedsSetup) {
-            $('body').addClass("walletsetup-injected");
-
-            var resultsElement = document.getElementById('results');
-            var setupWalletElement = document.createElement('div');
-            setupWalletElement.classList.add("row");
-            setupWalletElement.id = "setupWalletDiv";
-            setupWalletElement.style = "height:60px;margin:20px 10px 10px 10px;padding:12px 5px;" +
-                "background-color:#D6F4D8;border-color:#aee9b2;border-width:2px;border-style:solid;border-radius:5px;";
-
-            var span = document.createElement('span');
-            span.style = "margin:10px 5px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Activate your Wallet</a> to get money and shop in Marketplace.";
-
-            var xButton = document.createElement('a');
-            xButton.id = "xButton";
-            xButton.setAttribute('href', "#");
-            xButton.style = "width:50px;height:100%;margin:0;color:#ccc;font-size:20px;";
-            xButton.innerHTML = "X";
-            xButton.onclick = function () {
-                setupWalletElement.remove();
-                dummyRow.remove();
-            };
-
-            setupWalletElement.appendChild(span);
-            setupWalletElement.appendChild(xButton);
-
-            resultsElement.insertBefore(setupWalletElement, resultsElement.firstChild);
-
-            // Dummy row for padding
-            var dummyRow = document.createElement('div');
-            dummyRow.classList.add("row");
-            dummyRow.style = "height:15px;";
-            resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
-        }
-    }
-
-    function maybeAddLogInButton() {
-        if (!$('body').hasClass("login-injected") && !userIsLoggedIn) {
-            $('body').addClass("login-injected");
-            var resultsElement = document.getElementById('results');
-            if (!resultsElement) { // If we're on the main page, this will evaluate to `true`
-                resultsElement = document.getElementById('item-show');
-                resultsElement.style = 'margin-top:0;';
-            }
-            var logInElement = document.createElement('div');
-            logInElement.classList.add("row");
-            logInElement.id = "logInDiv";
-            logInElement.style = "height:60px;margin:20px 10px 10px 10px;padding:5px;" +
-                "background-color:#D6F4D8;border-color:#aee9b2;border-width:2px;border-style:solid;border-radius:5px;";
-
-            var button = document.createElement('a');
-            button.classList.add("btn");
-            button.classList.add("btn-default");
-            button.id = "logInButton";
-            button.setAttribute('href', "#");
-            button.innerHTML = "LOG IN";
-            button.style = "width:80px;height:100%;margin-top:0;margin-left:10px;padding:13px;font-weight:bold;background:linear-gradient(white, #ccc);";
-            button.onclick = function () {
-                EventBridge.emitWebEvent(JSON.stringify({
-                    type: "LOGIN"
-                }));
-            };
-
-            var span = document.createElement('span');
-            span.style = "margin:10px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "to get items from the Marketplace.";
-
-            var xButton = document.createElement('a');
-            xButton.id = "xButton";
-            xButton.setAttribute('href', "#");
-            xButton.style = "width:50px;height:100%;margin:0;color:#ccc;font-size:20px;";
-            xButton.innerHTML = "X";
-            xButton.onclick = function () {
-                logInElement.remove();
-                dummyRow.remove();
-            };
-
-            logInElement.appendChild(button);
-            logInElement.appendChild(span);
-            logInElement.appendChild(xButton);
-
-            resultsElement.insertBefore(logInElement, resultsElement.firstChild);
-
-            // Dummy row for padding
-            var dummyRow = document.createElement('div');
-            dummyRow.classList.add("row");
-            dummyRow.style = "height:15px;";
-            resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
-        }
-    }
-
-    function changeDropdownMenu() {
-        var logInOrOutButton = document.createElement('a');
-        logInOrOutButton.id = "logInOrOutButton";
-        logInOrOutButton.setAttribute('href', "#");
-        logInOrOutButton.innerHTML = userIsLoggedIn ? "Log Out" : "Log In";
-        logInOrOutButton.onclick = function () {
             EventBridge.emitWebEvent(JSON.stringify({
-                type: "LOGIN"
+                type: GOTO_MARKETPLACE
             }));
-        };
-
-        $($('.dropdown-menu').find('li')[0]).append(logInOrOutButton);
-
-        $('a[href="/marketplace?view=mine"]').each(function () {
-            $(this).attr('href', '#');
-            $(this).on('click', function () {
-                EventBridge.emitWebEvent(JSON.stringify({
-                    type: "MY_ITEMS"
-                }));
-            });
         });
-    }
-
-    function buyButtonClicked(id, name, author, price, href, referrer, edition, type) {
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "CHECKOUT",
-            itemId: id,
-            itemName: name,
-            itemPrice: price ? parseInt(price, 10) : 0,
-            itemHref: href,
-            referrer: referrer,
-            itemAuthor: author,
-            itemEdition: edition,
-            itemType: type.trim()
-        }));
-    }
-
-    function injectBuyButtonOnMainPage() {
-        var cost;
-
-        // Unbind original mouseenter and mouseleave behavior
-        $('body').off('mouseenter', '#price-or-edit .price');
-        $('body').off('mouseleave', '#price-or-edit .price');
-
-        $('.grid-item').find('#price-or-edit').each(function () {
-            $(this).css({ "margin-top": "0" });
-        });
-
-        $('.grid-item').find('#price-or-edit').find('a').each(function() {
-            if ($(this).attr('href') !== '#') { // Guard necessary because of the AJAX nature of Marketplace site
-                $(this).attr('data-href', $(this).attr('href'));
-                $(this).attr('href', '#');
-            }
-            cost = $(this).closest('.col-xs-3').find('.item-cost').text();
-            var costInt = parseInt(cost, 10);
-
-            $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
-            $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
-
-            var priceElement = $(this).find('.price');
-            priceElement.css({
-                "padding": "3px 5px",
-                "height": "40px",
-                "background": "linear-gradient(#00b4ef, #0093C5)",
-                "color": "#FFF",
-                "font-weight": "600",
-                "line-height": "34px"
-            });
-
-            if (parseInt(cost) > 0) {
-                priceElement.css({ "width": "auto" });
-                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
-                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
-                priceElement.css({ "min-width": priceElement.width() + 30 });
-            }
-        });
-
-        // change pricing to GET/BUY on button hover
-        $('body').on('mouseenter', '#price-or-edit .price', function () {
-            var $this = $(this);
-            var buyString = "BUY";
-            var getString = "GET";
-            // Protection against the button getting stuck in the "BUY"/"GET" state.
-            // That happens when the browser gets two MOUSEENTER events before getting a
-            // MOUSELEAVE event. Also, if not available for sale, just return.
-            if ($this.text() === buyString ||
-                $this.text() === getString ||
-                $this.text() === 'invalidated' ||
-                $this.text() === 'sold out' ||
-                $this.text() === 'not for sale' ) {
-                return;
-            }
-            $this.data('initialHtml', $this.html());
-
-            var cost = $(this).parent().siblings().text();
-            if (parseInt(cost) > 0) {
-                $this.text(buyString);
-            }
-            if (parseInt(cost) == 0) {
-                $this.text(getString);
-            }
-        });
-
-        $('body').on('mouseleave', '#price-or-edit .price', function () {
-            var $this = $(this);
-            $this.html($this.data('initialHtml'));
-        });
-
-
-        $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
-            var price = $(this).closest('.grid-item').find('.price').text();
-            if (price === 'invalidated' ||
-                price === 'sold out' ||
-                price === 'not for sale') {
-                return false;
-            }
-            buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
-                $(this).closest('.grid-item').find('.item-title').text(),
-                $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                $(this).closest('.grid-item').find('.item-cost').text(),
-                $(this).attr('data-href'),
-                "mainPage",
-                -1,
-                $(this).closest('.grid-item').find('.item-type').text());
-        });
-    }
-
-    function injectUnfocusOnSearch() {
-        // unfocus input field on search, thus hiding virtual keyboard
-        $('#search-box').on('submit', function () {
-            if (document.activeElement) {
-                document.activeElement.blur();
-            }
-        });
-    }
-
-    // fix for 10108 - marketplace category cannot scroll
-    function injectAddScrollbarToCategories() {
-        $('#categories-dropdown').on('show.bs.dropdown', function () {
-            $('body > div.container').css('display', 'none')
-            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' });
-        });
-
-        $('#categories-dropdown').on('hide.bs.dropdown', function () {
-            $('body > div.container').css('display', '');
-            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' });
-        });
-    }
-
-    function injectHiFiCode() {
-        if (commerceMode) {
-            maybeAddLogInButton();
-            maybeAddSetupWalletButton();
-
-            if (!$('body').hasClass("code-injected")) {
-
-                $('body').addClass("code-injected");
-                changeDropdownMenu();
-
-                var target = document.getElementById('templated-items');
-                // MutationObserver is necessary because the DOM is populated after the page is loaded.
-                // We're searching for changes to the element whose ID is '#templated-items' - this is
-                //     the element that gets filled in by the AJAX.
-                var observer = new MutationObserver(function (mutations) {
-                    mutations.forEach(function (mutation) {
-                        injectBuyButtonOnMainPage();
-                    });
-                });
-                var config = { attributes: true, childList: true, characterData: true };
-                observer.observe(target, config);
-
-                // Try this here in case it works (it will if the user just pressed the "back" button,
-                //     since that doesn't trigger another AJAX request.
-                injectBuyButtonOnMainPage();
-            }
-        }
-
-        injectUnfocusOnSearch();
-        injectAddScrollbarToCategories();
-    }
-
-    function injectHiFiItemPageCode() {
-        if (commerceMode) {
-            maybeAddLogInButton();
-
-            if (!$('body').hasClass("code-injected")) {
-
-                $('body').addClass("code-injected");
-                changeDropdownMenu();
-
-                var purchaseButton = $('#side-info').find('.btn').first();
-
-                var href = purchaseButton.attr('href');
-                purchaseButton.attr('href', '#');
-                var cost = $('.item-cost').text();
-                var costInt = parseInt(cost, 10);
-                var availability = $.trim($('.item-availability').text());
-                if (limitedCommerce && (costInt > 0)) {
-                    availability = '';
-                }
-                if (availability === 'available') {
-                    purchaseButton.css({
-                        "background": "linear-gradient(#00b4ef, #0093C5)",
-                        "color": "#FFF",
-                        "font-weight": "600",
-                        "padding-bottom": "10px"
-                    });
-                } else {
-                    purchaseButton.css({
-                        "background": "linear-gradient(#a2a2a2, #fefefe)",
-                        "color": "#000",
-                        "font-weight": "600",
-                        "padding-bottom": "10px"
-                    });
-                }
-
-                var type = $('.item-type').text();
-                var isUpdating = window.location.href.indexOf('edition=') > -1;
-                var urlParams = new URLSearchParams(window.location.search);
-                if (isUpdating) {
-                    purchaseButton.html('UPDATE FOR FREE');
-                } else if (availability !== 'available') {
-                    purchaseButton.html('UNAVAILABLE ' + (availability ? ('(' + availability + ')') : ''));
-                } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
-                    purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
-                        'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
-                }
-
-                purchaseButton.on('click', function () {
-                    if ('available' === availability || isUpdating) {
-                        buyButtonClicked(window.location.pathname.split("/")[3],
-                            $('#top-center').find('h1').text(),
-                            $('#creator').find('.value').text(),
-                            cost,
-                            href,
-                            "itemPage",
-                            urlParams.get('edition'),
-                            type);
-                    }
-                });
-            }
-        }
-
-        injectUnfocusOnSearch();
     }
 
     function updateClaraCode() {
@@ -546,18 +209,9 @@
                             data = {};
                         }
 
-                        // Extract status message.
-                        if (data.hasOwnProperty("message") && data.message !== null) {
-                            statusMessage = data.message;
-                            console.log("Clara.io FBX: " + statusMessage);
-                        }
-
                         // Extract zip file URL.
                         if (data.hasOwnProperty("files") && data.files.length > 0) {
                             zipFileURL = data.files[0].url;
-                            if (zipFileURL.slice(-4) !== ".zip") {
-                                console.log(JSON.stringify(data));  // Data for debugging.
-                            }
                         }
                     }
                 }
@@ -587,15 +241,11 @@
 
             var HTTP_OK = 200;
             if (this.status !== HTTP_OK) {
-                statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
-                console.log("ERROR: Clara.io FBX: " + statusMessage);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: statusMessage
                 }));
             } else if (zipFileURL.slice(-4) !== ".zip") {
-                statusMessage = "Error creating zip file for download.";
-                console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_STATUS,
                     status: (statusMessage + ": " + zipFileURL)
@@ -604,15 +254,12 @@
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: CLARA_IO_DOWNLOAD
                 }));
-                console.log("Clara.io FBX: File download initiated for " + zipFileURL);
             }
 
             xmlHttpRequest = null;
         }
 
         isPreparing = true;
-
-        console.log("Clara.io FBX: Request zip file for " + uuid);
         EventBridge.emitWebEvent(JSON.stringify({
             type: CLARA_IO_STATUS,
             status: "Initiating download"
@@ -694,16 +341,9 @@
             case DIRECTORY:
                 injectDirectoryCode();
                 break;
-            case HIFI:
-                injectHiFiCode();
-                break;
             case CLARA:
                 injectClaraCode();
                 break;
-            case HIFI_ITEM_PAGE:
-                injectHiFiItemPageCode();
-                break;
-
         }
     }
 
@@ -716,10 +356,6 @@
                 cancelClaraDownload();
             } else if (message.type === "marketplaces") {
                 if (message.action === "commerceSetting") {
-                    limitedCommerce = !!message.data.limitedCommerce;
-                    commerceMode = !!message.data.commerceMode;
-                    userIsLoggedIn = !!message.data.userIsLoggedIn;
-                    walletNeedsSetup = !!message.data.walletNeedsSetup;
                     marketplaceBaseURL = message.data.metaverseServerURL;
                     if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
                         marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');

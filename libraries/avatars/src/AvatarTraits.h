@@ -14,18 +14,34 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <array>
 #include <vector>
 
 #include <QtCore/QUuid>
 
+class ExtendedIODevice;
+class AvatarData;
+
 namespace AvatarTraits {
     enum TraitType : int8_t {
+        // Null trait
         NullTrait = -1,
-        SkeletonModelURL,
+
+        // Simple traits
+        SkeletonModelURL = 0,
+        SkeletonData,
+        // Instanced traits
         FirstInstancedTrait,
         AvatarEntity = FirstInstancedTrait,
+        Grab,
+
+        // Traits count
         TotalTraitTypes
     };
+
+    const int NUM_SIMPLE_TRAITS = (int)FirstInstancedTrait;
+    const int NUM_INSTANCED_TRAITS = (int)TotalTraitTypes - (int)FirstInstancedTrait;
+    const int NUM_TRAITS = (int)TotalTraitTypes;
 
     using TraitInstanceID = QUuid;
 
@@ -41,22 +57,23 @@ namespace AvatarTraits {
     const TraitWireSize DELETED_TRAIT_SIZE = -1;
     const TraitWireSize MAXIMUM_TRAIT_SIZE = INT16_MAX;
 
-    inline qint64 packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
-                                         TraitVersion traitVersion = NULL_TRAIT_VERSION) {
-        qint64 bytesWritten = 0;
+    using TraitMessageSequence = int64_t;
+    const TraitMessageSequence FIRST_TRAIT_SEQUENCE = 0;
+    const TraitMessageSequence MAX_TRAIT_SEQUENCE = INT64_MAX;
 
-        bytesWritten += destination.writePrimitive(traitType);
+    qint64 packTrait(TraitType traitType, ExtendedIODevice& destination, const AvatarData& avatar);
+    qint64 packVersionedTrait(TraitType traitType, ExtendedIODevice& destination,
+                              TraitVersion traitVersion, const AvatarData& avatar);
 
-        if (traitVersion > DEFAULT_TRAIT_VERSION) {
-            bytesWritten += destination.writePrimitive(traitVersion);
-        }
+    qint64 packTraitInstance(TraitType traitType, TraitInstanceID traitInstanceID,
+                             ExtendedIODevice& destination, AvatarData& avatar);
+    qint64 packVersionedTraitInstance(TraitType traitType, TraitInstanceID traitInstanceID,
+                                      ExtendedIODevice& destination, TraitVersion traitVersion,
+                                      AvatarData& avatar);
 
-        bytesWritten += destination.write(instanceID.toRfc4122());
+    qint64 packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
+                                           TraitVersion traitVersion = NULL_TRAIT_VERSION);
 
-        bytesWritten += destination.writePrimitive(DELETED_TRAIT_SIZE);
-
-        return bytesWritten;
-    }
 };
 
 #endif // hifi_AvatarTraits_h

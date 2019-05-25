@@ -37,7 +37,6 @@ ContextMetricCount Texture::_textureCPUCount;
 ContextMetricSize Texture::_textureCPUMemSize;
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
-
 #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
 bool recommendedSparseTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
 
@@ -176,8 +175,16 @@ TexturePointer Texture::createRenderBuffer(const Element& texelFormat, uint16 wi
     return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, 0, numMips, sampler);
 }
 
+TexturePointer Texture::createRenderBufferMultisample(const Element& texelFormat, uint16 width, uint16 height, uint16 numSamples, const Sampler& sampler) {
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, numSamples, 0, gpu::Texture::SINGLE_MIP, sampler);
+}
+
 TexturePointer Texture::createRenderBufferArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips, const Sampler& sampler) {
     return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, 1, numSlices, numMips, sampler);
+}
+
+TexturePointer Texture::createRenderBufferMultisampleArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numSamples, const Sampler& sampler) {
+    return create(TextureUsageType::RENDERBUFFER, TEX_2D, texelFormat, width, height, 1, numSamples, numSlices, gpu::Texture::SINGLE_MIP, sampler);
 }
 
 TexturePointer Texture::create1D(const Element& texelFormat, uint16 width, uint16 numMips, const Sampler& sampler) {

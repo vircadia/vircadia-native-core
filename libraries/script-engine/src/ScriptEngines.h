@@ -32,6 +32,7 @@ class ScriptEngine;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {string} debugScriptUrl
  * @property {string} defaultScriptsPath

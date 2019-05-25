@@ -219,3 +219,37 @@ void Node::setConnectionSecret(const QUuid& connectionSecret) {
     _connectionSecret = connectionSecret;
     _authenticateHash->setKey(_connectionSecret);
 }
+
+void Node::updateStats(Stats stats) {
+    _stats = stats;
+}
+
+const Node::Stats& Node::getConnectionStats() const {
+    return _stats;
+}
+
+float Node::getInboundKbps() const {
+    float bitsReceived = (_stats.receivedBytes + _stats.receivedUnreliableBytes) * BITS_IN_BYTE;
+    auto elapsed = _stats.endTime - _stats.startTime;
+    auto bps = (bitsReceived * USECS_PER_SECOND) / elapsed.count();
+    return bps / BYTES_PER_KILOBYTE;
+}
+
+float Node::getOutboundKbps() const {
+    float bitsSent = (_stats.sentBytes + _stats.sentUnreliableBytes) * BITS_IN_BYTE;
+    auto elapsed = _stats.endTime - _stats.startTime;
+    auto bps = (bitsSent * USECS_PER_SECOND) / elapsed.count();
+    return bps / BYTES_PER_KILOBYTE;
+}
+
+int Node::getInboundPPS() const {
+    float packetsReceived = _stats.receivedPackets + _stats.receivedUnreliablePackets;
+    auto elapsed = _stats.endTime - _stats.startTime;
+    return (packetsReceived * USECS_PER_SECOND) / elapsed.count();
+}
+
+int Node::getOutboundPPS() const {
+    float packetsSent = _stats.sentPackets + _stats.sentUnreliablePackets;
+    auto elapsed = _stats.endTime - _stats.startTime;
+    return (packetsSent * USECS_PER_SECOND) / elapsed.count();
+}

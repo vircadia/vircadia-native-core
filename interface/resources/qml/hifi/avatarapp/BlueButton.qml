@@ -1,6 +1,6 @@
 import QtQuick 2.5
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 
 HifiControlsUit.Button {
     HifiConstants {

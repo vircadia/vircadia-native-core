@@ -83,6 +83,8 @@ public:
     bool isPersonalMutingNode(const QUuid& nodeID) const;
     void setAvatarGain(const QUuid& nodeID, float gain);
     float getAvatarGain(const QUuid& nodeID);
+    void setInjectorGain(float gain);
+    float getInjectorGain();
 
     void kickNodeBySessionID(const QUuid& nodeID);
     void muteNodeBySessionID(const QUuid& nodeID);
@@ -101,8 +103,8 @@ public:
     virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
 public slots:
-    void reset(bool skipDomainHandlerReset = false);
-    void resetFromDomainHandler() { reset(true); }
+    void reset(QString reason, bool skipDomainHandlerReset = false);
+    void resetFromDomainHandler() { reset("Reset from Domain Handler", true); }
     
     void sendDomainServerCheckIn();
     void handleDSPathQuery(const QString& newPath);
@@ -180,6 +182,9 @@ private:
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _personalMutedNodeIDs;
     mutable QReadWriteLock _avatarGainMapLock;
     tbb::concurrent_unordered_map<QUuid, float, UUIDHasher> _avatarGainMap;
+
+    std::atomic<float> _avatarGain { 0.0f };    // in dB
+    std::atomic<float> _injectorGain { 0.0f };  // in dB
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
 #if defined(Q_OS_ANDROID)

@@ -38,10 +38,7 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 }
 
 void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip, bool isBlocks) {
-    qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
-    qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
-    qCDebug(scriptengine) << "Filename: " << fileName;
     QString tempDir = path;
     if (!isZip) {
         tempDir.remove(fileName);
@@ -59,9 +56,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
 
     QStringList fileList = unzipFile(path, tempDir);
     
-    if (!fileList.isEmpty()) {
-        qCDebug(scriptengine) << "First file to upload: " + fileList.first();
-    } else {
+    if(fileList.isEmpty()) {
         qCDebug(scriptengine) << "Unzip failed";
     }
 
@@ -131,7 +126,6 @@ QString FileScriptingInterface::convertUrlToPath(QUrl url) {
     QString newUrl;
     QString oldUrl = url.toString();
     newUrl = oldUrl.section("filename=", 1, 1);
-    qCDebug(scriptengine) << "Filename should be: " + newUrl;
     return newUrl;
 }
 
@@ -149,14 +143,12 @@ void FileScriptingInterface::downloadZip(QString path, const QString link) {
 // this function is not in use
 void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName) {
     /*if (!file.isDir()) {
-        qCDebug(scriptengine) << "Regular file logged: " + file.fileName();
         return;
     }*/
     QFileInfoList files;
     // FIXME quazip hasn't been built on the android toolchain
 #if !defined(Q_OS_ANDROID)
     if (file.fileName().contains(".zip")) {
-        qCDebug(scriptengine) << "Extracting archive: " + file.fileName();
         JlCompress::extractDir(file.fileName());
     }
 #endif
@@ -167,7 +159,6 @@ void FileScriptingInterface::recursiveFileScan(QFileInfo file, QString* dirName)
     }*/
 
     foreach (QFileInfo file, files) {
-        qCDebug(scriptengine) << "Looking into file: " + file.fileName();
         recursiveFileScan(file, dirName);
     }
     return;

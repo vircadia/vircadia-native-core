@@ -68,7 +68,6 @@ public:
     void setPacketSendPeriod(int newPeriod) { _packetSendPeriod = newPeriod; }
     
     void setEstimatedTimeout(int estimatedTimeout) { _estimatedTimeout = estimatedTimeout; }
-    void setSyncInterval(int syncInterval) { _syncInterval = syncInterval; }
     
 public slots:
     void stop();
@@ -79,7 +78,7 @@ public slots:
 
 signals:
     void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
-    void packetRetransmitted(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void packetRetransmitted(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
     
     void queueInactive();
 
@@ -124,7 +123,6 @@ private:
     std::atomic<State> _state { State::NotStarted };
     
     std::atomic<int> _estimatedTimeout { 0 }; // Estimated timeout, set from CC
-    std::atomic<int> _syncInterval { udt::DEFAULT_SYN_INTERVAL_USECS }; // Sync interval, set from CC
     
     std::atomic<int> _flowWindowSize { 0 }; // Flow control window size (number of packets that can be on wire) - set from CC
     
@@ -140,6 +138,11 @@ private:
     std::condition_variable _handshakeACKCondition;
     
     std::condition_variable_any _emptyCondition;
+
+    std::chrono::high_resolution_clock::time_point _lastPacketSentAt;
+
+    static const std::chrono::microseconds MAXIMUM_ESTIMATED_TIMEOUT;
+    static const std::chrono::microseconds MINIMUM_ESTIMATED_TIMEOUT;
 };
     
 }

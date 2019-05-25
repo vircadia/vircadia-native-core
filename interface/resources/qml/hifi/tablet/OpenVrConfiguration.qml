@@ -9,9 +9,9 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
-import "../../styles-uit"
+import stylesUit 1.0
 import "../../controls"
-import "../../controls-uit" as HifiControls
+import controlsUit 1.0 as HifiControls
 import "."
 
 
@@ -32,6 +32,18 @@ Flickable {
         }
     }
 
+    function bringToView(item) {
+        var yTop = item.mapToItem(contentItem, 0, 0).y;
+        var yBottom = yTop + item.height;
+
+        var surfaceTop = contentY;
+        var surfaceBottom = contentY + height;
+
+        if(yTop < surfaceTop || yBottom > surfaceBottom) {
+            contentY = yTop - height / 2 + item.height
+        }
+    }
+
     Component.onCompleted: {
         page = config.createObject(flick.contentItem);
     }
@@ -39,6 +51,8 @@ Flickable {
         id: config
         Rectangle {
             id: openVrConfiguration
+            anchors.fill: parent
+
             property int leftMargin: 75
             property int countDown: 0
             property string pluginName: ""
@@ -56,7 +70,7 @@ Flickable {
             readonly property bool hmdDesktop: hmdInDesktop.checked
 
             property int state: buttonState.disabled
-            property var lastConfiguration: null
+            property var lastConfiguration:  null
 
             HifiConstants { id: hifi }
 
@@ -76,7 +90,6 @@ Flickable {
                 anchors.fill: parent
                 propagateComposedEvents: true
                 onPressed: {
-                    parent.forceActiveFocus()
                     mouse.accepted = false;
                 }
             }
@@ -155,9 +168,7 @@ Flickable {
                     boxRadius: 7
                     visible: viveInDesktop.checked
 
-                    anchors.top: viveInDesktop.bottom
                     anchors.topMargin: 5
-                    anchors.left: openVrConfiguration.left
                     anchors.leftMargin: leftMargin + 10
 
                     onClicked: {
@@ -193,12 +204,12 @@ Flickable {
                     width: 112
                     label: "Y Offset"
                     suffix: " cm"
-                    minimumValue: -10
+                    minimumValue: -50
+                    maximumValue: 50
                     realStepSize: 1
-                    realValue: -5
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
                     }
                 }
@@ -206,16 +217,17 @@ Flickable {
 
                 HifiControls.SpinBox {
                     id: headZOffset
+                    z: 10
                     width: 112
                     label: "Z Offset"
-                    minimumValue: -10
+                    minimumValue: -50
+                    maximumValue: 50
                     realStepSize: 1
                     decimals: 1
                     suffix: " cm"
-                    realValue: -5
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
                     }
                 }
@@ -303,11 +315,12 @@ Flickable {
                     width: 112
                     suffix: " cm"
                     label: "Y Offset"
-                    minimumValue: -10
+                    minimumValue: -30
+                    maximumValue: 30
                     realStepSize: 1
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
                     }
                 }
@@ -318,12 +331,13 @@ Flickable {
                     width: 112
                     label: "Z Offset"
                     suffix: " cm"
-                    minimumValue: -10
+                    minimumValue: -30
+                    maximumValue: 30
                     realStepSize: 1
                     decimals: 1
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
                     }
                 }
@@ -550,12 +564,13 @@ Flickable {
                     width: 160
                     suffix: " cm"
                     label: "Arm Circumference"
-                    minimumValue: 0
+                    minimumValue: 10.0
+                    maximumValue: 50.0
                     realStepSize: 1.0
                     colorScheme: hifi.colorSchemes.dark
                     realValue: 33.0
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
                     }
                 }
@@ -565,13 +580,14 @@ Flickable {
                     width: 160
                     label: "Shoulder Width"
                     suffix: " cm"
-                    minimumValue: 0
+                    minimumValue: 25.0
+                    maximumValue: 50.0
                     realStepSize: 1.0
                     decimals: 1
                     colorScheme: hifi.colorSchemes.dark
                     realValue: 48
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
                     }
                 }
@@ -723,8 +739,8 @@ Flickable {
             }
 
             Component.onCompleted: {
-                InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
                 lastConfiguration = composeConfigurationSettings();
+                InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
             }
 
             Component.onDestruction: {
@@ -743,11 +759,13 @@ Flickable {
                 anchors.left: parent.left
                 anchors.leftMargin: leftMargin
 
-                minimumValue: 5
+                minimumValue: 0
+                maximumValue: 5
                 realValue: 5
+                realStepSize: 1.0
                 colorScheme: hifi.colorSchemes.dark
 
-                onEditingFinished: {
+                onRealValueChanged: {
                     calibrationTimer.interval = realValue * 1000;
                     openVrConfiguration.countDown = realValue;
                     numberAnimation.duration = calibrationTimer.interval;
@@ -842,11 +860,11 @@ Flickable {
                     id: outOfRangeDataStrategyComboBox
 
                     height: 25
-                    width: 100
+                    width: 150
 
                     editable: true
                     colorScheme: hifi.colorSchemes.dark
-                    model: ["None", "Freeze", "Drop"]
+                    model: ["None", "Freeze", "Drop", "DropAfterDelay"]
                     label: ""
 
                     onCurrentIndexChanged: {
@@ -952,6 +970,13 @@ Flickable {
                 var configurationType = settings["trackerConfiguration"];
                 displayTrackerConfiguration(configurationType);
 
+                // default offset for user wearing puck on the center of their forehead.
+                headYOffset.realValue = 4; // (cm), puck is above the head joint.
+                headZOffset.realValue = 8; // (cm), puck is in front of the head joint.
+
+                // defaults for user wearing the pucks on the backs of their palms.
+                handYOffset.realValue = 8; // (cm), puck is past the the hand joint.  (set this to zero if puck is on the wrist)
+                handZOffset.realValue = -4; // (cm), puck is on above hand joint.
 
                 var HmdHead = settings["HMDHead"];
                 var viveController = settings["handController"];
@@ -1014,6 +1039,9 @@ Flickable {
             }
 
             function updateButtonState() {
+                if (lastConfiguration === null) {
+                    lastConfiguration = composeConfigurationSettings();
+                }
                 var settings = composeConfigurationSettings();
                 var bodySetting = settings["bodyConfiguration"];
                 var headSetting = settings["headConfiguration"];

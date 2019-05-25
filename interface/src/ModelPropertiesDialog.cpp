@@ -26,9 +26,8 @@
 #include <OffscreenUi.h>
 
 
-ModelPropertiesDialog::ModelPropertiesDialog(FSTReader::ModelType modelType, const QVariantHash& originalMapping,
+ModelPropertiesDialog::ModelPropertiesDialog(const QVariantHash& originalMapping,
                                              const QString& basePath, const HFMModel& hfmModel) :
-_modelType(modelType),
 _originalMapping(originalMapping),
 _basePath(basePath),
 _hfmModel(hfmModel)
@@ -50,36 +49,14 @@ _hfmModel(hfmModel)
     _scale->setMaximum(FLT_MAX);
     _scale->setSingleStep(0.01);
 
-    if (_modelType != FSTReader::ENTITY_MODEL) {
-        if (_modelType == FSTReader::ATTACHMENT_MODEL) {
-            QHBoxLayout* translation = new QHBoxLayout();
-            form->addRow("Translation:", translation);
-            translation->addWidget(_translationX = createTranslationBox());
-            translation->addWidget(_translationY = createTranslationBox());
-            translation->addWidget(_translationZ = createTranslationBox());
-            form->addRow("Pivot About Center:", _pivotAboutCenter = new QCheckBox());
-            form->addRow("Pivot Joint:", _pivotJoint = createJointBox());
-            connect(_pivotAboutCenter, SIGNAL(toggled(bool)), SLOT(updatePivotJoint()));
-            _pivotAboutCenter->setChecked(true);
-
-        } else {
-            form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
-            form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
-            form->addRow("Neck Joint:", _neckJoint = createJointBox());
-        }
-        if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
-            form->addRow("Root Joint:", _rootJoint = createJointBox());
-            form->addRow("Lean Joint:", _leanJoint = createJointBox());
-            form->addRow("Head Joint:", _headJoint = createJointBox());
-            form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
-            form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
-
-            form->addRow("Free Joints:", _freeJoints = new QVBoxLayout());
-            QPushButton* newFreeJoint = new QPushButton("New Free Joint");
-            _freeJoints->addWidget(newFreeJoint);
-            connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
-        }
-    }
+    form->addRow("Left Eye Joint:", _leftEyeJoint = createJointBox());
+    form->addRow("Right Eye Joint:", _rightEyeJoint = createJointBox());
+    form->addRow("Neck Joint:", _neckJoint = createJointBox());
+    form->addRow("Root Joint:", _rootJoint = createJointBox());
+    form->addRow("Lean Joint:", _leanJoint = createJointBox());
+    form->addRow("Head Joint:", _headJoint = createJointBox());
+    form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
+    form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
 
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
                                                      QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
@@ -93,14 +70,9 @@ _hfmModel(hfmModel)
     reset();
 }
 
-
-QString ModelPropertiesDialog::getType() const {
-    return FSTReader::getNameFromType(_modelType);
-}
-
 QVariantHash ModelPropertiesDialog::getMapping() const {
     QVariantHash mapping = _originalMapping;
-    mapping.insert(TYPE_FIELD, getType());
+    mapping.insert(TYPE_FIELD, FSTReader::getNameFromType(FSTReader::HEAD_AND_BODY_MODEL));
     mapping.insert(NAME_FIELD, _name->text());
     mapping.insert(TEXDIR_FIELD, _textureDirectory->text());
     mapping.insert(SCRIPT_FIELD, _scriptDirectory->text());
@@ -113,42 +85,19 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
 
-    if (_modelType != FSTReader::ENTITY_MODEL) {
-        QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
-        if (_modelType == FSTReader::ATTACHMENT_MODEL) {
-            glm::vec3 pivot;
-            if (_pivotAboutCenter->isChecked()) {
-                pivot = (_hfmModel.meshExtents.minimum + _hfmModel.meshExtents.maximum) * 0.5f;
-
-            } else if (_pivotJoint->currentIndex() != 0) {
-                pivot = extractTranslation(_hfmModel.joints.at(_pivotJoint->currentIndex() - 1).transform);
-            }
-            mapping.insert(TRANSLATION_X_FIELD, -pivot.x * (float)_scale->value() + (float)_translationX->value());
-            mapping.insert(TRANSLATION_Y_FIELD, -pivot.y * (float)_scale->value() + (float)_translationY->value());
-            mapping.insert(TRANSLATION_Z_FIELD, -pivot.z * (float)_scale->value() + (float)_translationZ->value());
-
-        } else {
-            insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
-            insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
-            insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
-        }
+    QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
+    insertJointMapping(joints, "jointEyeLeft", _leftEyeJoint->currentText());
+    insertJointMapping(joints, "jointEyeRight", _rightEyeJoint->currentText());
+    insertJointMapping(joints, "jointNeck", _neckJoint->currentText());
 
 
-        if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
-            insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
-            insertJointMapping(joints, "jointLean", _leanJoint->currentText());
-            insertJointMapping(joints, "jointHead", _headJoint->currentText());
-            insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
-            insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
+    insertJointMapping(joints, "jointRoot", _rootJoint->currentText());
+    insertJointMapping(joints, "jointLean", _leanJoint->currentText());
+    insertJointMapping(joints, "jointHead", _headJoint->currentText());
+    insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
+    insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
 
-            mapping.remove(FREE_JOINT_FIELD);
-            for (int i = 0; i < _freeJoints->count() - 1; i++) {
-                QComboBox* box = static_cast<QComboBox*>(_freeJoints->itemAt(i)->widget()->layout()->itemAt(0)->widget());
-                mapping.insertMulti(FREE_JOINT_FIELD, box->currentText());
-            }
-        }
-        mapping.insert(JOINT_FIELD, joints);
-    }
+    mapping.insert(JOINT_FIELD, joints);
 
     return mapping;
 }
@@ -165,38 +114,15 @@ void ModelPropertiesDialog::reset() {
 
     QVariantHash jointHash = _originalMapping.value(JOINT_FIELD).toHash();
 
-    if (_modelType != FSTReader::ENTITY_MODEL) {
-        if (_modelType == FSTReader::ATTACHMENT_MODEL) {
-            _translationX->setValue(_originalMapping.value(TRANSLATION_X_FIELD).toDouble());
-            _translationY->setValue(_originalMapping.value(TRANSLATION_Y_FIELD).toDouble());
-            _translationZ->setValue(_originalMapping.value(TRANSLATION_Z_FIELD).toDouble());
-            _pivotAboutCenter->setChecked(true);
-            _pivotJoint->setCurrentIndex(0);
+    setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
+    setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
+    setJointText(_neckJoint, jointHash.value("jointNeck").toString());
 
-        } else {
-            setJointText(_leftEyeJoint, jointHash.value("jointEyeLeft").toString());
-            setJointText(_rightEyeJoint, jointHash.value("jointEyeRight").toString());
-            setJointText(_neckJoint, jointHash.value("jointNeck").toString());
-        }
-
-        if (_modelType == FSTReader::BODY_ONLY_MODEL || _modelType == FSTReader::HEAD_AND_BODY_MODEL) {
-            setJointText(_rootJoint, jointHash.value("jointRoot").toString());
-            setJointText(_leanJoint, jointHash.value("jointLean").toString());
-            setJointText(_headJoint, jointHash.value("jointHead").toString());
-            setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
-            setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
-
-            while (_freeJoints->count() > 1) {
-                delete _freeJoints->itemAt(0)->widget();
-            }
-            foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
-                QString jointName = joint.toString();
-                if (_hfmModel.jointIndices.contains(jointName)) {
-                    createNewFreeJoint(jointName);
-                }
-            }
-        }
-    }
+    setJointText(_rootJoint, jointHash.value("jointRoot").toString());
+    setJointText(_leanJoint, jointHash.value("jointLean").toString());
+    setJointText(_headJoint, jointHash.value("jointHead").toString());
+    setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
+    setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
 }
 
 void ModelPropertiesDialog::chooseTextureDirectory() {
@@ -228,20 +154,6 @@ void ModelPropertiesDialog::chooseScriptDirectory() {
 
 void ModelPropertiesDialog::updatePivotJoint() {
     _pivotJoint->setEnabled(!_pivotAboutCenter->isChecked());
-}
-
-void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {
-    QWidget* freeJoint = new QWidget();
-    QHBoxLayout* freeJointLayout = new QHBoxLayout();
-    freeJointLayout->setContentsMargins(QMargins());
-    freeJoint->setLayout(freeJointLayout);
-    QComboBox* jointBox = createJointBox(false);
-    jointBox->setCurrentText(joint);
-    freeJointLayout->addWidget(jointBox, 1);
-    QPushButton* deleteJoint = new QPushButton("Delete");
-    freeJointLayout->addWidget(deleteJoint);
-    freeJoint->connect(deleteJoint, SIGNAL(clicked(bool)), SLOT(deleteLater()));
-    _freeJoints->insertWidget(_freeJoints->count() - 1, freeJoint);
 }
 
 QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {

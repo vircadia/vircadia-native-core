@@ -42,7 +42,7 @@ class DomainHandler : public QObject {
 public:
     DomainHandler(QObject* parent = 0);
 
-    void disconnect();
+    void disconnect(QString reason);
     void clearSettings();
 
     const QUuid& getUUID() const { return _uuid; }
@@ -105,7 +105,7 @@ public:
 
     bool isSocketKnown() const { return !_sockAddr.getAddress().isNull(); }
 
-    void softReset();
+    void softReset(QString reason);
 
     int getCheckInPacketsSinceLastReply() const { return _checkInPacketsSinceLastReply; }
     bool checkInPacketTimeout();
@@ -210,7 +210,7 @@ signals:
 private:
     bool reasonSuggestsLogin(ConnectionRefusedReason reasonCode);
     void sendDisconnectPacket();
-    void hardReset();
+    void hardReset(QString reason);
 
     bool isHardRefusal(int reasonCode);
 
@@ -231,7 +231,11 @@ private:
     QString _pendingPath;
     QTimer _settingsTimer;
     mutable ReadWriteLockable _interstitialModeSettingLock;
-    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", true };
+#ifdef Q_OS_ANDROID
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
+#else
+    Setting::Handle<bool> _enableInterstitialMode { "enableInterstitialMode", false };
+#endif
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };

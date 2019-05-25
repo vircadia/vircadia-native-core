@@ -58,6 +58,14 @@ Item {
                         text: "Avatars: " + root.avatarCount
                     }
                     StatText {
+                        visible: true
+                        text: "Refresh: " + root.refreshRateRegime + " - " + root.refreshRateTarget
+                    }
+                    StatText {
+                        visible: root.expanded
+                        text:"    " + root.refreshRateMode + " - " + root.uxMode;
+                    }
+                    StatText {
                         text: "Game Rate: " + root.gameLoopRate
                     }
                     StatText {
@@ -117,6 +125,10 @@ Item {
                     }
                     StatText {
                         visible: root.expanded
+                        text: "Heroes Count/Updated: " + root.heroAvatarCount + "/" + root.updatedHeroAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
                         text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
                     }
                     StatText {
@@ -129,11 +141,22 @@ Item {
                     }
                     StatText {
                         visible: root.expanded
-                        text: "Intersection calls: Entities/Overlays/Avatars/HUD\n    " +
-                                    "Styluses:\t" + root.stylusPicksUpdated.x + "/" + root.stylusPicksUpdated.y + "/" + root.stylusPicksUpdated.z + "/" + root.stylusPicksUpdated.w + "\n    " +
-                                    "Rays:\t" + root.rayPicksUpdated.x + "/" + root.rayPicksUpdated.y + "/" + root.rayPicksUpdated.z + "/" + root.rayPicksUpdated.w + "\n    " +
-                                    "Parabolas:\t" + root.parabolaPicksUpdated.x + "/" + root.parabolaPicksUpdated.y + "/" + root.parabolaPicksUpdated.z + "/" + root.parabolaPicksUpdated.w + "\n    " +
-                                    "Colliders:\t" + root.collisionPicksUpdated.x + "/" + root.collisionPicksUpdated.y + "/" + root.collisionPicksUpdated.z + "/" + root.collisionPicksUpdated.w
+                        text: "Intersection calls: Entities/Avatars/HUD\n    " +
+                                    "Styluses:\t" + root.stylusPicksUpdated.x + "/" + root.stylusPicksUpdated.y + "/" + root.stylusPicksUpdated.z + "\n    " +
+                                    "Rays:\t" + root.rayPicksUpdated.x + "/" + root.rayPicksUpdated.y + "/" + root.rayPicksUpdated.z + "\n    " +
+                                    "Parabolas:\t" + root.parabolaPicksUpdated.x + "/" + root.parabolaPicksUpdated.y + "/" + root.parabolaPicksUpdated.z + "\n    " +
+                                    "Colliders:\t" + root.collisionPicksUpdated.x + "/" + root.collisionPicksUpdated.y + "/" + root.collisionPicksUpdated.z
+                    }
+                    StatText {
+                        visible: { root.eventQueueDebuggingOn && root.expanded }
+                        text: { if (root.eventQueueDebuggingOn) {
+                                    return "Event Queue Depth\n    " +
+                                        "Main:\t" + root.mainThreadQueueDepth + "\n" +
+                                        "NodeList:\t" + root.nodeListThreadQueueDepth;
+                                } else {
+                                    return "";
+                                }
+                            }
                     }
                 }
             }
@@ -210,13 +233,13 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
-                            "Silent: " + root.audioSilentInboundPPS + " pps";
+                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
+                        root.audioMixerOutPps + "pps";
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
-                            root.audioMixerOutPps + "pps";
+                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentInboundPPS + " pps";
                     }
                     StatText {
                         visible: root.expanded;
@@ -227,6 +250,10 @@ Item {
                         visible: root.expanded;
                         text: "Audio Codec: " + root.audioCodec + " Noise Gate: " +
                             root.audioNoiseGate;
+                    }
+                    StatText {
+                        visible: root.expanded;
+                        text: "Injectors (Local/NonLocal): " + root.audioInjectors.x + "/" + root.audioInjectors.y;
                     }
                     StatText {
                         visible: root.expanded;

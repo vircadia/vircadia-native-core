@@ -13,6 +13,11 @@
 
 #include <OVR_CAPI_GL.h>
 
+#define OVRPL_DISABLED
+#include <OVR_Platform.h>
+
+#include <graphics/Geometry.h>
+
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
@@ -30,7 +35,10 @@ public:
 
     QRectF getPlayAreaRect() override;
     QVector<glm::vec3> getSensorPositions() override;
-   
+
+    virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::MESH; }
+    virtual StencilMaskMeshOperator getStencilMaskMeshOperator() override;
+
 protected:
     void customizeContext() override;
     void uncustomizeContext() override;
@@ -48,4 +56,8 @@ protected:
     ovrViewScaleDesc _viewScaleDesc;
     // ovrLayerEyeFovDepth _depthLayer;
     bool _hmdMounted { false };
+    bool _visible { true };
+
+    std::array<graphics::MeshPointer, 2> _stencilMeshes;
+    bool _stencilMeshesInitialized { false };
 };

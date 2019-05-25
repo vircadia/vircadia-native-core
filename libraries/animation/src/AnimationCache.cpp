@@ -20,6 +20,7 @@
 #include <Profile.h>
 
 #include "AnimationLogging.h"
+#include <FBXSerializer.h>
 
 int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
@@ -35,12 +36,13 @@ AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
     return getResource(url).staticCast<Animation>();
 }
 
-QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-    const void* extra) {
+QSharedPointer<Resource> AnimationCache::createResource(const QUrl& url) {
     return QSharedPointer<Resource>(new Animation(url), &Resource::deleter);
 }
 
-Animation::Animation(const QUrl& url) : Resource(url) {}
+QSharedPointer<Resource> AnimationCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
+    return QSharedPointer<Resource>(new Animation(*resource.staticCast<Animation>()), &Resource::deleter);
+}
 
 AnimationReader::AnimationReader(const QUrl& url, const QByteArray& data) :
     _url(url),
@@ -71,7 +73,7 @@ void AnimationReader::run() {
             // Parse the FBX directly from the QNetworkReply
             HFMModel::Pointer hfmModel;
             if (_url.path().toLower().endsWith(".fbx")) {
-                hfmModel.reset(readFBX(_data, QVariantHash(), _url.path()));
+                hfmModel = FBXSerializer().read(_data, QVariantHash(), _url.path());
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);
@@ -134,15 +136,13 @@ void Animation::downloadFinished(const QByteArray& data) {
 }
 
 void Animation::animationParseSuccess(HFMModel::Pointer hfmModel) {
-
-    qCDebug(animation) << "Animation parse success" << _url.toDisplayString();
-
+    qCDebug(animation) << "Animation parse success";
     _hfmModel = hfmModel;
     finishedLoading(true);
 }
 
 void Animation::animationParseError(int error, QString str) {
-    qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
+    qCCritical(animation) << "Animation parse error, code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
     finishedLoading(false);
 }

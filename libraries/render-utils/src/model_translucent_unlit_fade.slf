@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_translucent_unlit_fade.frag
-//  fragment shader
 //
 //  Created by Olivier Prat on 06/05/17.
 //  Copyright 2017 High Fidelity, Inc.
@@ -13,15 +11,15 @@
 //
 
 <@include graphics/Material.slh@>
-
 <@include graphics/MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+<@include render-utils/ShaderConstants.h@>
+
 <@include LightingModel.slh@>
+
+<$declareMaterialTextures(ALBEDO)$>
 
 <@include Fade.slh@>
 <$declareFadeFragment()$>
-
-<@include render-utils/ShaderConstants.h@>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
@@ -34,7 +32,6 @@ layout(location=0) out vec4 _fragColor;
 void main(void) {
     vec3 fadeEmissive;
     FadeObjectParams fadeParams;
-
     <$fetchFadeObjectParams(fadeParams)$>
     applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
@@ -50,5 +47,6 @@ void main(void) {
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color.rgb;
     albedo += fadeEmissive;
+
     _fragColor = vec4(albedo * isUnlitEnabled(), opacity);
 }

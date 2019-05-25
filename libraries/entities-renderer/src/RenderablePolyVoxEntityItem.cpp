@@ -291,7 +291,7 @@ QByteArray RenderablePolyVoxEntityItem::volDataToArray(quint16 voxelXSize, quint
     withReadLock([&] {
         if (isEdged()) {
             low += 1;
-            voxelSize += 1;
+            voxelSize += 2;
         }
 
         loop3(low, voxelSize, [&](const ivec3& v){
@@ -1613,7 +1613,11 @@ PolyVoxEntityRenderer::PolyVoxEntityRenderer(const EntityItemPointer& entity) : 
 }
 
 ShapeKey PolyVoxEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).build();
+    auto builder = ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER);
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 bool PolyVoxEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {

@@ -60,7 +60,8 @@ LightStage::LightStage() {
 }
 
 LightStage::Shadow::Schema::Schema() {
-    ShadowTransform defaultTransform;
+    ShadowTransform defaultTransform = {};
+    defaultTransform.reprojection = mat4();
     defaultTransform.fixedBias = 0.005f;
     std::fill(cascades, cascades + SHADOW_CASCADE_MAX_COUNT, defaultTransform);
     invMapSize = 1.0f / MAP_SIZE;
@@ -119,7 +120,7 @@ float LightStage::Shadow::Cascade::computeFarDistance(const ViewFrustum& viewFru
     return far;
 }
 
-LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount) : 
+LightStage::Shadow::Shadow(graphics::LightPointer light, unsigned int cascadeCount) : 
     _light{ light } {
     cascadeCount = std::min(cascadeCount, (unsigned int)SHADOW_CASCADE_MAX_COUNT);
     Schema schema;
@@ -148,65 +149,79 @@ LightStage::Shadow::Shadow(graphics::LightPointer light, float maxDistance, unsi
         cascade.framebuffer->setDepthBuffer(map, depthFormat, cascadeIndex);
     }
 
-    setMaxDistance(maxDistance);
+    if (light) {
+        setMaxDistance(light->getShadowsMaxDistance());
+    }
+}
+
+void LightStage::Shadow::setLight(graphics::LightPointer light) {
+    _light = light;
+    if (light) {
+        setMaxDistance(light->getShadowsMaxDistance());
+    }
 }
 
 void LightStage::Shadow::setMaxDistance(float value) {
-    // This overlaping factor isn't really used directly for blending of shadow cascades. It
-    // just there to be sure the cascades do overlap. The blending width used is relative
-    // to the UV space and is set in the Schema with invCascadeBlendWidth.
-    static const auto OVERLAP_FACTOR = 1.0f / 5.0f;
+    static const auto MINIMUM_MAXDISTANCE = 1e-3f;
 
-    _maxDistance = std::max(0.0f, value);
+    value = std::max(MINIMUM_MAXDISTANCE, value);
+    if (value != _maxDistance) {
+        // This overlaping factor isn't really used directly for blending of shadow cascades. It's
+        // just there to be sure the cascades do overlap. The blending width used is relative
+        // to the UV space and is set in the Schema with invCascadeBlendWidth.
+        static const auto OVERLAP_FACTOR = 1.0f / 5.0f;
 
-    if (_cascades.size() == 1) {
-        _cascades.front().setMinDistance(0.0f);
-        _cascades.front().setMaxDistance(_maxDistance);
-    } else {
-        // Distribute the cascades along that distance
-        // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
-        static const auto LOW_MAX_DISTANCE = 2.0f;
-        static const auto MAX_RESOLUTION_LOSS = 0.6f; // Between 0 and 1, 0 giving tighter distributions
+        _maxDistance = value;
 
-        // The max cascade distance is computed by multiplying the previous cascade's max distance by a certain
-        // factor. There is a "user" factor that is computed from a desired max resolution loss in the shadow
-        // and an optimal one based on the global min and max shadow distance, all cascades considered. The final
-        // distance is a gradual blend between the two
-        const auto userDistanceScale = 1.0f / (1.0f - MAX_RESOLUTION_LOSS);
-        const auto optimalDistanceScale = powf(_maxDistance / LOW_MAX_DISTANCE, 1.0f / (_cascades.size() - 1));
+        if (_cascades.size() == 1) {
+            _cascades.front().setMinDistance(0.0f);
+            _cascades.front().setMaxDistance(_maxDistance);
+        } else {
+            // Distribute the cascades along that distance
+            // TODO : these parameters should be exposed to the user as part of the light entity parameters, no?
+            static const auto LOW_MAX_DISTANCE = 2.0f;
+            static const auto MAX_RESOLUTION_LOSS = 0.6f; // Between 0 and 1, 0 giving tighter distributions
 
-        float maxCascadeUserDistance = LOW_MAX_DISTANCE;
-        float maxCascadeOptimalDistance = LOW_MAX_DISTANCE;
-        float minCascadeDistance = 0.0f;
+            // The max cascade distance is computed by multiplying the previous cascade's max distance by a certain
+            // factor. There is a "user" factor that is computed from a desired max resolution loss in the shadow
+            // and an optimal one based on the global min and max shadow distance, all cascades considered. The final
+            // distance is a gradual blend between the two
+            const auto userDistanceScale = 1.0f / (1.0f - MAX_RESOLUTION_LOSS);
+            const auto optimalDistanceScale = powf(_maxDistance / LOW_MAX_DISTANCE, 1.0f / (_cascades.size() - 1));
 
-        for (size_t cascadeIndex = 0; cascadeIndex < _cascades.size(); ++cascadeIndex) {
-            float blendFactor = cascadeIndex / float(_cascades.size() - 1);
-            float maxCascadeDistance;
+            float maxCascadeUserDistance = LOW_MAX_DISTANCE;
+            float maxCascadeOptimalDistance = LOW_MAX_DISTANCE;
+            float minCascadeDistance = 0.0f;
 
-            if (cascadeIndex == size_t(_cascades.size() - 1)) {
-                maxCascadeDistance = _maxDistance;
-            } else {
-                maxCascadeDistance = maxCascadeUserDistance + (maxCascadeOptimalDistance - maxCascadeUserDistance)*blendFactor*blendFactor;
+            for (size_t cascadeIndex = 0; cascadeIndex < _cascades.size(); ++cascadeIndex) {
+                float blendFactor = cascadeIndex / float(_cascades.size() - 1);
+                float maxCascadeDistance;
+
+                if (cascadeIndex == size_t(_cascades.size() - 1)) {
+                    maxCascadeDistance = _maxDistance;
+                } else {
+                    maxCascadeDistance = maxCascadeUserDistance + (maxCascadeOptimalDistance - maxCascadeUserDistance)*blendFactor*blendFactor;
+                }
+
+                float shadowOverlapDistance = maxCascadeDistance * OVERLAP_FACTOR;
+
+                _cascades[cascadeIndex].setMinDistance(minCascadeDistance);
+                _cascades[cascadeIndex].setMaxDistance(maxCascadeDistance + shadowOverlapDistance);
+
+                // Compute distances for next cascade
+                minCascadeDistance = maxCascadeDistance;
+                maxCascadeUserDistance = maxCascadeUserDistance * userDistanceScale;
+                maxCascadeOptimalDistance = maxCascadeOptimalDistance * optimalDistanceScale;
+                maxCascadeUserDistance = std::min(maxCascadeUserDistance, _maxDistance);
             }
-
-            float shadowOverlapDistance = maxCascadeDistance * OVERLAP_FACTOR;
-
-            _cascades[cascadeIndex].setMinDistance(minCascadeDistance);
-            _cascades[cascadeIndex].setMaxDistance(maxCascadeDistance + shadowOverlapDistance);
-
-            // Compute distances for next cascade
-            minCascadeDistance = maxCascadeDistance;
-            maxCascadeUserDistance = maxCascadeUserDistance * userDistanceScale;
-            maxCascadeOptimalDistance = maxCascadeOptimalDistance * optimalDistanceScale;
-            maxCascadeUserDistance = std::min(maxCascadeUserDistance, _maxDistance);
         }
-    }
 
-    // Update the buffer
-    const auto& lastCascade = _cascades.back();
-    auto& schema = _schemaBuffer.edit<Schema>();
-    schema.maxDistance = _maxDistance;
-    schema.invFalloffDistance = 1.0f / (OVERLAP_FACTOR*lastCascade.getMaxDistance());
+        // Update the buffer
+        const auto& lastCascade = _cascades.back();
+        auto& schema = _schemaBuffer.edit<Schema>();
+        schema.maxDistance = _maxDistance;
+        schema.invFalloffDistance = 1.0f / (OVERLAP_FACTOR*lastCascade.getMaxDistance());
+    }
 }
 
 void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
@@ -344,27 +359,9 @@ LightStage::Index LightStage::addLight(const LightPointer& light, const bool sho
     return lightId;
 }
 
-LightStage::Index LightStage::addShadow(Index lightIndex, float maxDistance, unsigned int cascadeCount) {
-    auto light = getLight(lightIndex);
-    Index shadowId = INVALID_INDEX;
-    if (light) {
-        assert(_descs[lightIndex].shadowId == INVALID_INDEX);
-        shadowId = _shadows.newElement(std::make_shared<Shadow>(light, maxDistance, cascadeCount));
-        _descs[lightIndex].shadowId = shadowId;
-    }
-    return shadowId;
-}
-
 LightStage::LightPointer LightStage::removeLight(Index index) {
     LightPointer removedLight = _lights.freeElement(index);
     if (removedLight) {
-        auto shadowId = _descs[index].shadowId;
-        // Remove shadow if one exists for this light
-        if (shadowId != INVALID_INDEX) {
-            auto removedShadow = _shadows.freeElement(shadowId);
-            assert(removedShadow);
-            assert(removedShadow->getLight() == removedLight);
-        }
         _lightMap.erase(removedLight);
         _descs[index] = Desc();
     }
@@ -386,35 +383,6 @@ LightStage::LightPointer LightStage::getCurrentAmbientLight(const LightStage::Fr
         keyLightId = frame._ambientLights.front();
     }
     return _lights.get(keyLightId);
-}
-
-LightStage::ShadowPointer LightStage::getCurrentKeyShadow(const LightStage::Frame& frame) const {
-    Index keyLightId { _defaultLightId };
-    if (!frame._sunLights.empty()) {
-        keyLightId = frame._sunLights.front();
-    }
-    auto shadow = getShadow(keyLightId);
-    assert(shadow == nullptr || shadow->getLight() == getLight(keyLightId));
-    return shadow;
-}
-
-LightStage::LightAndShadow LightStage::getCurrentKeyLightAndShadow(const LightStage::Frame& frame) const {
-    Index keyLightId { _defaultLightId };
-    if (!frame._sunLights.empty()) {
-        keyLightId = frame._sunLights.front();
-    }
-    auto shadow = getShadow(keyLightId);
-    auto light = getLight(keyLightId);
-    assert(shadow == nullptr || shadow->getLight() == light);
-    return LightAndShadow(light, shadow);
-}
-
-LightStage::Index LightStage::getShadowId(Index lightId) const {
-    if (checkLightId(lightId)) {
-        return _descs[lightId].shadowId;
-    } else {
-        return INVALID_INDEX;
-    }
 }
 
 void LightStage::updateLightArrayBuffer(Index lightId) {
@@ -443,10 +411,12 @@ LightStageSetup::LightStageSetup() {
 }
 
 void LightStageSetup::run(const render::RenderContextPointer& renderContext) {
-    auto stage = renderContext->_scene->getStage(LightStage::getName());
-    if (!stage) {
-        stage = std::make_shared<LightStage>();
-        renderContext->_scene->resetStage(LightStage::getName(), stage);
+    if (renderContext->_scene) {
+        auto stage = renderContext->_scene->getStage(LightStage::getName());
+        if (!stage) {
+            stage = std::make_shared<LightStage>();
+            renderContext->_scene->resetStage(LightStage::getName(), stage);
+        }
     }
 }
 

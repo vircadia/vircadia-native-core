@@ -62,7 +62,7 @@ static const qint64 MAX_UNUSED_MAX_SIZE = MAXIMUM_CACHE_SIZE;
 class ResourceCacheSharedItems : public Dependency  {
     SINGLETON_DEPENDENCY
 
-    using Mutex = std::mutex;
+    using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
 
 public:
@@ -82,7 +82,7 @@ private:
 
     mutable Mutex _mutex;
     QList<QWeakPointer<Resource>> _pendingRequests;
-    QList<QSharedPointer<Resource>> _loadingRequests;
+    QList<QWeakPointer<Resource>> _loadingRequests;
     const uint32_t DEFAULT_REQUEST_LIMIT = 10;
     uint32_t _requestLimit { DEFAULT_REQUEST_LIMIT };
 };
@@ -91,15 +91,19 @@ private:
 class ScriptableResource : public QObject {
 
     /**jsdoc
+     * Information about a cached resource. Created by {@link AnimationCache.prefetch}, {@link ModelCache.prefetch},
+     * {@link SoundCache.prefetch}, or {@link TextureCache.prefetch}.
+     *
      * @class ResourceObject
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      * @hifi-server-entity
      * @hifi-assignment-client
      *
-     * @property {string} url - URL of this resource.
-     * @property {Resource.State} state - Current loading state.
+     * @property {string} url - URL of the resource. <em>Read-only.</em>
+     * @property {Resource.State} state - Current loading state. <em>Read-only.</em>
      */
     Q_OBJECT
     Q_PROPERTY(QUrl url READ getURL)
@@ -108,12 +112,13 @@ class ScriptableResource : public QObject {
 public:
 
     /**jsdoc
+     * The loading state of a resource.
      * @typedef {object} Resource.State
      * @property {number} QUEUED - The resource is queued up, waiting to be loaded.
      * @property {number} LOADING - The resource is downloading.
-     * @property {number} LOADED - The resource has finished downloaded by is not complete.
+     * @property {number} LOADED - The resource has finished downloading but is not complete.
      * @property {number} FINISHED - The resource has completely finished loading and is ready.
-     * @property {number} FAILED - Downloading the resource has failed.
+     * @property {number} FAILED - The resource has failed to download.
      */
     enum State {
         QUEUED,
@@ -128,7 +133,7 @@ public:
     virtual ~ScriptableResource() = default;
 
     /**jsdoc
-      * Release this resource.
+      * Releases the resource.
       * @function ResourceObject#release
       */
     Q_INVOKABLE void release();
@@ -143,16 +148,16 @@ public:
 signals:
 
     /**jsdoc
-     * Triggered when download progress for this resource has changed.
+     * Triggered when the resource's download progress changes.
      * @function ResourceObject#progressChanged
-     * @param {number} bytesReceived - Byytes downloaded so far.
+     * @param {number} bytesReceived - Bytes downloaded so far.
      * @param {number} bytesTotal - Total number of bytes in the resource.
      * @returns {Signal}
      */
     void progressChanged(uint64_t bytesReceived, uint64_t bytesTotal);
 
     /**jsdoc
-     * Triggered when resource loading state has changed.
+     * Triggered when the resource's loading state changes.
      * @function ResourceObject#stateChanged
      * @param {Resource.State} state - New state.
      * @returns {Signal}
@@ -231,16 +236,16 @@ protected slots:
     // Prefetches a resource to be held by the QScriptEngine.
     // Left as a protected member so subclasses can overload prefetch
     // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
-    ScriptableResource* prefetch(const QUrl& url, void* extra);
+    ScriptableResource* prefetch(const QUrl& url, void* extra, size_t extraHash);
 
     // FIXME: The return type is not recognized by JavaScript.
     /// Loads a resource from the specified URL and returns it.
     /// If the caller is on a different thread than the ResourceCache,
     /// returns an empty smart pointer and loads its asynchronously.
     /// \param fallback a fallback URL to load if the desired one is unavailable
-    /// \param extra extra data to pass to the creator, if appropriate
-    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-        void* extra = NULL);
+    // FIXME: std::numeric_limits<size_t>::max() could be a valid extraHash
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl()) { return getResource(url, fallback, nullptr, std::numeric_limits<size_t>::max()); }
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback, void* extra, size_t extraHash);
 
 private slots:
     void clearATPAssets();
@@ -251,11 +256,11 @@ protected:
     // which should be a QScriptEngine with ScriptableResource registered, so that
     // the QScriptEngine will delete the pointer when it is garbage collected.
     // JSDoc is provided on more general function signature.
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr, std::numeric_limits<size_t>::max()); }
 
     /// Creates a new resource.
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    const void* extra) = 0;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) = 0;
+    virtual QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) = 0;
 
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
@@ -271,14 +276,14 @@ private:
     friend class ScriptableResourceCache;
 
     void reserveUnusedResource(qint64 resourceSize);
-    void removeResource(const QUrl& url, qint64 size = 0);
+    void removeResource(const QUrl& url, size_t extraHash, qint64 size = 0);
 
     void resetTotalResourceCounter();
     void resetUnusedResourceCounter();
     void resetResourceCounters();
 
     // Resources
-    QHash<QUrl, QWeakPointer<Resource>> _resources;
+    QHash<QUrl, QHash<size_t, QWeakPointer<Resource>>> _resources;
     QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
     int _lastLRUKey = 0;
 
@@ -316,30 +321,63 @@ public:
     ScriptableResourceCache(QSharedPointer<ResourceCache> resourceCache);
 
     /**jsdoc
-     * Get the list of all resource URLs.
+     * Gets the URLs of all resources in the cache.
      * @function ResourceCache.getResourceList
-     * @returns {string[]}
+     * @returns {string[]} The URLs of all resources in the cache.
+     * @example <caption>Report cached resources.</caption>
+     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
+     *
+     * var cachedResources = AnimationCache.getResourceList();
+     * print("Cached resources: " + JSON.stringify(cachedResources));
      */
     Q_INVOKABLE QVariantList getResourceList();
 
     /**jsdoc
      * @function ResourceCache.updateTotalSize
-     * @param {number} deltaSize
+     * @param {number} deltaSize - Delta size.
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void updateTotalSize(const qint64& deltaSize);
 
     /**jsdoc
      * Prefetches a resource.
      * @function ResourceCache.prefetch
-     * @param {string} url - URL of the resource to prefetch.
-     * @param {object} [extra=null]
-     * @returns {ResourceObject}
+     * @param {string} url - The URL of the resource to prefetch.
+     * @returns {ResourceObject} A resource object.
+     * @example <caption>Prefetch a resource and wait until it has loaded.</caption>
+     * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
+     * // TextureCache has its own version of this function.
+     * 
+     * var resourceURL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
+     * var resourceObject = AnimationCache.prefetch(resourceURL);
+     * 
+     * function checkIfResourceLoaded(state) {
+     *     if (state === Resource.State.FINISHED) {
+     *         print("Resource loaded and ready.");
+     *     } else if (state === Resource.State.FAILED) {
+     *         print("Resource not loaded.");
+     *     }
+     * }
+     * 
+     * // Resource may have already been loaded.
+     * print("Resource state: " + resourceObject.state);
+     * checkIfResourceLoaded(resourceObject.state);
+     * 
+     * // Resource may still be loading.
+     * resourceObject.stateChanged.connect(function (state) {
+     *     print("Resource state changed to: " + state);
+     *     checkIfResourceLoaded(state);
+     * });
      */
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra = nullptr);
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr, std::numeric_limits<size_t>::max()); }
+    
+    // FIXME: This function variation shouldn't be in the API.
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra, size_t extraHash);
 
 signals:
 
     /**jsdoc
+     * Triggered when the cache content has changed.
      * @function ResourceCache.dirty
      * @returns {Signal}
      */
@@ -359,12 +397,13 @@ class Resource : public QObject {
     Q_OBJECT
 
 public:
-    
+    Resource() : QObject(), _loaded(true) {}
+    Resource(const Resource& other);
     Resource(const QUrl& url);
     virtual ~Resource();
 
     virtual QString getType() const { return "Resource"; }
-    
+
     /// Returns the key last used to identify this resource in the unused map.
     int getLRUKey() const { return _lruKey; }
 
@@ -373,13 +412,13 @@ public:
 
     /// Sets the load priority for one owner.
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
-    
+
     /// Sets a set of priorities at once.
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
-    
+
     /// Clears the load priority for one owner.
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
-    
+
     /// Returns the highest load priority across all owners.
     float getLoadPriority();
 
@@ -414,6 +453,10 @@ public:
 
     unsigned int getDownloadAttempts() { return _attempts; }
     unsigned int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
+
+    virtual void setExtra(void* extra) {};
+    void setExtraHash(size_t extraHash) { _extraHash = extraHash; }
+    size_t getExtraHash() const { return _extraHash; }
 
 signals:
     /// Fired when the resource begins downloading.
@@ -469,7 +512,7 @@ protected:
     virtual bool handleFailedRequest(ResourceRequest::Result result);
 
     QUrl _url;
-    QUrl _effectiveBaseURL{ _url };
+    QUrl _effectiveBaseURL { _url };
     QUrl _activeUrl;
     ByteRange _requestByteRange;
     bool _shouldFailOnRedirect { false };
@@ -485,12 +528,14 @@ protected:
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
 
-    qint64 _bytesReceived{ 0 };
-    qint64 _bytesTotal{ 0 };
-    qint64 _bytes{ 0 };
+    qint64 _bytesReceived { 0 };
+    qint64 _bytesTotal { 0 };
+    qint64 _bytes { 0 };
 
     int _requestID;
-    ResourceRequest* _request{ nullptr };
+    ResourceRequest* _request { nullptr };
+
+    size_t _extraHash { std::numeric_limits<size_t>::max() };
 
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);

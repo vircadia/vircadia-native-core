@@ -20,8 +20,7 @@ const float ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_W
 const bool ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_ISVISIBLEINSECONDARYCAMERA { false };
 const bool ParabolaPointer::RenderState::ParabolaRenderItem::DEFAULT_PARABOLA_DRAWINFRONT { false };
 
-gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::_parabolaPipeline { nullptr };
-gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::_transparentParabolaPipeline { nullptr };
+std::map<std::pair<bool, bool>, gpu::PipelinePointer> ParabolaPointer::RenderState::ParabolaRenderItem::_parabolaPipelines;
 
 ParabolaPointer::ParabolaPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates, bool hover,
                                  const PointerTriggers& triggers, bool faceAvatar, bool followNormal, float followNormalStrength, bool centerEndY, bool lockEnd, bool distanceScaleEnd,
@@ -149,7 +148,7 @@ void ParabolaPointer::setVisualPickResultInternal(PickResultPointer pickResult, 
     }
 }
 
-ParabolaPointer::RenderState::RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
+ParabolaPointer::RenderState::RenderState(const QUuid& startID, const QUuid& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
                                           bool isVisibleInSecondaryCamera, bool drawInFront, bool pathEnabled) :
     StartEndRenderState(startID, endID)
 {
@@ -230,6 +229,7 @@ void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::ve
 }
 
 std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVariantMap& propMap) {
+    // FIXME: we have to keep using the Overlays interface here, because existing scripts use overlay properties to define pointers
     QUuid startID;
     if (propMap["start"].isValid()) {
         QVariantMap startMap = propMap["start"].toMap();
@@ -321,9 +321,8 @@ glm::vec3 ParabolaPointer::findIntersection(const PickedObject& pickedObject, co
     // TODO: implement
     switch (pickedObject.type) {
         case ENTITY:
+        case LOCAL_ENTITY:
             //return ParabolaPick::intersectParabolaWithEntityXYPlane(pickedObject.objectID, origin, velocity, acceleration);
-        case OVERLAY:
-            //return ParabolaPick::intersectParabolaWithOverlayXYPlane(pickedObject.objectID, origin, velocity, acceleration);
         default:
             return glm::vec3(NAN);
     }
@@ -401,33 +400,34 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::updateBounds() {
     _bound = AABox(min, max - min);
 }
 
-const gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline() {
-    if (!_parabolaPipeline || !_transparentParabolaPipeline) {
-        {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola);
-            auto state = std::make_shared<gpu::State>();
+gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabolaPipeline(bool forward) const {
+    if (_parabolaPipelines.empty()) {
+        using namespace shader::render_utils::program;
+
+        static const std::vector<std::tuple<bool, bool, uint32_t>> keys = {
+            std::make_tuple(false, false, parabola), std::make_tuple(false, true, forward_parabola), std::make_tuple(true, false, parabola_translucent)/*, std::make_tuple(true, true, forward_parabola_translucent)*/
+        };
+
+        for (auto& key : keys) {
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
-            state->setBlendFunction(false,
+            if (std::get<0>(key)) {
+                PrepareStencil::testMask(*state);
+            } else {
+                PrepareStencil::testMaskDrawShape(*state);
+            }
+            state->setBlendFunction(std::get<0>(key),
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMaskDrawShape(*state);
             state->setCullMode(gpu::State::CULL_NONE);
-            _parabolaPipeline = gpu::Pipeline::create(program, state);
+
+            _parabolaPipelines[{std::get<0>(key), std::get<1>(key)}] = gpu::Pipeline::create(gpu::Shader::createProgram(std::get<2>(key)), state);
         }
 
-        {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::parabola_translucent);
-            auto state = std::make_shared<gpu::State>();
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMask(*state);
-            state->setCullMode(gpu::State::CULL_NONE);
-            _transparentParabolaPipeline = gpu::Pipeline::create(program, state);
-        }
+        // The forward opaque/translucent pipelines are the same for now
+        _parabolaPipelines[{ true, true }] = _parabolaPipelines[{ false, true}];
     }
-    return (_parabolaData.color.a < 1.0f ? _transparentParabolaPipeline : _parabolaPipeline);
+    return _parabolaPipelines[{ _parabolaData.color.a < 1.0f, forward }];
 }
 
 void ParabolaPointer::RenderState::ParabolaRenderItem::render(RenderArgs* args) {
@@ -441,7 +441,7 @@ void ParabolaPointer::RenderState::ParabolaRenderItem::render(RenderArgs* args) 
     transform.setTranslation(_origin);
     batch.setModelTransform(transform);
 
-    batch.setPipeline(getParabolaPipeline());
+    batch.setPipeline(getParabolaPipeline(args->_renderMethod == render::Args::RenderMethod::FORWARD));
 
     const int MAX_SECTIONS = 100;
     if (glm::length2(_parabolaData.acceleration) < EPSILON) {

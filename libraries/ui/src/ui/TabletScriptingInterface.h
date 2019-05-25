@@ -43,12 +43,14 @@ class OffscreenQmlSurface;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 /**jsdoc
  * @namespace tabletInterface
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @deprecated This API is deprecated and will be removed. Use {@link Tablet} instead.
  */
@@ -96,7 +98,6 @@ public:
      * @function tabletInterface.getTablet
      * @param {string} name - Tablet name.
      * @returns {TabletProxy} Tablet instance.
-     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.getTablet} instead.
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
@@ -109,7 +110,6 @@ public:
     /**jsdoc
      * @function tabletInterface.playSound
      * @param {Tablet.AudioEvents} sound
-     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.playSound} instead.
      */
     Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
@@ -132,7 +132,6 @@ signals:
      * Triggered when a tablet message or dialog is created.
      * @function tabletInterface.tabletNotification
      * @returns {Signal}
-     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.tabletNotification} instead.
      */
     void tabletNotification();
 
@@ -208,6 +207,7 @@ Q_DECLARE_METATYPE(TabletButtonsProxyModel*);
   *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {string} name - Name of this tablet. <em>Read-only.</em>
  * @property {boolean} toolbarMode - Used to transition this tablet into and out of toolbar mode.
@@ -232,6 +232,7 @@ public:
     const QString getName() const { return _name; }
     bool getToolbarMode() const { return _toolbarMode; }
     void setToolbarMode(bool toolbarMode);
+    void unfocus();
 
     /**jsdoc
      * @function TabletProxy#gotoMenuScreen
@@ -455,6 +456,7 @@ Q_DECLARE_METATYPE(TabletProxy*);
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Uuid} uuid - Uniquely identifies this button. <em>Read-only.</em>
  * @property {TabletButtonProxy.ButtonProperties} properties

@@ -17,7 +17,7 @@ import QtGraphicalEffects 1.0
 import TabletScriptingInterface 1.0
 
 import "toolbars"
-import "../styles-uit"
+import stylesUit 1.0
 
 Item {
     id: root;
@@ -30,6 +30,7 @@ Item {
     property string imageUrl: "";
     property var goFunction: null;
     property string storyId: "";
+    property bool standaloneOptimized: false;
 
     property bool drillDownToPlace: false;
     property bool showPlace: isConcurrency;
@@ -39,6 +40,8 @@ Item {
     property bool isConcurrency: action === 'concurrency';
     property bool isAnnouncement: action === 'announcement';
     property bool isStacked: !isConcurrency && drillDownToPlace;
+    property bool has3DHTML: PlatformInfo.has3DHTML();
+
 
     property int textPadding: 10;
     property int smallMargin: 4;
@@ -133,7 +136,7 @@ Item {
         }
         onStatusChanged: {
             if (status == Image.Error) {
-                console.log("source: " + source + ": failed to load " + hifiUrl);
+                console.log("source: " + source + ": failed to load");
                 source = defaultThumbnail;
             }
         }
@@ -236,29 +239,67 @@ Item {
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
     Rectangle {
-        anchors.fill: parent;
+        anchors.fill: parent
         visible: root.hovered
-        color: "transparent";
-        border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight;
-        z: 1;
+        color: "transparent"
+        border.width: 4
+        border.color: hifiStyleConstants.colors.primaryHighlight
+        z: 1
     }
     MouseArea {
-        anchors.fill: parent;
-        acceptedButtons: Qt.LeftButton;
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
+        onContainsMouseChanged: {
+            // Use onContainsMouseChanged rather than onEntered and onExited because the latter aren't always
+            // triggered correctly - e.g., if drag rightwards from right hand side of a card to the next card
+            // onExited doesn't fire, in which case can end up with two cards highlighted.
+            if (containsMouse) {
+                Tablet.playSound(TabletEnums.ButtonHover);
+                hoverThunk();
+            } else {
+                unhoverThunk();
+            }
+        }
+    }
+    MouseArea {
+        // Separate MouseArea for click handling so that it doesn't interfere with hovering and interaction
+        // with containing ListView.
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: false
         onClicked: {
             Tablet.playSound(TabletEnums.ButtonClick);
-            goFunction("hifi://" + hifiUrl);
+            goFunction("hifi://" + hifiUrl, standaloneOptimized);
         }
-        hoverEnabled: true;
-        onEntered:  {
-            Tablet.playSound(TabletEnums.ButtonHover);
-            hoverThunk();
-        }
-        onExited: unhoverThunk();
     }
+
+    Image {
+        id: standaloneOptomizedBadge
+
+        anchors {
+            right: actionIcon.left
+            top: actionIcon.top
+            topMargin: 2
+            rightMargin: 3
+        }
+        height: root.standaloneOptimized ? 25 : 0
+        width: 25
+        
+        visible: root.standaloneOptimized && isConcurrency
+        fillMode: Image.PreserveAspectFit
+        source: "../../icons/standalone-optimized.svg"
+    }
+    ColorOverlay {
+        anchors.fill: standaloneOptomizedBadge
+        source: standaloneOptomizedBadge
+        color: hifi.colors.blueHighlight
+        visible: root.standaloneOptimized && isConcurrency
+    }
+
     StateImage {
         id: actionIcon;
-        visible: !isAnnouncement;
+        visible: !isAnnouncement && has3DHTML;
         imageURL: "../../images/info-icon-2-state.svg";
         size: 30;
         buttonState: messageArea.containsMouse ? 1 : 0;
@@ -267,14 +308,15 @@ Item {
             right: parent.right;
             margins: smallMargin;
         }
-    }
+    }  
+
     function go() {
         Tablet.playSound(TabletEnums.ButtonClick);
         goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));
     }
     MouseArea {
         id: messageArea;
-        visible: !isAnnouncement;
+        visible: !isAnnouncement && has3DHTML;
         width: parent.width;
         height: messageHeight;
         anchors.top: lobby.bottom;

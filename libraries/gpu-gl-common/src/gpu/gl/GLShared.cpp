@@ -174,17 +174,17 @@ void getCurrentGLState(State::Data& state) {
     {
         GLint winding;
         glGetIntegerv(GL_FRONT_FACE, &winding);
-        state.frontFaceClockwise = (winding == GL_CW);
+        state.flags.frontFaceClockwise = (winding == GL_CW);
 #if defined(USE_GLES)
-        state.multisampleEnable = glIsEnabled(GL_MULTISAMPLE_EXT);
-        state.antialisedLineEnable = false;
-        state.depthClampEnable = false;
+        state.flags.multisampleEnable = glIsEnabled(GL_MULTISAMPLE_EXT);
+        state.flags.antialisedLineEnable = false;
+        state.flags.depthClampEnable = false;
 #else
-        state.multisampleEnable = glIsEnabled(GL_MULTISAMPLE);
-        state.antialisedLineEnable = glIsEnabled(GL_LINE_SMOOTH);
-        state.depthClampEnable = glIsEnabled(GL_DEPTH_CLAMP);
+        state.flags.multisampleEnable = glIsEnabled(GL_MULTISAMPLE);
+        state.flags.antialisedLineEnable = glIsEnabled(GL_LINE_SMOOTH);
+        state.flags.depthClampEnable = glIsEnabled(GL_DEPTH_CLAMP);
 #endif
-        state.scissorEnable = glIsEnabled(GL_SCISSOR_TEST);
+        state.flags.scissorEnable = glIsEnabled(GL_SCISSOR_TEST);
     }
     {
         if (glIsEnabled(GL_POLYGON_OFFSET_FILL)) {
@@ -247,7 +247,7 @@ void getCurrentGLState(State::Data& state) {
         state.sampleMask = mask;
     }
     {
-        state.alphaToCoverageEnable = glIsEnabled(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        state.flags.alphaToCoverageEnable = glIsEnabled(GL_SAMPLE_ALPHA_TO_COVERAGE);
     }
     {
         GLboolean isEnabled = glIsEnabled(GL_BLEND);
@@ -272,10 +272,10 @@ void getCurrentGLState(State::Data& state) {
     {
         GLboolean mask[4];
         glGetBooleanv(GL_COLOR_WRITEMASK, mask);
-        state.colorWriteMask = (mask[0] ? State::WRITE_RED : 0)
+        state.colorWriteMask = (State::ColorMask)((mask[0] ? State::WRITE_RED : 0)
             | (mask[1] ? State::WRITE_GREEN : 0)
             | (mask[2] ? State::WRITE_BLUE : 0)
-            | (mask[3] ? State::WRITE_ALPHA : 0);
+            | (mask[3] ? State::WRITE_ALPHA : 0));
     }
 
     (void)CHECK_GL_ERROR();

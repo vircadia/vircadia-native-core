@@ -15,8 +15,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.6
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
-import "../../../../styles-uit"
-import "../../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
 
@@ -25,14 +25,15 @@ Item {
 
     id: root;
 
-    property bool isDisplayingNearby; // as opposed to 'connections'
+    // true when sending to 'nearby' or when a script raises the send asset dialog
+    property bool multiLineDisplay;
     property string displayName;
     property string userName;
     property string profilePic;
     property string textColor: hifi.colors.white;
 
     Item {
-        visible: root.isDisplayingNearby;
+        visible: root.multiLineDisplay;
         anchors.fill: parent;
 
         RalewaySemiBold {
@@ -71,7 +72,7 @@ Item {
     }
 
     Item {
-        visible: !root.isDisplayingNearby;
+        visible: !root.multiLineDisplay;
         anchors.fill: parent;
 
         Image {

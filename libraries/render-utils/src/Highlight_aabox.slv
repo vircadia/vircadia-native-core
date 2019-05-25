@@ -23,7 +23,7 @@ struct ItemBound {
 };
 
 #if !defined(GPU_SSBO_TRANSFORM_OBJECT)
-LAYOUT(binding=0) uniform samplerBuffer ssbo0Buffer;
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT0_TEXTURE) uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
     ItemBound bound;
@@ -32,7 +32,7 @@ ItemBound getItemBound(int i) {
     return bound;
 }
 #else
-LAYOUT_STD140(binding=0) buffer ssbo0Buffer {
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT0_STORAGE) buffer ssbo0Buffer {
     ItemBound bounds[];
 };
 ItemBound getItemBound(int i) {

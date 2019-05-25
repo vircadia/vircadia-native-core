@@ -13,8 +13,8 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 
@@ -22,7 +22,6 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string marketplaceUrl: "";
     property string entityId: "";
     property string certificateId: "";
     property string itemName: "--";
@@ -30,6 +29,9 @@ Rectangle {
     property string itemEdition: "--";
     property string dateAcquired: "--";
     property string itemCost: "--";
+    property string marketplace_item_id: "";
+    property bool   standaloneOptimized: false;
+    property bool   standaloneIncompatible: false;
     property string certTitleTextColor: hifi.colors.darkGray;
     property string certTextColor: hifi.colors.white;
     property string infoTextColor: hifi.colors.blueAccent;
@@ -69,8 +71,10 @@ Rectangle {
                     errorText.text = "Information about this certificate is currently unavailable. Please try again later.";
                 }
             } else {
-                root.marketplaceUrl = result.data.marketplace_item_url;
+                root.marketplace_item_id = result.data.marketplace_item_id;
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
+                root.standaloneOptimized = result.data.standalone_optimized;
+                root.standaloneIncompatible = result.data.standalone_incompatible;
 
                 if (root.certInfoReplaceMode > 3) {
                     root.itemName = result.data.marketplace_item_name;
@@ -352,7 +356,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
+                    sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', itemId: root.marketplace_item_id});
                 }
                 onEntered: itemName.color = hifi.colors.blueHighlight;
                 onExited: itemName.color = root.certTextColor;
@@ -391,7 +395,7 @@ Rectangle {
         // "Show In Marketplace" button
         HifiControlsUit.Button {
             id: showInMarketplaceButton;
-            enabled: root.marketplaceUrl;
+            enabled: root.marketplace_item_id && marketplace_item_id !== "";
             color: hifi.buttons.blue;
             colorScheme: hifi.colorSchemes.light;
             anchors.bottom: parent.bottom;
@@ -401,7 +405,7 @@ Rectangle {
             height: 40;
             text: "View In Market"
             onClicked: {
-                sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
+                sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', itemId: root.marketplace_item_id});
             }
         }
     }
@@ -420,6 +424,24 @@ Rectangle {
         anchors.right: parent.right;
         anchors.rightMargin: 24;
         height: root.useGoldCert ? 220 : 372;
+
+        HiFiGlyphs {
+            id: standaloneOptomizedBadge
+
+            anchors {
+                right: parent.right
+                top: ownedByHeader.top
+                rightMargin: 15
+                topMargin: 28
+            }
+            
+            visible: root.standaloneOptimized
+
+            text: hifi.glyphs.hmd
+            size: 34
+            horizontalAlignment: Text.AlignHCenter
+            color: hifi.colors.blueHighlight
+        }
 
         RalewayRegular {
             id: errorText;
@@ -467,6 +489,7 @@ Rectangle {
             color: root.infoTextColor;
             elide: Text.ElideRight;
         }
+        
         AnonymousProRegular {
             id: isMyCertText;
             visible: root.isMyCert && ownedBy.text !== "--" && ownedBy.text !== "";
@@ -486,13 +509,45 @@ Rectangle {
         }
 
         RalewayRegular {
+            id: standaloneHeader;
+            text: root.standaloneOptimized ? "STAND-ALONE OPTIMIZED" : "STAND-ALONE INCOMPATIBLE";
+            // Text size
+            size: 16;
+            // Anchors
+            anchors.top: ownedBy.bottom;
+            anchors.topMargin: 15;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            visible: root.standaloneOptimized || root.standaloneIncompatible;
+            height: visible ? paintedHeight : 0;
+            // Style
+            color: hifi.colors.darkGray;
+        }
+
+        RalewayRegular {
+            id: standaloneText;
+            text: root.standaloneOptimized ? "This item is stand-alone optimized" : "This item is incompatible with stand-alone devices";
+            // Text size
+            size: 18;
+            // Anchors
+            anchors.top: standaloneHeader.bottom;
+            anchors.topMargin: 8;
+            anchors.left: standaloneHeader.left;
+            visible: root.standaloneOptimized || root.standaloneIncompatible;
+            height: visible ? paintedHeight : 0;
+            // Style
+            color: root.infoTextColor;
+            elide: Text.ElideRight;
+        }
+
+        RalewayRegular {
             id: dateAcquiredHeader;
             text: "ACQUISITION DATE";
             // Text size
             size: 16;
             // Anchors
-            anchors.top: ownedBy.bottom;
-            anchors.topMargin: 28;
+            anchors.top: standaloneText.bottom;
+            anchors.topMargin: 20;
             anchors.left: parent.left;
             anchors.right: parent.horizontalCenter;
             anchors.rightMargin: 8;
@@ -521,8 +576,8 @@ Rectangle {
             // Text size
             size: 16;
             // Anchors
-            anchors.top: ownedBy.bottom;
-            anchors.topMargin: 28;
+            anchors.top: standaloneText.bottom;
+            anchors.topMargin: 20;
             anchors.left: parent.horizontalCenter;
             anchors.right: parent.right;
             height: paintedHeight;
@@ -597,7 +652,7 @@ Rectangle {
                 resetCert(true);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('InspectionCertificate.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);
@@ -620,7 +675,7 @@ Rectangle {
         root.itemOwner = "--";
         root.itemEdition = "--";
         root.dateAcquired = "--";
-        root.marketplaceUrl = "";
+        root.marketplace_item_id = "";
         root.itemCost = "--";
         root.isMyCert = false;
         errorText.text = "";

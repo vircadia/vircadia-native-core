@@ -66,18 +66,15 @@ public:
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return topMaterialExists() ? _drawMaterials.top().material->getTextureSize() : 0; }
-    int getMaterialTextureCount() { return topMaterialExists() ? _drawMaterials.top().material->getTextureCount() : 0; }
-    bool hasTextureInfo() const { return topMaterialExists() ? _drawMaterials.top().material->hasTextureInfo() : false; }
+    size_t getMaterialTextureSize() { return _drawMaterials.getTextureSize(); }
+    int getMaterialTextureCount() { return _drawMaterials.getTextureCount(); }
+    bool hasTextureInfo() const { return _drawMaterials.hasTextureInfo(); }
 
     void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
 protected:
-    static const graphics::MaterialPointer DEFAULT_MATERIAL;
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
-
-    bool topMaterialExists() const { return !_drawMaterials.empty() && _drawMaterials.top().material; }
 };
 
 namespace render {
@@ -109,7 +106,8 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    void setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning);
+    void setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning);
+    void setCauterized(bool cauterized) { _cauterized = cauterized; }
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -141,6 +139,8 @@ private:
     gpu::BufferPointer _meshBlendshapeBuffer;
     int _meshNumVertices;
     render::ShapeKey _shapeKey { render::ShapeKey::Builder::invalid() };
+    bool _cauterized { false };
+
 };
 
 namespace render {

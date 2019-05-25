@@ -67,10 +67,7 @@ QByteArray loadFromCache(const QUrl& url) {
 
         // caller is responsible for the deletion of the ioDevice, hence the unique_ptr
         if (auto ioDevice = std::unique_ptr<QIODevice>(cache->data(url))) {
-            qCDebug(asset_client) << url.toDisplayString() << "loaded from disk cache.";
             return ioDevice->readAll();
-        } else {
-            qCDebug(asset_client) << url.toDisplayString() << "not in disk cache";
         }
 
     }
@@ -91,10 +88,8 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
             if (auto ioDevice = cache->prepare(metaData)) {
                 ioDevice->write(file);
                 cache->insert(ioDevice);
-                qCDebug(asset_client) << url.toDisplayString() << "saved to disk cache";
                 return true;
             }
-            qCWarning(asset_client) << "Could not save" << url.toDisplayString() << "to disk cache.";
         }
     }
     

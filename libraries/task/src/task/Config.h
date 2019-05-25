@@ -50,12 +50,10 @@ public:
         _default = toJsonValue(*this).toObject().toVariantMap();
 
         _presets.unite(list.toVariantMap());
-        if (C::alwaysEnabled || C::enabled) {
+        if (C::isEnabled()) {
             _presets.insert(DEFAULT, _default);
         }
-        if (!C::alwaysEnabled) {
-            _presets.insert(NONE, QVariantMap{{ "enabled", false }});
-        }
+        _presets.insert(NONE, QVariantMap{{ "enabled", false }});
 
         auto preset = _preset.get();
         if (preset != _preset.getDefault() && _presets.contains(preset)) {
@@ -92,17 +90,21 @@ class JobConfig : public QObject {
     Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
 
     double _msCPURunTime{ 0.0 };
+
+protected:
+    friend class TaskConfig;
+
+    bool _isEnabled{ true };
+
 public:
     using Persistent = PersistentConfig<JobConfig>;
 
     JobConfig() = default;
-    JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
+    JobConfig(bool enabled): _isEnabled{ enabled }  {}
+    ~JobConfig();
 
-    bool isEnabled() { return alwaysEnabled || enabled; }
-    void setEnabled(bool enable) { enabled = alwaysEnabled || enable; emit dirtyEnabled(); }
-
-    bool alwaysEnabled{ true };
-    bool enabled{ true };
+    bool isEnabled() const { return _isEnabled; }
+    void setEnabled(bool enable);
 
     virtual void setPresetList(const QJsonObject& object);
 
@@ -152,6 +154,11 @@ public:
      */
     Q_INVOKABLE virtual QObject* getSubConfig(int i) const { return nullptr; }
 
+    void connectChildConfig(std::shared_ptr<JobConfig> childConfig, const std::string& name);
+    void transferChildrenConfigs(std::shared_ptr<JobConfig> source);
+
+    JobConcept* _jobConcept;
+
 public slots:
 
     /**jsdoc
@@ -159,6 +166,11 @@ public slots:
      * @param {object} map
      */
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
+
+    /**jsdoc
+     * @function Render.refresh
+     */
+    void refresh();
 
 signals:
 
@@ -194,18 +206,19 @@ public:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} cpuRunTime - <em>Read-only.</em>
  * @property {boolean} enabled
  */
 class TaskConfig : public JobConfig {
     Q_OBJECT
+
 public:
     using Persistent = PersistentConfig<TaskConfig>;
 
     TaskConfig() = default;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
-
 
     /**jsdoc
      * @function Render.getConfig
@@ -221,27 +234,13 @@ public:
     //
     // getter for qml integration, prefer the templated getter
     Q_INVOKABLE QObject* getConfig(const QString& name) { return getConfig<TConfigProxy>(name.toStdString()); }
+
     // getter for cpp (strictly typed), prefer this getter
-    template <class T> typename T::Config* getConfig(std::string job = "") const {
-        const TaskConfig* root = this;
-        QString path = (job.empty() ? QString() : QString(job.c_str())); // an empty string is not a null string
-        auto tokens = path.split('.', QString::SkipEmptyParts);
+    TaskConfig* getRootConfig(const std::string& jobPath, std::string& jobName) const;
+    JobConfig* getJobConfig(const std::string& jobPath) const;
 
-        if (tokens.empty()) {
-            tokens.push_back(QString());
-        }
-        else {
-            while (tokens.size() > 1) {
-                auto name = tokens.front();
-                tokens.pop_front();
-                root = QObject::findChild<TaskConfig*>(name);
-                if (!root) {
-                    return nullptr;
-                }
-            }
-        }
-
-        return root->findChild<typename T::Config*>(tokens.front());
+    template <class T> typename T::Config* getConfig(std::string jobPath = "") const {
+        return dynamic_cast<typename T::Config*>(getJobConfig(jobPath));
     }
 
     Q_INVOKABLE bool isTask() const override { return true; }
@@ -258,18 +257,18 @@ public:
         auto subs = getSubConfigs();
         return ((i < 0 || i >= subs.size()) ? nullptr : subs[i]);
     }
+};
 
-    void connectChildConfig(QConfigPointer childConfig, const std::string& name);
-    void transferChildrenConfigs(QConfigPointer source);
+class SwitchConfig : public JobConfig {
+    Q_OBJECT
+    Q_PROPERTY(int branch READ getBranch WRITE setBranch NOTIFY dirtyEnabled)
 
-    JobConcept* _task;
+public:
+    uint8_t getBranch() const { return _branch; }
+    void setBranch(uint8_t index);
 
-public slots:
-
-    /**jsdoc
-     * @function Render.refresh
-     */
-    void refresh();
+protected:
+    uint8_t _branch { 0 };
 };
 
 }

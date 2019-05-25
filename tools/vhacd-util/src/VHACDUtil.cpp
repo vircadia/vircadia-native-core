@@ -15,9 +15,11 @@
 #include <QVector>
 
 #include <NumericalConstants.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
 
 
-// FBXReader jumbles the order of the meshes by reading them back out of a hashtable.  This will put
+// FBXSerializer jumbles the order of the meshes by reading them back out of a hashtable.  This will put
 // them back in the order in which they appeared in the file.
 bool HFMModelLessThan(const HFMMesh& e1, const HFMMesh& e2) {
     return e1.meshIndex < e2.meshIndex;
@@ -40,13 +42,14 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
         return false;
     }
     try {
-        QByteArray fbxContents = fbx.readAll();
+        hifi::ByteArray fbxContents = fbx.readAll();
         HFMModel::Pointer hfmModel;
+        hifi::VariantHash mapping;
+        mapping["deduplicateIndices"] = true;
         if (filename.toLower().endsWith(".obj")) {
-            bool combineParts = false;
-            hfmModel = OBJReader().readOBJ(fbxContents, QVariantHash(), combineParts);
+            hfmModel = OBJSerializer().read(fbxContents, mapping, filename);
         } else if (filename.toLower().endsWith(".fbx")) {
-            hfmModel.reset(readFBX(fbxContents, QVariantHash(), filename));
+            hfmModel = FBXSerializer().read(fbxContents, mapping, filename);
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;

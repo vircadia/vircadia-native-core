@@ -15,8 +15,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.6
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
-import "../../../../styles-uit"
-import "../../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
@@ -25,7 +25,6 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
     property string currentActiveView: "sendAssetHome";
@@ -36,10 +35,12 @@ Item {
     property bool isCurrentlySendingAsset: false;
     property string assetName: "";
     property string assetCertID: "";
+    property string couponID: "";
+    property string authorizationID: "";
     property string sendingPubliclyEffectImage;
     property var http;
     property var listModelName;
-    property var keyboardContainer: nil;
+    property var keyboardContainer;
         
     // This object is always used in a popup or full-screen Wallet section.
     // This MouseArea is used to prevent a user from being
@@ -56,7 +57,7 @@ Item {
     // Background
     Rectangle {
         z: 1;
-        visible: root.assetName !== "" && sendAssetStep.visible;
+        visible: root.assetCertID !== "" && sendAssetStep.referrer !== "payIn" && sendAssetStep.visible;
         anchors.top: parent.top;
         anchors.topMargin: root.parentAppTitleBarHeight;
         anchors.left: parent.left;
@@ -70,6 +71,7 @@ Item {
 
         onBalanceResult : {
             balanceText.text = result.data.balance;
+            sendButton.enabled = true;
         }
 
         onTransferAssetToNodeResult: {
@@ -84,7 +86,6 @@ Item {
                 if (sendPubliclyCheckbox.checked && sendAssetStep.referrer === "nearby") {
                     sendSignalToParent({
                         method: 'sendAsset_sendPublicly',
-                        assetName: root.assetName,
                         recipient: sendAssetStep.selectedRecipientNodeID,
                         amount: parseInt(amountTextField.text),
                         effectImage: root.sendingPubliclyEffectImage
@@ -106,6 +107,35 @@ Item {
                 root.nextActiveView = 'paymentSuccess';
             } else {
                 root.nextActiveView = 'paymentFailure';
+            }
+        }
+
+        onAuthorizeAssetTransferResult: {
+            if (!root.visible) {
+                return;
+            }
+
+            root.isCurrentlySendingAsset = false;
+
+            if (result.status === 'success') {
+                root.authorizationID = result.data.authorization_id;
+                authorizationIDText.text = root.authorizationID;
+                root.couponID = result.data.coupon_id;
+                couponIDText.text = root.couponID
+                if (couponIDTextField.text !== root.couponID) {
+                    console.log("SendAsset: Returned coupon ID doesn't match client-generated coupon ID!");
+                }
+                root.nextActiveView = 'paymentSuccess';
+            } else {
+                root.nextActiveView = 'paymentFailure';
+            }
+        }
+
+        onCertificateInfoResult: {
+            if (result.status !== 'success') {
+                console.log("Failed to get certificate info", result.data.message);
+            } else {
+                root.assetName = result.data.marketplace_item_name;
             }
         }
     }
@@ -155,7 +185,7 @@ Item {
 
         Item {
             id: userInfoContainer;
-            visible: root.assetName === "";
+            visible: root.assetCertID === "";
             anchors.top: parent.top;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -251,7 +281,7 @@ Item {
     
             LinearGradient {
                 anchors.fill: parent;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 start: Qt.point(0, 0);
                 end: Qt.point(0, height);
                 gradient: Gradient {
@@ -262,7 +292,7 @@ Item {
 
             RalewaySemiBold {
                 id: sendAssetText;
-                text: root.assetName === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:";
+                text: root.assetCertID === "" ? "Send Money To:" : "Send \"" + root.assetName + "\" To:";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -363,6 +393,51 @@ Item {
                 }
             }
 
+            Item {
+                id: createCouponButton;
+                // Anchors
+                anchors.top: nearbyButton.bottom;
+                anchors.topMargin: 32;
+                anchors.horizontalCenter: parent.horizontalCenter;
+                height: connectionButton.height;
+                width: connectionButton.width;
+
+                Image {
+                    anchors.top: parent.top;
+                    source: "./images/coupon.svg";
+                    height: 70;
+                    width: parent.width;
+                    fillMode: Image.PreserveAspectFit;
+                    horizontalAlignment: Image.AlignHCenter;
+                    verticalAlignment: Image.AlignTop;
+                    mipmap: true;
+                }
+
+                RalewaySemiBold {
+                    text: "Create Coupon";
+                    // Anchors
+                    anchors.bottom: parent.bottom;
+                    height: 15;
+                    width: parent.width;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.baseGray;
+                    horizontalAlignment: Text.AlignHCenter;
+                }
+
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        sendAssetStep.referrer = "createCoupon";
+                        sendAssetStep.selectedRecipientNodeID = "";
+                        couponIDTextField.text = generateRandomCouponID();
+
+                        root.nextActiveView = "sendAssetStep";
+                    }
+                }
+            }
+
             HifiControlsUit.Button {
                 id: backButton_sendAssetHome;
                 visible: parentAppNavBarHeight === 0;
@@ -405,7 +480,7 @@ Item {
         HifiModels.PSFListModel {
             id: connectionsModel;
             http: root.http;
-            listModelName: root.listModelName;
+            listModelName: root.listModelName || "";
             endpoint: "/api/v1/users?filter=connections";
             itemsPerPage: 9;
             listView: connectionsList;
@@ -441,7 +516,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_connections;
                 text: hifi.glyphs.close;
-                color: root.assetName === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
+                color: root.assetCertID === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -684,7 +759,7 @@ Item {
             HiFiGlyphs {
                 id: closeGlyphButton_nearby;
                 text: hifi.glyphs.close;
-                color: root.assetName === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
+                color: root.assetCertID === "" ? hifi.colors.lightGrayText : hifi.colors.baseGray;
                 size: 26;
                 anchors.top: parent.top;
                 anchors.topMargin: 10;
@@ -760,7 +835,7 @@ Item {
 
                 RalewaySemiBold {
                     id: sendToText;
-                    text: root.assetName === "" ? "Send to:" : "Gift to:";
+                    text: root.assetCertID === "" ? "Send to:" : "Gift to:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.topMargin: 36;
@@ -853,7 +928,7 @@ Item {
         id: sendAssetStep;
         z: 996;
 
-        property string referrer; // either "connections" or "nearby"
+        property string referrer; // either "connections", "nearby", "payIn", or "createCoupon"
         property string selectedRecipientNodeID;
         property string selectedRecipientDisplayName;
         property string selectedRecipientUserName;
@@ -865,7 +940,9 @@ Item {
 
         RalewaySemiBold {
             id: sendAssetText_sendAssetStep;
-            text: root.assetName === "" ? "Send Money" : "Gift \"" + root.assetName + "\"";
+            text: ((sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "createCoupon") &&
+                root.assetCertID !== "") ? "Send \"" + root.assetName + "\":" :
+                (root.assetCertID === "" ? "Send Money To:" : "Gift \"" + root.assetName + "\" To:");
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 26;
@@ -878,7 +955,7 @@ Item {
             // Text size
             size: 22;
             // Style
-            color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+            color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
         }
 
         Item {
@@ -893,44 +970,110 @@ Item {
 
             RalewaySemiBold {
                 id: sendToText_sendAssetStep;
-                text: root.assetName === "" ? "Send to:" : "Gift to:";
+                text: sendAssetStep.referrer === "createCoupon" ? "Coupon ID:" :
+                    (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ? "Send to:" : "Gift to:";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 anchors.bottom: parent.bottom;
-                width: 90;
+                width: paintedWidth;
                 // Text size
                 size: 18;
                 // Style
-                color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+                color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
                 verticalAlignment: Text.AlignVCenter;
             }
 
             RecipientDisplay {
+                visible: sendAssetStep.referrer !== "createCoupon";
                 anchors.top: parent.top;
                 anchors.left: sendToText_sendAssetStep.right;
+                anchors.leftMargin: 16;
                 anchors.right: changeButton.left;
                 anchors.rightMargin: 12;
                 height: parent.height;
-                textColor: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+                textColor: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
 
                 displayName: sendAssetStep.selectedRecipientDisplayName;
                 userName: sendAssetStep.selectedRecipientUserName;
                 profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                     sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
+            }
+
+            Item {
+                id: couponIDContainer;
+                visible: sendAssetStep.referrer === "createCoupon";
+                anchors.top: parent.top;
+                anchors.left: sendToText_sendAssetStep.right;
+                anchors.right: parent.right;
+                height: parent.height;
+                
+                RalewaySemiBold {
+                    id: couponIDHelp;
+                    text: "[?]";
+                    // Anchors
+                    anchors.left: parent.left;
+                    anchors.leftMargin: 8;
+                    anchors.verticalCenter: parent.verticalCenter;
+                    height: 30;
+                    width: paintedWidth;
+                    // Text size
+                    size: 18;
+                    // Style
+                    color: hifi.colors.blueAccent;
+                    MouseArea {
+                        anchors.fill: parent;
+                        hoverEnabled: true;
+                        onEntered: {
+                            parent.color = hifi.colors.blueHighlight;
+                        }
+                        onExited: {
+                            parent.color = hifi.colors.blueAccent;
+                        }
+                        onClicked: {
+                            lightboxPopup.titleText = "Coupon ID";
+                            lightboxPopup.bodyText = "This alphanumeric text string will be used to ensure " +
+                                "that only you can redeem the coupon for the asset that you are sending. Keep it private!";
+                            lightboxPopup.button1text = "CLOSE";
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
+                            lightboxPopup.visible = true;
+                        }
+                    }
+                }
+
+                HifiControlsUit.TextField {
+                    id: couponIDTextField;
+                    colorScheme: root.assetCertID === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                    // Anchors
+                    anchors.verticalCenter: parent.verticalCenter;
+                    anchors.left: couponIDHelp.right;
+                    anchors.leftMargin: 16;
+                    anchors.right: parent.right;
+                    height: 50;
+                    // Style
+                    activeFocusOnPress: true;
+                    activeFocusOnTab: true;
+
+                    onAccepted: {
+                        optionalMessage.focus = true;
+                    }
+                }
             }
 
             // "CHANGE" button
             HifiControlsUit.Button {
                 id: changeButton;
-                color: root.assetName === "" ? hifi.buttons.none : hifi.buttons.white;
+                color: root.assetCertID === "" ? hifi.buttons.none : hifi.buttons.white;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: parent.right;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 35;
                 width: 100;
                 text: "CHANGE";
+                visible: sendAssetStep.referrer !== "payIn" && sendAssetStep.referrer !== "createCoupon";
                 onClicked: {
                     if (sendAssetStep.referrer === "connections") {
                         root.nextActiveView = "chooseRecipientConnection";
@@ -944,7 +1087,7 @@ Item {
 
         Item {
             id: amountContainer;
-            visible: root.assetName === "";
+            visible: root.assetCertID === "";
             anchors.top: sendToContainer.bottom;
             anchors.topMargin: 2;
             anchors.left: parent.left;
@@ -970,8 +1113,9 @@ Item {
 
             HifiControlsUit.TextField {
                 id: amountTextField;
-                text: root.assetName === "" ? "" : "1";
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                readOnly: sendAssetStep.referrer === "payIn";
+                text: root.assetCertID === "" ? "" : "1";
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 inputMethodHints: Qt.ImhDigitsOnly;
                 // Anchors
                 anchors.verticalCenter: parent.verticalCenter;
@@ -980,8 +1124,8 @@ Item {
                 height: 50;
                 // Style
                 leftPermanentGlyph: hifi.glyphs.hfc;
-                activeFocusOnPress: true;
-                activeFocusOnTab: true;
+                activeFocusOnPress: !amountTextField.readOnly;
+                activeFocusOnTab: !amountTextField.readOnly;
 
                 validator: IntValidator { bottom: 0; }
 
@@ -1071,6 +1215,7 @@ Item {
 
             TextArea {
                 id: optionalMessage;
+                readOnly: sendAssetStep.referrer === "payIn";
                 property int maximumLength: 72;
                 property string previousText: text;
                 placeholderText: "<i>Optional Public Message (" + maximumLength + " character limit)</i>";
@@ -1081,12 +1226,13 @@ Item {
                 // Style
                 background: Rectangle {
                     anchors.fill: parent;
-                    color: root.assetName === "" ? (optionalMessage.activeFocus ? hifi.colors.black : hifi.colors.baseGrayShadow) :
+                    color: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") ?
+                        (optionalMessage.activeFocus && !optionalMessage.readOnly ? hifi.colors.black : hifi.colors.baseGrayShadow) :
                         (optionalMessage.activeFocus ? "#EFEFEF" : "#EEEEEE");
-                    border.width: optionalMessage.activeFocus ? 1 : 0;
-                    border.color: optionalMessage.activeFocus ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
+                    border.width: optionalMessage.activeFocus && !optionalMessage.readOnly ? 1 : 0;
+                    border.color: optionalMessage.activeFocus && !optionalMessage.readOnly ? hifi.colors.primaryHighlight : hifi.colors.textFieldLightBackground;
                 }
-                color: root.assetName === "" ? hifi.colors.white : hifi.colors.black;
+                color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.white : hifi.colors.black;
                 textFormat: TextEdit.PlainText;
                 wrapMode: TextEdit.Wrap;
                 activeFocusOnPress: true;
@@ -1122,7 +1268,8 @@ Item {
                 // Text size
                 size: 16;
                 // Style
-                color: optionalMessage.text.length === optionalMessage.maximumLength ? "#ea89a5" : (root.assetName === "" ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight);
+                color: optionalMessage.text.length === optionalMessage.maximumLength ? "#ea89a5" :
+                    (root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colors.lightGrayText : hifi.colors.baseGrayHighlight);
                 verticalAlignment: Text.AlignTop;
                 horizontalAlignment: Text.AlignRight;
             }
@@ -1167,7 +1314,7 @@ Item {
                     parent.color = hifi.colors.blueAccent;
                 }
                 onClicked: {
-                    lightboxPopup.titleText = (root.assetName === "" ? "Send Effect" : "Gift Effect");
+                    lightboxPopup.titleText = (root.assetCertID === "" ? "Send Effect" : "Gift Effect");
                     lightboxPopup.bodyImageSource = "sendAsset/images/send-money-effect-sm.jpg"; // Path relative to CommerceLightbox.qml
                     lightboxPopup.bodyText = "Enabling this option will create a particle effect between you and " +
                         "your recipient that is visible to everyone nearby.";
@@ -1196,7 +1343,7 @@ Item {
             // "CANCEL" button
             HifiControlsUit.Button {
                 id: cancelButton_sendAssetStep;
-                color: root.assetName === "" ? hifi.buttons.noneBorderlessWhite : hifi.buttons.noneBorderlessGray;
+                color: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.buttons.noneBorderlessWhite : hifi.buttons.noneBorderlessGray;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.right: sendButton.left;
                 anchors.rightMargin: 24;
@@ -1205,8 +1352,12 @@ Item {
                 width: 100;
                 text: "CANCEL";
                 onClicked: {
-                    resetSendAssetData();
-                    root.nextActiveView = "sendAssetHome";
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else {
+                        resetSendAssetData();
+                        root.nextActiveView = "sendAssetHome";
+                    }
                 }
             }
 
@@ -1214,19 +1365,20 @@ Item {
             HifiControlsUit.Button {
                 id: sendButton;
                 color: hifi.buttons.blue;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: parent.right;
                 anchors.rightMargin: 0;
                 anchors.verticalCenter: parent.verticalCenter;
                 height: 40;
                 width: 100;
                 text: "SUBMIT";
+                enabled: false;
                 onClicked: {
-                    if (root.assetName === "" && parseInt(amountTextField.text) > parseInt(balanceText.text)) {
+                    if (root.assetCertID === "" && parseInt(amountTextField.text) > parseInt(balanceText.text)) {
                         amountTextField.focus = true;
                         amountTextField.error = true;
                         amountTextFieldError.text = "<i>amount exceeds available funds</i>";
-                    } else if (root.assetName === "" && (amountTextField.text === "" || parseInt(amountTextField.text) < 1)) {
+                    } else if (root.assetCertID === "" && (amountTextField.text === "" || parseInt(amountTextField.text) < 1)) {
                         amountTextField.focus = true;
                         amountTextField.error = true;
                         amountTextFieldError.text = "<i>invalid amount</i>";
@@ -1236,7 +1388,7 @@ Item {
                         root.isCurrentlySendingAsset = true;
                         amountTextField.focus = false;
                         optionalMessage.focus = false;
-                        if (sendAssetStep.referrer === "connections") {
+                        if (sendAssetStep.referrer === "connections" || sendAssetStep.referrer === "payIn") {
                             Commerce.transferAssetToUsername(sendAssetStep.selectedRecipientUserName,
                                 root.assetCertID,
                                 parseInt(amountTextField.text),
@@ -1246,6 +1398,11 @@ Item {
                                 root.assetCertID,
                                 parseInt(amountTextField.text),
                                 optionalMessage.text);
+                        } else if (sendAssetStep.referrer === "createCoupon") {
+                            Commerce.authorizeAssetTransfer(couponIDTextField.text || "",
+                                root.assetCertID,
+                                parseInt(amountTextField.text) || 1,
+                                optionalMessage.text)
                         }
                     }
                 }
@@ -1317,18 +1474,24 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetName === "" ? 15 : 125;
+            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 125;
             anchors.left: parent.left;
-            anchors.leftMargin: root.assetName === "" ? 15 : 50;
+            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.right: parent.right;
-            anchors.rightMargin: root.assetName === "" ? 15 : 50;
+            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetName === "" ? 15 : 125;
+            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 125;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentSentText;
-                text: root.assetName === "" ? "Payment Sent" : "Gift Sent";
+                text: root.assetCertID === "" ? (sendAssetStep.referrer === "createCoupon" ? "Payment Authorized" : "Payment Sent") :
+                    (sendAssetStep.referrer === "createCoupon" ? "Item Transfer Authorized" :
+                    (sendAssetStep.referrer === "payIn" ? "Item Sent" : "Gift Sent"));
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -1346,7 +1509,7 @@ Item {
             
             HiFiGlyphs {
                 id: closeGlyphButton_paymentSuccess;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" && sendAssetStep.referrer !== "payIn";
                 text: hifi.glyphs.close;
                 color: hifi.colors.lightGrayText;
                 size: 26;
@@ -1364,10 +1527,16 @@ Item {
                         parent.text = hifi.glyphs.close;
                     }
                     onClicked: {
-                        root.nextActiveView = "sendAssetHome";
-                        resetSendAssetData();
-                        if (root.assetName !== "") {
-                            sendSignalToParent({method: "closeSendAsset"});
+                        if (sendAssetStep.referrer === "payIn") {
+                            sendToScript({method: "closeSendAsset"});
+                        } else if (sendAssetStep.referrer === "createCoupon") {
+                            showDidYouCopyLightbox();
+                        } else {
+                            root.nextActiveView = "sendAssetHome";
+                            resetSendAssetData();
+                            if (root.assetName !== "") {
+                                sendSignalToParent({method: "closeSendAsset"});
+                            }
                         }
                     }
                 }
@@ -1381,42 +1550,180 @@ Item {
                 anchors.leftMargin: 20;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
-                height: 80;
+                height: childrenRect.height;
 
-                RalewaySemiBold {
-                    id: sendToText_paymentSuccess;
-                    text: "Sent To:";
-                    // Anchors
+                Item {
+                    id: sendToScriptContainer_paymentSuccess;
+                    visible: sendAssetStep.referrer === "createCoupon";
                     anchors.top: parent.top;
                     anchors.left: parent.left;
-                    anchors.bottom: parent.bottom;
-                    width: 90;
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-
-                RecipientDisplay {
-                    anchors.top: parent.top;
-                    anchors.left: sendToText_paymentSuccess.right;
                     anchors.right: parent.right;
-                    height: parent.height;
-                    textColor: hifi.colors.blueAccent;
+                    height: childrenRect.height;
 
-                    displayName: sendAssetStep.selectedRecipientDisplayName;
-                    userName: sendAssetStep.selectedRecipientUserName;
-                    profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
-                        sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                    RalewaySemiBold {
+                        id: authorizationIDLabel;
+                        text: "Authorization ID:";
+                        // Anchors
+                        anchors.left: parent.left;
+                        anchors.top: authorizationIDText.top;
+                        width: paintedWidth;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    RalewayRegular {
+                        id: authorizationIDText;
+                        text: root.authorizationID;
+                        anchors.top: parent.top;
+                        anchors.left: authorizationIDLabel.right;
+                        anchors.leftMargin: 16;
+                        anchors.right: authorizationIDClipboardButton.left;
+                        anchors.rightMargin: 16;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        horizontalAlignment: Text.AlignHCenter;
+                        verticalAlignment: Text.AlignVCenter;
+                        wrapMode: Text.WrapAnywhere;
+                    }
+
+                    Image {
+                        id: authorizationIDClipboardButton;
+                        source: "images/clipboard.svg"; // clipboard by Bieutuong Bon from the Noun Project
+                        fillMode: Image.PreserveAspectFit;
+                        // Anchors
+                        anchors.right: parent.right;
+                        anchors.top: authorizationIDText.top;
+                        height: 40;
+                        width: height;
+
+                        MouseArea {
+                            anchors.fill: parent;
+                            onClicked: {
+                                Window.copyToClipboard(root.authorizationID);
+                                authorizationIDText.text = "Copied to Clipboard!\n";
+                                authorizationIDClipboardTimer.start();
+                            }
+                        }
+                    }
+
+                    Timer {
+                        id: authorizationIDClipboardTimer;
+                        interval: 2000;
+                        repeat: false;
+                        onTriggered: {
+                            authorizationIDText.text = root.authorizationID;
+                        }
+                    }
+
+                    RalewaySemiBold {
+                        id: couponIDLabel;
+                        text: "Coupon ID:";
+                        // Anchors
+                        anchors.left: parent.left;
+                        anchors.top: couponIDText.top;
+                        width: authorizationIDLabel.width;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    RalewayRegular {
+                        id: couponIDText;
+                        text: root.couponID;
+                        anchors.top: authorizationIDText.bottom;
+                        anchors.topMargin: 16;
+                        anchors.left: couponIDLabel.right;
+                        anchors.leftMargin: 16;
+                        anchors.right: couponIDClipboardButton.left;
+                        anchors.rightMargin: 16;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        horizontalAlignment: Text.AlignHCenter;
+                        verticalAlignment: Text.AlignVCenter;
+                        wrapMode: Text.WrapAnywhere;
+                    }                    
+
+                    Image {
+                        id: couponIDClipboardButton;
+                        source: "images/clipboard.svg"; // clipboard by Bieutuong Bon from the Noun Project
+                        fillMode: Image.PreserveAspectFit;
+                        // Anchors
+                        anchors.right: parent.right;
+                        anchors.top: couponIDText.top;
+                        height: 40;
+                        width: height;
+
+                        MouseArea {
+                            anchors.fill: parent;
+                            onClicked: {
+                                Window.copyToClipboard(root.couponID);
+                                couponIDText.text = "Copied to Clipboard!\n";
+                                couponIDClipboardTimer.start();
+                            }
+                        }
+                    }
+
+                    Timer {
+                        id: couponIDClipboardTimer;
+                        interval: 2000;
+                        repeat: false;
+                        onTriggered: {
+                            couponIDText.text = root.couponID;
+                        }
+                    }
                 }
-            }
-            
+
+                Item {
+                    id: sendToRecipientContainer_paymentSuccess;
+                    visible: !sendToScriptContainer_paymentSuccess.visible;
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    anchors.right: parent.right;
+                    height: 80;
+
+                    RalewaySemiBold {
+                        id: sendToText_paymentSuccess;
+                        text: "Sent To:";
+                        // Anchors
+                        anchors.top: parent.top;
+                        anchors.left: parent.left;
+                        anchors.bottom: parent.bottom;
+                        width: 90;
+                        // Text size
+                        size: 18;
+                        // Style
+                        color: hifi.colors.baseGray;
+                        verticalAlignment: Text.AlignVCenter;
+                    }
+
+                    RecipientDisplay {
+                        anchors.top: parent.top;
+                        anchors.left: sendToText_paymentSuccess.right;
+                        anchors.right: parent.right;
+                        height: parent.height;
+                        textColor: hifi.colors.blueAccent;
+
+                        displayName: sendAssetStep.selectedRecipientDisplayName;
+                        userName: sendAssetStep.selectedRecipientUserName;
+                        profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
+                            sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
+                        multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
+                    }
+                }
+            }            
 
             Item {
                 id: giftContainer_paymentSuccess;
-                visible: root.assetName !== "";
+                visible: root.assetCertID !== "";
                 anchors.top: sendToContainer_paymentSuccess.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1427,7 +1734,8 @@ Item {
 
                 RalewaySemiBold {
                     id: gift_paymentSuccess;
-                    text: "Gift:";
+                    text: sendAssetStep.referrer === "payIn" || sendAssetStep.referrer === "createCoupon" ?
+                        "Item:" : "Gift:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
@@ -1458,7 +1766,7 @@ Item {
 
             Item {
                 id: amountContainer_paymentSuccess;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 anchors.top: sendToContainer_paymentSuccess.bottom;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
@@ -1513,7 +1821,7 @@ Item {
 
             RalewaySemiBold {
                 id: optionalMessage_paymentSuccess;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentSuccess.visible ? amountContainer_paymentSuccess.bottom : sendToContainer_paymentSuccess.bottom;
@@ -1535,18 +1843,24 @@ Item {
             HifiControlsUit.Button {
                 id: closeButton;
                 color: hifi.buttons.blue;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
+                anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Close";
                 onClicked: {
-                    root.nextActiveView = "sendAssetHome";
-                    resetSendAssetData();
-                    if (root.assetName !== "") {
-                        sendSignalToParent({method: "closeSendAsset"});
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else if (sendAssetStep.referrer === "createCoupon") {
+                        showDidYouCopyLightbox();
+                    } else {
+                        root.nextActiveView = "sendAssetHome";
+                        resetSendAssetData();
+                        if (root.assetName !== "") {
+                            sendSignalToParent({method: "closeSendAsset"});
+                        }
                     }
                 }
             }
@@ -1574,18 +1888,22 @@ Item {
 
         Rectangle {
             anchors.top: parent.top;
-            anchors.topMargin: root.assetName === "" ? 15 : 150;
+            anchors.topMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 150;
             anchors.left: parent.left;
-            anchors.leftMargin: root.assetName === "" ? 15 : 50;
+            anchors.leftMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.right: parent.right;
-            anchors.rightMargin: root.assetName === "" ? 15 : 50;
+            anchors.rightMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 50;
             anchors.bottom: parent.bottom;
-            anchors.bottomMargin: root.assetName === "" ? 15 : 300;
+            anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ||
+                sendAssetStep.referrer === "createCoupon" ? 15 : 300;
             color: "#FFFFFF";
 
             RalewaySemiBold {
                 id: paymentFailureText;
-                text: root.assetName === "" ? "Payment Failed" : "Failed";
+                text: root.assetCertID === "" && sendAssetStep.referrer !== "payIn" ? "Payment Failed" : "Failed";
                 // Anchors
                 anchors.top: parent.top;
                 anchors.topMargin: 26;
@@ -1603,7 +1921,7 @@ Item {
             
             HiFiGlyphs {
                 id: closeGlyphButton_paymentFailure;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" && sendAssetStep.referrer !== "payIn";
                 text: hifi.glyphs.close;
                 color: hifi.colors.lightGrayText;
                 size: 26;
@@ -1632,7 +1950,9 @@ Item {
 
             RalewaySemiBold {
                 id: paymentFailureDetailText;
-                text: "The recipient you specified was unable to receive your " + (root.assetName === "" ? "payment." : "gift.");
+                text: sendAssetStep.referrer === "createCoupon" ? "The server was unable to handle your request. Please try again later." :
+                ("The recipient you specified was unable to receive your " +
+                    (root.assetCertID === "" ? "payment." : (sendAssetStep.referrer === "payIn" ? "item." : "gift.")));
                 anchors.top: paymentFailureText.bottom;
                 anchors.topMargin: 20;
                 anchors.left: parent.left;
@@ -1650,7 +1970,8 @@ Item {
 
             Item {
                 id: sendToContainer_paymentFailure;
-                visible: root.assetName === "";
+                visible: (root.assetCertID === "" || sendAssetStep.referrer === "payIn") &&
+                    sendAssetStep.referrer !== "createCoupon";
                 anchors.top: paymentFailureDetailText.bottom;
                 anchors.topMargin: 8;
                 anchors.left: parent.left;
@@ -1685,14 +2006,15 @@ Item {
                     userName: sendAssetStep.selectedRecipientUserName;
                     profilePic: sendAssetStep.selectedRecipientProfilePic !== "" ? ((0 === sendAssetStep.selectedRecipientProfilePic.indexOf("http")) ?
                         sendAssetStep.selectedRecipientProfilePic : (Account.metaverseServerURL + sendAssetStep.selectedRecipientProfilePic)) : "";
-                    isDisplayingNearby: sendAssetStep.referrer === "nearby";
+                    multiLineDisplay: sendAssetStep.referrer === "nearby" || sendAssetStep.referrer === "payIn";
                 }
             }
 
             Item {
                 id: amountContainer_paymentFailure;
-                visible: root.assetName === "";
-                anchors.top: sendToContainer_paymentFailure.bottom;
+                visible: root.assetCertID === "";
+                anchors.top: sendToContainer_paymentFailure.visible ?
+                    sendToContainer_paymentFailure.bottom : paymentFailureDetailText.bottom;
                 anchors.topMargin: 16;
                 anchors.left: parent.left;
                 anchors.leftMargin: 20;
@@ -1746,7 +2068,7 @@ Item {
 
             RalewaySemiBold {
                 id: optionalMessage_paymentFailure;
-                visible: root.assetName === "";
+                visible: root.assetCertID === "" || sendAssetStep.referrer === "payIn";
                 text: optionalMessage.text;
                 // Anchors
                 anchors.top: amountContainer_paymentFailure.visible ? amountContainer_paymentFailure.bottom : sendToContainer_paymentFailure.bottom;
@@ -1768,19 +2090,23 @@ Item {
             HifiControlsUit.Button {
                 id: closeButton_paymentFailure;
                 color: hifi.buttons.noneBorderless;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: retryButton_paymentFailure.left;
                 anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
+                anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Cancel";
                 onClicked: {
-                    root.nextActiveView = "sendAssetHome";
-                    resetSendAssetData();
-                    if (root.assetName !== "") {
-                        sendSignalToParent({method: "closeSendAsset"});
+                    if (sendAssetStep.referrer === "payIn") {
+                        sendToScript({method: "closeSendAsset"});
+                    } else {
+                        root.nextActiveView = "sendAssetHome";
+                        resetSendAssetData();
+                        if (root.assetName !== "") {
+                            sendSignalToParent({method: "closeSendAsset"});
+                        }
                     }
                 }
             }
@@ -1789,17 +2115,17 @@ Item {
             HifiControlsUit.Button {
                 id: retryButton_paymentFailure;
                 color: hifi.buttons.blue;
-                colorScheme: root.assetName === "" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
+                colorScheme: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? hifi.colorSchemes.dark : hifi.colorSchemes.light;
                 anchors.right: parent.right;
                 anchors.rightMargin: 12;
                 anchors.bottom: parent.bottom;
-                anchors.bottomMargin: root.assetName === "" ? 80 : 30;
+                anchors.bottomMargin: root.assetCertID === "" || sendAssetStep.referrer === "payIn" ? 80 : 30;
                 height: 50;
                 width: 120;
                 text: "Retry";
                 onClicked: {
                     root.isCurrentlySendingAsset = true;
-                    if (sendAssetStep.referrer === "connections") {
+                    if (sendAssetStep.referrer === "connections" || sendAssetStep.referrer === "payIn") {
                         Commerce.transferAssetToUsername(sendAssetStep.selectedRecipientUserName,
                             root.assetCertID,
                             parseInt(amountTextField.text),
@@ -1809,6 +2135,11 @@ Item {
                             root.assetCertID,
                             parseInt(amountTextField.text),
                             optionalMessage.text);
+                    } else if (sendAssetStep.referrer === "createCoupon") {
+                        Commerce.authorizeAssetTransfer(couponIDTextField.text || "",
+                            root.assetCertID,
+                            parseInt(amountTextField.text) || 1,
+                            optionalMessage.text)
                     }
                 }
             }
@@ -1835,6 +2166,39 @@ Item {
         optionalMessage.text = "";
         sendPubliclyCheckbox.checked = Settings.getValue("sendAssetsNearbyPublicly", true);
         sendAssetStep.referrer = "";
+    }
+
+    function generateRandomCouponID() {
+        var RANDOM_COUPON_ID_LENGTH = 25;
+        var randomCouponID = "";
+        var possibleCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+        for (var i = 0; i < RANDOM_COUPON_ID_LENGTH; i++) {
+            randomCouponID += possibleCharacters.charAt(Math.floor(Math.random() * possibleCharacters.length));
+        }
+
+        return randomCouponID;
+    }
+
+    function showDidYouCopyLightbox() {
+        lightboxPopup.titleText = "Close Confirmation";
+        lightboxPopup.bodyText = "Did you copy your Authorization ID and your Coupon ID?\n\n" +
+            "You won't be able to see your Authorization ID or your Coupon ID once " +
+            "you close this window.";
+        lightboxPopup.button1text = "GO BACK";
+        lightboxPopup.button1method = function() {
+            lightboxPopup.visible = false;
+        }
+        lightboxPopup.button2text = "I'M ALL SET";
+        lightboxPopup.button2method = function() {
+            lightboxPopup.visible = false;
+            root.nextActiveView = "sendAssetHome";
+            resetSendAssetData();
+            if (root.assetName !== "") {
+                sendSignalToParent({method: "closeSendAsset"});
+            }
+        }
+        lightboxPopup.visible = true;
     }
 
     //
@@ -1866,11 +2230,39 @@ Item {
             case 'updateSelectedRecipientUsername':
                 sendAssetStep.selectedRecipientUserName = message.userName;
             break;
+            case 'updateSendAssetQML':
+                root.assetName = "";
+                root.assetCertID = message.assetCertID || "";
+                if (root.assetCertID === "") {
+                    amountTextField.text = message.amount || 1;
+                } else {
+                    amountTextField.text = "";
+                    Commerce.certificateInfo(root.assetCertID);
+                }
+                sendAssetStep.referrer = "payIn";
+                sendAssetStep.selectedRecipientNodeID = "";
+                sendAssetStep.selectedRecipientDisplayName = "Determined by script:";
+                sendAssetStep.selectedRecipientUserName = message.username || "";
+                optionalMessage.text = message.message || "No Message Provided";
+
+                if (sendAssetStep.selectedRecipientUserName === "") {
+                    console.log("SendAsset: Script didn't specify a recipient username!");
+                    sendAssetHome.visible = false;
+                    root.nextActiveView = 'paymentFailure';
+                    return;
+                }
+
+                root.nextActiveView = "sendAssetStep";
+            break;
+            case 'inspectionCertificate_resetCert':
+                // NOP
+            break;
             default:
-                console.log('SendAsset: Unrecognized message from wallet.js:', JSON.stringify(message));
+                console.log('SendAsset: Unrecognized message from wallet.js');
         }
     }
     signal sendSignalToParent(var msg);
+    signal sendToScript(var message);
     //
     // FUNCTION DEFINITIONS END
     //

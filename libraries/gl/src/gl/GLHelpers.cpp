@@ -71,19 +71,159 @@ void gl::globalRelease(bool finish) {}
 #endif
 
 
-void gl::getTargetVersion(int& major, int& minor) {
+uint16_t gl::getTargetVersion() {
+    uint8_t major = 0, minor = 0;
+
 #if defined(USE_GLES)
     major = 3;
     minor = 2;
-#else
-#if defined(Q_OS_MAC)
+#elif defined(Q_OS_MAC)
     major = 4;
     minor = 1;
 #else
     major = 4;
     minor = disableGl45() ? 1 : 5;
 #endif
+    return GL_MAKE_VERSION(major, minor);
+}
+
+uint16_t gl::getRequiredVersion() {
+    uint8_t major = 0, minor = 0;
+#if defined(USE_GLES)
+    major = 3;
+    minor = 2;
+#else 
+    major = 4;
+    minor = 1;
 #endif
+    return GL_MAKE_VERSION(major, minor);
+}
+
+#if defined(Q_OS_WIN)
+
+typedef BOOL(APIENTRYP PFNWGLCHOOSEPIXELFORMATARBPROC)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+typedef HGLRC(APIENTRYP PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC hDC, HGLRC hShareContext, const int *attribList);
+GLAPI PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB;
+GLAPI PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
+
+static bool setupPixelFormatSimple(HDC hdc) {
+    // FIXME build the PFD based on the 
+    static const PIXELFORMATDESCRIPTOR pfd =    // pfd Tells Windows How We Want Things To Be
+    {
+        sizeof(PIXELFORMATDESCRIPTOR),         // Size Of This Pixel Format Descriptor
+        1,                                      // Version Number
+        PFD_DRAW_TO_WINDOW |                    // Format Must Support Window
+        PFD_SUPPORT_OPENGL |                    // Format Must Support OpenGL
+        PFD_DOUBLEBUFFER,                       // Must Support Double Buffering
+        PFD_TYPE_RGBA,                          // Request An RGBA Format
+        24,                                     // Select Our Color Depth
+        0, 0, 0, 0, 0, 0,                       // Color Bits Ignored
+        1,                                      // Alpha Buffer
+        0,                                      // Shift Bit Ignored
+        0,                                      // No Accumulation Buffer
+        0, 0, 0, 0,                             // Accumulation Bits Ignored
+        24,                                     // 24 Bit Z-Buffer (Depth Buffer)  
+        8,                                      // 8 Bit Stencil Buffer
+        0,                                      // No Auxiliary Buffer
+        PFD_MAIN_PLANE,                         // Main Drawing Layer
+        0,                                      // Reserved
+        0, 0, 0                                 // Layer Masks Ignored
+    };
+    auto pixelFormat = ChoosePixelFormat(hdc, &pfd);
+    if (pixelFormat == 0) {
+        return false;
+    }
+
+    if (SetPixelFormat(hdc, pixelFormat, &pfd) == FALSE) {
+        return false;
+    }
+    return true;
+}
+
+#endif
+
+uint16_t gl::getAvailableVersion() {
+    static uint8_t major = 0, minor = 0;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+#if defined(USE_GLES)
+        // FIXME do runtime detection of the available GL version
+        major = 3;
+        minor = 2;
+#elif defined(Q_OS_MAC)
+        // Damn it Apple.
+        major = 4;
+        minor = 1;
+#elif defined(Q_OS_WIN)
+        // 
+        HINSTANCE hInstance = GetModuleHandle(nullptr);
+        const auto windowClassName = "OpenGLVersionCheck";
+        WNDCLASS wc = { };
+        wc.lpfnWndProc   = DefWindowProc;
+        wc.hInstance     = hInstance;
+        wc.lpszClassName = windowClassName;
+        RegisterClass(&wc);
+
+        using Handle = std::shared_ptr<void>;
+        HWND rawHwnd = CreateWindowEx(
+            WS_EX_APPWINDOW, // extended style 
+            windowClassName, // class name
+            windowClassName, // title
+            WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CS_OWNDC | WS_POPUP, // style
+            0, 0, 10, 10,   // position and size
+            NULL, NULL, hInstance, NULL);
+        auto WindowDestroyer = [](void* handle) {
+            DestroyWindow((HWND)handle);
+        };
+        Handle hWnd = Handle(rawHwnd, WindowDestroyer);
+        if (!hWnd) {
+            return;
+        }
+        HDC rawDC = GetDC(rawHwnd);
+        auto DCDestroyer = [=](void* handle) {
+            ReleaseDC(rawHwnd, (HDC)handle);
+        };
+        if (!rawDC) {
+            return;
+        }
+        Handle hDC = Handle(rawDC, DCDestroyer);
+        if (!setupPixelFormatSimple(rawDC)) {
+            return;
+        }
+        auto GLRCDestroyer = [](void* handle) {
+            wglDeleteContext((HGLRC)handle);
+        };
+        auto rawglrc = wglCreateContext(rawDC);
+        if (!rawglrc) {
+            return;
+        }
+        Handle hGLRC = Handle(rawglrc, GLRCDestroyer);
+        if (!wglMakeCurrent(rawDC, rawglrc)) {
+            return;
+        }
+        gl::initModuleGl();
+        wglMakeCurrent(0, 0);
+        hGLRC.reset();
+        if (!wglChoosePixelFormatARB || !wglCreateContextAttribsARB) {
+            return;
+        }
+
+        // The only two versions we care about on Windows 
+        // are 4.5 and 4.1
+        if (GLAD_GL_VERSION_4_5) {
+            major = 4;
+            minor = disableGl45() ? 1 : 5;
+        } else if (GLAD_GL_VERSION_4_1) {
+            major = 4;
+            minor = 1;
+        }
+#else
+        // FIXME do runtime detection of GL version on non-Mac/Windows/Mobile platforms
+        major = 4;
+        minor = disableGl45() ? 1 : 5;
+#endif
+    });
+    return GL_MAKE_VERSION(major, minor);
 }
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
@@ -105,10 +245,9 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
-        int major, minor;
-        ::gl::getTargetVersion(major, minor);
-        format.setMajorVersion(major);
-        format.setMinorVersion(minor);
+        auto glversion = ::gl::getTargetVersion();
+        format.setMajorVersion(GL_GET_MAJOR_VERSION(glversion));
+        format.setMinorVersion(GL_GET_MINOR_VERSION(glversion));
     });
     return format;
 }
@@ -198,11 +337,48 @@ namespace gl {
 
 
     bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
+        // Disabling error checking macro on Android debug builds for now, 
+        // as it throws off performance testing, which must be done on 
+        // Debug builds
+#if defined(DEBUG) && !defined(Q_OS_ANDROID)
         return checkGLError(name);
 #else
         Q_UNUSED(name);
         return false;
 #endif
+    }
+
+    // Enables annotation of captures made by tools like renderdoc
+    bool khrDebugEnabled() {
+        static std::once_flag once;
+        static bool khrDebug = false;
+        std::call_once(once, [&] {
+            khrDebug = nullptr != glPushDebugGroupKHR;
+        });
+        return khrDebug;
+    }
+
+    // Enables annotation of captures made by tools like renderdoc
+    bool extDebugMarkerEnabled() {
+        static std::once_flag once;
+        static bool extMarker = false;
+        std::call_once(once, [&] {
+            extMarker = nullptr != glPushGroupMarkerEXT;
+        });
+        return extMarker;
+    }
+
+    bool debugContextEnabled() {
+#if defined(Q_OS_MAC)
+        // OSX does not support GL_KHR_debug or GL_ARB_debug_output
+        static bool enableDebugLogger = false;
+#elif defined(DEBUG) || defined(USE_GLES)
+        //static bool enableDebugLogger = true;
+        static bool enableDebugLogger = false;
+#else
+        static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
+        static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+        return enableDebugLogger;
     }
 }

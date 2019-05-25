@@ -19,7 +19,10 @@
 
 #include <QPixmap>
 
-class QmlCommerce : public QObject {
+#include <EntityItemID.h>
+#include <DependencyManager.h>
+
+class QmlCommerce : public QObject, public Dependency {
     Q_OBJECT
 
 public:
@@ -47,10 +50,11 @@ signals:
     void availableUpdatesResult(QJsonObject result);
     void updateItemResult(QJsonObject result);
 
-    void updateCertificateStatus(const QString& certID, uint certStatus);
+    void updateCertificateStatus(const EntityItemID& entityID, uint certStatus);
 
     void transferAssetToNodeResult(QJsonObject result);
     void transferAssetToUsernameResult(QJsonObject result);
+    void authorizeAssetTransferResult(QJsonObject result);
 
     void contentSetChanged(const QString& contentSetHref);
 
@@ -84,6 +88,7 @@ protected:
 
     Q_INVOKABLE void transferAssetToNode(const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
     Q_INVOKABLE void transferAssetToUsername(const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
+    Q_INVOKABLE void authorizeAssetTransfer(const QString& couponID, const QString& certificateID, const int& amount, const QString& optionalMessage);
 
     Q_INVOKABLE void replaceContentSet(const QString& itemHref, const QString& certificateID);
 
@@ -92,11 +97,11 @@ protected:
     Q_INVOKABLE bool uninstallApp(const QString& appHref);
     Q_INVOKABLE bool openApp(const QString& appHref);
 
-    Q_INVOKABLE void getAvailableUpdates(const QString& itemId = "");
+    Q_INVOKABLE void getAvailableUpdates(const QString& itemId = "", const int& pageNumber = 1, const int& itemsPerPage = 10);
     Q_INVOKABLE void updateItem(const QString& certificateId);
 
 private:
-    QString _appsPath;
+    const QString _appsPath;
 };
 
 #endif // hifi_QmlCommerce_h

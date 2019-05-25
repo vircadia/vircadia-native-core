@@ -96,9 +96,6 @@ void GetMappingRequest::doStart() {
             // if it did grab that re-directed path
             if (_wasRedirected) {
                 _redirectedPath = message->readString();
-                qDebug() << "Got redirected from " << _path << " to " << _redirectedPath;
-            } else {
-                qDebug() << "Not redirected: " << _path;
             }
 
         }

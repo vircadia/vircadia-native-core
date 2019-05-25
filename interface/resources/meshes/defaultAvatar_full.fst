@@ -10,10 +10,6 @@ joint = jointRoot = Hips
 joint = jointLeftHand = LeftHand
 joint = jointRightHand = RightHand
 joint = jointHead = Head
-freeJoint = LeftArm
-freeJoint = LeftForeArm
-freeJoint = RightArm
-freeJoint = RightForeArm
 bs = JawOpen = mouth_Open = 1
 bs = LipsFunnel = Oo = 1
 bs = BrowsU_L = brow_Up = 1

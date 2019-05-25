@@ -27,11 +27,10 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 layout(location=0) out vec4 _fragColor0;
 
 void main(void) {
-    vec4 texel = texture(originalTexture, _texCoord0.st);
-    float colorAlpha = _color.a;
-    if (_color.a <= 0.0) {
-        texel = color_sRGBAToLinear(texel);
-        colorAlpha = -_color.a;
-    }
-    _fragColor0 = vec4(_color.rgb * texel.rgb, colorAlpha * texel.a);
+    vec4 texel = texture(originalTexture, _texCoord0);
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
+    texel.rgb *= _color.rgb;
+    texel.a *= abs(_color.a);
+
+    _fragColor0 = texel;
 }

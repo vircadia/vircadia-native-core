@@ -8,28 +8,34 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global alert, augmentSpinButtons, clearTimeout, console, document, Element, 
-   EventBridge, JSONEditor, openEventBridge, setTimeout, window, _ $ */
-    
-const ICON_FOR_TYPE = {
-    Box: "V",
-    Sphere: "n",
-    Shape: "n",
-    ParticleEffect: "&#xe004;",
-    Model: "&#xe008;",
-    Web: "q",
-    Image: "&#xe02a;",
-    Text: "l",
-    Light: "p",
-    Zone: "o",
-    PolyVox: "&#xe005;",
-    Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;",
-    Material: "&#xe00b;"
-};  
+   EventBridge, JSONEditor, openEventBridge, setTimeout, window, _, $ */
 
 const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
-const NO_SELECTION = "<i>No selection</i>";
+const NO_SELECTION = ",";
+
+const PROPERTY_SPACE_MODE = Object.freeze({
+    ALL: 0,
+    LOCAL: 1,
+    WORLD: 2
+});
+
+const PROPERTY_SELECTION_VISIBILITY = Object.freeze({
+    SINGLE_SELECTION: 1,
+    MULTIPLE_SELECTIONS: 2,
+    MULTI_DIFF_SELECTIONS: 4,
+    ANY_SELECTIONS: 7, /* SINGLE_SELECTION | MULTIPLE_SELECTIONS | MULTI_DIFF_SELECTIONS */
+});
+
+// Multiple-selection behavior
+const PROPERTY_MULTI_DISPLAY_MODE = Object.freeze({
+    DEFAULT: 0,
+    /**
+     * Comma separated values
+     * Limited for properties with type "string" or "textarea" and readOnly enabled
+     */
+    COMMA_SEPARATED_VALUES: 1,
+});
 
 const GROUPS = [
     {
@@ -38,19 +44,25 @@ const GROUPS = [
             {
                 label: NO_SELECTION,
                 type: "icon",
-                icons: ICON_FOR_TYPE,
+                icons: ENTITY_TYPE_ICON,
                 propertyID: "type",
+                replaceID: "placeholder-property-type",
             },
             {
                 label: "Name",
                 type: "string",
                 propertyID: "name",
+                placeholder: "Name",
+                replaceID: "placeholder-property-name",
             },
             {
                 label: "ID",
                 type: "string",
                 propertyID: "id",
+                placeholder: "ID",
                 readOnly: true,
+                replaceID: "placeholder-property-id",
+                multiDisplayMode: PROPERTY_MULTI_DISPLAY_MODE.COMMA_SEPARATED_VALUES,
             },
             {
                 label: "Description",
@@ -61,6 +73,7 @@ const GROUPS = [
                 label: "Parent",
                 type: "string",
                 propertyID: "parentID",
+                onChange: parentIDChanged,
             },
             {
                 label: "Parent Joint Index",
@@ -68,16 +81,37 @@ const GROUPS = [
                 propertyID: "parentJointIndex",
             },
             {
-                label: "Locked",
+                label: "",
                 glyph: "&#xe006;",
                 type: "bool",
                 propertyID: "locked",
+                replaceID: "placeholder-property-locked",
             },
             {
-                label: "Visible",
+                label: "",
                 glyph: "&#xe007;",
                 type: "bool",
                 propertyID: "visible",
+                replaceID: "placeholder-property-visible",
+            },
+            {
+                label: "Render Layer",
+                type: "dropdown",
+                options: {
+                    world: "World",
+                    front: "Front",
+                    hud: "HUD"
+                },
+                propertyID: "renderLayer",
+            },
+            {
+                label: "Primitive Mode",
+                type: "dropdown",
+                options: {
+                    solid: "Solid",
+                    lines: "Wireframe",
+                },
+                propertyID: "primitiveMode",
             },
         ]
     },
@@ -116,23 +150,71 @@ const GROUPS = [
                 propertyID: "textColor",
             },
             {
+                label: "Text Alpha",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "textAlpha",
+            },
+            {
                 label: "Background Color",
                 type: "color",
                 propertyID: "backgroundColor",
             },
             {
-                label: "Line Height",
-                type: "number",
+                label: "Background Alpha",
+                type: "number-draggable",
                 min: 0,
-                step: 0.005,
-                decimals: 4,
-                unit: "m",
-                propertyID: "lineHeight"
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "backgroundAlpha",
             },
             {
-                label: "Face Camera",
-                type: "bool",
-                propertyID: "faceCamera"
+                label: "Line Height",
+                type: "number-draggable",
+                min: 0,
+                step: 0.001,
+                decimals: 4,
+                unit: "m",
+                propertyID: "lineHeight",
+            },
+            {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "textBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Top Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "topMargin",
+            },
+            {
+                label: "Right Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "rightMargin",
+            },
+            {
+                label: "Bottom Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "bottomMargin",
+            },
+            {
+                label: "Left Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "leftMargin",
             },
         ]
     },
@@ -140,6 +222,20 @@ const GROUPS = [
         id: "zone",
         addToGroup: "base",
         properties: [
+            {
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "sphere": "Sphere", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "compound": "Use Compound Shape URL" },
+                propertyID: "zoneShapeType",
+                propertyName: "shapeType", // actual entity property name
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "zoneCompoundShapeURL",
+                propertyName: "compoundShapeURL", // actual entity property name
+            },
             {
                 label: "Flying Allowed",
                 type: "bool",
@@ -170,30 +266,32 @@ const GROUPS = [
             },
             {
                 label: "Light Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
-                max: 10,
-                step: 0.1,
+                max: 40,
+                step: 0.01,
                 decimals: 2,
                 propertyID: "keyLight.intensity",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
                 label: "Light Horizontal Angle",
-                type: "number",
-                multiplier: DEGREES_TO_RADIANS,
-                decimals: 2,
-                unit: "deg",
-                propertyID: "keyLight.direction.x",
-                showPropertyRule: { "keyLightMode": "enabled" },
-            },
-            {
-                label: "Light Vertical Angle",
-                type: "number",
+                type: "number-draggable",
+                step: 0.1,
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
                 propertyID: "keyLight.direction.y",
+                showPropertyRule: { "keyLightMode": "enabled" },
+            },
+            {
+                label: "Light Vertical Angle",
+                type: "number-draggable",
+                step: 0.1,
+                multiplier: DEGREES_TO_RADIANS,
+                decimals: 2,
+                unit: "deg",
+                propertyID: "keyLight.direction.x",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
@@ -228,9 +326,9 @@ const GROUPS = [
             },
             {
                 label: "Ambient Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
-                max: 10,
+                max: 200,
                 step: 0.1,
                 decimals: 2,
                 propertyID: "ambientLight.ambientIntensity",
@@ -247,7 +345,7 @@ const GROUPS = [
                 buttons: [ { id: "copy", label: "Copy from Skybox", 
                              className: "black", onClick: copySkyboxURLToAmbientURL } ],
                 propertyID: "copyURLToAmbient",
-                showPropertyRule: { "skyboxMode": "enabled" },
+                showPropertyRule: { "ambientLightMode": "enabled" },
             },
             {
                 label: "Haze",
@@ -257,10 +355,10 @@ const GROUPS = [
             },
             {
                 label: "Range",
-                type: "number",
-                min: 5,
+                type: "number-draggable",
+                min: 1,
                 max: 10000,
-                step: 5,
+                step: 1,
                 decimals: 0,
                 unit: "m",
                 propertyID: "haze.hazeRange",
@@ -274,10 +372,10 @@ const GROUPS = [
             },
             {
                 label: "Base",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 1000,
-                step: 10,
+                step: 1,
                 decimals: 0,
                 unit: "m",
                 propertyID: "haze.hazeBaseRef",
@@ -285,10 +383,10 @@ const GROUPS = [
             },
             {
                 label: "Ceiling",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 5000,
-                step: 10,
+                step: 1,
                 decimals: 0,
                 unit: "m",
                 propertyID: "haze.hazeCeiling",
@@ -302,11 +400,11 @@ const GROUPS = [
             },
             {
                 label: "Background Blend",
-                type: "slider",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "haze.hazeBackgroundBlend",
                 showPropertyRule: { "hazeMode": "enabled" },
             },
@@ -324,7 +422,7 @@ const GROUPS = [
             },
             {
                 label: "Glare Angle",
-                type: "slider",
+                type: "number-draggable",
                 min: 0,
                 max: 180,
                 step: 1,
@@ -340,34 +438,41 @@ const GROUPS = [
             },
             {
                 label: "Bloom Intensity",
-                type: "slider",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "bloom.bloomIntensity",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
             {
                 label: "Bloom Threshold",
-                type: "slider",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "bloom.bloomThreshold",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
             {
                 label: "Bloom Size",
-                type: "slider",
+                type: "number-draggable",
                 min: 0,
                 max: 2,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
+            {
+                label: "Avatar Priority",
+                type: "dropdown",
+                options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
+                propertyID: "avatarPriority",
+            },
+
         ]
     },
     {
@@ -377,7 +482,9 @@ const GROUPS = [
             {
                 label: "Model",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "modelURL",
+                hideIfCertified: true,
             },
             {
                 label: "Collision Shape",
@@ -391,11 +498,13 @@ const GROUPS = [
                 label: "Compound Shape",
                 type: "string",
                 propertyID: "compoundShapeURL",
+                hideIfCertified: true,
             },
             {
                 label: "Animation",
                 type: "string",
                 propertyID: "animation.url",
+                hideIfCertified: true,
             },
             {
                 label: "Play Automatically",
@@ -419,22 +528,22 @@ const GROUPS = [
             },
             {
                 label: "Animation Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.currentFrame",
             },
             {
                 label: "First Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.firstFrame",
             },
             {
                 label: "Last Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.lastFrame",
             },
             {
                 label: "Animation FPS",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.fps",
             },
             {
@@ -447,6 +556,12 @@ const GROUPS = [
                 type: "textarea",
                 propertyID: "originalTextures",
                 readOnly: true,
+                hideIfCertified: true,
+            },
+            {
+                label: "Group Culled",
+                type: "bool",
+                propertyID: "groupCulled",
             },
         ]
     },
@@ -457,7 +572,39 @@ const GROUPS = [
             {
                 label: "Image",
                 type: "string",
-                propertyID: "image",
+                placeholder: "URL",
+                propertyID: "imageURL",
+            },
+            {
+                label: "Color",
+                type: "color",
+                propertyID: "imageColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Emissive",
+                type: "bool",
+                propertyID: "emissive",
+            },
+            {
+                label: "Sub Image",
+                type: "rect",
+                min: 0,
+                step: 1,
+                subLabels: [ "x", "y", "w", "h" ],
+                propertyID: "subImage",
+            },
+            {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "imageBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Keep Aspect Ratio",
+                type: "bool",
+                propertyID: "keepAspectRatio",
             },
         ]
     },
@@ -472,8 +619,37 @@ const GROUPS = [
             },
             {
                 label: "Source Resolution",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "dpi",
+            },
+            {
+                label: "Web Color",
+                type: "color",
+                propertyID: "webColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Web Alpha",
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
+                propertyID: "webAlpha",
+                propertyName: "alpha",
+                min: 0,
+                max: 1,
+            },
+            {
+                label: "Max FPS",
+                type: "number-draggable",
+                step: 1,
+                decimals: 0,
+                propertyID: "maxFPS",
+            },
+            {
+                label: "Script URL",
+                type: "string",
+                propertyID: "scriptURL",
+                placeholder: "URL",
             },
         ]
     },
@@ -489,18 +665,20 @@ const GROUPS = [
             },
             {
                 label: "Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
+                max: 10000,
                 step: 0.1,
-                decimals: 1,
+                decimals: 2,
                 propertyID: "intensity",
             },
             {
                 label: "Fall-Off Radius",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
+                max: 10000,
                 step: 0.1,
-                decimals: 1,
+                decimals: 2,
                 unit: "m",
                 propertyID: "falloffRadius",
             },
@@ -511,14 +689,15 @@ const GROUPS = [
             },
             {
                 label: "Spotlight Exponent",
-                type: "number",
+                type: "number-draggable",
+                min: 0,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "exponent",
             },
             {
                 label: "Spotlight Cut-Off",
-                type: "number",
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "cutoff",
@@ -543,32 +722,30 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
-                label: "Submesh to Replace",
-                type: "number",
-                min: 0,
-                step: 1,
-                propertyID: "submeshToReplace",
-            },
-            {
-                label: "Material Name to Replace",
-                type: "string",
-                propertyID: "materialNameToReplace",
-            },
-            {
-                label: "Select Submesh",
-                type: "bool",
-                propertyID: "selectSubmesh",
+                label: "Material Target",
+                type: "dynamic-multiselect",
+                propertyUpdate: materialTargetPropertyUpdate,
+                propertyID: "parentMaterialName",
+                selectionVisibility: PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION,
             },
             {
                 label: "Priority",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 propertyID: "priority",
             },
             {
+                label: "Material Mapping Mode",
+                type: "dropdown",
+                options: {
+                    uv: "UV space", projected: "3D projected"
+                },
+                propertyID: "materialMappingMode",
+            },
+            {
                 label: "Material Position",
                 type: "vec2",
-                vec2Type: "xy",
+                vec2Type: "xyz",
                 min: 0,
                 max: 1,
                 step: 0.1,
@@ -579,20 +756,58 @@ const GROUPS = [
             {
                 label: "Material Scale",
                 type: "vec2",
-                vec2Type: "wh",
+                vec2Type: "xyz",
                 min: 0,
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "width", "height" ],
+                subLabels: [ "x", "y" ],
                 propertyID: "materialMappingScale",
             },
             {
                 label: "Material Rotation",
-                type: "number",
+                type: "number-draggable",
                 step: 0.1,
                 decimals: 2,
                 unit: "deg",
                 propertyID: "materialMappingRot",
+            },
+            {
+                label: "Material Repeat",
+                type: "bool",
+                propertyID: "materialRepeat",
+            },
+        ]
+    },
+    {
+        id: "grid",
+        addToGroup: "base",
+        properties: [
+            {
+                label: "Color",
+                type: "color",
+                propertyID: "gridColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Follow Camera",
+                type: "bool",
+                propertyID: "followCamera",
+            },
+            {
+                label: "Major Grid Every",
+                type: "number-draggable",
+                min: 0,
+                step: 1,
+                decimals: 0,
+                propertyID: "majorGridEvery",
+            },
+            {
+                label: "Minor Grid Every",
+                type: "number-draggable",
+                min: 0,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "minorGridEvery",
             },
         ]
     },
@@ -607,19 +822,15 @@ const GROUPS = [
             },
             {
                 label: "Lifespan",
-                type: "slider",
+                type: "number-draggable",
                 unit: "s",
-                min: 0.01,
-                max: 10,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "lifespan",
             },
             {
                 label: "Max Particles",
-                type: "slider",
-                min: 1,
-                max: 10000,
+                type: "number-draggable",
                 step: 1,
                 propertyID: "maxParticles",
             },
@@ -634,38 +845,47 @@ const GROUPS = [
     {
         id: "particles_emit",
         label: "EMIT",
+        isMinor: true,
         properties: [
             {
                 label: "Emit Rate",
-                type: "slider",
-                min: 1,
-                max: 1000,
+                type: "number-draggable",
                 step: 1,
                 propertyID: "emitRate",
             },
             {
                 label: "Emit Speed",
-                type: "slider",
-                min: 0,
-                max: 5,
-                step: 0.01,
+                type: "number-draggable",
+                step: 0.1,
                 decimals: 2,
                 propertyID: "emitSpeed",
             },
             {
                 label: "Speed Spread",
-                type: "slider",
-                min: 0,
-                max: 5,
-                step: 0.01,
+                type: "number-draggable",
+                step: 0.1,
                 decimals: 2,
                 propertyID: "speedSpread",
             },
             {
-                label: "Emit Dimension",
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "circle": "Circle", "plane": "Plane",
+                           "compound": "Use Compound Shape URL" },
+                propertyID: "particleShapeType",
+                propertyName: "shapeType",
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "particleCompoundShapeURL",
+                propertyName: "compoundShapeURL",
+            },
+            {
+                label: "Emit Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
-                min: 0,
                 step: 0.01,
                 round: 100,
                 subLabels: [ "x", "y", "z" ],
@@ -673,11 +893,9 @@ const GROUPS = [
             },
             {
                 label: "Emit Radius Start",
-                type: "slider",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
                 propertyID: "emitRadiusStart"
             },
             {
@@ -686,7 +904,7 @@ const GROUPS = [
                 vec3Type: "pyr",
                 step: 0.01,
                 round: 100,
-                subLabels: [ "pitch", "yaw", "roll" ],
+                subLabels: [ "x", "y", "z" ],
                 unit: "deg",
                 propertyID: "emitOrientation",
             },
@@ -700,41 +918,41 @@ const GROUPS = [
     {
         id: "particles_size",
         label: "SIZE",
+        isMinor: true,
         properties: [
             {
+                type: "triple",
                 label: "Size",
-                type: "slider",
-                min: 0,
-                max: 4,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "particleRadius",
-            },
-            {
-                label: "Size Start",
-                type: "slider",
-                min: 0,
-                max: 4,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "radiusStart",
-                fallbackProperty: "particleRadius",
-            },
-            {
-                label: "Size Finish",
-                type: "slider",
-                min: 0,
-                max: 4,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "radiusFinish",
-                fallbackProperty: "particleRadius",
+                propertyID: "particleRadiusTriple",
+                properties: [
+                    {
+                        label: "Start",
+                        type: "number-draggable",
+                        step: 0.01,
+                        decimals: 2,
+                        propertyID: "radiusStart",
+                        fallbackProperty: "particleRadius",
+                    },
+                    {
+                        label: "Middle",
+                        type: "number-draggable",
+                        step: 0.01,
+                        decimals: 2,
+                        propertyID: "particleRadius",
+                    },
+                    {
+                        label: "Finish",
+                        type: "number-draggable",
+                        step: 0.01,
+                        decimals: 2,
+                        propertyID: "radiusFinish",
+                        fallbackProperty: "particleRadius",
+                    },
+                ]
             },
             {
                 label: "Size Spread",
-                type: "slider",
-                min: 0,
-                max: 4,
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "radiusSpread",
@@ -744,24 +962,32 @@ const GROUPS = [
     {
         id: "particles_color",
         label: "COLOR",
+        isMinor: true,
         properties: [
             {
+                type: "triple",
                 label: "Color",
-                type: "color",
-                propertyID: "particleColor",
-                propertyName: "color", // actual entity property name
-            },
-            {
-                label: "Color Start",
-                type: "color",
-                propertyID: "colorStart",
-                fallbackProperty: "color",
-            },
-            {
-                label: "Color Finish",
-                type: "color",
-                propertyID: "colorFinish",
-                fallbackProperty: "color",
+                propertyID: "particleColorTriple",
+                properties: [
+                    {
+                        label: "Start",
+                        type: "color",
+                        propertyID: "colorStart",
+                        fallbackProperty: "color",
+                    },
+                    {
+                        label: "Middle",
+                        type: "color",
+                        propertyID: "particleColor",
+                        propertyName: "color", // actual entity property name
+                    },
+                    {
+                        label: "Finish",
+                        type: "color",
+                        propertyID: "colorFinish",
+                        fallbackProperty: "color",
+                    },
+                ]
             },
             {
                 label: "Color Spread",
@@ -773,43 +999,43 @@ const GROUPS = [
     {
         id: "particles_alpha",
         label: "ALPHA",
+        isMinor: true,
         properties: [
             {
+                type: "triple",
                 label: "Alpha",
-                type: "slider",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "alpha",
-            },
-            {
-                label: "Alpha Start",
-                type: "slider",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "alphaStart",
-                fallbackProperty: "alpha",
-            },
-            {
-                label: "Alpha Finish",
-                type: "slider",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
-                propertyID: "alphaFinish",
-                fallbackProperty: "alpha",
+                propertyID: "particleAlphaTriple",
+                properties: [
+                    {
+                        label: "Start",
+                        type: "number-draggable",
+                        step: 0.001,
+                        decimals: 3,
+                        propertyID: "alphaStart",
+                        fallbackProperty: "alpha",
+                    },
+                    {
+                        label: "Middle",
+                        type: "number-draggable",
+                        step: 0.001,
+                        decimals: 3,
+                        propertyID: "alpha",
+                    },
+                    {
+                        label: "Finish",
+                        type: "number-draggable",
+                        step: 0.001,
+                        decimals: 3,
+                        propertyID: "alphaFinish",
+                        fallbackProperty: "alpha",
+                    },
+                ]
             },
             {
                 label: "Alpha Spread",
-                type: "slider",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
                 propertyID: "alphaSpread",
             },
         ]
@@ -817,6 +1043,7 @@ const GROUPS = [
     {
         id: "particles_acceleration",
         label: "ACCELERATION",
+        isMinor: true,
         properties: [
             {
                 label: "Emit Acceleration",
@@ -841,49 +1068,49 @@ const GROUPS = [
     {
         id: "particles_spin",
         label: "SPIN",
+        isMinor: true,
         properties: [
             {
+                type: "triple",
                 label: "Spin",
-                type: "slider",
-                min: -360,
-                max: 360,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "particleSpin",
-            },
-            {
-                label: "Spin Start",
-                type: "slider",
-                min: -360,
-                max: 360,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "spinStart",
-                fallbackProperty: "particleSpin",
-            },
-            {
-                label: "Spin Finish",
-                type: "slider",
-                min: -360,
-                max: 360,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "spinFinish",
-                fallbackProperty: "particleSpin",
+                propertyID: "particleSpinTriple",
+                properties: [
+                    {
+                        label: "Start",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "spinStart",
+                        fallbackProperty: "particleSpin",
+                    },
+                    {
+                        label: "Middle",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "particleSpin",
+                    },
+                    {
+                        label: "Finish",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "spinFinish",
+                        fallbackProperty: "particleSpin",
+                    },
+                ]
             },
             {
                 label: "Spin Spread",
-                type: "slider",
-                min: 0,
-                max: 360,
-                step: 1,
-                decimals: 0,
+                type: "number-draggable",
+                step: 0.1,
+                decimals: 2,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "spinSpread",
@@ -898,51 +1125,58 @@ const GROUPS = [
     {
         id: "particles_constraints",
         label: "CONSTRAINTS",
+        isMinor: true,
         properties: [
             {
-                label: "Horizontal Angle Start",
-                type: "slider",
-                min: -180,
-                max: 0,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "azimuthStart",
+                type: "triple",
+                label: "Horizontal Angle",
+                propertyID: "particlePolarTriple",
+                properties: [
+                    {
+                        label: "Start",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "polarStart",
+                    },
+                    {
+                        label: "Finish",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "polarFinish",
+                    },
+                ],
             },
             {
-                label: "Horizontal Angle Finish",
-                type: "slider",
-                min: 0,
-                max: 180,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "azimuthFinish",
-            },
-            {
-                label: "Vertical Angle Start",
-                type: "slider",
-                min: 0,
-                max: 180,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "polarStart",
-            },
-            {
-                label: "Vertical Angle Finish",
-                type: "slider",
-                min: 0,
-                max: 180,
-                step: 1,
-                decimals: 0,
-                multiplier: DEGREES_TO_RADIANS,
-                unit: "deg",
-                propertyID: "polarFinish",
-            },
+                type: "triple",
+                label: "Vertical Angle",
+                propertyID: "particleAzimuthTriple",
+                properties: [
+                    {
+                        label: "Start",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "azimuthStart",
+                    },
+                    {
+                        label: "Finish",
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
+                        multiplier: DEGREES_TO_RADIANS,
+                        unit: "deg",
+                        propertyID: "azimuthFinish",
+                    },
+                ]
+            }
         ]
     },
     {
@@ -953,10 +1187,23 @@ const GROUPS = [
                 label: "Position",
                 type: "vec3",
                 vec3Type: "xyz",
+                step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
                 propertyID: "position",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
+            },
+            {
+                label: "Local Position",
+                type: "vec3",
+                vec3Type: "xyz",
+                step: 0.1,
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "m",
+                propertyID: "localPosition",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
                 label: "Rotation",
@@ -964,24 +1211,47 @@ const GROUPS = [
                 vec3Type: "pyr",
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "pitch", "yaw", "roll" ],
+                subLabels: [ "x", "y", "z" ],
                 unit: "deg",
                 propertyID: "rotation",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
             },
             {
-                label: "Dimension",
+                label: "Local Rotation",
+                type: "vec3",
+                vec3Type: "pyr",
+                step: 0.1,
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "deg",
+                propertyID: "localRotation",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
+            },
+            {
+                label: "Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
-                min: 0,
-                step: 0.1,
+                step: 0.01,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
                 propertyID: "dimensions",
+                spaceMode: PROPERTY_SPACE_MODE.WORLD,
+            },
+            {
+                label: "Local Dimensions",
+                type: "vec3",
+                vec3Type: "xyz",
+                step: 0.01,
+                decimals: 4,
+                subLabels: [ "x", "y", "z" ],
+                unit: "m",
+                propertyID: "localDimensions",
+                spaceMode: PROPERTY_SPACE_MODE.LOCAL,
             },
             {
                 label: "Scale",
-                type: "number",
+                type: "number-draggable",
                 defaultValue: 100,
                 unit: "%",
                 buttons: [ { id: "rescale", label: "Rescale", className: "blue", onClick: rescaleDimensions }, 
@@ -992,7 +1262,7 @@ const GROUPS = [
                 label: "Pivot",
                 type: "vec3",
                 vec3Type: "xyz",
-                step: 0.1,
+                step: 0.001,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "(ratio of dimension)",
@@ -1023,14 +1293,16 @@ const GROUPS = [
             },
             {
                 label: "Clone Lifetime",
-                type: "number",
+                type: "number-draggable",
+                min: -1,
                 unit: "s",
                 propertyID: "cloneLifetime",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Limit",
-                type: "number",
+                type: "number-draggable",
+                min: 0,
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
             },
@@ -1065,18 +1337,29 @@ const GROUPS = [
                 label: "Link",
                 type: "string",
                 propertyID: "href",
+                placeholder: "URL",
             },
             {
                 label: "Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
                 propertyID: "script",
+                placeholder: "URL",
+                hideIfCertified: true,
             },
             {
                 label: "Server Script",
                 type: "string",
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadServerScripts } ],
                 propertyID: "serverScripts",
+                placeholder: "URL",
+            },
+            {
+                label: "Server Script Status",
+                type: "placeholder",
+                indentedLabel: true,
+                propertyID: "serverScriptStatus",
+                selectionVisibility: PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION,
             },
             {
                 label: "Lifetime",
@@ -1103,12 +1386,6 @@ const GROUPS = [
                 type: "bool",
                 inverse: true,
                 propertyID: "collisionless",
-            },
-            {
-                label: "Collides With",
-                type: "sub-header",
-                propertyID: "collidesWithHeader", // not actually a property but used for naming/storing this element
-                showPropertyRule: { "collisionless": "false" },
             },
             {
                 label: "Static Entities",
@@ -1151,10 +1428,12 @@ const GROUPS = [
                 showPropertyRule: { "collisionless": "false" },
             },
             {
-                label: "Collision sound URL",
+                label: "Collision Sound",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
+                hideIfCertified: true,
             },
             {
                 label: "Dynamic",
@@ -1171,15 +1450,19 @@ const GROUPS = [
                 label: "Linear Velocity",
                 type: "vec3",
                 vec3Type: "xyz",
+                step: 0.01,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m/s",
-                propertyID: "velocity",
+                propertyID: "localVelocity",
             },
             {
                 label: "Linear Damping",
-                type: "number",
-                decimals: 2,
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.001,
+                decimals: 4,
                 propertyID: "damping",
             },
             {
@@ -1188,31 +1471,37 @@ const GROUPS = [
                 vec3Type: "pyr",
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 4,
-                subLabels: [ "pitch", "yaw", "roll" ],
+                subLabels: [ "x", "y", "z" ],
                 unit: "deg/s",
-                propertyID: "angularVelocity",
+                propertyID: "localAngularVelocity",
             },
             {
                 label: "Angular Damping",
-                type: "number",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.001,
                 decimals: 4,
                 propertyID: "angularDamping",
             },
             {
                 label: "Bounciness",
-                type: "number",
+                type: "number-draggable",
+                step: 0.001,
                 decimals: 4,
                 propertyID: "restitution",
             },
             {
                 label: "Friction",
-                type: "number",
+                type: "number-draggable",
+                step: 0.01,
                 decimals: 4,
                 propertyID: "friction",
             },
             {
                 label: "Density",
-                type: "number",
+                type: "number-draggable",
+                step: 1,
                 decimals: 4,
                 propertyID: "density",
             },
@@ -1221,6 +1510,8 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "xyz",
                 subLabels: [ "x", "y", "z" ],
+                step: 0.1,
+                decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "gravity",
             },
@@ -1229,6 +1520,7 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "xyz",
                 subLabels: [ "x", "y", "z" ],
+                step: 0.1,
                 decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "acceleration",
@@ -1241,7 +1533,7 @@ const GROUPS_PER_TYPE = {
   None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
   Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
-  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'collision', 'physics' ],
+  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'physics' ],
   Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
   Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],
@@ -1249,6 +1541,9 @@ const GROUPS_PER_TYPE = {
   Material: [ 'base', 'material', 'spatial', 'behavior' ],
   ParticleEffect: [ 'base', 'particles', 'particles_emit', 'particles_size', 'particles_color', 'particles_alpha', 
                     'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
+  PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  Grid: [ 'base', 'grid', 'spatial', 'behavior', 'physics' ],
   Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
 };
 
@@ -1258,8 +1553,6 @@ const DEBOUNCE_TIMEOUT = 125;
 const COLOR_MIN = 0;
 const COLOR_MAX = 255;
 const COLOR_STEP = 1;
-
-const KEY_P = 80; // Key code for letter p used for Parenting hotkey.
 
 const MATERIAL_PREFIX_STRING = "mat::";
 
@@ -1274,33 +1567,32 @@ const ENTITY_SCRIPT_STATUS = {
     unloaded: "Unloaded"
 };
 
+const ENABLE_DISABLE_SELECTOR = "input, textarea, span, .dropdown dl, .color-picker";
+
 const PROPERTY_NAME_DIVISION = {
     GROUP: 0,
     PROPERTY: 1,
-    SUBPROPERTY: 2,
+    SUB_PROPERTY: 2,
+};
+
+const RECT_ELEMENTS = {
+    X_NUMBER: 0,
+    Y_NUMBER: 1,
+    WIDTH_NUMBER: 2,
+    HEIGHT_NUMBER: 3,
 };
 
 const VECTOR_ELEMENTS = {
-    X_INPUT: 0,
-    Y_INPUT: 1,
-    Z_INPUT: 2,
+    X_NUMBER: 0,
+    Y_NUMBER: 1,
+    Z_NUMBER: 2,
 };
 
 const COLOR_ELEMENTS = {
     COLOR_PICKER: 0,
-    RED_INPUT: 1,
-    GREEN_INPUT: 2,
-    BLUE_INPUT: 3,
-};
-
-const SLIDER_ELEMENTS = {
-    SLIDER: 0,
-    NUMBER_INPUT: 1,
-};
-
-const ICON_ELEMENTS = {
-    ICON: 0,
-    LABEL: 1,
+    RED_NUMBER: 1,
+    GREEN_NUMBER: 2,
+    BLUE_NUMBER: 3,
 };
 
 const TEXTURE_ELEMENTS = {
@@ -1310,23 +1602,26 @@ const TEXTURE_ELEMENTS = {
 
 const JSON_EDITOR_ROW_DIV_INDEX = 2;
 
-var elGroups = {};
-var properties = {};
-var colorPickers = {};
-var particlePropertyUpdates = {};
-var selectedEntityProperties;
-var lastEntityID = null;
-var createAppTooltip = new CreateAppTooltip();
+let elGroups = {};
+let properties = {};
+let propertyRangeRequests = [];
+let colorPickers = {};
+let particlePropertyUpdates = {};
+let selectedEntityIDs = new Set();
+let currentSelections = [];
+let createAppTooltip = new CreateAppTooltip();
+let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
-function debugPrint(message) {
-    EventBridge.emitWebEvent(
-        JSON.stringify({
-            type: "print",
-            message: message
-        })
-    );
+
+function createElementFromHTML(htmlString) {
+    let elTemplate = document.createElement('template');
+    elTemplate.innerHTML = htmlString.trim();
+    return elTemplate.content.firstChild;
 }
 
+function isFlagSet(value, flag) {
+    return (value & flag) === flag;
+}
 
 /**
  * GENERAL PROPERTY/GROUP FUNCTIONS
@@ -1336,20 +1631,30 @@ function getPropertyInputElement(propertyID) {
     let property = properties[propertyID];          
     switch (property.data.type) {
         case 'string':
-        case 'bool':
         case 'number':
-        case 'slider':
+        case 'bool':
         case 'dropdown':
         case 'textarea':
         case 'texture':
             return property.elInput;
+        case 'number-draggable':
+            return property.elNumber.elInput;
+        case 'rect':
+            return {
+                x: property.elNumberX.elInput,
+                y: property.elNumberY.elInput,
+                width: property.elNumberWidth.elInput,
+                height: property.elNumberHeight.elInput
+            };
         case 'vec3': 
         case 'vec2':
-            return { x: property.elInputX, y: property.elInputY, z: property.elInputZ };
+            return { x: property.elNumberX.elInput, y: property.elNumberY.elInput, z: property.elNumberZ.elInput };
         case 'color':
-            return { red: property.elInputR, green: property.elInputG, blue: property.elInputB };
+            return { red: property.elNumberR.elInput, green: property.elNumberG.elInput, blue: property.elNumberB.elInput };
         case 'icon':
             return property.elLabel;
+        case 'dynamic-multiselect':
+            return property.elDivOptions;
         default:
             return undefined;
     }
@@ -1370,10 +1675,10 @@ function disableChildren(el, selector) {
 }
 
 function enableProperties() {
-    enableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
+    enableChildren(document.getElementById("properties-list"), ENABLE_DISABLE_SELECTOR);
     enableChildren(document, ".colpick");
+    
     let elLocked = getPropertyInputElement("locked");
-
     if (elLocked.checked === false) {
         removeStaticUserData();
         removeStaticMaterialData();
@@ -1381,13 +1686,13 @@ function enableProperties() {
 }
 
 function disableProperties() {
-    disableChildren(document.getElementById("properties-list"), "input, textarea, checkbox, .dropdown dl, .color-picker");
+    disableChildren(document.getElementById("properties-list"), ENABLE_DISABLE_SELECTOR);
     disableChildren(document, ".colpick");
     for (let pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
     }
+    
     let elLocked = getPropertyInputElement("locked");
-
     if (elLocked.checked === true) {
         if ($('#property-userData-editor').css('display') === "block") {
             showStaticUserData();
@@ -1399,8 +1704,11 @@ function disableProperties() {
 }
 
 function showPropertyElement(propertyID, show) {
-    let elProperty = properties[propertyID].elProperty;
-    elProperty.style.display = show ? "table" : "none";
+    setPropertyVisibility(properties[propertyID], show);
+}
+
+function setPropertyVisibility(property, visible) {
+    property.elContainer.style.display = visible ? null : "none";
 }
 
 function resetProperties() {
@@ -1409,60 +1717,76 @@ function resetProperties() {
         let propertyData = property.data;
         
         switch (propertyData.type) {
+            case 'number':
             case 'string': {
-                property.elInput.value = "";
+                property.elInput.classList.remove('multi-diff');
+                if (propertyData.defaultValue !== undefined) {
+                    property.elInput.value = propertyData.defaultValue;
+                } else {
+                    property.elInput.value = "";
+                }
                 break;
             }
             case 'bool': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.checked = false;
                 break;
             }
-            case 'number':
-            case 'slider': {
+            case 'number-draggable': {
                 if (propertyData.defaultValue !== undefined) {
-                    property.elInput.value = propertyData.defaultValue;
+                    property.elNumber.setValue(propertyData.defaultValue, false);
                 } else { 
-                    property.elInput.value = "";
+                    property.elNumber.setValue("", false);
                 }
-                if (property.elSlider !== undefined) {
-                    property.elSlider.value = property.elInput.value;   
-                }
+                break;
+            }
+            case 'rect': {
+                property.elNumberX.setValue("", false);
+                property.elNumberY.setValue("", false);
+                property.elNumberWidth.setValue("", false);
+                property.elNumberHeight.setValue("", false);
                 break;
             }
             case 'vec3': 
             case 'vec2': {
-                property.elInputX.value = "";
-                property.elInputY.value = "";
-                if (property.elInputZ !== undefined) {
-                    property.elInputZ.value = "";
+                property.elNumberX.setValue("", false);
+                property.elNumberY.setValue("", false);
+                if (property.elNumberZ !== undefined) {
+                    property.elNumberZ.setValue("", false);
                 }
                 break;
             }
             case 'color': {
                 property.elColorPicker.style.backgroundColor = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
-                property.elInputR.value = "";
-                property.elInputG.value = "";
-                property.elInputB.value = "";
+                property.elNumberR.setValue("", false);
+                property.elNumberG.setValue("", false);
+                property.elNumberB.setValue("", false);
                 break;
             }
             case 'dropdown': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 setDropdownText(property.elInput);
                 break;
             }
             case 'textarea': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 setTextareaScrolling(property.elInput);
                 break;
             }
             case 'icon': {
                 property.elSpan.style.display = "none";
-                property.elLabel.innerHTML = propertyData.label;
                 break;
             }
             case 'texture': {
+                property.elInput.classList.remove('multi-diff');
                 property.elInput.value = "";
                 property.elInput.imageLoad(property.elInput.value);
+                break;
+            }
+            case 'dynamic-multiselect': {
+                resetDynamicMultiselectProperty(property.elDivOptions);
                 break;
             }
         }
@@ -1474,7 +1798,11 @@ function resetProperties() {
             }
         }
     }
-    
+
+    resetServerScriptStatus();
+}
+
+function resetServerScriptStatus() {
     let elServerScriptError = document.getElementById("property-serverScripts-error");
     let elServerScriptStatus = document.getElementById("property-serverScripts-status");
     elServerScriptError.parentElement.style.display = "none";
@@ -1483,51 +1811,216 @@ function resetProperties() {
 
 function showGroupsForType(type) {
     if (type === "Box" || type === "Sphere") {
-        type = "Shape";
+        showGroupsForTypes(["Shape"]);
+        return;
     }
-    
-    let typeGroups = GROUPS_PER_TYPE[type];
+    showGroupsForTypes([type]);
+}
 
-    for (let groupKey in elGroups) {
-        let elGroup = elGroups[groupKey];
-        if (typeGroups && typeGroups.indexOf(groupKey) > -1) {
+function getGroupsForTypes(types) {
+    return Object.keys(elGroups).filter((groupKey) => {
+        return types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) {
+            return hasGroup;
+        });
+    });
+}
+
+function showGroupsForTypes(types) {
+    Object.entries(elGroups).forEach(([groupKey, elGroup]) => {
+        if (types.map(type => GROUPS_PER_TYPE[type].includes(groupKey)).every(function (hasGroup) { return hasGroup; })) {
             elGroup.style.display = "block";
         } else {
             elGroup.style.display = "none";
         }
-    }
+    });
 }
 
-function getPropertyValue(originalPropertyName) {
-    // if this is a compound property name (i.e. animation.running) 
+function getFirstSelectedID() {
+    if (selectedEntityIDs.size === 0) {
+        return null;
+    }
+    return selectedEntityIDs.values().next().value;
+}
+
+/**
+ * Returns true when the user is currently dragging the numeric slider control of the property
+ * @param propertyName - name of property
+ * @returns {boolean} currentlyDragging
+ */
+function isCurrentlyDraggingProperty(propertyName) {
+    return properties[propertyName] && properties[propertyName].dragging === true;
+}
+
+const SUPPORTED_FALLBACK_TYPES = ['number', 'number-draggable', 'rect', 'vec3', 'vec2', 'color'];
+
+function getMultiplePropertyValue(originalPropertyName) {
+    // if this is a compound property name (i.e. animation.running)
     // then split it by . up to 3 times to find property value
-    let propertyValue;
+
+    let propertyData = null;
+    if (properties[originalPropertyName] !== undefined) {
+        propertyData = properties[originalPropertyName].data;
+    }
+
+    let propertyValues = [];
     let splitPropertyName = originalPropertyName.split('.');
     if (splitPropertyName.length > 1) {
         let propertyGroupName = splitPropertyName[PROPERTY_NAME_DIVISION.GROUP];
         let propertyName = splitPropertyName[PROPERTY_NAME_DIVISION.PROPERTY];
-        let groupProperties = selectedEntityProperties[propertyGroupName];
-        if (groupProperties === undefined || groupProperties[propertyName] === undefined) {
-            return undefined;
-        }
-        if (splitPropertyName.length === PROPERTY_NAME_DIVISION.SUBPROPERTY + 1) { 
-            let subPropertyName = splitPropertyName[PROPERTY_NAME_DIVISION.SUBPROPERTY];
-            propertyValue = groupProperties[propertyName][subPropertyName];
-        } else {
-            propertyValue = groupProperties[propertyName];
-        }
+        propertyValues = currentSelections.map(selection => {
+            let groupProperties = selection.properties[propertyGroupName];
+            if (groupProperties === undefined || groupProperties[propertyName] === undefined) {
+                return undefined;
+            }
+            if (splitPropertyName.length === PROPERTY_NAME_DIVISION.SUB_PROPERTY + 1) {
+                let subPropertyName = splitPropertyName[PROPERTY_NAME_DIVISION.SUB_PROPERTY];
+                return groupProperties[propertyName][subPropertyName];
+            } else {
+                return groupProperties[propertyName];
+            }
+        });
     } else {
-        propertyValue = selectedEntityProperties[originalPropertyName];
+        propertyValues = currentSelections.map(selection => selection.properties[originalPropertyName]);
     }
-    return propertyValue;
+
+    if (propertyData !== null && propertyData.fallbackProperty !== undefined &&
+        SUPPORTED_FALLBACK_TYPES.includes(propertyData.type)) {
+
+        let fallbackMultiValue = null;
+
+        for (let i = 0; i < propertyValues.length; ++i) {
+            let isPropertyNotNumber = false;
+            let propertyValue = propertyValues[i];
+            if (propertyValue === undefined) {
+                continue;
+            }
+            switch (propertyData.type) {
+                case 'number':
+                case 'number-draggable':
+                    isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
+                    break;
+                case 'rect':
+                case 'vec3':
+                case 'vec2':
+                    isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
+                    break;
+                case 'color':
+                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
+                    break;
+            }
+            if (isPropertyNotNumber) {
+                if (fallbackMultiValue === null) {
+                    fallbackMultiValue = getMultiplePropertyValue(propertyData.fallbackProperty);
+                }
+                propertyValues[i] = fallbackMultiValue.values[i];
+            }
+        }
+    }
+
+    const firstValue = propertyValues[0];
+    const isMultiDiffValue = !propertyValues.every((x) => deepEqual(firstValue, x));
+
+    if (isMultiDiffValue) {
+        return {
+            value: undefined,
+            values: propertyValues,
+            isMultiDiffValue: true
+        }
+    }
+
+    return {
+        value: propertyValues[0],
+        values: propertyValues,
+        isMultiDiffValue: false
+    };
 }
 
+/**
+ * Retrieve more detailed info for differing Numeric MultiplePropertyValue
+ * @param multiplePropertyValue - input multiplePropertyValue
+ * @param propertyData
+ * @returns {{keys: *[], propertyComponentDiff, averagePerPropertyComponent}}
+ */
+function getDetailedNumberMPVDiff(multiplePropertyValue, propertyData) {
+    let detailedValues = {};
+    // Fixed numbers can't be easily averaged since they're strings, so lets keep an array of unmodified numbers
+    let unmodifiedValues = {};
+    const DEFAULT_KEY = 0;
+    let uniqueKeys = new Set([]);
+    multiplePropertyValue.values.forEach(function(propertyValue) {
+        if (typeof propertyValue === "object") {
+            Object.entries(propertyValue).forEach(function([key, value]) {
+                if (!uniqueKeys.has(key)) {
+                    uniqueKeys.add(key);
+                    detailedValues[key] = [];
+                    unmodifiedValues[key] = [];
+                }
+                detailedValues[key].push(applyInputNumberPropertyModifiers(value, propertyData));
+                unmodifiedValues[key].push(value);
+            });
+        } else {
+            if (!uniqueKeys.has(DEFAULT_KEY)) {
+                uniqueKeys.add(DEFAULT_KEY);
+                detailedValues[DEFAULT_KEY] = [];
+                unmodifiedValues[DEFAULT_KEY] = [];
+            }
+            detailedValues[DEFAULT_KEY].push(applyInputNumberPropertyModifiers(propertyValue, propertyData));
+            unmodifiedValues[DEFAULT_KEY].push(propertyValue);
+        }
+    });
+    let keys = [...uniqueKeys];
+
+    let propertyComponentDiff = {};
+    Object.entries(detailedValues).forEach(function([key, value]) {
+        propertyComponentDiff[key] = [...new Set(value)].length > 1;
+    });
+
+    let averagePerPropertyComponent = {};
+    Object.entries(unmodifiedValues).forEach(function([key, value]) {
+        let average = value.reduce((a, b) => a + b) / value.length;
+        averagePerPropertyComponent[key] = applyInputNumberPropertyModifiers(average, propertyData);
+    });
+
+    return {
+        keys,
+        propertyComponentDiff,
+        averagePerPropertyComponent,
+    };
+}
+
+function getDetailedSubPropertyMPVDiff(multiplePropertyValue, subPropertyName) {
+    let isChecked = false;
+    let checkedValues = multiplePropertyValue.values.map((value) => value.split(",").includes(subPropertyName));
+    let isMultiDiff = !checkedValues.every(value => value === checkedValues[0]);
+    if (!isMultiDiff) {
+        isChecked = checkedValues[0];
+    }
+    return {
+        isChecked,
+        isMultiDiff
+    }
+}
+
+function updateVisibleSpaceModeProperties() {
+    for (let propertyID in properties) {
+        if (properties.hasOwnProperty(propertyID)) {
+            let property = properties[propertyID];
+            let propertySpaceMode = property.spaceMode;
+            let elProperty = properties[propertyID].elContainer;
+            if (propertySpaceMode !== PROPERTY_SPACE_MODE.ALL && propertySpaceMode !== currentSpaceMode) {
+                elProperty.classList.add('spacemode-hidden');
+            } else {
+                elProperty.classList.remove('spacemode-hidden');
+            }
+        }
+    }
+}
 
 /**
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
+function createPropertyUpdateObject(originalPropertyName, propertyValue) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = originalPropertyName.split('.');
@@ -1535,8 +2028,8 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
         let propertyGroupName = splitPropertyName[PROPERTY_NAME_DIVISION.GROUP];
         let propertyName = splitPropertyName[PROPERTY_NAME_DIVISION.PROPERTY];
         propertyUpdate[propertyGroupName] = {};
-        if (splitPropertyName.length === PROPERTY_NAME_DIVISION.SUBPROPERTY + 1) { 
-            let subPropertyName = splitPropertyName[PROPERTY_NAME_DIVISION.SUBPROPERTY];
+        if (splitPropertyName.length === PROPERTY_NAME_DIVISION.SUB_PROPERTY + 1) {
+            let subPropertyName = splitPropertyName[PROPERTY_NAME_DIVISION.SUB_PROPERTY];
             propertyUpdate[propertyGroupName][propertyName] = {};
             propertyUpdate[propertyGroupName][propertyName][subPropertyName] = propertyValue;
         } else {
@@ -1545,6 +2038,12 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
     } else {
         propertyUpdate[originalPropertyName] = propertyValue;
     }
+    return propertyUpdate;
+}
+
+function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
+    let propertyUpdate = createPropertyUpdateObject(originalPropertyName, propertyValue);
+
     // queue up particle property changes with the debounced sync to avoid  
     // causing particle emitting to reset excessively with each value change
     if (isParticleProperty) {
@@ -1553,75 +2052,135 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty)
         });
         particleSyncDebounce();
     } else {
-        updateProperties(propertyUpdate);
+        // only update the entity property value itself if in the middle of dragging
+        // prevent undo command push, saving new property values, and property update
+        // callback until drag is complete (additional update sent via dragEnd callback)
+        let onlyUpdateEntity = isCurrentlyDraggingProperty(originalPropertyName);
+        updateProperties(propertyUpdate, onlyUpdateEntity);
     }
 }
 
-var particleSyncDebounce = _.debounce(function () {
+let particleSyncDebounce = _.debounce(function () {
     updateProperties(particlePropertyUpdates);
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
 
-function updateProperties(propertiesToUpdate) {
+function updateProperties(propertiesToUpdate, onlyUpdateEntity) {
+    if (onlyUpdateEntity === undefined) {
+        onlyUpdateEntity = false;
+    }
     EventBridge.emitWebEvent(JSON.stringify({
-        id: lastEntityID,
+        ids: [...selectedEntityIDs],
         type: "update",
-        properties: propertiesToUpdate
+        properties: propertiesToUpdate,
+        onlyUpdateEntities: onlyUpdateEntity
     }));
 }
 
-function createEmitTextPropertyUpdateFunction(propertyName, isParticleProperty) {
+function updateMultiDiffProperties(propertiesMapToUpdate, onlyUpdateEntity) {
+    if (onlyUpdateEntity === undefined) {
+        onlyUpdateEntity = false;
+    }
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "update",
+        propertiesMap: propertiesMapToUpdate,
+        onlyUpdateEntities: onlyUpdateEntity
+    }));
+}
+
+function createEmitTextPropertyUpdateFunction(property) {
     return function() {
-        updateProperty(propertyName, this.value, isParticleProperty);
+        property.elInput.classList.remove('multi-diff');
+        updateProperty(property.name, this.value, property.isParticleProperty);
     };
 }
 
-function createEmitCheckedPropertyUpdateFunction(propertyName, inverse, isParticleProperty) {
+function createEmitCheckedPropertyUpdateFunction(property) {
     return function() {
-        updateProperty(propertyName, inverse ? !this.checked : this.checked, isParticleProperty);
+        updateProperty(property.name, property.data.inverse ? !this.checked : this.checked, property.isParticleProperty);
     };
 }
 
-function createEmitNumberPropertyUpdateFunction(propertyName, multiplier, isParticleProperty) {
+function createDragStartFunction(property) {
     return function() {
-        if (multiplier === undefined) {
-            multiplier = 1;
+        property.dragging = true;
+    };
+}
+
+function createDragEndFunction(property) {
+    return function() {
+        property.dragging = false;
+
+        if (this.multiDiffModeEnabled) {
+            let propertyMultiValue = getMultiplePropertyValue(property.name);
+            let updateObjects = [];
+            const selectedEntityIDsArray = [...selectedEntityIDs];
+
+            for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
+                let entityID = selectedEntityIDsArray[i];
+                updateObjects.push({
+                    entityIDs: [entityID],
+                    properties: createPropertyUpdateObject(property.name, propertyMultiValue.values[i]),
+                });
+            }
+
+            // send a full updateMultiDiff post-dragging to count as an action in the undo stack
+            updateMultiDiffProperties(updateObjects);
+        } else {
+            // send an additional update post-dragging to consider whole property change from dragStart to dragEnd to be 1 action
+            this.valueChangeFunction();
         }
-        let value = parseFloat(this.value) * multiplier;
-        updateProperty(propertyName, value, isParticleProperty);
     };
 }
 
-function createEmitVec2PropertyUpdateFunction(propertyName, elX, elY, multiplier, isParticleProperty) {
-    return function () {
-        if (multiplier === undefined) {
-            multiplier = 1;
-        }
-        let newValue = {
-            x: elX.value * multiplier,
-            y: elY.value * multiplier
-        };
-        updateProperty(propertyName, newValue, isParticleProperty);
-    };
-}
-
-function createEmitVec3PropertyUpdateFunction(propertyName, elX, elY, elZ, multiplier, isParticleProperty) {
+function createEmitNumberPropertyUpdateFunction(property) {
     return function() {
-        if (multiplier === undefined) {
-            multiplier = 1;
-        }
-        let newValue = {
-            x: elX.value * multiplier,
-            y: elY.value * multiplier,
-            z: elZ.value * multiplier
-        };
-        updateProperty(propertyName, newValue, isParticleProperty);
+        let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
+        updateProperty(property.name, value, property.isParticleProperty);
     };
 }
 
-function createEmitColorPropertyUpdateFunction(propertyName, elRed, elGreen, elBlue, isParticleProperty) {
+function createEmitNumberPropertyComponentUpdateFunction(property, propertyComponent) {
     return function() {
-        emitColorPropertyUpdate(propertyName, elRed.value, elGreen.value, elBlue.value, isParticleProperty);
+        let propertyMultiValue = getMultiplePropertyValue(property.name);
+        let value = parseFloat(applyOutputNumberPropertyModifiers(parseFloat(this.value), property.data));
+
+        if (propertyMultiValue.isMultiDiffValue) {
+            let updateObjects = [];
+            const selectedEntityIDsArray = [...selectedEntityIDs];
+
+            for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
+                let entityID = selectedEntityIDsArray[i];
+
+                let propertyObject = propertyMultiValue.values[i];
+                propertyObject[propertyComponent] = value;
+
+                let updateObject = createPropertyUpdateObject(property.name, propertyObject);
+                updateObjects.push({
+                    entityIDs: [entityID],
+                    properties: updateObject,
+                });
+
+                mergeDeep(currentSelections[i].properties, updateObject);
+            }
+
+            // only update the entity property value itself if in the middle of dragging
+            // prevent undo command push, saving new property values, and property update
+            // callback until drag is complete (additional update sent via dragEnd callback)
+            let onlyUpdateEntity = isCurrentlyDraggingProperty(property.name);
+            updateMultiDiffProperties(updateObjects, onlyUpdateEntity);
+        } else {
+            let propertyValue = propertyMultiValue.value;
+            propertyValue[propertyComponent] = value;
+            updateProperty(property.name, propertyValue, property.isParticleProperty);
+        }
+    };
+}
+
+function createEmitColorPropertyUpdateFunction(property) {
+    return function() {
+        emitColorPropertyUpdate(property.name, property.elNumberR.elInput.value, property.elNumberG.elInput.value,
+                                property.elNumberB.elInput.value, property.isParticleProperty);
     };
 }
 
@@ -1634,48 +2193,65 @@ function emitColorPropertyUpdate(propertyName, red, green, blue, isParticlePrope
     updateProperty(propertyName, newValue, isParticleProperty);
 }
 
-function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString, isParticleProperty) {
-    if (subPropertyElement.checked) {
-        if (propertyValue.indexOf(subPropertyString)) {
-            propertyValue += subPropertyString + ',';
-        }
-    } else {
-        // We've unchecked, so remove
-        propertyValue = propertyValue.replace(subPropertyString + ",", "");
+function toggleBooleanCSV(inputCSV, property, enable) {
+    let values = inputCSV.split(",");
+    if (enable && !values.includes(property)) {
+        values.push(property);
+    } else if (!enable && values.includes(property)) {
+        values = values.filter(value => value !== property);
     }
-    updateProperty(propertyName, propertyValue, isParticleProperty);
+    return values.join(",");
 }
 
-function createImageURLUpdateFunction(propertyName, isParticleProperty) {
-    return function () {
-        let newTextures = JSON.stringify({ "tex.picture": this.value });
-        updateProperty(propertyName, newTextures, isParticleProperty);
-    };
-}
+function updateCheckedSubProperty(propertyName, propertyMultiValue, subPropertyElement, subPropertyString, isParticleProperty) {
+    if (propertyMultiValue.isMultiDiffValue) {
+        let updateObjects = [];
+        const selectedEntityIDsArray = [...selectedEntityIDs];
 
+        for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
+            let newValue = toggleBooleanCSV(propertyMultiValue.values[i], subPropertyString, subPropertyElement.checked);
+            updateObjects.push({
+                entityIDs: [selectedEntityIDsArray[i]],
+                properties: createPropertyUpdateObject(propertyName, newValue),
+            });
+        }
+
+        updateMultiDiffProperties(updateObjects);
+    } else {
+        updateProperty(propertyName, toggleBooleanCSV(propertyMultiValue.value, subPropertyString, subPropertyElement.checked),
+            isParticleProperty);
+    }
+}
 
 /**
  * PROPERTY ELEMENT CREATION FUNCTIONS
  */
 
-function createStringProperty(property, elProperty, elLabel) {    
-    let propertyName = property.name;
+function createStringProperty(property, elProperty) {    
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "property text";
+    elProperty.className = "text";
     
-    let elInput = document.createElement('input');
-    elInput.setAttribute("id", elementID);
-    elInput.setAttribute("type", "text"); 
-    if (propertyData.readOnly) {
-        elInput.readOnly = true;
+    let elInput = createElementFromHTML(`
+        <input id="${elementID}"
+               type="text"
+               ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
+               ${propertyData.readOnly ? 'readonly' : ''}/>
+        `);
+
+    
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    if (propertyData.onChange !== undefined) {
+        elInput.addEventListener('change', propertyData.onChange);
     }
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
-    
-    elProperty.appendChild(elLabel);
+
+    let elMultiDiff = document.createElement('span');
+    elMultiDiff.className = "multi-diff";
+
     elProperty.appendChild(elInput);
+    elProperty.appendChild(elMultiDiff);
     
     if (propertyData.buttons !== undefined) {
         addButtons(elProperty, elementID, propertyData.buttons, false);
@@ -1684,18 +2260,18 @@ function createStringProperty(property, elProperty, elLabel) {
     return elInput;
 }
 
-function createBoolProperty(property, elProperty, elLabel) {   
+function createBoolProperty(property, elProperty) {   
     let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "property checkbox";
+    elProperty.className = "checkbox";
                         
     if (propertyData.glyph !== undefined) {
-        elLabel.innerText = " " + propertyData.label;
         let elSpan = document.createElement('span');
         elSpan.innerHTML = propertyData.glyph;
-        elLabel.insertBefore(elSpan, elLabel.firstChild);
+        elSpan.className = 'icon';
+        elProperty.appendChild(elSpan);
     }
     
     let elInput = document.createElement('input');
@@ -1703,32 +2279,38 @@ function createBoolProperty(property, elProperty, elLabel) {
     elInput.setAttribute("type", "checkbox");
     
     elProperty.appendChild(elInput);
-    elProperty.appendChild(elLabel);
+    elProperty.appendChild(createElementFromHTML(`<label for=${elementID}>&nbsp;</label>`));
     
     let subPropertyOf = propertyData.subPropertyOf;
     if (subPropertyOf !== undefined) {
         elInput.addEventListener('change', function() {
-            updateCheckedSubProperty(subPropertyOf, selectedEntityProperties[subPropertyOf], elInput, propertyName, property.isParticleProperty);
+            let subPropertyMultiValue = getMultiplePropertyValue(subPropertyOf);
+
+            updateCheckedSubProperty(subPropertyOf,
+                                     subPropertyMultiValue,
+                                     elInput, propertyName, property.isParticleProperty);
         });
     } else {
-        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(propertyName, propertyData.inverse, property.isParticleProperty));
+        elInput.addEventListener('change', createEmitCheckedPropertyUpdateFunction(property));
     }
     
     return elInput;
 }
 
-function createNumberProperty(property, elProperty, elLabel) { 
-    let propertyName = property.name;
+function createNumberProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
-    
-    elProperty.className = "property number";
-                        
-    addUnit(propertyData.unit, elLabel);
-    
-    let elInput = document.createElement('input');
-    elInput.setAttribute("id", elementID);
-    elInput.setAttribute("type", "number");
+
+    elProperty.className = "text";
+
+    let elInput = createElementFromHTML(`
+        <input id="${elementID}"
+               class='hide-spinner'
+               type="number"
+               ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
+               ${propertyData.readOnly ? 'readonly' : ''}/>
+        `);
+
     if (propertyData.min !== undefined) {
         elInput.setAttribute("min", propertyData.min);
     }
@@ -1738,159 +2320,247 @@ function createNumberProperty(property, elProperty, elLabel) {
     if (propertyData.step !== undefined) {
         elInput.setAttribute("step", propertyData.step);
     }
-    
+    if (propertyData.defaultValue !== undefined) {
+        elInput.value = propertyData.defaultValue;
+    }
+
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(property));
+
+    let elMultiDiff = document.createElement('span');
+    elMultiDiff.className = "multi-diff";
+
+    elProperty.appendChild(elInput);
+    elProperty.appendChild(elMultiDiff);
+
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, elementID, propertyData.buttons, false);
+    }
+
+    return elInput;
+}
+
+function updateNumberMinMax(property) {
+    let elInput = property.elInput;
+    let min = property.data.min;
+    let max = property.data.max;
+    if (min !== undefined) {
+        elInput.setAttribute("min", min);
+    }
+    if (max !== undefined) {
+        elInput.setAttribute("max", max);
+    }
+}
+
+/**
+ *
+ * @param {object} property - property update on step
+ * @param {string} [propertyComponent] - propertyComponent to update on step (e.g. enter 'x' to just update position.x)
+ * @returns {Function}
+ */
+function createMultiDiffStepFunction(property, propertyComponent) {
+    return function(step, shouldAddToUndoHistory) {
+        if (shouldAddToUndoHistory === undefined) {
+            shouldAddToUndoHistory = false;
+        }
+
+        let propertyMultiValue = getMultiplePropertyValue(property.name);
+        if (!propertyMultiValue.isMultiDiffValue) {
+            console.log("setMultiDiffStepFunction is only supposed to be called in MultiDiff mode.");
+            return;
+        }
+
+        let multiplier = property.data.multiplier !== undefined ? property.data.multiplier : 1;
+
+        let applyDelta = step * multiplier;
+
+        if (selectedEntityIDs.size !== propertyMultiValue.values.length) {
+            console.log("selectedEntityIDs and propertyMultiValue got out of sync.");
+            return;
+        }
+        let updateObjects = [];
+        const selectedEntityIDsArray = [...selectedEntityIDs];
+
+        for (let i = 0; i < selectedEntityIDsArray.length; ++i) {
+            let entityID = selectedEntityIDsArray[i];
+
+            let updatedValue;
+            if (propertyComponent !== undefined) {
+                let objectToUpdate = propertyMultiValue.values[i];
+                objectToUpdate[propertyComponent] += applyDelta;
+                updatedValue = objectToUpdate;
+            } else {
+                updatedValue = propertyMultiValue.values[i] + applyDelta;
+            }
+            let propertiesUpdate = createPropertyUpdateObject(property.name, updatedValue);
+            updateObjects.push({
+                entityIDs: [entityID],
+                properties: propertiesUpdate
+            });
+            // We need to store these so that we can send a full update on the dragEnd
+            mergeDeep(currentSelections[i].properties, propertiesUpdate);
+        }
+
+        updateMultiDiffProperties(updateObjects, !shouldAddToUndoHistory);
+    }
+}
+
+function createNumberDraggableProperty(property, elProperty) { 
+    let elementID = property.elementID;
+    let propertyData = property.data;
+
+    elProperty.className += " draggable-number-container";
+
+    let dragStartFunction = createDragStartFunction(property);
+    let dragEndFunction = createDragEndFunction(property);
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step,
+                                                propertyData.decimals, dragStartFunction, dragEndFunction);
+
     let defaultValue = propertyData.defaultValue;
     if (defaultValue !== undefined) {
-        elInput.value = defaultValue;
+        elDraggableNumber.elInput.value = defaultValue;
     }
+
+    let valueChangeFunction = createEmitNumberPropertyUpdateFunction(property);
+    elDraggableNumber.setValueChangeFunction(valueChangeFunction);
+
+    elDraggableNumber.setMultiDiffStepFunction(createMultiDiffStepFunction(property));
     
-    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(propertyName, propertyData.multiplier, propertyData.decimals, property.isParticleProperty));
-    
-    elProperty.appendChild(elLabel);
-    elProperty.appendChild(elInput);
-    
+    elDraggableNumber.elInput.setAttribute("id", elementID);
+    elProperty.appendChild(elDraggableNumber.elDiv);
+
     if (propertyData.buttons !== undefined) {
-        addButtons(elProperty, elementID, propertyData.buttons, true);
+        addButtons(elDraggableNumber.elDiv, elementID, propertyData.buttons, false);
     }
     
-    return elInput;
+    return elDraggableNumber;
 }
 
-function createSliderProperty(property, elProperty, elLabel) {  
+function updateNumberDraggableMinMax(property) {
     let propertyData = property.data;
-    
-    elProperty.className = "property range";
-    
-    let elDiv = document.createElement("div");
-    elDiv.className = "slider-wrapper";
-    
-    let elSlider = document.createElement("input");
-    elSlider.setAttribute("type", "range");
+    property.elNumber.updateMinMax(propertyData.min, propertyData.max);
+}
 
-    let elInput = document.createElement("input");
-    elInput.setAttribute("type", "number");
+function createRectProperty(property, elProperty) {
+    let propertyData = property.data;
 
-    if (propertyData.min !== undefined) {
-        elInput.setAttribute("min", propertyData.min);
-        elSlider.setAttribute("min", propertyData.min);
-    }
-    if (propertyData.max !== undefined) {
-        elInput.setAttribute("max", propertyData.max);
-        elSlider.setAttribute("max", propertyData.max);
-        elSlider.setAttribute("data-max", propertyData.max);
-    }
-    if (propertyData.step !== undefined) {
-        elInput.setAttribute("step", propertyData.step);
-        elSlider.setAttribute("step", propertyData.step);
-    }
-    
-    elInput.onchange = function (event) {
-        let inputValue = event.target.value;
-        elSlider.value = inputValue;
-        if (propertyData.multiplier !== undefined) {
-            inputValue *= propertyData.multiplier;
-        }
-        updateProperty(property.name, inputValue, property.isParticleProperty);
-    };
-    elSlider.oninput = function (event) {
-        let sliderValue = event.target.value;
-        if (propertyData.step === 1) {
-            if (sliderValue > 0) {
-                elInput.value = Math.floor(sliderValue);
-            } else {
-                elInput.value = Math.ceil(sliderValue);
-            }
-        } else {
-            elInput.value = sliderValue;
-        }
-        if (propertyData.multiplier !== undefined) {
-            sliderValue *= propertyData.multiplier;
-        }
-        updateProperty(property.name, sliderValue, property.isParticleProperty);
-    };
+    elProperty.className = "rect";
 
-    elDiv.appendChild(elLabel);
-    elDiv.appendChild(elSlider);
-    elDiv.appendChild(elInput);
-    elProperty.appendChild(elDiv);
-    
+    let elXYRow = document.createElement('div');
+    elXYRow.className = "rect-row fstuple";
+    elProperty.appendChild(elXYRow);
+
+    let elWidthHeightRow = document.createElement('div');
+    elWidthHeightRow.className = "rect-row fstuple";
+    elProperty.appendChild(elWidthHeightRow);
+
+
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.Y_NUMBER]);
+    let elNumberWidth = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.WIDTH_NUMBER]);
+    let elNumberHeight = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.HEIGHT_NUMBER]);
+
+    elXYRow.appendChild(elNumberX.elDiv);
+    elXYRow.appendChild(elNumberY.elDiv);
+    elWidthHeightRow.appendChild(elNumberWidth.elDiv);
+    elWidthHeightRow.appendChild(elNumberHeight.elDiv);
+
+    elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
+    elNumberWidth.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'width'));
+    elNumberHeight.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'height'));
+
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'width'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'height'));
+
     let elResult = [];
-    elResult[SLIDER_ELEMENTS.SLIDER] = elSlider;
-    elResult[SLIDER_ELEMENTS.NUMBER_INPUT] = elInput;
+    elResult[RECT_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[RECT_ELEMENTS.Y_NUMBER] = elNumberY;
+    elResult[RECT_ELEMENTS.WIDTH_NUMBER] = elNumberWidth;
+    elResult[RECT_ELEMENTS.HEIGHT_NUMBER] = elNumberHeight;
     return elResult;
 }
 
-function createVec3Property(property, elProperty, elLabel) {
-    let propertyName = property.name;
-    let elementID = property.elementID;
+function updateRectMinMax(property) {
+    let min = property.data.min;
+    let max = property.data.max;
+    property.elNumberX.updateMinMax(min, max);
+    property.elNumberY.updateMinMax(min, max);
+    property.elNumberWidth.updateMinMax(min, max);
+    property.elNumberHeight.updateMinMax(min, max);
+}
+
+function createVec3Property(property, elProperty) {
     let propertyData = property.data;
 
-    elProperty.className = "property " + propertyData.vec3Type + " fstuple";
+    elProperty.className = propertyData.vec3Type + " fstuple";
     
-    let elTuple = document.createElement('div');
-    elTuple.className = "tuple";
-    
-    addUnit(propertyData.unit, elLabel);
-    
-    elProperty.appendChild(elLabel);
-    elProperty.appendChild(elTuple);
-    
-    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    let elInputZ = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Z_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    
-    let inputChangeFunction = createEmitVec3PropertyUpdateFunction(propertyName, elInputX, elInputY, elInputZ, 
-                                                                   propertyData.multiplier, property.isParticleProperty);
-    elInputX.addEventListener('change', inputChangeFunction);
-    elInputY.addEventListener('change', inputChangeFunction);
-    elInputZ.addEventListener('change', inputChangeFunction);
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
+    let elNumberZ = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Z_NUMBER]);
+    elProperty.appendChild(elNumberX.elDiv);
+    elProperty.appendChild(elNumberY.elDiv);
+    elProperty.appendChild(elNumberZ.elDiv);
+
+    elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
+    elNumberZ.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'z'));
+
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
+    elNumberZ.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'z'));
     
     let elResult = [];
-    elResult[VECTOR_ELEMENTS.X_INPUT] = elInputX;
-    elResult[VECTOR_ELEMENTS.Y_INPUT] = elInputY;
-    elResult[VECTOR_ELEMENTS.Z_INPUT] = elInputZ;
+    elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[VECTOR_ELEMENTS.Y_NUMBER] = elNumberY;
+    elResult[VECTOR_ELEMENTS.Z_NUMBER] = elNumberZ;
     return elResult;
 }
 
-function createVec2Property(property, elProperty, elLabel) {  
-    let propertyName = property.name;
-    let elementID = property.elementID;
+function createVec2Property(property, elProperty) {  
     let propertyData = property.data;
     
-    elProperty.className = "property " + propertyData.vec2Type + " fstuple";
+    elProperty.className = propertyData.vec2Type + " fstuple";
                         
     let elTuple = document.createElement('div');
     elTuple.className = "tuple";
     
-    addUnit(propertyData.unit, elLabel);
-    
-    elProperty.appendChild(elLabel);
     elProperty.appendChild(elTuple);
     
-    let elInputX = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.X_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    let elInputY = createTupleNumberInput(elTuple, elementID, propertyData.subLabels[VECTOR_ELEMENTS.Y_INPUT], 
-                                          propertyData.min, propertyData.max, propertyData.step);
-    
-    let inputChangeFunction = createEmitVec2PropertyUpdateFunction(propertyName, elInputX, elInputY, 
-                                                                   propertyData.multiplier, property.isParticleProperty);
-    elInputX.addEventListener('change', inputChangeFunction);
-    elInputY.addEventListener('change', inputChangeFunction);
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[VECTOR_ELEMENTS.Y_NUMBER]);
+    elProperty.appendChild(elNumberX.elDiv);
+    elProperty.appendChild(elNumberY.elDiv);
+
+    elNumberX.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'x'));
+    elNumberY.setValueChangeFunction(createEmitNumberPropertyComponentUpdateFunction(property, 'y'));
+
+    elNumberX.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'x'));
+    elNumberY.setMultiDiffStepFunction(createMultiDiffStepFunction(property, 'y'));
     
     let elResult = [];
-    elResult[VECTOR_ELEMENTS.X_INPUT] = elInputX;
-    elResult[VECTOR_ELEMENTS.Y_INPUT] = elInputY;
+    elResult[VECTOR_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[VECTOR_ELEMENTS.Y_NUMBER] = elNumberY;
     return elResult;
 }
 
-function createColorProperty(property, elProperty, elLabel) {
+function updateVectorMinMax(property) {
+    let min = property.data.min;
+    let max = property.data.max;
+    property.elNumberX.updateMinMax(min, max);
+    property.elNumberY.updateMinMax(min, max);
+    if (property.elNumberZ) {
+        property.elNumberZ.updateMinMax(min, max);
+    }
+}
+
+function createColorProperty(property, elProperty) {
     let propertyName = property.name;
     let elementID = property.elementID;
+    let propertyData = property.data;
     
-    elProperty.className = "property rgb fstuple";
+    elProperty.className += " rgb fstuple";
     
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
@@ -1900,58 +2570,72 @@ function createColorProperty(property, elProperty, elLabel) {
     elTuple.className = "tuple";
     
     elProperty.appendChild(elColorPicker);
-    elProperty.appendChild(elLabel);
     elProperty.appendChild(elTuple);
     
-    let elInputR = createTupleNumberInput(elTuple, elementID, "red", COLOR_MIN, COLOR_MAX, COLOR_STEP);
-    let elInputG = createTupleNumberInput(elTuple, elementID, "green", COLOR_MIN, COLOR_MAX, COLOR_STEP);
-    let elInputB = createTupleNumberInput(elTuple, elementID, "blue", COLOR_MIN, COLOR_MAX, COLOR_STEP);
+    if (propertyData.min === undefined) {
+        propertyData.min = COLOR_MIN;
+    }
+    if (propertyData.max === undefined) {
+        propertyData.max = COLOR_MAX;
+    }
+    if (propertyData.step === undefined) {
+        propertyData.step = COLOR_STEP;
+    }
     
-    let inputChangeFunction = createEmitColorPropertyUpdateFunction(propertyName, elInputR, elInputG, elInputB, 
-                                                                    property.isParticleProperty);  
-    elInputR.addEventListener('change', inputChangeFunction);
-    elInputG.addEventListener('change', inputChangeFunction);
-    elInputB.addEventListener('change', inputChangeFunction);
+    let elNumberR = createTupleNumberInput(property, "red");
+    let elNumberG = createTupleNumberInput(property, "green");
+    let elNumberB = createTupleNumberInput(property, "blue");
+    elTuple.appendChild(elNumberR.elDiv);
+    elTuple.appendChild(elNumberG.elDiv);
+    elTuple.appendChild(elNumberB.elDiv);
+    
+    let valueChangeFunction = createEmitColorPropertyUpdateFunction(property);
+    elNumberR.setValueChangeFunction(valueChangeFunction);
+    elNumberG.setValueChangeFunction(valueChangeFunction);
+    elNumberB.setValueChangeFunction(valueChangeFunction);
     
     let colorPickerID = "#" + elementID;
     colorPickers[colorPickerID] = $(colorPickerID).colpick({
         colorScheme: 'dark',
-        layout: 'hex',
+        layout: 'rgbhex',
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
-            $(colorPickerID).attr('active', 'true');
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
             colorPickers[colorPickerID].colpickSetColor({
-                "r": elInputR.value,
-                "g": elInputG.value,
-                "b": elInputB.value
+                "r": elNumberR.elInput.value,
+                "g": elNumberG.elInput.value,
+                "b": elNumberB.elInput.value
             });
+
+            // Set the color picker active after setting the color, otherwise an update will be sent on open.
+            $(colorPickerID).attr('active', 'true');
         },
         onHide: function(colpick) {
             $(colorPickerID).attr('active', 'false');
         },
         onChange: function(hsb, hex, rgb, el) {
             $(el).css('background-color', '#' + hex);
-            emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
+            if ($(colorPickerID).attr('active') === 'true') {
+                emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
+            }
         }
     });
     
     let elResult = [];
     elResult[COLOR_ELEMENTS.COLOR_PICKER] = elColorPicker;
-    elResult[COLOR_ELEMENTS.RED_INPUT] = elInputR;
-    elResult[COLOR_ELEMENTS.GREEN_INPUT] = elInputG;
-    elResult[COLOR_ELEMENTS.BLUE_INPUT] = elInputB;
+    elResult[COLOR_ELEMENTS.RED_NUMBER] = elNumberR;
+    elResult[COLOR_ELEMENTS.GREEN_NUMBER] = elNumberG;
+    elResult[COLOR_ELEMENTS.BLUE_NUMBER] = elNumberB;
     return elResult;
 }
 
-function createDropdownProperty(property, propertyID, elProperty, elLabel) { 
-    let propertyName = property.name;
+function createDropdownProperty(property, propertyID, elProperty) { 
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "property dropdown";
+    elProperty.className = "dropdown";
                         
     let elInput = document.createElement('select');
     elInput.setAttribute("id", elementID);
@@ -1964,26 +2648,18 @@ function createDropdownProperty(property, propertyID, elProperty, elLabel) {
         elInput.add(option);
     }
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
-    
-    elProperty.appendChild(elLabel);
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+
     elProperty.appendChild(elInput);
     
     return elInput;
 }
 
-function createTextareaProperty(property, elProperty, elLabel) {   
-    let propertyName = property.name;
+function createTextareaProperty(property, elProperty) {   
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "property textarea";
-                        
-    elProperty.appendChild(elLabel);
-    
-    if (propertyData.buttons !== undefined) {
-        addButtons(elProperty, elementID, propertyData.buttons, true);
-    }
+    elProperty.className = "textarea";
     
     let elInput = document.createElement('textarea');
     elInput.setAttribute("id", elementID);
@@ -1991,38 +2667,39 @@ function createTextareaProperty(property, elProperty, elLabel) {
         elInput.readOnly = true;
     }                   
     
-    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(propertyName, property.isParticleProperty));
-    
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+
+    let elMultiDiff = document.createElement('span');
+    elMultiDiff.className = "multi-diff";
+
     elProperty.appendChild(elInput);
+    elProperty.appendChild(elMultiDiff);
+                        
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, elementID, propertyData.buttons, true);
+    }
     
     return elInput;
 }
 
-function createIconProperty(property, elProperty, elLabel) { 
+function createIconProperty(property, elProperty) { 
     let elementID = property.elementID;
-    let propertyData = property.data;
-    
-    elProperty.className = "property value";
-    
-    elLabel.setAttribute("id", elementID);
-    elLabel.innerHTML = " " + propertyData.label;
+
+    elProperty.className = "value";
     
     let elSpan = document.createElement('span');
     elSpan.setAttribute("id", elementID + "-icon");
+    elSpan.className = 'icon';
 
     elProperty.appendChild(elSpan);
-    elProperty.appendChild(elLabel);
     
-    let elResult = [];
-    elResult[ICON_ELEMENTS.ICON] = elSpan;
-    elResult[ICON_ELEMENTS.LABEL] = elLabel;
-    return elResult;
+    return elSpan;
 }
 
-function createTextureProperty(property, elProperty, elLabel) { 
+function createTextureProperty(property, elProperty) { 
     let elementID = property.elementID;
     
-    elProperty.className = "property texture";
+    elProperty.className = "texture";
     
     let elDiv = document.createElement("div");
     let elImage = document.createElement("img");
@@ -2033,7 +2710,8 @@ function createTextureProperty(property, elProperty, elLabel) {
     elInput.setAttribute("id", elementID);
     elInput.setAttribute("type", "text"); 
     
-    let imageLoad = _.debounce(function (url) {
+    let imageLoad = function(url) {
+        elDiv.style.display = null;
         if (url.slice(0, 5).toLowerCase() === "atp:/") {
             elImage.src = "";
             elImage.style.display = "none";
@@ -2053,19 +2731,21 @@ function createTextureProperty(property, elProperty, elLabel) {
             elDiv.classList.remove("no-preview");
             elDiv.classList.add("no-texture");
         }
-    }, DEBOUNCE_TIMEOUT * 2);
-    elInput.imageLoad = imageLoad;
-    elInput.oninput = function (event) {
-        // Add throttle
-        let url = event.target.value;
-        imageLoad(url);
-        updateProperty(property.name, url, property.isParticleProperty)
     };
-    elInput.onchange = elInput.oninput;
+    elInput.imageLoad = imageLoad;
+    elInput.setMultipleValues = function() {
+        elDiv.style.display = "none";
+    };
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    elInput.addEventListener('change', function(ev) {
+        imageLoad(ev.target.value);
+    });
 
-    elProperty.appendChild(elLabel);
-    elProperty.appendChild(elDiv);
     elProperty.appendChild(elInput);
+    let elMultiDiff = document.createElement('span');
+    elMultiDiff.className = "multi-diff";
+    elProperty.appendChild(elMultiDiff);
+    elProperty.appendChild(elDiv);
    
     let elResult = [];
     elResult[TEXTURE_ELEMENTS.IMAGE] = elImage;
@@ -2073,54 +2753,76 @@ function createTextureProperty(property, elProperty, elLabel) {
     return elResult;
 }
 
-function createButtonsProperty(property, elProperty, elLabel) {
+function createButtonsProperty(property, elProperty) {
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "property text";
-                        
-    let hasLabel = propertyData.label !== undefined;
-    if (hasLabel) {
-        elProperty.appendChild(elLabel);
-    }
-    
+    elProperty.className = "text";
+
     if (propertyData.buttons !== undefined) {
-        addButtons(elProperty, elementID, propertyData.buttons, hasLabel);
+        addButtons(elProperty, elementID, propertyData.buttons, false);
     }
     
     return elProperty;
 }
 
-function createTupleNumberInput(elTuple, propertyElementID, subLabel, min, max, step) {
-    let elementID = propertyElementID + "-" + subLabel.toLowerCase();
+function createDynamicMultiselectProperty(property, elProperty) {
+    let elementID = property.elementID;
+    let propertyData = property.data;
+        
+    elProperty.className = "dynamic-multiselect";
     
-    let elDiv = document.createElement('div');
+    let elDivOptions = document.createElement('div');
+    elDivOptions.setAttribute("id", elementID + "-options");
+    elDivOptions.style = "overflow-y:scroll;max-height:160px;";
+    
+    let elDivButtons = document.createElement('div');
+    elDivButtons.setAttribute("id", elDivOptions.getAttribute("id") + "-buttons");
+        
     let elLabel = document.createElement('label');
-    elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1) + ":";
-    elLabel.setAttribute("for", elementID);
+    elLabel.innerText = "No Options";
+    elDivOptions.appendChild(elLabel);
+
+    let buttons = [ { id: "selectAll", label: "Select All", className: "black", onClick: selectAllMaterialTarget }, 
+                    { id: "clearAll", label: "Clear All", className: "black", onClick: clearAllMaterialTarget } ];
+    addButtons(elDivButtons, elementID, buttons, false);
     
-    let elInput = document.createElement('input');
-    elInput.className = subLabel;
-    elInput.setAttribute("id", elementID);
-    elInput.setAttribute("type", "number");
-    elInput.setAttribute("min", min);
-    elInput.setAttribute("max", max);
-    elInput.setAttribute("step", step);
+    elProperty.appendChild(elDivOptions);
+    elProperty.appendChild(elDivButtons);
     
-    elDiv.appendChild(elInput);
-    elDiv.appendChild(elLabel);
-    elTuple.appendChild(elDiv);
-    
-    return elInput;
+    return elDivOptions;
 }
 
-function addUnit(unit, elLabel) {
-    if (unit !== undefined) {
-        let elSpan = document.createElement('span');
-        elSpan.className = "unit";
-        elSpan.innerHTML = unit;
-        elLabel.appendChild(elSpan);
+function resetDynamicMultiselectProperty(elDivOptions) {
+    let elInputs = elDivOptions.getElementsByTagName("input");
+    while (elInputs.length > 0) {
+        let elDivOption = elInputs[0].parentNode;
+        elDivOption.parentNode.removeChild(elDivOption);
     }
+    elDivOptions.firstChild.style.display = null; // show "No Options" text
+    elDivOptions.parentNode.lastChild.style.display = "none"; // hide Select/Clear all buttons
+}
+
+function createTupleNumberInput(property, subLabel) {
+    let propertyElementID = property.elementID;
+    let propertyData = property.data;
+    let elementID = propertyElementID + "-" + subLabel.toLowerCase();
+    
+    let elLabel = document.createElement('label');
+    elLabel.className = "sublabel " + subLabel;
+    elLabel.innerText = subLabel[0].toUpperCase() + subLabel.slice(1);
+    elLabel.setAttribute("for", elementID);
+    elLabel.style.visibility = "visible";
+    
+    let dragStartFunction = createDragStartFunction(property);
+    let dragEndFunction = createDragEndFunction(property);
+    let elDraggableNumber = new DraggableNumber(propertyData.min, propertyData.max, propertyData.step, 
+                                                propertyData.decimals, dragStartFunction, dragEndFunction); 
+    elDraggableNumber.elInput.setAttribute("id", elementID);
+    elDraggableNumber.elDiv.className += " fstuple";
+    elDraggableNumber.elDiv.insertBefore(elLabel, elDraggableNumber.elLeftArrow);
+    
+    return elDraggableNumber;
 }
 
 function addButtons(elProperty, propertyID, buttons, newRow) {
@@ -2144,6 +2846,112 @@ function addButtons(elProperty, propertyID, buttons, newRow) {
     if (newRow) {
         elProperty.appendChild(document.createElement('br'));
         elProperty.appendChild(elDiv);
+    }
+}
+
+function createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty) {
+    let property = { 
+        data: propertyData, 
+        elementID: propertyElementID, 
+        name: propertyName,
+        elProperty: elProperty,
+    };
+    let propertyType = propertyData.type;
+
+    switch (propertyType) {
+        case 'string': {
+            property.elInput = createStringProperty(property, elProperty);
+            break;
+        }
+        case 'bool': {
+            property.elInput = createBoolProperty(property, elProperty);
+            break;
+        }
+        case 'number': {
+            property.elInput = createNumberProperty(property, elProperty);
+            break;
+        }
+        case 'number-draggable': {
+            property.elNumber = createNumberDraggableProperty(property, elProperty);
+            break;
+        }
+        case 'rect': {
+            let elRect = createRectProperty(property, elProperty);
+            property.elNumberX = elRect[RECT_ELEMENTS.X_NUMBER];
+            property.elNumberY = elRect[RECT_ELEMENTS.Y_NUMBER];
+            property.elNumberWidth = elRect[RECT_ELEMENTS.WIDTH_NUMBER];
+            property.elNumberHeight = elRect[RECT_ELEMENTS.HEIGHT_NUMBER];
+            break;
+        }
+        case 'vec3': {
+            let elVec3 = createVec3Property(property, elProperty);  
+            property.elNumberX = elVec3[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberY = elVec3[VECTOR_ELEMENTS.Y_NUMBER];
+            property.elNumberZ = elVec3[VECTOR_ELEMENTS.Z_NUMBER];
+            break;
+        }
+        case 'vec2': {
+            let elVec2 = createVec2Property(property, elProperty);  
+            property.elNumberX = elVec2[VECTOR_ELEMENTS.X_NUMBER];
+            property.elNumberY = elVec2[VECTOR_ELEMENTS.Y_NUMBER];
+            break;
+        }
+        case 'color': {
+            let elColor = createColorProperty(property, elProperty);  
+            property.elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
+            property.elNumberR = elColor[COLOR_ELEMENTS.RED_NUMBER];
+            property.elNumberG = elColor[COLOR_ELEMENTS.GREEN_NUMBER];
+            property.elNumberB = elColor[COLOR_ELEMENTS.BLUE_NUMBER]; 
+            break;
+        }
+        case 'dropdown': {
+            property.elInput = createDropdownProperty(property, propertyID, elProperty);
+            break;
+        }
+        case 'textarea': {
+            property.elInput = createTextareaProperty(property, elProperty);
+            break;
+        }
+        case 'icon': {
+            property.elSpan = createIconProperty(property, elProperty);
+            break;
+        }
+        case 'texture': {
+            let elTexture = createTextureProperty(property, elProperty);
+            property.elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
+            property.elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
+            break;
+        }
+        case 'buttons': {
+            property.elProperty = createButtonsProperty(property, elProperty);
+            break;
+        }
+        case 'dynamic-multiselect': {
+            property.elDivOptions = createDynamicMultiselectProperty(property, elProperty);
+            break;
+        }
+        case 'placeholder':
+        case 'sub-header': {
+            break;
+        }
+        default: {
+            console.log("EntityProperties - Unknown property type " + 
+                        propertyType + " set to property " + propertyID);
+            break;
+        }
+    }
+
+    return property;
+}
+
+
+/**
+ * PROPERTY-SPECIFIC CALLBACKS
+ */
+ 
+function parentIDChanged() {
+    if (currentSelections.length === 1 && currentSelections[0].properties.type === "Material") {
+        requestMaterialTarget();
     }
 }
 
@@ -2219,6 +3027,7 @@ function clearUserData() {
 }
 
 function newJSONEditor() {
+    getPropertyInputElement("userData").classList.remove('multi-diff');
     deleteJSONEditor();
     createJSONEditor();
     let data = {};
@@ -2228,94 +3037,55 @@ function newJSONEditor() {
     showSaveUserDataButton();
 }
 
-function saveUserData() {
-    saveJSONUserData(true);
+/**
+ * @param {Set.<string>} [entityIDsToUpdate] Entity IDs to update userData for.
+ */
+function saveUserData(entityIDsToUpdate) {
+    saveJSONUserData(true, entityIDsToUpdate);
 }
 
-function setUserDataFromEditor(noUpdate) {
-    let json = null;
+function setJSONError(property, isError) {
+    $("#property-"+ property + "-editor").toggleClass('error', isError);
+    let $propertyUserDataEditorStatus = $("#property-"+ property + "-editorStatus");
+    $propertyUserDataEditorStatus.css('display', isError ? 'block' : 'none');
+    $propertyUserDataEditorStatus.text(isError ? 'Invalid JSON code - look for red X in your code' : '');
+}
+
+/**
+ * @param {boolean} noUpdate - don't update the UI, but do send a property update.
+ * @param {Set.<string>} [entityIDsToUpdate] - Entity IDs to update userData for.
+ */
+function setUserDataFromEditor(noUpdate, entityIDsToUpdate) {
+    let errorFound = false;
     try {
-        json = editor.get();
+        editor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('userData', errorFound);
+
+    if (errorFound) {
         return;
-    } else {
-        let text = editor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveUserData",
-                    properties: {
-                        userData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('userData', text, false);
-        }
-    }
-}
-
-function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, removeKeys) {
-    let propertyUpdate = {};
-    let parsedData = {};
-    let keysToBeRemoved = removeKeys ? removeKeys : [];
-    try {
-        if ($('#property-userData-editor').css('height') !== "0px") {
-            // if there is an expanded, we want to use its json.
-            parsedData = getEditorJSON();
-        } else {
-            parsedData = JSON.parse(userDataElement.value);
-        }
-    } catch (e) {
-        // TODO: Should an alert go here?
     }
 
-    if (!(groupName in parsedData)) {
-        parsedData[groupName] = {};
-    }
-    let keys = Object.keys(updateKeyPair);
-    keys.forEach(function (key) {
-        if (updateKeyPair[key] !== null && updateKeyPair[key] !== "null") {
-            if (updateKeyPair[key] instanceof Element) {
-                if (updateKeyPair[key].type === "checkbox") {
-                    parsedData[groupName][key] = updateKeyPair[key].checked;
-                } else {
-                    let val = isNaN(updateKeyPair[key].value) ? updateKeyPair[key].value : parseInt(updateKeyPair[key].value);
-                    parsedData[groupName][key] = val;
+    let text = editor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                ids: [...entityIDsToUpdate],
+                type: "saveUserData",
+                properties: {
+                    userData: text
                 }
-            } else {
-                parsedData[groupName][key] = updateKeyPair[key];
-            }
-        } else if (defaults[key] !== null && defaults[key] !== "null") {
-            parsedData[groupName][key] = defaults[key];
-        }
-    });
-    keysToBeRemoved.forEach(function(key) {
-        if (parsedData[groupName].hasOwnProperty(key)) {
-            delete parsedData[groupName][key];
-        }
-    });
-    
-    if (Object.keys(parsedData[groupName]).length === 0) {
-        delete parsedData[groupName];
-    }
-    if (Object.keys(parsedData).length > 0) {
-        propertyUpdate.userData = JSON.stringify(parsedData);
+            })
+        );
     } else {
-        propertyUpdate.userData = '';
+        updateProperty('userData', text, false);
     }
-
-    userDataElement.value = propertyUpdate.userData;
-
-    updateProperties(propertyUpdate);
 }
 
-var editor = null;
+let editor = null;
 
 function createJSONEditor() {
     let container = document.getElementById("property-userData-editor");
@@ -2324,9 +3094,6 @@ function createJSONEditor() {
         mode: 'tree',
         modes: ['code', 'tree'],
         name: 'userData',
-        onModeChange: function() {
-            $('.jsoneditor-poweredBy').remove();
-        },
         onError: function(e) {
             alert('JSON editor:' + e);
         },
@@ -2337,8 +3104,6 @@ function createJSONEditor() {
                 return;
             }
             $('#property-userData-button-save').attr('disabled', false);
-
-
         }
     };
     editor = new JSONEditor(container, options);
@@ -2378,9 +3143,10 @@ function hideUserDataSaved() {
 
 function showStaticUserData() {
     if (editor !== null) {
-        $('#property-userData-static').show();
-        $('#property-userData-static').css('height', $('#property-userData-editor').height());
-        $('#property-userData-static').text(editor.getText());
+        let $propertyUserDataStatic = $('#property-userData-static');
+        $propertyUserDataStatic.show();
+        $propertyUserDataStatic.css('height', $('#property-userData-editor').height());
+        $propertyUserDataStatic.text(editor.getText());
     }
 }
 
@@ -2395,21 +3161,22 @@ function setEditorJSON(json) {
     }
 }
 
-function getEditorJSON() {
-    return editor.get();
-}
-
 function deleteJSONEditor() {
     if (editor !== null) {
+        setJSONError('userData', false);
         editor.destroy();
         editor = null;
     }
 }
 
-var savedJSONTimer = null;
+let savedJSONTimer = null;
 
-function saveJSONUserData(noUpdate) {
-    setUserDataFromEditor(noUpdate);
+/**
+ * @param {boolean} noUpdate - don't update the UI, but do send a property update.
+ * @param {Set.<string>} [entityIDsToUpdate] Entity IDs to update userData for
+ */
+function saveJSONUserData(noUpdate, entityIDsToUpdate) {
+    setUserDataFromEditor(noUpdate, entityIDsToUpdate ? entityIDsToUpdate : selectedEntityIDs);
     $('#property-userData-saved').show();
     $('#property-userData-button-save').attr('disabled', true);
     if (savedJSONTimer !== null) {
@@ -2436,6 +3203,7 @@ function clearMaterialData() {
 }
 
 function newJSONMaterialEditor() {
+    getPropertyInputElement("materialData").classList.remove('multi-diff');
     deleteJSONMaterialEditor();
     createJSONMaterialEditor();
     let data = {};
@@ -2449,35 +3217,40 @@ function saveMaterialData() {
     saveJSONMaterialData(true);
 }
 
-function setMaterialDataFromEditor(noUpdate) {
-    let json = null;
+/**
+ * @param {boolean} noUpdate - don't update the UI, but do send a property update.
+ * @param {Set.<string>} [entityIDsToUpdate] - Entity IDs to update materialData for.
+ */
+function setMaterialDataFromEditor(noUpdate, entityIDsToUpdate) {
+    let errorFound = false;
     try {
-        json = materialEditor.get();
+        materialEditor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('materialData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+    let text = materialEditor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                ids: [...entityIDsToUpdate],
+                type: "saveMaterialData",
+                properties: {
+                    materialData: text
+                }
+            })
+        );
     } else {
-        let text = materialEditor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveMaterialData",
-                    properties: {
-                        materialData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('materialData', text, false);
-        }
+        updateProperty('materialData', text, false);
     }
 }
 
-var materialEditor = null;
+let materialEditor = null;
 
 function createJSONMaterialEditor() {
     let container = document.getElementById("property-materialData-editor");
@@ -2486,9 +3259,6 @@ function createJSONMaterialEditor() {
         mode: 'tree',
         modes: ['code', 'tree'],
         name: 'materialData',
-        onModeChange: function() {
-            $('.jsoneditor-poweredBy').remove();
-        },
         onError: function(e) {
             alert('JSON editor:' + e);
         },
@@ -2499,8 +3269,6 @@ function createJSONMaterialEditor() {
                 return;
             }
             $('#property-materialData-button-save').attr('disabled', false);
-
-
         }
     };
     materialEditor = new JSONEditor(container, options);
@@ -2540,9 +3308,10 @@ function hideMaterialDataSaved() {
 
 function showStaticMaterialData() {
     if (materialEditor !== null) {
-        $('#property-materialData-static').show();
-        $('#property-materialData-static').css('height', $('#property-materialData-editor').height());
-        $('#property-materialData-static').text(materialEditor.getText());
+        let $propertyMaterialDataStatic = $('#property-materialData-static');
+        $propertyMaterialDataStatic.show();
+        $propertyMaterialDataStatic.css('height', $('#property-materialData-editor').height());
+        $propertyMaterialDataStatic.text(materialEditor.getText());
     }
 }
 
@@ -2557,21 +3326,22 @@ function setMaterialEditorJSON(json) {
     }
 }
 
-function getMaterialEditorJSON() {
-    return materialEditor.get();
-}
-
 function deleteJSONMaterialEditor() {
     if (materialEditor !== null) {
+        setJSONError('materialData', false);
         materialEditor.destroy();
         materialEditor = null;
     }
 }
 
-var savedMaterialJSONTimer = null;
+let savedMaterialJSONTimer = null;
 
-function saveJSONMaterialData(noUpdate) {
-    setMaterialDataFromEditor(noUpdate);
+/**
+ * @param {boolean} noUpdate - don't update the UI, but do send a property update.
+ * @param {Set.<string>} [entityIDsToUpdate] - Entity IDs to update materialData for.
+ */
+function saveJSONMaterialData(noUpdate, entityIDsToUpdate) {
+    setMaterialDataFromEditor(noUpdate, entityIDsToUpdate ? entityIDsToUpdate : selectedEntityIDs);
     $('#property-materialData-saved').show();
     $('#property-materialData-button-save').attr('disabled', true);
     if (savedMaterialJSONTimer !== null) {
@@ -2594,13 +3364,12 @@ function bindAllNonJSONEditorElements() {
             if (e.target.id === "property-userData-button-edit" || e.target.id === "property-userData-button-clear" || 
                 e.target.id === "property-materialData-button-edit" || e.target.id === "property-materialData-button-clear") {
                 return;
-            } else {
-                if ($('#property-userData-editor').css('height') !== "0px") {
-                    saveUserData();
-                }
-                if ($('#property-materialData-editor').css('height') !== "0px") {
-                    saveMaterialData();
-                }
+            }
+            if ($('#property-userData-editor').css('height') !== "0px") {
+                saveUserData();
+            }
+            if ($('#property-materialData-editor').css('height') !== "0px") {
+                saveMaterialData();
             }
         });
     }
@@ -2632,8 +3401,15 @@ function toggleDropdown(event) {
     element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
 }
 
+function closeAllDropdowns() {
+    let elDropdowns = document.querySelectorAll("div.dropdown > dl");
+    for (let i = 0; i < elDropdowns.length; ++i) {
+        elDropdowns[i].setAttribute('dropped', 'false');
+    }
+}
+
 function setDropdownValue(event) {
-    let dt = event.target.parentNode.parentNode.previousSibling;
+    let dt = event.target.parentNode.parentNode.previousSibling.previousSibling;
     dt.value = event.target.getAttribute("value");
     dt.firstChild.textContent = event.target.textContent;
 
@@ -2646,7 +3422,7 @@ function setDropdownValue(event) {
 
 
 /**
- * TEXTAREA / PARENT MATERIAL NAME FUNCTIONS
+ * TEXTAREA FUNCTIONS
  */
 
 function setTextareaScrolling(element) {
@@ -2654,43 +3430,523 @@ function setTextareaScrolling(element) {
     element.setAttribute("scrolling", isScrolling ? "true" : "false");
 }
 
-function showParentMaterialNameBox(number, elNumber, elString) {
-    if (number) {
-        $('#property-submeshToReplace').parent().show();
-        $('#property-materialNameToReplace').parent().hide();
-        elString.value = "";
-    } else {
-        $('#property-materialNameToReplace').parent().show();
-        $('#property-submeshToReplace').parent().hide();
-        elNumber.value = 0;
+
+/**
+ * MATERIAL TARGET FUNCTIONS
+ */
+
+function requestMaterialTarget() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: 'materialTargetRequest',
+        entityID: getFirstSelectedID(),
+    }));
+}
+ 
+function setMaterialTargetData(materialTargetData) {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");
+    resetDynamicMultiselectProperty(elDivOptions);
+    
+    if (materialTargetData === undefined) {
+        return;
+    }
+    
+    elDivOptions.firstChild.style.display = "none"; // hide "No Options" text
+    elDivOptions.parentNode.lastChild.style.display = null; // show Select/Clear all buttons
+
+    let numMeshes = materialTargetData.numMeshes;
+    for (let i = 0; i < numMeshes; ++i) {
+        addMaterialTarget(elDivOptions, i, false);
+    }
+    
+    let materialNames = materialTargetData.materialNames;
+    let materialNamesAdded = [];
+    for (let i = 0; i < materialNames.length; ++i) {
+        let materialName = materialNames[i];
+        if (materialNamesAdded.indexOf(materialName) === -1) {
+            addMaterialTarget(elDivOptions, materialName, true);
+            materialNamesAdded.push(materialName);
+        }
+    }
+    
+    materialTargetPropertyUpdate(elDivOptions.propertyValue);
+}
+
+function addMaterialTarget(elDivOptions, targetID, isMaterialName) {
+    let elementID = elDivOptions.getAttribute("id");
+    elementID += isMaterialName ? "-material-" : "-mesh-";
+    elementID += targetID;
+    
+    let elDiv = document.createElement('div');
+    elDiv.className = "materialTargetDiv";
+    elDiv.onclick = onToggleMaterialTarget;
+    elDivOptions.appendChild(elDiv);
+    
+    let elInput = document.createElement('input');
+    elInput.className = "materialTargetInput";
+    elInput.setAttribute("type", "checkbox");
+    elInput.setAttribute("id", elementID);
+    elInput.setAttribute("targetID", targetID);
+    elInput.setAttribute("isMaterialName", isMaterialName);
+    elDiv.appendChild(elInput);
+    
+    let elLabel = document.createElement('label');
+    elLabel.setAttribute("for", elementID);
+    elLabel.innerText = isMaterialName ? "Material " + targetID : "Mesh Index " + targetID;
+    elDiv.appendChild(elLabel);
+    
+    return elDiv;
+}
+
+function onToggleMaterialTarget(event) {
+    let elTarget = event.target;
+    if (elTarget instanceof HTMLInputElement) {
+        sendMaterialTargetProperty();
+    }
+    event.stopPropagation();
+}
+
+function setAllMaterialTargetInputs(checked) {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");   
+    let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
+    for (let i = 0; i < elInputs.length; ++i) {
+        elInputs[i].checked = checked;
     }
 }
 
+function selectAllMaterialTarget() {
+    setAllMaterialTargetInputs(true);
+    sendMaterialTargetProperty();
+}
 
+function clearAllMaterialTarget() {
+    setAllMaterialTargetInputs(false);
+    sendMaterialTargetProperty();
+}
+
+function sendMaterialTargetProperty() {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");   
+    let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
+    
+    let materialTargetList = [];
+    for (let i = 0; i < elInputs.length; ++i) {
+        let elInput = elInputs[i];
+        if (elInput.checked) {
+            let targetID = elInput.getAttribute("targetID");
+            if (elInput.getAttribute("isMaterialName") === "true") {
+                materialTargetList.push(MATERIAL_PREFIX_STRING + targetID);
+            } else {
+                materialTargetList.push(targetID);
+            }
+        }
+    }
+    
+    let propertyValue = materialTargetList.join(",");
+    if (propertyValue.length > 1) {
+        propertyValue = "[" + propertyValue + "]";
+    }
+    
+    updateProperty("parentMaterialName", propertyValue, false);
+}
+
+function materialTargetPropertyUpdate(propertyValue) {
+    let elDivOptions = getPropertyInputElement("parentMaterialName");
+    let elInputs = elDivOptions.getElementsByClassName("materialTargetInput");
+    
+    if (propertyValue.startsWith('[')) {
+        propertyValue = propertyValue.substring(1, propertyValue.length);
+    }
+    if (propertyValue.endsWith(']')) {
+        propertyValue = propertyValue.substring(0, propertyValue.length - 1);
+    }
+    
+    let materialTargets = propertyValue.split(",");
+    for (let i = 0; i < elInputs.length; ++i) {
+        let elInput = elInputs[i];
+        let targetID = elInput.getAttribute("targetID");
+        let materialTargetName = targetID;
+        if (elInput.getAttribute("isMaterialName") === "true") {
+            materialTargetName = MATERIAL_PREFIX_STRING + targetID;
+        }
+        elInput.checked = materialTargets.indexOf(materialTargetName) >= 0;
+    }
+    
+    elDivOptions.propertyValue = propertyValue;
+}
+
+function roundAndFixNumber(number, propertyData) {
+    let result = number;
+    if (propertyData.round !== undefined) {
+        result = Math.round(result * propertyData.round) / propertyData.round;
+    }
+    if (propertyData.decimals !== undefined) {
+        return result.toFixed(propertyData.decimals)
+    }
+    return result;
+}
+
+function applyInputNumberPropertyModifiers(number, propertyData) {
+    const multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+    return roundAndFixNumber(number / multiplier, propertyData);
+}
+
+function applyOutputNumberPropertyModifiers(number, propertyData) {
+    const multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+    return roundAndFixNumber(number * multiplier, propertyData);
+}
+
+const areSetsEqual = (a, b) => a.size === b.size && [...a].every(value => b.has(value));
+
+
+function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
+    const previouslySelectedEntityIDs = selectedEntityIDs;
+    currentSelections = selections;
+    selectedEntityIDs = new Set(selections.map(selection => selection.id));
+    const multipleSelections = currentSelections.length > 1;
+    const hasSelectedEntityChanged = !areSetsEqual(selectedEntityIDs, previouslySelectedEntityIDs);
+
+    if (selections.length === 0) {
+        deleteJSONEditor();
+        deleteJSONMaterialEditor();
+
+        resetProperties();
+        showGroupsForType("None");
+
+        let elIcon = properties.type.elSpan;
+        elIcon.innerText = NO_SELECTION;
+        elIcon.style.display = 'inline-block';
+
+        getPropertyInputElement("userData").value = "";
+        showUserDataTextArea();
+        showSaveUserDataButton();
+        showNewJSONEditorButton();
+
+        getPropertyInputElement("materialData").value = "";
+        showMaterialDataTextArea();
+        showSaveMaterialDataButton();
+        showNewJSONMaterialEditorButton();
+
+        disableProperties();
+    } else {
+        if (!isPropertiesToolUpdate && !hasSelectedEntityChanged && document.hasFocus()) {
+            // in case the selection has not changed and we still have focus on the properties page,
+            // we will ignore the event.
+            return;
+        }
+
+        if (hasSelectedEntityChanged) {
+            if (!multipleSelections) {
+                resetServerScriptStatus();
+            }
+        }
+
+        const doSelectElement = !hasSelectedEntityChanged;
+
+        // Get unique entity types, and convert the types Sphere and Box to Shape
+        const shapeTypes = ["Sphere", "Box"];
+        const entityTypes = [...new Set(currentSelections.map(a =>
+            shapeTypes.includes(a.properties.type) ? "Shape" : a.properties.type))];
+
+        const shownGroups = getGroupsForTypes(entityTypes);
+        showGroupsForTypes(entityTypes);
+
+        const lockedMultiValue = getMultiplePropertyValue('locked');
+
+        if (lockedMultiValue.isMultiDiffValue || lockedMultiValue.value) {
+            disableProperties();
+            getPropertyInputElement('locked').removeAttribute('disabled');
+        } else {
+            enableProperties();
+            disableSaveUserDataButton();
+            disableSaveMaterialDataButton()
+        }
+
+        const certificateIDMultiValue = getMultiplePropertyValue('certificateID');
+        const hasCertifiedInSelection = certificateIDMultiValue.isMultiDiffValue || certificateIDMultiValue.value !== "";
+
+        Object.entries(properties).forEach(function([propertyID, property]) {
+            const propertyData = property.data;
+            const propertyName = property.name;
+            let propertyMultiValue = getMultiplePropertyValue(propertyName);
+            let isMultiDiffValue = propertyMultiValue.isMultiDiffValue;
+            let propertyValue = propertyMultiValue.value;
+
+            if (propertyData.selectionVisibility !== undefined) {
+                let visibility = propertyData.selectionVisibility;
+                let propertyVisible = true;
+                if (!multipleSelections) {
+                    propertyVisible = isFlagSet(visibility, PROPERTY_SELECTION_VISIBILITY.SINGLE_SELECTION);
+                } else if (isMultiDiffValue) {
+                    propertyVisible = isFlagSet(visibility, PROPERTY_SELECTION_VISIBILITY.MULTI_DIFF_SELECTIONS);
+                } else {
+                    propertyVisible = isFlagSet(visibility, PROPERTY_SELECTION_VISIBILITY.MULTIPLE_SELECTIONS);
+                }
+                setPropertyVisibility(property, propertyVisible);
+            }
+
+            const isSubProperty = propertyData.subPropertyOf !== undefined;
+            if (propertyValue === undefined && !isMultiDiffValue && !isSubProperty) {
+                return;
+            }
+
+            if (!shownGroups.includes(property.group_id)) {
+                const WANT_DEBUG_SHOW_HIDDEN_FROM_GROUPS = false;
+                if (WANT_DEBUG_SHOW_HIDDEN_FROM_GROUPS) {
+                    console.log("Skipping property " + property.data.label + " [" + property.name +
+                        "] from hidden group " + property.group_id);
+                }
+                return;
+            }
+
+            if (propertyData.hideIfCertified && hasCertifiedInSelection) {
+                propertyValue = "** Certified **";
+                property.elInput.disabled = true;
+            }
+
+            if (propertyName === "type") {
+                propertyValue = entityTypes.length > 1 ?  "Multiple" : propertyMultiValue.values[0];
+            }
+
+            switch (propertyData.type) {
+                case 'string': {
+                    if (isMultiDiffValue) {
+                        if (propertyData.readOnly && propertyData.multiDisplayMode
+                            && propertyData.multiDisplayMode === PROPERTY_MULTI_DISPLAY_MODE.COMMA_SEPARATED_VALUES) {
+                            property.elInput.value = propertyMultiValue.values.join(", ");
+                        } else {
+                            property.elInput.classList.add('multi-diff');
+                            property.elInput.value = "";
+                        }
+                    } else {
+                        property.elInput.classList.remove('multi-diff');
+                        property.elInput.value = propertyValue;
+                    }
+                    break;
+                }
+                case 'bool': {
+                    const inverse = propertyData.inverse !== undefined ? propertyData.inverse : false;
+                    if (isSubProperty) {
+                        let subPropertyMultiValue = getMultiplePropertyValue(propertyData.subPropertyOf);
+                        let propertyValue = subPropertyMultiValue.value;
+                        isMultiDiffValue = subPropertyMultiValue.isMultiDiffValue;
+                        if (isMultiDiffValue) {
+                            let detailedSubProperty = getDetailedSubPropertyMPVDiff(subPropertyMultiValue, propertyName);
+                            property.elInput.checked = detailedSubProperty.isChecked;
+                            property.elInput.classList.toggle('multi-diff', detailedSubProperty.isMultiDiff);
+                        } else {
+                            let subProperties = propertyValue.split(",");
+                            let subPropertyValue = subProperties.indexOf(propertyName) > -1;
+                            property.elInput.checked = inverse ? !subPropertyValue : subPropertyValue;
+                            property.elInput.classList.remove('multi-diff');
+                        }
+
+                    } else {
+                        if (isMultiDiffValue) {
+                            property.elInput.checked = false;
+                        } else {
+                            property.elInput.checked = inverse ? !propertyValue : propertyValue;
+                        }
+                        property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
+                    }
+
+                    break;
+                }
+                case 'number': {
+                    property.elInput.value = isMultiDiffValue ? "" : propertyValue;
+                    property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
+                    break;
+                }
+                case 'number-draggable': {
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumber.setValue(detailedNumberDiff.averagePerPropertyComponent[0], detailedNumberDiff.propertyComponentDiff[0]);
+                    break;
+                }
+                case 'rect': {
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerPropertyComponent.x, detailedNumberDiff.propertyComponentDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerPropertyComponent.y, detailedNumberDiff.propertyComponentDiff.y);
+                    property.elNumberWidth.setValue(detailedNumberDiff.averagePerPropertyComponent.width, detailedNumberDiff.propertyComponentDiff.width);
+                    property.elNumberHeight.setValue(detailedNumberDiff.averagePerPropertyComponent.height, detailedNumberDiff.propertyComponentDiff.height);
+                    break;
+                }
+                case 'vec3':
+                case 'vec2': {
+                    let detailedNumberDiff = getDetailedNumberMPVDiff(propertyMultiValue, propertyData);
+                    property.elNumberX.setValue(detailedNumberDiff.averagePerPropertyComponent.x, detailedNumberDiff.propertyComponentDiff.x);
+                    property.elNumberY.setValue(detailedNumberDiff.averagePerPropertyComponent.y, detailedNumberDiff.propertyComponentDiff.y);
+                    if (property.elNumberZ !== undefined) {
+                        property.elNumberZ.setValue(detailedNumberDiff.averagePerPropertyComponent.z, detailedNumberDiff.propertyComponentDiff.z);
+                    }
+                    break;
+                }
+                case 'color': {
+                    let displayColor = propertyMultiValue.isMultiDiffValue ? propertyMultiValue.values[0] : propertyValue;
+                    property.elColorPicker.style.backgroundColor = "rgb(" + displayColor.red + "," +
+                        displayColor.green + "," +
+                        displayColor.blue + ")";
+                    property.elColorPicker.classList.toggle('multi-diff', propertyMultiValue.isMultiDiffValue);
+
+                    if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
+                        // Set the color picker inactive before setting the color,
+                        // otherwise an update will be sent directly after setting it here.
+                        $(property.elColorPicker).attr('active', 'false');
+                        colorPickers['#' + property.elementID].colpickSetColor({
+                            "r": displayColor.red,
+                            "g": displayColor.green,
+                            "b": displayColor.blue
+                        });
+                        $(property.elColorPicker).attr('active', 'true');
+                    }
+
+                    property.elNumberR.setValue(displayColor.red);
+                    property.elNumberG.setValue(displayColor.green);
+                    property.elNumberB.setValue(displayColor.blue);
+                    break;
+                }
+                case 'dropdown': {
+                    property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
+                    property.elInput.value = isMultiDiffValue ? "" : propertyValue;
+                    setDropdownText(property.elInput);
+                    break;
+                }
+                case 'textarea': {
+                    property.elInput.value = propertyValue;
+                    setTextareaScrolling(property.elInput);
+                    break;
+                }
+                case 'icon': {
+                    property.elSpan.innerHTML = propertyData.icons[propertyValue];
+                    property.elSpan.style.display = "inline-block";
+                    break;
+                }
+                case 'texture': {
+                    property.elInput.value = isMultiDiffValue ? "" : propertyValue;
+                    property.elInput.classList.toggle('multi-diff', isMultiDiffValue);
+                    if (isMultiDiffValue) {
+                        property.elInput.setMultipleValues();
+                    } else {
+                        property.elInput.imageLoad(property.elInput.value);
+                    }
+                    break;
+                }
+                case 'dynamic-multiselect': {
+                    if (!isMultiDiffValue && property.data.propertyUpdate) {
+                        property.data.propertyUpdate(propertyValue);
+                    }
+                    break;
+                }
+            }
+
+            let showPropertyRules = property.showPropertyRules;
+            if (showPropertyRules !== undefined) {
+                for (let propertyToShow in showPropertyRules) {
+                    let showIfThisPropertyValue = showPropertyRules[propertyToShow];
+                    let show = String(propertyValue) === String(showIfThisPropertyValue);
+                    showPropertyElement(propertyToShow, show);
+                }
+            }
+        });
+
+        updateVisibleSpaceModeProperties();
+
+        let userDataMultiValue = getMultiplePropertyValue("userData");
+        let userDataTextArea = getPropertyInputElement("userData");
+        let json = null;
+        if (!userDataMultiValue.isMultiDiffValue) {
+            try {
+                json = JSON.parse(userDataMultiValue.value);
+            } catch (e) {
+
+            }
+        }
+        if (json !== null) {
+            if (editor === null) {
+                createJSONEditor();
+            }
+            userDataTextArea.classList.remove('multi-diff');
+            setEditorJSON(json);
+            showSaveUserDataButton();
+            hideUserDataTextArea();
+            hideNewJSONEditorButton();
+            hideUserDataSaved();
+        } else {
+            // normal text
+            deleteJSONEditor();
+            userDataTextArea.classList.toggle('multi-diff', userDataMultiValue.isMultiDiffValue);
+            userDataTextArea.value = userDataMultiValue.isMultiDiffValue ? "" : userDataMultiValue.value;
+
+            showUserDataTextArea();
+            showNewJSONEditorButton();
+            hideSaveUserDataButton();
+            hideUserDataSaved();
+        }
+
+        let materialDataMultiValue = getMultiplePropertyValue("materialData");
+        let materialDataTextArea = getPropertyInputElement("materialData");
+        let materialJson = null;
+        if (!materialDataMultiValue.isMultiDiffValue) {
+            try {
+                materialJson = JSON.parse(materialDataMultiValue.value);
+            } catch (e) {
+
+            }
+        }
+        if (materialJson !== null) {
+            if (materialEditor === null) {
+                createJSONMaterialEditor();
+            }
+            materialDataTextArea.classList.remove('multi-diff');
+            setMaterialEditorJSON(materialJson);
+            showSaveMaterialDataButton();
+            hideMaterialDataTextArea();
+            hideNewJSONMaterialEditorButton();
+            hideMaterialDataSaved();
+        } else {
+            // normal text
+            deleteJSONMaterialEditor();
+            materialDataTextArea.classList.toggle('multi-diff', materialDataMultiValue.isMultiDiffValue);
+            materialDataTextArea.value = materialDataMultiValue.isMultiDiffValue ? "" :  materialDataMultiValue.value;
+            showMaterialDataTextArea();
+            showNewJSONMaterialEditorButton();
+            hideSaveMaterialDataButton();
+            hideMaterialDataSaved();
+        }
+
+        if (hasSelectedEntityChanged && selections.length === 1 && entityTypes[0] === "Material") {
+            requestMaterialTarget();
+        }
+
+        let activeElement = document.activeElement;
+        if (doSelectElement && typeof activeElement.select !== "undefined") {
+            activeElement.select();
+        }
+    }
+}
 
 function loaded() {
     openEventBridge(function() {
         let elPropertiesList = document.getElementById("properties-list");
         
-        GROUPS.forEach(function(group) {            
+        GROUPS.forEach(function(group) {
             let elGroup;
             if (group.addToGroup !== undefined) {
                 let fieldset = document.getElementById("properties-" + group.addToGroup);
                 elGroup = document.createElement('div');
                 fieldset.appendChild(elGroup);
             } else {
-                elGroup = document.createElement('fieldset');
-                elGroup.className = "major";
+                elGroup = document.createElement('div');
+                elGroup.className = 'section ' + (group.isMinor ? "minor" : "major");
                 elGroup.setAttribute("id", "properties-" + group.id);
                 elPropertiesList.appendChild(elGroup);
             }       
 
             if (group.label !== undefined) {
-                let elLegend = document.createElement('legend');
+                let elLegend = document.createElement('div');
                 elLegend.className = "section-header";
-                elLegend.innerText = group.label;
+
+                elLegend.appendChild(createElementFromHTML(`<div class="label">${group.label}</div>`));
+
                 let elSpan = document.createElement('span');
-                elSpan.className = ".collapse-icon";
+                elSpan.className = "collapse-icon";
                 elSpan.innerText = "M";
                 elLegend.appendChild(elSpan);
                 elGroup.appendChild(elLegend);
@@ -2700,155 +3956,141 @@ function loaded() {
                 let propertyType = propertyData.type;
                 let propertyID = propertyData.propertyID;               
                 let propertyName = propertyData.propertyName !== undefined ? propertyData.propertyName : propertyID;
+                let propertySpaceMode = propertyData.spaceMode !== undefined ? propertyData.spaceMode : PROPERTY_SPACE_MODE.ALL;
                 let propertyElementID = "property-" + propertyID;
                 propertyElementID = propertyElementID.replace('.', '-');
                 
-                let elProperty;
-                if (propertyType === "sub-header") {
-                    elProperty = document.createElement('legend');
-                    elProperty.className = "sub-section-header";
-                    elProperty.innerText = propertyData.label;
-                } else {
-                    elProperty = document.createElement('div');
-                    elProperty.setAttribute("id", "div-" + propertyElementID);
-                }
+                let elContainer, elLabel;
                 
-                if (group.twoColumn && propertyData.column !== undefined && propertyData.column !== -1) {
-                    let columnName = group.id + "column" + propertyData.column;
-                    let elColumn = document.getElementById(columnName);
-                    if (!elColumn) {
-                        let columnDivName = group.id + "columnDiv";
-                        let elColumnDiv = document.getElementById(columnDivName);
-                        if (!elColumnDiv) {
-                            elColumnDiv = document.createElement('div');
-                            elColumnDiv.className = "two-column";
-                            elColumnDiv.setAttribute("id", group.id + "columnDiv");
-                            elGroup.appendChild(elColumnDiv);
-                        }
-                        elColumn = document.createElement('fieldset');
-                        elColumn.className = "column";
-                        elColumn.setAttribute("id", columnName);
-                        elColumnDiv.appendChild(elColumn);
+                if (propertyData.replaceID === undefined) {
+                    // Create subheader, or create new property and append it.
+                    if (propertyType === "sub-header") {
+                        elContainer = createElementFromHTML(
+                            `<div class="sub-section-header legend">${propertyData.label}</div>`);
+                    } else {
+                        elContainer = document.createElement('div');
+                        elContainer.setAttribute("id", "div-" + propertyElementID);
+                        elContainer.className = 'property container';
                     }
-                    elColumn.appendChild(elProperty);
-                } else {
-                    elGroup.appendChild(elProperty);
-                }
-                
-                let elLabel = document.createElement('label');
-                elLabel.innerText = propertyData.label;
-                elLabel.setAttribute("for", propertyElementID);
 
-                createAppTooltip.registerTooltipElement(elLabel, propertyID);
-                
-                let property = { 
-                    data: propertyData, 
-                    elementID: propertyElementID, 
-                    name: propertyName,
-                    isParticleProperty: group.id.includes("particles"),
-                    elProperty: elProperty 
-                };
-                properties[propertyID] = property;
-                
-                switch (propertyType) {
-                    case 'string': {
-                        properties[propertyID].elInput = createStringProperty(property, elProperty, elLabel);
-                        break;
+                    if (group.twoColumn && propertyData.column !== undefined && propertyData.column !== -1) {
+                        let columnName = group.id + "column" + propertyData.column;
+                        let elColumn = document.getElementById(columnName);
+                        if (!elColumn) {
+                            let columnDivName = group.id + "columnDiv";
+                            let elColumnDiv = document.getElementById(columnDivName);
+                            if (!elColumnDiv) {
+                                elColumnDiv = document.createElement('div');
+                                elColumnDiv.className = "two-column";
+                                elColumnDiv.setAttribute("id", group.id + "columnDiv");
+                                elGroup.appendChild(elColumnDiv);
+                            }
+                            elColumn = document.createElement('fieldset');
+                            elColumn.className = "column";
+                            elColumn.setAttribute("id", columnName);
+                            elColumnDiv.appendChild(elColumn);
+                        }
+                        elColumn.appendChild(elContainer);
+                    } else {
+                        elGroup.appendChild(elContainer);
                     }
-                    case 'bool': {
-                        properties[propertyID].elInput = createBoolProperty(property, elProperty, elLabel);
-                        break;
+
+                    let labelText = propertyData.label !== undefined ? propertyData.label : "";
+                    let className = '';
+                    if (propertyData.indentedLabel || propertyData.showPropertyRule !== undefined) {
+                        className = 'indented';
                     }
-                    case 'number': {
-                        properties[propertyID].elInput = createNumberProperty(property, elProperty, elLabel);
-                        break;
-                    }
-                    case 'slider': {
-                        let elSlider = createSliderProperty(property, elProperty, elLabel);
-                        properties[propertyID].elSlider = elSlider[SLIDER_ELEMENTS.SLIDER];
-                        properties[propertyID].elInput = elSlider[SLIDER_ELEMENTS.NUMBER_INPUT];
-                        break;
-                    }
-                    case 'vec3': {
-                        let elVec3 = createVec3Property(property, elProperty, elLabel);  
-                        properties[propertyID].elInputX = elVec3[VECTOR_ELEMENTS.X_INPUT];
-                        properties[propertyID].elInputY = elVec3[VECTOR_ELEMENTS.Y_INPUT];
-                        properties[propertyID].elInputZ = elVec3[VECTOR_ELEMENTS.Z_INPUT];
-                        break;
-                    }
-                    case 'vec2': {
-                        let elVec2 = createVec2Property(property, elProperty, elLabel);  
-                        properties[propertyID].elInputX = elVec2[VECTOR_ELEMENTS.X_INPUT];
-                        properties[propertyID].elInputY = elVec2[VECTOR_ELEMENTS.Y_INPUT];
-                        break;
-                    }
-                    case 'color': {
-                        let elColor = createColorProperty(property, elProperty, elLabel);  
-                        properties[propertyID].elColorPicker = elColor[COLOR_ELEMENTS.COLOR_PICKER];
-                        properties[propertyID].elInputR = elColor[COLOR_ELEMENTS.RED_INPUT];
-                        properties[propertyID].elInputG = elColor[COLOR_ELEMENTS.GREEN_INPUT];
-                        properties[propertyID].elInputB = elColor[COLOR_ELEMENTS.BLUE_INPUT]; 
-                        break;
-                    }
-                    case 'dropdown': {
-                        properties[propertyID].elInput = createDropdownProperty(property, propertyID, elProperty, elLabel);
-                        break;
-                    }
-                    case 'textarea': {
-                        properties[propertyID].elInput = createTextareaProperty(property, elProperty, elLabel);
-                        break;
-                    }
-                    case 'icon': {
-                        let elIcon = createIconProperty(property, elProperty, elLabel);
-                        properties[propertyID].elSpan = elIcon[ICON_ELEMENTS.ICON];
-                        properties[propertyID].elLabel = elIcon[ICON_ELEMENTS.LABEL];
-                        break;
-                    }
-                    case 'texture': {
-                        let elTexture = createTextureProperty(property, elProperty, elLabel);
-                        properties[propertyID].elImage = elTexture[TEXTURE_ELEMENTS.IMAGE];
-                        properties[propertyID].elInput = elTexture[TEXTURE_ELEMENTS.TEXT_INPUT];
-                        break;
-                    }
-                    case 'buttons': {
-                        properties[propertyID].elProperty = createButtonsProperty(property, elProperty, elLabel);
-                        break;
-                    }
-                    case 'sub-header': {
-                        break;
-                    }
-                    default: {
-                        console.log("EntityProperties - Unknown property type " + 
-                                    propertyType + " set to property " + propertyID);
-                        break;
-                    }
+                    elLabel = createElementFromHTML(
+                        `<label><span class="${className}">${labelText}</span></label>`);
+                    elContainer.appendChild(elLabel);
+                } else {
+                    elContainer = document.getElementById(propertyData.replaceID);
                 }
-                
-                let showPropertyRule = propertyData.showPropertyRule;
-                if (showPropertyRule !== undefined) {
-                    let dependentProperty = Object.keys(showPropertyRule)[0];
-                    let dependentPropertyValue = showPropertyRule[dependentProperty];
-                    if (properties[dependentProperty] === undefined) {
-                        properties[dependentProperty] = {};
+
+                if (elLabel) {
+                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID, propertyName);
+                }
+
+                let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
+                elContainer.appendChild(elProperty);
+
+                if (propertyType === 'triple') {
+                    elProperty.className = 'flex-row';
+                    for (let i = 0; i < propertyData.properties.length; ++i) {
+                        let innerPropertyData = propertyData.properties[i];
+
+                        let elWrapper = createElementFromHTML('<div class="triple-item"></div>');
+                        elProperty.appendChild(elWrapper);
+
+                        let propertyID = innerPropertyData.propertyID;               
+                        let propertyName = innerPropertyData.propertyName !== undefined ? innerPropertyData.propertyName : propertyID;
+                        let propertyElementID = "property-" + propertyID;
+                        propertyElementID = propertyElementID.replace('.', '-');
+
+                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper);
+                        property.isParticleProperty = group.id.includes("particles");
+                        property.elContainer = elContainer;
+                        property.spaceMode = propertySpaceMode;
+                        property.group_id = group.id;
+
+                        let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
+                        createAppTooltip.registerTooltipElement(elLabel, propertyID, propertyName);
+
+                        elWrapper.appendChild(elLabel);
+                        
+                        if (property.type !== 'placeholder') {
+                            properties[propertyID] = property;
+                        }
+                        if (innerPropertyData.type === 'number' || innerPropertyData.type === 'number-draggable') {
+                            propertyRangeRequests.push(propertyID);
+                        }
                     }
-                    if (properties[dependentProperty].showPropertyRules === undefined) {
-                        properties[dependentProperty].showPropertyRules = {};
+                } else {
+                    let property = createProperty(propertyData, propertyElementID, propertyName, propertyID, elProperty);
+                    property.isParticleProperty = group.id.includes("particles");
+                    property.elContainer = elContainer;
+                    property.spaceMode = propertySpaceMode;
+                    property.group_id = group.id;
+                    
+                    if (property.type !== 'placeholder') {
+                        properties[propertyID] = property;
+                    }           
+                    if (propertyData.type === 'number' || propertyData.type === 'number-draggable' || 
+                        propertyData.type === 'vec2' || propertyData.type === 'vec3' || propertyData.type === 'rect') {
+                        propertyRangeRequests.push(propertyID);
                     }
-                    properties[dependentProperty].showPropertyRules[propertyID] = dependentPropertyValue;
+                    
+                    let showPropertyRule = propertyData.showPropertyRule;
+                    if (showPropertyRule !== undefined) {
+                        let dependentProperty = Object.keys(showPropertyRule)[0];
+                        let dependentPropertyValue = showPropertyRule[dependentProperty];
+                        if (properties[dependentProperty] === undefined) {
+                            properties[dependentProperty] = {};
+                        }
+                        if (properties[dependentProperty].showPropertyRules === undefined) {
+                            properties[dependentProperty].showPropertyRules = {};
+                        }
+                        properties[dependentProperty].showPropertyRules[propertyID] = dependentPropertyValue;
+                    }
                 }
             });
             
             elGroups[group.id] = elGroup;
         });
+
+        let minorSections = document.querySelectorAll(".section.minor");
+        minorSections[minorSections.length - 1].className += " last";
+
+        updateVisibleSpaceModeProperties();
         
         if (window.EventBridge !== undefined) {
             EventBridge.scriptEventReceived.connect(function(data) {
                 data = JSON.parse(data);
-                if (data.type === "server_script_status") {
+                if (data.type === "server_script_status" && selectedEntityIDs.size === 1) {
                     let elServerScriptError = document.getElementById("property-serverScripts-error");
                     let elServerScriptStatus = document.getElementById("property-serverScripts-status");
                     elServerScriptError.value = data.errorInfo;
-                    // If we just set elServerScriptError's diplay to block or none, we still end up with
+                    // If we just set elServerScriptError's display to block or none, we still end up with
                     // it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
                     // So set it's parent to block or none
                     elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
@@ -2860,344 +4102,88 @@ function loaded() {
                         elServerScriptStatus.innerText = NOT_RUNNING_SCRIPT_STATUS;
                     }
                 } else if (data.type === "update" && data.selections) {
-                    if (data.selections.length === 0) {
-                        if (lastEntityID !== null) {
-                            if (editor !== null) {
-                                saveUserData();
-                                deleteJSONEditor();
-                            }
-                            if (materialEditor !== null) {
-                                saveMaterialData();
-                                deleteJSONMaterialEditor();
-                            }
-                        }
-                        
-                        resetProperties();
-                        showGroupsForType("None");
-                
-                        deleteJSONEditor();
-                        getPropertyInputElement("userData").value = "";
-                        showUserDataTextArea();
-                        showSaveUserDataButton();
-                        showNewJSONEditorButton();
-
-                        deleteJSONMaterialEditor();
-                        getPropertyInputElement("materialData").value = "";
-                        showMaterialDataTextArea();
-                        showSaveMaterialDataButton();
-                        showNewJSONMaterialEditorButton();
-
-                        disableProperties();
-                    } else if (data.selections.length > 1) {
-                        deleteJSONEditor();
-                        deleteJSONMaterialEditor();
-                        
-                        let selections = data.selections;
-
-                        let ids = [];
-                        let types = {};
-                        let numTypes = 0;
-
-                        for (let i = 0; i < selections.length; ++i) {
-                            ids.push(selections[i].id);
-                            let currentSelectedType = selections[i].properties.type;
-                            if (types[currentSelectedType] === undefined) {
-                                types[currentSelectedType] = 0;
-                                numTypes += 1;
-                            }
-                            types[currentSelectedType]++;
-                        }
-
-                        let type = "Multiple";
-                        if (numTypes === 1) {
-                            type = selections[0].properties.type;
-                        }
-                        
-                        resetProperties();
-                        showGroupsForType(type);
-                        
-                        let typeProperty = properties["type"];
-                        typeProperty.elSpan.innerHTML = typeProperty.data.icons[type];
-                        typeProperty.elSpan.style.display = "inline-block";
-                        typeProperty.elLabel.innerHTML = type + " (" + data.selections.length + ")";
-                        
-                        disableProperties();
-                    } else {
-                        selectedEntityProperties = data.selections[0].properties;
-                        
-                        if (lastEntityID !== '"' + selectedEntityProperties.id + '"' && lastEntityID !== null) {
-                            if (editor !== null) {
-                               saveUserData();
-                            }
-                            if (materialEditor !== null) {
-                                saveMaterialData();
-                            }
-                        }
-
-                        let doSelectElement = lastEntityID === '"' + selectedEntityProperties.id + '"';
-
-                        // the event bridge and json parsing handle our avatar id string differently.
-                        lastEntityID = '"' + selectedEntityProperties.id + '"';
-
-                        // HTML workaround since image is not yet a separate entity type
-                        let IMAGE_MODEL_NAME = 'default-image-model.fbx';
-                        if (selectedEntityProperties.type === "Model") {
-                            let urlParts = selectedEntityProperties.modelURL.split('/');
-                            let propsFilename = urlParts[urlParts.length - 1];
-
-                            if (propsFilename === IMAGE_MODEL_NAME) {
-                                selectedEntityProperties.type = "Image";
-                            }
-                        }
-
-                        showGroupsForType(selectedEntityProperties.type);
-                        
-                        for (let propertyID in properties) {
-                            let property = properties[propertyID];
-                            let propertyData = property.data;
-                            let propertyName = property.name;
-                            let propertyValue = getPropertyValue(propertyName);
-                            
-                            let isSubProperty = propertyData.subPropertyOf !== undefined;
-                            if (propertyValue === undefined && !isSubProperty) {
-                                continue;
-                            }
-                            
-                            let isPropertyNotNumber = false;
-                            switch (propertyData.type) {
-                                case 'number':
-                                case 'slider':
-                                    isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
-                                    break;
-                                case 'vec3':
-                                case 'vec2':
-                                    isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
-                                    break;
-                                case 'color':
-                                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
-                                    break;
-                            }
-                            if (isPropertyNotNumber && propertyData.fallbackProperty !== undefined) {
-                                propertyValue = getPropertyValue(propertyData.fallbackProperty);
-                            }
-                            
-                            switch (propertyData.type) {
-                                case 'string': {
-                                    property.elInput.value = propertyValue;
-                                    break;
-                                }
-                                case 'bool': {
-                                    let inverse = propertyData.inverse !== undefined ? propertyData.inverse : false;
-                                    if (isSubProperty) {
-                                        let propertyValue = selectedEntityProperties[propertyData.subPropertyOf];
-                                        let subProperties = propertyValue.split(",");
-                                        let subPropertyValue = subProperties.indexOf(propertyName) > -1;
-                                        property.elInput.checked = inverse ? !subPropertyValue : subPropertyValue;
-                                    } else {
-                                        property.elInput.checked = inverse ? !propertyValue : propertyValue;
-                                    }
-                                    break;
-                                }
-                                case 'number':
-                                case 'slider': {
-                                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                                    let value = propertyValue / multiplier;
-                                    if (propertyData.round !== undefined) {
-                                        value = Math.round(value.round) / propertyData.round;
-                                    }
-                                    if (propertyData.decimals !== undefined) {
-                                        property.elInput.value = value.toFixed(propertyData.decimals);
-                                    } else {
-                                        property.elInput.value = value;
-                                    }
-                                    if (property.elSlider !== undefined) {
-                                        property.elSlider.value = property.elInput.value;
-                                    }
-                                    break;
-                                }
-                                case 'vec3':
-                                case 'vec2': {
-                                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                                    let valueX = propertyValue.x / multiplier;
-                                    let valueY = propertyValue.y / multiplier;
-                                    let valueZ = propertyValue.z / multiplier;
-                                    if (propertyData.round !== undefined) {
-                                        valueX = Math.round(valueX * propertyData.round) / propertyData.round;
-                                        valueY = Math.round(valueY * propertyData.round) / propertyData.round;
-                                        valueZ = Math.round(valueZ * propertyData.round) / propertyData.round;
-                                    }
-                                    if (propertyData.decimals !== undefined) {
-                                        property.elInputX.value = valueX.toFixed(propertyData.decimals);
-                                        property.elInputY.value = valueY.toFixed(propertyData.decimals);
-                                        if (property.elInputZ !== undefined) {
-                                            property.elInputZ.value = valueZ.toFixed(propertyData.decimals);
-                                        }
-                                    } else {
-                                        property.elInputX.value = valueX;
-                                        property.elInputY.value = valueY;
-                                        if (property.elInputZ !== undefined) {
-                                            property.elInputZ.value = valueZ;
-                                        }
-                                    }
-                                    break;
-                                }
-                                case 'color': {
-                                    property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
-                                                                                     propertyValue.green + "," + 
-                                                                                     propertyValue.blue + ")";
-                                    property.elInputR.value = propertyValue.red;
-                                    property.elInputG.value = propertyValue.green;
-                                    property.elInputB.value = propertyValue.blue;
-                                    break;
-                                }
-                                case 'dropdown': {
-                                    property.elInput.value = propertyValue;
-                                    setDropdownText(property.elInput);
-                                    break;
-                                }
-                                case 'textarea': {
-                                    property.elInput.value = propertyValue;
-                                    setTextareaScrolling(property.elInput);
-                                    break;
-                                }
-                                case 'icon': {
-                                    property.elSpan.innerHTML = propertyData.icons[propertyValue];
-                                    property.elSpan.style.display = "inline-block";
-                                    property.elLabel.innerHTML = propertyValue;
-                                    break;
-                                }
-                                case 'texture': {
-                                    property.elInput.value = propertyValue;
-                                    property.elInput.imageLoad(property.elInput.value);
-                                    break;
-                                }
-                            }
-                            
-                            let showPropertyRules = property.showPropertyRules;
-                            if (showPropertyRules !== undefined) {
-                                for (let propertyToShow in showPropertyRules) {
-                                    let showIfThisPropertyValue = showPropertyRules[propertyToShow];
-                                    let show = String(propertyValue) === String(showIfThisPropertyValue);
-                                    showPropertyElement(propertyToShow, show);
-                                }
-                            }
-                        }
-                        
-                        if (selectedEntityProperties.type === "Image") {
-                            let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
-                            getPropertyInputElement("image").value = imageLink;
-                        } else if (selectedEntityProperties.type === "Material") {
-                            let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
-                            let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
-                            let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
-                            let parentMaterialName = selectedEntityProperties.parentMaterialName;
-                            if (parentMaterialName.startsWith(MATERIAL_PREFIX_STRING)) {
-                                elParentMaterialNameString.value = parentMaterialName.replace(MATERIAL_PREFIX_STRING, "");
-                                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
-                                elParentMaterialNameCheckbox.checked = false;
-                            } else {
-                                elParentMaterialNameNumber.value = parseInt(parentMaterialName);
-                                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
-                                elParentMaterialNameCheckbox.checked = true;
-                            }
-                        }
-                        
-                        let json = null;
-                        try {
-                            json = JSON.parse(selectedEntityProperties.userData);
-                        } catch (e) {
-                            // normal text
-                            deleteJSONEditor();
-                            getPropertyInputElement("userData").value = selectedEntityProperties.userData;
-                            showUserDataTextArea();
-                            showNewJSONEditorButton();
-                            hideSaveUserDataButton();
-                            hideUserDataSaved();
-                        }
-                        if (json !== null) {
-                            if (editor === null) {
-                                createJSONEditor();
-                            }
-                            setEditorJSON(json);
-                            showSaveUserDataButton();
-                            hideUserDataTextArea();
-                            hideNewJSONEditorButton();
-                            hideUserDataSaved();
-                        }
-
-                        let materialJson = null;
-                        try {
-                            materialJson = JSON.parse(selectedEntityProperties.materialData);
-                        } catch (e) {
-                            // normal text
-                            deleteJSONMaterialEditor();
-                            getPropertyInputElement("materialData").value = selectedEntityProperties.materialData;
-                            showMaterialDataTextArea();
-                            showNewJSONMaterialEditorButton();
-                            hideSaveMaterialDataButton();
-                            hideMaterialDataSaved();
-                        }
-                        if (materialJson !== null) {
-                            if (materialEditor === null) {
-                                createJSONMaterialEditor();
-                            }
-                            setMaterialEditorJSON(materialJson);
-                            showSaveMaterialDataButton();
-                            hideMaterialDataTextArea();
-                            hideNewJSONMaterialEditorButton();
-                            hideMaterialDataSaved();
-                        }
-                        
-                        if (selectedEntityProperties.locked) {
-                            disableProperties();
-                            getPropertyInputElement("locked").removeAttribute('disabled');
-                        } else {
-                            enableProperties();
-                            disableSaveUserDataButton();
-                            disableSaveMaterialDataButton()
-                        }
-                        
-                        let activeElement = document.activeElement;
-                        if (doSelectElement && typeof activeElement.select !== "undefined") {
-                            activeElement.select();
-                        }
+                    if (data.spaceMode !== undefined) {
+                        currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
                     }
+                    handleEntitySelectionUpdate(data.selections, data.isPropertiesToolUpdate);
                 } else if (data.type === 'tooltipsReply') {
                     createAppTooltip.setIsEnabled(!data.hmdActive);
                     createAppTooltip.setTooltipData(data.tooltips);
+                } else if (data.type === 'hmdActiveChanged') {
+                    createAppTooltip.setIsEnabled(!data.hmdActive);
+                } else if (data.type === 'setSpaceMode') {
+                    currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
+                    updateVisibleSpaceModeProperties();
+                } else if (data.type === 'propertyRangeReply') {
+                    let propertyRanges = data.propertyRanges;
+                    for (let property in propertyRanges) {
+                        let propertyRange = propertyRanges[property];
+                        if (propertyRange !== undefined) {
+                            let propertyData = properties[property].data;
+                            let multiplier = propertyData.multiplier;
+                            if (propertyData.min === undefined && propertyRange.minimum !== "") {
+                                propertyData.min = propertyRange.minimum;
+                                if (multiplier !== undefined) {
+                                    propertyData.min /= multiplier;
+                                }
+                            }
+                            if (propertyData.max === undefined && propertyRange.maximum !== "") {
+                                propertyData.max = propertyRange.maximum;
+                                if (multiplier !== undefined) {
+                                    propertyData.max /= multiplier;
+                                }
+                            }
+                            switch (propertyData.type) {
+                                case 'number':
+                                    updateNumberMinMax(properties[property]);
+                                    break;
+                                case 'number-draggable':
+                                    updateNumberDraggableMinMax(properties[property]);
+                                    break;
+                                case 'vec3':
+                                case 'vec2':
+                                    updateVectorMinMax(properties[property]);
+                                    break;
+                                case 'rect':
+                                    updateRectMinMax(properties[property]);
+                                    break;
+                            }
+                        }
+                    }
+                } else if (data.type === 'materialTargetReply') {
+                    if (data.entityID === getFirstSelectedID()) {
+                        setMaterialTargetData(data.materialTargetData);
+                    }
                 }
             });
+
+            // Request tooltips and property ranges as soon as we can process a reply:
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'propertyRangeRequest', properties: propertyRangeRequests }));
         }
         
         // Server Script Status
-        let serverScriptProperty = properties["serverScripts"];
-        let elServerScript = serverScriptProperty.elInput;
-        let serverScriptElementID = serverScriptProperty.elementID;
-        let serverScriptStatusElementID = serverScriptElementID + "-status";
-        let elDiv = document.createElement('div');
-        elDiv.className = "property";
-        elDiv.setAttribute("id", "div-" + serverScriptStatusElementID);
-        let elLabel = document.createElement('label');
-        elLabel.setAttribute("for", serverScriptStatusElementID);
-        elLabel.innerText = "Server Script Status";
-        createAppTooltip.registerTooltipElement(elLabel, "serverScriptsStatus");
-        let elServerScriptStatus = document.createElement('span');
+        let elServerScriptStatusOuter = document.getElementById('div-property-serverScriptStatus');
+        let elServerScriptStatusContainer = document.getElementById('div-property-serverScriptStatus').childNodes[1];
+        let serverScriptStatusElementID = 'property-serverScripts-status';
+        createAppTooltip.registerTooltipElement(elServerScriptStatusOuter.childNodes[0], "serverScriptsStatus");
+        let elServerScriptStatus = document.createElement('div');
         elServerScriptStatus.setAttribute("id", serverScriptStatusElementID);
-        elDiv.appendChild(elLabel);
-        elDiv.appendChild(elServerScriptStatus);
-        elServerScript.parentNode.appendChild(elDiv);
+        elServerScriptStatusContainer.appendChild(elServerScriptStatus);
         
         // Server Script Error
-        elDiv = document.createElement('div');
+        let elServerScripts = getPropertyInputElement("serverScripts");
+        let elDiv = document.createElement('div');
         elDiv.className = "property";
         let elServerScriptError = document.createElement('textarea');
-        elServerScriptError.setAttribute("id", serverScriptElementID + "-error");
+        let serverScriptErrorElementID = 'property-serverScripts-error';
+        elServerScriptError.setAttribute("id", serverScriptErrorElementID);
         elDiv.appendChild(elServerScriptError);
-        elServerScript.parentNode.appendChild(elDiv);
+        elServerScriptStatusContainer.appendChild(elDiv);
         
         let elScript = getPropertyInputElement("script");
-        elScript.parentNode.className = "property url refresh";
-        elServerScript.parentNode.className = "property url refresh";
+        elScript.parentNode.className = "url refresh";
+        elServerScripts.parentNode.className = "url refresh";
             
         // User Data
         let userDataProperty = properties["userData"];
@@ -3208,12 +4194,15 @@ function loaded() {
         elStaticUserData.setAttribute("id", userDataElementID + "-static");
         let elUserDataEditor = document.createElement('div');
         elUserDataEditor.setAttribute("id", userDataElementID + "-editor");
+        let elUserDataEditorStatus = document.createElement('div');
+        elUserDataEditorStatus.setAttribute("id", userDataElementID + "-editorStatus");
         let elUserDataSaved = document.createElement('span');
         elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elUserDataSaved);
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
+        elDiv.insertBefore(elUserDataEditorStatus, elUserData);
         
         // Material Data
         let materialDataProperty = properties["materialData"];
@@ -3224,49 +4213,30 @@ function loaded() {
         elStaticMaterialData.setAttribute("id", materialDataElementID + "-static");
         let elMaterialDataEditor = document.createElement('div');
         elMaterialDataEditor.setAttribute("id", materialDataElementID + "-editor");
+        let elMaterialDataEditorStatus = document.createElement('div');
+        elMaterialDataEditorStatus.setAttribute("id", materialDataElementID + "-editorStatus");
         let elMaterialDataSaved = document.createElement('span');
         elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
-        
-        // Special Property Callbacks
-        let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
-        let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
-        let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
-        elParentMaterialNameString.addEventListener('change', function () { 
-            updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + this.value, false); 
-        });
-        elParentMaterialNameNumber.addEventListener('change', function () { 
-            updateProperty("parentMaterialName", this.value, false); 
-        });
-        elParentMaterialNameCheckbox.addEventListener('change', function () {
-            if (this.checked) {
-                updateProperty("parentMaterialName", elParentMaterialNameNumber.value, false);
-                showParentMaterialNameBox(true, elParentMaterialNameNumber, elParentMaterialNameString);
-            } else {
-                updateProperty("parentMaterialName", MATERIAL_PREFIX_STRING + elParentMaterialNameString.value, false);
-                showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
-            }
-        });
-        
-        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction('textures', false));
+        elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
         
         // Collapsible sections
-        let elCollapsible = document.getElementsByClassName("section-header");
+        let elCollapsible = document.getElementsByClassName("collapse-icon");
 
         let toggleCollapsedEvent = function(event) {
-            let element = event.target.parentNode.parentNode;
+            let element = this.parentNode.parentNode;
             let isCollapsed = element.dataset.collapsed !== "true";
             element.dataset.collapsed = isCollapsed ? "true" : false;
             element.setAttribute("collapsed", isCollapsed ? "true" : "false");
-            element.getElementsByClassName(".collapse-icon")[0].textContent = isCollapsed ? "L" : "M";
+            this.textContent = isCollapsed ? "L" : "M";
         };
 
         for (let collapseIndex = 0, numCollapsibles = elCollapsible.length; collapseIndex < numCollapsibles; ++collapseIndex) {
             let curCollapsibleElement = elCollapsible[collapseIndex];
-            curCollapsibleElement.getElementsByTagName('span')[0].addEventListener("click", toggleCollapsedEvent, true);
+            curCollapsibleElement.addEventListener("click", toggleCollapsedEvent, true);
         }
         
         // Textarea scrollbars
@@ -3320,6 +4290,10 @@ function loaded() {
             dt.addEventListener("click", toggleDropdown, true);
             dl.appendChild(dt);
 
+            let elMultiDiff = document.createElement('span');
+            elMultiDiff.className = "multi-diff";
+            dl.appendChild(elMultiDiff);
+
             let span = document.createElement("span");
             span.setAttribute("value", options[selectedOption].value);
             span.textContent = options[selectedOption].firstChild.textContent;
@@ -3346,8 +4320,10 @@ function loaded() {
             let propertyID = elDropdown.getAttribute("propertyID");
             let property = properties[propertyID];
             property.elInput = dt;
-            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property.name, property.isParticleProperty));
+            dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
         }
+
+        document.addEventListener('click', function(ev) { closeAllDropdowns() }, true);
         
         elDropdowns = document.getElementsByTagName("select");
         while (elDropdowns.length > 0) {
@@ -3355,16 +4331,52 @@ function loaded() {
             el.parentNode.removeChild(el);
             elDropdowns = document.getElementsByTagName("select");
         }
-            
-        document.addEventListener("keydown", function (keyDown) {
-            if (keyDown.keyCode === KEY_P && keyDown.ctrlKey) {
-                if (keyDown.shiftKey) {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'unparent' }));
-                } else {
-                    EventBridge.emitWebEvent(JSON.stringify({ type: 'parent' }));
-                }
+
+        const KEY_CODES = {
+            BACKSPACE: 8,
+            DELETE: 46
+        };
+
+        document.addEventListener("keyup", function (keyUpEvent) {
+            const FILTERED_NODE_NAMES = ["INPUT", "TEXTAREA"];
+            if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
+                return;
             }
-        });
+
+            if (elUserDataEditor.contains(keyUpEvent.target) || elMaterialDataEditor.contains(keyUpEvent.target)) {
+                return;
+            }
+
+            let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
+
+            let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
+
+            let keyCodeString;
+            switch (keyCode) {
+                case KEY_CODES.DELETE:
+                    keyCodeString = "Delete";
+                    break;
+                case KEY_CODES.BACKSPACE:
+                    keyCodeString = "Backspace";
+                    break;
+                default:
+                    keyCodeString = String.fromCharCode(keyUpEvent.keyCode);
+                    break;
+            }
+
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: 'keyUpEvent',
+                keyUpEvent: {
+                    code,
+                    key,
+                    keyCode,
+                    keyCodeString,
+                    altKey,
+                    controlKey,
+                    shiftKey,
+                }
+            }));
+        }, false);
         
         window.onblur = function() {
             // Fake a change event
@@ -3389,6 +4401,7 @@ function loaded() {
     });
 
     augmentSpinButtons();
+    disableDragDrop();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {
@@ -3397,6 +4410,5 @@ function loaded() {
 
     setTimeout(function() {
         EventBridge.emitWebEvent(JSON.stringify({ type: 'propertiesPageReady' }));
-        EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
     }, 1000);
 }

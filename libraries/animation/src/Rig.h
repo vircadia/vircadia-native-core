@@ -25,6 +25,8 @@
 #include "AnimNodeLoader.h"
 #include "SimpleMovingAverage.h"
 #include "AnimUtil.h"
+#include "Flow.h"
+#include "AvatarConstants.h"
 
 class Rig;
 class AnimInverseKinematics;
@@ -114,8 +116,14 @@ public:
     void destroyAnimGraph();
 
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
-    void triggerNetworkAnimation(const QString& animName);
+    bool isPlayingOverrideAnimation() const { return _userAnimState.clipNodeEnum != UserAnimState::None; };
     void restoreAnimation();
+    
+    void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void restoreHandAnimation(bool isLeft);
+
+    void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void triggerNetworkRole(const QString& role);
     void restoreNetworkAnimation();
 
     QStringList getAnimationRoles() const;
@@ -231,6 +239,11 @@ public:
     const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
+    void initFlow(bool isActive);
+    Flow& getFlow() { return _internalFlow; }
+
+    float getUnscaledEyeHeight() const;
+
 
 signals:
     void onLoadComplete();
@@ -324,17 +337,41 @@ protected:
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
     float _desiredStateAge { 0.0f };
-    
+
     struct NetworkAnimState {
         enum ClipNodeEnum {
-            Idle = 0,
+            None = 0,
             PreTransit,
             Transit,
-            PostTransit
+            PostTransit,
+            A,
+            B
         };
-        NetworkAnimState() : clipNodeEnum(NetworkAnimState::Idle) {}
+        NetworkAnimState() : clipNodeEnum(NetworkAnimState::None) {}
         NetworkAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
             clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {}
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+        float blendTime;
+    };
+
+    struct HandAnimState {
+        enum ClipNodeEnum {
+            None = 0,
+            A,
+            B
+        };
+
+        HandAnimState() : clipNodeEnum(HandAnimState::None) {}
+        HandAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {
+        }
+
 
         ClipNodeEnum clipNodeEnum;
         QString url;
@@ -378,10 +415,15 @@ protected:
 
     UserAnimState _userAnimState;
     NetworkAnimState _networkAnimState;
+    HandAnimState _rightHandAnimState;
+    HandAnimState _leftHandAnimState;
     std::map<QString, RoleAnimState> _roleAnimStates;
+    int _evaluationCount{ 0 };
 
     float _leftHandOverlayAlpha { 0.0f };
     float _rightHandOverlayAlpha { 0.0f };
+    float _talkIdleInterpTime { 0.0f };
+    bool _previousIsTalking { false };
 
     SimpleMovingAverage _averageForwardSpeed { 10 };
     SimpleMovingAverage _averageLateralSpeed { 10 };
@@ -411,6 +453,7 @@ protected:
 
     int _rigId;
     bool _headEnabled { false };
+    bool _computeNetworkAnimation { false };
     bool _sendNetworkNode { false };
 
     AnimContext _lastContext;
@@ -418,6 +461,8 @@ protected:
 
     SnapshotBlendPoseHelper _hipsBlendHelper;
     ControllerParameters _previousControllerParameters;
+    Flow _internalFlow;
+    Flow _networkFlow;
 };
 
 #endif /* defined(__hifi__Rig__) */

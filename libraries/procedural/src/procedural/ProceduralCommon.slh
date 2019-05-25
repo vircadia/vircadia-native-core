@@ -8,11 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Transform.slh@>
 <@include gpu/Noise.slh@>
 <@include procedural/ShaderConstants.h@>
- 
-<$declareStandardCameraTransform()$>
 
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
@@ -32,14 +29,18 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
     vec4 date;
     // Offset 16, acts as vec4 for alignment purposes
     vec3 worldPosition;
-    // Offset 32, acts as vec4 for alignment purposes
+    // Offset 32, acts as vec4 for alignment purposes (but not packing purposes)
     vec3 worldScale;
+    // We need this float here to keep globalTime from getting pulled to offset 44
+    float _spare0;
     // Offset 48
     float globalTime;
     // Offset 52
-    int frameCount;
+    float localCreatedTime;
     // Offset 56
-    vec2 _spare1;
+    float entityTime;
+    // Offset 60
+    int frameCount;
     // Offset 64, acts as vec4[4] for alignment purposes
     vec3 channelResolution[4];
     // Offset 128, acts as vec4[3] for alignment purposes
@@ -53,9 +54,37 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
 #define iWorldPosition standardInputs.worldPosition
 #define iWorldScale standardInputs.worldScale
 #define iGlobalTime standardInputs.globalTime
+#define iLocalCreatedTime standardInputs.localCreatedTime
+#define iEntityTime standardInputs.entityTime
 #define iFrameCount standardInputs.frameCount
 #define iChannelResolution standardInputs.channelResolution
 #define iWorldOrientation standardInputs.worldOrientation
+
+struct ProceduralFragment {
+    vec3 normal;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emissive;
+    float alpha;
+    float roughness;
+    float metallic;
+    float occlusion;
+    float scattering;
+};
+
+// Same as ProceduralFragment but with position
+struct ProceduralFragmentWithPosition {
+    vec3 position;
+    vec3 normal;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emissive;
+    float alpha;
+    float roughness;
+    float metallic;
+    float occlusion;
+    float scattering;
+};
 
 // Unimplemented uniforms
 // Resolution doesn't make sense in the VR context
@@ -66,8 +95,6 @@ const vec4 iMouse = vec4(0.0);
 const float iSampleRate = 1.0;
 // No support for video input
 const vec4 iChannelTime = vec4(0.0);
-
-#define PROCEDURAL 1
 
 //PROCEDURAL_VERSION
 

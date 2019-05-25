@@ -58,6 +58,7 @@
 #include <OctreeDataUtils.h>
 
 Q_LOGGING_CATEGORY(domain_server, "hifi.domain_server")
+Q_LOGGING_CATEGORY(domain_server_ice, "hifi.domain_server.ice")
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 const QString DomainServer::REPLACEMENT_FILE_EXTENSION = ".replace";
@@ -374,7 +375,7 @@ void DomainServer::parseCommandLine(int argc, char* argv[]) {
         }
 
         if (_iceServerAddr.isEmpty()) {
-            qWarning() << "Could not parse an IP address and port combination from" << hostnamePortString;
+            qCWarning(domain_server_ice) << "Could not parse an IP address and port combination from" << hostnamePortString;
             ::exit(0);
         }
     }
@@ -1243,12 +1244,11 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 
     limitedNodeList->eachMatchingNode(
         [this, addedNode](const SharedNodePointer& node)->bool {
-            if (node->getLinkedData() && node->getActiveSocket() && node != addedNode) {
-                // is the added Node in this node's interest list?
-                return isInInterestSet(node, addedNode);
-            } else {
-                return false;
-            }
+            // is the added Node in this node's interest list?
+            return node->getLinkedData()
+                && node->getActiveSocket()
+                && node != addedNode
+                && isInInterestSet(node, addedNode);
         },
         [this, &addNodePacket, connectionSecretIndex, addedNode, limitedNodeListWeak](const SharedNodePointer& node) {
             // send off this packet to the node
@@ -1571,12 +1571,8 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
     callbackParameters.errorCallbackMethod = "handleFailedICEServerAddressUpdate";
     callbackParameters.jsonCallbackMethod = "handleSuccessfulICEServerAddressUpdate";
 
-    static bool printedIceServerMessage = false;
-    if (!printedIceServerMessage) {
-        printedIceServerMessage = true;
-        qDebug() << "Updating ice-server address in High Fidelity Metaverse API to"
-            << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
-    }
+    qCDebug(domain_server_ice) << "Updating ice-server address in High Fidelity Metaverse API to"
+        << (_iceServerSocket.isNull() ? "" : _iceServerSocket.getAddress().toString());
 
     static const QString DOMAIN_ICE_ADDRESS_UPDATE = "/api/v1/domains/%1/ice_server_address";
 
@@ -1590,11 +1586,11 @@ void DomainServer::sendICEServerAddressToMetaverseAPI() {
 void DomainServer::handleSuccessfulICEServerAddressUpdate(QNetworkReply* requestReply) {
     _sendICEServerAddressToMetaverseAPIInProgress = false;
     if (_sendICEServerAddressToMetaverseAPIRedo) {
-        qDebug() << "ice-server address updated with metaverse, but has since changed.  redoing update...";
+        qCDebug(domain_server_ice) << "ice-server address (" << _iceServerSocket << ") updated with metaverse, but has since changed.  redoing update...";
         _sendICEServerAddressToMetaverseAPIRedo = false;
         sendICEServerAddressToMetaverseAPI();
     } else {
-        qDebug() << "ice-server address updated with metaverse.";
+        qCDebug(domain_server_ice) << "ice-server address (" << _iceServerSocket << ") updated with metaverse.";
     }
 }
 
@@ -1607,9 +1603,9 @@ void DomainServer::handleFailedICEServerAddressUpdate(QNetworkReply* requestRepl
     } else {
         const int ICE_SERVER_UPDATE_RETRY_MS = 2 * 1000;
 
-        qWarning() << "Failed to update ice-server address with High Fidelity Metaverse - error was"
+        qCWarning(domain_server_ice) << "Failed to update ice-server address (" << _iceServerSocket << ") with High Fidelity Metaverse - error was"
                    << requestReply->errorString();
-        qWarning() << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
+        qCWarning(domain_server_ice) << "\tRe-attempting in" << ICE_SERVER_UPDATE_RETRY_MS / 1000 << "seconds";
 
         QTimer::singleShot(ICE_SERVER_UPDATE_RETRY_MS, this, SLOT(sendICEServerAddressToMetaverseAPI()));
     }
@@ -1622,26 +1618,26 @@ void DomainServer::sendHeartbeatToIceServer() {
         auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
 
         if (!accountManager->getAccountInfo().hasPrivateKey()) {
-            qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
-            qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
+            qCWarning(domain_server_ice) << "Cannot send an ice-server heartbeat without a private key for signature.";
+            qCWarning(domain_server_ice) << "Waiting for keypair generation to complete before sending ICE heartbeat.";
 
             if (!limitedNodeList->getSessionUUID().isNull()) {
                 accountManager->generateNewDomainKeypair(limitedNodeList->getSessionUUID());
             } else {
-                qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
+                qCWarning(domain_server_ice) << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
             }
 
             return;
         }
 
-        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 3 };
+        const int FAILOVER_NO_REPLY_ICE_HEARTBEATS { 6 };
 
         // increase the count of no reply ICE heartbeats and check the current value
         ++_noReplyICEHeartbeats;
 
         if (_noReplyICEHeartbeats > FAILOVER_NO_REPLY_ICE_HEARTBEATS) {
-            qWarning() << "There have been" << _noReplyICEHeartbeats - 1 << "heartbeats sent with no reply from the ice-server";
-            qWarning() << "Clearing the current ice-server socket and selecting a new candidate ice-server";
+            qCWarning(domain_server_ice) << "There have been" << _noReplyICEHeartbeats - 1 << "heartbeats sent with no reply from the ice-server";
+            qCWarning(domain_server_ice) << "Clearing the current ice-server socket and selecting a new candidate ice-server";
 
             // add the current address to our list of failed addresses
             _failedIceServerAddresses << _iceServerSocket.getAddress();
@@ -1714,8 +1710,8 @@ void DomainServer::sendHeartbeatToIceServer() {
         limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
 
     } else {
-        qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
-        qDebug() << "Waiting for" << _iceServerAddr << "host lookup response";
+        qCDebug(domain_server_ice) << "Not sending ice-server heartbeat since there is no selected ice-server.";
+        qCDebug(domain_server_ice) << "Waiting for" << _iceServerAddr << "host lookup response";
     }
 }
 
@@ -1735,7 +1731,7 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
         f.write(data);
         OctreeUtils::RawEntityData entityData;
         if (entityData.readOctreeDataInfoFromData(data)) {
-            qCDebug(domain_server) << "Wrote new entities file" << entityData.id << entityData.version;
+            qCDebug(domain_server) << "Wrote new entities file" << entityData.id << entityData.dataVersion;
         } else {
             qCDebug(domain_server) << "Failed to read new octree data info";
         }
@@ -1767,14 +1763,14 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
 
     bool remoteHasExistingData { false };
     QUuid id;
-    int version;
+    int dataVersion;
     message->readPrimitive(&remoteHasExistingData);
     if (remoteHasExistingData) {
         constexpr size_t UUID_SIZE_BYTES = 16;
         auto idData = message->read(UUID_SIZE_BYTES);
         id = QUuid::fromRfc4122(idData);
-        message->readPrimitive(&version);
-        qCDebug(domain_server) << "Entity server does have existing data: ID(" << id << ") DataVersion(" << version << ")";
+        message->readPrimitive(&dataVersion);
+        qCDebug(domain_server) << "Entity server does have existing data: ID(" << id << ") DataVersion(" << dataVersion << ")";
     } else {
         qCDebug(domain_server) << "Entity server does not have existing data";
     }
@@ -1783,11 +1779,11 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
     auto reply = NLPacketList::create(PacketType::OctreeDataFileReply, QByteArray(), true, true);
     OctreeUtils::RawEntityData data;
     if (data.readOctreeDataInfoFromFile(entityFilePath)) {
-        if (data.id == id && data.version <= version) {
+        if (data.id == id && data.dataVersion <= dataVersion) {
             qCDebug(domain_server) << "ES has sufficient octree data, not sending data";
             reply->writePrimitive(false);
         } else {
-            qCDebug(domain_server) << "Sending newer octree data to ES: ID(" << data.id << ") DataVersion(" << data.version << ")";
+            qCDebug(domain_server) << "Sending newer octree data to ES: ID(" << data.id << ") DataVersion(" << data.dataVersion << ")";
             QFile file(entityFilePath);
             if (file.open(QIODevice::ReadOnly)) {
                 reply->writePrimitive(true);
@@ -1917,6 +1913,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_SETTINGS = "/settings";
     const QString URI_CONTENT_UPLOAD = "/content/upload";
     const QString URI_RESTART = "/restart";
+    const QString URI_API_METAVERSE_INFO = "/api/metaverse_info";
     const QString URI_API_PLACES = "/api/places";
     const QString URI_API_DOMAINS = "/api/domains";
     const QString URI_API_DOMAINS_ID = "/api/domains/";
@@ -2166,6 +2163,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200);
             restart();
             return true;
+        } else if (url.path() == URI_API_METAVERSE_INFO) {
+            QJsonObject rootJSON {
+                { "metaverse_url", NetworkingConstants::METAVERSE_SERVER_URL().toString() }
+            };
+
+            QJsonDocument docJSON{ rootJSON };
+            connectionPtr->respond(HTTPConnection::StatusCode200, docJSON.toJson(), JSON_MIME_TYPE.toUtf8());
+
+            return true;
         } else if (url.path() == URI_API_DOMAINS) {
             return forwardMetaverseAPIRequest(connection, "/api/v1/domains", "");
         } else if (url.path().startsWith(URI_API_DOMAINS_ID)) {
@@ -2258,46 +2264,18 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 // check the file extension to see what kind of file this is
                 // to make sure we handle this filetype for a content restore
                 auto dispositionValue = QString(firstFormData.first.value("Content-Disposition"));
-                auto formDataFilenameRegex = QRegExp("filename=\"(.+)\"");
-                auto matchIndex = formDataFilenameRegex.indexIn(dispositionValue);
+                QRegExp formDataFieldsRegex(R":(name="(restore-file.*)".*filename="(.+)"):");
+                auto matchIndex = formDataFieldsRegex.indexIn(dispositionValue);
 
+                QString formItemName = "";
                 QString uploadedFilename = "";
                 if (matchIndex != -1) {
-                    uploadedFilename = formDataFilenameRegex.cap(1);
+                    formItemName = formDataFieldsRegex.cap(1);
+                    uploadedFilename = formDataFieldsRegex.cap(2);
                 }
 
-                if (uploadedFilename.endsWith(".json", Qt::CaseInsensitive)
-                    || uploadedFilename.endsWith(".json.gz", Qt::CaseInsensitive)) {
-                    // invoke our method to hand the new octree file off to the octree server
-                    QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                                              Qt::QueuedConnection, Q_ARG(QByteArray, firstFormData.second));
-
-                    // respond with a 200 for success
-                    connection->respond(HTTPConnection::StatusCode200);
-                } else if (uploadedFilename.endsWith(".zip", Qt::CaseInsensitive)) {
-                    auto deferred = makePromise("recoverFromUploadedBackup");
-
-                    deferred->then([connectionPtr, JSON_MIME_TYPE](QString error, QVariantMap result) {
-                        if (!connectionPtr) {
-                            return;
-                        }
-
-                        QJsonObject rootJSON;
-                        auto success = result["success"].toBool();
-                        rootJSON["success"] = success;
-                        QJsonDocument docJSON(rootJSON);
-                        connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
-                                            JSON_MIME_TYPE.toUtf8());
-                    });
-
-                    _contentManager->recoverFromUploadedBackup(deferred, firstFormData.second);
-
-                    return true;
-                } else {
-                    // we don't have handling for this filetype, send back a 400 for failure
-                    connection->respond(HTTPConnection::StatusCode400);
-                }
-
+                // Received a chunk
+                processPendingContent(connection, formItemName, uploadedFilename, firstFormData.second);
             } else {
                 // respond with a 400 for failure
                 connection->respond(HTTPConnection::StatusCode400);
@@ -2544,6 +2522,72 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
     } else {
         return false;
     }
+}
+
+bool DomainServer::processPendingContent(HTTPConnection* connection, QString itemName, QString filename, QByteArray dataChunk) {
+    static const QString UPLOAD_SESSION_KEY { "X-Session-Id" };
+    QByteArray sessionIdBytes = connection->requestHeader(UPLOAD_SESSION_KEY);
+    int sessionId = sessionIdBytes.toInt();
+
+    bool newUpload = itemName == "restore-file" || itemName == "restore-file-chunk-initial" || itemName == "restore-file-chunk-only";
+
+    if (filename.endsWith(".zip", Qt::CaseInsensitive)) {
+        static const QString TEMPORARY_CONTENT_FILEPATH { QDir::tempPath() + "/hifiUploadContent_XXXXXX.zip" };
+
+        if (_pendingContentFiles.find(sessionId) == _pendingContentFiles.end()) {
+            if (!newUpload) {
+                return false;
+            }
+            std::unique_ptr<QTemporaryFile> newTemp(new QTemporaryFile(TEMPORARY_CONTENT_FILEPATH));
+            _pendingContentFiles[sessionId] = std::move(newTemp);
+        } else if (newUpload) {
+            qCDebug(domain_server) << "New upload received using existing session ID";
+            _pendingContentFiles[sessionId]->resize(0);
+        }
+
+        QTemporaryFile& _pendingFileContent = *_pendingContentFiles[sessionId];
+        if (!_pendingFileContent.open()) {
+            _pendingContentFiles.erase(sessionId);
+            connection->respond(HTTPConnection::StatusCode400);
+            return false;
+        }
+        _pendingFileContent.seek(_pendingFileContent.size());
+        _pendingFileContent.write(dataChunk);
+        _pendingFileContent.close();
+
+        // Respond immediately - will timeout if we wait for restore.
+        connection->respond(HTTPConnection::StatusCode200);
+        if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
+            auto deferred = makePromise("recoverFromUploadedBackup");
+
+            deferred->then([this, sessionId](QString error, QVariantMap result) {
+                _pendingContentFiles.erase(sessionId);
+            });
+
+            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName());
+        }
+    } else if (filename.endsWith(".json", Qt::CaseInsensitive)
+        || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {
+        if (_pendingUploadedContents.find(sessionId) == _pendingUploadedContents.end() && !newUpload) {
+            qCDebug(domain_server) << "Json upload with invalid session ID received";
+            return false;
+        }
+        QByteArray& _pendingUploadedContent = _pendingUploadedContents[sessionId];
+        _pendingUploadedContent += dataChunk;
+        connection->respond(HTTPConnection::StatusCode200);
+
+        if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
+            // invoke our method to hand the new octree file off to the octree server
+            QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
+                Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));
+            _pendingUploadedContents.erase(sessionId);
+        }
+    } else {
+        connection->respond(HTTPConnection::StatusCode400);
+        return false;
+    }
+
+    return true;
 }
 
 HTTPSConnection* DomainServer::connectionFromReplyWithState(QNetworkReply* reply) {
@@ -3134,23 +3178,33 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
         const QString PATH_VIEWPOINT_KEY = "viewpoint";
         const QString INDEX_PATH = "/";
 
-        // check out paths in the _configMap to see if we have a match
-        auto keypath = QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY).arg(pathQuery);
-        QVariant pathMatch = _settingsManager.valueForKeyPath(keypath);
+        QString responseViewpoint;
 
-        if (pathMatch.isValid() || pathQuery == INDEX_PATH) {
+        // check out paths in the _configMap to see if we have a match
+        auto pathsVariant = _settingsManager.valueForKeyPath(SETTINGS_PATHS_KEY);
+
+        auto lowerPathQuery = pathQuery.toLower();
+
+        if (pathsVariant.canConvert<QVariantMap>()) {
+            auto pathsMap = pathsVariant.toMap();
+
+            // enumerate the paths and look case-insensitively for a matching one
+            for (auto it = pathsMap.constKeyValueBegin(); it != pathsMap.constKeyValueEnd(); ++it) {
+                if ((*it).first.toLower() == lowerPathQuery) {
+                    responseViewpoint = (*it).second.toMap()[PATH_VIEWPOINT_KEY].toString().toLower();
+                    break;
+                }
+            }
+        }
+
+        if (responseViewpoint.isEmpty() && pathQuery == INDEX_PATH) {
+            const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
+            responseViewpoint = DEFAULT_INDEX_PATH;
+        }
+
+        if (!responseViewpoint.isEmpty()) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
-
-            QString responseViewpoint;
-
-            // if we didn't match the path BUT this is for the index path then send back our default
-            if (pathMatch.isValid()) {
-                responseViewpoint = pathMatch.toMap()[PATH_VIEWPOINT_KEY].toString();
-            } else {
-                const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
-                responseViewpoint = DEFAULT_INDEX_PATH;
-            }
 
             if (!responseViewpoint.isEmpty()) {
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
@@ -3237,7 +3291,7 @@ void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<Received
     static const int NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN = 3;
 
     if (++_numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
-        qDebug() << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
+        qCDebug(domain_server_ice) << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
             << "- re-generating keypair now";
 
         // we've hit our threshold of heartbeat denials, trigger a keypair re-generation
@@ -3259,7 +3313,7 @@ void DomainServer::processICEServerHeartbeatACK(QSharedPointer<ReceivedMessage> 
     if (!_connectedToICEServer) {
         _connectedToICEServer = true;
         sendICEServerAddressToMetaverseAPI();
-        qInfo() << "Connected to ice-server at" << _iceServerSocket;
+        qCInfo(domain_server_ice) << "Connected to ice-server at" << _iceServerSocket;
     }
 }
 
@@ -3290,7 +3344,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
     }
 
     if (hostInfo.error() != QHostInfo::NoError || sanitizedAddresses.empty()) {
-        qWarning() << "IP address lookup failed for" << _iceServerAddr << ":" << hostInfo.errorString();
+        qCWarning(domain_server_ice) << "IP address lookup failed for" << _iceServerAddr << ":" << hostInfo.errorString();
 
         // if we don't have an ICE server to use yet, trigger a retry
         if (_iceServerSocket.isNull()) {
@@ -3305,7 +3359,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
         _iceServerAddresses = sanitizedAddresses;
 
         if (countBefore == 0) {
-            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << _iceServerAddr;
+            qCInfo(domain_server_ice) << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << _iceServerAddr;
         }
 
         if (_iceServerSocket.isNull()) {
@@ -3339,7 +3393,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         // we ended up with an empty list since everything we've tried has failed
         // so clear the set of failed addresses and start going through them again
 
-        qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
+        qCWarning(domain_server_ice) << "All current ice-server addresses have failed - re-attempting all current addresses for"
                    << _iceServerAddr;
 
         _failedIceServerAddresses.clear();
@@ -3359,7 +3413,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
     }
 
     _iceServerSocket = HifiSockAddr { candidateICEAddresses[indexToTry], ICE_SERVER_DEFAULT_PORT };
-    qInfo() << "Set candidate ice-server socket to" << _iceServerSocket;
+    qCInfo(domain_server_ice) << "Set candidate ice-server socket to" << _iceServerSocket;
 
     // clear our number of hearbeat denials, this should be re-set on ice-server change
     _numHeartbeatDenials = 0;
@@ -3411,20 +3465,11 @@ void DomainServer::maybeHandleReplacementEntityFile() {
 }
 
 void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
-    //Assume we have compressed data
-    auto compressedOctree = octreeFile;
-    QByteArray jsonOctree;
-
-    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
-    if (!wasCompressed) {
-        // the source was not compressed, assume we were sent regular JSON data
-        jsonOctree = compressedOctree;
-    }
-
     OctreeUtils::RawEntityData data;
-    if (data.readOctreeDataInfoFromData(jsonOctree)) {
+    if (data.readOctreeDataInfoFromData(octreeFile)) {
         data.resetIdAndVersion();
 
+        QByteArray compressedOctree;
         gzip(data.toByteArray(), compressedOctree);
 
         // write the compressed octree data to a special file

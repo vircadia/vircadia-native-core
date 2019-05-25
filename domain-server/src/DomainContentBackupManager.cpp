@@ -127,6 +127,10 @@ int64_t DomainContentBackupManager::getMostRecentBackupTimeInSecs(const QString&
 }
 
 void DomainContentBackupManager::setup() {
+    for (auto& rule : _backupRules) {
+        removeOldBackupVersions(rule);
+    }
+
     auto backups = getAllBackups();
     for (auto& backup : backups) {
         QFile backupFile { backup.absolutePath };
@@ -346,6 +350,27 @@ void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise 
     promise->resolve({
         { "success", success }
     });
+}
+
+void DomainContentBackupManager::recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "recoverFromUploadedFile", Q_ARG(MiniPromise::Promise, promise),
+            Q_ARG(QString, uploadedFilename));
+        return;
+    }
+
+    qDebug() << "Recovering from uploaded file -" << uploadedFilename;
+
+    QFile uploadedFile(uploadedFilename);
+    QuaZip uploadedZip { &uploadedFile };
+
+    QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
+
+    bool success = recoverFromBackupZip(backupName, uploadedZip);
+
+    promise->resolve({
+        { "success", success }
+        });
 }
 
 std::vector<BackupItemInfo> DomainContentBackupManager::getAllBackups() {

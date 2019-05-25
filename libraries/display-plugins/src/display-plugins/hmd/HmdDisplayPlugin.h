@@ -46,8 +46,13 @@ public:
 
     virtual bool onDisplayTextureReset() override { _clearPreviewFlag = true; return true; };
 
+    void pluginUpdate() override {};
+
+    virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::PAINT; }
+
 signals:
     void hmdMountedChanged();
+    void hmdVisibleChanged(bool visible);
 
 protected:
     virtual void hmdPresent() = 0;
@@ -78,7 +83,6 @@ protected:
         mat4 presentPose;
         double sensorSampleTime { 0 };
         double predictedDisplayTime { 0 };
-        mat3 presentReprojection;
     };
 
     QMap<uint32_t, FrameInfo> _frameInfos;

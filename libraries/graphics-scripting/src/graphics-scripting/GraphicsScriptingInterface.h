@@ -27,6 +27,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class GraphicsScriptingInterface : public QObject, public QScriptable, public Dependency {
@@ -38,13 +39,13 @@ public:
 
 public slots:
     /**jsdoc
-     * Returns a model reference object associated with the specified UUID ({@link EntityID}, {@link OverlayID}, or {@link AvatarID}).
+     * Returns a model reference object associated with the specified UUID ({@link EntityID} or {@link AvatarID}).
      *
      * @function Graphics.getModel
      * @param {UUID} entityID - The objectID of the model whose meshes are to be retrieved.
      * @returns {Graphics.Model} the resulting Model object
      */
-    scriptable::ScriptableModelPointer getModel(QUuid uuid);
+    scriptable::ScriptableModelPointer getModel(const QUuid& uuid);
 
     /**jsdoc
      * @function Graphics.updateModel
@@ -52,7 +53,7 @@ public slots:
      * @param {Graphics.Model} model
      * @returns {boolean}
      */
-    bool updateModel(QUuid uuid, const scriptable::ScriptableModelPointer& model);
+    bool updateModel(const QUuid& uuid, const scriptable::ScriptableModelPointer& model);
 
     /**jsdoc
      * @function Graphics.canUpdateModel
@@ -61,7 +62,7 @@ public slots:
      * @param {number} [partNumber=-1]
      * @returns {boolean}
      */
-    bool canUpdateModel(QUuid uuid, int meshIndex = -1, int partNumber = -1);
+    bool canUpdateModel(const QUuid& uuid, int meshIndex = -1, int partNumber = -1);
 
     /**jsdoc
      * @function Graphics.newModel
@@ -94,12 +95,16 @@ public slots:
     QString exportModelToOBJ(const scriptable::ScriptableModel& in);
 
 private:
-    scriptable::ModelProviderPointer getModelProvider(QUuid uuid);
+    scriptable::ModelProviderPointer getModelProvider(const QUuid& uuid);
     void jsThrowError(const QString& error);
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMeshPointer meshProxy);
     scriptable::MeshPointer getMeshPointer(scriptable::ScriptableMesh& meshProxy);
     scriptable::MeshPointer getMeshPointer(const scriptable::ScriptableMesh& meshProxy);
 
+};
+
+namespace scriptable {
+    QScriptValue scriptableMaterialToScriptValue(QScriptEngine* engine, const scriptable::ScriptableMaterial &material);
 };
 
 Q_DECLARE_METATYPE(glm::uint32)

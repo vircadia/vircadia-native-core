@@ -25,6 +25,7 @@
 #include "shared/Bilateral.h"
 #include "Transform.h"
 #include "PhysicsCollisionGroups.h"
+#include "StencilMaskMode.h"
 
 class QColor;
 class QUrl;
@@ -43,8 +44,33 @@ Q_DECLARE_METATYPE(std::function<QVariant()>);
 void registerMetaTypes(QScriptEngine* engine);
 
 // Mat4
+/**jsdoc
+ * A 4 x 4 matrix, typically containing a scale, rotation, and translation transform. See also the {@link Mat4(0)|Mat4} object.
+ *
+ * @typedef {object} Mat4
+ * @property {number} r0c0 - Row 0, column 0 value.
+ * @property {number} r1c0 - Row 1, column 0 value.
+ * @property {number} r2c0 - Row 2, column 0 value.
+ * @property {number} r3c0 - Row 3, column 0 value.
+ * @property {number} r0c1 - Row 0, column 1 value.
+ * @property {number} r1c1 - Row 1, column 1 value.
+ * @property {number} r2c1 - Row 2, column 1 value.
+ * @property {number} r3c1 - Row 3, column 1 value.
+ * @property {number} r0c2 - Row 0, column 2 value.
+ * @property {number} r1c2 - Row 1, column 2 value.
+ * @property {number} r2c2 - Row 2, column 2 value.
+ * @property {number} r3c2 - Row 3, column 2 value.
+ * @property {number} r0c3 - Row 0, column 3 value.
+ * @property {number} r1c3 - Row 1, column 3 value.
+ * @property {number} r2c3 - Row 2, column 3 value.
+ * @property {number} r3c3 - Row 3, column 3 value.
+ */
 QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
 void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
+
+QVariant mat4ToVariant(const glm::mat4& mat4);
+glm::mat4 mat4FromVariant(const QVariant& object, bool& valid);
+glm::mat4 mat4FromVariant(const QVariant& object);
 
 /**jsdoc
 * A 2-dimensional vector.
@@ -232,12 +258,12 @@ public:
 };
 
 /**jsdoc
- * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
- * mouse click or intersect a laser beam.
+ * A vector with a starting point. It is used, for example, when finding entities or avatars that lie under a mouse click or 
+ * intersect a laser beam.
  *
  * @typedef {object} PickRay
- * @property {Vec3} origin - The starting position of the PickRay.
- * @property {Vec3} direction - The direction that the PickRay travels.
+ * @property {Vec3} origin - The starting position of the ray.
+ * @property {Vec3} direction - The direction that the ray travels.
  */
 class PickRay : public MathPick {
 public:
@@ -265,23 +291,27 @@ QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay)
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
 /**jsdoc
- * A StylusTip defines the tip of a stylus.
+ * The tip of a stylus.
  *
  * @typedef {object} StylusTip
- * @property {number} side - The hand the tip is attached to: <code>0</code> for left, <code>1</code> for right.
+ * @property {number} side - The hand that the stylus is attached to: <code>0</code> for left hand, <code>1</code> for the 
+ *     right hand, <code>-1</code> for invalid.
+ * @property {Vec3} tipOffset - The position of the stylus tip relative to the body of the stylus.
  * @property {Vec3} position - The position of the stylus tip.
- * @property {Quat} orientation - The orientation of the stylus tip.
+ * @property {Quat} orientation - The orientation of the stylus.
  * @property {Vec3} velocity - The velocity of the stylus tip.
  */
 class StylusTip : public MathPick {
 public:
     StylusTip() : position(NAN), velocity(NAN) {}
-    StylusTip(const bilateral::Side& side, const glm::vec3& position = Vectors::ZERO, const glm::quat& orientation = Quaternions::IDENTITY, const glm::vec3& velocity = Vectors::ZERO) :
-        side(side), position(position), orientation(orientation), velocity(velocity) {}
-    StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
-        orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
+    StylusTip(const bilateral::Side& side, const glm::vec3& tipOffset = Vectors::ZERO ,const glm::vec3& position = Vectors::ZERO,
+              const glm::quat& orientation = Quaternions::IDENTITY, const glm::vec3& velocity = Vectors::ZERO) :
+        side(side), tipOffset(tipOffset), position(position), orientation(orientation), velocity(velocity) {}
+    StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), tipOffset(vec3FromVariant(pickVariant["tipOffset"])),
+        position(vec3FromVariant(pickVariant["position"])), orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
 
     bilateral::Side side { bilateral::Side::Invalid };
+    glm::vec3 tipOffset;
     glm::vec3 position;
     glm::quat orientation;
     glm::vec3 velocity;
@@ -289,12 +319,13 @@ public:
     operator bool() const override { return side != bilateral::Side::Invalid; }
 
     bool operator==(const StylusTip& other) const {
-        return (side == other.side && position == other.position && orientation == other.orientation && velocity == other.velocity);
+        return (side == other.side && tipOffset == other.tipOffset && position == other.position && orientation == other.orientation && velocity == other.velocity);
     }
 
     QVariantMap toVariantMap() const override {
         QVariantMap stylusTip;
         stylusTip["side"] = (int)side;
+        stylusTip["tipOffset"] = vec3toVariant(tipOffset);
         stylusTip["position"] = vec3toVariant(position);
         stylusTip["orientation"] = quatToVariant(orientation);
         stylusTip["velocity"] = vec3toVariant(velocity);
@@ -303,12 +334,16 @@ public:
 };
 
 /**jsdoc
-* A PickParabola defines a parabola with a starting point, intitial velocity, and acceleration.
+* A parabola defined by a starting point, initial velocity, and acceleration. It is used, for example, when finding entities or
+* avatars that intersect a parabolic beam.
 *
 * @typedef {object} PickParabola
-* @property {Vec3} origin - The starting position of the PickParabola.
-* @property {Vec3} velocity - The starting velocity of the parabola.
-* @property {Vec3} acceleration - The acceleration that the parabola experiences.
+* @property {Vec3} origin - The starting position of the parabola, i.e., the initial position of a virtual projectile whose 
+*     trajectory defines the parabola.
+* @property {Vec3} velocity - The starting velocity of the parabola in m/s, i.e., the initial speed of a virtual projectile 
+*     whose trajectory defines the parabola.
+* @property {Vec3} acceleration - The acceleration that the parabola experiences in m/s<sup>2</sup>, i.e., the acceleration of 
+*     a virtual projectile whose trajectory defines the parabola, both magnitude and direction.
 */
 class PickParabola : public MathPick {
 public:
@@ -334,23 +369,6 @@ public:
     }
 };
 
-// TODO: Add "loaded" to CollisionRegion jsdoc once model collision picks are supported.
-
-/**jsdoc
-* A CollisionRegion defines a volume for checking collisions in the physics simulation.
-
-* @typedef {object} CollisionRegion
-* @property {Shape} shape - The information about the collision region's size and shape. Dimensions are in world space, but will scale with the parent if defined.
-* @property {Vec3} position - The position of the collision region, relative to a parent if defined.
-* @property {Quat} orientation - The orientation of the collision region, relative to a parent if defined.
-* @property {float} threshold - The approximate minimum penetration depth for a test object to be considered in contact with the collision region.
-* The depth is measured in world space, but will scale with the parent if defined.
-* @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
-* will be considered colliding with the pick.
-* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
-* @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
-* @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
-*/
 class CollisionRegion : public MathPick {
 public:
     CollisionRegion() { }
@@ -404,6 +422,30 @@ public:
             collisionGroup = pickVariant["collisionGroup"].toUInt();
         }
     }
+
+    /**jsdoc
+     * A volume for checking collisions in the physics simulation.
+     * @typedef {object} CollisionRegion
+     * @property {Shape} shape - The collision region's shape and size. Dimensions are in world coordinates, but scale with the 
+     *     parent if defined.
+     * @property {boolean} loaded - <code>true</code> if the <code>shape</code> has no model, or has a model and it is loaded, 
+     *     <code>false</code> if otherwise.
+     * @property {Vec3} position - The position of the collision region, relative to the parent if defined.
+     * @property {Quat} orientation - The orientation of the collision region, relative to the parent if defined.
+     * @property {number} threshold - The approximate minimum penetration depth for a test object to be considered in contact with
+     *     the collision region. The depth is in world coordinates but scales with the parent if defined.
+     * @property {CollisionMask} [collisionGroup=8] - The type of objects the collision region collides as. Objects whose collision
+     *     masks overlap with the region's collision group are considered to be colliding with the region.
+     */
+
+    /**jsdoc
+     * A physical volume.
+     * @typedef {object} Shape
+     * @property {ShapeType} shapeType="none" - The type of shape.
+     * @property {string} [modelUrl=""] - The model to load to for the shape if <code>shapeType</code> is one of
+     *     <code>"compound"</code>, <code>"simple-hull"</code>, <code>"simple-compound"</code>, or <code>"static-mesh"</code>.
+     * @property {Vec3} dimensions - The dimensions of the shape.
+     */
 
     QVariantMap toVariantMap() const override {
         QVariantMap collisionRegion;
@@ -559,7 +601,7 @@ namespace std {
 }
 
 /**jsdoc
- * <p>The type of a collision contact event.
+ * <p>The type of a collision contact event.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
@@ -641,6 +683,7 @@ using MeshPointer = std::shared_ptr<graphics::Mesh>;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  *
@@ -656,7 +699,6 @@ public:
      * Get the number of vertices in the mesh.
      * @function MeshProxy#getNumVertices
      * @returns {number} Integer number of vertices in the mesh.
-     * @deprecated Use the {@link Graphics} API instead.
      */
     Q_INVOKABLE virtual int getNumVertices() const = 0;
 
@@ -665,7 +707,6 @@ public:
      * @function MeshProxy#getPos
      * @param {number} index - Integer index of the mesh vertex.
      * @returns {Vec3} Local position of the vertex relative to the mesh.
-     * @deprecated Use the {@link Graphics} API instead.
      */
     Q_INVOKABLE virtual glm::vec3 getPos(int index) const = 0;
     Q_INVOKABLE virtual glm::vec3 getPos3(int index) const { return getPos(index); } // deprecated
@@ -701,5 +742,10 @@ void meshFaceFromScriptValue(const QScriptValue &object, MeshFace& meshFaceResul
 QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<MeshFace>& vector);
 void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>& result);
 
+QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures);
+
+Q_DECLARE_METATYPE(StencilMaskMode)
+QScriptValue stencilMaskModeToScriptValue(QScriptEngine* engine, const StencilMaskMode& stencilMode);
+void stencilMaskModeFromScriptValue(const QScriptValue& object, StencilMaskMode& stencilMode);
 
 #endif // hifi_RegisteredMetaTypes_h

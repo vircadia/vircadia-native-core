@@ -64,7 +64,8 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
             visible = isVisible;
             for (var id in entityOverlays) {
                 Overlays.editOverlay(entityOverlays[id], {
-                    visible: visible
+                    visible: visible,
+                    ignorePickIntersection: !visible
                 });
             }
         }
@@ -85,7 +86,8 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     function releaseOverlay(overlay) {
         unusedOverlays.push(overlay);
         Overlays.editOverlay(overlay, {
-            visible: false
+            visible: false,
+            ignorePickIntersection: true
         });
     }
 
@@ -99,6 +101,7 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                 position: properties.position,
                 rotation: Quat.fromPitchYawRollDegrees(0, 0, 270),
                 visible: visible,
+                ignorePickIntersection: !visible,
                 alpha: 0.9,
                 scale: 0.5,
                 drawInFront: true,

@@ -40,7 +40,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  const unsigned int minAssignmentClientForks,
                                                  const unsigned int maxAssignmentClientForks,
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
-                                                 quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
+                                                 quint16 listenPort, quint16 childMinListenPort, QUuid walletUUID, QString assignmentServerHostname,
                                                  quint16 assignmentServerPort, quint16 httpStatusServerPort, QString logDirectory) :
     _httpManager(QHostAddress::LocalHost, httpStatusServerPort, "", this),
     _numAssignmentClientForks(numAssignmentClientForks),
@@ -50,8 +50,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _assignmentPool(assignmentPool),
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
-    _assignmentServerPort(assignmentServerPort)
-
+    _assignmentServerPort(assignmentServerPort),
+    _childMinListenPort(childMinListenPort)
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
 
@@ -100,8 +100,13 @@ void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
     }
 }
 
-void AssignmentClientMonitor::childProcessFinished(qint64 pid, int exitCode, QProcess::ExitStatus exitStatus) {
-    auto message = "Child process " + QString::number(pid) + " has %1 with exit code " + QString::number(exitCode) + ".";
+void AssignmentClientMonitor::childProcessFinished(qint64 pid, quint16 listenPort, int exitCode, QProcess::ExitStatus exitStatus) {
+    auto message = "Child process " + QString::number(pid) + " on port " + QString::number(listenPort) +
+                   "has %1 with exit code " + QString::number(exitCode) + ".";
+
+    if (listenPort) {
+        _childListenPorts.remove(listenPort);
+    }
 
     if (_childProcesses.remove(pid)) {
         message.append(" Removed from internal map.");
@@ -153,6 +158,23 @@ void AssignmentClientMonitor::aboutToQuit() {
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess* assignmentClient = new QProcess(this);
 
+    quint16 listenPort = 0;
+    // allocate a port
+
+    if (_childMinListenPort) {
+        for (listenPort = _childMinListenPort; _childListenPorts.contains(listenPort); listenPort++) {
+            if (_maxAssignmentClientForks &&
+                (listenPort >= _maxAssignmentClientForks + _childMinListenPort)) {
+                listenPort = 0;
+                qDebug() << "Insufficient listen ports";
+                break;
+            }
+        }
+    }
+    if (listenPort) {
+        _childListenPorts.insert(listenPort);
+    }
+
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
     if (_assignmentPool != "") {
@@ -174,6 +196,11 @@ void AssignmentClientMonitor::spawnChildClient() {
     if (_requestAssignmentType != Assignment::AllTypes) {
         _childArguments.append("--" + ASSIGNMENT_TYPE_OVERRIDE_OPTION);
         _childArguments.append(QString::number(_requestAssignmentType));
+    }
+
+    if (listenPort) {
+        _childArguments.append("-" + ASSIGNMENT_CLIENT_LISTEN_PORT_OPTION);
+        _childArguments.append(QString::number(listenPort));
     }
 
     // tell children which assignment monitor port to use
@@ -247,8 +274,8 @@ void AssignmentClientMonitor::spawnChildClient() {
         auto pid = assignmentClient->processId();
         // make sure we hear that this process has finished when it does
         connect(assignmentClient, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                this, [this, pid](int exitCode, QProcess::ExitStatus exitStatus) {
-                    childProcessFinished(pid, exitCode, exitStatus);
+                this, [this, listenPort, pid](int exitCode, QProcess::ExitStatus exitStatus) {
+                    childProcessFinished(pid, listenPort, exitCode, exitStatus);
             });
 
         qDebug() << "Spawned a child client with PID" << assignmentClient->processId();
@@ -276,6 +303,7 @@ void AssignmentClientMonitor::checkSpares() {
 
     // Spawn or kill children, as needed.  If --min or --max weren't specified, allow the child count
     // to drift up or down as far as needed.
+
     if (spareCount < 1 || totalCount < _minAssignmentClientForks) {
         if (!_maxAssignmentClientForks || totalCount < _maxAssignmentClientForks) {
             spawnChildClient();
@@ -307,7 +335,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
     AssignmentClientChildData* childData = nullptr;
 
     if (!matchingNode) {
-        // The parent only expects to be talking with prorams running on this same machine.
+        // The parent only expects to be talking with programs running on this same machine.
         if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                 senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
 
@@ -316,9 +344,9 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
                 matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(senderID, NodeType::Unassigned,
                                                                                           senderSockAddr, senderSockAddr);
 
-                auto childData = std::unique_ptr<AssignmentClientChildData>
+                auto newChildData = std::unique_ptr<AssignmentClientChildData>
                     { new AssignmentClientChildData(Assignment::Type::AllTypes) };
-                matchingNode->setLinkedData(std::move(childData));
+                matchingNode->setLinkedData(std::move(newChildData));
             } else {
                 // tell unknown assignment-client child to exit.
                 qDebug() << "Asking unknown child at" << senderSockAddr << "to exit.";
@@ -329,9 +357,8 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
                 return;
             }
         }
-    } else {
-        childData = dynamic_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
     }
+    childData = dynamic_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
 
     if (childData) {
         // update our records about how to reach this child

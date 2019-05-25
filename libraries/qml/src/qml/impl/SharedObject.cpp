@@ -15,6 +15,7 @@
 #include <QtQml/QQmlEngine>
 
 #include <QtGui/QOpenGLContext>
+#include <QPointer>
 
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
@@ -95,6 +96,15 @@ SharedObject::~SharedObject() {
         _renderControl = nullptr;
     }
 #endif
+
+    // already deleted objects will be reset to null by QPointer so it should be safe just iterate here
+    for (auto qmlObject : _deletionList) {
+        if (qmlObject) {
+            // manually delete not-deleted-yet qml items
+            QQmlEngine::setObjectOwnership(qmlObject, QQmlEngine::CppOwnership);
+            delete qmlObject;
+        }
+    }
 
     if (_rootItem) {
         delete _rootItem;
@@ -334,17 +344,17 @@ void SharedObject::setSize(const QSize& size) {
 #endif
 }
 
-bool SharedObject::preRender() {
+bool SharedObject::preRender(bool sceneGraphSync) {
 #ifndef DISABLE_QML
     QMutexLocker lock(&_mutex);
     if (_paused) {
-        if (_syncRequested) {
+        if (sceneGraphSync) {
             wake();
         }
         return false;
     }
 
-    if (_syncRequested) {
+    if (sceneGraphSync) {
         bool syncResult = true;
         if (!nsightActive()) {
             PROFILE_RANGE(render_qml_gl, "sync")
@@ -354,7 +364,6 @@ bool SharedObject::preRender() {
         if (!syncResult) {
             return false;
         }
-        _syncRequested = false;
     }
 #endif
 
@@ -412,6 +421,11 @@ bool SharedObject::fetchTexture(TextureAndFence& textureAndFence) {
     return true;
 }
 
+void hifi::qml::impl::SharedObject::addToDeletionList(QObject * object)
+{
+    _deletionList.append(QPointer<QObject>(object));
+}
+
 void SharedObject::setProxyWindow(QWindow* window) {
 #ifndef DISABLE_QML
     _proxyWindow = window;
@@ -460,9 +474,10 @@ void SharedObject::onRender() {
         lock.unlock();
         _renderControl->polishItems();
         lock.relock();
-        QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Render));
+        QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::RenderSync));
         // sync and render request, main and render threads must be synchronized
         wait();
+        _syncRequested = false;
     } else {
         QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::Render));
     }
@@ -485,6 +500,9 @@ void SharedObject::onTimer() {
     }
 
     {
+        if (_maxFps == 0) {
+            return;
+        }
         auto minRenderInterval = USECS_PER_SECOND / _maxFps;
         auto lastInterval = usecTimestampNow() - _lastRenderTime;
         // Don't exceed the framerate limit

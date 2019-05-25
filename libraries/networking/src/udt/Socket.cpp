@@ -129,6 +129,12 @@ qint64 Socket::writePacket(const Packet& packet, const HifiSockAddr& sockAddr) {
         sequenceNumber = ++_unreliableSequenceNumbers[sockAddr];
     }
 
+    auto connection = findOrCreateConnection(sockAddr, true);
+    if (connection) {
+        connection->recordSentUnreliablePackets(packet.getWireSize(),
+                                                packet.getPayloadSize());
+    }
+
     // write the correct sequence number to the Packet here
     packet.writeSequenceNumber(sequenceNumber);
 
@@ -245,7 +251,10 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
             auto congestionControl = _ccFactory->create();
             congestionControl->setMaxBandwidth(_maxBandwidth);
             auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
-
+            if (QThread::currentThread() != thread()) {
+                qCDebug(networking) << "Moving new Connection to NodeList thread";
+                connection->moveToThread(thread());
+            }
             // allow higher-level classes to find out when connections have completed a handshake
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);
@@ -392,9 +401,10 @@ void Socket::readPendingDatagrams() {
 
             // call our verification operator to see if this packet is verified
             if (!_packetFilterOperator || _packetFilterOperator(*packet)) {
+                auto connection = findOrCreateConnection(senderSockAddr, true);
+
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
-                    auto connection = findOrCreateConnection(senderSockAddr, true);
 
                     if (!connection || !connection->processReceivedSequenceNumber(packet->getSequenceNumber(),
                                                                                   packet->getDataSize(),
@@ -406,6 +416,9 @@ void Socket::readPendingDatagrams() {
 #endif
                         continue;
                     }
+                } else if (connection) {
+                    connection->recordReceivedUnreliablePackets(packet->getWireSize(),
+                                                                packet->getPayloadSize());
                 }
 
                 if (packet->isPartOfMessage()) {

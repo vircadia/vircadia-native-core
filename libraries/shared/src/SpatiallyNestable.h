@@ -18,6 +18,7 @@
 #include "AACube.h"
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
+#include "Grab.h"
 
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
@@ -29,8 +30,7 @@ static const uint16_t INVALID_JOINT_INDEX = -1;
 
 enum class NestableType {
     Entity,
-    Avatar,
-    Overlay
+    Avatar
 };
 
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
@@ -45,6 +45,8 @@ public:
 
     virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
+
+    virtual bool isMyAvatar() const { return false; }
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex);
@@ -75,7 +77,7 @@ public:
     static QString nestableTypeToString(NestableType nestableType);
 
 
-    virtual bool isParentPathComplete() const;
+    virtual bool isParentPathComplete(int depth = 0) const;
 
 
     // world frame
@@ -127,9 +129,9 @@ public:
     virtual void setSNScale(const glm::vec3& scale, bool& success);
 
     // get world-frame values for a specific joint
-    virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
-    virtual glm::vec3 getWorldPosition(int jointIndex, bool& success) const;
-    virtual glm::vec3 getSNScale(int jointIndex, bool& success) const;
+    virtual const Transform getJointTransform(int jointIndex, bool& success, int depth = 0) const;
+    virtual glm::vec3 getJointWorldPosition(int jointIndex, bool& success) const;
+    virtual glm::vec3 getJointSNScale(int jointIndex, bool& success) const;
 
     // object's parent's frame
     virtual Transform getLocalTransform() const;
@@ -163,6 +165,8 @@ public:
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const { return glm::vec3(1.0f); }
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { return glm::vec3(); }
+    virtual int getJointParent(int index) const { return -1; }
+
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
@@ -187,8 +191,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
-    bool hasAncestorOfType(NestableType nestableType) const;
-    const QUuid findAncestorOfType(NestableType nestableType) const;
+    bool hasAncestorOfType(NestableType nestableType, int depth = 0) const;
+    const QUuid findAncestorOfType(NestableType nestableType, int depth = 0) const;
     SpatiallyNestablePointer getParentPointer(bool& success) const;
     static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
@@ -207,9 +211,17 @@ public:
 
     void dump(const QString& prefix = "") const;
 
-    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
     virtual void parentDeleted() { } // called on children of a deleted parent
+
+    virtual void addGrab(GrabPointer grab);
+    virtual void removeGrab(GrabPointer grab);
+    virtual void disableGrab(GrabPointer grab) {};
+    bool hasGrabs();
+    virtual QUuid getEditSenderID();
+
+    void bumpAncestorChainRenderableVersion(int depth = 0) const;
 
 protected:
     QUuid _id;
@@ -230,6 +242,11 @@ protected:
     quint64 _translationChanged { 0 };
     quint64 _rotationChanged { 0 };
 
+    mutable ReadWriteLockable _grabsLock;
+    QSet<GrabPointer> _grabs; // upon this thing
+
+    mutable std::atomic<uint32_t> _ancestorChainRenderableVersion { 0 };
+
 private:
     SpatiallyNestable() = delete;
     const NestableType _nestableType; // EntityItem or an AvatarData
@@ -246,6 +263,8 @@ private:
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
     bool _queryAACubeIsPuffed { false };
+
+    void breakParentingLoop() const;
 };
 
 

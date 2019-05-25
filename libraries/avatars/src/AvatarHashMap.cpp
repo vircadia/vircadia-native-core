@@ -23,6 +23,8 @@
 
 #include "Profile.h"
 
+static const QString VERIFY_FAIL_MODEL { "/meshes/verifyFailed.fst" };
+
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
         return;
@@ -195,28 +197,29 @@ int AvatarHashMap::numberOfAvatarsInRange(const glm::vec3& position, float range
     return count;
 }
 
-AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
-    return std::make_shared<AvatarData>();
+AvatarSharedPointer AvatarHashMap::newSharedAvatar(const QUuid& sessionUUID) {
+    auto avatarData = std::make_shared<AvatarData>();
+    avatarData->setSessionUUID(sessionUUID);
+    return avatarData;
 }
 
 AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
 
-    auto avatar = newSharedAvatar();
+    auto avatar = newSharedAvatar(sessionUUID);
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
-    // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
-    _avatarHash.insert(sessionUUID, avatar);
+    {
+        QWriteLocker locker(&_hashLock);
+        _avatarHash.insert(sessionUUID, avatar);
+    }
     emit avatarAddedEvent(sessionUUID);
-
     return avatar;
 }
 
-AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
-    bool& isNew) {
-    QWriteLocker locker(&_hashLock);
-    auto avatar = _avatarHash.value(sessionUUID);
+AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer, bool& isNew) {
+    auto avatar = findAvatar(sessionUUID);
     if (!avatar) {
         avatar = addAvatar(sessionUUID, mixerWeakPointer);
         isNew = true;
@@ -228,8 +231,9 @@ AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID,
 
 AvatarSharedPointer AvatarHashMap::findAvatar(const QUuid& sessionUUID) const {
     QReadLocker locker(&_hashLock);
-    if (_avatarHash.contains(sessionUUID)) {
-        return _avatarHash.value(sessionUUID);
+    auto avatarIter = _avatarHash.find(sessionUUID);
+    if (avatarIter != _avatarHash.end()) {
+        return avatarIter.value();
     }
     return nullptr;
 }
@@ -322,14 +326,44 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             bool displayNameChanged = false;
             // In this case, the "sendingNode" is the Avatar Mixer.
             avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
+            if (avatar->isCertifyFailed() && identityUUID != EMPTY) {
+                qCDebug(avatars) << "Avatar" << avatar->getSessionDisplayName() << "marked as VERIFY-FAILED";
+                avatar->setSkeletonModelURL(PathUtils::resourcesUrl(VERIFY_FAIL_MODEL));
+            }
             _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
         }
     }
 }
 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    AvatarTraits::TraitMessageSequence seq;
 
-    while (message->getBytesLeftToRead()) {
+    // Trying to read more bytes than available, bail
+    if (message->getBytesLeftToRead() < (qint64)sizeof(AvatarTraits::TraitMessageSequence)) {
+        qWarning() << "Malformed bulk trait packet, bailling";
+        return;
+    }
+
+    message->readPrimitive(&seq);
+
+    auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
+    traitsAckPacket->writePrimitive(seq);
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+    if (!avatarMixer.isNull()) {
+        // we have a mixer to send to, acknowledge that we received these
+        // traits.
+        nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
+    }
+
+    while (message->getBytesLeftToRead() > 0) {
+        // Trying to read more bytes than available, bail
+        if (message->getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                   sizeof(AvatarTraits::TraitType))) {
+            qWarning() << "Malformed bulk trait packet, bailling";
+            return;
+        }
+
         // read the avatar ID to figure out which avatar this is for
         auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -345,6 +379,12 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         auto& lastProcessedVersions = _processedTraitVersions[avatarID];
 
         while (traitType != AvatarTraits::NullTrait && message->getBytesLeftToRead() > 0) {
+            // Trying to read more bytes than available, bail
+            if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitVersion))) {
+                qWarning() << "Malformed bulk trait packet, bailling";
+                return;
+            }
+
             AvatarTraits::TraitVersion packetTraitVersion;
             message->readPrimitive(&packetTraitVersion);
 
@@ -352,7 +392,19 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
             bool skipBinaryTrait = false;
 
             if (AvatarTraits::isSimpleTrait(traitType)) {
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitWireSize))) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
+
                 message->readPrimitive(&traitBinarySize);
+
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < traitBinarySize) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
 
                 // check if this trait version is newer than what we already have for this avatar
                 if (packetTraitVersion > lastProcessedVersions[traitType]) {
@@ -364,10 +416,23 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                     skipBinaryTrait = true;
                 }
             } else {
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                           sizeof(AvatarTraits::TraitWireSize))) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
+
                 AvatarTraits::TraitInstanceID traitInstanceID =
                     QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
                 message->readPrimitive(&traitBinarySize);
+
+                // Trying to read more bytes than available, bail
+                if (traitBinarySize < -1 || message->getBytesLeftToRead() < traitBinarySize) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
 
                 auto& processedInstanceVersion = lastProcessedVersions.getInstanceValueRef(traitType, traitInstanceID);
                 if (packetTraitVersion > processedInstanceVersion) {
@@ -425,7 +490,6 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
         }
 
         auto removedAvatar = _avatarHash.take(sessionUUID);
-
         if (removedAvatar) {
             removedAvatars.push_back(removedAvatar);
         }

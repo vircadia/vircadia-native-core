@@ -23,9 +23,11 @@
 
 /**jsdoc
  * @namespace Mat4
+ * @variation 0
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  */
@@ -37,7 +39,7 @@ class Mat4 : public QObject, protected QScriptable {
 public slots:
 
     /**jsdoc
-     * @function Mat4.multiply
+     * @function Mat4(0).multiply
      * @param {Mat4} m1
      * @param {Mat4} m2
      * @returns {Mat4}
@@ -46,7 +48,7 @@ public slots:
 
 
     /**jsdoc
-     * @function Mat4.createFromRotAndTrans
+     * @function Mat4(0).createFromRotAndTrans
      * @param {Quat} rot
      * @param {Vec3} trans
      * @returns {Mat4}
@@ -54,7 +56,7 @@ public slots:
     glm::mat4 createFromRotAndTrans(const glm::quat& rot, const glm::vec3& trans) const;
 
     /**jsdoc
-     * @function Mat4.createFromScaleRotAndTrans
+     * @function Mat4(0).createFromScaleRotAndTrans
      * @param {Vec3} scale
      * @param {Quat} rot
      * @param {Vec3} trans
@@ -63,7 +65,7 @@ public slots:
     glm::mat4 createFromScaleRotAndTrans(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) const;
 
     /**jsdoc
-     * @function Mat4.createFromColumns
+     * @function Mat4(0).createFromColumns
      * @param {Vec4} col0
      * @param {Vec4} col1
      * @param {Vec4} col2
@@ -73,7 +75,7 @@ public slots:
     glm::mat4 createFromColumns(const glm::vec4& col0, const glm::vec4& col1, const glm::vec4& col2, const glm::vec4& col3) const;
 
     /**jsdoc
-     * @function Mat4.createFromArray
+     * @function Mat4(0).createFromArray
      * @param {number[]} numbers
      * @returns {Mat4}
      */
@@ -81,21 +83,21 @@ public slots:
 
 
     /**jsdoc
-     * @function Mat4.extractTranslation
+     * @function Mat4(0).extractTranslation
      * @param {Mat4} m
      * @returns {Vec3}
      */
     glm::vec3 extractTranslation(const glm::mat4& m) const;
 
     /**jsdoc
-     * @function Mat4.extractRotation
+     * @function Mat4(0).extractRotation
      * @param {Mat4} m
      * @returns {Vec3}
      */
     glm::quat extractRotation(const glm::mat4& m) const;
 
     /**jsdoc
-     * @function Mat4.extractScale
+     * @function Mat4(0).extractScale
      * @param {Mat4} m
      * @returns {Vec3}
      */
@@ -103,7 +105,7 @@ public slots:
 
 
     /**jsdoc
-     * @function Mat4.transformPoint
+     * @function Mat4(0).transformPoint
      * @param {Mat4} m
      * @param {Vec3} point
      * @returns {Vec3}
@@ -111,7 +113,7 @@ public slots:
     glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& point) const;
 
     /**jsdoc
-     * @function Mat4.transformVector
+     * @function Mat4(0).transformVector
      * @param {Mat4} m
      * @param {Vec3} vector
      * @returns {Vec3}
@@ -120,7 +122,7 @@ public slots:
 
 
     /**jsdoc
-     * @function Mat4.inverse
+     * @function Mat4(0).inverse
      * @param {Mat4} m
      * @returns {Mat4}
      */
@@ -128,7 +130,7 @@ public slots:
 
 
     /**jsdoc
-     * @function Mat4.getFront
+     * @function Mat4(0).getFront
      * @param {Mat4} m
      * @returns {Vec3}
      */
@@ -136,28 +138,28 @@ public slots:
     glm::vec3 getFront(const glm::mat4& m) const { return getForward(m); }
 
     /**jsdoc
-     * @function Mat4.getForward
+     * @function Mat4(0).getForward
      * @param {Mat4} m
      * @returns {Vec3}
      */
     glm::vec3 getForward(const glm::mat4& m) const;
 
     /**jsdoc
-     * @function Mat4.getRight
+     * @function Mat4(0).getRight
      * @param {Mat4} m
      * @returns {Vec3}
      */
     glm::vec3 getRight(const glm::mat4& m) const;
 
     /**jsdoc
-     * @function Mat4.getUp
+     * @function Mat4(0).getUp
      * @param {Mat4} m
      * @returns {Vec3}
      */
     glm::vec3 getUp(const glm::mat4& m) const;
 
     /**jsdoc
-     * @function Mat4.print
+     * @function Mat4(0).print
      * @param {string} label
      * @param {Mat4} m
      * @param {boolean} [transpose=false]

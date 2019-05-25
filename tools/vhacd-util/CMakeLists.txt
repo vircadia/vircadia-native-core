@@ -1,6 +1,8 @@
 set(TARGET_NAME vhacd-util)
 setup_hifi_project(Core)
-link_hifi_libraries(shared fbx graphics gpu gl)
+link_hifi_libraries(shared fbx hfm graphics gpu gl)
+
+include_hifi_library_headers(image)
 
 add_dependency_external_projects(vhacd)
 
@@ -10,7 +12,9 @@ target_link_libraries(${TARGET_NAME} ${VHACD_LIBRARIES})
 
 setup_memory_debugger()
 
-if (UNIX AND NOT APPLE)
+if (WIN32)
+  package_libraries_for_deployment()
+elseif (UNIX AND NOT APPLE)
   include(FindOpenMP)
   if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -18,3 +22,5 @@ if (UNIX AND NOT APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
   endif()
 endif ()
+
+install_beside_console()

@@ -16,6 +16,28 @@ const float HACK_HMD_TARGET_WEIGHT = 8.0f;
 
 class IKTarget {
 public:
+    /**jsdoc
+     * <p>An IK target type.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</p><th>Description</th>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>RotationAndPosition</td><td>Attempt to reach the rotation and position end 
+     *       effector.</td></tr>
+     *     <tr><td><code>1</code></td><td>RotationOnly</td><td>Attempt to reach the end effector rotation only.</td></tr>
+     *     <tr><td><code>2</code></td><td>HmdHead</td><td>A special mode of IK that would attempt to prevent unnecessary 
+     *       bending of the spine.<br />
+     *       <p class="important">Deprecated: This target type is deprecated and will be removed.</p></td></tr>
+     *     <tr><td><code>3</code></td><td>HipsRelativeRotationAndPosition</td><td>Attempt to reach a rotation and position end 
+     *       effector that is not in absolute rig coordinates but is offset by the avatar hips translation.</td></tr>
+     *     <tr><td><code>4</code></td><td>Spline</td><td>Use a cubic Hermite spline to model the human spine. This prevents 
+     *       kinks in the spine and allows for a small amount of stretch and squash.</td></tr>
+     *     <tr><td><code>5</code></td><td>Unknown</td><td>IK is disabled.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} MyAvatar.IKTargetType
+     */
     enum class Type {
         RotationAndPosition,
         RotationOnly,
@@ -35,6 +57,8 @@ public:
     bool getPoleVectorEnabled() const { return _poleVectorEnabled; }
     int getIndex() const { return _index; }
     Type getType() const { return _type; }
+    int getNumFlexCoefficients() const { return (int)_numFlexCoefficients; }
+    float getFlexCoefficient(size_t chainDepth) const;
 
     void setPose(const glm::quat& rotation, const glm::vec3& translation);
     void setPoleVector(const glm::vec3& poleVector) { _poleVector = poleVector; }
@@ -43,7 +67,6 @@ public:
     void setIndex(int index) { _index = index; }
     void setType(int);
     void setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn);
-    float getFlexCoefficient(size_t chainDepth) const;
 
     void setWeight(float weight) { _weight = weight; }
     float getWeight() const { return _weight; }

@@ -69,7 +69,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                         } else {
                             ++_errorCount;
                             _pendingReplacements.remove(migrationURL);
-                            qWarning() << "Could not retrieve asset at" << migrationURL.toString();
+                            qWarning() << "Could not retrieve asset";
 
                             checkIfFinished();
                         }
@@ -79,7 +79,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                     request->send();
                 } else {
                     ++_errorCount;
-                    qWarning() << "Could not create request for asset at" << migrationURL.toString();
+                    qWarning() << "Could not create request for asset";
                 }
 
             };
@@ -122,8 +122,8 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                     QUrl migrationURL = QUrl(migrationURLString);
 
                                     if (!_ignoredUrls.contains(migrationURL)
-                                            && (migrationURL.scheme() == URL_SCHEME_HTTP || migrationURL.scheme() == URL_SCHEME_HTTPS
-                                                || migrationURL.scheme() == URL_SCHEME_FILE || migrationURL.scheme() == URL_SCHEME_FTP)) {
+                                            && (migrationURL.scheme() == HIFI_URL_SCHEME_HTTP || migrationURL.scheme() == HIFI_URL_SCHEME_HTTPS
+                                                || migrationURL.scheme() == HIFI_URL_SCHEME_FILE || migrationURL.scheme() == HIFI_URL_SCHEME_FTP)) {
 
                                         if (_pendingReplacements.contains(migrationURL)) {
                                             // we already have a request out for this asset, just store the QJsonValueRef
@@ -239,7 +239,7 @@ void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& h
         _pendingReplacements.remove(migrationURL);
 
         ++_errorCount;
-        qWarning() << "Failed to upload" << migrationURL << "- error was" << upload->getErrorString();
+        qWarning() << "Failed to upload" << "- error was" << upload->getErrorString();
     }
 
     checkIfFinished();
@@ -281,7 +281,7 @@ void ATPAssetMigrator::setMappingFinished(SetMappingRequest* request) {
         _pendingReplacements.remove(migrationURL);
 
         ++_errorCount;
-        qWarning() << "Error setting mapping for" << migrationURL << "- error was " << request->getErrorString();
+        qWarning() << "Error setting mapping for" << "- error was " << request->getErrorString();
     }
 
     checkIfFinished();

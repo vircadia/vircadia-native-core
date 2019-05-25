@@ -49,28 +49,7 @@ void GLESBackend::do_draw(const Batch& batch, size_t paramOffset) {
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
     uint32 startVertex = batch._params[paramOffset + 0]._uint;
 
-    if (isStereo()) {
-#ifdef GPU_STEREO_DRAWCALL_INSTANCED
-        glDrawArraysInstanced(mode, startVertex, numVertices, 2);
-#else
-
-        setupStereoSide(0);
-        glDrawArrays(mode, startVertex, numVertices);
-        setupStereoSide(1);
-        glDrawArrays(mode, startVertex, numVertices);
-
-#endif
-        _stats._DSNumTriangles += 2 * numVertices / 3;
-        _stats._DSNumDrawcalls += 2;
-
-    } else {
-        glDrawArrays(mode, startVertex, numVertices);
-        _stats._DSNumTriangles += numVertices / 3;
-        _stats._DSNumDrawcalls++;
-    }
-    _stats._DSNumAPIDrawcalls++;
-
-    (void) CHECK_GL_ERROR();
+    draw(mode, numVertices, startVertex);
 }
 
 void GLESBackend::do_drawIndexed(const Batch& batch, size_t paramOffset) {

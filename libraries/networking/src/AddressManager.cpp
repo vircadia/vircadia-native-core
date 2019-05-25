@@ -30,7 +30,8 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
@@ -155,12 +156,12 @@ void AddressManager::goForward() {
 void AddressManager::storeCurrentAddress() {
     auto url = currentAddress();
 
-    if (url.scheme() == URL_SCHEME_FILE ||
+    if (url.scheme() == HIFI_URL_SCHEME_FILE ||
         (url.scheme() == URL_SCHEME_HIFI && !url.host().isEmpty())) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
-        // url.scheme() == URL_SCHEME_HTTP ||
-        // url.scheme() == URL_SCHEME_HTTPS ||
+        // url.scheme() == HIFI_URL_SCHEME_HTTP ||
+        // url.scheme() == HIFI_URL_SCHEME_HTTPS ||
         bool isInErrorState = DependencyManager::get<NodeList>()->getDomainHandler().isInErrorState();
         if (isConnected()) {
             if (isInErrorState) {
@@ -314,7 +315,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
-                attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                if (!lookupUrl.host().isNull() && !lookupUrl.host().isEmpty()) {
+                    attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                }
             }
         }
 
@@ -331,12 +334,12 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         emit lookupResultsFinished();
 
         return true;
-    } else if (lookupUrl.scheme() == URL_SCHEME_FILE) {
+    } else if (lookupUrl.scheme() == HIFI_URL_SCHEME_FILE) {
         // TODO -- once Octree::readFromURL no-longer takes over the main event-loop, serverless-domain urls can
         // be loaded over http(s)
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
-        // lookupUrl.scheme() == URL_SCHEME_HTTPS ||
-        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd 
+        // lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS ||
+        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd
         // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
 
         _previousAPILookup.clear();
@@ -479,7 +482,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
+                    qCDebug(networking_ice) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
@@ -831,6 +834,7 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     }
 
     _domainURL = domainURL;
+    _shareablePlaceName.clear();
 
     // clear any current place information
     _rootPlaceID = QUuid();
