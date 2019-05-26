@@ -24,6 +24,7 @@ Item {
     readonly property real horizontalMargin: 4
 
     readonly property color color: hifi.colors.baseGray
+    readonly property color colorBack: hifi.colors.baseGray
     readonly property color colorBackShadow: hifi.colors.baseGrayShadow
     readonly property color colorBackHighlight: hifi.colors.baseGrayHighlight
     readonly property color colorBorderLight: hifi.colors.lightGray

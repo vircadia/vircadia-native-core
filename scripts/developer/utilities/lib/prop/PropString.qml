@@ -20,29 +20,16 @@ PropItem {
     property bool integral: false
     property var numDigits: 2
 
-    property alias valueVar : sliderControl.value
-    property alias min: sliderControl.minimumValue
-    property alias max: sliderControl.maximumValue
-
-    property bool showValue: true  
-    
-    signal valueChanged(real value)
-
-    Component.onCompleted: {
-        valueVar = root.valueVarGetter();
-    }
-
     PropLabel {
         id: valueLabel
-        enabled: root.showValue
 
         anchors.left: root.splitter.right
+        anchors.right: root.right
         anchors.verticalCenter: root.verticalCenter
-        width: root.width * (root.readOnly ? 1.0 : global.valueAreaWidthScale)
         horizontalAlignment: global.valueTextAlign
         height: global.slimHeight
         
-        text: root.valueVarGetter().toFixed(root.integral ? 0 : root.numDigits)
+        text:  root.valueVarGetter();
 
         background: Rectangle {
             color: global.color
@@ -51,17 +38,4 @@ PropItem {
             radius: global.valueBorderRadius
         }
     }
-
-    HifiControls.Slider {
-        id: sliderControl
-        visible: !root.readOnly
-        stepSize: root.integral ? 1.0 : 0.0
-        anchors.left: valueLabel.right
-        anchors.right: root.right
-        anchors.verticalCenter: root.verticalCenter
-
-        onValueChanged: { if (!root.readOnly) { root.valueVarSetter(value)}  }
-    }
-
-    
 }
