@@ -22,8 +22,7 @@ bool Instance::enumeratePlatform() {
 
     // And profile the platform and put the tier in "computer"
     _computer[keys::computer::profileTier] = Profiler::TierNames[Profiler::profilePlatform()];
-    
-    _computer["keys"] = listAllKeys();
+
     return true;
 }
 
