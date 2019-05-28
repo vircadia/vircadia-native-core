@@ -18,6 +18,9 @@
 void getCPUID(int32_t* p, int32_t ax) {
     __cpuid(p, ax);
 }
+void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
+    __cpuidex(p, ax, ecx);
+}
 
 #elif defined(Q_OS_MAC)
 void getCPUID(int32_t* p, int32_t ax) {
@@ -29,6 +32,9 @@ void getCPUID(int32_t* p, int32_t ax) {
         "=c" (p[2]), "=d" (p[3])
         : "0" (ax)
     );
+}
+void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
+    getCPUID(p, ax, ecx);
 }
 
 #elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
@@ -42,12 +48,20 @@ void getCPUID(int32_t* p, int32_t ax) {
         : "0" (ax)
     );
 }
+void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
+    getCPUID(p, ax, ecx);
+}
+
 #else
 void getCPUID(int32_t* p, int32_t ax) {
     if (p) {
         memset(p, 0, 4*4);
     }
 }
+void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
+    getCPUID(p, ax, ecx);
+}
+
 #endif
 
 
@@ -135,7 +149,7 @@ CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
     nIds_ = cpui[0];
 
     for (int i = 0; i <= nIds_; ++i) {
-        __cpuidex(cpui.data(), i, 0);
+        getCPUIDEX(cpui.data(), i, 0);
         data_.push_back(cpui);
     }
 
@@ -167,14 +181,14 @@ CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
 
     // Calling __cpuid with 0x80000000 as the function_id argument
     // gets the number of the highest valid extended ID.
-    __cpuid(cpui.data(), 0x80000000);
+    getCPUID(cpui.data(), 0x80000000);
     nExIds_ = cpui[0];
 
     char brand[0x40];
     memset(brand, 0, sizeof(brand));
 
     for (int i = 0x80000000; i <= nExIds_; ++i) {
-        __cpuidex(cpui.data(), i, 0);
+        getCPUIDEX(cpui.data(), i, 0);
         extdata_.push_back(cpui);
     }
 
