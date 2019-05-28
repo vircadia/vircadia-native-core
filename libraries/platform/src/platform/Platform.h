@@ -19,20 +19,20 @@ void create();
 void destroy();
 bool enumeratePlatform();
 
-int getNumCPU();
+int getNumCPUs();
 json getCPU(int index);
 
-int getNumGPU();
+int getNumGPUs();
 json getGPU(int index);
 
-int getNumDisplay();
+int getNumDisplays();
 json getDisplay(int index);
     
-int getNumMemory();
+int getNumMemories();
 json getMemory(int index);
 
 json getComputer();
-    
+
 }  // namespace platform
 
 #endif  // hifi_platform_h

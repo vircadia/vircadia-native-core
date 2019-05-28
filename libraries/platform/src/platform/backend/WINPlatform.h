@@ -9,7 +9,7 @@
 #ifndef hifi_WinPlatform_h
 #define hifi_WinPlatform_h
 
-#include "platformInstance.h"
+#include "PlatformInstance.h"
 
 namespace platform {
     class WINInstance : public Instance {

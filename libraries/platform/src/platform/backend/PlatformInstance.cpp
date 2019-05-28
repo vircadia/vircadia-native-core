@@ -7,8 +7,10 @@
 //
 
 
-#include "platformInstance.h"
-#include <QtGlobal>
+#include "PlatformInstance.h"
+
+#include "../PlatformKeys.h"
+#include "../Profiler.h"
 
 using namespace platform;
 
@@ -17,6 +19,10 @@ bool Instance::enumeratePlatform() {
     enumerateCpu();
     enumerateGpu();
     enumerateMemory();
+
+    // And profile the platform and put the tier in "computer"
+    _computer[keys::computer::profileTier] = Profiler::TierNames[Profiler::profilePlatform()];
+
     return true;
 }
 
@@ -71,4 +77,45 @@ Instance::~Instance() {
     if (_display.size() > 0) {
         _display.clear();
     }
+}
+
+
+json Instance::listAllKeys() {
+    json allKeys;
+    allKeys.array({{
+        keys::cpu::vendor,
+        keys::cpu::vendor_Intel,
+        keys::cpu::vendor_AMD,
+        keys::cpu::model,
+        keys::cpu::clockSpeed,
+        keys::cpu::numCores,
+
+        keys::gpu::vendor,
+        keys::gpu::vendor_NVIDIA,
+        keys::gpu::vendor_AMD,
+        keys::gpu::vendor_Intel,
+        keys::gpu::model,
+        keys::gpu::videoMemory,
+        keys::gpu::driver,
+
+        keys::display::description,
+        keys::display::name,
+        keys::display::coordsLeft,
+        keys::display::coordsRight,
+        keys::display::coordsTop,
+        keys::display::coordsBottom,
+
+        keys::memTotal,
+
+        keys::computer::OS,
+        keys::computer::OS_WINDOWS,
+        keys::computer::OS_MACOS,
+        keys::computer::OS_LINUX,
+        keys::computer::OS_ANDROID,
+        keys::computer::vendor,
+        keys::computer::vendor_Apple,
+        keys::computer::model,
+        keys::computer::profileTier
+    }});
+    return allKeys;
 }

@@ -38,6 +38,15 @@ PropFolderPanel {
                         proItem['type'] = typeof(proItem.object[proItem.property])
                     }
                     switch(proItem.type) {
+                        case 'string':
+                        case 'PropString': {                      
+                            var component = Qt.createComponent("PropString.qml");
+                            component.createObject(propItemsContainer, {
+                                "label": proItem.property,
+                                "object": proItem.object,
+                                "property": proItem.property
+                            })
+                        } break;
                         case 'boolean':
                         case 'PropBool': {
                             var component = Qt.createComponent("PropBool.qml");
@@ -57,6 +66,7 @@ PropFolderPanel {
                                 "min": (proItem["min"] !== undefined ? proItem.min : 0.0),                   
                                 "max": (proItem["max"] !== undefined ? proItem.max : 1.0),                                       
                                 "integer": (proItem["integral"] !== undefined ? proItem.integral : false),
+                                "readOnly": (proItem["readOnly"] !== undefined ?  proItem["readOnly"] : false),
                             })
                         } break;
                         case 'PropEnum': {
@@ -97,6 +107,22 @@ PropFolderPanel {
             }
         }
     }
+
+    function populateFromObjectProps(object) {
+        var propsModel = []
+        var props = Object.keys(object);
+
+        for (var p in props) {
+            var o = {};
+            o["object"] = object
+            o["property"] = props[p];
+            // o["readOnly"] = true;
+            o["type"] = "string";
+            propsModel.push(o)
+        }
+        root.updatePropItems(root.propItemsPanel, propsModel);
+    }
+
     Component.onCompleted: {
     }
 }

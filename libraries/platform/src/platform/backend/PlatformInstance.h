@@ -19,16 +19,16 @@ class Instance {
 public:
     bool virtual enumeratePlatform();
 
-    int getNumCPU() { return (int)_cpu.size(); }
+    int getNumCPUs() { return (int)_cpu.size(); }
     json getCPU(int index);
 
-    int getNumGPU() { return (int)_gpu.size(); }
+    int getNumGPUs() { return (int)_gpu.size(); }
     json getGPU(int index);
 
-    int getNumMemory() { return (int)_memory.size(); }
+    int getNumMemories() { return (int)_memory.size(); }
     json getMemory(int index);
 
-    int getNumDisplay() { return (int)_display.size(); }
+    int getNumDisplays() { return (int)_display.size(); }
     json getDisplay(int index);
 
     
@@ -40,6 +40,8 @@ public:
     void virtual enumerateComputer()=0;
     
     virtual ~Instance();
+
+    static json listAllKeys();
 
 protected:
     std::vector<json>  _cpu;

@@ -6,13 +6,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_MACOSPlatform_h
-#define hifi_MACOSPlatform_h
+#ifndef hifi_LinuxPlatform_h
+#define hifi_LinuxPlatform_h
 
-#include "platformInstance.h"
+#include "PlatformInstance.h"
 
 namespace platform {
-    class MACOSInstance : public Instance {
+    class LinuxInstance : public Instance {
 
     public:
         void enumerateCpu() override;
@@ -23,4 +23,4 @@ namespace platform {
 
 }  // namespace platform
 
-#endif //hifi_macosplatform_h
+#endif //hifi_linuxPlaform_h
