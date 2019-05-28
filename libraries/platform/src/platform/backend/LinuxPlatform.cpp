@@ -25,38 +25,6 @@ void LinuxInstance::enumerateCpu() {
 
     _cpu.push_back(cpu);
 }
-/*
-void LinuxInstance::enumerateCpu() {
-    json cpu = {};
-
-    uint32_t cpuInfo[4]={0,0,0,0};
-    char CPUBrandString[16];
-    char CPUModelString[16];
-    char CPUClockString[16];
-    uint32_t nExIds;
-    getLCpuId(cpuInfo, 0x80000000);
-    nExIds = cpuInfo[0];
-    
-    for (uint32_t i = 0x80000000; i <= nExIds; ++i) {
-        getLCpuId(cpuInfo, i);
-        // Interpret CPU brand string
-        if (i == 0x80000002) {
-            memcpy(CPUBrandString, cpuInfo, sizeof(cpuInfo));
-        } else if (i == 0x80000003) {
-            memcpy(CPUModelString, cpuInfo, sizeof(cpuInfo));
-        } else if (i == 0x80000004) {
-            memcpy(CPUClockString, cpuInfo, sizeof(cpuInfo));
-        }
-    }
-
-    cpu[keys::cpu::vendor] = CPUBrandString;
-    cpu[keys::cpu::model] = CPUModelString;
-    cpu[keys::cpu::clockSpeed] = CPUClockString;
-    cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
-
-    _cpu.push_back(cpu);
-}
-*/
 
 void LinuxInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
@@ -82,6 +50,5 @@ void LinuxInstance::enumerateComputer(){
     _computer[keys::computer::OS] = keys::computer::OS_LINUX;
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";
-    //no implememntation at this time
 }
 

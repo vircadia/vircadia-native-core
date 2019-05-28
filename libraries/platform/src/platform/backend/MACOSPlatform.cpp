@@ -31,52 +31,7 @@ void MACOSInstance::enumerateCpu() {
 
     _cpu.push_back(cpu);
 }
-/*
-static void getCpuId( uint32_t* p, uint32_t ax )
-{
-#ifdef Q_OS_MAC
-    __asm __volatile
-    (   "movl %%ebx, %%esi\n\t" 
-     "cpuid\n\t"
-     "xchgl %%ebx, %%esi"
-     : "=a" (p[0]), "=S" (p[1]),
-     "=c" (p[2]), "=d" (p[3])
-     : "0" (ax)
-     );
-#endif
-}
 
-
-void MACOSInstance::enumerateCpu() {
-    json cpu = {};
-    uint32_t cpuInfo[4]={0,0,0,0};
-    char CPUBrandString[16];
-    char CPUModelString[16];
-    char CPUClockString[16];
-    uint32_t nExIds;
-    getCpuId(cpuInfo, 0x80000000);
-    nExIds = cpuInfo[0];
-    
-    for (uint32_t i = 0x80000000; i <= nExIds; ++i) {
-        getCpuId(cpuInfo, i);
-        // Interpret CPU brand string
-        if (i == 0x80000002) {
-            memcpy(CPUBrandString, cpuInfo, sizeof(cpuInfo));
-        } else if (i == 0x80000003) {
-            memcpy(CPUModelString, cpuInfo, sizeof(cpuInfo));
-        } else if (i == 0x80000004) {
-            memcpy(CPUClockString, cpuInfo, sizeof(cpuInfo));
-        }
-    }
- 
-    cpu[keys::cpu::vendor] = CPUBrandString;
-    cpu[keys::cpu::model] = CPUModelString;
-    cpu[keys::cpu::clockSpeed] = CPUClockString;
-    cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
-
-    _cpu.push_back(cpu);
-}
-*/
 void MACOSInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};

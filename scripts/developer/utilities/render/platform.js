@@ -10,37 +10,9 @@ PlatformInfo.getNumGPUs()
 PlatformInfo.getGPU(0)
 // {"driver":"25.21.14.1967","model":"NVIDIA GeForce GTX 1080","vendor":"NVIDIA GeForce GTX 1080","videoMemory":8079}
 
-var Page = Script.require('./luci/Page.js');
+var window = Desktop.createWindow(Script.resolvePath('./platform.qml'), {
+    title: "Platform",
+    presentationMode: Desktop.PresentationMode.NATIVE,
+    size: {x: 350, y: 700}
+});
 
-
-function openView() {
-    var pages = new Pages();
-    function fromQml(message) {
-        if (pages.open(message.method)) {
-            return;
-        }    
-    }
-
-    var platformWindow  
-
-    function closeLuciWindow() {
-        if (luciWindow !== undefined) {
-            activeWindow.fromQml.disconnect(fromQml);
-        }
-        luciWindow = {};
-
-        Controller.mousePressEvent.disconnect(onMousePressEvent);
-        Controller.mouseReleaseEvent.disconnect(onMouseReleaseEvent);
-        Controller.mouseMoveEvent.disconnect(onMouseMoveEvent);
-        pages.clear();
-    }
-
-    pages.addPage('Platform', 'Platform', '../platform.qml', 350, 700);
-    pages.open('Platform');
-
-    
-    return pages;
-}
-
-
-openView();

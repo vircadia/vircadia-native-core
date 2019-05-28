@@ -15,51 +15,57 @@
 
 #ifdef Q_OS_WIN
 #include <intrin.h>
-void getCPUID(int32_t* p, int32_t ax) {
-    __cpuid(p, ax);
+void getCPUID(uint32_t* p, uint32_t eax) {
+    __cpuid((int*) p, (int) eax);
 }
-void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    __cpuidex(p, ax, ecx);
+void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
+    __cpuidex((int*) p, (int) eax, (int) ecx);
 }
 
 #elif defined(Q_OS_MAC)
-void getCPUID(int32_t* p, int32_t ax) {
-    __asm __volatile
-    ("movl %%ebx, %%esi\n\t"
-        "cpuid\n\t"
-        "xchgl %%ebx, %%esi"
-        : "=a" (p[0]), "=S" (p[1]),
-        "=c" (p[2]), "=d" (p[3])
-        : "0" (ax)
+void getCPUID(uint32_t* p, uint32_t eax) {
+    __asm__ volatile (
+        "movl           %%ebx, %%esi                    \n\t"
+        "cpuid                                          \n\t"
+        "xchgl          %%ebx, %%esi                    "
+        : "=a" (p[0]), "=S" (p[1]), "=c" (p[2]), "=d" (p[3])
+        : "0" (eax)
     );
 }
-void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    getCPUID(p, ax);
+void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
+    getCPUID(p, eax);
 }
 
 #elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-void getCPUID(int32_t* p, int32_t ax) {
-    __asm __volatile
-    ("movl %%ebx, %%esi\n\t"
-        "cpuid\n\t"
-        "xchgl %%ebx, %%esi"
-        : "=a" (p[0]), "=S" (p[1]),
-        "=c" (p[2]), "=d" (p[3])
-        : "0" (ax)
+void getCPUID(uint32_t* p, uint32_t eax) {
+    __asm__ volatile (
+        "movl           %%ebx, %%esi                    \n\t"
+        "cpuid                                          \n\t"
+        "xchgl          %%ebx, %%esi                    "
+        : "=a" (p[0]), "=S" (p[1]), "=c" (p[2]), "=d" (p[3])
+        : "0" (eax)
     );
 }
-void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    getCPUID(p, ax);
+void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
+    getCPUID(p, eax);
 }
 
 #else
-void getCPUID(int32_t* p, int32_t ax) {
+void getCPUID(uint32_t* p, uint32_t eax) {
     if (p) {
-        memset(p, 0, 4*4);
+        p[0] = 0;
+        p[1] = 0;
+        p[2] = 0;
+        p[3] = 0;
     }
 }
-void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    getCPUID(p, ax);
+void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
+    if (p) {
+        p[0] = 0;
+        p[1] = 0;
+        p[2] = 0;
+        p[3] = 0;
+    }
 }
 
 #endif
@@ -141,7 +147,7 @@ CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
         extdata_{}
     {
     //int cpuInfo[4] = {-1};
-    std::array<int, 4> cpui;
+    std::array<uint32_t, 4> cpui;
 
     // Calling __cpuid with 0x0 as the function_id argument
     // gets the number of the highest valid function ID.

@@ -43,6 +43,5 @@ void AndroidInstance::enumerateComputer(){
     _computer[keys::computer::OS] = keys::computer::OS_ANDROID;
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";
-    
 }
 

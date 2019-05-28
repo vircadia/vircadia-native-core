@@ -105,8 +105,8 @@ private:
     public:
         CPUIdent_Internal();
 
-        int nIds_;
-        int nExIds_;
+        uint32_t nIds_;
+        uint32_t nExIds_;
         std::string vendor_;
         std::string brand_;
         bool isIntel_;
@@ -117,8 +117,8 @@ private:
         std::bitset<32> f_7_ECX_;
         std::bitset<32> f_81_ECX_;
         std::bitset<32> f_81_EDX_;
-        std::vector<std::array<int, 4>> data_;
-        std::vector<std::array<int, 4>> extdata_;
+        std::vector<std::array<uint32_t, 4>> data_;
+        std::vector<std::array<uint32_t, 4>> extdata_;
     };
 };
 
