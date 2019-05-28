@@ -13,63 +13,13 @@
 #include <QtCore/QtGlobal>
 #include <string.h>
 
-#ifdef Q_OS_WIN
-#include <intrin.h>
+#include "CPUDetect.h"
 void getCPUID(uint32_t* p, uint32_t eax) {
-    __cpuid((int*) p, (int) eax);
+    cpuidex((int*) p, (int) eax, 0);
 }
 void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
-    __cpuidex((int*) p, (int) eax, (int) ecx);
+    cpuidex((int*) p, (int) eax, (int) ecx);
 }
-
-#elif defined(Q_OS_MAC)
-void getCPUID(uint32_t* p, uint32_t eax) {
-    __asm__ volatile (
-        "movl           %%ebx, %%esi                    \n\t"
-        "cpuid                                          \n\t"
-        "xchgl          %%ebx, %%esi                    "
-        : "=a" (p[0]), "=S" (p[1]), "=c" (p[2]), "=d" (p[3])
-        : "0" (eax)
-    );
-}
-void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
-    getCPUID(p, eax);
-}
-
-#elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-void getCPUID(uint32_t* p, uint32_t eax) {
-    __asm__ volatile (
-        "movl           %%ebx, %%esi                    \n\t"
-        "cpuid                                          \n\t"
-        "xchgl          %%ebx, %%esi                    "
-        : "=a" (p[0]), "=S" (p[1]), "=c" (p[2]), "=d" (p[3])
-        : "0" (eax)
-    );
-}
-void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
-    getCPUID(p, eax);
-}
-
-#else
-void getCPUID(uint32_t* p, uint32_t eax) {
-    if (p) {
-        p[0] = 0;
-        p[1] = 0;
-        p[2] = 0;
-        p[3] = 0;
-    }
-}
-void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
-    if (p) {
-        p[0] = 0;
-        p[1] = 0;
-        p[2] = 0;
-        p[3] = 0;
-    }
-}
-
-#endif
-
 
 const CPUIdent::CPUIdent_Internal CPUIdent::CPU_Rep;
 
@@ -154,7 +104,7 @@ CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
     getCPUID(cpui.data(), 0);
     nIds_ = cpui[0];
 
-    for (int i = 0; i <= nIds_; ++i) {
+    for (uint32_t i = 0; i <= nIds_; ++i) {
         getCPUIDEX(cpui.data(), i, 0);
         data_.push_back(cpui);
     }
@@ -193,7 +143,7 @@ CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
     char brand[0x40];
     memset(brand, 0, sizeof(brand));
 
-    for (int i = 0x80000000; i <= nExIds_; ++i) {
+    for (uint32_t i = 0x80000000; i <= nExIds_; ++i) {
         getCPUIDEX(cpui.data(), i, 0);
         extdata_.push_back(cpui);
     }
