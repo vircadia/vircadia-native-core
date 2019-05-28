@@ -44,6 +44,15 @@ Rectangle {
                 }
             }
             Prop.PropGroup {
+                id: memory
+                label: "Memory"
+                isUnfold: true
+    
+                Component.onCompleted: {    
+                    memory.populateFromObjectProps(JSON.parse(PlatformInfo.getMemory()))
+                }
+            }
+            Prop.PropGroup {
                 id: gpu
                 label: "GPU"
                 isUnfold: true

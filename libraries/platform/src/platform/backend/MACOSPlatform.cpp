@@ -10,8 +10,9 @@
 #include "../PlatformKeys.h"
 
 #include <thread>
-#include <GPUIdent.h>
 #include <string>
+#include <CPUIdent.h>
+#include <GPUIdent.h>
 
 #ifdef Q_OS_MAC
 #include <unistd.h>
@@ -21,6 +22,16 @@
 
 using namespace platform;
 
+void MACOSInstance::enumerateCpu() {
+    json cpu = {};
+
+    cpu[keys::cpu::vendor] = CPUIdent::Vendor();
+    cpu[keys::cpu::model] = CPUIdent::Brand();
+    cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
+
+    _cpu.push_back(cpu);
+}
+/*
 static void getCpuId( uint32_t* p, uint32_t ax )
 {
 #ifdef Q_OS_MAC
@@ -65,7 +76,7 @@ void MACOSInstance::enumerateCpu() {
 
     _cpu.push_back(cpu);
 }
-
+*/
 void MACOSInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};

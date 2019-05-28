@@ -8,51 +8,25 @@
 
 #include "WINPlatform.h"
 #include "../PlatformKeys.h"
-#include <GPUIdent.h>
-
-#ifdef Q_OS_WIN
-#include <intrin.h>
-#include <Windows.h>
-#endif
 
 #include <thread>
 #include <string>
+#include <CPUIdent.h>
+#include <GPUIdent.h>
 
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#endif
 
 using namespace platform;
 
 void WINInstance::enumerateCpu() {
     json cpu = {};
     
-#ifdef Q_OS_WIN
-    int CPUInfo[4] = { -1 };
-    unsigned nExIds;
-    unsigned int i = 0;
-    char CPUBrandString[16];
-    char CPUModelString[16];
-    char CPUClockString[16];
-    // Get the information associated with each extended ID.
-    __cpuid(CPUInfo, 0x80000000);
-    nExIds = CPUInfo[0];
-
-    for (i = 0x80000000; i <= nExIds; ++i) {
-        __cpuid(CPUInfo, i);
-        // Interpret CPU brand string
-        if (i == 0x80000002) {
-            memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
-        } else if (i == 0x80000003) {
-            memcpy(CPUModelString, CPUInfo, sizeof(CPUInfo));
-        } else if (i == 0x80000004) {
-            memcpy(CPUClockString, CPUInfo, sizeof(CPUInfo));
-        }
-    }
-
-    cpu[keys::cpu::vendor] = CPUBrandString;
-    cpu[keys::cpu::model] = CPUModelString;
-    cpu[keys::cpu::clockSpeed] = CPUClockString;
+    cpu[keys::cpu::vendor] = CPUIdent::Vendor();
+    cpu[keys::cpu::model] = CPUIdent::Brand();
     cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
-#endif
-   
+
     _cpu.push_back(cpu);
 }
 
@@ -73,12 +47,12 @@ void WINInstance::enumerateGpu() {
 void WINInstance::enumerateMemory() {
     json ram = {};
     
-#ifdef Q_OS_WINDOWS
+#ifdef Q_OS_WIN
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    ram[keys.memTotal] = totalRam;
+    ram[platform::keys::memTotal] = totalRam;
 #endif
     _memory.push_back(ram);
 }

@@ -8,25 +8,24 @@
 
 #include "LinuxPlatform.h"
 #include "../PlatformKeys.h"
-#include <GPUIdent.h>
+
 #include <thread>
+#include <string>
+#include <CPUIdent.h>
+#include <GPUIdent.h>
+
 using namespace platform;
 
-static void getLCpuId( uint32_t* p, uint32_t ax )
-{
+void LinuxInstance::enumerateCpu() {
+    json cpu = {};
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-    __asm __volatile
-    (   "movl %%ebx, %%esi\n\t" 
-     "cpuid\n\t"
-     "xchgl %%ebx, %%esi"
-     : "=a" (p[0]), "=S" (p[1]),
-     "=c" (p[2]), "=d" (p[3])
-     : "0" (ax)
-     );
-#endif
+    cpu[keys::cpu::vendor] = CPUIdent::Vendor();
+    cpu[keys::cpu::model] = CPUIdent::Brand();
+    cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
+
+    _cpu.push_back(cpu);
 }
-
+/*
 void LinuxInstance::enumerateCpu() {
     json cpu = {};
 
@@ -57,6 +56,7 @@ void LinuxInstance::enumerateCpu() {
 
     _cpu.push_back(cpu);
 }
+*/
 
 void LinuxInstance::enumerateGpu() {
     GPUIdent* ident = GPUIdent::getInstance();

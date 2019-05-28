@@ -10,7 +10,46 @@
 
 #include "CPUIdent.h"
 
+#include <QtCore/QtGlobal>
+
+
 #ifdef Q_OS_WIN
+#include <intrin.h>
+void getCPUID(int32_t* p, int32_t ax) {
+    __cpuid(p, ax);
+}
+
+#elif defined(Q_OS_MAC)
+void getCPUID(int32_t* p, int32_t ax) {
+    __asm __volatile
+    ("movl %%ebx, %%esi\n\t"
+        "cpuid\n\t"
+        "xchgl %%ebx, %%esi"
+        : "=a" (p[0]), "=S" (p[1]),
+        "=c" (p[2]), "=d" (p[3])
+        : "0" (ax)
+    );
+}
+
+#elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+void getCPUID(int32_t* p, int32_t ax) {
+    __asm __volatile
+    ("movl %%ebx, %%esi\n\t"
+        "cpuid\n\t"
+        "xchgl %%ebx, %%esi"
+        : "=a" (p[0]), "=S" (p[1]),
+        "=c" (p[2]), "=d" (p[3])
+        : "0" (ax)
+    );
+}
+#else
+void getCPUID(int32_t* p, int32_t ax) {
+    if (p) {
+        memset(p, 0, 4*4);
+    }
+}
+#endif
+
 
 const CPUIdent::CPUIdent_Internal CPUIdent::CPU_Rep;
 
@@ -72,4 +111,86 @@ std::vector<CPUIdent::Feature> CPUIdent::getAllFeatures() {
     return features;
 };
 
-#endif
+
+CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
+        : nIds_{ 0 },
+        nExIds_{ 0 },
+        isIntel_{ false },
+        isAMD_{ false },
+        f_1_ECX_{ 0 },
+        f_1_EDX_{ 0 },
+        f_7_EBX_{ 0 },
+        f_7_ECX_{ 0 },
+        f_81_ECX_{ 0 },
+        f_81_EDX_{ 0 },
+        data_{},
+        extdata_{}
+    {
+    //int cpuInfo[4] = {-1};
+    std::array<int, 4> cpui;
+
+    // Calling __cpuid with 0x0 as the function_id argument
+    // gets the number of the highest valid function ID.
+    getCPUID(cpui.data(), 0);
+    nIds_ = cpui[0];
+
+    for (int i = 0; i <= nIds_; ++i) {
+        __cpuidex(cpui.data(), i, 0);
+        data_.push_back(cpui);
+    }
+
+    // Capture vendor string
+    char vendor[0x20];
+    memset(vendor, 0, sizeof(vendor));
+    *reinterpret_cast<int*>(vendor) = data_[0][1];
+    *reinterpret_cast<int*>(vendor + 4) = data_[0][3];
+    *reinterpret_cast<int*>(vendor + 8) = data_[0][2];
+    vendor_ = vendor;
+    if (vendor_ == "GenuineIntel") {
+        isIntel_ = true;
+    }
+    else if (vendor_ == "AuthenticAMD") {
+        isAMD_ = true;
+    }
+
+    // load bitset with flags for function 0x00000001
+    if (nIds_ >= 1) {
+        f_1_ECX_ = data_[1][2];
+        f_1_EDX_ = data_[1][3];
+    }
+
+    // load bitset with flags for function 0x00000007
+    if (nIds_ >= 7) {
+        f_7_EBX_ = data_[7][1];
+        f_7_ECX_ = data_[7][2];
+    }
+
+    // Calling __cpuid with 0x80000000 as the function_id argument
+    // gets the number of the highest valid extended ID.
+    __cpuid(cpui.data(), 0x80000000);
+    nExIds_ = cpui[0];
+
+    char brand[0x40];
+    memset(brand, 0, sizeof(brand));
+
+    for (int i = 0x80000000; i <= nExIds_; ++i) {
+        __cpuidex(cpui.data(), i, 0);
+        extdata_.push_back(cpui);
+    }
+
+    // load bitset with flags for function 0x80000001
+    if (nExIds_ >= 0x80000001) {
+        f_81_ECX_ = extdata_[1][2];
+        f_81_EDX_ = extdata_[1][3];
+    }
+
+    // Interpret CPU brand string if reported
+    if (nExIds_ >= 0x80000004) {
+        memcpy(brand, extdata_[2].data(), sizeof(cpui));
+        memcpy(brand + 16, extdata_[3].data(), sizeof(cpui));
+        memcpy(brand + 32, extdata_[4].data(), sizeof(cpui));
+        brand_ = brand;
+    }
+}
+
+
