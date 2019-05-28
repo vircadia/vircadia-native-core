@@ -34,7 +34,7 @@ void getCPUID(int32_t* p, int32_t ax) {
     );
 }
 void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    getCPUID(p, ax, ecx);
+    getCPUID(p, ax);
 }
 
 #elif defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
@@ -49,7 +49,7 @@ void getCPUID(int32_t* p, int32_t ax) {
     );
 }
 void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    getCPUID(p, ax, ecx);
+    getCPUID(p, ax);
 }
 
 #else
@@ -59,7 +59,7 @@ void getCPUID(int32_t* p, int32_t ax) {
     }
 }
 void getCPUIDEX(int32_t* p, int32_t ax, int32_t ecx) {
-    getCPUID(p, ax, ecx);
+    getCPUID(p, ax);
 }
 
 #endif
