@@ -11,7 +11,7 @@
 #include "CPUIdent.h"
 
 #include <QtCore/QtGlobal>
-#include <stdio.h>
+#include <string.h>
 
 #ifdef Q_OS_WIN
 #include <intrin.h>
