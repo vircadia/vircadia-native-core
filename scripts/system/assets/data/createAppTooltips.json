@@ -492,6 +492,9 @@
     "canCastShadow": {
         "tooltip": "If enabled, this geometry of this entity casts shadows when a shadow-casting light source shines on it."
     },
+    "ignorePickIntersection": {
+        "tooltip": "If enabled, this entity will not be considered for ray picks, and will also not occlude other entities when picking."
+    },
     "parentID": {
         "tooltip": "The ID of the entity or avatar that this entity is parented to."
     },
