@@ -20,13 +20,18 @@ Column {
     id: theGrapchicsSettings;   
 
     Prop.PropEnum {
+        label: "Refresh Rate Profile"
+        //object: Performance
+        valueVarSetter: Performance.setRefreshRateProfile 
+        valueVarGetter: Performance.getRefreshRateProfile 
+        enums: Performance.getRefreshRateProfileNames()
+    }
+
+    Prop.PropEnum {
         label: "Render Method"
         object: Render
         property: "renderMethod"
-        enums: [
-            "Deferred",
-            "Forward"
-                ]
+        enums: Render.getRenderMethodNames()
     }
 
     Prop.PropBool {

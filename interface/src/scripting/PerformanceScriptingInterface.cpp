@@ -27,6 +27,11 @@ PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface:
     return (PerformanceScriptingInterface::RefreshRateProfile)qApp->getRefreshRateManager().getRefreshRateProfile();
 }
 
+QStringList PerformanceScriptingInterface::getRefreshRateProfileNames() const {
+    static const QStringList refreshRateProfileNames = { "Eco", "Interactive", "Realtime" };
+    return refreshRateProfileNames;
+}
+
 int PerformanceScriptingInterface::getActiveRefreshRate() const {
     return qApp->getRefreshRateManager().getActiveRefreshRate();
 }

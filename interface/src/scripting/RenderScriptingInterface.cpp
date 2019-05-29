@@ -48,6 +48,11 @@ void RenderScriptingInterface::setRenderMethod(RenderScriptingInterface::RenderM
     }
 }
 
+QStringList RenderScriptingInterface::getRenderMethodNames() const {
+    static const QStringList refrenderMethodNames = { "Deferred", "Forward" };
+    return refrenderMethodNames;
+}
+
 bool RenderScriptingInterface::getShadowsEnabled() {
     return _shadowsEnabledSetting.get();
 }

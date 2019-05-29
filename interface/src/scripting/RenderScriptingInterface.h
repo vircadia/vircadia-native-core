@@ -69,6 +69,14 @@ public slots:
     void setRenderMethod(RenderMethod renderMethod);
 
     /**jsdoc
+    * Gets the possible enum names of the RenderMethod type
+    * @function Render.getRenderMethodNames
+    * @returns [string] [ <code>"DEFERRED"</code>, <code>"FORWARD"</code> ]
+    */
+    QStringList getRenderMethodNames() const;
+
+
+    /**jsdoc
      * Whether or not shadows are enabled
      * @function Render.getShadowsEnabled
      * @returns {bool} <code>true</code> if shadows are enabled, otherwise <code>false</code>
