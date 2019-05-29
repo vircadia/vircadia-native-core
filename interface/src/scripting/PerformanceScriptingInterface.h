@@ -28,7 +28,7 @@ public:
         MID = PerformanceManager::PerformanceProfile::MID,
         HIGH = PerformanceManager::PerformanceProfile::HIGH,
     };
-  //  Q_ENUM(PerformanceProfile)
+    Q_ENUM(PerformanceProfile)
 
     // Must match RefreshRateManager enums
     enum RefreshRateProfile {
