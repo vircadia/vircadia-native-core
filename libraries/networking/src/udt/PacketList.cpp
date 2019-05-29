@@ -13,6 +13,7 @@
 
 #include "../NetworkLogging.h"
 
+#include <chrono>
 #include <QDebug>
 
 using namespace udt;
@@ -260,4 +261,12 @@ qint64 PacketList::writeData(const char* data, qint64 maxSize) {
     }
 
     return maxSize;
+}
+
+p_high_resolution_clock::time_point PacketList::getFirstPacketReceiveTime() const {
+    using namespace std::chrono;;
+    if (!_packets.empty()) {
+        return _packets.front()->getReceiveTime();
+    }
+    return p_high_resolution_clock::time_point();
 }
