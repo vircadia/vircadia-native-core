@@ -147,7 +147,7 @@ QtObject {
         }
 
         readonly property color darkSeparator: "#595959"
-        readonly property color darkBackground: "#1A1A1A"
+        readonly property color darkBackground: "#000000"
         readonly property color darkBackgroundHighlight: "#575757"
         readonly property color highlightOnDark: Qt.rgba(1, 1, 1, 0.2)
         readonly property color white: "#FFFFFF"
@@ -182,9 +182,10 @@ QtObject {
         }
 
         readonly property QtObject settings: QtObject {
-            property real subtitleTopMargin: 2
-            property real settingsGroupTopMargin: 10
-            property real spacingBetweenSettings: 48
+            property int subtitleTopMargin: 2
+            property int settingsGroupTopMargin: 24
+            property int spacingBetweenSettings: 48
+            property int spacingBetweenRadiobuttons: 14
         }
     }
 
@@ -219,5 +220,9 @@ QtObject {
                 readonly property int editPencilPadding: 6
             }
         }
+    }
+
+    readonly property QtObject numericConstants: QtObject {
+        readonly property real mutedValue: -60.0
     }
 }

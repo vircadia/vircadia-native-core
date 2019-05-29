@@ -138,7 +138,7 @@ public:
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
 
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     /**jsdoc
      * @comment Uses the base class's JSDoc.

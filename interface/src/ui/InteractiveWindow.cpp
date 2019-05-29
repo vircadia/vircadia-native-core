@@ -109,7 +109,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         auto mainWindow = qApp->getWindow();
         _dockWidget = std::shared_ptr<DockWidget>(new DockWidget(title, mainWindow), dockWidgetDeleter);
         auto quickView = _dockWidget->getQuickView();
-        Application::setupQmlSurface(quickView->rootContext(), true);
+       
+        Application::setupQmlSurface(quickView->rootContext() , true);
+
+        //add any whitelisted callbacks
+        OffscreenUi::applyWhiteList(sourceUrl, quickView->rootContext());
 
         /**jsdoc
          * Configures how a <code>NATIVE</code> window is displayed.
@@ -150,6 +154,8 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             }
         });
         _dockWidget->setSource(QUrl(sourceUrl));
+        
+        
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();

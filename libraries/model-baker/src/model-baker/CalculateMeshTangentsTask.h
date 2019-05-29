@@ -22,7 +22,7 @@ class CalculateMeshTangentsTask {
 public:
     using NormalsPerMesh = std::vector<std::vector<glm::vec3>>;
 
-    using Input = baker::VaryingSet3<baker::NormalsPerMesh, std::vector<hfm::Mesh>, QHash<QString, hfm::Material>>;
+    using Input = baker::VaryingSet2<baker::NormalsPerMesh, std::vector<hfm::Mesh>>;
     using Output = baker::TangentsPerMesh;
     using JobModel = baker::Job::ModelIO<CalculateMeshTangentsTask, Input, Output>;
 

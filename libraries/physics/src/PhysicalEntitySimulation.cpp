@@ -214,15 +214,26 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _entitiesToRemoveFromPhysics.clear();
     _entitiesToAddToPhysics.clear();
     _incomingChanges.clear();
+    _entitiesToDeleteLater.clear();
 }
 
 // virtual
 void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
+    // this can be called on any thread
     assert(entity);
     assert(entity->isDead());
     QMutexLocker lock(&_mutex);
-    entity->clearActions(getThisPointer());
-    removeEntityInternal(entity);
+    _entitiesToDeleteLater.push_back(entity);
+}
+
+void PhysicalEntitySimulation::removeDeadEntities() {
+    // only ever call this on the main thread
+    QMutexLocker lock(&_mutex);
+    for (auto& entity : _entitiesToDeleteLater) {
+        entity->clearActions(getThisPointer());
+        removeEntityInternal(entity);
+    }
+    _entitiesToDeleteLater.clear();
 }
 // end EntitySimulation overrides
 

@@ -1869,6 +1869,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
     if (_audioOutput) {
         _audioOutputIODevice.close();
         _audioOutput->stop();
+        _audioOutputInitialized = false;
 
         //must be deleted in next eventloop cycle when its called from notify()
         _audioOutput->deleteLater();
@@ -1939,51 +1940,49 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
             int requestedSize = _sessionOutputBufferSizeFrames * frameSize * AudioConstants::SAMPLE_SIZE;
             _audioOutput->setBufferSize(requestedSize);
 
-            // initialize mix buffers on the _audioOutput thread to avoid races
-            connect(_audioOutput, &QAudioOutput::stateChanged, [&, frameSize, requestedSize](QAudio::State state) {
-                if (state == QAudio::ActiveState) {
-                    // restrict device callback to _outputPeriod samples
-                    _outputPeriod = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
-                    // device callback may exceed reported period, so double it to avoid stutter
-                    _outputPeriod *= 2;
-
-                    _outputMixBuffer = new float[_outputPeriod];
-                    _outputScratchBuffer = new int16_t[_outputPeriod];
-
-                    // size local output mix buffer based on resampled network frame size
-                    int networkPeriod = _localToOutputResampler ?  _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO) : AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
-                    _localOutputMixBuffer = new float[networkPeriod];
-
-                    // local period should be at least twice the output period,
-                    // in case two device reads happen before more data can be read (worst case)
-                    int localPeriod = _outputPeriod * 2;
-                    // round up to an exact multiple of networkPeriod
-                    localPeriod = ((localPeriod + networkPeriod - 1) / networkPeriod) * networkPeriod;
-                    // this ensures lowest latency without stutter from underrun
-                    _localInjectorsStream.resizeForFrameSize(localPeriod);
-
-                    int bufferSize = _audioOutput->bufferSize();
-                    int bufferSamples = bufferSize / AudioConstants::SAMPLE_SIZE;
-                    int bufferFrames = bufferSamples / (float)frameSize;
-                    qCDebug(audioclient) << "frame (samples):" << frameSize;
-                    qCDebug(audioclient) << "buffer (frames):" << bufferFrames;
-                    qCDebug(audioclient) << "buffer (samples):" << bufferSamples;
-                    qCDebug(audioclient) << "buffer (bytes):" << bufferSize;
-                    qCDebug(audioclient) << "requested (bytes):" << requestedSize;
-                    qCDebug(audioclient) << "period (samples):" << _outputPeriod;
-                    qCDebug(audioclient) << "local buffer (samples):" << localPeriod;
-
-                    disconnect(_audioOutput, &QAudioOutput::stateChanged, 0, 0);
-
-                    // unlock to avoid a deadlock with the device callback (which always succeeds this initialization)
-                    localAudioLock.unlock();
-                }
-            });
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
 
+            // start the output device
             _audioOutputIODevice.start();
-
             _audioOutput->start(&_audioOutputIODevice);
+
+            // initialize mix buffers
+
+            // restrict device callback to _outputPeriod samples
+            _outputPeriod = _audioOutput->periodSize() / AudioConstants::SAMPLE_SIZE;
+            // device callback may exceed reported period, so double it to avoid stutter
+            _outputPeriod *= 2;
+
+            _outputMixBuffer = new float[_outputPeriod];
+            _outputScratchBuffer = new int16_t[_outputPeriod];
+
+            // size local output mix buffer based on resampled network frame size
+            int networkPeriod = _localToOutputResampler ?  _localToOutputResampler->getMaxOutput(AudioConstants::NETWORK_FRAME_SAMPLES_STEREO) : AudioConstants::NETWORK_FRAME_SAMPLES_STEREO;
+            _localOutputMixBuffer = new float[networkPeriod];
+
+            // local period should be at least twice the output period,
+            // in case two device reads happen before more data can be read (worst case)
+            int localPeriod = _outputPeriod * 2;
+            // round up to an exact multiple of networkPeriod
+            localPeriod = ((localPeriod + networkPeriod - 1) / networkPeriod) * networkPeriod;
+            // this ensures lowest latency without stutter from underrun
+            _localInjectorsStream.resizeForFrameSize(localPeriod);
+
+            _audioOutputInitialized = true;
+
+            int bufferSize = _audioOutput->bufferSize();
+            int bufferSamples = bufferSize / AudioConstants::SAMPLE_SIZE;
+            int bufferFrames = bufferSamples / (float)frameSize;
+            qCDebug(audioclient) << "frame (samples):" << frameSize;
+            qCDebug(audioclient) << "buffer (frames):" << bufferFrames;
+            qCDebug(audioclient) << "buffer (samples):" << bufferSamples;
+            qCDebug(audioclient) << "buffer (bytes):" << bufferSize;
+            qCDebug(audioclient) << "requested (bytes):" << requestedSize;
+            qCDebug(audioclient) << "period (samples):" << _outputPeriod;
+            qCDebug(audioclient) << "local buffer (samples):" << localPeriod;
+
+            // unlock to avoid a deadlock with the device callback (which always succeeds this initialization)
+            localAudioLock.unlock();
 
             // setup a loopback audio output device
             _loopbackAudioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
@@ -2082,6 +2081,12 @@ float AudioClient::gainForSource(float distance, float volume) {
 
 qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
 
+    // lock-free wait for initialization to avoid races
+    if (!_audio->_audioOutputInitialized.load(std::memory_order_acquire)) {
+        memset(data, 0, maxSize);
+        return maxSize;
+    }
+
     // samples requested from OUTPUT_CHANNEL_COUNT
     int deviceChannelCount = _audio->_outputFormat.channelCount();
     int samplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
@@ -2162,6 +2167,8 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         }
 
         bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
+        assert(bytesWritten <= maxSize);
+
     } else {
         // nothing on network, don't grab anything from injectors, and just return 0s
         memset(data, 0, maxSize);
@@ -2173,7 +2180,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         Lock lock(_recordMutex);
         _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
     }
-
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
     float msecsAudioOutputUnplayed = bytesAudioOutputUnplayed / (float)_audio->_outputFormat.bytesForDuration(USECS_PER_MSEC);

@@ -11,6 +11,8 @@
 
 #include "NodeList.h"
 
+#include <chrono>
+
 #include <QtCore/QDataStream>
 #include <QtCore/QDebug>
 #include <QtCore/QJsonDocument>
@@ -36,6 +38,8 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include <Trace.h>
+
+using namespace std::chrono;
 
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
@@ -91,10 +95,10 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(accountManager.data(), &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
     // clear out NodeList when login is finished and we know our new username
-    connect(accountManager.data(), SIGNAL(usernameChanged(QString)) , this, SLOT(reset()));
+    connect(accountManager.data(), &AccountManager::usernameChanged , this, [this]{ reset("Username changed"); });
 
     // clear our NodeList when logout is requested
-    connect(accountManager.data(), SIGNAL(logoutComplete()) , this, SLOT(reset()));
+    connect(accountManager.data(), &AccountManager::logoutComplete , this, [this]{ reset("Logged out"); });
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -292,7 +296,8 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
-    // This function is called by the server check-in timer thread
+    // On ThreadedAssignments (assignment clients), this function
+    // is called by the server check-in timer thread
     // not the NodeList thread.  Calling it on the NodeList thread
     // resulted in starvation of the server check-in function.
     // be VERY CAREFUL modifying this code as members of NodeList
@@ -410,6 +415,8 @@ void NodeList::sendDomainServerCheckIn() {
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
         }
+
+        packetStream << quint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count());
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
@@ -617,8 +624,53 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
 }
 
 void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) {
+
+    // parse header information 
+    QDataStream packetStream(message->getMessage());
+
+    // grab the domain's ID from the beginning of the packet
+    QUuid domainUUID;
+    packetStream >> domainUUID;
+
+    Node::LocalID domainLocalID;
+    packetStream >> domainLocalID;
+
+    // pull our owner (ie. session) UUID from the packet, it's always the first thing
+    // The short (16 bit) ID comes next.
+    QUuid newUUID;
+    Node::LocalID newLocalID;
+    packetStream >> newUUID;
+    packetStream >> newLocalID;
+
+    // pull the permissions/right/privileges for this node out of the stream
+    NodePermissions newPermissions;
+    packetStream >> newPermissions;
+    // Is packet authentication enabled?
+    bool isAuthenticated;
+    packetStream >> isAuthenticated;
+
+    qint64 now = qint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count());
+
+    quint64 connectRequestTimestamp;
+    packetStream >> connectRequestTimestamp;
+
+    quint64 domainServerRequestReceiveTime;
+    packetStream >> domainServerRequestReceiveTime;
+
+    quint64 domainServerPingSendTime;
+    packetStream >> domainServerPingSendTime;
+
+    qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
+
+    qint64 domainServerRequestLag = (qint64(domainServerRequestReceiveTime) - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
+    quint64 domainServerCheckinProcessingTime = domainServerPingSendTime - domainServerRequestReceiveTime;
+    qint64 domainServerResponseLag = (now - qint64(domainServerPingSendTime)) / qint64(USECS_PER_MSEC);
+
     if (_domainHandler.getSockAddr().isNull()) {
-        qWarning() << "IGNORING DomainList packet while not connected to a Domain Server";
+        qWarning(networking) << "IGNORING DomainList packet while not connected to a Domain Server: sent " << pingLagTime << " msec ago.";
+        qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
+        qWarning(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
+        qWarning(networking) << "DomainList response lag (ds->interface): " << domainServerResponseLag << "msec";
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
@@ -630,6 +682,14 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     }
 #endif
 
+    // warn if ping lag is getting long
+    if (pingLagTime > qint64(MSECS_PER_SECOND)) {
+        qCDebug(networking) << "DomainList ping is lagging: " << pingLagTime << "msec";
+        qCDebug(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
+        qCDebug(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
+        qCDebug(networking) << "DomainList response lag (ds->interface): " << domainServerResponseLag << "msec";
+    }
+
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _domainHandler.clearPendingCheckins();
 
@@ -638,27 +698,15 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
-    QDataStream packetStream(message->getMessage());
-
-    // grab the domain's ID from the beginning of the packet
-    QUuid domainUUID;
-    packetStream >> domainUUID;
-
     if (_domainHandler.isConnected() && _domainHandler.getUUID() != domainUUID) {
         // Recieved packet from different domain.
-        qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" << _domainHandler.getUUID();
+        qWarning() << "IGNORING DomainList packet from" << domainUUID << "while connected to" 
+                   << _domainHandler.getUUID() << ": sent " << pingLagTime << " msec ago.";
+        qWarning(networking) << "DomainList request lag (interface->ds): " << domainServerRequestLag << "msec";
+        qWarning(networking) << "DomainList server processing time: " << domainServerCheckinProcessingTime << "usec";
+        qWarning(networking) << "DomainList response lag (ds->interface): " << domainServerResponseLag << "msec";
         return;
     }
-
-    Node::LocalID domainLocalID;
-    packetStream >> domainLocalID;
-
-    // pull our owner (ie. session) UUID from the packet, it's always the first thing
-    // The short (16 bit) ID comes next.
-    QUuid newUUID;
-    Node::LocalID newLocalID;
-    packetStream >> newUUID;
-    packetStream >> newLocalID;
 
     // when connected, if the session ID or local ID were not null and changed, we should reset
     auto currentLocalID = getSessionLocalID();
@@ -690,13 +738,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         DependencyManager::get<AddressManager>()->lookupShareableNameForDomainID(domainUUID);
     }
 
-    // pull the permissions/right/privileges for this node out of the stream
-    NodePermissions newPermissions;
-    packetStream >> newPermissions;
     setPermissions(newPermissions);
-    // Is packet authentication enabled?
-    bool isAuthenticated;
-    packetStream >> isAuthenticated;
     setAuthenticatePackets(isAuthenticated);
 
     // pull each node in the packet

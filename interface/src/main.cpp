@@ -75,6 +75,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption helpOption = parser.addHelpOption();
 
     QCommandLineOption urlOption("url", "", "value");
+    QCommandLineOption noLauncherOption("no-launcher", "Do not execute the launcher");
     QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
     QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
@@ -82,8 +83,11 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
+    QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
+    QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
 
     parser.addOption(urlOption);
+    parser.addOption(noLauncherOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
@@ -91,6 +95,8 @@ int main(int argc, const char* argv[]) {
     parser.addOption(overrideAppLocalDataPathOption);
     parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
+    parser.addOption(responseTokensOption);
+    parser.addOption(displayNameOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam
@@ -104,6 +110,52 @@ int main(int argc, const char* argv[]) {
         QCoreApplication mockApp(argc, const_cast<char**>(argv)); // required for call to showHelp()
         parser.showHelp();
         Q_UNREACHABLE();
+    }
+
+    QString applicationPath;
+    {
+        // A temporary application instance is needed to get the location of the running executable
+        // Tests using high_resolution_clock show that this takes about 30-50 microseconds (on my machine, YMMV)
+        // If we wanted to avoid the QCoreApplication, we would need to write our own
+        // cross-platform implementation.
+        QCoreApplication tempApp(argc, const_cast<char**>(argv));
+        applicationPath = QCoreApplication::applicationDirPath();
+    }
+
+    static const QString APPLICATION_CONFIG_FILENAME = "config.json";
+    QDir applicationDir(applicationPath);
+    QString configFileName = applicationDir.filePath(APPLICATION_CONFIG_FILENAME);
+    QFile configFile(configFileName);
+    QString launcherPath;
+    
+    if (configFile.exists()) {
+        if (!configFile.open(QIODevice::ReadOnly)) {
+            qWarning() << "Found application config, but could not open it";
+        } else {
+            auto contents = configFile.readAll();
+            QJsonParseError error;
+
+            auto doc = QJsonDocument::fromJson(contents, &error);
+            if (error.error) {
+                qWarning() << "Found application config, but could not parse it: " << error.errorString();
+            } else {
+                static const QString LAUNCHER_PATH_KEY = "launcherPath";
+                launcherPath = doc.object()[LAUNCHER_PATH_KEY].toString();
+                if (!launcherPath.isEmpty()) {
+                    if (!parser.isSet(noLauncherOption)) {
+                        qDebug() << "Found a launcherPath in application config. Starting launcher.";
+                        QProcess launcher;
+                        launcher.setProgram(launcherPath);
+                        launcher.startDetached();
+                        return 0;
+                    } else {
+                        qDebug() << "Found a launcherPath in application config, but the launcher"
+                                    " has been suppressed. Continuing normal execution.";
+                    }
+                    configFile.close();
+                }
+            }
+        }
     }
 
     // Early check for --traceFile argument 
@@ -352,6 +404,24 @@ int main(int argc, const char* argv[]) {
                          &app, &Application::handleLocalServerConnection, Qt::DirectConnection);
 
         printSystemInformation();
+
+        auto appPointer = dynamic_cast<Application*>(&app);
+        if (appPointer) {
+            if (parser.isSet(urlOption)) {
+                appPointer->overrideEntry();
+            }
+            if (parser.isSet(displayNameOption)) {
+                QString displayName = QString(parser.value(displayNameOption));
+                appPointer->forceDisplayName(displayName);
+            }
+            if (!launcherPath.isEmpty()) {
+                appPointer->setConfigFileURL(configFileName);
+            }
+            if (parser.isSet(responseTokensOption)) {
+                QString tokens = QString(parser.value(responseTokensOption));
+                appPointer->forceLoginWithTokens(tokens);
+            }
+        }
 
         QTranslator translator;
         translator.load("i18n/interface_en");

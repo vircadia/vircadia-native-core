@@ -1190,13 +1190,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(this);
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    connect(domainCheckInTimer, &QTimer::timeout, [this, nodeListWeak] {
-        auto nodeList = nodeListWeak.lock();
-        if (!isServerlessMode() && nodeList) {
-            nodeList->sendDomainServerCheckIn();
-        }
-    });
+    connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
     connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
         domainCheckInTimer->stop();
@@ -3328,6 +3322,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", RenderScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
@@ -3451,6 +3446,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+        surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
     }
 }
 
@@ -3806,10 +3802,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-       DependencyManager::get<AddressManager>()->goToEntry();
-       sentTo = SENT_TO_ENTRY;
-        _firstRun.set(false);
-
+        if (!_overrideEntry) {
+            DependencyManager::get<AddressManager>()->goToEntry();
+            sentTo = SENT_TO_ENTRY;
+        } else {
+            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            sentTo = SENT_TO_PREVIOUS_LOCATION;
+        }
+       _firstRun.set(false);
     } else {
         QString goingTo = "";
         if (addressLookupString.isEmpty()) {
@@ -3825,7 +3825,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
     }
-
+    
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
         { "sandbox_is_running", sandboxIsRunning },
@@ -3886,6 +3886,7 @@ void Application::setIsInterstitialMode(bool interstitialMode) {
 }
 
 void Application::setIsServerlessMode(bool serverlessDomain) {
+    DependencyManager::get<NodeList>()->setSendDomainServerCheckInEnabled(!serverlessDomain);
     auto tree = getEntities()->getTree();
     if (tree) {
         tree->setIsServerlessMode(serverlessDomain);
@@ -5439,9 +5440,7 @@ void Application::init() {
     qCDebug(interfaceapp) << "Loaded settings";
 
     // fire off an immediate domain-server check in now that settings are loaded
-    if (!isServerlessMode()) {
-        DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
-    }
+    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "sendDomainServerCheckIn");
 
     // This allows collision to be set up properly for shape entities supported by GeometryCache.
     // This is before entity setup to ensure that it's ready for whenever instance collision is initialized.
@@ -6404,6 +6403,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("simulation");
 
         getEntities()->preUpdate();
+        _entitySimulation->removeDeadEntities();
 
         auto t0 = std::chrono::high_resolution_clock::now();
         auto t1 = t0;
@@ -9360,6 +9360,19 @@ void Application::showUrlHandler(const QUrl& url) {
             QDesktopServices::setUrlHandler(url.scheme(), this, "showUrlHandler");
         }
     });
+}
+void Application::overrideEntry(){
+    _overrideEntry = true;
+}
+void Application::forceDisplayName(const QString& displayName) {
+    getMyAvatar()->setDisplayName(displayName);
+}
+void Application::forceLoginWithTokens(const QString& tokens) {
+    DependencyManager::get<AccountManager>()->setAccessTokens(tokens);
+    Setting::Handle<bool>(KEEP_ME_LOGGED_IN_SETTING_NAME, true).set(true);
+}
+void Application::setConfigFileURL(const QString& fileUrl) {
+    DependencyManager::get<AccountManager>()->setConfigFileURL(fileUrl);
 }
 
 #if defined(Q_OS_ANDROID)

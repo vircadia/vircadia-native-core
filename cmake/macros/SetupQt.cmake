@@ -1,4 +1,3 @@
-#
 #  Created by Bradley Austin Davis on 2017/09/02
 #  Copyright 2013-2017 High Fidelity, Inc.
 #
@@ -6,67 +5,91 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 
-# Construct a default QT location from a root path, a version and an architecture
-
-function(calculate_default_qt_dir _QT_VERSION _RESULT_NAME)
-    if (ANDROID)
-        set(QT_DEFAULT_ARCH "android_armv7")
-    elseif(UWP)
-        set(QT_DEFAULT_ARCH "winrt_x64_msvc2017")
-    elseif(APPLE)
-        set(QT_DEFAULT_ARCH "clang_64")
-    elseif(WIN32)
-        set(QT_DEFAULT_ARCH "msvc2017_64")
-    else()
-        set(QT_DEFAULT_ARCH "gcc_64")
+function(get_sub_directories result curdir)
+  file(GLOB children RELATIVE ${curdir} ${curdir}/*)
+  set(dirlist "")
+  foreach(child ${children})
+    if(IS_DIRECTORY ${curdir}/${child})
+      LIST(APPEND dirlist ${child})
     endif()
+  endforeach()
+  set(${result} ${dirlist} PARENT_SCOPE)
+endfunction()
 
-    if (WIN32 OR (ANDROID AND ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")))
-        set(QT_DEFAULT_ROOT "c:/Qt")
-    else()
-        set(QT_DEFAULT_ROOT "$ENV{HOME}/Qt")
+function(calculate_qt5_version result _QT_DIR)
+  # All Qt5 packages have little "private" include directories named with the actual Qt version such as:
+  #   .../include/QtCore/5.12.3/QtCore/private
+  # Sometimes we need to include these private headers for debug hackery.
+  # Hence we find one of these directories and pick apart its path to determine the actual QT_VERSION.
+  if (APPLE)
+    set(_QT_CORE_DIR "${_QT_DIR}/lib/QtCore.framework/Versions/5/Headers")
+  else()
+    set(_QT_CORE_DIR "${_QT_DIR}/include/QtCore")
+  endif()
+  if(NOT EXISTS "${_QT_CORE_DIR}")
+      message(FATAL_ERROR "Could not find 'include/QtCore' in '${_QT_DIR}'")
+  endif()
+  set(subdirs "")
+  get_sub_directories(subdirs ${_QT_CORE_DIR})
+
+  foreach(subdir ${subdirs})
+    string(REGEX MATCH "5.[0-9]+.[0-9]+$" _QT_VERSION ${subdir})
+    if (NOT "${_QT_VERSION}" STREQUAL "")
+      # found it!
+      set(${result} "${_QT_VERSION}" PARENT_SCOPE)
+      break()
     endif()
-
-    set_from_env(QT_ROOT QT_ROOT ${QT_DEFAULT_ROOT})
-    set_from_env(QT_ARCH QT_ARCH ${QT_DEFAULT_ARCH})
-
-    set(${_RESULT_NAME} "${QT_ROOT}/${_QT_VERSION}/${QT_ARCH}" PARENT_SCOPE)
+  endforeach()
 endfunction()
 
 # Sets the QT_CMAKE_PREFIX_PATH and QT_DIR variables
 # Also enables CMAKE_AUTOMOC and CMAKE_AUTORCC
 macro(setup_qt)
-    set_from_env(QT_VERSION QT_VERSION "5.10.1")
-    # if QT_CMAKE_PREFIX_PATH was not specified before hand,
-    # try to use the environment variable
-    if (NOT QT_CMAKE_PREFIX_PATH)
-        set(QT_CMAKE_PREFIX_PATH "$ENV{QT_CMAKE_PREFIX_PATH}")
+    # if we are in a development build and QT_CMAKE_PREFIX_PATH is specified
+    # then use it,
+    # otherwise, use the vcpkg'ed version
+    if(NOT DEFINED VCPKG_QT_CMAKE_PREFIX_PATH)
+        message(FATAL_ERROR "VCPKG_QT_CMAKE_PREFIX_PATH should have been set by hifi_vcpkg.py")
     endif()
-    if (("QT_CMAKE_PREFIX_PATH" STREQUAL "") OR (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}"))
-        calculate_default_qt_dir(${QT_VERSION} QT_DIR)
-        set(QT_CMAKE_PREFIX_PATH "${QT_DIR}/lib/cmake")
+    if (NOT DEV_BUILD)
+        if (APPLE)
+            # HACK: manually set the QT_CMAKE_PREFIX_PATH so that hard-coded paths find new QT libs where we'll put them
+            set(QT_CMAKE_PREFIX_PATH "/var/tmp/qt5-install/lib/cmake")
+        elseif (UNIX AND DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+            # HACK: obey QT_CMAKE_PREFIX_PATH to allow UNIX to use older QT libs
+            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+        else()
+            set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
+        endif()
     else()
-        # figure out where the qt dir is
-        get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+        # DEV_BUILD
+        if (DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+            set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+        else()
+            set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
+        endif()
     endif()
 
-    if (WIN32)
+    # figure out where the qt dir is
+    get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+    set(QT_VERSION "unknown")
+    calculate_qt5_version(QT_VERSION "${QT_DIR}")
+    if (QT_VERSION STREQUAL "unknown")
+      message(FATAL_ERROR "Could not determine QT_VERSION")
+    endif()
+
+    if(WIN32)
         # windows shell does not like backslashes expanded on the command line,
         # so convert all backslashes in the QT path to forward slashes
         string(REPLACE \\ / QT_CMAKE_PREFIX_PATH ${QT_CMAKE_PREFIX_PATH})
         string(REPLACE \\ / QT_DIR ${QT_DIR})
     endif()
 
-    # This check doesn't work on Mac
-    #if (NOT EXISTS "${QT_DIR}/include/QtCore/QtGlobal")
-    #    message(FATAL_ERROR "Unable to locate Qt includes in ${QT_DIR}")
-    #endif()
-
-    if (NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
-        message(FATAL_ERROR "Unable to locate Qt cmake config in ${QT_CMAKE_PREFIX_PATH}")
+    if(NOT EXISTS "${QT_CMAKE_PREFIX_PATH}/Qt5Core/Qt5CoreConfig.cmake")
+        message(FATAL_ERROR "Unable to locate Qt5CoreConfig.cmake in '${QT_CMAKE_PREFIX_PATH}'")
     endif()
 
-    message(STATUS "The Qt build in use is: \"${QT_DIR}\"")
+    message(STATUS "Using Qt build in : '${QT_DIR}' with version ${QT_VERSION}")
 
     # Instruct CMake to run moc automatically when needed.
     set(CMAKE_AUTOMOC ON)

@@ -248,7 +248,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
-        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, ambientOcclusionFramebuffer, scatteringResource, velocityBuffer);
+        const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, ambientOcclusionUniforms, scatteringResource, velocityBuffer);
         const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, shadowTaskOutputs, lightingStageInputs, lightClusters, prepareDeferredOutputs, extraDebugBuffers,
                  deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);

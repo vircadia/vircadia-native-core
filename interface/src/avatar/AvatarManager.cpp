@@ -412,7 +412,7 @@ AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
     auto otherAvatar = new OtherAvatar(qApp->thread());
     otherAvatar->setSessionUUID(sessionUUID);
     auto nodeList = DependencyManager::get<NodeList>();
-    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+    if (nodeList && !nodeList->isIgnoringNode(sessionUUID)) {
         otherAvatar->createOrb();
     }
     return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });
@@ -521,6 +521,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             }
         }
     }
+    _otherAvatarsToChangeInPhysics.clear();
 }
 
 void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
@@ -645,7 +646,7 @@ void AvatarManager::clearOtherAvatars() {
 }
 
 void AvatarManager::deleteAllAvatars() {
-    assert(_otherAvatarsToChangeInPhysics.empty());
+    _otherAvatarsToChangeInPhysics.clear();
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
