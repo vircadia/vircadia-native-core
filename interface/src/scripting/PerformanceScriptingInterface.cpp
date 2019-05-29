@@ -19,6 +19,19 @@ PerformanceScriptingInterface::PerformanceScriptingInterface() {
     });
 }
 
+void PerformanceScriptingInterface::setPerformanceProfile(PerformanceProfile performanceProfile) {
+    qApp->getPerformanceManager().setPerformanceProfile((PerformanceManager::PerformanceProfile)performanceProfile);
+}
+
+PerformanceScriptingInterface::PerformanceProfile PerformanceScriptingInterface::getPerformanceProfile() const {
+    return (PerformanceScriptingInterface::PerformanceProfile)qApp->getPerformanceManager().getPerformanceProfile();
+}
+
+QStringList PerformanceScriptingInterface::getPerformanceProfileNames() const {
+    static const QStringList performanceProfileNames = { "Low", "Mid", "High" };
+    return performanceProfileNames;
+}
+
 void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile refreshRateProfile) {
     qApp->getRefreshRateManager().setRefreshRateProfile((RefreshRateManager::RefreshRateProfile)refreshRateProfile);
 }

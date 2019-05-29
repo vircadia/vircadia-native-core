@@ -119,24 +119,25 @@ public slots:
     void setAntialiasingEnabled(bool enabled);
 
     /**jsdoc
-     * Gets the current render resolution scale
-     * @function Render.getRenderResolutionScale
+     * Gets the current viewport resolution scale
+     * @function Render.getViewportResolutionScale
      * @returns {number} 
      */
-//    RenderMethod getRenderMethod();
+  //  float getViewportResolutionScale();
 
     /**jsdoc
-     * Sets the current render method
-     * @function Render.setRenderMethod
-     * @param {number} renderMethod - <code>"DEFERRED"</code> or <code>"FORWARD"</code>
+     * Sets the current viewport resolution scale
+     * @function Render.setViewportResolutionScale
+     * @param {number} resolutionScale - between epsilon and 1.0
      */
-  //  void setRenderMethod(RenderMethod renderMethod);
+  //  void setViewportResolutionScale(float resolutionScale);
 
 private:
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
     Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
     Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
+    Setting::Handle<float> _viewportResolutionScaleSetting{ "viewportResolutionScale", 1.0f };
 };
 
 #endif  // hifi_RenderScriptingInterface_h

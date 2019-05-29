@@ -5361,6 +5361,26 @@ void Application::loadSettings() {
         }
     }
 
+    if (_firstRun.get()) {
+        // If this is our first run, evalute the Platform Tier and assign the matching Performance profile by default.
+        // A bunch of Performance, Simulation and Render settings will be set to a matching default value from this
+
+        // Here is the mapping between pelatformTIer and performance profile
+        const std::array<PerformanceManager::PerformanceProfile, platform::Profiler::NumTiers> platformToPerformanceProfileMap = {{
+            PerformanceManager::PerformanceProfile::MID, // platform::Profiler::UNKNOWN
+            PerformanceManager::PerformanceProfile::LOW,  // platform::Profiler::LOW
+            PerformanceManager::PerformanceProfile::MID,  // platform::Profiler::MID
+            PerformanceManager::PerformanceProfile::HIGH  // platform::Profiler::HIGH
+        }};
+
+        // What is our profile?
+        auto platformTier = platform::Profiler::profilePlatform();
+
+        // Then let's assign the performance profile setting from it
+        getPerformanceManager().setPerformanceProfile(platformToPerformanceProfileMap[platformTier]);
+        
+    }
+
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
     // dictated that we should be in first person
     Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);

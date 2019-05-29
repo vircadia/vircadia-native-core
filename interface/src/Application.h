@@ -57,6 +57,7 @@
 #include "gpu/Context.h"
 #include "LoginStateManager.h"
 #include "Menu.h"
+#include "PerformanceManager.h"
 #include "RefreshRateManager.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -203,6 +204,8 @@ public:
     CompositorHelper& getApplicationCompositor() const;
 
     Overlays& getOverlays() { return _overlays; }
+
+    PerformanceManager& getPerformanceManager() { return _performanceManager; }
     RefreshRateManager& getRefreshRateManager() { return _refreshRateManager; }
 
     size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
@@ -734,6 +737,7 @@ private:
     QUuid _loginDialogID;
     QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
+    PerformanceManager _performanceManager;
     RefreshRateManager _refreshRateManager;
 
     quint64 _lastFaceTrackerUpdate;
