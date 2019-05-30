@@ -460,6 +460,8 @@ void PhysicalEntitySimulation::buildPhysicsTransaction(PhysicsEngine::Transactio
 void PhysicalEntitySimulation::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
     // things on objectsToRemove are ready for delete
     for (auto object : transaction.objectsToRemove) {
+        EntityMotionState* entityState = static_cast<EntityMotionState*>(object);
+        removeOwnershipData(entityState);
         _physicalObjects.remove(object);
         delete object;
     }
