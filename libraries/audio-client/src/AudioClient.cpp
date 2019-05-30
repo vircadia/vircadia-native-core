@@ -291,6 +291,7 @@ AudioClient::AudioClient() :
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
     _localToOutputResampler(NULL),
+    _loopbackResampler(NULL),
     _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
@@ -762,6 +763,11 @@ void AudioClient::stop() {
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 
+    if (_loopbackResampler) {
+        delete _loopbackResampler;
+        _loopbackResampler = NULL;
+    }
+
     // Stop triggering the checks
     QObject::disconnect(_checkPeakValuesTimer, &QTimer::timeout, nullptr, nullptr);
     QObject::disconnect(_checkDevicesTimer, &QTimer::timeout, nullptr, nullptr);
@@ -1085,13 +1091,6 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         return;
     }
 
-    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
-    // multimedia OS they should be. If there is a device that this is not true for, we can
-    // add back support to do resampling.
-    if (_inputFormat.sampleRate() != _outputFormat.sampleRate()) {
-        return;
-    }
-
     // if this person wants local loopback add that to the locally injected audio
     // if there is reverb apply it to local audio and substract the origin samples
 
@@ -1108,21 +1107,30 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         }
     }
 
+    // if required, create loopback resampler
+    if (_inputFormat.sampleRate() != _outputFormat.sampleRate() && !_loopbackResampler) {
+        qCDebug(audioclient) << "Resampling" << _inputFormat.sampleRate() << "to" << _outputFormat.sampleRate() << "for audio loopback.";
+
+        int channelCount = (_inputFormat.channelCount() == 2 && _outputFormat.channelCount() == 2) ? 2 : 1;
+        _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
+    }
+
     static QByteArray loopBackByteArray;
 
     int numInputSamples = inputByteArray.size() / AudioConstants::SAMPLE_SIZE;
-    int numLoopbackSamples = (numInputSamples * OUTPUT_CHANNEL_COUNT) / _inputFormat.channelCount();
+    int numInputFrames = numInputSamples / _inputFormat.channelCount();
+    int numLoopbackFrames = (numInputFrames * _outputFormat.sampleRate() + _inputFormat.sampleRate() - 1) / _inputFormat.sampleRate();
+    int numLoopbackSamples = numLoopbackFrames * OUTPUT_CHANNEL_COUNT;
 
     loopBackByteArray.resize(numLoopbackSamples * AudioConstants::SAMPLE_SIZE);
 
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
-    // upmix mono to stereo
-    if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat.channelCount(), OUTPUT_CHANNEL_COUNT)) {
-        // no conversion, just copy the samples
-        memcpy(loopbackSamples, inputSamples, numInputSamples * AudioConstants::SAMPLE_SIZE);
-    }
+    possibleResampling(_loopbackResampler,
+                       inputSamples, loopbackSamples,
+                       numInputSamples, numLoopbackSamples,
+                       _inputFormat.channelCount(), OUTPUT_CHANNEL_COUNT);
 
     // apply stereo reverb at the source, to the loopback audio
     if (!_shouldEchoLocally && hasReverb) {
@@ -1892,13 +1900,20 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
         _outputDeviceInfo = QAudioDeviceInfo();
     }
 
+    // cleanup any resamplers
     if (_networkToOutputResampler) {
-        // if we were using an input to network resampler, delete it here
         delete _networkToOutputResampler;
         _networkToOutputResampler = NULL;
+    }
 
+    if (_localToOutputResampler) {
         delete _localToOutputResampler;
         _localToOutputResampler = NULL;
+    }
+
+    if (_loopbackResampler) {
+        delete _loopbackResampler;
+        _loopbackResampler = NULL;
     }
 
     if (isShutdownRequest) {

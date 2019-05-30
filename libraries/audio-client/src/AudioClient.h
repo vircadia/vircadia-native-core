@@ -390,6 +390,7 @@ private:
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
     AudioSRC* _localToOutputResampler;
+    AudioSRC* _loopbackResampler;
 
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
