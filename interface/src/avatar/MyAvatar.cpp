@@ -1598,6 +1598,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 blobFailed = true; // blob doesn't exist
                 return;
             }
+            std::lock_guard<std::mutex> guard(_myScriptEngineLock);
             if (!EntityItemProperties::blobToProperties(*_myScriptEngine, itr.value(), properties)) {
                 blobFailed = true; // blob is corrupt
             }
@@ -1630,6 +1631,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 skip = true;
                 return;
             }
+            std::lock_guard<std::mutex> guard(_myScriptEngineLock);
             if (!EntityItemProperties::blobToProperties(*_myScriptEngine, itr.value(), properties)) {
                 skip = true;
             }
@@ -1737,7 +1739,10 @@ bool MyAvatar::updateStaleAvatarEntityBlobs() const {
         if (found) {
             ++numFound;
             QByteArray blob;
-            EntityItemProperties::propertiesToBlob(*_myScriptEngine, getID(), properties, blob);
+            {
+                std::lock_guard<std::mutex> guard(_myScriptEngineLock);
+                EntityItemProperties::propertiesToBlob(*_myScriptEngine, getID(), properties, blob);
+            }
             _avatarEntitiesLock.withWriteLock([&] {
                 _cachedAvatarEntityBlobs[id] = blob;
             });
@@ -2476,15 +2481,18 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             if (!entity) {
                 continue;
             }
-            QVariantMap avatarEntityData;
             EncodeBitstreamParams params;
             auto desiredProperties = entity->getEntityProperties(params);
             desiredProperties += PROP_LOCAL_POSITION;
             desiredProperties += PROP_LOCAL_ROTATION;
-            EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_myScriptEngine, entityProperties);
+            QVariantMap avatarEntityData;
             avatarEntityData["id"] = entityID;
-            avatarEntityData["properties"] = scriptProperties.toVariant();
+            {
+                std::lock_guard<std::mutex> guard(_myScriptEngineLock);
+                EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
+                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_myScriptEngine, entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
+            }
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
     }
