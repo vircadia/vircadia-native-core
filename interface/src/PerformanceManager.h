@@ -35,6 +35,9 @@ public:
 private:
     mutable ReadWriteLockable _performanceProfileSettingLock;
     Setting::Handle<int> _performanceProfileSetting { "performanceProfile", PerformanceManager::PerformanceProfile::MID };
+
+    // The concrete performance profile changes
+    void applyPerformanceProfile(PerformanceManager::PerformanceProfile performanceProfile);
 };
 
 #endif

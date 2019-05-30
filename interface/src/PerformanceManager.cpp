@@ -10,14 +10,20 @@
 //
 #include "PerformanceManager.h"
 
+#include "scripting/RenderScriptingInterface.h"
+
 PerformanceManager::PerformanceManager()
 {
 }
 
 void PerformanceManager::setPerformanceProfile(PerformanceManager::PerformanceProfile performanceProfile) {
-    _performanceProfileSettingLock.withWriteLock([&] {
-        _performanceProfileSetting.set((int)performanceProfile);
-    });
+    if (getPerformanceProfile() != performanceProfile) {
+        _performanceProfileSettingLock.withWriteLock([&] {
+            _performanceProfileSetting.set((int)performanceProfile);
+        });
+
+        applyPerformanceProfile(performanceProfile);
+    }
 }
 
 PerformanceManager::PerformanceProfile PerformanceManager::getPerformanceProfile() const {
@@ -28,4 +34,30 @@ PerformanceManager::PerformanceProfile PerformanceManager::getPerformanceProfile
     });
 
     return profile;
+}
+
+void PerformanceManager::applyPerformanceProfile(PerformanceManager::PerformanceProfile performanceProfile) {
+
+    switch (performanceProfile) {
+        case PerformanceProfile::HIGH:
+            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
+            RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
+            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
+
+        break;
+        case PerformanceProfile::MID:
+            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
+            RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
+            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
+
+        break;
+        case PerformanceProfile::LOW:
+            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::FORWARD);
+            RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
+            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);
+
+        break;
+        default:
+        break;
+    }
 }

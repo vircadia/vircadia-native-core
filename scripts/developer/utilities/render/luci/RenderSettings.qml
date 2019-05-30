@@ -20,6 +20,14 @@ Column {
     id: theGrapchicsSettings;   
 
     Prop.PropEnum {
+        label: "Performance Profile"
+        //object: Performance
+        valueVarSetter: Performance.setPerformanceProfile 
+        valueVarGetter: Performance.getPerformanceProfile 
+        enums: Performance.getPerformanceProfileNames()
+    }
+
+    Prop.PropEnum {
         label: "Refresh Rate Profile"
         //object: Performance
         valueVarSetter: Performance.setRefreshRateProfile 
