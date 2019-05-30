@@ -59,7 +59,12 @@ void LocationBookmarks::setHomeLocation() {
 }
 
 void LocationBookmarks::setHomeLocationToAddress(const QVariant& address) {
-    Bookmarks::insert("Home", address);
+    Bookmarks::insert(HOME_BOOKMARK, address);
+}
+
+
+QString LocationBookmarks::getHomeLocationAddress() {
+    return addressForBookmark(HOME_BOOKMARK);
 }
 
 void LocationBookmarks::teleportToBookmark() {
