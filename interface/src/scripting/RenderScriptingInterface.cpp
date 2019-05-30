@@ -19,24 +19,24 @@ RenderScriptingInterface* RenderScriptingInterface::getInstance() {
 }
 
 RenderScriptingInterface::RenderScriptingInterface() {
-    setRenderMethod((render::Args::RenderMethod)_renderMethodSetting.get() == render::Args::RenderMethod::DEFERRED ? DEFERRED : FORWARD);
+    setRenderMethod((RenderMethod)_renderMethodSetting.get() == RenderMethod::DEFERRED ? RenderMethod::DEFERRED : RenderMethod::FORWARD);
     setShadowsEnabled(_shadowsEnabledSetting.get());
     setAmbientOcclusionEnabled(_ambientOcclusionEnabledSetting.get());
     setAntialiasingEnabled(_antialiasingEnabledSetting.get());
 }
 
-QString RenderScriptingInterface::getRenderMethod() {
-    return (render::Args::RenderMethod)_renderMethodSetting.get() == render::Args::RenderMethod::DEFERRED ? DEFERRED : FORWARD;
+RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod() {
+    return (RenderMethod)_renderMethodSetting.get() == RenderMethod::DEFERRED ? RenderMethod::DEFERRED : RenderMethod::FORWARD;
 }
 
-void RenderScriptingInterface::setRenderMethod(const QString& renderMethod) {
-    render::Args::RenderMethod newMethod = renderMethod == FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED;
+void RenderScriptingInterface::setRenderMethod(RenderScriptingInterface::RenderMethod renderMethod) {
+    RenderMethod newMethod = renderMethod == RenderMethod::FORWARD ? RenderMethod::FORWARD : RenderMethod::DEFERRED;
     if (_renderMethodSetting.get() == newMethod) {
         return;
     }
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setRenderMethod", Q_ARG(const QString&, renderMethod));
+        QMetaObject::invokeMethod(this, "setRenderMethod", Q_ARG(RenderScriptingInterface::RenderMethod, renderMethod));
         return;
     }
 
@@ -46,6 +46,11 @@ void RenderScriptingInterface::setRenderMethod(const QString& renderMethod) {
         config->setBranch(newMethod);
         emit config->dirtyEnabled();
     }
+}
+
+QStringList RenderScriptingInterface::getRenderMethodNames() const {
+    static const QStringList refrenderMethodNames = { "Deferred", "Forward" };
+    return refrenderMethodNames;
 }
 
 bool RenderScriptingInterface::getShadowsEnabled() {

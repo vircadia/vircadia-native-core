@@ -25,7 +25,7 @@
  */
 class RenderScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(QString renderMethod READ getRenderMethod WRITE setRenderMethod)
+    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod)
     Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled)
     Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled)
     Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled)
@@ -34,6 +34,13 @@ public:
     RenderScriptingInterface();
 
     static RenderScriptingInterface* getInstance();
+
+    // RenderMethod enum type
+    enum RenderMethod {
+        DEFERRED = render::Args::RenderMethod::DEFERRED,
+        FORWARD = render::Args::RenderMethod::FORWARD,
+    };
+    Q_ENUM(RenderMethod);
 
 public slots:
     /**jsdoc
@@ -50,16 +57,24 @@ public slots:
     /**jsdoc
      * Gets the current render method
      * @function Render.getRenderMethod
-     * @returns {string} <code>"deferred"</code> or <code>"forward"</code>
+     * @returns {number} <code>"DEFERRED"</code> or <code>"FORWARD"</code>
      */
-    QString getRenderMethod();
+    RenderMethod getRenderMethod();
 
     /**jsdoc
      * Sets the current render method
      * @function Render.setRenderMethod
-     * @param {string} renderMethod - <code>"deferred"</code> or <code>"forward"</code>
+     * @param {number} renderMethod - <code>"DEFERRED"</code> or <code>"FORWARD"</code>
      */
-    void setRenderMethod(const QString& renderMethod);
+    void setRenderMethod(RenderMethod renderMethod);
+
+    /**jsdoc
+    * Gets the possible enum names of the RenderMethod type
+    * @function Render.getRenderMethodNames
+    * @returns [string] [ <code>"DEFERRED"</code>, <code>"FORWARD"</code> ]
+    */
+    QStringList getRenderMethodNames() const;
+
 
     /**jsdoc
      * Whether or not shadows are enabled
@@ -103,11 +118,26 @@ public slots:
      */
     void setAntialiasingEnabled(bool enabled);
 
+    /**jsdoc
+     * Gets the current viewport resolution scale
+     * @function Render.getViewportResolutionScale
+     * @returns {number} 
+     */
+  //  float getViewportResolutionScale();
+
+    /**jsdoc
+     * Sets the current viewport resolution scale
+     * @function Render.setViewportResolutionScale
+     * @param {number} resolutionScale - between epsilon and 1.0
+     */
+  //  void setViewportResolutionScale(float resolutionScale);
+
 private:
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
     Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
     Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
+    Setting::Handle<float> _viewportResolutionScaleSetting{ "viewportResolutionScale", 1.0f };
 };
 
 #endif  // hifi_RenderScriptingInterface_h

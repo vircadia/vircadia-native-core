@@ -14,12 +14,22 @@
 
 #include <QObject>
 
+#include "../PerformanceManager.h"
 #include "../RefreshRateManager.h"
 
 
 class PerformanceScriptingInterface : public QObject {
     Q_OBJECT
 public:
+
+    // PerformanceManager PerformancePreset tri state level enums
+    enum PerformancePreset {
+        LOW = PerformanceManager::PerformancePreset::LOW,
+        MID = PerformanceManager::PerformancePreset::MID,
+        HIGH = PerformanceManager::PerformancePreset::HIGH,
+    };
+    Q_ENUM(PerformancePreset)
+
     // Must match RefreshRateManager enums
     enum RefreshRateProfile {
         ECO = RefreshRateManager::RefreshRateProfile::ECO,
@@ -28,18 +38,22 @@ public:
     };
     Q_ENUM(RefreshRateProfile)
 
-   
     PerformanceScriptingInterface();
     ~PerformanceScriptingInterface() = default;
 
 public slots:
+
+    void setPerformancePreset(PerformancePreset performancePreset);
+    PerformancePreset getPerformancePreset() const;
+    QStringList getPerformancePresetNames() const;
+
     void setRefreshRateProfile(RefreshRateProfile refreshRateProfile);
     RefreshRateProfile getRefreshRateProfile() const;
+    QStringList getRefreshRateProfileNames() const;
 
     int getActiveRefreshRate() const;
     RefreshRateManager::UXMode getUXMode() const;
     RefreshRateManager::RefreshRateRegime getRefreshRateRegime() const;
-
 
 private:
     static std::once_flag registry_flag;
