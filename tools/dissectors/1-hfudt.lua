@@ -163,10 +163,13 @@ local unsourced_packet_types = {
 
 local fragments = {}
 
+local RFC_5389_MAGIC_COOKIE = 0x2112A442
+
 function p_hfudt.dissector(buf, pinfo, tree)
 
    -- make sure this isn't a STUN packet - those don't follow HFUDT format
-  if pinfo.dst == Address.ip("stun.highfidelity.io") then return end
+  -- if pinfo.dst == Address.ip("stun.highfidelity.io") then return end
+  if buf(4, 4):uint() == RFC_5389_MAGIC_COOKIE then return end
 
   -- validate that the packet length is at least the minimum control packet size
   if buf:len() < 4 then return end
