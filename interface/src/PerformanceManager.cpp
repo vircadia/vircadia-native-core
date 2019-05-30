@@ -16,42 +16,42 @@ PerformanceManager::PerformanceManager()
 {
 }
 
-void PerformanceManager::setPerformanceProfile(PerformanceManager::PerformanceProfile performanceProfile) {
-    if (getPerformanceProfile() != performanceProfile) {
-        _performanceProfileSettingLock.withWriteLock([&] {
-            _performanceProfileSetting.set((int)performanceProfile);
+void PerformanceManager::setPerformancePreset(PerformanceManager::PerformancePreset preset) {
+    if (getPerformancePreset() != preset) {
+        _performancePresetSettingLock.withWriteLock([&] {
+            _performancePresetSetting.set((int)preset);
         });
 
-        applyPerformanceProfile(performanceProfile);
+        applyPerformancePreset(preset);
     }
 }
 
-PerformanceManager::PerformanceProfile PerformanceManager::getPerformanceProfile() const {
-    PerformanceProfile profile = PerformanceProfile::MID;
+PerformanceManager::PerformancePreset PerformanceManager::getPerformancePreset() const {
+    PerformancePreset preset = PerformancePreset::MID;
 
-    profile = (PerformanceProfile) _performanceProfileSettingLock.resultWithReadLock<int>([&] {
-        return _performanceProfileSetting.get();
+    preset = (PerformancePreset) _performancePresetSettingLock.resultWithReadLock<int>([&] {
+        return _performancePresetSetting.get();
     });
 
-    return profile;
+    return preset;
 }
 
-void PerformanceManager::applyPerformanceProfile(PerformanceManager::PerformanceProfile performanceProfile) {
+void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformancePreset preset) {
 
-    switch (performanceProfile) {
-        case PerformanceProfile::HIGH:
+    switch (preset) {
+        case PerformancePreset::HIGH:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
 
         break;
-        case PerformanceProfile::MID:
+        case PerformancePreset::MID:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
 
         break;
-        case PerformanceProfile::LOW:
+        case PerformancePreset::LOW:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::FORWARD);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);

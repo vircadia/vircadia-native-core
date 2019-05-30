@@ -19,7 +19,7 @@
 
 class PerformanceManager {
 public:
-    enum PerformanceProfile {
+    enum PerformancePreset {
         LOW = 0,
         MID,
         HIGH,
@@ -29,15 +29,15 @@ public:
     PerformanceManager();
     ~PerformanceManager() = default;
 
-    void setPerformanceProfile(PerformanceProfile performanceProfile);
-    PerformanceProfile getPerformanceProfile() const;
+    void setPerformancePreset(PerformancePreset performancePreset);
+    PerformancePreset getPerformancePreset() const;
 
 private:
-    mutable ReadWriteLockable _performanceProfileSettingLock;
-    Setting::Handle<int> _performanceProfileSetting { "performanceProfile", PerformanceManager::PerformanceProfile::MID };
+    mutable ReadWriteLockable _performancePresetSettingLock;
+    Setting::Handle<int> _performancePresetSetting { "performancePreset", PerformanceManager::PerformancePreset::MID };
 
-    // The concrete performance profile changes
-    void applyPerformanceProfile(PerformanceManager::PerformanceProfile performanceProfile);
+    // The concrete performance preset changes
+    void applyPerformancePreset(PerformanceManager::PerformancePreset performancePreset);
 };
 
 #endif

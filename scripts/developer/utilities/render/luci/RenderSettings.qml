@@ -11,29 +11,12 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
-import controlsUit 1.0 as HifiControls
-
 import "../../lib/prop" as Prop
 
 Column {
-    anchors.fill: parent 
-    id: theGrapchicsSettings;   
+    anchors.left: parent.left 
+    anchors.right: parent.right 
 
-    Prop.PropEnum {
-        label: "Performance Profile"
-        //object: Performance
-        valueVarSetter: Performance.setPerformanceProfile 
-        valueVarGetter: Performance.getPerformanceProfile 
-        enums: Performance.getPerformanceProfileNames()
-    }
-
-    Prop.PropEnum {
-        label: "Refresh Rate Profile"
-        //object: Performance
-        valueVarSetter: Performance.setRefreshRateProfile 
-        valueVarGetter: Performance.getRefreshRateProfile 
-        enums: Performance.getRefreshRateProfileNames()
-    }
 
     Prop.PropEnum {
         label: "Render Method"

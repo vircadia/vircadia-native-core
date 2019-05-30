@@ -5366,18 +5366,18 @@ void Application::loadSettings() {
         // A bunch of Performance, Simulation and Render settings will be set to a matching default value from this
 
         // Here is the mapping between pelatformTIer and performance profile
-        const std::array<PerformanceManager::PerformanceProfile, platform::Profiler::NumTiers> platformToPerformanceProfileMap = {{
-            PerformanceManager::PerformanceProfile::MID, // platform::Profiler::UNKNOWN
-            PerformanceManager::PerformanceProfile::LOW,  // platform::Profiler::LOW
-            PerformanceManager::PerformanceProfile::MID,  // platform::Profiler::MID
-            PerformanceManager::PerformanceProfile::HIGH  // platform::Profiler::HIGH
+        const std::array<PerformanceManager::PerformancePreset, platform::Profiler::NumTiers> platformToPerformancePresetMap = {{
+            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::UNKNOWN
+            PerformanceManager::PerformancePreset::LOW,  // platform::Profiler::LOW
+            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::MID
+            PerformanceManager::PerformancePreset::HIGH  // platform::Profiler::HIGH
         }};
 
         // What is our profile?
         auto platformTier = platform::Profiler::profilePlatform();
 
-        // Then let's assign the performance profile setting from it
-        getPerformanceManager().setPerformanceProfile(platformToPerformanceProfileMap[platformTier]);
+        // Then let's assign the performance preset setting from it
+        getPerformanceManager().setPerformancePreset(platformToPerformancePresetMap[platformTier]);
         
     }
 

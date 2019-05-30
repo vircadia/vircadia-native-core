@@ -22,13 +22,13 @@ class PerformanceScriptingInterface : public QObject {
     Q_OBJECT
 public:
 
-    // PerformanceManager PerformanceProfile tri state level enums
-    enum PerformanceProfile {
-        LOW = PerformanceManager::PerformanceProfile::LOW,
-        MID = PerformanceManager::PerformanceProfile::MID,
-        HIGH = PerformanceManager::PerformanceProfile::HIGH,
+    // PerformanceManager PerformancePreset tri state level enums
+    enum PerformancePreset {
+        LOW = PerformanceManager::PerformancePreset::LOW,
+        MID = PerformanceManager::PerformancePreset::MID,
+        HIGH = PerformanceManager::PerformancePreset::HIGH,
     };
-    Q_ENUM(PerformanceProfile)
+    Q_ENUM(PerformancePreset)
 
     // Must match RefreshRateManager enums
     enum RefreshRateProfile {
@@ -43,9 +43,9 @@ public:
 
 public slots:
 
-    void setPerformanceProfile(PerformanceProfile performanceProfile);
-    PerformanceProfile getPerformanceProfile() const;
-    QStringList getPerformanceProfileNames() const;
+    void setPerformancePreset(PerformancePreset performancePreset);
+    PerformancePreset getPerformancePreset() const;
+    QStringList getPerformancePresetNames() const;
 
     void setRefreshRateProfile(RefreshRateProfile refreshRateProfile);
     RefreshRateProfile getRefreshRateProfile() const;

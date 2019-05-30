@@ -19,17 +19,17 @@ PerformanceScriptingInterface::PerformanceScriptingInterface() {
     });
 }
 
-void PerformanceScriptingInterface::setPerformanceProfile(PerformanceProfile performanceProfile) {
-    qApp->getPerformanceManager().setPerformanceProfile((PerformanceManager::PerformanceProfile)performanceProfile);
+void PerformanceScriptingInterface::setPerformancePreset(PerformancePreset performancePreset) {
+    qApp->getPerformanceManager().setPerformancePreset((PerformanceManager::PerformancePreset)performancePreset);
 }
 
-PerformanceScriptingInterface::PerformanceProfile PerformanceScriptingInterface::getPerformanceProfile() const {
-    return (PerformanceScriptingInterface::PerformanceProfile)qApp->getPerformanceManager().getPerformanceProfile();
+PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::getPerformancePreset() const {
+    return (PerformanceScriptingInterface::PerformancePreset)qApp->getPerformanceManager().getPerformancePreset();
 }
 
-QStringList PerformanceScriptingInterface::getPerformanceProfileNames() const {
-    static const QStringList performanceProfileNames = { "Low", "Mid", "High" };
-    return performanceProfileNames;
+QStringList PerformanceScriptingInterface::getPerformancePresetNames() const {
+    static const QStringList performancePresetNames = { "Low", "Mid", "High" };
+    return performancePresetNames;
 }
 
 void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile refreshRateProfile) {
