@@ -215,10 +215,7 @@ endif()
 
     def getQt5InstallPath(self):
         qt5InstallPath = os.path.join(self.path, 'installed', 'qt5-install')
-        if os.getenv('HIFI_QT_INSTALL_ROOT'):
-            # Allow qt install path to be overriden by an environment variable
-            qt5InstallPath = os.getenv('HIFI_QT_INSTALL_ROOT')
-        elif self.args.android:
+        if self.args.android:
             precompiled = os.path.realpath(self.androidPackagePath)
             qt5InstallPath = os.path.realpath(os.path.join(precompiled, 'qt'))
         return qt5InstallPath
