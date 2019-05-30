@@ -1174,7 +1174,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 r
     extendedHeaderStream << node->getPermissions();
     extendedHeaderStream << limitedNodeList->getAuthenticatePackets();
     extendedHeaderStream << nodeData->getLastDomainCheckinTimestamp();
-    extendedHeaderStream << duration_cast<microseconds>(system_clock::now().time_since_epoch()).count();
+    extendedHeaderStream << quint64(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
     extendedHeaderStream << quint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count()) - requestPacketReceiveTime;
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
