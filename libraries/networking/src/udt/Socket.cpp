@@ -162,15 +162,15 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
 }
 
 qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr) {
+
+    if (packetList->getNumPackets() == 0) {
+        qCWarning(networking) << "Trying to send packet list with 0 packets, bailing.";
+        return 0;
+    }
+
     if (packetList->isReliable()) {
         // hand this packetList off to writeReliablePacketList
         // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacketList
-
-        if (packetList->getNumPackets() == 0) {
-            qCWarning(networking) << "Trying to send packet list with 0 packets, bailing.";
-            return 0;
-        }
-
 
         if (QThread::currentThread() != thread()) {
             auto ptr = packetList.release();
@@ -189,7 +189,6 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
     while (!packetList->_packets.empty()) {
         totalBytesSent += writePacket(packetList->takeFront<Packet>(), sockAddr);
     }
-
     return totalBytesSent;
 }
 
@@ -228,7 +227,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
     if (bytesWritten < 0) {
         // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        HIFI_FCDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error());
+        qCDebug(networking) << "Socket::writeDatagram : " << sockAddr << " " << _udpSocket.error();
     }
 
     return bytesWritten;
@@ -242,10 +241,8 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
 
         if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
             // the connection creation filter did not allow us to create a new connection
-#ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
                 << "due to connection creation filter";
-#endif
             return nullptr;
         } else {
             auto congestionControl = _ccFactory->create();
@@ -259,9 +256,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);
 
-#ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Creating new connection to" << sockAddr;
-#endif
 
             it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
         }
@@ -489,7 +484,7 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    HIFI_FCDEBUG(networking(), "udt::Socket error - " << socketError);
+    qCDebug(networking) << "udt::Socket error - " << socketError;
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
