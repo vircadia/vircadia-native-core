@@ -27,10 +27,10 @@ void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, co
         auto& tangentsOut = tangentsPerMeshOut[tangentsPerMeshOut.size()-1];
 
         // Check if we already have tangents and therefore do not need to do any calculation
-        // Otherwise confirm if we have the normals needed, and need to calculate the tangents
+        // Otherwise confirm if we have the normals and texcoords needed
         if (!tangentsIn.empty()) {
             tangentsOut = tangentsIn.toStdVector();
-        } else if (!normals.empty()) {
+        } else if (!normals.empty() && mesh.vertices.size() == mesh.texCoords.size()) {
             tangentsOut.resize(normals.size());
             baker::calculateTangents(mesh,
             [&mesh, &normals, &tangentsOut](int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec2* outTexCoords, glm::vec3& outNormal) {

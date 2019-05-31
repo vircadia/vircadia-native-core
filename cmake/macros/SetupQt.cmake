@@ -52,13 +52,12 @@ macro(setup_qt)
         message(FATAL_ERROR "VCPKG_QT_CMAKE_PREFIX_PATH should have been set by hifi_vcpkg.py")
     endif()
     if (NOT DEV_BUILD)
-        if (APPLE)
-            # HACK: manually set the QT_CMAKE_PREFIX_PATH so that hard-coded paths find new QT libs where we'll put them
-            set(QT_CMAKE_PREFIX_PATH "/var/tmp/qt5-install/lib/cmake")
-        elseif (UNIX AND DEFINED ENV{QT_CMAKE_PREFIX_PATH})
+        if (UNIX AND DEFINED ENV{QT_CMAKE_PREFIX_PATH} AND NOT APPLE)
             # HACK: obey QT_CMAKE_PREFIX_PATH to allow UNIX to use older QT libs
+            message("HACK: obey QT_CMAKE_PREFIX_PATH on UNIX")
             set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
         else()
+            message("override QT_CMAKE_PREFIX_PATH with VCPKG_QT_CMAKE_PREFIX_PATH")
             set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
         endif()
     else()
@@ -69,6 +68,8 @@ macro(setup_qt)
             set(QT_CMAKE_PREFIX_PATH ${VCPKG_QT_CMAKE_PREFIX_PATH})
         endif()
     endif()
+
+    message("QT_CMAKE_PREFIX_PATH = " ${QT_CMAKE_PREFIX_PATH})
 
     # figure out where the qt dir is
     get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)

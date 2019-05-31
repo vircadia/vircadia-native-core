@@ -400,10 +400,19 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
 }
 
 void Audio::setAvatarGain(float gain) {
+    bool changed = false;
+    if (getAvatarGain() != gain) {
+        changed = true;
+    }
+
     withWriteLock([&] {
         // ask the NodeList to set the master avatar gain
         DependencyManager::get<NodeList>()->setAvatarGain(QUuid(), gain);
     });
+
+    if (changed) {
+        emit avatarGainChanged(gain);
+    }
 }
 
 float Audio::getAvatarGain() {
@@ -413,10 +422,19 @@ float Audio::getAvatarGain() {
 }
 
 void Audio::setInjectorGain(float gain) {
+    bool changed = false;
+    if (getInjectorGain() != gain) {
+        changed = true;
+    }
+
     withWriteLock([&] {
         // ask the NodeList to set the audio injector gain
         DependencyManager::get<NodeList>()->setInjectorGain(gain);
     });
+
+    if (changed) {
+        emit serverInjectorGainChanged(gain);
+    }
 }
 
 float Audio::getInjectorGain() {
@@ -426,6 +444,11 @@ float Audio::getInjectorGain() {
 }
 
 void Audio::setLocalInjectorGain(float gain) {
+    bool changed = false;
+    if (getLocalInjectorGain() != gain) {
+        changed = true;
+    }
+
     withWriteLock([&] {
         if (_localInjectorGain != gain) {
             _localInjectorGain = gain;
@@ -436,6 +459,11 @@ void Audio::setLocalInjectorGain(float gain) {
             DependencyManager::get<AudioClient>()->setLocalInjectorGain(gain);
         }
     });
+
+
+    if (changed) {
+        emit localInjectorGainChanged(gain);
+    }
 }
 
 float Audio::getLocalInjectorGain() {
@@ -445,6 +473,11 @@ float Audio::getLocalInjectorGain() {
 }
 
 void Audio::setSystemInjectorGain(float gain) {
+    bool changed = false;
+    if (getSystemInjectorGain() != gain) {
+        changed = true;
+    }
+
     withWriteLock([&] {
         if (_systemInjectorGain != gain) {
             _systemInjectorGain = gain;
@@ -455,6 +488,10 @@ void Audio::setSystemInjectorGain(float gain) {
             DependencyManager::get<AudioClient>()->setSystemInjectorGain(gain);
         }
     });
+
+    if (changed) {
+        emit systemInjectorGainChanged(gain);
+    }
 }
 
 float Audio::getSystemInjectorGain() {

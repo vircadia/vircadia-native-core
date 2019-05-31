@@ -690,6 +690,8 @@ void convertImageToLDRTexture(gpu::Texture* texture, Image&& image, BackendTarge
             compressionOptions.setFormat(nvtt::Format_BC4);
         } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_XY) {
             compressionOptions.setFormat(nvtt::Format_BC5);
+        } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
+            compressionOptions.setFormat(nvtt::Format_BC6);
         } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_SRGBA_HIGH) {
             alphaMode = nvtt::AlphaMode_Transparency;
             compressionOptions.setFormat(nvtt::Format_BC7);

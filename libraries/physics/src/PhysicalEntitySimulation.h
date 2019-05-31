@@ -80,6 +80,7 @@ protected: // only called by EntitySimulation
 
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
+    void removeDeadEntities();
 
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
@@ -121,6 +122,7 @@ private:
     VectorOfEntityMotionStates _owned;
     VectorOfEntityMotionStates _bids;
     SetOfEntities _deadAvatarEntities;
+    std::vector<EntityItemPointer> _entitiesToDeleteLater;
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };

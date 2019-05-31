@@ -340,6 +340,7 @@ private:
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
+    std::atomic<bool> _audioOutputInitialized { false };
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;

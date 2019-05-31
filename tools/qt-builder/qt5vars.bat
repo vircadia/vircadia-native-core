@@ -1,6 +1,6 @@
 @echo off
 
-REM Set up \Microsoft Visual Studio 2015, where <arch> is \c amd64, \c x86, etc.
+REM Set up \Microsoft Visual Studio 2017, where <arch> is \c amd64, \c x86, etc.
 CALL "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 
 REM Edit this location to point to the source code of Qt

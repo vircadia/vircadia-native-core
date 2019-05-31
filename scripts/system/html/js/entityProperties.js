@@ -1329,7 +1329,7 @@ const GROUPS = [
                 propertyID: "grab.grabFollowsController",
             },
             {
-                label: "Cast shadows",
+                label: "Cast Shadows",
                 type: "bool",
                 propertyID: "canCastShadow",
             },
@@ -1338,6 +1338,11 @@ const GROUPS = [
                 type: "string",
                 propertyID: "href",
                 placeholder: "URL",
+            },
+            {
+                label: "Ignore Pick Intersection",
+                type: "bool",
+                propertyID: "ignorePickIntersection",
             },
             {
                 label: "Script",

@@ -47,6 +47,12 @@ public slots:
      */
     void setHomeLocationToAddress(const QVariant& address);
 
+    /**jsdoc
+     * @function LocationBookmarksgetHomeLocationAddress
+     * @returns {string} The url for the home location bookmark
+     */
+    QString getHomeLocationAddress();
+
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) override;
 
