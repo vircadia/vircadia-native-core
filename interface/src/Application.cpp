@@ -4155,8 +4155,14 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     }
 
     if (event->type() == QEvent::WindowStateChange) {
-        if (getWindow()->windowState() == Qt::WindowMinimized) {
+        if (getWindow()->windowState() & Qt::WindowMinimized) {
             getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::MINIMIZED);
+        } else {
+            auto* windowStateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
+            if (windowStateChangeEvent->oldState() & Qt::WindowMinimized) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+                getRefreshRateManager().resetInactiveTimer();
+            }
         }
     }
 
