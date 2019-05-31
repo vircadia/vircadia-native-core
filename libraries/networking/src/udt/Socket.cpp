@@ -241,8 +241,10 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
 
         if (filterCreate && _connectionCreationFilterOperator && !_connectionCreationFilterOperator(sockAddr)) {
             // the connection creation filter did not allow us to create a new connection
+#ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
                 << "due to connection creation filter";
+#endif // UDT_CONNECTION_DEBUG
             return nullptr;
         } else {
             auto congestionControl = _ccFactory->create();
