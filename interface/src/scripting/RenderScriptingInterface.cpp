@@ -10,8 +10,6 @@
 #include "LightingModel.h"
 #include "AntialiasingEffect.h"
 
-const QString DEFERRED = "deferred";
-const QString FORWARD = "forward";
 
 RenderScriptingInterface* RenderScriptingInterface::getInstance() {
     static RenderScriptingInterface sharedInstance;
@@ -45,11 +43,12 @@ void RenderScriptingInterface::setRenderMethod(RenderScriptingInterface::RenderM
         _renderMethodSetting.set(newMethod);
         config->setBranch(newMethod);
         emit config->dirtyEnabled();
+        emit settingsChanged();
     }
 }
 
 QStringList RenderScriptingInterface::getRenderMethodNames() const {
-    static const QStringList refrenderMethodNames = { "Deferred", "Forward" };
+    static const QStringList refrenderMethodNames = { "DEFERRED", "FORWARD" };
     return refrenderMethodNames;
 }
 
@@ -72,6 +71,7 @@ void RenderScriptingInterface::setShadowsEnabled(bool enabled) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::Shadows, enabled);
         _shadowsEnabledSetting.set(enabled);
         lightingModelConfig->setShadow(enabled);
+        emit settingsChanged();
     }
 }
 
@@ -94,6 +94,7 @@ void RenderScriptingInterface::setAmbientOcclusionEnabled(bool enabled) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::AmbientOcclusion, enabled);
         _ambientOcclusionEnabledSetting.set(enabled);
         lightingModelConfig->setAmbientOcclusion(enabled);
+        emit settingsChanged();
     }
 }
 
@@ -123,5 +124,7 @@ void RenderScriptingInterface::setAntialiasingEnabled(bool enabled) {
             mainViewJitterCamConfig->none();
             mainViewAntialiasingConfig->setDebugFXAA(true);
         }
+
+        emit settingsChanged();
     }
 }

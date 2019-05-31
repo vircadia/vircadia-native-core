@@ -28,7 +28,7 @@ PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::
 }
 
 QStringList PerformanceScriptingInterface::getPerformancePresetNames() const {
-    static const QStringList performancePresetNames = { "Unknown", "Low", "Mid", "High" };
+    static const QStringList performancePresetNames = { "UNKNOWN", "LOW", "MID", "HIGH" };
     return performancePresetNames;
 }
 
@@ -41,7 +41,7 @@ PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface:
 }
 
 QStringList PerformanceScriptingInterface::getRefreshRateProfileNames() const {
-    static const QStringList refreshRateProfileNames = { "Eco", "Interactive", "Realtime" };
+    static const QStringList refreshRateProfileNames = { "ECO", "INTERACTIVE", "REALTIME" };
     return refreshRateProfileNames;
 }
 

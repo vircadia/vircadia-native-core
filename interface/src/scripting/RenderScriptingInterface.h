@@ -25,10 +25,10 @@
  */
 class RenderScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod)
-    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled)
-    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled)
-    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled)
+    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
+    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
 
 public:
     RenderScriptingInterface();
@@ -131,6 +131,9 @@ public slots:
      * @param {number} resolutionScale - between epsilon and 1.0
      */
   //  void setViewportResolutionScale(float resolutionScale);
+
+signals:
+    void settingsChanged();
 
 private:
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
