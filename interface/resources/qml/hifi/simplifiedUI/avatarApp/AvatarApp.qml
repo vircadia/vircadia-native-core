@@ -99,6 +99,27 @@ Rectangle {
         }
     }
 
+    Image {
+        id: homeButton
+        source: "images/homeIcon.svg"
+        opacity: homeButtonMouseArea.containsMouse ? 1.0 : 0.7
+        anchors.top: parent.top
+        anchors.topMargin: 15
+        anchors.right: parent.right
+        anchors.rightMargin: 24
+        width: 14
+        height: 13
+
+        MouseArea {
+            id: homeButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: {
+                Window.location = LocationBookmarks.getHomeLocationAddress();
+            }
+        }
+    }
+
     AvatarAppComponents.DisplayNameHeader {
         id: displayNameHeader
         previewUrl: root.avatarPreviewUrl
