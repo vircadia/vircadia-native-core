@@ -101,7 +101,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 id: performanceTitle
-                text: "Performance"
+                text: "Graphics Preset"
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 22
@@ -115,28 +115,28 @@ Flickable {
 
                 SimplifiedControls.RadioButton {
                     id: performanceLow
-                    text: "Eco"
-                    checked: Performance.getRefreshRateProfile() === RefreshRate.ECO
+                    text: "Low"
+                    checked: Performance.getPerformancePreset() === PerformacePreset.LOW
                     onClicked: {
-                        Performance.setRefreshRateProfile(RefreshRate.ECO);
+                        Performance.setPerformancePreset(PerformacePreset.LOW);
                     }
                 }
 
                 SimplifiedControls.RadioButton {
                     id: performanceMedium
-                    text: "Interactive"
-                    checked: Performance.getRefreshRateProfile() === RefreshRate.INTERACTIVE
+                    text: "Medium"
+                    checked: Performance.getPerformancePreset() === PerformacePreset.MID
                     onClicked: {
-                        Performance.setRefreshRateProfile(RefreshRate.INTERACTIVE);
+                        Performance.setPerformancePreset(PerformacePreset.MID);
                     }
                 }
 
                 SimplifiedControls.RadioButton {
                     id: performanceHigh
-                    text: "Realtime"
-                    checked: Performance.getRefreshRateProfile() === RefreshRate.REALTIME
+                    text: "High"
+                    checked: Performance.getPerformancePreset() === PerformacePreset.HIGH
                     onClicked: {
-                        Performance.setRefreshRateProfile(RefreshRate.REALTIME);
+                        Performance.setPerformancePreset(PerformacePreset.HIGH);
                     }
                 }
             }
