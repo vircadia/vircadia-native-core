@@ -57,7 +57,9 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);
 
         break;
+        case PerformancePreset::UNKNOWN:
         default:
+            // Do nothing anymore
         break;
     }
 }

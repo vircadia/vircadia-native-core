@@ -20,7 +20,8 @@
 class PerformanceManager {
 public:
     enum PerformancePreset {
-        LOW = 0,
+        UNKNOWN = 0, // Matching the platform Tier profiles enumeration for coherence
+        LOW,
         MID,
         HIGH,
         PROFILE_COUNT

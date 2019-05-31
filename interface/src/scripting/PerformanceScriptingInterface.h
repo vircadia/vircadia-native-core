@@ -27,6 +27,7 @@ public:
         LOW = PerformanceManager::PerformancePreset::LOW,
         MID = PerformanceManager::PerformancePreset::MID,
         HIGH = PerformanceManager::PerformancePreset::HIGH,
+        UNKNOWN = PerformanceManager::PerformancePreset::UNKNOWN,
     };
     Q_ENUM(PerformancePreset)
 
