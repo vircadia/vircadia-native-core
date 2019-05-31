@@ -116,27 +116,27 @@ Flickable {
                 SimplifiedControls.RadioButton {
                     id: performanceLow
                     text: "Low"
-                    checked: Performance.getPerformancePreset() === PerformacePreset.LOW
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.LOW
                     onClicked: {
-                        Performance.setPerformancePreset(PerformacePreset.LOW);
+                        Performance.setPerformancePreset(PerformanceEnums.LOW);
                     }
                 }
 
                 SimplifiedControls.RadioButton {
                     id: performanceMedium
                     text: "Medium"
-                    checked: Performance.getPerformancePreset() === PerformacePreset.MID
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.MID
                     onClicked: {
-                        Performance.setPerformancePreset(PerformacePreset.MID);
+                        Performance.setPerformancePreset(PerformanceEnums.MID);
                     }
                 }
 
                 SimplifiedControls.RadioButton {
                     id: performanceHigh
                     text: "High"
-                    checked: Performance.getPerformancePreset() === PerformacePreset.HIGH
+                    checked: Performance.getPerformancePreset() === PerformanceEnums.HIGH
                     onClicked: {
-                        Performance.setPerformancePreset(PerformacePreset.HIGH);
+                        Performance.setPerformancePreset(PerformanceEnums.HIGH);
                     }
                 }
             }
