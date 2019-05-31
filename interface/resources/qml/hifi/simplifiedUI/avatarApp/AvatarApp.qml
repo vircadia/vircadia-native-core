@@ -12,6 +12,7 @@ import QtQuick 2.10
 import "../simplifiedConstants" as SimplifiedConstants
 import "./components" as AvatarAppComponents
 import stylesUit 1.0 as HifiStylesUit
+import TabletScriptingInterface 1.0
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Rectangle {
@@ -114,7 +115,11 @@ Rectangle {
             id: homeButtonMouseArea
             anchors.fill: parent
             hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
             onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
                 // Can't use `Window.location` in QML, so just use what setting `Window.location` actually calls under the hood:
                 // AddressManager.handleLookupString().
                 AddressManager.handleLookupString(LocationBookmarks.getHomeLocationAddress());
