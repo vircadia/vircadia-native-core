@@ -104,41 +104,199 @@ bool EntityItemProperties::constructFromBuffer(const unsigned char* data, int da
     return true;
 }
 
-QHash<QString, ShapeType> stringToShapeTypeLookup;
-
-void addShapeType(ShapeType type) {
-    stringToShapeTypeLookup[ShapeInfo::getNameForShapeType(type)] = type;
+inline void addShapeType(QHash<QString, ShapeType>& lookup, ShapeType type) { lookup[ShapeInfo::getNameForShapeType(type)] = type; }
+QHash<QString, ShapeType> stringToShapeTypeLookup = [] {
+    QHash<QString, ShapeType> toReturn;
+    addShapeType(toReturn, SHAPE_TYPE_NONE);
+    addShapeType(toReturn, SHAPE_TYPE_BOX);
+    addShapeType(toReturn, SHAPE_TYPE_SPHERE);
+    addShapeType(toReturn, SHAPE_TYPE_CAPSULE_X);
+    addShapeType(toReturn, SHAPE_TYPE_CAPSULE_Y);
+    addShapeType(toReturn, SHAPE_TYPE_CAPSULE_Z);
+    addShapeType(toReturn, SHAPE_TYPE_CYLINDER_X);
+    addShapeType(toReturn, SHAPE_TYPE_CYLINDER_Y);
+    addShapeType(toReturn, SHAPE_TYPE_CYLINDER_Z);
+    addShapeType(toReturn, SHAPE_TYPE_HULL);
+    addShapeType(toReturn, SHAPE_TYPE_PLANE);
+    addShapeType(toReturn, SHAPE_TYPE_COMPOUND);
+    addShapeType(toReturn, SHAPE_TYPE_SIMPLE_HULL);
+    addShapeType(toReturn, SHAPE_TYPE_SIMPLE_COMPOUND);
+    addShapeType(toReturn, SHAPE_TYPE_STATIC_MESH);
+    addShapeType(toReturn, SHAPE_TYPE_ELLIPSOID);
+    addShapeType(toReturn, SHAPE_TYPE_CIRCLE);
+    return toReturn;
+}();
+QString EntityItemProperties::getShapeTypeAsString() const { return ShapeInfo::getNameForShapeType(_shapeType); }
+void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
+    auto shapeTypeItr = stringToShapeTypeLookup.find(shapeName.toLower());
+    if (shapeTypeItr != stringToShapeTypeLookup.end()) {
+        _shapeType = shapeTypeItr.value();
+        _shapeTypeChanged = true;
+    }
 }
 
-void buildStringToShapeTypeLookup() {
-    addShapeType(SHAPE_TYPE_NONE);
-    addShapeType(SHAPE_TYPE_BOX);
-    addShapeType(SHAPE_TYPE_SPHERE);
-    addShapeType(SHAPE_TYPE_CAPSULE_X);
-    addShapeType(SHAPE_TYPE_CAPSULE_Y);
-    addShapeType(SHAPE_TYPE_CAPSULE_Z);
-    addShapeType(SHAPE_TYPE_CYLINDER_X);
-    addShapeType(SHAPE_TYPE_CYLINDER_Y);
-    addShapeType(SHAPE_TYPE_CYLINDER_Z);
-    addShapeType(SHAPE_TYPE_HULL);
-    addShapeType(SHAPE_TYPE_PLANE);
-    addShapeType(SHAPE_TYPE_COMPOUND);
-    addShapeType(SHAPE_TYPE_SIMPLE_HULL);
-    addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
-    addShapeType(SHAPE_TYPE_STATIC_MESH);
-    addShapeType(SHAPE_TYPE_ELLIPSOID);
-    addShapeType(SHAPE_TYPE_CIRCLE);
+inline void addMaterialMappingMode(QHash<QString, MaterialMappingMode>& lookup, MaterialMappingMode mode) { lookup[MaterialMappingModeHelpers::getNameForMaterialMappingMode(mode)] = mode; }
+const QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup = [] {
+    QHash<QString, MaterialMappingMode> toReturn;
+    addMaterialMappingMode(toReturn, UV);
+    addMaterialMappingMode(toReturn, PROJECTED);
+    return toReturn;
+}();
+QString EntityItemProperties::getMaterialMappingModeAsString() const { return MaterialMappingModeHelpers::getNameForMaterialMappingMode(_materialMappingMode); }
+void EntityItemProperties::setMaterialMappingModeFromString(const QString& materialMappingMode) {
+    auto materialMappingModeItr = stringToMaterialMappingModeLookup.find(materialMappingMode.toLower());
+    if (materialMappingModeItr != stringToMaterialMappingModeLookup.end()) {
+        _materialMappingMode = materialMappingModeItr.value();
+        _materialMappingModeChanged = true;
+    }
 }
 
-QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;
-
-void addMaterialMappingMode(MaterialMappingMode mode) {
-    stringToMaterialMappingModeLookup[MaterialMappingModeHelpers::getNameForMaterialMappingMode(mode)] = mode;
+inline void addBillboardMode(QHash<QString, BillboardMode>& lookup, BillboardMode mode) { lookup[BillboardModeHelpers::getNameForBillboardMode(mode)] = mode; }
+const QHash<QString, BillboardMode> stringToBillboardModeLookup = [] {
+    QHash<QString, BillboardMode> toReturn;
+    addBillboardMode(toReturn, BillboardMode::NONE);
+    addBillboardMode(toReturn, BillboardMode::YAW);
+    addBillboardMode(toReturn, BillboardMode::FULL);
+    return toReturn;
+}();
+QString EntityItemProperties::getBillboardModeAsString() const { return BillboardModeHelpers::getNameForBillboardMode(_billboardMode); }
+void EntityItemProperties::setBillboardModeFromString(const QString& billboardMode) {
+    auto billboardModeItr = stringToBillboardModeLookup.find(billboardMode.toLower());
+    if (billboardModeItr != stringToBillboardModeLookup.end()) {
+        _billboardMode = billboardModeItr.value();
+        _billboardModeChanged = true;
+    }
 }
 
-void buildStringToMaterialMappingModeLookup() {
-    addMaterialMappingMode(UV);
-    addMaterialMappingMode(PROJECTED);
+inline void addRenderLayer(QHash<QString, RenderLayer>& lookup, RenderLayer mode) { lookup[RenderLayerHelpers::getNameForRenderLayer(mode)] = mode; }
+const QHash<QString, RenderLayer> stringToRenderLayerLookup = [] {
+    QHash<QString, RenderLayer> toReturn;
+    addRenderLayer(toReturn, RenderLayer::WORLD);
+    addRenderLayer(toReturn, RenderLayer::FRONT);
+    addRenderLayer(toReturn, RenderLayer::HUD);
+    return toReturn;
+}();
+QString EntityItemProperties::getRenderLayerAsString() const { return RenderLayerHelpers::getNameForRenderLayer(_renderLayer); }
+void EntityItemProperties::setRenderLayerFromString(const QString& renderLayer) {
+    auto renderLayerItr = stringToRenderLayerLookup.find(renderLayer.toLower());
+    if (renderLayerItr != stringToRenderLayerLookup.end()) {
+        _renderLayer = renderLayerItr.value();
+        _renderLayerChanged = true;
+    }
+}
+
+inline void addPrimitiveMode(QHash<QString, PrimitiveMode>& lookup, PrimitiveMode mode) { lookup[PrimitiveModeHelpers::getNameForPrimitiveMode(mode)] = mode; }
+const QHash<QString, PrimitiveMode> stringToPrimitiveModeLookup = [] {
+    QHash<QString, PrimitiveMode> toReturn;
+    addPrimitiveMode(toReturn, PrimitiveMode::SOLID);
+    addPrimitiveMode(toReturn, PrimitiveMode::LINES);
+    return toReturn;
+}();
+QString EntityItemProperties::getPrimitiveModeAsString() const { return PrimitiveModeHelpers::getNameForPrimitiveMode(_primitiveMode); }
+void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMode) {
+    auto primitiveModeItr = stringToPrimitiveModeLookup.find(primitiveMode.toLower());
+    if (primitiveModeItr != stringToPrimitiveModeLookup.end()) {
+        _primitiveMode = primitiveModeItr.value();
+        _primitiveModeChanged = true;
+    }
+}
+
+inline void addWebInputMode(QHash<QString, WebInputMode>& lookup, WebInputMode mode) { lookup[WebInputModeHelpers::getNameForWebInputMode(mode)] = mode; }
+const QHash<QString, WebInputMode> stringToWebInputModeLookup = [] {
+    QHash<QString, WebInputMode> toReturn;
+    addWebInputMode(toReturn, WebInputMode::TOUCH);
+    addWebInputMode(toReturn, WebInputMode::MOUSE);
+    return toReturn;
+}();
+QString EntityItemProperties::getInputModeAsString() const { return WebInputModeHelpers::getNameForWebInputMode(_inputMode); }
+void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
+    auto webInputModeItr = stringToWebInputModeLookup.find(webInputMode.toLower());
+    if (webInputModeItr != stringToWebInputModeLookup.end()) {
+        _inputMode = webInputModeItr.value();
+        _inputModeChanged = true;
+    }
+}
+
+inline void addGizmoType(QHash<QString, GizmoType>& lookup, GizmoType mode) { lookup[GizmoTypeHelpers::getNameForGizmoType(mode)] = mode; }
+const QHash<QString, GizmoType> stringToGizmoTypeLookup = [] {
+    QHash<QString, GizmoType> toReturn;
+    addGizmoType(toReturn, GizmoType::RING);
+    return toReturn;
+}();
+QString EntityItemProperties::getGizmoTypeAsString() const { return GizmoTypeHelpers::getNameForGizmoType(_gizmoType); }
+void EntityItemProperties::setGizmoTypeFromString(const QString& gizmoType) {
+    auto gizmoTypeItr = stringToGizmoTypeLookup.find(gizmoType.toLower());
+    if (gizmoTypeItr != stringToGizmoTypeLookup.end()) {
+        _gizmoType = gizmoTypeItr.value();
+        _gizmoTypeChanged = true;
+    }
+}
+
+inline void addComponentMode(QHash<QString, ComponentMode>& lookup, ComponentMode mode) { lookup[ComponentModeHelpers::getNameForComponentMode(mode)] = mode; }
+const QHash<QString, ComponentMode> stringToComponentMode = [] {
+    QHash<QString, ComponentMode> toReturn;
+    addComponentMode(toReturn, ComponentMode::COMPONENT_MODE_INHERIT);
+    addComponentMode(toReturn, ComponentMode::COMPONENT_MODE_DISABLED);
+    addComponentMode(toReturn, ComponentMode::COMPONENT_MODE_ENABLED);
+    return toReturn;
+}();
+QString EntityItemProperties::getComponentModeAsString(uint32_t mode) { return ComponentModeHelpers::getNameForComponentMode((ComponentMode)mode); }
+QString EntityItemProperties::getSkyboxModeAsString() const { return getComponentModeAsString(_skyboxMode); }
+QString EntityItemProperties::getKeyLightModeAsString() const { return getComponentModeAsString(_keyLightMode); }
+QString EntityItemProperties::getAmbientLightModeAsString() const { return getComponentModeAsString(_ambientLightMode); }
+QString EntityItemProperties::getHazeModeAsString() const { return getComponentModeAsString(_hazeMode); }
+QString EntityItemProperties::getBloomModeAsString() const { return getComponentModeAsString(_bloomMode); }
+void EntityItemProperties::setSkyboxModeFromString(const QString& mode) {
+    auto modeItr = stringToComponentMode.find(mode.toLower());
+    if (modeItr != stringToComponentMode.end()) {
+        _skyboxMode = modeItr.value();
+        _skyboxModeChanged = true;
+    }
+}
+void EntityItemProperties::setKeyLightModeFromString(const QString& mode) {
+    auto modeItr = stringToComponentMode.find(mode.toLower());
+    if (modeItr != stringToComponentMode.end()) {
+        _keyLightMode = modeItr.value();
+        _keyLightModeChanged = true;
+    }
+}
+void EntityItemProperties::setAmbientLightModeFromString(const QString& mode) {
+    auto modeItr = stringToComponentMode.find(mode.toLower());
+    if (modeItr != stringToComponentMode.end()) {
+        _ambientLightMode = modeItr.value();
+        _ambientLightModeChanged = true;
+    }
+}
+void EntityItemProperties::setHazeModeFromString(const QString& mode) {
+    auto modeItr = stringToComponentMode.find(mode.toLower());
+    if (modeItr != stringToComponentMode.end()) {
+        _hazeMode = modeItr.value();
+        _hazeModeChanged = true;
+    }
+}
+void EntityItemProperties::setBloomModeFromString(const QString& mode) {
+    auto modeItr = stringToComponentMode.find(mode.toLower());
+    if (modeItr != stringToComponentMode.end()) {
+        _bloomMode = modeItr.value();
+        _bloomModeChanged = true;
+    }
+}
+
+inline void addAvatarPriorityMode(QHash<QString, AvatarPriorityMode>& lookup, AvatarPriorityMode mode) { lookup[AvatarPriorityModeHelpers::getNameForAvatarPriorityMode(mode)] = mode; }
+const QHash<QString, AvatarPriorityMode> stringToAvatarPriority = [] {
+    QHash<QString, AvatarPriorityMode> toReturn;
+    addAvatarPriorityMode(toReturn, AvatarPriorityMode::AVATAR_PRIORITY_INHERIT);
+    addAvatarPriorityMode(toReturn, AvatarPriorityMode::AVATAR_PRIORITY_CROWD);
+    addAvatarPriorityMode(toReturn, AvatarPriorityMode::AVATAR_PRIORITY_HERO);
+    return toReturn;
+}();
+QString EntityItemProperties::getAvatarPriorityAsString() const { return AvatarPriorityModeHelpers::getNameForAvatarPriorityMode((AvatarPriorityMode)_avatarPriority); }
+void EntityItemProperties::setAvatarPriorityFromString(const QString& mode) {
+    auto modeItr = stringToAvatarPriority.find(mode.toLower());
+    if (modeItr != stringToAvatarPriority.end()) {
+        _avatarPriority = modeItr.value();
+        _avatarPriorityChanged = true;
+    }
 }
 
 QString getCollisionGroupAsString(uint16_t group) {
@@ -194,134 +352,6 @@ void EntityItemProperties::setCollisionMaskFromString(const QString& maskString)
     _collisionMaskChanged = true;
 }
 
-QString EntityItemProperties::getShapeTypeAsString() const {
-    return ShapeInfo::getNameForShapeType(_shapeType);
-}
-
-void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
-    if (stringToShapeTypeLookup.empty()) {
-        buildStringToShapeTypeLookup();
-    }
-    auto shapeTypeItr = stringToShapeTypeLookup.find(shapeName.toLower());
-    if (shapeTypeItr != stringToShapeTypeLookup.end()) {
-        _shapeType = shapeTypeItr.value();
-        _shapeTypeChanged = true;
-    }
-}
-
-QString EntityItemProperties::getComponentModeAsString(uint32_t mode) {
-    // return "inherit" if mode is not valid
-    if (mode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[mode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
-    }
-}
-
-QString EntityItemProperties::getHazeModeAsString() const {
-    return getComponentModeAsString(_hazeMode);
-}
-
-QString EntityItemProperties::getBloomModeAsString() const {
-    return getComponentModeAsString(_bloomMode);
-}
-
-namespace {
-    const QStringList AVATAR_PRIORITIES_AS_STRING
-        { "inherit", "crowd", "hero" };
-}
-
-QString EntityItemProperties::getAvatarPriorityAsString() const {
-    return AVATAR_PRIORITIES_AS_STRING.value(_avatarPriority);
-}
-
-std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
-    return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
-        return (pair.second == mode);
-    });
-}
-
-void EntityItemProperties::setHazeModeFromString(const QString& hazeMode) {
-    auto result = findComponent(hazeMode);
-
-    if (result != COMPONENT_MODES.end()) {
-        _hazeMode = result->first;
-        _hazeModeChanged = true;
-    }
-}
-
-void EntityItemProperties::setBloomModeFromString(const QString& bloomMode) {
-    auto result = findComponent(bloomMode);
-
-    if (result != COMPONENT_MODES.end()) {
-        _bloomMode = result->first;
-        _bloomModeChanged = true;
-    }
-}
-
-void EntityItemProperties::setAvatarPriorityFromString(QString const& avatarPriority) {
-    auto result = AVATAR_PRIORITIES_AS_STRING.indexOf(avatarPriority);
-
-    if (result != -1) {
-        _avatarPriority = result;
-        _avatarPriorityChanged = true;
-    }
-}
-
-QString EntityItemProperties::getKeyLightModeAsString() const {
-    return getComponentModeAsString(_keyLightMode);
-}
-
-void EntityItemProperties::setKeyLightModeFromString(const QString& keyLightMode) {
-    auto result = findComponent(keyLightMode);
-
-    if (result != COMPONENT_MODES.end()) {
-        _keyLightMode = result->first;
-        _keyLightModeChanged = true;
-    }
-}
-
-QString EntityItemProperties::getAmbientLightModeAsString() const {
-    return getComponentModeAsString(_ambientLightMode);
-}
-
-void EntityItemProperties::setAmbientLightModeFromString(const QString& ambientLightMode) {
-    auto result = findComponent(ambientLightMode);
-
-    if (result != COMPONENT_MODES.end()) {
-        _ambientLightMode = result->first;
-        _ambientLightModeChanged = true;
-    }
-}
-
-QString EntityItemProperties::getSkyboxModeAsString() const {
-    return getComponentModeAsString(_skyboxMode);
-}
-
-void EntityItemProperties::setSkyboxModeFromString(const QString& skyboxMode) {
-    auto result = findComponent(skyboxMode);
-
-    if (result != COMPONENT_MODES.end()) {
-        _skyboxMode = result->first;
-        _skyboxModeChanged = true;
-    }
-}
-
-QString EntityItemProperties::getMaterialMappingModeAsString() const {
-    return MaterialMappingModeHelpers::getNameForMaterialMappingMode(_materialMappingMode);
-}
-
-void EntityItemProperties::setMaterialMappingModeFromString(const QString& materialMappingMode) {
-    if (stringToMaterialMappingModeLookup.empty()) {
-        buildStringToMaterialMappingModeLookup();
-    }
-    auto materialMappingModeItr = stringToMaterialMappingModeLookup.find(materialMappingMode.toLower());
-    if (materialMappingModeItr != stringToMaterialMappingModeLookup.end()) {
-        _materialMappingMode = materialMappingModeItr.value();
-        _materialMappingModeChanged = true;
-    }
-}
-
 QString EntityItemProperties::getEntityHostTypeAsString() const {
     switch (_entityHostType) {
         case entity::HostType::DOMAIN:
@@ -342,137 +372,6 @@ void EntityItemProperties::setEntityHostTypeFromString(const QString& entityHost
         _entityHostType = entity::HostType::AVATAR;
     } else if (entityHostType == "local") {
         _entityHostType = entity::HostType::LOCAL;
-    }
-}
-
-QHash<QString, BillboardMode> stringToBillboardModeLookup;
-
-void addBillboardMode(BillboardMode mode) {
-    stringToBillboardModeLookup[BillboardModeHelpers::getNameForBillboardMode(mode)] = mode;
-}
-
-void buildStringToBillboardModeLookup() {
-    addBillboardMode(BillboardMode::NONE);
-    addBillboardMode(BillboardMode::YAW);
-    addBillboardMode(BillboardMode::FULL);
-}
-
-QString EntityItemProperties::getBillboardModeAsString() const {
-    return BillboardModeHelpers::getNameForBillboardMode(_billboardMode);
-}
-
-void EntityItemProperties::setBillboardModeFromString(const QString& billboardMode) {
-    if (stringToBillboardModeLookup.empty()) {
-        buildStringToBillboardModeLookup();
-    }
-    auto billboardModeItr = stringToBillboardModeLookup.find(billboardMode.toLower());
-    if (billboardModeItr != stringToBillboardModeLookup.end()) {
-        _billboardMode = billboardModeItr.value();
-        _billboardModeChanged = true;
-    }
-}
-
-QHash<QString, RenderLayer> stringToRenderLayerLookup;
-
-void addRenderLayer(RenderLayer mode) {
-    stringToRenderLayerLookup[RenderLayerHelpers::getNameForRenderLayer(mode)] = mode;
-}
-
-void buildStringToRenderLayerLookup() {
-    addRenderLayer(RenderLayer::WORLD);
-    addRenderLayer(RenderLayer::FRONT);
-    addRenderLayer(RenderLayer::HUD);
-}
-
-QString EntityItemProperties::getRenderLayerAsString() const {
-    return RenderLayerHelpers::getNameForRenderLayer(_renderLayer);
-}
-
-void EntityItemProperties::setRenderLayerFromString(const QString& renderLayer) {
-    if (stringToRenderLayerLookup.empty()) {
-        buildStringToRenderLayerLookup();
-    }
-    auto renderLayerItr = stringToRenderLayerLookup.find(renderLayer.toLower());
-    if (renderLayerItr != stringToRenderLayerLookup.end()) {
-        _renderLayer = renderLayerItr.value();
-        _renderLayerChanged = true;
-    }
-}
-
-QHash<QString, PrimitiveMode> stringToPrimitiveModeLookup;
-
-void addPrimitiveMode(PrimitiveMode mode) {
-    stringToPrimitiveModeLookup[PrimitiveModeHelpers::getNameForPrimitiveMode(mode)] = mode;
-}
-
-void buildStringToPrimitiveModeLookup() {
-    addPrimitiveMode(PrimitiveMode::SOLID);
-    addPrimitiveMode(PrimitiveMode::LINES);
-}
-
-QString EntityItemProperties::getPrimitiveModeAsString() const {
-    return PrimitiveModeHelpers::getNameForPrimitiveMode(_primitiveMode);
-}
-
-void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMode) {
-    if (stringToPrimitiveModeLookup.empty()) {
-        buildStringToPrimitiveModeLookup();
-    }
-    auto primitiveModeItr = stringToPrimitiveModeLookup.find(primitiveMode.toLower());
-    if (primitiveModeItr != stringToPrimitiveModeLookup.end()) {
-        _primitiveMode = primitiveModeItr.value();
-        _primitiveModeChanged = true;
-    }
-}
-
-QHash<QString, WebInputMode> stringToWebInputModeLookup;
-
-void addWebInputMode(WebInputMode mode) {
-    stringToWebInputModeLookup[WebInputModeHelpers::getNameForWebInputMode(mode)] = mode;
-}
-
-void buildStringToWebInputModeLookup() {
-    addWebInputMode(WebInputMode::TOUCH);
-    addWebInputMode(WebInputMode::MOUSE);
-}
-
-QString EntityItemProperties::getInputModeAsString() const {
-    return WebInputModeHelpers::getNameForWebInputMode(_inputMode);
-}
-
-void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
-    if (stringToWebInputModeLookup.empty()) {
-        buildStringToWebInputModeLookup();
-    }
-    auto webInputModeItr = stringToWebInputModeLookup.find(webInputMode.toLower());
-    if (webInputModeItr != stringToWebInputModeLookup.end()) {
-        _inputMode = webInputModeItr.value();
-        _inputModeChanged = true;
-    }
-}
-
-QHash<QString, GizmoType> stringToGizmoTypeLookup;
-
-void addGizmoType(GizmoType mode) {
-    stringToGizmoTypeLookup[GizmoTypeHelpers::getNameForGizmoType(mode)] = mode;
-}
-
-void buildStringToGizmoTypeLookup() {
-    addGizmoType(GizmoType::RING);
-}
-
-QString EntityItemProperties::getGizmoTypeAsString() const {
-    return GizmoTypeHelpers::getNameForGizmoType(_gizmoType);
-}
-
-void EntityItemProperties::setGizmoTypeFromString(const QString& gizmoType) {
-    if (stringToGizmoTypeLookup.empty()) {
-        buildStringToGizmoTypeLookup();
-    }
-    auto gizmoTypeItr = stringToGizmoTypeLookup.find(gizmoType.toLower());
-    if (gizmoTypeItr != stringToGizmoTypeLookup.end()) {
-        _gizmoType = gizmoTypeItr.value();
-        _gizmoTypeChanged = true;
     }
 }
 
