@@ -324,7 +324,7 @@ public:
     bool getDynamic() const;
     void setDynamic(bool value);
 
-    virtual bool shouldBePhysical() const { return !isDead() && getShapeType() != SHAPE_TYPE_NONE; }
+    virtual bool shouldBePhysical() const { return !isDead() && getShapeType() != SHAPE_TYPE_NONE && !isLocalEntity(); }
     bool isVisuallyReady() const { return _visuallyReady; }
 
     bool getLocked() const;
