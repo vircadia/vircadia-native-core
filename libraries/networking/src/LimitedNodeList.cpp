@@ -869,6 +869,8 @@ void LimitedNodeList::removeSilentNodes() {
 
     QSet<SharedNodePointer> killedNodes;
 
+    auto startedAt = usecTimestampNow();
+
     eachNodeHashIterator([&](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
@@ -889,7 +891,15 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
-        qCDebug(networking_ice) << "Removing silent node" << killedNode;
+        auto now = usecTimestampNow();
+        qCDebug(networking_ice) << "Removing silent node" << *killedNode << "\n"
+            << "    Now: " << now << "\n"
+            << "    Started at: " << startedAt << " (" << (now - startedAt) << "us ago)\n"
+            << "    Last Heard Microstamp: " << killedNode->getLastHeardMicrostamp() << " (" << (now - killedNode->getLastHeardMicrostamp()) << "us ago)\n"
+            << "    Forced Never Silent: " << killedNode->isForcedNeverSilent() << "\n"
+            << "    Inbound PPS: " << killedNode->getInboundPPS() << "\n"
+            << "    Inbound Kbps: " << killedNode->getInboundKbps() << "\n"
+            << "    Ping: " << killedNode->getPingMs();
         handleNodeKill(killedNode);
     }
 }
