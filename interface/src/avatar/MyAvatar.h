@@ -2741,8 +2741,8 @@ private:
     mutable std::set<QUuid> _staleCachedAvatarEntityBlobs;
     //
     // keep a ScriptEngine around so we don't have to instantiate on the fly (these are very slow to create/delete)
-    mutable std::mutex _myScriptEngineLock;
-    QScriptEngine* _myScriptEngine { nullptr };
+    mutable std::mutex _scriptEngineLock;
+    QScriptEngine* _scriptEngine { nullptr };
     bool _needToSaveAvatarEntitySettings { false };
 };
 
