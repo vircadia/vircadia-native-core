@@ -2487,12 +2487,13 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             desiredProperties += PROP_LOCAL_ROTATION;
             QVariantMap avatarEntityData;
             avatarEntityData["id"] = entityID;
+            EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
+            QScriptValue scriptProperties;
             {
                 std::lock_guard<std::mutex> guard(_scriptEngineLock);
-                EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-                QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine, entityProperties);
-                avatarEntityData["properties"] = scriptProperties.toVariant();
+                scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine, entityProperties);
             }
+            avatarEntityData["properties"] = scriptProperties.toVariant();
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
     }
