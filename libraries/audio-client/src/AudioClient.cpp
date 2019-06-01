@@ -1101,10 +1101,8 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
     // if required, create loopback resampler
     if (_inputFormat.sampleRate() != _outputFormat.sampleRate() && !_loopbackResampler) {
-        qCDebug(audioclient) << "Resampling" << _inputFormat.sampleRate() << "to" << _outputFormat.sampleRate() << "for audio loopback.";
-
-        int channelCount = (_inputFormat.channelCount() == 2 && _outputFormat.channelCount() == 2) ? 2 : 1;
-        _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), channelCount);
+        qCDebug(audioclient) << "Resampling from" << _inputFormat.sampleRate() << "to" << _outputFormat.sampleRate() << "for audio loopback.";
+        _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
     }
 
     static QByteArray loopBackByteArray;
