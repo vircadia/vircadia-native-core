@@ -713,6 +713,10 @@ int possibleResampling(AudioSRC* resampler,
     }
 
     int numDestinationSamples = numDestinationFrames * destinationChannelCount;
+    if (numDestinationSamples > maxDestinationSamples) {
+        qCWarning(audioclient) << "Resampler overflow! numDestinationSamples =" << numDestinationSamples
+                               << "but maxDestinationSamples =" << maxDestinationSamples;
+    }
     return numDestinationSamples;
 }
 
