@@ -10,6 +10,7 @@
 #include "LightingModel.h"
 #include "AntialiasingEffect.h"
 
+std::once_flag RenderScriptingInterface::registry_flag;
 
 RenderScriptingInterface* RenderScriptingInterface::getInstance() {
     static RenderScriptingInterface sharedInstance;
@@ -17,32 +18,34 @@ RenderScriptingInterface* RenderScriptingInterface::getInstance() {
 }
 
 RenderScriptingInterface::RenderScriptingInterface() {
-    setRenderMethod((RenderMethod)_renderMethodSetting.get() == RenderMethod::DEFERRED ? RenderMethod::DEFERRED : RenderMethod::FORWARD);
+    std::call_once(registry_flag, [] {
+        qmlRegisterType<RenderScriptingInterface>("RenderEnums", 1, 0, "RenderEnums");
+    });
+
+    setRenderMethod((RenderMethod)_renderMethodSettingLock.resultWithReadLock<int>([&] {
+        return _renderMethodSetting.get();
+    }));
     setShadowsEnabled(_shadowsEnabledSetting.get());
     setAmbientOcclusionEnabled(_ambientOcclusionEnabledSetting.get());
     setAntialiasingEnabled(_antialiasingEnabledSetting.get());
 }
 
 RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod() {
-    return (RenderMethod)_renderMethodSetting.get() == RenderMethod::DEFERRED ? RenderMethod::DEFERRED : RenderMethod::FORWARD;
+    return (RenderMethod) _renderMethod;
 }
 
-void RenderScriptingInterface::setRenderMethod(RenderScriptingInterface::RenderMethod renderMethod) {
-    RenderMethod newMethod = renderMethod == RenderMethod::FORWARD ? RenderMethod::FORWARD : RenderMethod::DEFERRED;
-    if (_renderMethodSetting.get() == newMethod) {
-        return;
-    }
+void RenderScriptingInterface::setRenderMethod(RenderMethod renderMethod) {
+    if (_renderMethod != (int) renderMethod) {
+        _renderMethodSettingLock.withWriteLock([&] {
+            _renderMethod = (int)renderMethod;
+            _renderMethodSetting.set((int)renderMethod);
 
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setRenderMethod", Q_ARG(RenderScriptingInterface::RenderMethod, renderMethod));
-        return;
-    }
-
-    auto config = dynamic_cast<task::SwitchConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("RenderMainView.DeferredForwardSwitch"));
-    if (config) {
-        _renderMethodSetting.set(newMethod);
-        config->setBranch(newMethod);
-        emit config->dirtyEnabled();
+            auto config = dynamic_cast<task::SwitchConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("RenderMainView.DeferredForwardSwitch"));
+            if (config) {
+                _renderMethodSetting.set((int)renderMethod);
+                config->setBranch((int)renderMethod);
+            }
+        });
         emit settingsChanged();
     }
 }

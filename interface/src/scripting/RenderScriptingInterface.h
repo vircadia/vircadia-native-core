@@ -25,10 +25,10 @@
  */
 class RenderScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
-    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
-    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
+  //  Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
+  //  Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
+  //  Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
+  //  Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
 
 public:
     RenderScriptingInterface();
@@ -36,11 +36,11 @@ public:
     static RenderScriptingInterface* getInstance();
 
     // RenderMethod enum type
-    enum RenderMethod {
+    enum class RenderMethod {
         DEFERRED = render::Args::RenderMethod::DEFERRED,
         FORWARD = render::Args::RenderMethod::FORWARD,
     };
-    Q_ENUM(RenderMethod);
+    Q_ENUM(RenderMethod)
 
 public slots:
     /**jsdoc
@@ -136,11 +136,16 @@ signals:
     void settingsChanged();
 
 private:
+    int _renderMethod { -1 };
+    mutable ReadWriteLockable _renderMethodSettingLock;
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
+
     Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
     Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
     Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
     Setting::Handle<float> _viewportResolutionScaleSetting{ "viewportResolutionScale", 1.0f };
+
+    static std::once_flag registry_flag;
 };
 
 #endif  // hifi_RenderScriptingInterface_h
