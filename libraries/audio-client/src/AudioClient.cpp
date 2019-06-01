@@ -693,28 +693,20 @@ void possibleResampling(AudioSRC* resampler,
             }
         } else {
 
+            int numSourceFrames = numSourceSamples / sourceChannelCount;
+
             if (sourceChannelCount != destinationChannelCount) {
 
-                int numChannelCoversionSamples = (numSourceSamples * destinationChannelCount) / sourceChannelCount;
-                int16_t* channelConversionSamples = new int16_t[numChannelCoversionSamples];
+                int16_t* channelConversionSamples = new int16_t[numSourceFrames * destinationChannelCount];
 
                 sampleChannelConversion(sourceSamples, channelConversionSamples, numSourceSamples,
                                         sourceChannelCount, destinationChannelCount);
 
-                resampler->render(channelConversionSamples, destinationSamples, numChannelCoversionSamples);
+                resampler->render(channelConversionSamples, destinationSamples, numSourceFrames);
 
                 delete[] channelConversionSamples;
             } else {
-
-                unsigned int numAdjustedSourceSamples = numSourceSamples;
-                unsigned int numAdjustedDestinationSamples = numDestinationSamples;
-
-                if (sourceChannelCount == 2 && destinationChannelCount == 2) {
-                    numAdjustedSourceSamples /= 2;
-                    numAdjustedDestinationSamples /= 2;
-                }
-
-                resampler->render(sourceSamples, destinationSamples, numAdjustedSourceSamples);
+                resampler->render(sourceSamples, destinationSamples, numSourceFrames);
             }
         }
     }
