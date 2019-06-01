@@ -755,11 +755,6 @@ void AudioClient::stop() {
     qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
     switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 
-    if (_loopbackResampler) {
-        delete _loopbackResampler;
-        _loopbackResampler = NULL;
-    }
-
     // Stop triggering the checks
     QObject::disconnect(_checkPeakValuesTimer, &QTimer::timeout, nullptr, nullptr);
     QObject::disconnect(_checkDevicesTimer, &QTimer::timeout, nullptr, nullptr);
@@ -1663,10 +1658,15 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
         _dummyAudioInput = NULL;
     }
 
+    // cleanup any resamplers
     if (_inputToNetworkResampler) {
-        // if we were using an input to network resampler, delete it here
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
+    }
+
+    if (_loopbackResampler) {
+        delete _loopbackResampler;
+        _loopbackResampler = NULL;
     }
 
     if (_audioGate) {
