@@ -34,7 +34,16 @@ If you do not wish to use the Python installation bundled with Visual Studio, yo
 Download and install the latest version of CMake 3.9.
 
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
-### Step 5. Running CMake to Generate Build Files
+
+### Step 3. Create VCPKG environment variable
+
+* Naviagte to 'Edit the System Environment Variables' Through the start menu.
+* Click on 'Environment Variables'
+* Select 'New' 
+* Set "Variable name" to HIFI_VCPKG_BASE
+* Set "Variable value" to the same directory you created your build directory in.
+
+### Step 4. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:  
 `cd "%HIFI_DIR%"`  
@@ -49,21 +58,21 @@ Run `cmake .. -G "Visual Studio 16 2019" -A x64`.
 
 Where `%HIFI_DIR%` is the directory for the highfidelity repository.
 
-### Step 6. Making a Build
+### Step 5. Making a Build
 
 Open `%HIFI_DIR%\build\hifi.sln` using Visual Studio.
 
 Change the Solution Configuration (menu ribbon under the menu bar, next to the green play button) from "Debug" to "Release" for best performance.
 
-Create another environment variable (see Step #4)
+Create another environment variable (see Step #3)
 * Set "Variable name": `PreferredToolArchitecture`
 * Set "Variable value": `x64`
 
 Run from the menu bar `Build > Build Solution`.
 
-### Step 7. Testing Interface
+### Step 6. Testing Interface
 
-Create another environment variable (see Step #4)
+Create another environment variable (see Step #3)
 * Set "Variable name": `_NO_DEBUG_HEAP`
 * Set "Variable value": `1`
 
@@ -75,11 +84,11 @@ Note: You can also run Interface by launching it from command line or File Explo
 
 ## Troubleshooting
 
-For any problems after Step #7, first try this:  
+For any problems after Step #6, first try this:  
 * Delete your locally cloned copy of the highfidelity repository  
 * Restart your computer  
 * Redownload the [repository](https://github.com/highfidelity/hifi)  
-* Restart directions from Step #7  
+* Restart directions from Step #6  
 
 #### CMake gives you the same error message repeatedly after the build fails
 
