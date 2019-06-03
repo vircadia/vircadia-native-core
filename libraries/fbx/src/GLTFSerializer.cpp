@@ -933,11 +933,20 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
     hfmModel.shapeVertices.resize(hfmModel.joints.size());
 
 
+    // get offset transform from mapping
+    float unitScaleFactor = 1.0f;
+    float offsetScale = mapping.value("scale", 1.0f).toFloat() * unitScaleFactor;
+    glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(), mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
+    hfmModel.offset = glm::translate(glm::mat4(), glm::vec3(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(), mapping.value("tz").toFloat())) *
+        glm::mat4_cast(offsetRotation) * glm::scale(glm::mat4(), glm::vec3(offsetScale, offsetScale, offsetScale));
+
+
     // Build skeleton
     std::vector<glm::mat4> jointInverseBindTransforms;
     std::vector<glm::mat4> globalBindTransforms;
     jointInverseBindTransforms.resize(numNodes);
     globalBindTransforms.resize(numNodes);
+
     hfmModel.hasSkeletonJoints = !_file.skins.isEmpty();
     if (hfmModel.hasSkeletonJoints) {
         std::vector<std::vector<float>> inverseBindValues;
@@ -1489,6 +1498,20 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                         } else {
                             mesh.clusterWeights[prevMeshClusterWeightCount + j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
                         }
+                        for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; ++clusterIndex) {
+                            ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
+                            glm::vec3 globalMeshScale = extractScale(globalTransforms[nodeIndex]);
+                            const glm::mat4 meshToJoint = glm::scale(glm::mat4(), globalMeshScale) * jointInverseBindTransforms[clusterIndex];
+
+                            const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
+                            if (mesh.clusterWeights[j] >= EXPANSION_WEIGHT_THRESHOLD) {
+                                // TODO: fix transformed vertices being pushed back
+                                auto& vertex = mesh.vertices[i];
+                                const glm::mat4 vertexTransform = meshToJoint * (glm::translate(glm::mat4(), vertex));
+                                glm::vec3 transformedVertex = hfmModel.joints[clusterIndex].translation * (extractTranslation(vertexTransform));
+                                points.push_back(transformedVertex);
+                            }
+                        }
                     }
                 }
 
@@ -1577,24 +1600,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::VariantHash& 
                     }
                 }
 
-                for (int clusterIndex = 0; clusterIndex < mesh.clusters.size() - 1; ++clusterIndex) {
-                    ShapeVertices& points = hfmModel.shapeVertices.at(clusterIndex);
-                    // TODO: fix modelTransform value
-                    const glm::mat4 modelTransform = glm::inverse(globalBindTransforms[originalToNewNodeIndexMap[nodeIndex]]) *
-                        globalTransforms[originalToNewNodeIndexMap[clusterIndex]] * glm::mat4(0.1f);
-                    for (glm::vec3 vertex : mesh.vertices) {
-                        glm::vec3 transformedVertex = glm::vec3(modelTransform * glm::vec4(vertex, 1.0f));
-                        points.push_back(transformedVertex);
-                    }
-                }
-
                 foreach(const glm::vec3& vertex, mesh.vertices) {
                     glm::vec3 transformedVertex = glm::vec3(globalTransforms[nodeIndex] * glm::vec4(vertex, 1.0f));
                     mesh.meshExtents.addPoint(transformedVertex);
                     hfmModel.meshExtents.addPoint(transformedVertex);
-                }
-               
-                mesh.meshIndex = hfmModel.meshes.size();
+                }               
             }
 
             // Add epsilon to mesh extents to compensate for planar meshes
