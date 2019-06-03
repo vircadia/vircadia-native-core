@@ -1311,8 +1311,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldFeetPosition(); });
-    addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
+    addressManager->setPositionGetter([this] {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        return myAvatar ? myAvatar->getWorldFeetPosition() : Vectors::ZERO;
+    });
+    addressManager->setOrientationGetter([this] {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        return myAvatar ? myAvatar->getWorldOrientation() : glm::quat();
+    });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
@@ -4155,8 +4163,14 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     }
 
     if (event->type() == QEvent::WindowStateChange) {
-        if (getWindow()->windowState() == Qt::WindowMinimized) {
+        if (getWindow()->windowState() & Qt::WindowMinimized) {
             getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::MINIMIZED);
+        } else {
+            auto* windowStateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
+            if (windowStateChangeEvent->oldState() & Qt::WindowMinimized) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+                getRefreshRateManager().resetInactiveTimer();
+            }
         }
     }
 
