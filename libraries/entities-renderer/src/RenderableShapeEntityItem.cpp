@@ -270,6 +270,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         }
     });
 
+    if (outColor.a == 0.0f) {
+        return;
+    }
+
     if (proceduralRender) {
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
