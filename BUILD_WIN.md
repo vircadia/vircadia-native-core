@@ -36,7 +36,7 @@ Download and install the latest version of CMake 3.9.
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 3. Create VCPKG environment variable
-In the next step you will be using CMake to build hifi, but first it is recommended that you create an environment variable linked to a directory somewhere on your machine you have control over. The directory will hold all temporary files and, in the event of a failed build, will ensure that any dependencies  that generated prior to the failure will not need to be generated again.
+In the next step, you will use CMake to build High Fidelity. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.
 
 To create this variable:
 * Naviagte to 'Edit the System Environment Variables' Through the start menu.
@@ -70,7 +70,7 @@ Create another environment variable (see Step #3)
 * Set "Variable name": `PreferredToolArchitecture`
 * Set "Variable value": `x64`
 
-Restart Visual Studio for the new variable to take affect.
+Restart Visual Studio for the new variable to take effect.
 
 Run from the menu bar `Build > Build Solution`.
 
