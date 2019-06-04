@@ -531,7 +531,7 @@ function shutdown() {
     restoreScripts();
 
     if (!keepExistingUIAndScriptsSetting) {
-        Window.confirm("You'll have to restart Interface to get full functionality back. Clicking yes or no will dismiss this dialog.");
+        console.log("The Simplified UI script has been shut down. If you notice any strangeness with user interface, please restart this application.");
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
