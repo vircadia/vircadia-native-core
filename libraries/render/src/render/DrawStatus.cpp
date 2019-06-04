@@ -17,6 +17,8 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 
+#include "TransitionStage.h"
+
 #include <gpu/Context.h>
 
 #include <shaders/Shaders.h>
@@ -142,11 +144,39 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
                     auto& value = (vec4Num == 0 ? itemStatus[nbItems].first : itemStatus[nbItems].second);
 
                     Item::Status::Value status;
-                    status.setColor(Item::Status::Value::CYAN);
-                    status.setIcon((unsigned char)Item::Status::Icon::SIMULATION_OWNER);
-                    if (itemScene.getTransitionId() != INVALID_INDEX) {
+                    auto transitionID = itemScene.getTransitionId();
+                    if (transitionID != INVALID_INDEX) {
                         // We have a transition. Show this icon.
                         status.setScale(1.0f);
+                        // Is this a valid transition ID according to FadeJob?
+                        auto& transitionStage = scene->getStage<TransitionStage>(TransitionStage::getName());
+                        if (transitionStage) {
+                            if (transitionStage->isTransitionUsed(transitionID)) {
+                                // Valid, active transition
+                                status.setColor(Item::Status::Value::CYAN);
+                            } else {
+                                // Render item has a defined transition ID, but it's unallocated and isn't being processed
+                                status.setColor(Item::Status::Value::RED);
+                            }
+                            // Set icon based on transition type
+                            auto& transition = transitionStage->getTransition(transitionID);
+                            switch (transition.eventType) {
+                            case Transition::Type::USER_ENTER_DOMAIN:
+                            case Transition::ELEMENT_ENTER_DOMAIN:
+                                status.setIcon((unsigned char)Item::Status::Icon::PACKET_RECEIVED);
+                                break;
+                            case Transition::Type::USER_LEAVE_DOMAIN:
+                            case Transition::ELEMENT_LEAVE_DOMAIN:
+                                status.setIcon((unsigned char)Item::Status::Icon::PACKET_SENT);
+                                break;
+                            default:
+                                status.setIcon((unsigned char)Item::Status::Icon::HAS_ACTIONS);
+                                break;
+                            }
+                        } else {
+                            // No way to determine transition
+                            status.setScale(0.0f);
+                        }
                     } else {
                         status.setScale(0.0f);
                     }
