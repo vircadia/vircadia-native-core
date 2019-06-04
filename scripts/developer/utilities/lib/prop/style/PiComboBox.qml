@@ -28,7 +28,7 @@ ComboBox {
             horizontalAlignment: global.valueTextAlign
         }
         background: Rectangle {
-            color:highlighted?global.colorBackHighlight:global.color;
+            color:highlighted ? global.colorBackHighlight : global.colorBack;
         }
         highlighted: valueCombo.highlightedIndex === index
     }
@@ -38,11 +38,8 @@ ComboBox {
         x: valueCombo.width - width - valueCombo.rightPadding
         y: valueCombo.topPadding + (valueCombo.availableHeight - height) / 2
 
-        icon: 1
-        /*Connections {
-            target: valueCombo
-            onPressedChanged: { canvas.icon = control.down + 1 }
-        }*/
+        strokeColor: (valueCombo.down ? global.colorBorderLighter : global.colorBorderLight )
+        icon: 1 + valueCombo.down
     }
 
     contentItem: PiText {
@@ -56,8 +53,8 @@ ComboBox {
     background: Rectangle {
         implicitWidth: 120
         implicitHeight: 40
-        color: global.color
-        border.color: valueCombo.popup.visible ? global.colorBorderHighight : global.colorBorderLight
+        color: global.colorBack
+        border.color: valueCombo.popup.visible ? global.colorBorderLighter : global.colorBorderLight
         border.width: global.valueBorderWidth
         radius: global.valueBorderRadius
     }
@@ -78,7 +75,7 @@ ComboBox {
         }
 
         background: Rectangle {
-            color: global.color
+            color: global.colorBack
             border.color: global.colorBorderHighight
             radius: global.valueBorderRadius
         }

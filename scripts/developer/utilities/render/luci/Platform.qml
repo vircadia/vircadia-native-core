@@ -16,7 +16,8 @@ import controlsUit 1.0 as HifiControls
 import "../../lib/prop" as Prop
 
 Column {
-    width: parent.width
+    anchors.left: parent.left 
+    anchors.right: parent.right 
 
     Prop.PropGroup {
         id: computer

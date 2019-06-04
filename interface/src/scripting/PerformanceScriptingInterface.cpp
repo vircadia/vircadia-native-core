@@ -21,6 +21,7 @@ PerformanceScriptingInterface::PerformanceScriptingInterface() {
 
 void PerformanceScriptingInterface::setPerformancePreset(PerformancePreset performancePreset) {
     qApp->getPerformanceManager().setPerformancePreset((PerformanceManager::PerformancePreset)performancePreset);
+    emit settingsChanged();
 }
 
 PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::getPerformancePreset() const {
@@ -34,6 +35,7 @@ QStringList PerformanceScriptingInterface::getPerformancePresetNames() const {
 
 void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile refreshRateProfile) {
     qApp->getRefreshRateManager().setRefreshRateProfile((RefreshRateManager::RefreshRateProfile)refreshRateProfile);
+    emit settingsChanged();
 }
 
 PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface::getRefreshRateProfile() const {

@@ -25,10 +25,10 @@
  */
 class RenderScriptingInterface : public QObject {
     Q_OBJECT
-  //  Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
-  //  Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
-  //  Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
-  //  Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
+    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
 
 public:
     RenderScriptingInterface();
@@ -41,6 +41,12 @@ public:
         FORWARD = render::Args::RenderMethod::FORWARD,
     };
     Q_ENUM(RenderMethod)
+
+
+    // Load Settings
+    // Synchronize the runtime value to the actual setting
+    // Need to be called on start up to re-initialize the runtime to the saved setting states
+    void loadSettings();
 
 public slots:
     /**jsdoc
@@ -136,14 +142,26 @@ signals:
     void settingsChanged();
 
 private:
-    int _renderMethod { -1 };
-    mutable ReadWriteLockable _renderMethodSettingLock;
-    Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
+    // One lock to serialize and access safely all the settings
+    mutable ReadWriteLockable _renderSettingLock;
 
+    // Runtime atomic value of each settings
+    std::atomic_int  _renderMethod{ render::Args::RenderMethod::DEFERRED };
+    std::atomic_bool _shadowsEnabled{ true };
+    std::atomic_bool _ambientOcclusionEnabled{ false };
+    std::atomic_bool _antialiasingEnabled { true };
+
+    // Actual settings saved on disk
+    Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
     Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
     Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
-    Setting::Handle<float> _viewportResolutionScaleSetting{ "viewportResolutionScale", 1.0f };
+
+    // Force assign both setting AND runtime value to the parameter value
+    void forceRenderMethod(RenderMethod renderMethod);
+    void forceShadowsEnabled(bool enabled);
+    void forceAmbientOcclusionEnabled(bool enabled);
+    void forceAntialiasingEnabled(bool enabled);
 
     static std::once_flag registry_flag;
 };

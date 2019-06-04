@@ -5375,6 +5375,10 @@ void Application::loadSettings() {
         }
     }
 
+    // Load settings of the RenderScritpingInterface
+    // Do that explicitely before being used
+    RenderScriptingInterface::getInstance()->loadSettings();
+
     // Setup the PerformanceManager which will enforce the several settings to match the Preset
     // On the first run, the Preset is evaluated from the 
     getPerformanceManager().setupPerformancePresetSettings(_firstRun.get());

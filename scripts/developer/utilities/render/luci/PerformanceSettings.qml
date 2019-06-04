@@ -19,7 +19,6 @@ Column {
 
     Prop.PropString {
         label: "Platform Tier"
-        //object: Performance
         valueVarSetter: function (v) {}
         valueVarGetter: function () {
             return PlatformInfo.getPlatformTierNames()[PlatformInfo.getTierProfiled()]; } 
@@ -27,17 +26,15 @@ Column {
 
     Prop.PropEnum {
         label: "Performance Preset"
-        //object: Performance
-        valueVarSetter: Performance.setPerformancePreset 
-        valueVarGetter: Performance.getPerformancePreset 
+        object: Performance
+        property: "performancePreset"
         enums: Performance.getPerformancePresetNames()
     }
 
     Prop.PropEnum {
         label: "Refresh Rate Profile"
-        //object: Performance
-        valueVarSetter: Performance.setRefreshRateProfile 
-        valueVarGetter: Performance.getRefreshRateProfile 
+        object: Performance
+        property: "refreshRateProfile"
         enums: Performance.getRefreshRateProfileNames()
     }
 }

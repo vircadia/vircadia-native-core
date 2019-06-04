@@ -66,7 +66,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
         case PerformancePreset::HIGH:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
-            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
+            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
 
         break;
         case PerformancePreset::MID:
