@@ -291,6 +291,7 @@ AudioClient::AudioClient() :
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
     _localToOutputResampler(NULL),
+    _loopbackResampler(NULL),
     _audioLimiter(AudioConstants::SAMPLE_RATE, OUTPUT_CHANNEL_COUNT),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_localInjectorsStream, _receivedAudioStream, this),
@@ -656,11 +657,11 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
     return false;   // a supported format could not be found
 }
 
-bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationSamples, unsigned int numSourceSamples,
+bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationSamples, int numSourceSamples,
                              const int sourceChannelCount, const int destinationChannelCount) {
     if (sourceChannelCount == 2 && destinationChannelCount == 1) {
         // loop through the stereo input audio samples and average every two samples
-        for (uint i = 0; i < numSourceSamples; i += 2) {
+        for (int i = 0; i < numSourceSamples; i += 2) {
             destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 2);
         }
 
@@ -668,7 +669,7 @@ bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationS
     } else if (sourceChannelCount == 1 && destinationChannelCount == 2) {
 
         // loop through the mono input audio and repeat each sample twice
-        for (uint i = 0; i < numSourceSamples; ++i) {
+        for (int i = 0; i < numSourceSamples; ++i) {
             destinationSamples[i * 2] = destinationSamples[(i * 2) + 1] = sourceSamples[i];
         }
 
@@ -678,10 +679,13 @@ bool sampleChannelConversion(const int16_t* sourceSamples, int16_t* destinationS
     return false;
 }
 
-void possibleResampling(AudioSRC* resampler,
-                        const int16_t* sourceSamples, int16_t* destinationSamples,
-                        unsigned int numSourceSamples, unsigned int numDestinationSamples,
-                        const int sourceChannelCount, const int destinationChannelCount) {
+int possibleResampling(AudioSRC* resampler,
+                       const int16_t* sourceSamples, int16_t* destinationSamples,
+                       int numSourceSamples, int maxDestinationSamples,
+                       const int sourceChannelCount, const int destinationChannelCount) {
+
+    int numSourceFrames = numSourceSamples / sourceChannelCount;
+    int numDestinationFrames = 0;
 
     if (numSourceSamples > 0) {
         if (!resampler) {
@@ -690,33 +694,30 @@ void possibleResampling(AudioSRC* resampler,
                 // no conversion, we can copy the samples directly across
                 memcpy(destinationSamples, sourceSamples, numSourceSamples * AudioConstants::SAMPLE_SIZE);
             }
+            numDestinationFrames = numSourceFrames;
         } else {
-
             if (sourceChannelCount != destinationChannelCount) {
 
-                int numChannelCoversionSamples = (numSourceSamples * destinationChannelCount) / sourceChannelCount;
-                int16_t* channelConversionSamples = new int16_t[numChannelCoversionSamples];
+                int16_t* channelConversionSamples = new int16_t[numSourceFrames * destinationChannelCount];
 
                 sampleChannelConversion(sourceSamples, channelConversionSamples, numSourceSamples,
                                         sourceChannelCount, destinationChannelCount);
 
-                resampler->render(channelConversionSamples, destinationSamples, numChannelCoversionSamples);
+                numDestinationFrames = resampler->render(channelConversionSamples, destinationSamples, numSourceFrames);
 
                 delete[] channelConversionSamples;
             } else {
-
-                unsigned int numAdjustedSourceSamples = numSourceSamples;
-                unsigned int numAdjustedDestinationSamples = numDestinationSamples;
-
-                if (sourceChannelCount == 2 && destinationChannelCount == 2) {
-                    numAdjustedSourceSamples /= 2;
-                    numAdjustedDestinationSamples /= 2;
-                }
-
-                resampler->render(sourceSamples, destinationSamples, numAdjustedSourceSamples);
+                numDestinationFrames = resampler->render(sourceSamples, destinationSamples, numSourceFrames);
             }
         }
     }
+
+    int numDestinationSamples = numDestinationFrames * destinationChannelCount;
+    if (numDestinationSamples > maxDestinationSamples) {
+        qCWarning(audioclient) << "Resampler overflow! numDestinationSamples =" << numDestinationSamples
+                               << "but maxDestinationSamples =" << maxDestinationSamples;
+    }
+    return numDestinationSamples;
 }
 
 void AudioClient::start() {
@@ -1085,13 +1086,6 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         return;
     }
 
-    // NOTE: we assume the inputFormat and the outputFormat are the same, since on any modern
-    // multimedia OS they should be. If there is a device that this is not true for, we can
-    // add back support to do resampling.
-    if (_inputFormat.sampleRate() != _outputFormat.sampleRate()) {
-        return;
-    }
-
     // if this person wants local loopback add that to the locally injected audio
     // if there is reverb apply it to local audio and substract the origin samples
 
@@ -1108,21 +1102,30 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
         }
     }
 
+    // if required, create loopback resampler
+    if (_inputFormat.sampleRate() != _outputFormat.sampleRate() && !_loopbackResampler) {
+        qCDebug(audioclient) << "Resampling from" << _inputFormat.sampleRate() << "to" << _outputFormat.sampleRate() << "for audio loopback.";
+        _loopbackResampler = new AudioSRC(_inputFormat.sampleRate(), _outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
+    }
+
     static QByteArray loopBackByteArray;
 
     int numInputSamples = inputByteArray.size() / AudioConstants::SAMPLE_SIZE;
-    int numLoopbackSamples = (numInputSamples * OUTPUT_CHANNEL_COUNT) / _inputFormat.channelCount();
+    int numInputFrames = numInputSamples / _inputFormat.channelCount();
+    int maxLoopbackFrames = _loopbackResampler ? _loopbackResampler->getMaxOutput(numInputFrames) : numInputFrames;
+    int maxLoopbackSamples = maxLoopbackFrames * OUTPUT_CHANNEL_COUNT;
 
-    loopBackByteArray.resize(numLoopbackSamples * AudioConstants::SAMPLE_SIZE);
+    loopBackByteArray.resize(maxLoopbackSamples * AudioConstants::SAMPLE_SIZE);
 
     int16_t* inputSamples = reinterpret_cast<int16_t*>(inputByteArray.data());
     int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
 
-    // upmix mono to stereo
-    if (!sampleChannelConversion(inputSamples, loopbackSamples, numInputSamples, _inputFormat.channelCount(), OUTPUT_CHANNEL_COUNT)) {
-        // no conversion, just copy the samples
-        memcpy(loopbackSamples, inputSamples, numInputSamples * AudioConstants::SAMPLE_SIZE);
-    }
+    int numLoopbackSamples = possibleResampling(_loopbackResampler,
+                                                inputSamples, loopbackSamples,
+                                                numInputSamples, maxLoopbackSamples,
+                                                _inputFormat.channelCount(), OUTPUT_CHANNEL_COUNT);
+
+    loopBackByteArray.resize(numLoopbackSamples * AudioConstants::SAMPLE_SIZE);
 
     // apply stereo reverb at the source, to the loopback audio
     if (!_shouldEchoLocally && hasReverb) {
@@ -1665,10 +1668,15 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInf
         _dummyAudioInput = NULL;
     }
 
+    // cleanup any resamplers
     if (_inputToNetworkResampler) {
-        // if we were using an input to network resampler, delete it here
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
+    }
+
+    if (_loopbackResampler) {
+        delete _loopbackResampler;
+        _loopbackResampler = NULL;
     }
 
     if (_audioGate) {
@@ -1892,13 +1900,20 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
         _outputDeviceInfo = QAudioDeviceInfo();
     }
 
+    // cleanup any resamplers
     if (_networkToOutputResampler) {
-        // if we were using an input to network resampler, delete it here
         delete _networkToOutputResampler;
         _networkToOutputResampler = NULL;
+    }
 
+    if (_localToOutputResampler) {
         delete _localToOutputResampler;
         _localToOutputResampler = NULL;
+    }
+
+    if (_loopbackResampler) {
+        delete _loopbackResampler;
+        _loopbackResampler = NULL;
     }
 
     if (isShutdownRequest) {
