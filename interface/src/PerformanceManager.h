@@ -20,7 +20,8 @@
 class PerformanceManager {
 public:
     enum PerformancePreset {
-        LOW = 0,
+        UNKNOWN = 0, // Matching the platform Tier profiles enumeration for coherence
+        LOW,
         MID,
         HIGH,
         PROFILE_COUNT
@@ -29,12 +30,16 @@ public:
     PerformanceManager();
     ~PerformanceManager() = default;
 
+    // Setup the PerformanceManager which will enforce the several settings to match the Preset
+    // If evaluatePlatformTier is true, the Preset is evaluated from the Platform::Profiler::profilePlatform()
+    void setupPerformancePresetSettings(bool evaluatePlatformTier);
+
     void setPerformancePreset(PerformancePreset performancePreset);
     PerformancePreset getPerformancePreset() const;
 
 private:
     mutable ReadWriteLockable _performancePresetSettingLock;
-    Setting::Handle<int> _performancePresetSetting { "performancePreset", PerformanceManager::PerformancePreset::MID };
+    Setting::Handle<int> _performancePresetSetting { "performancePreset", PerformanceManager::PerformancePreset::UNKNOWN };
 
     // The concrete performance preset changes
     void applyPerformancePreset(PerformanceManager::PerformancePreset performancePreset);
