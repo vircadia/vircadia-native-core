@@ -607,14 +607,13 @@ public:
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
      * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
-     * @param url {string} The URL to the animation file. Animation files need to be FBX format, but only need to contain the 
+     * @param {string} url - The URL to the animation file. Animation files need to be FBX format, but only need to contain the 
      * avatar skeleton and animation data.
-     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
-     * @param loop {boolean} Set to true if the animation should loop.
-     * @param firstFrame {number} The frame the animation should start at.
-     * @param lastFrame {number} The frame the animation should end at.
+     * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
+     * @param {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
+     * @param {number} firstFrame - The frame to start the animation at.
+     * @param {number} lastFrame - The frame to end the animation at.
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * // Clap your hands for 3 seconds then restore animation back to the avatar.
      * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
      * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
@@ -625,18 +624,18 @@ public:
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
     /**jsdoc
-     * <code>overrideHandAnimation()</code> Gets the overrides the default hand poses that are triggered with controller buttons.
-     * use {@link MyAvatar.restoreHandAnimation}.</p> to restore the default poses.
+     * Overrides the default hand poses that are triggered with controller buttons.
+     * Use {@link MyAvatar.restoreHandAnimation} to restore the default poses.
      * @function MyAvatar.overrideHandAnimation
-     * @param isLeft {boolean} Set true if using the left hand
-     * @param url {string} The URL to the animation file. Animation files need to be FBX format, but only need to contain the
+     * @param isLeft {boolean} <code>true</code> to override the left hand, <code>false</code> to override the right hand.
+     * @param {string} url - The URL of the animation file. Animation files need to be FBX format, but only need to contain the
      * avatar skeleton and animation data.
-     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
-     * @param loop {boolean} Set to true if the animation should loop.
-     * @param firstFrame {number} The frame the animation should start at.
-     * @param lastFrame {number} The frame the animation should end at
-     * @example <caption> Override left hand animation for three seconds. </caption>
-     * // Override the left hand pose then restore the default pose.
+     * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
+     * @param {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
+     * @param {number} firstFrame - The frame to start the animation at.
+     * @param {number} lastFrame - The frame to end the animation at.
+     * @example <caption> Override left hand animation for three seconds.</caption>
+     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -653,7 +652,6 @@ public:
      * animation, this function has no effect.</p>
      * @function MyAvatar.restoreAnimation
      * @example <caption> Play a clapping animation on your avatar for three seconds. </caption>
-     * // Clap your hands for 3 seconds then restore animation back to the avatar.
      * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
      * MyAvatar.overrideAnimation(ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
@@ -663,16 +661,15 @@ public:
     Q_INVOKABLE void restoreAnimation();
 
     /**jsdoc
-     * Restores the default hand animation state machine that is driven by the state machine in the avatar-animation json.
+     * Restores the default hand animation state machine that is driven by the state machine in the avatar-animation JSON.
      * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
      * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will
      * override the  default animations. <code>restoreHandAnimation()</code> is used to restore the default hand poses
-     * If you aren't currently playing an override hand
-     * animation, this function has no effect.</p>
+     * If you aren't currently playing an override hand animation, this function has no effect.</p>
      * @function MyAvatar.restoreHandAnimation
      * @param isLeft {boolean} Set to true if using the left hand
      * @example <caption> Override left hand animation for three seconds. </caption>
-     * // Override the left hand pose then restore the default pose.
+     * var ANIM_URL = "https://s3.amazonaws.com/hifi-public/animations/ClapAnimations/ClapHands_Standing.fbx";
      * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
      * Script.setTimeout(function () {
      *     MyAvatar.restoreHandAnimation();
@@ -713,12 +710,13 @@ public:
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
      * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
-     * @param role {string} The animation role to override
-     * @param url {string} The URL to the animation file. Animation files need to be in FBX format, but only need to contain the avatar skeleton and animation data.
-     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
-     * @param loop {boolean} Set to true if the animation should loop
-     * @param firstFrame {number} The frame the animation should start at
-     * @param lastFrame {number} The frame the animation should end at
+     * @param {string} role - The animation role to override
+     * @param {string} url - The URL to the animation file. Animation files need to be in FBX format, but only need to contain 
+     *     the avatar skeleton and animation data.
+     * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
+     * @param {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
+     * @param {number} firstFrame - The frame the animation should start at.
+     * @param {number} lastFrame - The frame the animation should end at.
      * @example <caption>The default avatar-animation.json defines an "idleStand" animation role. This role specifies that when the avatar is not moving,
      * an animation clip of the avatar idling with hands hanging at its side will be used. It also specifies that when the avatar moves, the animation
      * will smoothly blend to the walking animation used by the "walkFwd" animation role.
@@ -806,8 +804,9 @@ public:
      *     mode.
      */
     Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
+
     /**jsdoc
-     * Sets whether your should do snap turns or smooth turns in HMD mode.
+     * Sets whether you do snap turns or smooth turns in HMD mode.
      * @function MyAvatar.setSnapTurn
      * @param {boolean} on - <code>true</code> to do snap turns in HMD mode; <code>false</code> to do smooth turns in HMD mode.
      */
@@ -872,16 +871,17 @@ public:
      * @returns {boolean} <code>true</code> if strafing is enabled, <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool getStrafeEnabled() const;
+
     /**jsdoc
+     * Sets the HMD alignment relative to your avatar.
      * @function MyAvatar.setHmdAvatarAlignmentType
      * @param {string} type - <code>"head"</code> to align your head and your avatar's head, <code>"eyes"</code> to align your 
      *     eyes and your avatar's eyes.
-     *     
      */
     Q_INVOKABLE void setHmdAvatarAlignmentType(const QString& type);
 
     /**jsdoc
-     * Gets the HMD alignment for your avatar.
+     * Gets the HMD alignment relative to your avatar.
      * @function MyAvatar.getHmdAvatarAlignmentType
      * @returns {string} <code>"head"</code> if aligning your head and your avatar's head, <code>"eyes"</code> if aligning your 
      *     eyes and your avatar's eyes.
@@ -1610,8 +1610,8 @@ public:
     Q_INVOKABLE bool getCharacterControllerEnabled(); // deprecated
 
     /**jsdoc
-     * @comment Different behavior to the Avatar version of this method.
      * Gets the rotation of a joint relative to the avatar.
+     * @comment Different behavior to the Avatar version of this method.
      * @function MyAvatar.getAbsoluteJointRotationInObjectFrame
      * @param {number} index - The index of the joint.
      * @returns {Quat} The rotation of the joint relative to the avatar.
@@ -1623,8 +1623,8 @@ public:
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
 
     /**jsdoc
-     * @comment Different behavior to the Avatar version of this method.
      * Gets the translation of a joint relative to the avatar.
+     * @comment Different behavior to the Avatar version of this method.
      * @function MyAvatar.getAbsoluteJointTranslationInObjectFrame
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The translation of the joint relative to the avatar.
