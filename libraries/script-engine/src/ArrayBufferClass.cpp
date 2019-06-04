@@ -76,8 +76,10 @@ QScriptValue ArrayBufferClass::newInstance(qint32 size) {
         engine()->evaluate("throw \"ArgumentError: absurd length\"");
         return QScriptValue();
     }
-    
+    // We've patched qt to fix https://highfidelity.atlassian.net/browse/BUGZ-46 on mac and windows only.
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
     engine()->reportAdditionalMemoryCost(size);
+#endif
     QScriptEngine* eng = engine();
     QVariant variant = QVariant::fromValue(QByteArray(size, 0));
     QScriptValue data =  eng->newVariant(variant);
