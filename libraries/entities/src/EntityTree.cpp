@@ -827,7 +827,12 @@ EntityItemID EntityTree::evalRayIntersection(const glm::vec3& origin, const glm:
                                     PickFilter searchFilter, OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin, direction, 1.0f / direction, entityIdsToInclude, entityIdsToDiscard,
+
+    // calculate dirReciprocal like this rather than with glm's scalar / vec3 template to avoid NaNs.
+    vec3 dirReciprocal = glm::vec3(direction.x == 0.0f ? 0.0f : 1.0f / direction.x,
+                                   direction.y == 0.0f ? 0.0f : 1.0f / direction.y,
+                                   direction.z == 0.0f ? 0.0f : 1.0f / direction.z);
+    RayArgs args = { origin, direction, dirReciprocal, entityIdsToInclude, entityIdsToDiscard,
             searchFilter, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
