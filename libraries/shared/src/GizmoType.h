@@ -26,6 +26,7 @@
 
 enum GizmoType {
     RING = 0,
+    // put new gizmo-types before this line.
     UNSET_GIZMO_TYPE
 };
 
