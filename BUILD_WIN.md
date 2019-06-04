@@ -36,12 +36,14 @@ Download and install the latest version of CMake 3.9.
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 3. Create VCPKG environment variable
+In the next step you will be using CMake to build hifi, but first it is recommended that you create an environment variable linked to a directory somewhere on your machine you have control over. The directory will hold all temporary files and, in the event of a failed build, will ensure that any dependencies  that generated prior to the failure will not need to be generated again.
 
+To create this variable:
 * Naviagte to 'Edit the System Environment Variables' Through the start menu.
 * Click on 'Environment Variables'
 * Select 'New' 
 * Set "Variable name" to HIFI_VCPKG_BASE
-* Set "Variable value" to the same directory you created your build directory in.
+* Set "Variable value" to any directory that you have control over.
 
 ### Step 4. Running CMake to Generate Build Files
 
@@ -68,6 +70,8 @@ Create another environment variable (see Step #3)
 * Set "Variable name": `PreferredToolArchitecture`
 * Set "Variable value": `x64`
 
+Restart Visual Studio for the new variable to take affect.
+
 Run from the menu bar `Build > Build Solution`.
 
 ### Step 6. Testing Interface
@@ -75,6 +79,8 @@ Run from the menu bar `Build > Build Solution`.
 Create another environment variable (see Step #3)
 * Set "Variable name": `_NO_DEBUG_HEAP`
 * Set "Variable value": `1`
+
+Restart Visual Studio again.
 
 In Visual Studio, right+click "interface" under the Apps folder in Solution Explorer and select "Set as Startup Project". Run from the menu bar `Debug > Start Debugging`.
 
