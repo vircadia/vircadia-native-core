@@ -1,5 +1,6 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
 //
 //  Created by Zach Pomerantz on 2/16/2016.
@@ -9,10 +10,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBufferWrite.slh@>
-
 <@include gpu/ShaderConstants.h@>
 <@include gpu/Paint.slh@>
+
+<@if not HIFI_USE_FORWARD@>
+    <@include DeferredBufferWrite.slh@>
+<@else@>
+    layout(location=0) out vec4 _fragColor0;
+<@endif@>
 
 struct Grid {
     vec4 period;
@@ -32,9 +37,17 @@ void main(void) {
                       paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy),
                       float(grid.edge.z == 0.0));
 
-    if (alpha < 0.0001) {
+<@if not HIFI_USE_FORWARD@>
+    <@if not HIFI_USE_TRANSLUCENT@>
+        packDeferredFragmentUnlit(vec3(1.0, 0.0, 0.0), alpha, varColor.rgb);
+    <@else@>
+        packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), alpha, varColor.rgb, DEFAULT_ROUGHNESS);
+    <@endif@>
+<@else@>
+    const float EPSILON = 0.0001;
+    if (alpha < EPSILON) {
         discard;
     }
-
-    packDeferredFragmentUnlit(vec3(1.0, 0.0, 0.0), 1.0, varColor.xyz);
+    _fragColor0 = vec4(varColor.rgb, alpha);
+<@endif@>
 }

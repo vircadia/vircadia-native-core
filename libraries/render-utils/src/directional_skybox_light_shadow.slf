@@ -14,7 +14,7 @@
 
 <@include Shadow.slh@>
 <@include DeferredBufferRead.slh@>
-<@include DeferredGlobalLight.slh@>
+<@include GlobalLight.slh@>
 <@include render-utils/ShaderConstants.h@>
 
 <$declareEvalLightmappedColor()$>

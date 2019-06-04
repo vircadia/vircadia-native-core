@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  simple_transparent.frag
-//  fragment shader
 //
 //  Created by Andrzej Kapolka on 9/15/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -11,27 +9,31 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<@include DefaultMaterials.slh@>
 
-<@include DeferredGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
+<@if not HIFI_USE_TRANSLUCENT@>
+    <@include DeferredBufferWrite.slh@>
+<@else@>
+    <@include DefaultMaterials.slh@>
+
+    <@include GlobalLight.slh@>
+    <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
+
+    layout(location=0) out vec4 _fragColor0;
+<@endif@>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
 <@include render-utils/ShaderConstants.h@>
 
-// the interpolated normal
-layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _positionMS;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normalMS;
+layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
-layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec4 _positionMS;
-layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
-
-layout(location=0) out vec4 _fragColor0;
 
 // For retro-compatibility
 #define _normal      _normalWS
@@ -42,7 +44,6 @@ layout(location=0) out vec4 _fragColor0;
 <@include procedural/ProceduralCommon.slh@>
 
 #line 1001
-
 //PROCEDURAL_BLOCK_BEGIN
 
 vec3 getProceduralColor() {
@@ -67,19 +68,24 @@ float getProceduralFragmentWithPosition(inout ProceduralFragmentWithPosition pro
 void main(void) {
     vec3 normal = normalize(_normalWS.xyz);
     vec3 diffuse = _color.rgb;
-    float alpha = _color.a;
-    float occlusion = DEFAULT_OCCLUSION;
     vec3 fresnel = DEFAULT_FRESNEL;
+    float roughness = DEFAULT_ROUGHNESS;
     float metallic = DEFAULT_METALLIC;
     vec3 emissive = DEFAULT_EMISSIVE;
-    float roughness = DEFAULT_ROUGHNESS;
+    float occlusion = DEFAULT_OCCLUSION;
+    float scattering = DEFAULT_SCATTERING;
 
     float emissiveAmount = 0.0;
 
+<@if HIFI_USE_TRANSLUCENT@>
+    float alpha = _color.a;
     TransformCamera cam = getTransformCamera();
     vec3 posEye = _positionES.xyz;
+<@else@>
+    float alpha = 1.0;
+<@endif@>
 
-#ifdef PROCEDURAL_V1
+#if defined(PROCEDURAL_V1)
     diffuse = getProceduralColor().rgb;
     emissiveAmount = 1.0;
     emissive = vec3(1.0);
@@ -94,6 +100,7 @@ void main(void) {
 #if defined(PROCEDURAL_V3)
     ProceduralFragment proceduralData = ProceduralFragment(
 #else
+    TransformCamera cam = getTransformCamera();
     vec4 position = cam._viewInverse * _positionES;
     ProceduralFragmentWithPosition proceduralData = ProceduralFragmentWithPosition(
         position.xyz,
@@ -106,7 +113,7 @@ void main(void) {
         roughness,
         metallic,
         occlusion,
-        DEFAULT_SCATTERING
+        scattering
     );
 
 #if defined(PROCEDURAL_V3)
@@ -114,25 +121,49 @@ void main(void) {
 #else
     emissiveAmount = getProceduralFragmentWithPosition(proceduralData);
 #endif
-    occlusion = proceduralData.occlusion;
     normal = proceduralData.normal;
     diffuse = proceduralData.diffuse;
     fresnel = proceduralData.specular;
+    roughness = proceduralData.roughness;
     metallic = proceduralData.metallic;
     emissive = proceduralData.emissive;
-    roughness = proceduralData.roughness;
+    occlusion = proceduralData.occlusion;
+    scattering = proceduralData.scattering;
     alpha = proceduralData.alpha;
 
 #if defined(PROCEDURAL_V4)
     position = vec4(proceduralData.position, 1.0);
     vec4 posEye4 = cam._view * position;
+<@if HIFI_USE_TRANSLUCENT@>
     posEye = posEye4.xyz;
+<@endif@>
     vec4 posClip = cam._projection * posEye4;
     gl_FragDepth = 0.5 * (posClip.z / posClip.w + 1.0);
 #endif
 
 #endif
 
+<@if not HIFI_USE_TRANSLUCENT@>
+    if (emissiveAmount > 0.0) {
+        packDeferredFragmentLightmap(
+            normal,
+            1.0,
+            diffuse,
+            roughness,
+            metallic,
+            emissive);
+    } else {
+        packDeferredFragment(
+            normal,
+            1.0,
+            diffuse,
+            roughness,
+            metallic,
+            emissive,
+            occlusion,
+            scattering);
+    }
+<@else@>
     if (emissiveAmount > 0.0) {
         _fragColor0 = vec4(diffuse, alpha);
     } else {
@@ -149,4 +180,5 @@ void main(void) {
             roughness, alpha),
             alpha);
     }
+<@endif@>
 }

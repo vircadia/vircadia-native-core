@@ -233,7 +233,7 @@ void Font::setupGPU() {
                     gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
                 PrepareStencil::testMaskDrawShape(*state);
                 _deferredPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D), state);
-                _forwardPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::forward_sdf_text3D), state);
+                _forwardPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_forward), state);
             }
 
             {
@@ -244,7 +244,7 @@ void Font::setupGPU() {
                     gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                     gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
                 PrepareStencil::testMask(*state);
-                _transparentPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent), state);
+                _transparentPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_translucent), state);
             }
         }
 

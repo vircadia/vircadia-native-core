@@ -176,8 +176,9 @@ public:
     static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true, bool forward = false);
 
-    void bindWebBrowserProgram(gpu::Batch& batch, bool transparent = false);
-    gpu::PipelinePointer getWebBrowserProgram(bool transparent);
+    void bindWebBrowserProgram(gpu::Batch& batch, bool transparent, bool forward);
+    gpu::PipelinePointer getWebBrowserProgram(bool transparent, bool forward);
+    static std::map<std::pair<bool, bool>, gpu::PipelinePointer> _webPipelines;
 
     static void initializeShapePipelines();
 
@@ -476,11 +477,6 @@ private:
     static render::ShapePipelinePointer _simpleWirePipeline;
 
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
-
-    gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
-    gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
-    gpu::ShaderPointer _simpleTransparentWebBrowserShader;
-    gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false, bool forward = false);

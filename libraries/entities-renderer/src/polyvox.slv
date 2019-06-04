@@ -1,8 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//  polyvox.vert
-//  vertex shader
 //
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -11,20 +10,41 @@
 //
 
 <@include gpu/Inputs.slh@>
-<@include gpu/Transform.slh@>
 <@include render-utils/ShaderConstants.h@>
 
+<@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec4 _position;
-layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _worldPosition;
-layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normal;
+<@if HIFI_USE_FADE@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+<@endif@>
+<@if not HIFI_USE_SHADOW@>
+    <@if HIFI_USE_FORWARD@>
+        layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+    <@endif@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec3 _positionMS;
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+    layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
+<@endif@>
 
 void main(void) {
-    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
-    _worldPosition = inPosition;
+
+<@if HIFI_USE_SHADOW@>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+<@else@>
+    <@if not HIFI_USE_FORWARD@>
+        <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <@else@>
+        <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <@endif@>
+
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+    _normalMS = inNormal.xyz;
+    _positionMS = inPosition.xyz;
+<@endif@>
+<@if HIFI_USE_FADE@>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
+<@endif@>
 }

@@ -405,7 +405,7 @@ gpu::PipelinePointer ParabolaPointer::RenderState::ParabolaRenderItem::getParabo
         using namespace shader::render_utils::program;
 
         static const std::vector<std::tuple<bool, bool, uint32_t>> keys = {
-            std::make_tuple(false, false, parabola), std::make_tuple(false, true, forward_parabola), std::make_tuple(true, false, parabola_translucent)/*, std::make_tuple(true, true, forward_parabola_translucent)*/
+            std::make_tuple(false, false, parabola), std::make_tuple(false, true, parabola_forward), std::make_tuple(true, false, parabola_translucent)
         };
 
         for (auto& key : keys) {

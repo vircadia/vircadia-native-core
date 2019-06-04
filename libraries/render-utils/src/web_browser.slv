@@ -1,10 +1,10 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-//  Generated on <$_SCRIBE_DATE$>
-//  sdf_text3D.vert
-//  vertex shader
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Brad Davis on 10/14/13.
+//  Created by Andrzej Kapolka on 9/15/14.
+//  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,32 +12,21 @@
 
 <@include gpu/Inputs.slh@>
 <@include gpu/Color.slh@>
-<@include render-utils/ShaderConstants.h@>
-
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include sdf_text3D.slh@>
+<@include render-utils/ShaderConstants.h@>
 
-<@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
-    layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
-<@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
-void main() {
+void main(void) {
+    _color = color_sRGBAToLinear(inColor);
     _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
-    _color = color_sRGBAToLinear(params.color);
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-<@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
-<@else@>
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-<@endif@>
-
-    const vec3 normal = vec3(0, 0, 1);
-    <$transformModelToWorldDir(cam, obj, normal, _normalWS)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 }
