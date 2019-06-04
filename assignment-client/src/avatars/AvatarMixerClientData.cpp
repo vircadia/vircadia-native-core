@@ -428,7 +428,7 @@ void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
     _perNodeSentTraitVersions[nodeLocalID].reset();
     _perNodeAckedTraitVersions[nodeLocalID].reset();
-    for (auto && pendingTraitVersions : _perNodePendingTraitVersions) {
+    for (auto&& pendingTraitVersions : _perNodePendingTraitVersions) {
         pendingTraitVersions.second[nodeLocalID].reset();
     }
 }
@@ -488,4 +488,8 @@ void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLo
     removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
     _perNodeSentTraitVersions.erase(nodeLocalID);
+    _perNodeAckedTraitVersions.erase(nodeLocalID);
+    for (auto&& pendingTraitVersions : _perNodePendingTraitVersions) {
+        pendingTraitVersions.second.erase(nodeLocalID);
+    }
 }

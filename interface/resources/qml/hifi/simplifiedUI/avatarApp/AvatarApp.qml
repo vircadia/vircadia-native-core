@@ -12,6 +12,7 @@ import QtQuick 2.10
 import "../simplifiedConstants" as SimplifiedConstants
 import "./components" as AvatarAppComponents
 import stylesUit 1.0 as HifiStylesUit
+import TabletScriptingInterface 1.0
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
 Rectangle {
@@ -76,7 +77,7 @@ Rectangle {
             if (result.status !== "success") {
                 errorText.text = "There was a problem while retrieving your inventory. " +
                     "Please try closing and re-opening the Avatar app.\n\nInventory status: " + result.status + "\nMessage: " + result.message;
-            } else if (result.data && result.data.assets && result.data.assets.length === 0) {
+            } else if (result.data && result.data.assets && result.data.assets.length === 0 && avatarAppInventoryModel.count === 0) {
                 errorText.text = "You have not created any avatars yet! Create an avatar with the Avatar Creator, then close and re-open the Avatar App."
             }
 
@@ -96,6 +97,33 @@ Rectangle {
             yScale: -1
             origin.x: accent.width / 2
             origin.y: accent.height / 2
+        }
+    }
+
+    Image {
+        id: homeButton
+        source: "images/homeIcon.svg"
+        opacity: homeButtonMouseArea.containsMouse ? 1.0 : 0.7
+        anchors.top: parent.top
+        anchors.topMargin: 15
+        anchors.right: parent.right
+        anchors.rightMargin: 24
+        width: 14
+        height: 13
+
+        MouseArea {
+            id: homeButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                // Can't use `Window.location` in QML, so just use what setting `Window.location` actually calls under the hood:
+                // AddressManager.handleLookupString().
+                AddressManager.handleLookupString(LocationBookmarks.getHomeLocationAddress());
+            }
         }
     }
 

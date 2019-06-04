@@ -334,6 +334,7 @@ void Socket::readPendingDatagrams() {
         if (system_clock::now() > abortTime) {
             // We've been running for too long, stop processing packets for now
             // Once we've processed the event queue, we'll come back to packet processing
+            qCDebug(networking) << "Socket::readPendingDatagrams() running too long, aborting to process event queue";
             break;
         }
 

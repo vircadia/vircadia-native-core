@@ -15,8 +15,21 @@ std::once_flag PerformanceScriptingInterface::registry_flag;
 
 PerformanceScriptingInterface::PerformanceScriptingInterface() {
     std::call_once(registry_flag, [] {
-        qmlRegisterType<PerformanceScriptingInterface>("PerformanceEnums", 1, 0, "RefreshRate");
+        qmlRegisterType<PerformanceScriptingInterface>("PerformanceEnums", 1, 0, "PerformanceEnums");
     });
+}
+
+void PerformanceScriptingInterface::setPerformancePreset(PerformancePreset performancePreset) {
+    qApp->getPerformanceManager().setPerformancePreset((PerformanceManager::PerformancePreset)performancePreset);
+}
+
+PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::getPerformancePreset() const {
+    return (PerformanceScriptingInterface::PerformancePreset)qApp->getPerformanceManager().getPerformancePreset();
+}
+
+QStringList PerformanceScriptingInterface::getPerformancePresetNames() const {
+    static const QStringList performancePresetNames = { "Low", "Mid", "High" };
+    return performancePresetNames;
 }
 
 void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile refreshRateProfile) {
@@ -25,6 +38,11 @@ void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile ref
 
 PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface::getRefreshRateProfile() const {
     return (PerformanceScriptingInterface::RefreshRateProfile)qApp->getRefreshRateManager().getRefreshRateProfile();
+}
+
+QStringList PerformanceScriptingInterface::getRefreshRateProfileNames() const {
+    static const QStringList refreshRateProfileNames = { "Eco", "Interactive", "Realtime" };
+    return refreshRateProfileNames;
 }
 
 int PerformanceScriptingInterface::getActiveRefreshRate() const {

@@ -31,7 +31,7 @@ Rectangle {
         clip: true
          
         Column {
-            width: render.width
+            width: parent.width
             Prop.PropFolderPanel {
                 label: "Shading Model"
                 panelFrameData: Component {
@@ -87,14 +87,14 @@ Rectangle {
                     }
                 }
             }
-            Jet.TaskPropView {
+      /*      Jet.TaskPropView {
                 id: "le"
                 jobPath: ""
                 label: "Le Render Engine"
 
               //  anchors.left: parent.left
               //  anchors.right: parent.right 
-            }
+            }*/
         }
     }
 }

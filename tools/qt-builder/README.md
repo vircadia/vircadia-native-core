@@ -6,7 +6,7 @@ The second patch is to OpenSL ES audio.
 ### Windows
 1.  Visual Studio 2017  
     If you don’t have Community or Professional edition of Visual Studio 2017, download [Visual Studio Community 2017](https://www.visualstudio.com/downloads/).  
-Install with defaults
+Install with C++ support.
 
 1.  python 2.7.16
 Check if needed running `python --version` - should return python 2.7.x  
@@ -48,7 +48,10 @@ Click *Restart now*
 Download from the Microsoft Store - Search for *bash* and choose the latest Ubuntu version  
 [First run will take a few minutes]  
 Enter a user name - all small letters (this is used for *sudo* commands)  
-Choose a password  
+Choose a password
+1.  Jom  
+jom is a clone of nmake to support the execution of multiple independent commands in parallel.  
+https://wiki.qt.io/Jom  
 ### Linux
 Tested on Ubuntu 16.04 and 18.04.  
 **16.04 NEEDED FOR JENKINS~~  **
@@ -115,7 +118,8 @@ Before running configure, make sure that the qt5-build folder is empty.
 **Only run the git patches once!!!**  
 ### Windows
 Before building, verify that **HIFI_VCPKG_BASE_VERSION** points to a *vcpkg* folder containing *packages\openssl-windows_x64-windows*.  
-If not, follow https://github.com/highfidelity/vcpkg to install *vcpkg* and then *openssl*.  
+If not, follow https://github.com/highfidelity/vcpkg to install *vcpkg* and then *openssl*.
+Also, make sure the directory that you are using to build qt is not deeply nested.  It is quite possible to run into the windows MAX_PATH limit when building chromium.  For example: `c:\msys64\home\ajt\code\hifi\tools\qt-builder\qt5-build` is too long.  `c:\q\qt5-build\` is a better choice.
 #### Preparing source files
 `git clone --recursive https://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch`  
   
@@ -137,8 +141,8 @@ run `..\qt5\qt5vars.bat`
 
 `..\qt5\configure -force-debug-info -opensource -confirm-license -opengl desktop -platform win32-msvc -openssl-linked  OPENSSL_LIBS="-lssleay32 -llibeay32"  -I %HIFI_VCPKG_BASE_VERSION%\packages\openssl-windows_x64-windows\include -L %HIFI_VCPKG_BASE_VERSION%\packages\openssl-windows_x64-windows\lib -nomake examples -nomake tests -skip qttranslations -skip qtserialport -skip qt3d -skip qtlocation -skip qtwayland -skip qtsensors -skip qtgamepad -skip qtspeech -skip qtcharts -skip qtx11extras -skip qtmacextras -skip qtvirtualkeyboard -skip qtpurchasing -skip qtdatavis3d -no-warnings-are-errors -no-pch -prefix ..\qt5-install`  
 #### Make
-`nmake`  
-`nmake install`  
+`jom`  
+`jom install`  
 #### Fixing
 The *.prl* files have an absolute path that needs to be removed (see http://www.linuxfromscratch.org/blfs/view/stable-systemd/x/qtwebengine.html)  
 1.  Open a bash terminal  
@@ -147,9 +151,11 @@ The *.prl* files have an absolute path that needs to be removed (see http://www.
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 1.   Copy *qt.conf* to *qt5-install\bin*  
 #### Uploading
-Create a tar file called qt5-install.tar from the qt5-install folder (e.g. using 7-zip)  
-Create a gzip file called qt5-install.tar.gz from the qt5-install.tar file just created (e.g. using 7-zip)  
-Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/  
+Create a tar file called qt5-install-5.12.3-windows.tar.gz from the qt5-install folder
+Upload qt5-install-5.12.3-windows.tar.gz to our Amazon S3 hifi-public bucket, under the dependencies/vckpg directory
+Update hifi_vcpkg.py to use this new URL. Additionally, you should make a small change to any file in the hifi/cmake/ports directory to force the re-download of the qt-install.tar.gz during the build process for hifi.
+#### Preparing Symbols
+Run `python3 prepare-windows-symbols-for-backtrace.py qt5-install` to scan the qt5-install directory for any dlls and pdbs.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dlls and pdbs are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace here: https://highfidelity.sp.backtrace.io/p/Interface/settings/symbol/upload
 ### Linux
 #### Preparing source files
 `git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch`  
@@ -204,7 +210,7 @@ Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Windows/
 ``tar -zcvf qt5-install.tar.gz qt5-install`  
 1.  Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Ubuntu/18.04  
 
-1. ### Mac  
+### Mac  
 #### Preparing source files  
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch    
   
@@ -227,9 +233,11 @@ git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch
 `cd ../qt5-install`  
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 `cd ..`  
-1.   Copy *qt.conf* to *qt5-install\bin*  
+1.   Copy *qt.conf* to *qt5-install\bin*
 #### Uploading
-`tar -zcvf qt5-install.tar.gz qt5-install`  
-Upload qt5-install.tar.gz to https://hifi-qa.s3.amazonaws.com/qt5/Mac/  
+`tar -zcvf qt5-install-5.13.2-macos.tar.gz qt5-install`  
+Upload qt5-install-5.13.2-macos.tar.gz to our Amazon S3 hifi-public bucket, under the dependencies/vckpg directory
+#### Creating symbols
+Run `python3 prepare-mac-symbols-for-backtrace.py qt5-install` to scan the qt5-build directory for any dylibs and execute dsymutil to create dSYM bundles.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dylibs and dSYM fiels are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace here: https://highfidelity.sp.backtrace.io/p/Interface/settings/symbol/upload
 ## Problems
 *configure* errors, if any, may be viewed in **config.log** and **config.summary**

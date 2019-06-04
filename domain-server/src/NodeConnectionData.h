@@ -22,7 +22,7 @@ public:
                                              bool isConnectRequest = true);
     
     QUuid connectUUID;
-    quint64 lastPingTimestamp{ 0 };
+    quint64 lastPingTimestamp{ 0 }; // client-side send time of last connect/domain list request
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr;
     HifiSockAddr localSockAddr;

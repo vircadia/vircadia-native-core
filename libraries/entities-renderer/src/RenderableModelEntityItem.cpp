@@ -744,7 +744,7 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
             return false;
         }
     }
-    return !isDead() && shapeType != SHAPE_TYPE_NONE && QUrl(_modelURL).isValid();
+    return !isDead() && shapeType != SHAPE_TYPE_NONE && !isLocalEntity() && QUrl(_modelURL).isValid();
 }
 
 int RenderableModelEntityItem::getJointParent(int index) const {

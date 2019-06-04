@@ -70,8 +70,6 @@ Item {
         }
 
         onCheckedChanged: {
-            root.checkedChanged();
-            Tablet.playSound(TabletEnums.ButtonClick);
             originalSwitch.changeColor();
         }
 

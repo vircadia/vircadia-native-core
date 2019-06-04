@@ -9,6 +9,7 @@
 #ifndef hifi_PlatformInfoScriptingInterface_h
 #define hifi_PlatformInfoScriptingInterface_h
 
+#include <platform/Profiler.h>
 #include <QtCore/QObject>
 
 class QScriptValue;
@@ -24,6 +25,20 @@ class QScriptValue;
  */
 class PlatformInfoScriptingInterface : public QObject {
     Q_OBJECT
+
+
+public:
+    PlatformInfoScriptingInterface();
+    virtual ~PlatformInfoScriptingInterface();
+
+    // Platform tier enum type
+    enum PlatformTier {
+        UNKNOWN = platform::Profiler::Tier::UNKNOWN,
+        LOW = platform::Profiler::Tier::LOW,
+        MID = platform::Profiler::Tier::MID,
+        HIGH = platform::Profiler::Tier::HIGH,
+    };
+    Q_ENUM(PlatformTier);
 
 public slots:
     /**jsdoc
@@ -98,6 +113,96 @@ public slots:
      * @returns {boolean} <code>true</code> if Interface is running on a stand-alone device, <code>false</code> if it isn't.
      */
     bool isStandalone();
+
+    /**jsdoc
+    * Get the number of CPUs.
+    * @function PlatformInfo.getNumCPUs
+    * @returns {number} The number of CPUs detected on the hardware platform.
+    */
+    int getNumCPUs();
+
+    /**jsdoc
+    * Get the description of the CPU at the index parameter
+    * expected fields are:
+    *  - cpuVendor...
+    * @param index The index of the CPU of the platform
+    * @function PlatformInfo.getCPU
+    * @returns {string} The CPU description json field
+    */
+    QString getCPU(int index);
+
+    /**jsdoc
+     * Get the number of GPUs.
+     * @function PlatformInfo.getNumGPUs
+     * @returns {number} The number of GPUs detected on the hardware platform.
+     */
+    int getNumGPUs();
+
+    /**jsdoc
+     * Get the description of the GPU at the index parameter
+     * expected fields are:
+     *  - gpuVendor...
+     * @param index The index of the GPU of the platform
+     * @function PlatformInfo.getGPU
+     * @returns {string} The GPU description json field
+     */
+    QString getGPU(int index);
+
+    /**jsdoc
+    * Get the number of Displays.
+    * @function PlatformInfo.getNumDisplays
+    * @returns {number} The number of Displays detected on the hardware platform.
+    */
+    int getNumDisplays();
+
+    /**jsdoc
+    * Get the description of the Display at the index parameter
+    * expected fields are:
+    *  - DisplayVendor...
+    * @param index The index of the Display of the platform
+    * @function PlatformInfo.getDisplay
+    * @returns {string} The Display description json field
+    */
+    QString getDisplay(int index);
+
+    /**jsdoc
+    * Get the description of the Memory
+    * expected fields are:
+    *  - MemoryVendor...
+    * @function PlatformInfo.getMemory
+    * @returns {string} The Memory description json field
+    */
+    QString getMemory();
+
+    /**jsdoc
+    * Get the description of the Computer
+    * expected fields are:
+    *  - ComputerVendor...
+    * @function PlatformInfo.getComputer
+    * @returns {string} The Computer description json field
+    */
+    QString getComputer();
+
+
+    /**jsdoc
+    * Get the Platform TIer profiled on startup of the Computer
+    * Platform Tier is an ineger/enum value:
+    *  LOW = 0, MID = 1, HIGH = 2
+    * @function PlatformInfo.getTierProfiled
+    * @returns {number} The Platform Tier profiled on startup.
+    */
+    PlatformTier getTierProfiled();
+
+    /**jsdoc
+    * Get the Platform Tier possible Names as an array of strings 
+    * Platform Tier is an ineger/enum value:
+    *  LOW = 0, MID = 1, HIGH = 2
+    * @function PlatformInfo.getPlatformTierNames
+    * @returns {string} The array of names matching the number returned from PlatformInfo.getTierProfiled
+    */
+    QStringList getPlatformTierNames();
+
+
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h

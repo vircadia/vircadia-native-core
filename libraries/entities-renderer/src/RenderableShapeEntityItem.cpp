@@ -251,11 +251,16 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
     });
 
+    if (outColor.a == 0.0f) {
+        return;
+    }
+
     if (pipelineType == Pipeline::PROCEDURAL) {
         auto procedural = std::static_pointer_cast<graphics::ProceduralMaterial>(materials.top().material);
         outColor = procedural->getColor(outColor);
         outColor.a *= procedural->isFading() ? Interpolate::calculateFadeRatio(procedural->getFadeStartTime()) : 1.0f;
         procedural->prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
+
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {

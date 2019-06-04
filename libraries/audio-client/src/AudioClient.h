@@ -340,6 +340,7 @@ private:
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
+    std::atomic<bool> _audioOutputInitialized { false };
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
@@ -389,6 +390,7 @@ private:
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
     AudioSRC* _localToOutputResampler;
+    AudioSRC* _loopbackResampler;
 
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];

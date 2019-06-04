@@ -654,7 +654,7 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     EC_KEY* ecPrivateKey = NULL;
 
     if ((ecPrivateKey = readPrivateKey(keyFilePath()))) {
-        unsigned char* sig = new unsigned char[ECDSA_size(ecPrivateKey)];
+        const auto sig = std::make_unique<unsigned char[]>(ECDSA_size(ecPrivateKey));
 
         unsigned int signatureBytes = 0;
 
@@ -663,10 +663,10 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
         QByteArray hashedPlaintext = QCryptographicHash::hash(text, QCryptographicHash::Sha256);
 
         int retrn = ECDSA_sign(0, reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()), hashedPlaintext.size(),
-                               sig, &signatureBytes, ecPrivateKey);
+                               sig.get(), &signatureBytes, ecPrivateKey);
 
         EC_KEY_free(ecPrivateKey);
-        QByteArray signature(reinterpret_cast<const char*>(sig), signatureBytes);
+        QByteArray signature(reinterpret_cast<const char*>(sig.get()), signatureBytes);
         if (retrn != -1) {
             return signature.toBase64();
         }

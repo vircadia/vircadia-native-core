@@ -18,12 +18,16 @@ Item {
     // Prop item is designed to author an object[property]:
     property var object: {}
     property string property: ""
+    property bool readOnly: false
 
     // value is accessed through the "valueVarSetter" and "valueVarGetter"
     // By default, these just go get or set the value from the object[property]
     // 
     function defaultGet() { return root.object[root.property]; }
     function defaultSet(value) { root.object[root.property] = value; }  
+   // function defaultSetReadOnly(value) { log ( "read only " + property + ", NOT setting to " + value); }  
+ //   function defaultSetReadOnly(value) {}  
+  //  property var valueVarSetter: (root.readOnly ? defaultSetReadOnly : defaultSet)
     property var valueVarSetter: defaultSet
     property var valueVarGetter: defaultGet
 

@@ -1312,8 +1312,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this]{ return getMyAvatar()->getWorldFeetPosition(); });
-    addressManager->setOrientationGetter([this]{ return getMyAvatar()->getWorldOrientation(); });
+    addressManager->setPositionGetter([this] {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        return myAvatar ? myAvatar->getWorldFeetPosition() : Vectors::ZERO;
+    });
+    addressManager->setOrientationGetter([this] {
+        auto avatarManager = DependencyManager::get<AvatarManager>();
+        auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
+        return myAvatar ? myAvatar->getWorldOrientation() : glm::quat();
+    });
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
@@ -3325,6 +3333,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", RenderScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Workload", _gameWorkload._engine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
@@ -3448,6 +3457,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+        surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
     }
 }
 
@@ -3803,10 +3813,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
-       DependencyManager::get<AddressManager>()->goToEntry();
-       sentTo = SENT_TO_ENTRY;
-        _firstRun.set(false);
-
+        if (!_overrideEntry) {
+            DependencyManager::get<AddressManager>()->goToEntry();
+            sentTo = SENT_TO_ENTRY;
+        } else {
+            DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            sentTo = SENT_TO_PREVIOUS_LOCATION;
+        }
+       _firstRun.set(false);
     } else {
         QString goingTo = "";
         if (addressLookupString.isEmpty()) {
@@ -3822,7 +3836,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
         sentTo = SENT_TO_PREVIOUS_LOCATION;
     }
-
+    
     UserActivityLogger::getInstance().logAction("startup_sent_to", {
         { "sent_to", sentTo },
         { "sandbox_is_running", sandboxIsRunning },
@@ -4152,8 +4166,14 @@ bool Application::eventFilter(QObject* object, QEvent* event) {
     }
 
     if (event->type() == QEvent::WindowStateChange) {
-        if (getWindow()->windowState() == Qt::WindowMinimized) {
+        if (getWindow()->windowState() & Qt::WindowMinimized) {
             getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::MINIMIZED);
+        } else {
+            auto* windowStateChangeEvent = static_cast<QWindowStateChangeEvent*>(event);
+            if (windowStateChangeEvent->oldState() & Qt::WindowMinimized) {
+                getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE);
+                getRefreshRateManager().resetInactiveTimer();
+            }
         }
     }
 
@@ -5358,6 +5378,26 @@ void Application::loadSettings() {
         }
     }
 
+    if (_firstRun.get()) {
+        // If this is our first run, evalute the Platform Tier and assign the matching Performance profile by default.
+        // A bunch of Performance, Simulation and Render settings will be set to a matching default value from this
+
+        // Here is the mapping between pelatformTIer and performance profile
+        const std::array<PerformanceManager::PerformancePreset, platform::Profiler::NumTiers> platformToPerformancePresetMap = {{
+            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::UNKNOWN
+            PerformanceManager::PerformancePreset::LOW,  // platform::Profiler::LOW
+            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::MID
+            PerformanceManager::PerformancePreset::HIGH  // platform::Profiler::HIGH
+        }};
+
+        // What is our profile?
+        auto platformTier = platform::Profiler::profilePlatform();
+
+        // Then let's assign the performance preset setting from it
+        getPerformanceManager().setPerformancePreset(platformToPerformancePresetMap[platformTier]);
+        
+    }
+
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
     // dictated that we should be in first person
     Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
@@ -6400,6 +6440,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("simulation");
 
         getEntities()->preUpdate();
+        _entitySimulation->removeDeadEntities();
 
         auto t0 = std::chrono::high_resolution_clock::now();
         auto t1 = t0;
@@ -9352,6 +9393,19 @@ void Application::showUrlHandler(const QUrl& url) {
             QDesktopServices::setUrlHandler(url.scheme(), this, "showUrlHandler");
         }
     });
+}
+void Application::overrideEntry(){
+    _overrideEntry = true;
+}
+void Application::forceDisplayName(const QString& displayName) {
+    getMyAvatar()->setDisplayName(displayName);
+}
+void Application::forceLoginWithTokens(const QString& tokens) {
+    DependencyManager::get<AccountManager>()->setAccessTokens(tokens);
+    Setting::Handle<bool>(KEEP_ME_LOGGED_IN_SETTING_NAME, true).set(true);
+}
+void Application::setConfigFileURL(const QString& fileUrl) {
+    DependencyManager::get<AccountManager>()->setConfigFileURL(fileUrl);
 }
 
 #if defined(Q_OS_ANDROID)

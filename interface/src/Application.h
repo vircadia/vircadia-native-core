@@ -57,6 +57,7 @@
 #include "gpu/Context.h"
 #include "LoginStateManager.h"
 #include "Menu.h"
+#include "PerformanceManager.h"
 #include "RefreshRateManager.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -203,6 +204,8 @@ public:
     CompositorHelper& getApplicationCompositor() const;
 
     Overlays& getOverlays() { return _overlays; }
+
+    PerformanceManager& getPerformanceManager() { return _performanceManager; }
     RefreshRateManager& getRefreshRateManager() { return _refreshRateManager; }
 
     size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
@@ -355,6 +358,11 @@ public:
     bool takeSnapshotOperators(std::queue<SnapshotOperator>& snapshotOperators);
 
     void openDirectory(const QString& path);
+
+    void overrideEntry();
+    void forceDisplayName(const QString& displayName);
+    void forceLoginWithTokens(const QString& tokens);
+    void setConfigFileURL(const QString& fileUrl);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -729,6 +737,7 @@ private:
     QUuid _loginDialogID;
     QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
+    PerformanceManager _performanceManager;
     RefreshRateManager _refreshRateManager;
 
     quint64 _lastFaceTrackerUpdate;
@@ -828,5 +837,6 @@ private:
     bool _resumeAfterLoginDialogActionTaken_WasPostponed { false };
     bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
     bool _startUpFinished { false };
+    bool _overrideEntry { false };
 };
 #endif // hifi_Application_h

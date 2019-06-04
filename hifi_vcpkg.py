@@ -214,12 +214,8 @@ endif()
             f.write(self.tagContents)
 
     def getQt5InstallPath(self):
-        qt5InstallPath  = os.path.join(self.path, 'installed', 'qt5-install')
-        if platform.system() == "Darwin" and self.args.release_type != "DEV":
-            # HACK for MacOS Jenkins PRODUCTION and PR builds during Qt-5.12.3 transition
-            # we always supply /var/tmp/qt5-install for QT_CMAKE_PREFIX_PATH
-            qt5InstallPath = "/var/tmp/qt5-install"
-        elif self.args.android:
+        qt5InstallPath = os.path.join(self.path, 'installed', 'qt5-install')
+        if self.args.android:
             precompiled = os.path.realpath(self.androidPackagePath)
             qt5InstallPath = os.path.realpath(os.path.join(precompiled, 'qt'))
         return qt5InstallPath
@@ -258,18 +254,13 @@ endif()
 
             url = 'NOT DEFINED'
             if platform.system() == 'Windows':
-                # TODO: figure out how to download with versionId
-                #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows.tar.gz?versionId=Etx8novAe0.IxQ7AosLFtop7fZur.cx9'
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows.tar.gz'
+                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-windows2.tar.gz'
             elif platform.system() == 'Darwin':
-                #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz?versionId=QrGxwssB.WwU_z3QCyG7ghP1_VjTkQeK'
-                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos.tar.gz'
+                url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos2.tar.gz'
             elif platform.system() == 'Linux':
-                if platform.linux_distribution()[1] == '16.04':
-                    #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04.tar.gz?versionId=c9j7PW4uBDPLif7DKmgIhorh9WBMjZRB'
+                if platform.linux_distribution()[1][:3] == '16.':
                     url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04.tar.gz'
-                elif platform.linux_distribution()[1] == '18.04':
-                    #url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz?versionId=Z3TojPFdb5pXdahF3oi85jjKocpL0xqw'
+                elif platform.linux_distribution()[1][:3] == '18.':
                     url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
                 else:
                     print('UNKNOWN LINUX VERSION!!!')

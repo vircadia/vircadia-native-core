@@ -59,6 +59,9 @@ public:
     virtual qint64 size() const override { return getDataSize(); }
     
     qint64 writeString(const QString& string);
+
+    p_high_resolution_clock::time_point getFirstPacketReceiveTime() const;
+    
     
 protected:
     PacketList(PacketType packetType, QByteArray extendedHeader = QByteArray(), bool isReliable = false, bool isOrdered = false);
