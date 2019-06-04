@@ -33,21 +33,20 @@ layout(location=GPU_ATTR_TEXCOORD0) in vec2 varTexCoord0;
 layout(location=GPU_ATTR_COLOR) in vec4 varColor;
 
 void main(void) {
-    float alpha = mix(paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge),
+    float gridLine = mix(paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge),
                       paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy),
                       float(grid.edge.z == 0.0));
+    if (gridLine <= 0.0) {
+        discard;
+    }
 
 <@if not HIFI_USE_FORWARD@>
     <@if not HIFI_USE_TRANSLUCENT@>
-        packDeferredFragmentUnlit(vec3(1.0, 0.0, 0.0), alpha, varColor.rgb);
+        packDeferredFragmentUnlit(vec3(1.0, 0.0, 0.0), 1.0, varColor.rgb);
     <@else@>
-        packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), alpha, varColor.rgb, DEFAULT_ROUGHNESS);
+        packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), varColor.a, varColor.rgb, DEFAULT_ROUGHNESS);
     <@endif@>
 <@else@>
-    const float EPSILON = 0.0001;
-    if (alpha < EPSILON) {
-        discard;
-    }
-    _fragColor0 = vec4(varColor.rgb, alpha);
+    _fragColor0 = varColor;
 <@endif@>
 }
