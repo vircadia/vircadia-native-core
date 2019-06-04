@@ -67,13 +67,6 @@
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
-using ComponentPair = std::pair<const ComponentMode, const QString>;
-const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
-    ComponentPair { COMPONENT_MODE_INHERIT, { "inherit" } },
-    ComponentPair { COMPONENT_MODE_DISABLED, { "disabled" } },
-    ComponentPair { COMPONENT_MODE_ENABLED, { "enabled" } }
-} };
-
 using vec3Color = glm::vec3;
 using u8vec3Color = glm::u8vec3;
 
@@ -399,8 +392,6 @@ public:
     DEFINE_PROPERTY_GROUP(Ring, ring, RingGizmoPropertyGroup);
 
     static QString getComponentModeAsString(uint32_t mode);
-
-    std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
 
 public:
     float getMaxDimension() const { return glm::compMax(_dimensions); }

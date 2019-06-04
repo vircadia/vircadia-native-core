@@ -163,7 +163,7 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
         transform = _renderTransform;
     });
 
-    if (!_visible || !texture || !texture->isLoaded()) {
+    if (!_visible || !texture || !texture->isLoaded() || color.a == 0.0f) {
         return;
     }
 

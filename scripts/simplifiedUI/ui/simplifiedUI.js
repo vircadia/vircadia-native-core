@@ -98,7 +98,7 @@ function onAvatarAppClosed() {
 
 
 var AVATAR_APP_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/avatarApp/AvatarApp.qml";
-var AVATAR_APP_WINDOW_TITLE = "Your Avatars";
+var AVATAR_APP_WINDOW_TITLE = "Your Profile";
 var AVATAR_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var AVATAR_APP_WIDTH_PX = 480;
 var AVATAR_APP_HEIGHT_PX = 615;
