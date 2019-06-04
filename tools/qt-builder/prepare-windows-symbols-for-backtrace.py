@@ -4,7 +4,7 @@
 # usage
 #   python prepare-windows-symbols-for-backrace.py QT_INSTALL_DIR
 #
-# QT_BUILD_DIR should be the directory where qt is installed after running `jom install` or `nmake install`
+# QT_INSTALL_DIR should be the directory where qt is installed after running `jom install` or `nmake install`
 # see hifi/tools/qt-builder/README.md for more info
 #
 

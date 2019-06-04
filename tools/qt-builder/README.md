@@ -1,7 +1,8 @@
 # General
 This document describes the process to build Qt 5.12.3.
-Note that there are two patches.  The first (to qfloat16.h) is needed to compile QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
+Note that there are three patches.  The first (to qfloat16.h) is needed to compile QT 5.12.3 on Visual Studio 2017 due to a bug in Visual Studio (*bitset* will not compile.  Note that there is a change in CMakeLists.txt to support this.  
 The second patch is to OpenSL ES audio.
+The third is a patch to QScriptEngine to prevent crashes in QScriptEnginePrivate::reportAdditionalMemoryCost, during garbage collection.  See https://bugreports.qt.io/browse/QTBUG-76176
 ## Requirements
 ### Windows
 1.  Visual Studio 2017  
@@ -125,11 +126,12 @@ Also, make sure the directory that you are using to build qt is not deeply neste
   
 *  Copy the **patches** folder to qt5  
 *  Copy the **qt5vars.bat** file to qt5  
-*  Apply the two patches to Qt  
+*  Apply the patches to Qt  
 
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/qfloat16.patch`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
+`git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch`  
 `cd ..`  
 #### Configuring  
 `mkdir qt5-install`  
@@ -151,8 +153,8 @@ The *.prl* files have an absolute path that needs to be removed (see http://www.
 `find . -name \*.prl -exec sed -i -e '/^QMAKE_PRL_BUILD_DIR/d' {} \;`  
 1.   Copy *qt.conf* to *qt5-install\bin*  
 #### Uploading
-Create a tar file called qt5-install-5.12.3-windows.tar.gz from the qt5-install folder
-Upload qt5-install-5.12.3-windows.tar.gz to our Amazon S3 hifi-public bucket, under the dependencies/vckpg directory
+Create a tar file called qt5-install-5.12.3-windows.tar.gz from the qt5-install folder.
+Upload qt5-install-5.12.3-windows.tar.gz to our Amazon S3 hifi-public bucket, under the dependencies/vckpg directory.
 Update hifi_vcpkg.py to use this new URL. Additionally, you should make a small change to any file in the hifi/cmake/ports directory to force the re-download of the qt-install.tar.gz during the build process for hifi.
 #### Preparing Symbols
 Run `python3 prepare-windows-symbols-for-backtrace.py qt5-install` to scan the qt5-install directory for any dlls and pdbs.  After running this command the backtrace directory will be created.  Zip this directory up, but make sure that all dlls and pdbs are in the root of the zip file, not under a sub-directory.  This file can then be uploaded to backtrace here: https://highfidelity.sp.backtrace.io/p/Interface/settings/symbol/upload
@@ -161,9 +163,10 @@ Run `python3 prepare-windows-symbols-for-backtrace.py qt5-install` to scan the q
 `git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch`  
   
 *  Copy the **patches** folder to qt5  
-*   Apply one patch to Qt  
+*   Apply patches to Qt  
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
+`git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch`  
 `cd ..`
 #### Configuring
 `mkdir qt5-install`  
@@ -215,9 +218,10 @@ Run `python3 prepare-windows-symbols-for-backtrace.py qt5-install` to scan the q
 git clone --recursive git://code.qt.io/qt/qt5.git -b 5.12.3 --single-branch    
   
 *  Copy the **patches** folder to qt5  
-*   Apply one patch to Qt  
+*   Apply the patches to Qt  
 `cd qt5`  
 `git apply --ignore-space-change --ignore-whitespace patches/aec.patch`  
+`git apply --ignore-space-change --ignore-whitespace patches/qtscript-crash-fix.patch`  
 `cd ..`  
 #### Configuring
 `mkdir qt5-install`  
