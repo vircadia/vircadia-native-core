@@ -26,6 +26,7 @@
 
 enum GizmoType {
     RING = 0,
+    UNSET_GIZMO_TYPE
 };
 
 class GizmoTypeHelpers {
