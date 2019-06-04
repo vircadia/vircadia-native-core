@@ -10,12 +10,13 @@
 #include "LightingModel.h"
 #include "AntialiasingEffect.h"
 
-std::once_flag RenderScriptingInterface::registry_flag;
 
 RenderScriptingInterface* RenderScriptingInterface::getInstance() {
     static RenderScriptingInterface sharedInstance;
     return &sharedInstance;
 }
+
+std::once_flag RenderScriptingInterface::registry_flag;
 
 RenderScriptingInterface::RenderScriptingInterface() {
     std::call_once(registry_flag, [] {
@@ -25,19 +26,19 @@ RenderScriptingInterface::RenderScriptingInterface() {
 
 void RenderScriptingInterface::loadSettings() {
     _renderSettingLock.withReadLock([&] {
-        _renderMethod.store(_renderMethodSetting.get());
-        _shadowsEnabled.store(_shadowsEnabledSetting.get());
-        _ambientOcclusionEnabled.store(_ambientOcclusionEnabledSetting.get());
-        _antialiasingEnabled.store(_antialiasingEnabledSetting.get());
+        _renderMethod = (_renderMethodSetting.get());
+        _shadowsEnabled = (_shadowsEnabledSetting.get());
+        _ambientOcclusionEnabled = (_ambientOcclusionEnabledSetting.get());
+        _antialiasingEnabled = (_antialiasingEnabledSetting.get());
     });
-    forceRenderMethod((RenderMethod)_renderMethod.load());
-    forceShadowsEnabled(_shadowsEnabled.load());
-    forceAmbientOcclusionEnabled(_ambientOcclusionEnabled.load());
-    forceAntialiasingEnabled(_antialiasingEnabled.load());
+    forceRenderMethod((RenderMethod)_renderMethod);
+    forceShadowsEnabled(_shadowsEnabled);
+    forceAmbientOcclusionEnabled(_ambientOcclusionEnabled);
+    forceAntialiasingEnabled(_antialiasingEnabled);
 }
 
 RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod() {
-    return (RenderMethod) _renderMethod.load();
+    return (RenderMethod) _renderMethod;
 }
 
 void RenderScriptingInterface::setRenderMethod(RenderMethod renderMethod) {
@@ -53,7 +54,6 @@ void RenderScriptingInterface::forceRenderMethod(RenderMethod renderMethod) {
 
         auto config = dynamic_cast<task::SwitchConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("RenderMainView.DeferredForwardSwitch"));
         if (config) {
-            _renderMethodSetting.set((int)renderMethod);
             config->setBranch((int)renderMethod);
         }
     });
@@ -65,7 +65,7 @@ QStringList RenderScriptingInterface::getRenderMethodNames() const {
 }
 
 bool RenderScriptingInterface::getShadowsEnabled() {
-    return _shadowsEnabled.load();
+    return _shadowsEnabled;
 }
 
 void RenderScriptingInterface::setShadowsEnabled(bool enabled) {
@@ -77,7 +77,7 @@ void RenderScriptingInterface::setShadowsEnabled(bool enabled) {
 
 void RenderScriptingInterface::forceShadowsEnabled(bool enabled) {
     _renderSettingLock.withWriteLock([&] {
-        _shadowsEnabled.store(enabled);
+        _shadowsEnabled = (enabled);
         _shadowsEnabledSetting.set(enabled);
 
         auto lightingModelConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
@@ -89,11 +89,11 @@ void RenderScriptingInterface::forceShadowsEnabled(bool enabled) {
 }
 
 bool RenderScriptingInterface::getAmbientOcclusionEnabled() {
-    return _ambientOcclusionEnabled.load();
+    return _ambientOcclusionEnabled;
 }
 
 void RenderScriptingInterface::setAmbientOcclusionEnabled(bool enabled) {
-    if (_ambientOcclusionEnabled.load() != enabled) {
+    if (_ambientOcclusionEnabled != enabled) {
         forceAmbientOcclusionEnabled(enabled);
         emit settingsChanged();
     }
@@ -101,7 +101,7 @@ void RenderScriptingInterface::setAmbientOcclusionEnabled(bool enabled) {
 
 void RenderScriptingInterface::forceAmbientOcclusionEnabled(bool enabled) {
     _renderSettingLock.withWriteLock([&] {
-        _ambientOcclusionEnabled.store(enabled);
+        _ambientOcclusionEnabled = (enabled);
         _ambientOcclusionEnabledSetting.set(enabled);
 
         auto lightingModelConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
@@ -113,11 +113,11 @@ void RenderScriptingInterface::forceAmbientOcclusionEnabled(bool enabled) {
 }
 
 bool RenderScriptingInterface::getAntialiasingEnabled() {
-    return _antialiasingEnabled.load();
+    return _antialiasingEnabled;
 }
 
 void RenderScriptingInterface::setAntialiasingEnabled(bool enabled) {
-    if (_antialiasingEnabled.load() != enabled) {
+    if (_antialiasingEnabled != enabled) {
         forceAntialiasingEnabled(enabled);
         emit settingsChanged();
     }
@@ -125,7 +125,7 @@ void RenderScriptingInterface::setAntialiasingEnabled(bool enabled) {
 
 void RenderScriptingInterface::forceAntialiasingEnabled(bool enabled) {
     _renderSettingLock.withWriteLock([&] {
-        _antialiasingEnabled.store(enabled);
+        _antialiasingEnabled = (enabled);
         _antialiasingEnabledSetting.set(enabled);
 
         auto mainViewJitterCamConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<JitterSample>("RenderMainView.JitterCam");

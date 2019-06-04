@@ -145,11 +145,11 @@ private:
     // One lock to serialize and access safely all the settings
     mutable ReadWriteLockable _renderSettingLock;
 
-    // Runtime atomic value of each settings
-    std::atomic_int  _renderMethod{ render::Args::RenderMethod::DEFERRED };
-    std::atomic_bool _shadowsEnabled{ true };
-    std::atomic_bool _ambientOcclusionEnabled{ false };
-    std::atomic_bool _antialiasingEnabled { true };
+    // Runtime value of each settings
+    int  _renderMethod{ RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
+    bool _shadowsEnabled{ true };
+    bool _ambientOcclusionEnabled{ false };
+    bool _antialiasingEnabled { true };
 
     // Actual settings saved on disk
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
