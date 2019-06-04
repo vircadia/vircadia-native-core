@@ -1211,6 +1211,12 @@ public:
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }
     bool getLookAtSnappingEnabled() const { return _lookAtSnappingEnabled; }
+
+    /**jsdoc
+     * Sets the avatar's skeleton model.
+     * @function Avatar.setSkeletonModelURL
+     * @param {string} url - The avatar's FST file.
+     */
     Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);

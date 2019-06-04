@@ -39,6 +39,23 @@ class ModelItemID;
 class MyHead;
 class DetailedMotionState;
 
+/**jsdoc
+ * <p>Locomotion control types.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>0</code></td><td>Default</td><td>Your walking speed is constant; it doesn't change depending on how far 
+ *       forward you push your controller's joystick. Fully pushing your joystick forward makes your avatar run.</td></tr>
+ *     <tr><td><code>1</code></td><td>Analog</td><td>Your walking speed changes in steps based on how far forward you push your 
+ *       controller's joystick. Fully pushing your joystick forward makes your avatar run.</td></tr>
+ *     <tr><td><code>2</code></td><td>AnalogPlus</td><td>Your walking speed changes proportionally to how far forward you push 
+ *       your controller's joystick. Fully pushing your joystick forward makes your avatar run.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} MyAvatar.LocomotionControlsMode
+ */
 enum LocomotionControlsMode {
     CONTROLS_DEFAULT = 0,
     CONTROLS_ANALOG,
@@ -128,6 +145,8 @@ class MyAvatar : public Avatar {
      *     avatar. <em>Read-only.</em>
      * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
      *     size in the virtual world. <em>Read-only.</em>
+     * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't.
+     *     <em>Read-only.</em>
      *
      * @comment IMPORTANT: This group of properties is copied from Avatar.h; they should NOT be edited here.
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
@@ -239,9 +258,14 @@ class MyAvatar : public Avatar {
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
      *
-     * @property {number} walkSpeed - The walk speed of your avatar.
-     * @property {number} walkBackwardSpeed - The walk backward speed of your avatar.
-     * @property {number} sprintSpeed - The sprint speed of your avatar.
+     * @property {number} walkSpeed - The walk speed of your avatar for the current control scheme (see 
+     *     {@link MyAvatar.getControlScheme|getControlScheme}).
+     * @property {number} walkBackwardSpeed - The walk backward speed of your avatar for the current control scheme (see 
+     *     {@link MyAvatar.getControlScheme|getControlScheme}).
+     * @property {number} sprintSpeed - The sprint (run) speed of your avatar for the current control scheme (see 
+     *     {@link MyAvatar.getControlScheme|getControlScheme}).
+     * @property {number} analogPlusWalkSpeed - The walk speed of your avatar for the "AnalogPlus" control scheme.
+     * @property {number} analogPlusSprintSpeed - The sprint speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
      * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
      *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
@@ -281,6 +305,7 @@ class MyAvatar : public Avatar {
      * @borrows Avatar.updateAvatarEntity as updateAvatarEntity
      * @borrows Avatar.clearAvatarEntity as clearAvatarEntity
      * @borrows Avatar.setForceFaceTrackerConnected as setForceFaceTrackerConnected
+     * @borrows Avatar.setSkeletonModelURL as setSkeletonModelURL
      * @borrows Avatar.getAttachmentData as getAttachmentData
      * @borrows Avatar.setAttachmentData as setAttachmentData
      * @borrows Avatar.attach as attach
@@ -308,7 +333,6 @@ class MyAvatar : public Avatar {
      * @comment Avatar.setAbsoluteJointTranslationInObjectFrame as setAbsoluteJointTranslationInObjectFrame - Don't borrow because implementation is different.
      * @borrows Avatar.getTargetScale as getTargetScale
      * @borrows Avatar.resetLastSent as resetLastSent
-     * @borrows Avatar.hasPriority as hasPriority
      */
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
@@ -789,26 +813,34 @@ public:
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
 
-    /**
+    /**jsdoc
+     * Gets the control scheme that is in use.
      * @function MyAvatar.getControlScheme
-     * @returns {number}
-    */
+     * @returns {MyAvatar.LocomotionControlsMode} The control scheme that is in use.
+     */
     Q_INVOKABLE int getControlScheme() const { return _controlSchemeIndex; }
 
-    /**
+    /**jsdoc
+     * Sets the control scheme to use.
      * @function MyAvatar.setControlScheme
-     * @param {number} index
-    */
+     * @param {MyAvatar.LocomotionControlsMode} controlScheme - The control scheme to use.
+     */
     Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
     
     /**jsdoc
+     * Gets whether your avatar hovers when its feet are not on the ground.
      * @function MyAvatar.hoverWhenUnsupported
-     * @returns {boolean} 
+     * @returns {boolean} <code>true</code> if your avatar hovers when its feet are not on the ground, <code>false</code> if it 
+     *     falls.
      */
+    // FIXME: Should be named, getHoverWhenUnsupported().
     Q_INVOKABLE bool hoverWhenUnsupported() const { return _hoverWhenUnsupported; }
+
     /**jsdoc
+     * Sets whether your avatar hovers when its feet are not on the ground.
      * @function MyAvatar.setHoverWhenUnsupported
-     * @param {boolean} on
+     * @param {boolean} hover - <code>true</code> if your avatar hovers when its feet are not on the ground, <code>false</code> 
+     *     if it falls.
      */
     Q_INVOKABLE void setHoverWhenUnsupported(bool on) { _hoverWhenUnsupported = on; }
 
@@ -826,15 +858,19 @@ public:
      * @returns {string} <code>"left"</code> for the left hand, <code>"right"</code> for the right hand.
      */
     Q_INVOKABLE QString getDominantHand() const;
+
     /**jsdoc
-    * @function MyAVatar.setStrafeEnabled
-    * @param {bool} enabled
-    */
+     * Sets whether strafing is enabled.
+     * @function MyAvatar.setStrafeEnabled
+     * @param {boolean} enabled - <code>true</code> if strafing is enabled, <code>false</code> if it isn't.
+     */
     Q_INVOKABLE void setStrafeEnabled(bool enabled);
+
     /**jsdoc
-    * @function MyAvatar.getStrafeEnabled
-    * @returns {bool}
-    */
+     * Gets whether strafing is enabled.
+     * @function MyAvatar.getStrafeEnabled
+     * @returns {boolean} <code>true</code> if strafing is enabled, <code>false</code> if it isn't.
+     */
     Q_INVOKABLE bool getStrafeEnabled() const;
     /**jsdoc
      * @function MyAvatar.setHmdAvatarAlignmentType
@@ -1495,18 +1531,8 @@ public:
     */
     Q_INVOKABLE float getDriveGear5();
 
-    /**jsdoc
-     * Choose the control scheme.
-     * @function MyAvatar.setControlSchemeIndex
-     * @param {number} Choose the control scheme to be used.
-     */
     void setControlSchemeIndex(int index);
 
-    /**jsdoc
-     * Check what control scheme is in use.
-     * @function MyAvatar.getControlSchemeIndex
-     * @returns {number} Returns the index associated with a given control scheme.
-     */
     int getControlSchemeIndex();
 
     /**jsdoc
@@ -2409,6 +2435,9 @@ private:
     void updateEyeContactTarget(float deltaTime);
 
     // These are made private for MyAvatar so that you will use the "use" methods instead
+    /**jsdoc
+     * @comment Borrows the base class's JSDoc.
+     */
     Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     virtual void updatePalms() override {}
