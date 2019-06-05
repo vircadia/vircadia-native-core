@@ -10,10 +10,34 @@
 //
 #include "PerformanceManager.h"
 
+#include <platform/Profiler.h>
+
 #include "scripting/RenderScriptingInterface.h"
 
 PerformanceManager::PerformanceManager()
 {
+    setPerformancePreset((PerformancePreset) _performancePresetSetting.get());
+}
+
+void PerformanceManager::setupPerformancePresetSettings(bool evaluatePlatformTier) {
+    if (evaluatePlatformTier || (getPerformancePreset() == UNKNOWN)) {
+        // If evaluatePlatformTier, evalute the Platform Tier and assign the matching Performance profile by default.
+        // A bunch of Performance, Simulation and Render settings will be set to a matching default value from this
+
+        // Here is the mapping between pelatformTIer and performance profile
+        const std::array<PerformanceManager::PerformancePreset, platform::Profiler::NumTiers> platformToPerformancePresetMap = { {
+            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::UNKNOWN
+            PerformanceManager::PerformancePreset::LOW,  // platform::Profiler::LOW
+            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::MID
+            PerformanceManager::PerformancePreset::HIGH  // platform::Profiler::HIGH
+        } };
+
+        // What is our profile?
+        auto platformTier = platform::Profiler::profilePlatform();
+
+        // Then let's assign the performance preset setting from it
+        setPerformancePreset(platformToPerformancePresetMap[platformTier]);
+    }
 }
 
 void PerformanceManager::setPerformancePreset(PerformanceManager::PerformancePreset preset) {
@@ -27,7 +51,7 @@ void PerformanceManager::setPerformancePreset(PerformanceManager::PerformancePre
 }
 
 PerformanceManager::PerformancePreset PerformanceManager::getPerformancePreset() const {
-    PerformancePreset preset = PerformancePreset::MID;
+    PerformancePreset preset = PerformancePreset::UNKNOWN;
 
     preset = (PerformancePreset) _performancePresetSettingLock.resultWithReadLock<int>([&] {
         return _performancePresetSetting.get();
@@ -42,7 +66,7 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
         case PerformancePreset::HIGH:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
-            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
+            qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
 
         break;
         case PerformancePreset::MID:
@@ -57,7 +81,9 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);
 
         break;
+        case PerformancePreset::UNKNOWN:
         default:
+            // Do nothing anymore
         break;
     }
 }

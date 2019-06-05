@@ -19,7 +19,7 @@ PropItem {
     property alias enums : valueCombo.model
 
     Component.onCompleted: {
-      //  valueVar = root.valueVarGetter();
+        valueVar = root.valueVarGetter();
     }
 
     PropComboBox {

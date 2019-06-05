@@ -177,6 +177,9 @@ void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 void PolyLineEntityRenderer::updateGeometry() {
     int maxNumVertices = std::min(_points.length(), _normals.length());
+    if (maxNumVertices < 1) {
+        return;
+    }
     bool doesStrokeWidthVary = false;
     if (_widths.size() > 0) {
         float prevWidth = _widths[0];

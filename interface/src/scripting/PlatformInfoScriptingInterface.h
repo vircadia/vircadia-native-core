@@ -186,8 +186,8 @@ public slots:
 
     /**jsdoc
     * Get the Platform TIer profiled on startup of the Computer
-    * Platform Tier is an ineger/enum value:
-    *  LOW = 0, MID = 1, HIGH = 2
+    * Platform Tier is an integer/enum value:
+    *   UNKNOWN = 0, LOW = 1, MID = 2, HIGH = 3
     * @function PlatformInfo.getTierProfiled
     * @returns {number} The Platform Tier profiled on startup.
     */
@@ -195,8 +195,8 @@ public slots:
 
     /**jsdoc
     * Get the Platform Tier possible Names as an array of strings 
-    * Platform Tier is an ineger/enum value:
-    *  LOW = 0, MID = 1, HIGH = 2
+    * Platform Tier names are:
+    *   [ "UNKNOWN", "LOW", "MID", "HIGH" ]
     * @function PlatformInfo.getPlatformTierNames
     * @returns {string} The array of names matching the number returned from PlatformInfo.getTierProfiled
     */

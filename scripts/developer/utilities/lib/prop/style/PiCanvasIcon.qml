@@ -29,11 +29,19 @@ Canvas {
                                 }
 
     property var fillColor: global.colorBorderHighight 
-    onFillColorChanged: function () { //console.log("fillColor changed to: " + filled );
+    onFillColorChanged: function () { //console.log("fillColor changed to: " + fillColor );
                                      requestPaint()
                                    }
 
-    property alias iconMouseArea: mousearea
+     property var stroked: true 
+    onStrokedChanged: function () { //console.log("Stroked changed to: " + stroked );
+                                   requestPaint()
+                                }
+
+     property var strokeColor: global.colorBorderLight 
+    onStrokeColorChanged: function () { //console.log("strokeColor changed to: " + strokeColor );
+                                     requestPaint()
+                                   }
 
     contextType: "2d" 
     onPaint: {
@@ -86,14 +94,10 @@ Canvas {
         if (filled) {
             context.fillStyle = fillColor;
             context.fill();
-        } else {
-            context.strokeStyle = fillColor;
+        }
+        if (stroked) {
+            context.strokeStyle = strokeColor;
             context.stroke();
         }
-    }
-
-    MouseArea{
-        id: mousearea
-        anchors.fill: parent
     }
 }

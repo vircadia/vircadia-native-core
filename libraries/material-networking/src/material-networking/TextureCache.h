@@ -96,7 +96,7 @@ private:
     friend class KTXReader;
     friend class ImageReader;
 
-    image::TextureUsage::Type _type;
+    image::TextureUsage::Type _type { image::TextureUsage::UNUSED_TEXTURE };
     image::ColorChannel _sourceChannel;
 
     enum class ResourceType {

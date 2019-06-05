@@ -25,10 +25,10 @@
  */
 class RenderScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod)
-    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled)
-    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled)
-    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled)
+    Q_PROPERTY(RenderMethod renderMethod READ getRenderMethod WRITE setRenderMethod NOTIFY settingsChanged)
+    Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
 
 public:
     RenderScriptingInterface();
@@ -36,11 +36,17 @@ public:
     static RenderScriptingInterface* getInstance();
 
     // RenderMethod enum type
-    enum RenderMethod {
+    enum class RenderMethod {
         DEFERRED = render::Args::RenderMethod::DEFERRED,
         FORWARD = render::Args::RenderMethod::FORWARD,
     };
-    Q_ENUM(RenderMethod);
+    Q_ENUM(RenderMethod)
+
+
+    // Load Settings
+    // Synchronize the runtime value to the actual setting
+    // Need to be called on start up to re-initialize the runtime to the saved setting states
+    void loadSettings();
 
 public slots:
     /**jsdoc
@@ -132,12 +138,32 @@ public slots:
      */
   //  void setViewportResolutionScale(float resolutionScale);
 
+signals:
+    void settingsChanged();
+
 private:
+    // One lock to serialize and access safely all the settings
+    mutable ReadWriteLockable _renderSettingLock;
+
+    // Runtime value of each settings
+    int  _renderMethod{ RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
+    bool _shadowsEnabled{ true };
+    bool _ambientOcclusionEnabled{ false };
+    bool _antialiasingEnabled { true };
+
+    // Actual settings saved on disk
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     Setting::Handle<bool> _shadowsEnabledSetting { "shadowsEnabled", true };
     Setting::Handle<bool> _ambientOcclusionEnabledSetting { "ambientOcclusionEnabled", false };
     Setting::Handle<bool> _antialiasingEnabledSetting { "antialiasingEnabled", true };
-    Setting::Handle<float> _viewportResolutionScaleSetting{ "viewportResolutionScale", 1.0f };
+
+    // Force assign both setting AND runtime value to the parameter value
+    void forceRenderMethod(RenderMethod renderMethod);
+    void forceShadowsEnabled(bool enabled);
+    void forceAmbientOcclusionEnabled(bool enabled);
+    void forceAntialiasingEnabled(bool enabled);
+
+    static std::once_flag registry_flag;
 };
 
 #endif  // hifi_RenderScriptingInterface_h

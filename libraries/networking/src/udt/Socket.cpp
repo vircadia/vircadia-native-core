@@ -334,7 +334,11 @@ void Socket::readPendingDatagrams() {
         if (system_clock::now() > abortTime) {
             // We've been running for too long, stop processing packets for now
             // Once we've processed the event queue, we'll come back to packet processing
-            qCDebug(networking) << "Socket::readPendingDatagrams() running too long, aborting to process event queue";
+#ifdef DEBUG_EVENT_QUEUE
+            int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+            qCDebug(networking) << "Overran timebox by" << duration_cast<milliseconds>(system_clock::now() - abortTime).count()
+                << "ms; NodeList thread event queue size =" << nodeListQueueSize;
+#endif
             break;
         }
 
