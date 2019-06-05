@@ -664,7 +664,7 @@ Rectangle {
             }
             RalewayRegular {
                 id: systemInjectorGainSliderText;
-                text: "System Sound volume";
+                text: "UI FX volume";
                 size: 16;
                 anchors.left: parent.left;
                 color: hifi.colors.white;
