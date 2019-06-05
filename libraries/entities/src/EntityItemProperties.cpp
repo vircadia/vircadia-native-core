@@ -630,7 +630,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
  *     {@link Entities.addEntity}.  Read-only.
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is 
- *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
+ *     <code>true</code>, otherwise {@link Uuid(0)|Uuid.NULL}. <em>Read-only.</em>
  *
  * @property {string} created - The UTC date and time that the entity was created, in ISO 8601 format as
  *     <code>yyyy-MM-ddTHH:mm:ssZ</code>. <em>Read-only.</em>
@@ -728,7 +728,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     button beside the "script URL" field in properties tab of the Create app works.
  * @property {string} serverScripts="" - The URL of the server entity script, if any, that is attached to the entity.
  *
- * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that this entity is parented to. {@link Uuid|Uuid.NULL} 
+ * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that this entity is parented to. {@link Uuid(0)|Uuid.NULL} 
  *     if the entity is not parented.
  * @property {number} parentJointIndex=65535 - The joint of the entity or avatar that this entity is parented to. Use 
  *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a joint.
@@ -1174,17 +1174,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} zTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local z-axis. JPG or 
  *     PNG format. If no texture is specified the surfaces display white.
  * @property {Uuid} xNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local x-axis direction, 
- *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @property {Uuid} yNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local y-axis direction, 
- *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @property {Uuid} zNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local z-axis direction, 
- *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @property {Uuid} xPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local x-axis direction, 
- *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @property {Uuid} yPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local y-axis direction, 
- *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @property {Uuid} zPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local z-axis direction, 
- *     if you want them joined. Set to {@link Uuid|Uuid.NULL} if there is none or you don't want to join them.
+ *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @example <caption>Create a textured PolyVox sphere.</caption>
  * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
  * var texture = "http://public.highfidelity.com/cozza13/tuscany/Concrete2.jpg";
