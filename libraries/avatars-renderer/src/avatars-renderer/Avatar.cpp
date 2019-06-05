@@ -684,10 +684,10 @@ void Avatar::fadeOut(render::Transaction& transaction, KillAvatarReason reason) 
 }
 
 void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
-    transaction.addTransitionToItem(_renderItemID, type);
+    transaction.resetTransitionOnItem(_renderItemID, type);
     for (auto& attachmentModel : _attachmentModels) {
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
-            transaction.addTransitionToItem(itemId, type, _renderItemID);
+            transaction.resetTransitionOnItem(itemId, type, _renderItemID);
         }
     }
     _lastFadeRequested = type;
