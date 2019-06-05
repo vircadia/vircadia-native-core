@@ -30,7 +30,7 @@
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {Uuid} NULL - The null UUID, <code>{00000000-0000-0000-0000-000000000000}</code>.
+ * @property {Uuid} NULL - The null UUID, <code>"{00000000-0000-0000-0000-000000000000}"</code>.
  */
 
 /// Scriptable interface for a UUID helper class object. Used exclusively in the JavaScript API
@@ -66,7 +66,7 @@ public slots:
     QString toString(const QUuid& id);
     
     /**jsdoc
-     * Generate a new UUID.
+     * Generates a new UUID.
      * @function Uuid(0).generate
      * @returns {Uuid} A new UUID.
      * @example <caption>Generate a new UUID and reports its JavaScript type.</caption>
@@ -77,7 +77,7 @@ public slots:
     QUuid generate();
 
     /**jsdoc
-     * Test whether two given UUIDs are equal.
+     * Tests whether two UUIDs are equal.
      * @function Uuid(0).isEqual
      * @param {Uuid} idA - The first UUID to compare.
      * @param {Uuid} idB - The second UUID to compare.
@@ -92,10 +92,11 @@ public slots:
     bool isEqual(const QUuid& idA, const QUuid& idB);
 
     /**jsdoc
-     * Test whether a given UUID is null.
+     * Tests whether a UUID is null.
      * @function Uuid(0).isNull
      * @param {Uuid} id - The UUID to test.
-     * @returns {boolean} <code>true</code> if the UUID equals Uuid.NULL or is <code>null</code>, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the UUID equals <code>Uuid.NULL</code> or is <code>null</code>, otherwise 
+     *     <code>false</code>.
      * @example <caption>Demonstrate <code>true</code> and <code>false</code> cases.</caption>
      * var uuid; // undefined
      * print(Uuid.isNull(uuid)); // false
@@ -109,7 +110,7 @@ public slots:
     bool isNull(const QUuid& id);
 
     /**jsdoc
-     * Print to the program log a text label followed by the UUID value.
+     * Prints a UUID to the program log, as a text label followed by the UUID value.
      * @function Uuid(0).print
      * @param {string} label - The label to print.
      * @param {Uuid} id - The UUID to print.
