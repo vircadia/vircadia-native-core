@@ -226,8 +226,11 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
 
     if (bytesWritten < 0) {
-        // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        qCDebug(networking) << "Socket::writeDatagram : " << sockAddr << " " << _udpSocket.error();
+        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << _udpSocket.error() << "(" << _udpSocket.errorString() << ")";
+#ifdef DEBUG_EVENT_QUEUE
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+        qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
+#endif // DEBUG_EVENT_QUEUE    
     }
 
     return bytesWritten;

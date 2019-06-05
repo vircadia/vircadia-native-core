@@ -446,7 +446,11 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
 
         return size;
     } else {
-        return sendUnreliablePacket(*packet, sockAddr, hmacAuth);
+        auto size = sendUnreliablePacket(*packet, sockAddr, hmacAuth);
+        if (size < 0) {
+
+        }
+        return size;
     }
 }
 
