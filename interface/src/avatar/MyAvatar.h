@@ -265,6 +265,8 @@ class MyAvatar : public Avatar {
      * @property {number} sprintSpeed - The sprint (run) speed of your avatar for the current control scheme (see 
      *     {@link MyAvatar.getControlScheme|getControlScheme}).
      * @property {number} analogPlusWalkSpeed - The walk speed of your avatar for the "AnalogPlus" control scheme.
+     *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice 
+     *     the value.</p>
      * @property {number} analogPlusSprintSpeed - The sprint speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
      * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
@@ -664,7 +666,7 @@ public:
      * Restores the default hand animation state machine that is driven by the state machine in the avatar-animation JSON.
      * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
      * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will
-     * override the  default animations. <code>restoreHandAnimation()</code> is used to restore the default hand poses
+     * override the  default animations. <code>restoreHandAnimation()</code> is used to restore the default hand poses.
      * If you aren't currently playing an override hand animation, this function has no effect.</p>
      * @function MyAvatar.restoreHandAnimation
      * @param isLeft {boolean} Set to true if using the left hand
