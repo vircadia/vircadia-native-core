@@ -227,6 +227,12 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 
     if (bytesWritten < 0) {
         qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << _udpSocket.error() << "(" << _udpSocket.errorString() << ")";
+
+#ifdef WIN32
+        int wsaError = WSAGetLastError();
+        qCDebug(networking) << "windows socket error " << wsaError;
+#endif
+
 #ifdef DEBUG_EVENT_QUEUE
         int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
         qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
