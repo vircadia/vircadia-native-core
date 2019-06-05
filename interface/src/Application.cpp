@@ -1311,12 +1311,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this] {
+    addressManager->setPositionGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         return myAvatar ? myAvatar->getWorldFeetPosition() : Vectors::ZERO;
     });
-    addressManager->setOrientationGetter([this] {
+    addressManager->setOrientationGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         return myAvatar ? myAvatar->getWorldOrientation() : glm::quat();

@@ -42,11 +42,7 @@ function runNewDefaultsTogether() {
 }
 
 
-// Uncomment this out once the work is actually complete.
-// Until then, users are required to access some functionality from the top menu bar.
-//var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
-var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Help",
-    "Settings > General...", "Settings > Controls...", "Settings > Audio...", "Settings > Graphics...", "Settings > Security..."];
+var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
 var keepMenusSetting = Settings.getValue("simplifiedUI/keepMenus", false);
 function maybeRemoveDesktopMenu() {    
     if (!keepMenusSetting) {
@@ -535,7 +531,7 @@ function shutdown() {
     restoreScripts();
 
     if (!keepExistingUIAndScriptsSetting) {
-        Window.confirm("You'll have to restart Interface to get full functionality back. Clicking yes or no will dismiss this dialog.");
+        console.log("The Simplified UI script has been shut down. If you notice any strangeness with user interface, please restart this application.");
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);

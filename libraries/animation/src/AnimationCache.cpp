@@ -136,7 +136,6 @@ void Animation::downloadFinished(const QByteArray& data) {
 }
 
 void Animation::animationParseSuccess(HFMModel::Pointer hfmModel) {
-    qCDebug(animation) << "Animation parse success";
     _hfmModel = hfmModel;
     finishedLoading(true);
 }

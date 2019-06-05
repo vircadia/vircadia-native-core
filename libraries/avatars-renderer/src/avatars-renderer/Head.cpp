@@ -230,7 +230,11 @@ void Head::applyEyelidOffset(glm::quat headOrientation) {
     const float OPEN_DOWN_MULTIPLIER = 0.3f;
     const float BROW_UP_MULTIPLIER = 0.5f;
 
-    glm::vec3 lookAt = glm::normalize(getLookAtPosition() - _eyePosition);
+    glm::vec3 lookAtVector = getLookAtPosition() - _eyePosition;
+    if (glm::length2(lookAtVector) == 0.0f) {
+        return;
+    }
+    glm::vec3 lookAt = glm::normalize(lookAtVector);
     glm::vec3 headUp = headOrientation * Vectors::UNIT_Y;
     float eyePitch = (PI / 2.0f) - acos(glm::dot(lookAt, headUp));
     float eyelidOffset = glm::clamp(abs(eyePitch * EYE_PITCH_TO_COEFFICIENT), 0.0f, MAX_EYELID_OFFSET);
