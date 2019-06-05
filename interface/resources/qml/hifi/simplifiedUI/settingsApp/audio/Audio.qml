@@ -126,7 +126,7 @@ Flickable {
                 Layout.preferredWidth: parent.width
                 Layout.preferredHeight: 30
                 Layout.topMargin: 2
-                labelText: "System Sound Volume"
+                labelText: "UI FX Volume"
                 from: simplifiedUI.numericConstants.mutedValue
                 to: 20.0
                 defaultValue: 0.0
