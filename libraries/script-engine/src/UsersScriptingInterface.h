@@ -162,27 +162,27 @@ public slots:
     bool getCanKick();
 
     /**jsdoc
-     * Toggles the state of the privacy bubble.
+     * Toggles the state of the privacy shield.
      * @function Users.toggleIgnoreRadius
      */
     void toggleIgnoreRadius();
 
     /**jsdoc
-     * Enables the privacy bubble.
+     * Enables the privacy shield.
      * @function Users.enableIgnoreRadius
      */
     void enableIgnoreRadius();
 
     /**jsdoc
-     * Disables the privacy bubble.
+     * Disables the privacy shield.
      * @function Users.disableIgnoreRadius
      */
     void disableIgnoreRadius();
 
     /**jsdoc
-     * Gets the status of the privacy bubble.
+     * Gets the status of the privacy shield.
      * @function Users.getIgnoreRadiusEnabled
-     * @returns {boolean} <code>true</code> if the privacy bubble is enabled, <code>false</code> if it is disabled.
+     * @returns {boolean} <code>true</code> if the privacy shield is enabled, <code>false</code> if it is disabled.
      */
     bool getIgnoreRadiusEnabled();
 
@@ -197,15 +197,15 @@ signals:
     void canKickChanged(bool canKick);
 
     /**jsdoc
-     * Triggered when the privacy bubble status changes.
+     * Triggered when the privacy shield status changes.
      * @function Users.ignoreRadiusEnabledChanged
-     * @param {boolean} isEnabled - <code>true</code> if the privacy bubble is enabled, <code>false</code> if it isn't.
+     * @param {boolean} isEnabled - <code>true</code> if the privacy shield is enabled, <code>false</code> if it isn't.
      * @returns {Signal}
      */
     void ignoreRadiusEnabledChanged(bool isEnabled);
 
     /**jsdoc
-     * Triggered when another user enters the privacy bubble.
+     * Triggered when another user enters the privacy shield.
      * @function Users.enteredIgnoreRadius
      * @returns {Signal}
      */
