@@ -385,7 +385,6 @@ FBXNode FBXSerializer::parseFBX(QIODevice* device) {
     quint32 fileVersion;
     in >> fileVersion;
     position += sizeof(fileVersion);
-    qCDebug(modelformat) << "fileVersion:" << fileVersion;
     bool has64BitPositions = (fileVersion >= FBX_VERSION_2016);
 
     // parse the top-level node
