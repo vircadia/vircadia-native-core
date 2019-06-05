@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-@interface DownloadInterface : NSObject <NSURLDownloadDelegate> {
+@interface DownloadInterface : NSObject<NSURLSessionDataDelegate, NSURLSessionDelegate, NSURLSessionTaskDelegate, NSURLDownloadDelegate> {
 }
 @property (nonatomic, assign) NSString* finalFilePath;
 

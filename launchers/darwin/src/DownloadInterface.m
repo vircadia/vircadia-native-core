@@ -7,78 +7,39 @@
 - (void) downloadInterface:(NSString*) downloadUrl
 {
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
-                                                cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                            timeoutInterval:60.0];
+                                             cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                         timeoutInterval:60.0];
     
-    NSURLDownload* theDownload = [[NSURLDownload alloc] initWithRequest:request delegate:self];
+    NSURLSessionConfiguration *defaultConfigObject = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSession *defaultSession = [NSURLSession sessionWithConfiguration: defaultConfigObject delegate: self delegateQueue: [NSOperationQueue mainQueue]];
+    NSURLSessionDownloadTask *downloadTask = [defaultSession downloadTaskWithRequest:request];
     
-    /*NSURLSession *session = [NSURLSession sharedSession];
-    NSURLSessionDownloadTask *downloadTask = [session downloadTaskWithRequest:request
-                                                            completionHandler:
-    ^(NSURL *location, NSURLResponse *response,NSError *error) {
-        Launcher* sharedLauncher = [Launcher sharedLauncher];
-        NSString* finalFilePath = [[sharedLauncher getAppPath] stringByAppendingPathComponent:[response suggestedFilename]];
-        [[Launcher sharedLauncher] setDownloadFilename:[response suggestedFilename]];
-        
-        NSLog(@"----------->%@", location);
-        [[NSFileManager defaultManager] moveItemAtURL:location
-                                                toURL:[NSURL URLWithString: [finalFilePath stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]]]
-                                                error:nil];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            
-            NSString* appPath = [sharedLauncher getAppPath];
-            NSString* downloadFileName = [sharedLauncher getDownloadFilename];
-            NSLog(@"!!!!!!%@", downloadFileName);
-            NSLog(@"extract interface zip");
-            [sharedLauncher extractZipFileAtDestination:appPath :[appPath stringByAppendingString:downloadFileName]];
-            NSLog(@"finished extracting interface zip");
-            
-            NSLog(@"starting xattr");
-            NSTask* quaratineTask = [[NSTask alloc] init];
-            quaratineTask.launchPath = @"/usr/bin/xattr";
-            quaratineTask.arguments = @[@"-d", @"com.apple.quarantine", [appPath stringByAppendingString:@"interface.app"]];
-            
-            [quaratineTask launch];
-            [quaratineTask waitUntilExit];
-            NSLog(@"finished xattr");
-            
-            NSString* launcherPath = [appPath stringByAppendingString:@"Launcher"];
-            
-            [[Settings sharedSettings] setLauncherPath:launcherPath];
-            [sharedLauncher interfaceFinishedDownloading];
-            
-        });
-    }];
-    
-    [downloadTask resume];*/
+    [downloadTask resume];
 }
 
-- (void)download:(NSURLDownload *)download decideDestinationWithSuggestedFilename:(NSString *)filename
-{
-    self.finalFilePath = [[[Launcher sharedLauncher] getAppPath] stringByAppendingPathComponent:filename];
-    [download setDestination:self.finalFilePath allowOverwrite:YES];
+-(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
+    CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
+    NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
     
-    [[Launcher sharedLauncher] setDownloadFilename:filename];
 }
 
+-(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didResumeAtOffset:(int64_t)fileOffset expectedTotalBytes:(int64_t)expectedTotalBytes {
+    // unused in this example
+}
 
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
-    NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
-    if([ne statusCode] == 200) {
-        NSLog(@"download interface connection state is 200 - all okay");
-    } else {
-        NSLog(@"download interface connection state is NOT 200");
-        [[Launcher sharedLauncher] displayErrorPage];
+-(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location {
+    NSLog(@"Did finish downloading to url");
+    NSError *error;
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
+    NSString* finalFilePath = [[[Launcher sharedLauncher] getAppPath] stringByAppendingPathComponent:destinationFileName];
+    NSURL *destinationURL = [NSURL URLWithString: [finalFilePath stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
+    if([fileManager fileExistsAtPath:[destinationURL path]])
+    {
+        [fileManager removeItemAtURL:destinationURL error:nil];
     }
-}
-
--(void) connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    NSLog(@"download interface content - Conn Err: %@", [error localizedDescription]);
-    [[Launcher sharedLauncher] displayErrorPage];
-}
-
-- (void)downloadDidFinish:(NSURLDownload*)download
-{
+    [fileManager moveItemAtURL:location toURL:destinationURL error:&error];
+    
     Launcher* sharedLauncher = [Launcher sharedLauncher];
     NSString* appPath = [sharedLauncher getAppPath];
     NSString* downloadFileName = [sharedLauncher getDownloadFilename];
@@ -102,8 +63,9 @@
     [sharedLauncher interfaceFinishedDownloading];
 }
 
-- (void)download:(NSURLDownload*)download didReceiveResponse:(NSURLResponse*)response
-{
-    NSLog(@"Download interface response");
+-(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+    NSLog(@"completed; error: %@", error);
 }
+
+
 @end

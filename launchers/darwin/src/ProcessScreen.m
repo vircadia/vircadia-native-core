@@ -49,7 +49,7 @@
 }
 
 - (void) rotateView:(NSTimer *)timer{
-    self.imageRotation += 1;
+    self.imageRotation -= 1;
     [self.voxelImage setFrameCenterRotation:self.imageRotation];
 }
 @end
