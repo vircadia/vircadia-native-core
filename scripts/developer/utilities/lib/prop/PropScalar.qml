@@ -32,6 +32,13 @@ PropItem {
         valueVar = root.valueVarGetter();
     }
 
+    Connections
+    {
+        target: obj;
+        onValueChanged: console.log('changed');
+    }
+        
+
     PropLabel {
         id: valueLabel
         enabled: root.showValue

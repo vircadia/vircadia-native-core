@@ -32,6 +32,7 @@ Column {
     }
 
     Prop.PropEnum {
+        id: refreshrateProfileControl
         label: "Refresh Rate Profile"
         object: Performance
         property: "refreshRateProfile"
