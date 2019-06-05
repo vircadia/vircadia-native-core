@@ -437,7 +437,18 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
 
         return size;
     } else {
-        return sendUnreliablePacket(*packet, sockAddr, hmacAuth);
+        auto size = sendUnreliablePacket(*packet, sockAddr, hmacAuth);
+        if (size < 0) {
+            auto now = usecTimestampNow();
+            eachNode([now](const SharedNodePointer & node) {
+                qCDebug(networking) << "Stats for " << node->getPublicSocket() << "\n"
+                    << "    Last Heard Microstamp: " << node->getLastHeardMicrostamp() << " (" << (now - node->getLastHeardMicrostamp()) << "usec ago)\n"
+                    << "    Outbound Kbps: " << node->getOutboundKbps() << "\n"
+                    << "    Inbound Kbps: " << node->getInboundKbps() << "\n"
+                    << "    Ping: " << node->getPingMs();
+            });
+        }
+        return size;
     }
 }
 
