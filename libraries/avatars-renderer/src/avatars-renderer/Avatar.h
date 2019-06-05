@@ -441,7 +441,7 @@ public:
     /**jsdoc
      * Gets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.getParentID
-     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid|Uuid.NULL} if not parented.
+     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
@@ -450,7 +450,7 @@ public:
      * Sets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.setParentID
      * @param {Uuid} parentID - The ID of the entity or avatar that the avatar should be parented to. Set to 
-     *    {@link Uuid|Uuid.NULL} to unparent.
+     *    {@link Uuid(0)|Uuid.NULL} to unparent.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
