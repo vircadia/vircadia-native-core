@@ -6,15 +6,12 @@
 
 static NSString* const organizationURL = @"https://s3.amazonaws.com/hifi-public/huffman/organizations/";
 
-#define str(s) #s
-#define LAUNCHER_HMAC_SECRET_STRING str(LAUNCHER_HMAC_SECRET)
-
 @implementation OrganizationRequest
 
 - (void) confirmOrganization:(NSString*)aOrganization :(NSString*)aUsername {
     self.username = aUsername;
     
-    const char *cKey  = LAUNCHER_HMAC_SECRET_STRING;
+    const char *cKey  = LAUNCHER_HMAC_SECRET;
     const char *cData = [aOrganization cStringUsingEncoding:NSASCIIStringEncoding];
     unsigned char cHMAC[CC_SHA256_DIGEST_LENGTH];
     CCHmac(kCCHmacAlgSHA256, cKey, strlen(cKey), cData, strlen(cData), cHMAC);

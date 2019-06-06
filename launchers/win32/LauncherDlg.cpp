@@ -170,12 +170,9 @@ void CLauncherDlg::startProcess() {
 	}
 }
 
-#define str(s) #s
-#define LAUNCHER_HMAC_SECRET_STRING str(LAUNCHER_HMAC_SECRET)
-
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
 	CString hash;
-    LauncherUtils::hMac256(orgname, LAUNCHER_HMAC_SECRET_STRING, hash);
+    LauncherUtils::hMac256(orgname, LAUNCHER_HMAC_SECRET, hash);
 	return theApp._manager.readOrganizationJSON(hash) == LauncherUtils::ResponseError::NoError;
 }
 

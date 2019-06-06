@@ -53,10 +53,20 @@ set_target_properties(${this_target} PROPERTIES
 
 set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
 
+function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
+    if (NOT DEFINED ${_RESULT_NAME}) 
+        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+        else()
+            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
+        endif()
+    endif()
+endfunction()
+
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME})
-
-
+set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
 
 file(GLOB NIB_FILES "nib/*.xib")
 
