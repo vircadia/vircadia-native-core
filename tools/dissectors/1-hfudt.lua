@@ -307,7 +307,7 @@ function p_hfudt.dissector(buf, pinfo, tree)
 
     -- check if we have part of a message that we need to re-assemble
     -- before it can be dissected
-    if message_bit == 1 and message_position ~= 0 then
+    if message_bit == 1 and message_position ~= 0 and message_number < 50 and message_part_number < 10 then
       if fragments[message_number] == nil then
         fragments[message_number] = {}
       end
