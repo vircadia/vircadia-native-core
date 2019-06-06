@@ -38,7 +38,7 @@ class Camera : public QObject {
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
-    Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
+    Q_PROPERTY(QString mode READ getModeString WRITE setModeString NOTIFY modeUpdated)
     Q_PROPERTY(QVariantMap frustum READ getViewFrustum CONSTANT)
 
 public:

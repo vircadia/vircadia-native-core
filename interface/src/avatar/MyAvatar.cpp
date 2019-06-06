@@ -5014,6 +5014,7 @@ float MyAvatar::getAnalogSprintSpeed() const {
 
 void MyAvatar::setAnalogPlusWalkSpeed(float value) {
     _analogPlusWalkSpeed.set(value);
+    analogPlusWalkSpeedChanged(value);
     // Sprint speed for Analog Plus should be double walk speed.
     _analogPlusSprintSpeed.set(value * 2.0f);
 }

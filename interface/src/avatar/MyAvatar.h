@@ -370,7 +370,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(QUuid SELF_ID READ getSelfID CONSTANT)
 
     Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
-    Q_PROPERTY(float analogPlusWalkSpeed READ getAnalogPlusWalkSpeed WRITE setAnalogPlusWalkSpeed);
+    Q_PROPERTY(float analogPlusWalkSpeed READ getAnalogPlusWalkSpeed WRITE setAnalogPlusWalkSpeed NOTIFY analogPlusWalkSpeedChanged);
     Q_PROPERTY(float analogPlusSprintSpeed READ getAnalogPlusSprintSpeed WRITE setAnalogPlusSprintSpeed);
     Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
     Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
@@ -2160,6 +2160,13 @@ signals:
      * @returns {Signal} 
      */
     void audioListenerModeChanged();
+
+    /**jsdoc
+     * Notifies when the analogPlusWalkSpeed value changed.
+     * @function MyAvatar.analogPlusWalkSpeedChanged
+     * @returns {Signal} 
+     */
+    void analogPlusWalkSpeedChanged(float value);
 
     /**jsdoc
      * @function MyAvatar.transformChanged
