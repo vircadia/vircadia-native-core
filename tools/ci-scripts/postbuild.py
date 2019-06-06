@@ -29,10 +29,12 @@ elif sys.platform == "darwin":
 
 
 # Customize the output filename
-def computeArchiveName():
+def computeArchiveName(prefix):
     RELEASE_TYPE = os.getenv("RELEASE_TYPE", "DEV")
     RELEASE_NUMBER = os.getenv("RELEASE_NUMBER", "")
     GIT_PR_COMMIT_SHORT = os.getenv("SHA7", "")
+    if GIT_PR_COMMIT_SHORT == '':
+        GIT_PR_COMMIT_SHORT = os.getenv("GIT_PR_COMMIT_SHORT", "")
 
     if RELEASE_TYPE == "PRODUCTION":
         BUILD_VERSION = "{}-{}".format(RELEASE_NUMBER, GIT_PR_COMMIT_SHORT)
@@ -48,7 +50,7 @@ def computeArchiveName():
     else:
         PLATFORM = "other"
 
-    ARCHIVE_NAME = "HighFidelity-Beta-Interface-{}-{}".format(BUILD_VERSION, PLATFORM)
+    ARCHIVE_NAME = "{}-{}-{}".format(prefix, BUILD_VERSION, PLATFORM)
     return ARCHIVE_NAME
 
 def wipeClientBuildPath(relativePath):
@@ -109,12 +111,48 @@ def fixupWinZip(filename):
     print("Replacing {} with fixed {}".format(fullPath, outFullPath))
     shutil.move(outFullPath, fullPath)
 
+def buildLightLauncher():
+    launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
+    launcherBuildPath = os.path.join(BUILD_PATH, 'launcher') 
+    if not os.path.exists(launcherBuildPath):
+        os.makedirs(launcherBuildPath)
+    # configure launcher build
+    cmakeArgs = [ 'cmake', '-S', launcherSourcePath ]
+
+    if sys.platform == 'darwin':
+        cmakeArgs.append('-G')
+        cmakeArgs.append('Xcode')
+    elif sys.platform == 'win32':
+        cmakeArgs.append('-A')
+        cmakeArgs.append('x64')
+
+    hifi_utils.executeSubprocess(cmakeArgs, folder=launcherBuildPath)
+
+    buildTarget = 'package'
+    if sys.platform == 'win32':
+        buildTarget = 'ALL_BUILD'
+    hifi_utils.executeSubprocess([
+            'cmake', 
+            '--build', launcherBuildPath,
+            '--config', 'Release', 
+            '--target', buildTarget
+        ], folder=launcherBuildPath)
+    if sys.platform == 'darwin':
+        launcherDestFile = os.path.join(BUILD_PATH, "{}.dmg".format(computeArchiveName('Launcher')))
+        launcherSourceFile = os.path.join(launcherBuildPath, "HQ Launcher.dmg")
+    elif sys.platform == 'win32':
+        # FIXME
+        launcherDestFile = os.path.join(BUILD_PATH, "{}.exe".format(computeArchiveName('Launcher')))
+        launcherSourceFile = os.path.join(launcherBuildPath, "Launcher.exe")
+    print("Moving {} to {}".format(launcherSourceFile, launcherDestFile))
+    shutil.move(launcherSourceFile, launcherDestFile)
+
 
 for wipePath in WIPE_PATHS:
     wipeClientBuildPath(wipePath)
 
 # Need the archive name for ad-hoc zip file manipulation
-archiveName = computeArchiveName()
+archiveName = computeArchiveName('HighFidelity-Beta-Interface')
 
 cpackCommand = [
     'cpack', 
@@ -132,3 +170,5 @@ if sys.platform == "win32":
 elif sys.platform == "darwin":
     fixupMacZip(archiveName)
 
+# FIXME enable when MFC is on the Windows build hosts
+# buildLightLauncher()
