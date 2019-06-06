@@ -158,7 +158,13 @@ local packet_types = {
 }
 
 local unsourced_packet_types = {
-  ["DomainList"] = true
+  ["DomainList"] = true,
+  ["DomainConnectRequest"] = true,
+  ["ICEPing"] = true,
+  ["ICEPingReply"] = true,
+  ["DomainServerConnectionToken"] = true,
+  ["DomainSettingsRequest"] = true,
+  ["ICEServerHeartbeatACK"] = true
 }
 
 local fragments = {}
