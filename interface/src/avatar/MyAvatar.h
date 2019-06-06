@@ -371,9 +371,9 @@ class MyAvatar : public Avatar {
 
     Q_PROPERTY(float walkSpeed READ getWalkSpeed WRITE setWalkSpeed);
     Q_PROPERTY(float analogPlusWalkSpeed READ getAnalogPlusWalkSpeed WRITE setAnalogPlusWalkSpeed NOTIFY analogPlusWalkSpeedChanged);
-    Q_PROPERTY(float analogPlusSprintSpeed READ getAnalogPlusSprintSpeed WRITE setAnalogPlusSprintSpeed);
-    Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed);
-    Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed);
+    Q_PROPERTY(float analogPlusSprintSpeed READ getAnalogPlusSprintSpeed WRITE setAnalogPlusSprintSpeed NOTIFY analogPlusSprintSpeedChanged);
+    Q_PROPERTY(float walkBackwardSpeed READ getWalkBackwardSpeed WRITE setWalkBackwardSpeed NOTIFY walkBackwardSpeedChanged);
+    Q_PROPERTY(float sprintSpeed READ getSprintSpeed WRITE setSprintSpeed NOTIFY sprintSpeedChanged);
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
     Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);
     Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
@@ -2162,11 +2162,36 @@ signals:
     void audioListenerModeChanged();
 
     /**jsdoc
-     * Notifies when the analogPlusWalkSpeed value changed.
+     * Notifies when the analogPlusWalkSpeed value is changed.
      * @function MyAvatar.analogPlusWalkSpeedChanged
+     * @param {float} speed - the new avatar walk speed
      * @returns {Signal} 
      */
     void analogPlusWalkSpeedChanged(float value);
+
+    /**jsdoc
+     * Notifies when the analogPlusSprintSpeed value is changed.
+     * @function MyAvatar.analogPlusSprintSpeedChanged
+     * @param {float} speed - the new avatar sprint speed
+     * @returns {Signal} 
+     */
+    void analogPlusSprintSpeedChanged(float value);
+
+    /**jsdoc
+     * Notifies when the sprintSpeed value is changed.
+     * @function MyAvatar.sprintSpeedChanged
+     * @param {float} speed - the new avatar sprint speed
+     * @returns {Signal} 
+     */
+    void sprintSpeedChanged(float value);
+
+    /**jsdoc
+     * Notifies when the walkBackwardSpeed value is changed.
+     * @function MyAvatar.walkBackwardSpeedChanged
+     * @param {float} speed - the new avatar walk backward speed
+     * @returns {Signal} 
+     */
+    void walkBackwardSpeedChanged(float value);
 
     /**jsdoc
      * @function MyAvatar.transformChanged
