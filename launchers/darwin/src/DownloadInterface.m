@@ -41,6 +41,7 @@
     [fileManager moveItemAtURL:location toURL:destinationURL error:&error];
     
     Launcher* sharedLauncher = [Launcher sharedLauncher];
+    [sharedLauncher setDownloadFilename:destinationFileName];
     NSString* appPath = [sharedLauncher getAppPath];
     NSString* downloadFileName = [sharedLauncher getDownloadFilename];
     
