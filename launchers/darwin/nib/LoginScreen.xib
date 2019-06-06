@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="LoginScreen">
+            <connections>
+                <outlet property="view" destination="c22-O7-iKe" id="QBq-uY-czz"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView wantsLayer="YES" id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="515" height="390"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <imageView focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L56-Jv-0N8">
+                    <rect key="frame" x="0.0" y="0.0" width="515" height="390"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <imageCell key="cell" refusesFirstResponder="YES" focusRingType="none" alignment="left" imageScaling="proportionallyDown" id="ONf-d4-EDr"/>
+                    <color key="contentTintColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                </imageView>
+                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="L7W-3n-OKy" customClass="TextField">
+                    <rect key="frame" x="79" y="254" width="353" height="22"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" focusRingType="none" baseWritingDirection="leftToRight" alignment="left" placeholderString="Organization name" id="Uiu-RX-Rp5">
+                        <font key="font" metaFont="system" size="18"/>
+                        <color key="textColor" red="0.99999600649999998" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <box focusRingType="none" appearanceType="darkAqua" verticalHuggingPriority="750" fixedFrame="YES" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="P9T-5L-LJf">
+                    <rect key="frame" x="81" y="253" width="353" height="5"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                </box>
+                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="b9S-wR-tuB" customClass="TextField">
+                    <rect key="frame" x="79" y="201" width="357" height="22"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" focusRingType="none" baseWritingDirection="leftToRight" alignment="left" placeholderString="Username" id="wju-XU-YvL">
+                        <font key="font" metaFont="system" size="18"/>
+                        <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <box appearanceType="darkAqua" verticalHuggingPriority="750" fixedFrame="YES" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="bW2-hT-DSz">
+                    <rect key="frame" x="79" y="200" width="353" height="5"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                </box>
+                <secureTextField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T2i-im-3ID" customClass="SecureTextField">
+                    <rect key="frame" x="79" y="145" width="357" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <secureTextFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" focusRingType="none" baseWritingDirection="leftToRight" alignment="left" placeholderString="Password" usesSingleLineMode="YES" id="JRs-bw-waZ">
+                        <font key="font" metaFont="system" size="18"/>
+                        <color key="textColor" red="0.99999600649999998" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <allowedInputSourceLocales>
+                            <string>NSAllRomanInputSourcesLocaleIdentifier</string>
+                        </allowedInputSourceLocales>
+                    </secureTextFieldCell>
+                </secureTextField>
+                <box appearanceType="darkAqua" verticalHuggingPriority="750" fixedFrame="YES" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="4y1-Ud-HrR">
+                    <rect key="frame" x="82" y="144" width="353" height="5"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                </box>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TRA-Dd-qej">
+                    <rect key="frame" x="38" y="307" width="425" height="22"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Be sure you've uploaded your Avatar before signing in." id="3q0-ys-GTR">
+                        <font key="font" metaFont="system" size="14"/>
+                        <color key="textColor" red="0.76862745098039209" green="0.76862745098039209" blue="0.76862745098039209" alpha="0.84705882352941175" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <button focusRingType="exterior" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="jKE-fV-Tjv" customClass="HFButton">
+                    <rect key="frame" x="197" y="57" width="110" height="35"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="square" title="NEXT" bezelStyle="shadowlessSquare" alignment="center" state="on" borderStyle="border" focusRingType="exterior" imageScaling="proportionallyUpOrDown" inset="2" id="RZM-vz-5eS">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="systemBold" size="18"/>
+                    </buttonCell>
+                    <color key="contentTintColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
+                    <userDefinedRuntimeAttributes>
+                        <userDefinedRuntimeAttribute type="number" keyPath="CornerRadius">
+                            <real key="value" value="1"/>
+                        </userDefinedRuntimeAttribute>
+                        <userDefinedRuntimeAttribute type="color" keyPath="TextColorHover">
+                            <color key="value" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        </userDefinedRuntimeAttribute>
+                    </userDefinedRuntimeAttributes>
+                    <connections>
+                        <action selector="goToLogin:" target="NkF-nk-81S" id="e50-vF-R8Y"/>
+                    </connections>
+                </button>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hIC-qf-Abj">
+                    <rect key="frame" x="63" y="337" width="384" height="33"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Please log in" id="YuE-2K-HLT">
+                        <font key="font" metaFont="systemBold" size="28"/>
+                        <color key="textColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="A59-kY-Mq3">
+                    <rect key="frame" x="381" y="0.0" width="134" height="46"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="kZV-oM-dmS"/>
+                </imageView>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qCS-xH-551" customClass="Hyperlink">
+                    <rect key="frame" x="188" y="20" width="140" height="17"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Having trouble?" id="HA3-gC-CiL">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="linkColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="linkColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <action selector="havingTrouble:" target="NkF-nk-81S" id="tsf-tC-aqq"/>
+                    </connections>
+                </textField>
+            </subviews>
+            <point key="canvasLocation" x="138.5" y="154"/>
+        </customView>
+        <customObject id="NkF-nk-81S" customClass="LoginScreen">
+            <connections>
+                <outlet property="backgroundImage" destination="L56-Jv-0N8" id="INT-rB-YtG"/>
+                <outlet property="button" destination="jKE-fV-Tjv" id="or6-tG-r6R"/>
+                <outlet property="header" destination="hIC-qf-Abj" id="sVQ-rl-cvR"/>
+                <outlet property="orginization" destination="L7W-3n-OKy" id="TiL-wn-Z2b"/>
+                <outlet property="password" destination="T2i-im-3ID" id="uV1-RG-gfy"/>
+                <outlet property="smallHeader" destination="TRA-Dd-qej" id="9s6-gK-XCw"/>
+                <outlet property="smallLogo" destination="A59-kY-Mq3" id="XgD-NH-16J"/>
+                <outlet property="trouble" destination="qCS-xH-551" id="bQr-eg-dqc"/>
+                <outlet property="username" destination="b9S-wR-tuB" id="91a-SY-AL4"/>
+            </connections>
+        </customObject>
+    </objects>
+</document>
