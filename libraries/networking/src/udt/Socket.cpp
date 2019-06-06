@@ -500,10 +500,18 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << socketError << "(" << _udpSocket.errorString() << ")";
+#ifdef WIN32
+    int wsaError = WSAGetLastError();
+    qCDebug(networking) << "windows socket error " << wsaError;
+#endif
 #ifdef DEBUG_EVENT_QUEUE
     int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
     qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
 #endif // DEBUG_EVENT_QUEUE
+
+    if (_udpSocket.state() == QAbstractSocket::BoundState) {
+        rebind();
+    }
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
