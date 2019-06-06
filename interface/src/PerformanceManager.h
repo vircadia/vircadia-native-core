@@ -26,6 +26,7 @@ public:
         HIGH,
         PROFILE_COUNT
     };
+    static bool isValidPerformancePreset(int value) { return (value >= PerformancePreset::UNKNOWN && value <= PerformancePreset::HIGH); }
 
     PerformanceManager();
     ~PerformanceManager() = default;

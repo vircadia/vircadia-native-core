@@ -15,12 +15,7 @@ PropItem {
     Global { id: global }
     id: root
 
-    property alias valueVar : valueCombo.currentIndex
     property alias enums : valueCombo.model
-
-    Component.onCompleted: {
-        valueVar = root.valueVarGetter();
-    }
 
     PropComboBox {
         id: valueCombo
@@ -33,6 +28,6 @@ PropItem {
         height: global.slimHeight
 
         currentIndex: root.valueVarGetter()
-        onCurrentIndexChanged: { root.valueVarSetter(currentIndex); }
+        onCurrentIndexChanged: root.valueVarSetter(currentIndex)
     }    
 }

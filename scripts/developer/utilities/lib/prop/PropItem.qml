@@ -23,7 +23,7 @@ Item {
     // value is accessed through the "valueVarSetter" and "valueVarGetter"
     // By default, these just go get or set the value from the object[property]
     // 
-    function defaultGet() { return root.object[root.property]; }
+    function defaultGet() { var v = root.object[root.property]; return v; }
     function defaultSet(value) { root.object[root.property] = value; }  
    // function defaultSetReadOnly(value) { log ( "read only " + property + ", NOT setting to " + value); }  
  //   function defaultSetReadOnly(value) {}  
