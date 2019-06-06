@@ -640,6 +640,12 @@ Q_DECLARE_METATYPE(Collision)
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision);
 void collisionFromScriptValue(const QScriptValue &object, Collision& collision);
 
+/**jsdoc
+ * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented 
+ * in JavaScript as strings in the format, <code>"{nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn}"</code>, where the "n"s are
+ * hexadecimal digits.
+ * @typedef {string} Uuid
+ */
 //Q_DECLARE_METATYPE(QUuid) // don't need to do this for QUuid since it's already a meta type
 QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid);
 void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid);
