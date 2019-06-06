@@ -12,7 +12,7 @@ static NSString* const organizationURL = @"https://s3.amazonaws.com/hifi-public/
     self.username = aUsername;
     
     const char *cKey  = LAUNCHER_HMAC_SECRET;
-    const char *cData = [aOrganization cStringUsingEncoding:NSASCIIStringEncoding];
+    const char *cData = [[aOrganization lowercaseString] cStringUsingEncoding:NSASCIIStringEncoding];
     unsigned char cHMAC[CC_SHA256_DIGEST_LENGTH];
     CCHmac(kCCHmacAlgSHA256, cKey, strlen(cKey), cData, strlen(cData), cHMAC);
     NSData *HMACData = [NSData dataWithBytes:cHMAC length:sizeof(cHMAC)];
@@ -33,7 +33,6 @@ static NSString* const organizationURL = @"https://s3.amazonaws.com/hifi-public/
         [sharedLauncher setLoginErrorState: NONE];
         return [sharedLauncher organizationRequestFinished:TRUE];
     }
-    NSLog(@"FAAAAILLLLLLLEEEEEEEDDDDDD");
     [sharedLauncher setLoginErrorState: ORGANIZATION];
     return [sharedLauncher organizationRequestFinished:FALSE];
     /*NSLog(@"URL: %@", [organizationURL stringByAppendingString:jsonFile]);

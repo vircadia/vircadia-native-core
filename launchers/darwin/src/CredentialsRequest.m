@@ -7,7 +7,9 @@
 - (void) confirmCredentials:(NSString*)username :(NSString*)password {
 
     NSLog(@"web request started");
-    NSString *post = [NSString stringWithFormat:@"grant_type=password&username=%@&password=%@&scope=owner", username, password];
+    NSString *post = [NSString stringWithFormat:@"grant_type=password&username=%@&password=%@&scope=owner",
+        [username stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]],
+        [password stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]]];
     NSData *postData = [post dataUsingEncoding:NSUTF8StringEncoding];
     NSString *postLength = [NSString stringWithFormat:@"%ld", (unsigned long)[postData length]];
 
@@ -18,7 +20,6 @@
     [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     [request setHTTPBody:postData];
 
-    //NSURLConnection *theConnection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
     NSURLSession* session = [NSURLSession sharedSession];
     NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         
