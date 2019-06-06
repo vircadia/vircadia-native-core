@@ -192,7 +192,7 @@ public:
     void resetStage(const Stage::Name& name, const StagePointer& stage);
 
     void setItemTransition(ItemID id, Index transitionId);
-    void resetItemTransition(ItemID id);
+    void removeItemTransition(ItemID id);
 
 protected:
 
@@ -224,6 +224,7 @@ protected:
     void updateItems(const Transaction::Updates& transactions);
 
     void resetTransitionItems(const Transaction::TransitionResets& transactions);
+    void removeTransitionItems(const Transaction::TransitionRemoves& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
 
     void resetHighlights(const Transaction::HighlightResets& transactions);
