@@ -46,6 +46,10 @@ CLauncherDlg::CLauncherDlg(CWnd* pParent)
 	EnableD2DSupport();
 }
 
+CLauncherDlg::~CLauncherDlg() {
+    theApp._manager.closeLog();
+}
+
 void CLauncherDlg::DoDataExchange(CDataExchange* pDX)
 {
 	DDX_Control(pDX, IDC_BUTTON_NEXT, m_btnNext);
@@ -154,25 +158,50 @@ HCURSOR CLauncherDlg::OnQueryDragIcon()
 }
 
 void CLauncherDlg::startProcess() {
-	if (theApp._manager.needsUpdate()) {
-		setDrawDialog(DrawStep::DrawProcessUpdate);
-	} else {
-		setDrawDialog(DrawStep::DrawProcessSetup);
-	}
-	
-	CString installDir;
-	theApp._manager.getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installDir);
-	CString interfaceExe = installDir += "\\interface.exe";
-	if (!theApp._manager.isLoggedIn()) {
-		theApp._manager.downloadContent();
-	} else {
-		theApp._manager.downloadApplication();
-	}
+    if (theApp._manager.needsUpdate()) {
+        theApp._manager.addToLog(_T("Starting Process Update"));
+        setDrawDialog(DrawStep::DrawProcessUpdate);
+    } else {
+        theApp._manager.addToLog(_T("Starting Process Setup"));
+        setDrawDialog(DrawStep::DrawProcessSetup);
+    }
+    theApp._manager.addToLog(_T("Deleting directories before install"));
+
+    CString installDir;
+    theApp._manager.getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installDir);
+    CString downloadDir;
+    theApp._manager.getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDir);
+
+    LauncherUtils::deleteDirectoriesOnThread(installDir, downloadDir, [&](int error) {
+        LauncherUtils::DeleteDirError deleteError = (LauncherUtils::DeleteDirError)error;
+        if (error == LauncherUtils::DeleteDirError::NoErrorDeleting) {
+            theApp._manager.addToLog(_T("Install directory deleted."));
+            theApp._manager.addToLog(_T("Downloads directory deleted."));
+            // CString interfaceExe = installPath += "\\interface.exe";
+            if (!theApp._manager.isLoggedIn()) {
+                theApp._manager.addToLog(_T("Downloading Content"));
+                theApp._manager.downloadContent();
+            } else {
+                theApp._manager.addToLog(_T("Downloading App"));
+                theApp._manager.downloadApplication();
+            }
+        }
+        if (error == LauncherUtils::DeleteDirError::ErrorDeletingPath1 ||
+            error == LauncherUtils::DeleteDirError::ErrorDeletingPaths) {
+            theApp._manager.addToLog(_T("Error deleting install directory."));
+        }
+        if (error == LauncherUtils::DeleteDirError::ErrorDeletingPath2 ||
+            error == LauncherUtils::DeleteDirError::ErrorDeletingPaths) {
+            theApp._manager.addToLog(_T("Error deleting downloads directory."));
+        }
+    });
 }
 
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
 	CString hash;
-    LauncherUtils::hMac256(orgname, LAUNCHER_HMAC_SECRET, hash);
+    CString lowerOrgName = orgname;
+    lowerOrgName.MakeLower();
+    LauncherUtils::hMac256(lowerOrgName, LAUNCHER_HMAC_SECRET, hash);
 	return theApp._manager.readOrganizationJSON(hash) == LauncherUtils::ResponseError::NoError;
 }
 
@@ -181,33 +210,44 @@ afx_msg void CLauncherDlg::OnTroubleClicked() {
 }
 
 afx_msg void CLauncherDlg::OnNextClicked() {
-	if (_drawStep != DrawStep::DrawChoose) {
-		CString token;
-		CString username, password, orgname;
-		m_orgname.GetWindowTextW(orgname);
-		m_username.GetWindowTextW(username);
-		m_password.GetWindowTextW(password);
-		LauncherUtils::ResponseError error;
-		if (orgname.GetLength() > 0 && username.GetLength() > 0 && password.GetLength() > 0) {
-			if (getHQInfo(orgname)) {
-				error = theApp._manager.getAccessTokenForCredentials(username, password);
-				if (error == LauncherUtils::ResponseError::NoError) {
-					setDrawDialog(DrawStep::DrawChoose);
-				} else if (error == LauncherUtils::ResponseError::BadCredentials) {
-					setDrawDialog(DrawStep::DrawLoginErrorCred);
-				} else {
-					MessageBox(L"Error Reading or retreaving response.", L"Network Error", MB_OK | MB_ICONERROR);
-				}
-			} else {
-				setDrawDialog(DrawStep::DrawLoginErrorOrg);
-			}
-		}
-	} else {
-		CString displayName;
-		m_username.GetWindowTextW(displayName);
-		theApp._manager.setDisplayName(displayName);
-		startProcess();
-	}
+    if (_drawStep != DrawStep::DrawChoose) {
+        CString token;
+        CString username, password, orgname;
+        m_orgname.GetWindowTextW(orgname);
+        m_username.GetWindowTextW(username);
+        m_password.GetWindowTextW(password);
+
+        username = LauncherUtils::urlEncodeString(username);
+        password = LauncherUtils::urlEncodeString(password);
+        LauncherUtils::ResponseError error;
+        if (orgname.GetLength() > 0 && username.GetLength() > 0 && password.GetLength() > 0) {
+            theApp._manager.addToLog(_T("Trying to get organization data"));
+            if (getHQInfo(orgname)) {
+                theApp._manager.addToLog(_T("Organization data received."));
+                theApp._manager.addToLog(_T("Trying to log in with credentials"));
+                error = theApp._manager.getAccessTokenForCredentials(username, password);
+                if (error == LauncherUtils::ResponseError::NoError) {
+                    theApp._manager.addToLog(_T("Logged in correctly."));
+                    setDrawDialog(DrawStep::DrawChoose);
+                } else if (error == LauncherUtils::ResponseError::BadCredentials) {
+                    theApp._manager.addToLog(_T("Bad credentials. Try again"));
+                    setDrawDialog(DrawStep::DrawLoginErrorCred);
+                } else {
+                    theApp._manager.addToLog(_T("Error Reading or retreaving response."));
+                    MessageBox(L"Error Reading or retreaving response.", L"Network Error", MB_OK | MB_ICONERROR);
+                }
+            } else {
+                theApp._manager.addToLog(_T("Organization name does not exist."));
+                setDrawDialog(DrawStep::DrawLoginErrorOrg);
+            }
+        }
+    } else {
+        CString displayName;
+        m_username.GetWindowTextW(displayName);
+        theApp._manager.setDisplayName(displayName);
+        theApp._manager.addToLog(_T("Setting display name: " + displayName));
+        startProcess();
+    }
 }
 
 void CLauncherDlg::drawBackground(CHwndRenderTarget* pRenderTarget) {
@@ -534,11 +574,13 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
 	}
 	if (_showSplash) {
 		if (_splashStep == 0){
-			if (theApp._manager.needsUninstall()) {
-				setDrawDialog(DrawStep::DrawProcessUninstall);
-			} else {
-				setDrawDialog(DrawStep::DrawLogo);
-			}			
+            if (theApp._manager.needsUninstall()) {
+                theApp._manager.addToLog(_T("Waiting to unistall"));
+                setDrawDialog(DrawStep::DrawProcessUninstall);
+            } else {
+                theApp._manager.addToLog(_T("Start splash screen"));
+                setDrawDialog(DrawStep::DrawLogo);
+            }			
 		} else if (_splashStep > 100) {
 			_showSplash = false;
 			if (theApp._manager.shouldShutDown()) {
@@ -551,6 +593,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
 				theApp._manager.uninstallApplication();
 				exit(0);
 			} else {
+                theApp._manager.addToLog(_T("Starting login"));
 				setDrawDialog(DrawStep::DrawLoginLogin);
 			}
 		}

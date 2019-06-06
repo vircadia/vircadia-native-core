@@ -38,6 +38,7 @@ public:
 	};
 
 	CLauncherDlg(CWnd* pParent = nullptr);
+    ~CLauncherDlg();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 	void setDrawDialog(DrawStep step, BOOL isUpdate = FALSE);

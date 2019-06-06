@@ -9,6 +9,7 @@
 //
 
 #include "stdafx.h"
+#include <time.h>
 #include <fstream>
 
 #include "LauncherManager.h"
@@ -24,19 +25,57 @@ LauncherManager::~LauncherManager()
 }
 
 void LauncherManager::init() {
-	getMostRecentBuild(_latestApplicationURL, _latestVersion);
-	CString currentVersion;
-	if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
-		if (_latestVersion.Compare(currentVersion) == 0) {
-			launchApplication();
-			_shouldShutdown = TRUE;
-		} else {
-			_shouldUpdate = TRUE;
-		}
-	}
+    initLog();
+    addToLog(_T("Getting most recent build"));
+    getMostRecentBuild(_latestApplicationURL, _latestVersion);
+    addToLog(_T("Latest version: ") + _latestVersion);
+    CString currentVersion;
+    if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
+        addToLog(_T("Installed version: ") + currentVersion);
+        if (_latestVersion.Compare(currentVersion) == 0) {
+            addToLog(_T("Already running most recent build. Launching interface.exe"));
+            launchApplication();
+            _shouldShutdown = TRUE;
+        } else {
+            addToLog(_T("New build found. Updating"));
+            _shouldUpdate = TRUE;
+        }
+    }
+}
+
+BOOL LauncherManager::initLog() {
+    CString logPath;
+    auto result = getAndCreatePaths(PathType::Launcher_Directory, logPath);
+    if (result) {
+        logPath += _T("log.txt");
+        return result = _logFile.Open(logPath, CFile::modeCreate | CFile::modeReadWrite);
+    }
+    return FALSE;
+}
+
+BOOL LauncherManager::addToLog(const CString& line) {
+    if (_logFile.m_hFile != CStdioFile::hFileNull) {
+        char buff[100];
+        time_t now = time(0);
+        tm ltm;
+        localtime_s(&ltm, &now);
+
+        strftime(buff, 100, "%Y-%m-%d %H:%M:%S", &ltm);
+        CString timeStr = CString(buff);
+        _logFile.WriteString(timeStr + _T("  ") + line + _T("\n"));
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void LauncherManager::closeLog() {
+    if (_logFile.m_hFile != CStdioFile::hFileNull) {
+        _logFile.Close();
+    }
 }
 
 BOOL LauncherManager::installLauncher() {
+    addToLog(_T("Installing Launcher."));
 	CString appPath;
 	BOOL result = getAndCreatePaths(PathType::Running_Path, appPath);
 	if (!result) {
@@ -60,6 +99,7 @@ BOOL LauncherManager::installLauncher() {
 			CopyFile(appPath, instalationPath, FALSE);
 		}
 	} else if (_shouldUninstall) {
+        addToLog(_T("Launching uninstall mode."));
 		CString tempPath;
 		if (getAndCreatePaths(PathType::Temp_Directory, tempPath)) {
 			tempPath += _T("\\HQ_uninstaller_tmp.exe");
@@ -73,6 +113,7 @@ BOOL LauncherManager::installLauncher() {
 
 BOOL LauncherManager::createShortcuts() {
 	CString desktopLnkPath;
+    addToLog(_T("Creating shortcuts."));
 	getAndCreatePaths(PathType::Desktop_Directory, desktopLnkPath);
 	desktopLnkPath += _T("\\HQ Launcher.lnk");
 	CString installDir;
@@ -100,6 +141,7 @@ BOOL LauncherManager::createShortcuts() {
 
 BOOL LauncherManager::deleteShortcuts() {
 	CString desktopLnkPath;
+    addToLog(_T("Deleting shortcuts."));
 	getAndCreatePaths(PathType::Desktop_Directory, desktopLnkPath);
 	desktopLnkPath += _T("\\HQ Launcher.lnk");
 	BOOL success = LauncherUtils::deleteFileOrDirectory(desktopLnkPath);
@@ -353,13 +395,17 @@ BOOL LauncherManager::uninstallApplication() {
 
 void LauncherManager::onZipExtracted(ZipType type, int size) {
 	if (type == ZipType::ZipContent) {
+        addToLog(_T("Downloading application."));
 		downloadApplication();
 	} else if (type == ZipType::ZipApplication) {
 		createShortcuts();
 		CString versionPath;
 		getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, versionPath);
-		createConfigJSON();
+        addToLog(_T("Creating config.json"));
+        createConfigJSON();
+        addToLog(_T("Launching application."));
 		launchApplication(_tokensJSON);
+        addToLog(_T("Creating registry keys."));
 		createApplicationRegistryKeys(size);
 		_shouldShutdown = TRUE;
 	}
@@ -377,8 +423,10 @@ BOOL LauncherManager::extractApplication() {
 
 void LauncherManager::onFileDownloaded(DownloadType type) {
 	if (type == DownloadType::DownloadContent) {
+        addToLog(_T("Installing content."));
 		installContent();
 	} else if (type == DownloadType::DownloadApplication) {
+            addToLog(_T("Installing application."));
 		extractApplication();
 	}
 }
@@ -412,6 +460,7 @@ BOOL LauncherManager::downloadFile(DownloadType type, const CString& url, CStrin
 }
 
 BOOL LauncherManager::downloadContent() {
+    addToLog(_T("Downloading content."));
 	CString contentURL = getContentURL();
 	return downloadFile(DownloadType::DownloadContent, contentURL, _contentZipPath);
 }

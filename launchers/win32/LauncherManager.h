@@ -53,6 +53,9 @@ public:
 	LauncherManager();
 	~LauncherManager();
 	void init();
+    BOOL initLog();
+    BOOL addToLog(const CString& line);
+    void closeLog();
 	BOOL getAndCreatePaths(PathType type, CString& outPath);
 	BOOL getInstalledVersion(const CString& path, CString& version);
 	BOOL isApplicationInstalled(CString& version, CString& domain,
@@ -105,5 +108,6 @@ private:
 	BOOL _shouldUpdate{ FALSE };
 	BOOL _shouldUninstall{ FALSE };
 	BOOL _shouldShutdown{ FALSE };
+    CStdioFile _logFile;
 };
 

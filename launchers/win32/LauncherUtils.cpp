@@ -17,6 +17,24 @@
 
 #include "LauncherUtils.h"
 
+CString LauncherUtils::urlEncodeString(const CString& url) {
+    std::map<CString, CString> specialCharsMap = { { _T("$"), _T("%24") }, { _T(" "), _T("%20") }, { _T("#"), _T("%23") },
+                                                   { _T("@"), _T("%40") }, { _T("`"), _T("%60") }, { _T("&"), _T("%26") },
+                                                   { _T("/"), _T("%2F") }, { _T(":"), _T("%3A") }, { _T(";"), _T("%3B") },
+                                                   { _T("<"), _T("%3C") }, { _T(">"), _T("%3E") }, { _T("="), _T("%3D") },
+                                                   { _T("?"), _T("%3F") }, { _T("["), _T("%5B") }, { _T("\\"), _T("%5C") },
+                                                   { _T("]"), _T("%5D") }, { _T("^"), _T("%5E") }, { _T("{"), _T("%7B") },
+                                                   { _T("|"), _T("%7C") }, { _T("}"), _T("%7D") }, { _T("~"), _T("%7E") },
+                                                   { _T("“"), _T("%22") }, { _T("‘"), _T("%27") }, { _T("+"), _T("%2B") },
+                                                   { _T(","), _T("%2C") } };
+    CString stringOut = url;
+    stringOut.Replace(_T("%"), _T("%25"));
+    for (auto& itr = specialCharsMap.begin(); itr != specialCharsMap.end(); itr++) {
+        stringOut.Replace(itr->first, itr->second);
+    }
+    return stringOut;
+}
+
 BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
 	bool exists = false;
 	PROCESSENTRY32 entry;
@@ -374,6 +392,19 @@ DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter)
 	return 0;
 }
 
+DWORD WINAPI LauncherUtils::deleteDirectoriesThread(LPVOID lpParameter) {
+    DeleteThreadData& data = *((DeleteThreadData*)lpParameter);
+    DeleteDirError error = DeleteDirError::NoErrorDeleting;
+    if (!LauncherUtils::deleteFileOrDirectory(data._path1)) {
+        error = DeleteDirError::ErrorDeletingPath1;
+    }
+    if (!LauncherUtils::deleteFileOrDirectory(data._path2)) {
+        error = error == NoError ? DeleteDirError::ErrorDeletingPath2 : DeleteDirError::ErrorDeletingPaths;
+    }
+    data.callback(error);
+    return 0;
+}
+
 BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, std::function<void(int, int)> callback) {
 	DWORD myThreadID;
 	UnzipThreadData* unzipThreadData = new UnzipThreadData();
@@ -402,4 +433,18 @@ BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CSt
 		return TRUE;
 	}
 	return FALSE;
+}
+
+BOOL LauncherUtils::deleteDirectoriesOnThread(const CString& dir1, const CString& dir2, std::function<void(int)> callback) {
+    DWORD myThreadID;
+    DeleteThreadData* deleteThreadData = new DeleteThreadData();
+    deleteThreadData->_path1 = dir1;
+    deleteThreadData->_path2 = dir2;
+    deleteThreadData->setCallback(callback);
+    HANDLE myHandle = CreateThread(0, 0, deleteDirectoriesThread, deleteThreadData, 0, &myThreadID);
+    if (myHandle) {
+        CloseHandle(myHandle);
+        return TRUE;
+    }
+    return FALSE;
 }
