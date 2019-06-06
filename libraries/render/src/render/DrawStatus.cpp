@@ -149,7 +149,7 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
                         // We have a transition. Show this icon.
                         status.setScale(1.0f);
                         // Is this a valid transition ID according to FadeJob?
-                        auto& transitionStage = scene->getStage<TransitionStage>(TransitionStage::getName());
+                        auto transitionStage = scene->getStage<TransitionStage>(TransitionStage::getName());
                         if (transitionStage) {
                             if (transitionStage->isTransitionUsed(transitionID)) {
                                 // Valid, active transition
