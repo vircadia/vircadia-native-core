@@ -1056,7 +1056,7 @@ void EntityTreeRenderer::fadeOutRenderable(const EntityRendererPointer& renderab
     render::Transaction transaction;
     auto scene = _viewState->getMain3DScene();
 
-    transaction.transitionFinishedOperator(renderable->getRenderItemID(), [scene, renderable]() {
+    transaction.setTransitionFinishedOperator(renderable->getRenderItemID(), [scene, renderable]() {
         render::Transaction transaction;
         renderable->removeFromScene(scene, transaction);
         scene->enqueueTransaction(transaction);

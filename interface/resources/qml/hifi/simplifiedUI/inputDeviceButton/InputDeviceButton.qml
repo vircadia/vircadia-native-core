@@ -77,6 +77,21 @@ Rectangle {
             Tablet.playSound(TabletEnums.ButtonClick);
             muted = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
         }
+
+        onPressed: {
+            if (pushToTalk) {
+                AudioScriptingInterface.pushingToTalk = true;
+                Tablet.playSound(TabletEnums.ButtonClick);
+            }
+        }
+
+        onReleased: {
+            if (pushToTalk) {
+                AudioScriptingInterface.pushingToTalk = false;
+                Tablet.playSound(TabletEnums.ButtonClick);
+            }
+        }
+        
         onContainsMouseChanged: {
             if (containsMouse) {
                 Tablet.playSound(TabletEnums.ButtonHover);

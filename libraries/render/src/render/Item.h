@@ -363,6 +363,11 @@ public:
             HAS_ACTIONS = 4,
             OTHER_SIMULATION_OWNER = 5,
             ENTITY_HOST_TYPE = 6,
+            GENERIC_TRANSITION = 7,
+            GENERIC_TRANSITION_OUT = 8,
+            GENERIC_TRANSITION_IN = 9,
+            USER_TRANSITION_OUT = 10,
+            USER_TRANSITION_IN = 11,
             NONE = 255
         };
 
