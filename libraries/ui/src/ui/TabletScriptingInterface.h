@@ -134,7 +134,7 @@ signals:
     /**jsdoc
      * Triggered when a tablet message or dialog is displayed on the tablet that needs the user's attention.
      * <p><strong>Note:</strong> Only triggered if the script is running in the same script engine as the script that created 
-     * the tablet. Be default, this means in scripts included as part of the default scripts.</p>
+     * the tablet. By default, this means in scripts included as part of the default scripts.</p>
      * @function Tablet.tabletNotification
      * @returns {Signal}
      */
@@ -287,7 +287,7 @@ public:
      * Opens a QML app or dialog on the tablet.
      * @function TabletProxy#loadQMLSource
      * @param {string} path - The path of the QML app or dialog.
-     * @param {boolean} [resizable=false] - <code>true</code> to make the dialog resizable in toolbar mode, <code>false<code> 
+     * @param {boolean} [resizable=false] - <code>true</code> to make the dialog resizable in toolbar mode, <code>false</code> 
      *     to have it not resizable.
      */
     Q_INVOKABLE void loadQMLSource(const QVariant& path, bool resizable = false);
