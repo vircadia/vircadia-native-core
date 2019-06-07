@@ -5182,7 +5182,7 @@ ivec2 Application::getMouse() const {
 FaceTracker* Application::getActiveFaceTracker() {
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
-    if(dde && dde->isActive()){
+    if (dde && dde->isActive()) {
         return static_cast<FaceTracker*>(dde.data());
     }
 
