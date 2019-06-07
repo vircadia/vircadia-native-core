@@ -46,8 +46,6 @@
     NSString* downloadFileName = [sharedLauncher getDownloadFilename];
     
     NSLog(@"extract interface zip");
-    NSLog(@"%@", appPath);
-    NSLog(@"%@", [appPath stringByAppendingString:downloadFileName]);
     [sharedLauncher extractZipFileAtDestination:appPath :[appPath stringByAppendingString:downloadFileName]];
     NSLog(@"finished extracting interface zip");
     
