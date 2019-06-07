@@ -174,10 +174,10 @@ void CLauncherDlg::startProcess() {
 
     LauncherUtils::deleteDirectoriesOnThread(installDir, downloadDir, [&](int error) {
         LauncherUtils::DeleteDirError deleteError = (LauncherUtils::DeleteDirError)error;
-        if (error == LauncherUtils::DeleteDirError::NoErrorDeleting) {
+        switch(error) { 
+        case LauncherUtils::DeleteDirError::NoErrorDeleting:
             theApp._manager.addToLog(_T("Install directory deleted."));
             theApp._manager.addToLog(_T("Downloads directory deleted."));
-            // CString interfaceExe = installPath += "\\interface.exe";
             if (!theApp._manager.isLoggedIn()) {
                 theApp._manager.addToLog(_T("Downloading Content"));
                 theApp._manager.downloadContent();
@@ -185,14 +185,18 @@ void CLauncherDlg::startProcess() {
                 theApp._manager.addToLog(_T("Downloading App"));
                 theApp._manager.downloadApplication();
             }
-        }
-        if (error == LauncherUtils::DeleteDirError::ErrorDeletingPath1 ||
-            error == LauncherUtils::DeleteDirError::ErrorDeletingPaths) {
-            theApp._manager.addToLog(_T("Error deleting install directory."));
-        }
-        if (error == LauncherUtils::DeleteDirError::ErrorDeletingPath2 ||
-            error == LauncherUtils::DeleteDirError::ErrorDeletingPaths) {
+            break;
+        case LauncherUtils::DeleteDirError::ErrorDeletingBothDirs:
+            theApp._manager.addToLog(_T("Error deleting directories."));
+            break;
+        case LauncherUtils::DeleteDirError::ErrorDeletingApplicationDir:
+            theApp._manager.addToLog(_T("Error deleting application directory."));
+            break;
+        case LauncherUtils::DeleteDirError::ErrorDeletingDownloadsDir:
             theApp._manager.addToLog(_T("Error deleting downloads directory."));
+            break;
+        default:
+            break;
         }
     });
 }
@@ -233,8 +237,8 @@ afx_msg void CLauncherDlg::OnNextClicked() {
                     theApp._manager.addToLog(_T("Bad credentials. Try again"));
                     setDrawDialog(DrawStep::DrawLoginErrorCred);
                 } else {
-                    theApp._manager.addToLog(_T("Error Reading or retreaving response."));
-                    MessageBox(L"Error Reading or retreaving response.", L"Network Error", MB_OK | MB_ICONERROR);
+                    theApp._manager.addToLog(_T("Error Reading or retrieving response."));
+                    MessageBox(L"Error Reading or retrieving response.", L"Network Error", MB_OK | MB_ICONERROR);
                 }
             } else {
                 theApp._manager.addToLog(_T("Organization name does not exist."));
@@ -575,7 +579,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
 	if (_showSplash) {
 		if (_splashStep == 0){
             if (theApp._manager.needsUninstall()) {
-                theApp._manager.addToLog(_T("Waiting to unistall"));
+                theApp._manager.addToLog(_T("Waiting to uninstall"));
                 setDrawDialog(DrawStep::DrawProcessUninstall);
             } else {
                 theApp._manager.addToLog(_T("Start splash screen"));

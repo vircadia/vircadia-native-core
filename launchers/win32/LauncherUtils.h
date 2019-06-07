@@ -32,9 +32,9 @@ public:
 
     enum DeleteDirError {
         NoErrorDeleting = 0,
-        ErrorDeletingPath1,
-        ErrorDeletingPath2,
-        ErrorDeletingPaths
+        ErrorDeletingApplicationDir,
+        ErrorDeletingDownloadsDir,
+        ErrorDeletingBothDirs
     };
 
 	struct DownloadThreadData {
@@ -60,8 +60,8 @@ public:
 	};
 
     struct DeleteThreadData {
-        CString _path1;
-        CString _path2;
+        CString _applicationDir;
+        CString _downloadsDir;
         std::function<void(int)> callback;
         void setCallback(std::function<void(int)> fn) { callback = std::bind(fn, std::placeholders::_1); }
     };
@@ -83,10 +83,12 @@ public:
 	static BOOL deleteRegistryKey(const CString& registryPath);
 	static BOOL unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, std::function<void(int, int)> callback);
 	static BOOL downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int)> callback);
-    static BOOL deleteDirectoriesOnThread(const CString& dir1, const CString& dir2, std::function<void(int)> callback);
+    static BOOL deleteDirectoriesOnThread(const CString& applicationDir,
+                                              const CString& downloadsDir,
+                                              std::function<void(int)> callback);
     static CString urlEncodeString(const CString& url);
 
-    private:
+private:
 	// Threads
 	static DWORD WINAPI unzipThread(LPVOID lpParameter);
 	static DWORD WINAPI downloadThread(LPVOID lpParameter);
