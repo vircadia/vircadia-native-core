@@ -983,7 +983,7 @@ void LimitedNodeList::sendSTUNRequest() {
         const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
 
         if (!_hasCompletedInitialSTUN) {
-            qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
+            qCDebug(networking) << "Sending initial stun request to" << STUN_SERVER_HOSTNAME;
 
             if (_numInitialSTUNRequests > NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL) {
                 // we're still trying to do our initial STUN we're over the fail threshold
