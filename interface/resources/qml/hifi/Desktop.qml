@@ -25,7 +25,6 @@ OriginalDesktop.Desktop {
 
     Action {
         text: "Open Browser"
-        shortcut: "Ctrl+B"
         onTriggered: {
             console.log("Open browser");
             browserBuilder.createObject(desktop);
