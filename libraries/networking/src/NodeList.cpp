@@ -438,7 +438,13 @@ void NodeList::sendDomainServerCheckIn() {
 
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
+        static const int REBIND_CHECKIN_COUNT = 2;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
+
+        if (outstandingCheckins > REBIND_CHECKIN_COUNT) {
+            _nodeSocket.rebind();
+        }
+
         int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
@@ -673,13 +679,6 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
-#ifdef DEBUG_EVENT_QUEUE
-    {
-        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
-        qCDebug(networking) << "DomainList received, pending count =" << _domainHandler.getCheckInPacketsSinceLastReply()
-            << "NodeList thread event queue size =" << nodeListQueueSize;
-    }
-#endif
 
     // warn if ping lag is getting long
     if (pingLagTime > qint64(MSECS_PER_SECOND)) {
