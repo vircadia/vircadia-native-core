@@ -558,14 +558,20 @@ void Scene::removeItemTransition(ItemID itemId) {
     auto& item = _items[itemId];
     TransitionStage::Index transitionId = item.getTransitionId();
     if (!render::TransitionStage::isIndexInvalid(transitionId)) {
-        auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
-        for (auto finishedOperator : finishedOperators) {
-            if (finishedOperator) {
-                finishedOperator();
+        const auto& transition = transitionStage->getTransition(transitionId);
+        const auto transitionOwner = transition.itemId;
+        if (transitionOwner == itemId) {
+            // No more items will be using this transition. Clean it up.
+            auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
+            for (auto finishedOperator : finishedOperators) {
+                if (finishedOperator) {
+                    finishedOperator();
+                }
             }
+            _transitionFinishedOperatorMap.erase(transitionId);
+            transitionStage->removeTransition(transitionId);
         }
-        _transitionFinishedOperatorMap.erase(transitionId);
-        transitionStage->removeTransition(transitionId);
+
         setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
     }
 }
