@@ -4303,10 +4303,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_B:
-                if (isMeta) {
-                    auto offscreenUi = getOffscreenUI();
-                    offscreenUi->load("Browser.qml");
-                } else if (isOption) {
+                if (isOption) {
                     controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
                     inputRecorder->stopPlayback();
                 }
@@ -4342,12 +4339,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     if (audioScriptingInterface && audioScriptingInterface->getPTT()) {
                        audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
                     }
-                }
-                break;
-
-            case Qt::Key_N:
-                if (!isOption && !isShifted && isMeta) {
-                    DependencyManager::get<NodeList>()->toggleIgnoreRadius();
                 }
                 break;
 
