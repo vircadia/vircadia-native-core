@@ -219,7 +219,7 @@ bool OtherAvatar::isInPhysicsSimulation() const {
 }
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
-    return !isDead() && _workloadRegion < workload::Region::R3;
+    return !isDead() && _workloadRegion <= workload::Region::R3;
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
