@@ -2164,7 +2164,7 @@ signals:
     /**jsdoc
      * Notifies when the analogPlusWalkSpeed value is changed.
      * @function MyAvatar.analogPlusWalkSpeedChanged
-     * @param {float} speed - the new avatar walk speed
+     * @param {float} value - the new avatar walk speed
      * @returns {Signal} 
      */
     void analogPlusWalkSpeedChanged(float value);
@@ -2172,7 +2172,7 @@ signals:
     /**jsdoc
      * Notifies when the analogPlusSprintSpeed value is changed.
      * @function MyAvatar.analogPlusSprintSpeedChanged
-     * @param {float} speed - the new avatar sprint speed
+     * @param {float} value - the new avatar sprint speed
      * @returns {Signal} 
      */
     void analogPlusSprintSpeedChanged(float value);
@@ -2180,7 +2180,7 @@ signals:
     /**jsdoc
      * Notifies when the sprintSpeed value is changed.
      * @function MyAvatar.sprintSpeedChanged
-     * @param {float} speed - the new avatar sprint speed
+     * @param {float} value - the new avatar sprint speed
      * @returns {Signal} 
      */
     void sprintSpeedChanged(float value);
@@ -2188,7 +2188,7 @@ signals:
     /**jsdoc
      * Notifies when the walkBackwardSpeed value is changed.
      * @function MyAvatar.walkBackwardSpeedChanged
-     * @param {float} speed - the new avatar walk backward speed
+     * @param {float} value - the new avatar walk backward speed
      * @returns {Signal} 
      */
     void walkBackwardSpeedChanged(float value);
