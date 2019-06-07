@@ -867,7 +867,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<SoundCache>();
     DependencyManager::set<SoundCacheScriptingInterface>();
+    
+#ifdef HAVE_DDE
     DependencyManager::set<DdeFaceTracker>();
+#endif
+    
     DependencyManager::set<EyeTracker>();
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
@@ -3324,7 +3328,9 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
 
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
+#ifdef HAVE_DDE
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
+#endif
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
@@ -5176,7 +5182,11 @@ ivec2 Application::getMouse() const {
 FaceTracker* Application::getActiveFaceTracker() {
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
-    return dde->isActive() ? static_cast<FaceTracker*>(dde.data()) : nullptr;
+    if(dde){
+        return dde->isActive() ? static_cast<FaceTracker*>(dde.data()) : nullptr;
+    }else{
+        return nullptr;
+    }
 }
 
 FaceTracker* Application::getSelectedFaceTracker() {
@@ -7010,7 +7020,10 @@ void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
 // feature.  However, we still use this to reset face trackers, eye trackers, audio and to optionally re-load the avatar
 // rig and animations from scratch.
 void Application::resetSensors(bool andReload) {
+#ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->reset();
+#endif
+    
     DependencyManager::get<EyeTracker>()->reset();
     _overlayConductor.centerUI();
     getActiveDisplayPlugin()->resetSensors();
@@ -7402,8 +7415,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AccountServices", AccountServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
+#ifdef HAVE_DDE
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
-
+#endif
+    
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());
