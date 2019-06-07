@@ -1172,7 +1172,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
 
     // We now setup a timer here to fire every so often to check that our IP address has not changed.
     // Or, if we failed - if will check if we can eventually get a public socket
-    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 10 * 1000;
 
     QTimer* stunOccasionalTimer = new QTimer { this };
     connect(stunOccasionalTimer, &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
@@ -1230,12 +1230,16 @@ void LimitedNodeList::errorTestingLocalSocket() {
 }
 
 void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
-    if (sockAddr != _localSockAddr) {
+    if (sockAddr.getAddress() != _localSockAddr.getAddress()) {
 
         if (_localSockAddr.isNull()) {
             qCInfo(networking) << "Local socket is" << sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
+            if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
+                _nodeSocket.rebind(0);
+                _localSockAddr.setPort(_nodeSocket.localPort());
+            }
         }
 
         _localSockAddr = sockAddr;

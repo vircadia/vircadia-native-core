@@ -73,6 +73,7 @@ void Socket::rebind() {
 
 void Socket::rebind(quint16 localPort) {
     _udpSocket.close();
+    _udpSocket.waitForDisconnected();
     bind(QHostAddress::AnyIPv4, localPort);
 }
 
