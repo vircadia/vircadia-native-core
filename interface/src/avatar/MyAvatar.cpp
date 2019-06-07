@@ -4989,6 +4989,7 @@ void MyAvatar::setSprintSpeed(float value) {
             _analogPlusSprintSpeed.set(value);
             break;
         default:
+            changed = false;
             break;
     }
 
