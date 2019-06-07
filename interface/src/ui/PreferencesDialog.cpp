@@ -55,7 +55,7 @@ void setupPreferences() {
     }
 
     // Graphics quality
-    static const QString GRAPHICS_QUALITY{ "Graphics Quality" };
+    static const QString GRAPHICS_QUALITY { "Graphics Quality" };
     {
         auto getter = []()->float {
             return DependencyManager::get<LODManager>()->getWorldDetailQuality();
@@ -105,7 +105,7 @@ void setupPreferences() {
     }
 
     // UI
-    static const QString UI_CATEGORY{ "User Interface" };
+    static const QString UI_CATEGORY { "User Interface" };
     {
         auto getter = []()->bool { return qApp->getSettingConstrainToolbarPosition(); };
         auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
@@ -206,7 +206,7 @@ void setupPreferences() {
         }*/
 
     // Snapshots
-    static const QString SNAPSHOTS{ "Snapshots" };
+    static const QString SNAPSHOTS { "Snapshots" };
     {
         auto getter = []()->QString { return DependencyManager::get<Snapshot>()->_snapshotsLocation.get(); };
         auto setter = [](const QString& value) { DependencyManager::get<Snapshot>()->_snapshotsLocation.set(value); emit DependencyManager::get<Snapshot>()->snapshotLocationSet(value); };
