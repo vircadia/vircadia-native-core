@@ -274,6 +274,8 @@ static QTimer pingTimer;
 #if defined(Q_OS_ANDROID)
 static bool DISABLE_WATCHDOG = true;
 #else
+
+
 static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
 #endif
@@ -5180,11 +5182,13 @@ ivec2 Application::getMouse() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
+#ifdef HAVE_DDE
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
     if (dde && dde->isActive()) {
         return static_cast<FaceTracker*>(dde.data());
     }
+#endif
 
     return nullptr;
 }
@@ -7227,6 +7231,9 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _entityEditSender.nodeKilled(node);
+
+    qDebug() << "NODE KIlled: " << node->getType() << "********************************************************";
+
 
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
