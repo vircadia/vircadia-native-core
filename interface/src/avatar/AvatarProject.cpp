@@ -243,6 +243,10 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     return uploader;
 }
 
+AvatarDoctor* AvatarProject::diagnose() {
+    return new AvatarDoctor(QUrl(getFSTPath()));
+}
+
 void AvatarProject::openInInventory() const {
     constexpr int TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS { 1000 };
 
@@ -250,11 +254,15 @@ void AvatarProject::openInInventory() const {
         DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     tablet->loadQMLSource("hifi/commerce/wallet/Wallet.qml");
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
-    tablet->getTabletRoot()->forceActiveFocus();
-    auto name = getProjectName();
 
     // I'm not a fan of this, but it's the only current option.
+    auto name = getProjectName();
     QTimer::singleShot(TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS, [name, tablet]() {
         tablet->sendToQml(QVariantMap({ { "method", "updatePurchases" }, { "filterText", name } }));
     });
+
+    QQuickItem* root = tablet->getTabletRoot();
+    if (root) {
+        root->forceActiveFocus();
+    }
 }

@@ -42,6 +42,8 @@ ext {
     RELEASE_TYPE = project.hasProperty('RELEASE_TYPE') ? project.getProperty('RELEASE_TYPE') : 'DEV'
     STABLE_BUILD = project.hasProperty('STABLE_BUILD') ? project.getProperty('STABLE_BUILD') : '0'
     EXEC_SUFFIX = Os.isFamily(Os.FAMILY_WINDOWS) ? '.exe' : ''
+    appVersionCode = Integer.valueOf(VERSION_CODE ?: 1)
+    appVersionName = RELEASE_NUMBER ?: "1.0"
 }
 
 def appDir = new File(projectDir, 'apps/interface')

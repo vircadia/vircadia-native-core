@@ -15,8 +15,11 @@
 #define hifi_UsersScriptingInterface_h
 
 #include <DependencyManager.h>
+#include <shared/ReadWriteLockable.h>
 
 /**jsdoc
+ * The <code>Users</code> API provides features to regulate your interaction with other users.
+ *
  * @namespace Users
  *
  * @hifi-interface
@@ -24,10 +27,10 @@
  * @hifi-avatar
  * @hifi-assignment-client
  *
- * @property {boolean} canKick - <code>true</code> if the domain server allows the node or avatar to kick (ban) avatars,
- *     otherwise <code>false</code>. <em>Read-only.</em>
- * @property {boolean} requestsDomainListData - <code>true</code> if the avatar requests extra data from the mixers (such as 
- *     positional data of an avatar you've ignored). <em>Read-only.</em>
+ * @property {boolean} canKick - <code>true</code> if the domain server allows the client to kick (ban) avatars, otherwise 
+ *     <code>false</code>. <em>Read-only.</em>
+ * @property {boolean} requestsDomainListData - <code>true</code> if the client requests extra data from the mixers (such as 
+ *     positional data of an avatar they've ignored). <em>Read-only.</em>
  */
 class UsersScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -38,134 +41,171 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
 public:
     UsersScriptingInterface();
+    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID)> kickConfirmationOperator) {
+        _kickConfirmationOperator = kickConfirmationOperator;
+    }
+
+    bool getWaitForKickResponse() { return _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; }); }
+    void setWaitForKickResponse(bool waitForKickResponse) { _kickResponseLock.withWriteLock([&] { _waitingForKickResponse = waitForKickResponse; }); }
 
 public slots:
 
     /**jsdoc
-     * Personally ignore another user, making them disappear for you and you disappear for them. 
+     * Ignores or un-ignores another avatar. Ignoring an avatar makes them disappear for you and you disappear for them. 
      * @function Users.ignore
-     * @param {Uuid} nodeID The node or session ID of the user you want to ignore.
-     * @param {boolean} enable True for ignored; false for un-ignored.
+     * @param {Uuid} sessionID - The session ID of the avatar to ignore.
+     * @param {boolean} [enable=true] - <code>true</code> to ignore, <code>false</code> to un-ignore.
+     * @example <caption>Ignore a nearby avatar for a few seconds.</caption>
+     * var avatars = AvatarList.getAvatarsInRange(MyAvatar.position, 1000);
+     * if (avatars.length > 1) {  // Skip own avatar which is provided in position 0.
+     *     print("Ignore: " + avatars[1]);
+     *     Users.ignore(avatars[1], true);
+     *     Script.setTimeout(function () {
+     *         print("Un-ignore: " + avatars[1]);
+     *         Users.ignore(avatars[1], false);
+     *     }, 5000);
+     * } else {
+     *     print("No avatars");
+     * }
      */
     void ignore(const QUuid& nodeID, bool ignoreEnabled = true);
 
     /**jsdoc
-     * Get whether or not you have ignored the node with the given UUID.
+     * Gets whether or not you have ignored a particular avatar.
      * @function Users.getIgnoreStatus
-     * @param {Uuid} nodeID The node or session ID of the user whose ignore status you want.
-     * @returns {boolean}
+     * @param {Uuid} sessionID - The session ID of the avatar to get the ignore status of.
+     * @returns {boolean} <code>true</code> if the avatar is being ignored, <code>false</code> if it isn't.
      */
     bool getIgnoreStatus(const QUuid& nodeID);
 
     /**jsdoc
-     * Mute another user for you and you only. They won't be able to hear you, and you won't be able to hear them.
+     * Mutes or un-mutes another avatar. Muting makes you unable to hear them and them unable to hear you.
      * @function Users.personalMute
-     * @param {Uuid} nodeID The node or session ID of the user you want to mute.
-     * @param {boolean} muteEnabled True for enabled; false for disabled.
+     * @param {Uuid} sessionID - The session ID of the avatar to mute.
+     * @param {boolean} [muteEnabled=true] - <code>true</code> to mute, <code>false</code> to un-mute.
      */
     void personalMute(const QUuid& nodeID, bool muteEnabled = true);
 
     /**jsdoc
-      * Get whether or not you have personally muted the node with the given UUID.
-      * @function Users.requestPersonalMuteStatus
-      * @param {Uuid} nodeID The node or session ID of the user whose personal mute status you want.
-      * @returns {boolean}
+      * Gets whether or not you have muted a particular avatar.
+      * @function Users.getPersonalMuteStatus
+      * @param {Uuid} sessionID - The session ID of the avatar to get the mute status of.
+      * @returns {boolean} <code>true</code> if the avatar is muted, <code>false</code> if it isn't.
       */
     bool getPersonalMuteStatus(const QUuid& nodeID);
 
     /**jsdoc
-     * Sets an avatar's gain for you and you only.
-     * Units are Decibels (dB)
+     * Sets an avatar's gain (volume) for you and you only, or sets the master gain.
      * @function Users.setAvatarGain
-     * @param {Uuid} nodeID The node or session ID of the user whose gain you want to modify, or null to set the master gain.
-     * @param {number} gain The gain of the avatar you'd like to set. Units are dB.
+     * @param {Uuid} nodeID - The session ID of the avatar to set the gain for, or <code>null</code> to set the master gain.
+     * @param {number} gain - The gain to set, in dB.
     */
     void setAvatarGain(const QUuid& nodeID, float gain);
 
     /**jsdoc
-     * Gets an avatar's gain for you and you only.
+     * Gets an avatar's gain (volume) for you and you only, or gets the master gain.
      * @function Users.getAvatarGain
-     * @param {Uuid} nodeID The node or session ID of the user whose gain you want to get, or null to get the master gain.
-     * @returns {number} gain (in dB)
+     * @param {Uuid} nodeID - The session ID of the avatar to get the gain for, or <code>null</code> to get the master gain.
+     * @returns {number} The gain, in dB.
     */
     float getAvatarGain(const QUuid& nodeID);
 
     /**jsdoc
-     * Kick/ban another user. Removes them from the server and prevents them from returning. Bans by either user name (if 
-     * available) or machine fingerprint otherwise. This will only do anything if you're an admin of the domain you're in. 
+     * Kicks and bans a user. This removes them from the server and prevents them from returning. The ban is by user name if 
+     * available, or machine fingerprint otherwise.
+     * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.kick
-     * @param {Uuid} nodeID The node or session ID of the user you want to kick.
+     * @param {Uuid} sessionID - The session ID of the user to kick and ban.
      */
     void kick(const QUuid& nodeID);
 
     /**jsdoc
-     * Mutes another user's microphone for everyone. Not permanent; the silenced user can unmute themselves with the UNMUTE 
-     * button in their HUD. This will only do anything if you're an admin of the domain you're in. 
+     * Mutes a user's microphone for everyone. The mute is not permanent: the user can unmute themselves. 
+     * <p>This function only works if you're an administrator of the domain you're in.</p>
      * @function Users.mute
-     * @param {Uuid} nodeID The node or session ID of the user you want to mute.
+     * @param {Uuid} sessionID - The session ID of the user to mute.
      */
     void mute(const QUuid& nodeID);
 
     /**jsdoc
-    * Request the user name and machine fingerprint associated with the given UUID. The user name will be returned in a 
-    * {@link Users.usernameFromIDReply|usernameFromIDReply} signal. This will only do anything if you're an admin of the domain 
-    * you're in.
-    * @function Users.requestUsernameFromID
-    * @param {Uuid} nodeID The node or session ID of the user whose user name you want.
-    */
+     * Requests the user name and machine fingerprint associated with the given UUID. The user name is returned via a 
+     * {@link Users.usernameFromIDReply|usernameFromIDReply} signal.
+     * <p>This function only works if you're an administrator of the domain you're in.</p>
+     * @function Users.requestUsernameFromID
+     * @param {Uuid} sessionID - The session ID of the user to get the user name and machine fingerprint of.
+     * @example <caption>Report the user name and fingerprint of a nearby user.</caption>
+     * function onUsernameFromIDReply(sessionID, userName, machineFingerprint, isAdmin) {
+     *     print("Session:     " + sessionID);
+     *     print("User name:   " + userName);
+     *     print("Fingerprint: " + machineFingerprint);
+     *     print("Is admin:    " + isAdmin);
+     * }
+     * 
+     * Users.usernameFromIDReply.connect(onUsernameFromIDReply);
+     * 
+     * var avatars = AvatarList.getAvatarsInRange(MyAvatar.position, 1000);
+     * if (avatars.length > 1) {  // Skip own avatar which is provided in position 0.
+     *     print("Request data for: " + avatars[1]);
+     *     Users.requestUsernameFromID(avatars[1]);
+     * } else {
+     *     print("No avatars");
+     * }
+     */
     void requestUsernameFromID(const QUuid& nodeID);
 
     /**jsdoc
-     * Returns `true` if the DomainServer will allow this Node/Avatar to make kick.
+     * Gets whether the client can kick and ban users in the domain.
      * @function Users.getCanKick
-     * @returns {boolean} <code>true</code> if the domain server allows the client to kick (ban) other users, otherwise 
+     * @returns {boolean} <code>true</code> if the domain server allows the client to kick and ban users, otherwise 
      *     <code>false</code>.
      */
     bool getCanKick();
 
     /**jsdoc
-     * Toggle the state of the space bubble feature.
+     * Toggles the state of the privacy shield.
      * @function Users.toggleIgnoreRadius
      */
     void toggleIgnoreRadius();
 
     /**jsdoc
-     * Enables the space bubble feature.
+     * Enables the privacy shield.
      * @function Users.enableIgnoreRadius
      */
     void enableIgnoreRadius();
 
     /**jsdoc
-     * Disables the space bubble feature.
+     * Disables the privacy shield.
      * @function Users.disableIgnoreRadius
      */
     void disableIgnoreRadius();
 
     /**jsdoc
-     * Returns `true` if the space bubble feature is enabled.
+     * Gets the status of the privacy shield.
      * @function Users.getIgnoreRadiusEnabled
-     * @returns {boolean} <code>true</code> if the space bubble is enabled, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the privacy shield is enabled, <code>false</code> if it is disabled.
      */
     bool getIgnoreRadiusEnabled();
 
 signals:
     
     /**jsdoc
+     * Triggered when your ability to kick and ban users changes.
      * @function Users.canKickChanged
-     * @param {boolean} canKick
+     * @param {boolean} canKick - <code>true</code> if you can kick and ban users, <code>false</code> if you can't.
      * @returns {Signal}
      */
     void canKickChanged(bool canKick);
 
     /**jsdoc
+     * Triggered when the privacy shield status changes.
      * @function Users.ignoreRadiusEnabledChanged
-     * @param {boolean} isEnabled
+     * @param {boolean} isEnabled - <code>true</code> if the privacy shield is enabled, <code>false</code> if it isn't.
      * @returns {Signal}
      */
     void ignoreRadiusEnabledChanged(bool isEnabled);
 
     /**jsdoc
-     * Notifies scripts that another user has entered the ignore radius.
+     * Triggered when another user enters the privacy shield.
      * @function Users.enteredIgnoreRadius
      * @returns {Signal}
      */
@@ -174,20 +214,21 @@ signals:
     /**jsdoc
      * Triggered in response to a {@link Users.requestUsernameFromID|requestUsernameFromID} call. Provides the user name and 
      * machine fingerprint associated with a UUID.
-     * Username and machineFingerprint will be their default constructor output if the requesting user isn't an admin.
      * @function Users.usernameFromIDReply
-     * @param {Uuid} nodeID
-     * @param {string} userName
-     * @param {string} machineFingerprint
-     * @param {boolean} isAdmin
+     * @param {Uuid} sessionID - The session ID of the client that the data is for.
+     * @param {string} userName - The user name of the client, if the requesting client is an administrator in the domain or 
+     *     the <code>sessionID</code> is that of the client, otherwise <code>""</code>.
+     * @param {Uuid} machineFingerprint - The machine fingerprint of the client, if the requesting client is an administrator 
+     *     in the domain or the <code>sessionID</code> is that of the client, otherwise {@link Uuid|Uuid.NULL}.
+     * @param {boolean} isAdmin - <code>true</code> if the client is an administrator in the domain, <code>false</code> if not.
      * @returns {Signal}
     */
     void usernameFromIDReply(const QString& nodeID, const QString& username, const QString& machineFingerprint, bool isAdmin);
 
     /**jsdoc
-     * Notifies scripts that a user has disconnected from the domain.
+     * Triggered when a client has disconnected from the domain.
      * @function Users.avatarDisconnected
-     * @param {Uuid} nodeID The session ID of the avatar that has disconnected.
+     * @param {Uuid} sessionID - The session ID of the client that has disconnected.
      * @returns {Signal}
      */
     void avatarDisconnected(const QUuid& nodeID);
@@ -195,6 +236,11 @@ signals:
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
+
+    std::function<void(const QUuid& nodeID)> _kickConfirmationOperator;
+
+    ReadWriteLockable _kickResponseLock;
+    bool _waitingForKickResponse { false };
 };
 
 

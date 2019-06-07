@@ -58,6 +58,9 @@ logging.setLoggerClass(TrackableLogger)
 logger = logging.getLogger('prebuild')
 
 def headSha():
+    if shutil.which('git') is None:
+        logger.warn("Unable to find git executable, can't caclulate commit ID")
+        return '0xDEADBEEF'
     repo_dir = os.path.dirname(os.path.abspath(__file__))
     git = subprocess.Popen(
         'git rev-parse --short HEAD',
@@ -67,7 +70,7 @@ def headSha():
     stdout, _ = git.communicate()
     sha = stdout.split('\n')[0]
     if not sha:
-        raise RuntimeError("couldn't find git sha")
+        raise RuntimeError("couldn't find git sha for repository {}".format(repo_dir))
     return sha
 
 @contextmanager
@@ -88,10 +91,11 @@ def parse_args():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force-bootstrap', action='store_true')
     parser.add_argument('--force-build', action='store_true')
+    parser.add_argument('--release-type', type=str, default="DEV", help="DEV, PR, or PRODUCTION")
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
-    parser.add_argument('--ci-build', action='store_true')
+    parser.add_argument('--ci-build', action='store_true', default=os.getenv('CI_BUILD') is not None)
     if True:
         args = parser.parse_args()
     else:
@@ -110,7 +114,7 @@ def main():
     args = parse_args()
 
     if args.ci_build:
-        logging.basicConfig(datefmt='%s', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
+        logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
 
     logger.info('sha=%s' % headSha())
     logger.info('start')

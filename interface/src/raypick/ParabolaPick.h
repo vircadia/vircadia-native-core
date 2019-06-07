@@ -12,7 +12,6 @@
 #include <Pick.h>
 
 class EntityItemID;
-class OverlayID;
 
 class ParabolaPickResult : public PickResult {
 public:
@@ -43,6 +42,23 @@ public:
     float parabolicDistance { FLT_MAX };
     bool intersects { false };
 
+    /**jsdoc
+     * An intersection result for a parabola pick.
+     *
+     * @typedef {object} ParabolaPickResult
+     * @property {number} type - The intersection type.
+     * @property {boolean} intersects - <code>true</code> if there's a valid intersection, <code>false</code> if there isn't.
+     * @property {Uuid} objectID - The ID of the intersected object. <code>null</code> for HUD or invalid intersections.
+     * @property {number} distance - The distance from the parabola origin to the intersection point in a straight line.
+     * @property {number} parabolicDistance - The distance from the parabola origin to the intersection point along the arc of
+     *     the parabola.
+     * @property {Vec3} intersection - The intersection point in world coordinates.
+     * @property {Vec3} surfaceNormal - The surface normal at the intersected point. All <code>NaN</code>s if <code>type ==
+     *     Picks.INTERSECTED_HUD</code>.
+     * @property {SubmeshIntersection} extraInfo - Additional intersection details for model objects, otherwise
+     *     <code>{ }</code>.
+     * @property {PickParabola} parabola - The pick parabola that was used. Valid even if there is no intersection.
+     */
     virtual QVariantMap toVariantMap() const override {
         QVariantMap toReturn;
         toReturn["type"] = type;
@@ -80,7 +96,6 @@ public:
 
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<ParabolaPickResult>(pickVariant); }
     PickResultPointer getEntityIntersection(const PickParabola& pick) override;
-    PickResultPointer getOverlayIntersection(const PickParabola& pick) override;
     PickResultPointer getAvatarIntersection(const PickParabola& pick) override;
     PickResultPointer getHUDIntersection(const PickParabola& pick) override;
     Transform getResultTransform() const override;

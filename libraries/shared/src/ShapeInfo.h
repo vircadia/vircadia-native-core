@@ -18,8 +18,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include "HashKey.h"
-
 const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 
 // Bullet has a mesh generation util for convex shapes that we used to
@@ -91,7 +89,7 @@ public:
 
     float computeVolume() const;
 
-    const HashKey& getHash() const;
+    uint64_t getHash() const;
 
 protected:
     void setHalfExtents(const glm::vec3& halfExtents);
@@ -102,7 +100,7 @@ protected:
     TriangleIndices _triangleIndices;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     glm::vec3 _offset = glm::vec3(0.0f);
-    mutable HashKey _hashKey;
+    mutable uint64_t _hash64;
     ShapeType _type = SHAPE_TYPE_NONE;
 };
 

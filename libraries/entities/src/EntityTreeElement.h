@@ -134,6 +134,7 @@ public:
     virtual bool isRendered() const override { return getShouldRender(); }
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
+    static bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter);
     virtual bool canPickIntersect() const override { return hasEntities(); }
     virtual EntityItemID evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
@@ -189,7 +190,7 @@ public:
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
-    void cleanupNonLocalEntities();
+    void cleanupDomainAndNonOwnedEntities();
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
     bool removeEntityItem(EntityItemPointer entity, bool deletion = false);
 

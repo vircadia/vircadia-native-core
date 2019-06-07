@@ -80,7 +80,9 @@ else ()
     add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
 
-add_dependencies(${TARGET_NAME} resources)
+if (NOT UNIX)
+    add_dependencies(${TARGET_NAME} resources)
+endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
@@ -193,5 +195,7 @@ if (WIN32)
     set(TARGET_INSTALL_DIR ${NITPICK_INSTALL_DIR})
     set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
 
+    package_libraries_for_deployment()
+elseif (APPLE)
     package_libraries_for_deployment()
 endif()

@@ -7,4 +7,6 @@ Item {
     readonly property string project: "project"
     readonly property string createProject: "createProject"
     readonly property string projectUpload: "projectUpload"
+    readonly property string avatarDoctorDiagnose: "avatarDoctorDiagnose"
+    readonly property string avatarDoctorErrorReport: "avatarDoctorErrorReport"
 }

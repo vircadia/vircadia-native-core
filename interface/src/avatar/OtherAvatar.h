@@ -16,8 +16,6 @@
 #include <workload/Space.h>
 
 #include "InterfaceLogging.h"
-#include "ui/overlays/Overlays.h"
-#include "ui/overlays/Sphere3DOverlay.h"
 
 class AvatarManager;
 class AvatarMotionState;
@@ -50,12 +48,11 @@ public:
     void rebuildCollisionShape() override;
 
     void setWorkloadRegion(uint8_t region);
+    uint8_t getWorkloadRegion() { return _workloadRegion; }
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
-    btCollisionShape* createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints);
-    DetailedMotionState* createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
-    void createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar);
+    const btCollisionShape* createCollisionShape(int32_t jointIndex, bool& isBound, std::vector<int32_t>& boundJoints);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
     BodyLOD getBodyLOD() { return _bodyLOD; }
@@ -67,7 +64,7 @@ public:
     void setCollisionWithOtherAvatarsFlags() override;
 
     void simulate(float deltaTime, bool inView) override;
-
+    void debugJointData() const;
     friend AvatarManager;
 
 protected:
@@ -76,9 +73,18 @@ protected:
     void onAddAttachedAvatarEntity(const QUuid& id);
     void onRemoveAttachedAvatarEntity(const QUuid& id);
 
+    class AvatarEntityDataHash {
+    public:
+        AvatarEntityDataHash(uint32_t h) : hash(h) {};
+        uint32_t hash { 0 };
+        bool success { false };
+    };
+
+    using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
+    MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
+
     std::vector<QUuid> _attachedAvatarEntities;
-    std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
-    OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
+    QUuid _otherAvatarOrbMeshPlaceholderID;
     AvatarMotionState* _motionState { nullptr };
     std::vector<DetailedMotionState*> _detailedMotionStates;
     int32_t _spaceIndex { -1 };

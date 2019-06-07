@@ -35,6 +35,7 @@ class AvatarInputs : public QObject {
      * @property {boolean} cameraMuted <em>Read-only.</em>
      * @property {boolean} isHMD <em>Read-only.</em>
      * @property {boolean} showAudioTools
+     * @property {boolean} showBubbleTools
      */
 
     AI_PROPERTY(bool, cameraEnabled, false)
@@ -42,6 +43,9 @@ class AvatarInputs : public QObject {
     AI_PROPERTY(bool, isHMD, false)
 
     Q_PROPERTY(bool showAudioTools READ showAudioTools WRITE setShowAudioTools NOTIFY showAudioToolsChanged)
+    Q_PROPERTY(bool showBubbleTools READ showBubbleTools WRITE setShowBubbleTools NOTIFY showBubbleToolsChanged)
+    Q_PROPERTY(bool ignoreRadiusEnabled READ getIgnoreRadiusEnabled NOTIFY ignoreRadiusEnabledChanged)
+    //Q_PROPERTY(bool enteredIgnoreRadius READ getEnteredIgnoreRadius NOTIFY enteredIgnoreRadiusChanged)
 
 public:
     static AvatarInputs* getInstance();
@@ -55,7 +59,10 @@ public:
 
     AvatarInputs(QObject* parent = nullptr);
     void update();
-    bool showAudioTools() const   { return _showAudioTools; }
+    bool showAudioTools() const { return _showAudioTools; }
+    bool showBubbleTools() const { return _showBubbleTools; }
+    bool getIgnoreRadiusEnabled() const;
+    //bool getEnteredIgnoreRadius() const;
 
 public slots:
 
@@ -64,6 +71,12 @@ public slots:
      * @param {boolean} showAudioTools
      */
     void setShowAudioTools(bool showAudioTools);
+
+    /**jsdoc
+     * @function AvatarInputs.setShowBubbleTools
+     * @param {boolean} showBubbleTools
+     */
+    void setShowBubbleTools(bool showBubbleTools);
 
 signals:
 
@@ -93,6 +106,41 @@ signals:
      */
     void showAudioToolsChanged(bool show);
 
+    /**jsdoc
+     * @function AvatarInputs.showBubbleToolsChanged
+     * @param {boolean} show
+     * @returns {Signal}
+     */
+    void showBubbleToolsChanged(bool show);
+
+    /**jsdoc
+     * @function AvatarInputs.avatarEnteredIgnoreRadius
+     * @param {QUuid} avatarID
+     * @returns {Signal}
+    */
+    void avatarEnteredIgnoreRadius(QUuid avatarID);
+
+    /**jsdoc
+     * @function AvatarInputs.avatarLeftIgnoreRadius
+     * @param {QUuid} avatarID
+     * @returns {Signal}
+    */
+    void avatarLeftIgnoreRadius(QUuid avatarID);
+
+    /**jsdoc
+     * @function AvatarInputs.ignoreRadiusEnabledChanged
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
+    void ignoreRadiusEnabledChanged(bool enabled);
+
+    /**jsdoc
+     * @function AvatarInputs.enteredIgnoreRadiusChanged
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
+    void enteredIgnoreRadiusChanged();
+
 protected:
 
     /**jsdoc
@@ -106,8 +154,11 @@ protected:
     Q_INVOKABLE void toggleCameraMute();
 
 private: 
+    void onAvatarEnteredIgnoreRadius();
+    void onAvatarLeftIgnoreRadius();
     float _trailingAudioLoudness{ 0 };
     bool _showAudioTools { false };
+    bool _showBubbleTools{ false };
 };
 
 #endif // hifi_AvatarInputs_h

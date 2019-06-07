@@ -41,17 +41,23 @@ QVariant readBinaryArray(QDataStream& in, int& position) {
     quint32 compressedLength;
 
     in >> arrayLength;
+    if (arrayLength > std::numeric_limits<int>::max() / sizeof(T)) { // Upcoming byte containers are limited to max signed int
+        throw QString("FBX file most likely corrupt: binary data exceeds data limits");
+    }
     in >> encoding;
     in >> compressedLength;
+    if (compressedLength > std::numeric_limits<int>::max() / sizeof(T)) { // Upcoming byte containers are limited to max signed int
+        throw QString("FBX file most likely corrupt: compressed binary data exceeds data limits");
+    }
     position += sizeof(quint32) * 3;
 
     QVector<T> values;
     if ((int)QSysInfo::ByteOrder == (int)in.byteOrder()) {
         values.resize(arrayLength);
-        QByteArray arrayData;
+        hifi::ByteArray arrayData;
         if (encoding == FBX_PROPERTY_COMPRESSED_FLAG) {
             // preface encoded data with uncompressed length
-            QByteArray compressed(sizeof(quint32) + compressedLength, 0);
+            hifi::ByteArray compressed(sizeof(quint32) + compressedLength, 0);
             *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
             in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
             position += compressedLength;
@@ -73,11 +79,11 @@ QVariant readBinaryArray(QDataStream& in, int& position) {
         values.reserve(arrayLength);
         if (encoding == FBX_PROPERTY_COMPRESSED_FLAG) {
             // preface encoded data with uncompressed length
-            QByteArray compressed(sizeof(quint32) + compressedLength, 0);
+            hifi::ByteArray compressed(sizeof(quint32) + compressedLength, 0);
             *((quint32*)compressed.data()) = qToBigEndian<quint32>(arrayLength * sizeof(T));
             in.readRawData(compressed.data() + sizeof(quint32), compressedLength);
             position += compressedLength;
-            QByteArray uncompressed = qUncompress(compressed);
+            hifi::ByteArray uncompressed = qUncompress(compressed);
             if (uncompressed.isEmpty()) { // answers empty byte array if corrupt
                 throw QString("corrupt fbx file");
             }
@@ -234,7 +240,7 @@ public:
     };
 
     int nextToken();
-    const QByteArray& getDatum() const { return _datum; }
+    const hifi::ByteArray& getDatum() const { return _datum; }
 
     void pushBackToken(int token) { _pushedBackToken = token; }
     void ungetChar(char ch) { _device->ungetChar(ch); }
@@ -242,7 +248,7 @@ public:
 private:
 
     QIODevice* _device;
-    QByteArray _datum;
+    hifi::ByteArray _datum;
     int _pushedBackToken;
 };
 
@@ -325,7 +331,7 @@ FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
             expectingDatum = true;
 
         } else if (token == Tokenizer::DATUM_TOKEN && expectingDatum) {
-            QByteArray datum = tokenizer.getDatum();
+            hifi::ByteArray datum = tokenizer.getDatum();
             if ((token = tokenizer.nextToken()) == ':') {
                 tokenizer.ungetChar(':');
                 tokenizer.pushBackToken(Tokenizer::DATUM_TOKEN);
@@ -379,7 +385,6 @@ FBXNode FBXSerializer::parseFBX(QIODevice* device) {
     quint32 fileVersion;
     in >> fileVersion;
     position += sizeof(fileVersion);
-    qCDebug(modelformat) << "fileVersion:" << fileVersion;
     bool has64BitPositions = (fileVersion >= FBX_VERSION_2016);
 
     // parse the top-level node

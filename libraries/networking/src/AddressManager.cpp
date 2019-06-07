@@ -315,7 +315,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
-                attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                if (!lookupUrl.host().isNull() && !lookupUrl.host().isEmpty()) {
+                    attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                }
             }
         }
 
@@ -337,7 +339,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // be loaded over http(s)
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
         // lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS ||
-        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd 
+        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd
         // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
 
         _previousAPILookup.clear();
@@ -480,7 +482,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
+                    qCDebug(networking_ice) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
@@ -832,6 +834,7 @@ bool AddressManager::setDomainInfo(const QUrl& domainURL, LookupTrigger trigger)
     }
 
     _domainURL = domainURL;
+    _shareablePlaceName.clear();
 
     // clear any current place information
     _rootPlaceID = QUuid();

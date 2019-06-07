@@ -218,7 +218,7 @@ Item {
                 text: usernameCollisionBody.termsContainerText
                 Component.onCompleted: {
                     // with the link.
-                    termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                    termsText.text = qsTr("By creating this user profile, you agree to <a href='https://www.highfidelity.com/termsofservice'>High Fidelity's Terms of Service</a>")
                 }
             }
 
@@ -234,7 +234,7 @@ Item {
                 lineHeight: 1
                 lineHeightMode: Text.ProportionalHeight
 
-                onLinkActivated: loginDialog.openUrl(link);
+                onLinkActivated: Window.openUrl(link);
 
                 Component.onCompleted: {
                     if (termsTextMetrics.width > root.bannerWidth) {

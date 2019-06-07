@@ -30,7 +30,7 @@ namespace render {
 
         static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
 
-        bool checkTransitionId(Index index) const { return _transitions.checkIndex(index); }
+        bool isTransitionUsed(Index index) const { return _transitions.checkIndex(index) && !_transitions.isElementFreed(index); }
 
         const Transition& getTransition(Index TransitionId) const { return _transitions.get(TransitionId); }
 

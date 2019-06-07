@@ -128,7 +128,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     if (triggersOut.hasKey(endEffectorPositionVar)) {
         targetPose.trans() = triggersOut.lookupRigToGeometry(endEffectorPositionVar, tipPose.trans());
-    } else if (animVars.hasKey(endEffectorRotationVar)) {
+    } else if (animVars.hasKey(endEffectorPositionVar)) {
         targetPose.trans() = animVars.lookupRigToGeometry(endEffectorPositionVar, tipPose.trans());
     }
 
@@ -147,16 +147,18 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     // http://mathworld.wolfram.com/Circle-CircleIntersection.html
     float midAngle = 0.0f;
-    if (d < r0 + r1) {
+    if ((d < r0 + r1) && (d > 0.0f) && (r0 > 0.0f) && (r1 > 0.0f)) {
         float y = sqrtf((-d + r1 - r0) * (-d - r1 + r0) * (-d + r1 + r0) * (d + r1 + r0)) / (2.0f * d);
-        midAngle = PI - (acosf(y / r0) + acosf(y / r1));
+        float yR0Quotient = glm::clamp(y / r0, -1.0f, 1.0f);
+        float yR1Quotient = glm::clamp(y / r1, -1.0f, 1.0f);
+        midAngle = PI - (acosf(yR0Quotient) + acosf(yR1Quotient));
     }
 
     // compute midJoint rotation
     glm::quat relMidRot = glm::angleAxis(midAngle, _midHingeAxis);
 
     // insert new relative pose into the chain and rebuild it.
-    ikChain.setRelativePoseAtJointIndex(_midJointIndex, AnimPose(relMidRot, underPoses[_midJointIndex].trans()));
+    ikChain.setRelativePoseAtJointIndex(_midJointIndex, AnimPose(underPoses[_midJointIndex].scale(), relMidRot, underPoses[_midJointIndex].trans()));
     ikChain.buildDirtyAbsolutePoses();
 
     // recompute tip pose after mid joint has been rotated
@@ -180,7 +182,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
         // transform result back into parent relative frame.
         glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * absRot;
-        ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(relBaseRot, underPoses[_baseJointIndex].trans()));
+        ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(underPoses[_baseJointIndex].scale(), relBaseRot, underPoses[_baseJointIndex].trans()));
     }
 
     // recompute midJoint pose after base has been rotated.
@@ -189,7 +191,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     // transform target rotation in to parent relative frame.
     glm::quat relTipRot = glm::inverse(midJointPose.rot()) * targetPose.rot();
-    ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
+    ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(underPoses[_tipJointIndex].scale(), relTipRot, underPoses[_tipJointIndex].trans()));
 
     // blend with the underChain
     ikChain.blend(underChain, alpha);

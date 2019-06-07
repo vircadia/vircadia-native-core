@@ -18,7 +18,7 @@
 
 class QNetworkReply;
 
-extern const QUrl OVERLAY_LOGIN_DIALOG;
+extern const QUrl LOGIN_DIALOG;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
@@ -79,8 +79,6 @@ protected slots:
     Q_INVOKABLE void createAccountFromOculus(QString email = QString(), QString username = QString(), QString password = QString());
 
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
-
-    Q_INVOKABLE void openUrl(const QString& url) const;
 
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 };

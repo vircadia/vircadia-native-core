@@ -83,6 +83,7 @@ public:
     bool isShadowEnabled() const;
 
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
+    gpu::TexturePointer getAmbientFresnelLUT() const { return _ambientFresnelLUT; }
 
 protected:
 
@@ -118,7 +119,7 @@ protected:
         float enableSkinning{ 1.0f };
         float enableBlendshape{ 1.0f };
 
-        float enableAmbientOcclusion{ 0.0f };
+        float enableAmbientOcclusion{ 0.0f }; // false by default
         float enableShadow{ 1.0f };
         float spare1{ 1.0f };
         float spare2{ 1.0f };
@@ -126,6 +127,7 @@ protected:
         Parameters() {}
     };
     UniformBufferView _parametersBuffer;
+    static gpu::TexturePointer _ambientFresnelLUT;
 };
 
 using LightingModelPointer = std::shared_ptr<LightingModel>;
@@ -196,15 +198,13 @@ public:
     bool enableSkinning{ true };
     bool enableBlendshape{ true };
 
-    bool enableAmbientOcclusion{ true };
+    bool enableAmbientOcclusion{ false }; // false by default
     bool enableShadow{ true };
 
 
     void setAmbientOcclusion(bool enable) { enableAmbientOcclusion = enable; emit dirty();}
     bool isAmbientOcclusionEnabled() const { return enableAmbientOcclusion; }
-    void setShadow(bool enable) { 
-        enableShadow = enable; emit dirty();
-     }
+    void setShadow(bool enable) { enableShadow = enable; emit dirty(); }
     bool isShadowEnabled() const { return enableShadow; }
 
 signals:

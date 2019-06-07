@@ -128,7 +128,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
 
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
-        emit connectedNode(node);
+        emit connectedNode(node, message->getFirstPacketReceiveTime());
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
             << "with hardware address" << nodeConnection.hardwareAddress
@@ -282,6 +282,7 @@ void DomainGatekeeper::updateNodePermissions() {
             userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
             userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
             userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
+            userPerms.permissions |= NodePermissions::Permission::canGetAndSetPrivateUserData;
         } else {
             // at this point we don't have a sending socket for packets from this node - assume it is the active socket
             // or the public socket if we haven't activated a socket for the node yet
@@ -357,7 +358,8 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     nodeData->setNodeVersion(it->second.getNodeVersion());
     nodeData->setHardwareAddress(nodeConnection.hardwareAddress);
     nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
-
+    // client-side send time of last connect/domain list request
+    nodeData->setLastDomainCheckinTimestamp(nodeConnection.lastPingTimestamp);
     nodeData->setWasAssigned(true);
 
     // cleanup the PendingAssignedNodeData for this assignment now that it's connecting
@@ -374,6 +376,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     userPerms.permissions |= NodePermissions::Permission::canRezTemporaryCertifiedEntities;
     userPerms.permissions |= NodePermissions::Permission::canWriteToAssetServer;
     userPerms.permissions |= NodePermissions::Permission::canReplaceDomainContent;
+    userPerms.permissions |= NodePermissions::Permission::canGetAndSetPrivateUserData;
     newNode->setPermissions(userPerms);
     return newNode;
 }
@@ -496,6 +499,9 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     // set the machine fingerprint passed in the connect request
     nodeData->setMachineFingerprint(nodeConnection.machineFingerprint);
+
+    // set client-side send time of last connect/domain list request
+    nodeData->setLastDomainCheckinTimestamp(nodeConnection.lastPingTimestamp);
 
     // also add an interpolation to DomainServerNodeData so that servers can get username in stats
     nodeData->addOverrideForKey(USERNAME_UUID_REPLACEMENT_STATS_KEY,
@@ -811,26 +817,23 @@ void DomainGatekeeper::processICEPeerInformationPacket(QSharedPointer<ReceivedMe
     // any peer we don't have we add to the hash, otherwise we update
     QDataStream iceResponseStream(message->getMessage());
 
-    NetworkPeer* receivedPeer = new NetworkPeer;
+    auto receivedPeer = SharedNetworkPeer::create();
     iceResponseStream >> *receivedPeer;
 
     if (!_icePeers.contains(receivedPeer->getUUID())) {
-        qDebug() << "New peer requesting ICE connection being added to hash -" << *receivedPeer;
-        SharedNetworkPeer newPeer = SharedNetworkPeer(receivedPeer);
-        _icePeers[receivedPeer->getUUID()] = newPeer;
+        qCDebug(domain_server_ice) << "New peer requesting ICE connection being added to hash -" << *receivedPeer;
+        _icePeers[receivedPeer->getUUID()] = receivedPeer;
 
         // make sure we know when we should ping this peer
-        connect(newPeer.data(), &NetworkPeer::pingTimerTimeout, this, &DomainGatekeeper::handlePeerPingTimeout);
+        connect(receivedPeer.data(), &NetworkPeer::pingTimerTimeout, this, &DomainGatekeeper::handlePeerPingTimeout);
 
         // immediately ping the new peer, and start a timer to continue pinging it until we connect to it
-        newPeer->startPingTimer();
+        receivedPeer->startPingTimer();
 
-        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-            << newPeer->getUUID();
+        qCDebug(domain_server_ice) << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << receivedPeer->getUUID();
 
-        pingPunchForConnectingPeer(newPeer);
-    } else {
-        delete receivedPeer;
+        pingPunchForConnectingPeer(receivedPeer);
     }
 }
 
@@ -1010,7 +1013,7 @@ void DomainGatekeeper::refreshGroupsCache() {
     nodeList->eachNode([this](const SharedNodePointer& node) {
         if (!node->getPermissions().isAssignment) {
             // this node is an agent
-            const QString& verifiedUserName = node->getPermissions().getVerifiedUserName();
+            QString verifiedUserName = node->getPermissions().getVerifiedUserName();
             if (!verifiedUserName.isEmpty()) {
                 getGroupMemberships(verifiedUserName);
             }

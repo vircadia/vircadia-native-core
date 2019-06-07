@@ -66,6 +66,12 @@ public:
     static const QString DEFAULT_MODEL_URL;
     QString getModelURL() const;
 
+    virtual glm::vec3 getScaledDimensions() const override;
+    virtual void setScaledDimensions(const glm::vec3& value) override;
+
+    virtual const Transform getTransform(bool& success, int depth = 0) const override;
+    virtual const Transform getTransform() const override;
+
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
 
@@ -112,8 +118,6 @@ public:
     const QString getTextures() const;
     void setTextures(const QString& textures);
 
-    virtual bool shouldBePhysical() const override;
-
     virtual void setJointRotations(const QVector<glm::quat>& rotations);
     virtual void setJointRotationsSet(const QVector<bool>& rotationsSet);
     virtual void setJointTranslations(const QVector<glm::vec3>& translations);
@@ -125,6 +129,9 @@ public:
     QVector<bool> getJointRotationsSet() const;
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
+
+    glm::vec3 getModelScale() const;
+    void setModelScale(const glm::vec3& modelScale);
 
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
@@ -155,6 +162,7 @@ protected:
     int _lastKnownCurrentFrame{-1};
 
     glm::u8vec3 _color;
+    glm::vec3 _modelScale { 1.0f };
     QString _modelURL;
     bool _relayParentJoints;
     bool _groupCulled { false };
@@ -165,7 +173,7 @@ protected:
 
     QString _textures;
 
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
+    ShapeType _shapeType { SHAPE_TYPE_NONE };
 
 private:
     uint64_t _lastAnimated{ 0 };

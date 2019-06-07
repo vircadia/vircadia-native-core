@@ -14,6 +14,7 @@
 #define hifi_AvatarProject_h
 
 #include "MarketplaceItemUploader.h"
+#include "AvatarDoctor.h"
 #include "ProjectFile.h"
 #include "FST.h"
 
@@ -53,11 +54,14 @@ class AvatarProject : public QObject {
     Q_PROPERTY(QString projectFSTPath READ getFSTPath CONSTANT)
     Q_PROPERTY(QString projectFBXPath READ getFBXPath CONSTANT)
     Q_PROPERTY(QString name READ getProjectName WRITE setProjectName NOTIFY nameChanged)
+    Q_PROPERTY(bool hasErrors READ getHasErrors WRITE setHasErrors NOTIFY hasErrorsChanged)
 
 public:
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
     Q_INVOKABLE void openInInventory() const;
     Q_INVOKABLE QStringList getProjectFiles() const;
+    Q_INVOKABLE AvatarDoctor* diagnose();
+
 
     Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
     Q_INVOKABLE void setProjectName(const QString& newProjectName) {
@@ -71,6 +75,11 @@ public:
     Q_INVOKABLE QString getFSTPath() const { return _fst->getPath(); }
     Q_INVOKABLE QString getFBXPath() const {
         return QDir::cleanPath(QDir(_projectPath).absoluteFilePath(_fst->getModelPath()));
+    }
+    Q_INVOKABLE bool getHasErrors() const { return _hasErrors; }
+    Q_INVOKABLE void setHasErrors(bool hasErrors) {
+        _hasErrors = hasErrors;
+        emit hasErrorsChanged();
     }
 
     /**
@@ -92,6 +101,7 @@ public:
 signals:
     void nameChanged();
     void projectFilesChanged();
+    void hasErrorsChanged();
 
 private:
     AvatarProject(const QString& fstPath, const QByteArray& data);
@@ -110,6 +120,8 @@ private:
     QDir _directory;
     QList<ProjectFilePath> _projectFiles{};
     QString _projectPath;
+
+    bool _hasErrors { false };
 };
 
 #endif  // hifi_AvatarProject_h

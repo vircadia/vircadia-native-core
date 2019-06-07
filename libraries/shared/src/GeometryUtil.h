@@ -119,12 +119,20 @@ void swingTwistDecomposition(const glm::quat& rotation,
         glm::quat& swing,
         glm::quat& twist);
 
+/**jsdoc
+ * A triangle in a mesh.
+ * @typedef {object} Triangle
+ * @property {Vec3} v0 - The position of vertex 0 in the triangle.
+ * @property {Vec3} v1 - The position of vertex 1 in the triangle.
+ * @property {Vec3} v2 - The position of vertex 2 in the triangle.
+ */
 class Triangle {
 public:
     glm::vec3 v0;
     glm::vec3 v1;
     glm::vec3 v2;
     glm::vec3 getNormal() const;
+    float getArea() const;
     Triangle operator*(const glm::mat4& transform) const;
 };
 

@@ -7,8 +7,11 @@
 //
 #include "PlatformInfoScriptingInterface.h"
 #include "Application.h"
-
+#include <shared/GlobalAppProperties.h>
 #include <thread>
+
+#include <platform/Platform.h>
+#include <platform/Profiler.h>
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -19,6 +22,17 @@
 PlatformInfoScriptingInterface* PlatformInfoScriptingInterface::getInstance() {
     static PlatformInfoScriptingInterface sharedInstance;
     return &sharedInstance;
+}
+
+
+PlatformInfoScriptingInterface::PlatformInfoScriptingInterface() {
+    platform::create();
+    if (!platform::enumeratePlatform()) {
+    }
+}
+
+PlatformInfoScriptingInterface::~PlatformInfoScriptingInterface() {
+    platform::destroy();
 }
 
 QString PlatformInfoScriptingInterface::getOperatingSystemType() {
@@ -138,6 +152,63 @@ bool PlatformInfoScriptingInterface::has3DHTML() {
 #if defined(Q_OS_ANDROID)
     return false;
 #else
-    return true;
+    return !qApp->property(hifi::properties::STANDALONE).toBool();
 #endif
 }
+
+bool PlatformInfoScriptingInterface::isStandalone() {
+#if defined(Q_OS_ANDROID)
+    return false;
+#else
+    return qApp->property(hifi::properties::STANDALONE).toBool();
+#endif
+}
+
+int PlatformInfoScriptingInterface::getNumCPUs() {
+    return platform::getNumCPUs();
+}
+
+QString PlatformInfoScriptingInterface::getCPU(int index) {
+    auto desc = platform::getCPU(index);
+    return QString(desc.dump().c_str());
+}
+
+int PlatformInfoScriptingInterface::getNumGPUs() {
+    return platform::getNumGPUs();
+}
+
+QString PlatformInfoScriptingInterface::getGPU(int index) {
+    auto desc = platform::getGPU(index);
+    return QString(desc.dump().c_str());
+}
+
+int PlatformInfoScriptingInterface::getNumDisplays() {
+    return platform::getNumDisplays();
+}
+
+QString PlatformInfoScriptingInterface::getDisplay(int index) {
+    auto desc = platform::getDisplay(index);
+    return QString(desc.dump().c_str());
+}
+
+QString PlatformInfoScriptingInterface::getMemory() {
+    auto desc = platform::getMemory(0);
+    return QString(desc.dump().c_str());
+}
+
+QString PlatformInfoScriptingInterface::getComputer() {
+    auto desc = platform::getComputer();
+    return QString(desc.dump().c_str());
+}
+
+
+PlatformInfoScriptingInterface::PlatformTier PlatformInfoScriptingInterface::getTierProfiled() {
+    return (PlatformInfoScriptingInterface::PlatformTier) platform::Profiler::profilePlatform();
+}
+
+QStringList PlatformInfoScriptingInterface::getPlatformTierNames() {
+    static const QStringList platformTierNames = { "UNKNWON", "LOW", "MID", "HIGH" };
+    return platformTierNames;
+}
+
+

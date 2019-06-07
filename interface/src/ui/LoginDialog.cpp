@@ -34,7 +34,7 @@
 HIFI_QML_DEF(LoginDialog)
 
 static const QUrl TABLET_LOGIN_DIALOG_URL("dialogs/TabletLoginDialog.qml");
-const QUrl OVERLAY_LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
+const QUrl LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -71,7 +71,7 @@ void LoginDialog::showWithSelection() {
         if (!qApp->getLoginDialogPoppedUp()) {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
         } else {
-            qApp->createLoginDialogOverlay();
+            qApp->createLoginDialog();
         }
     }
 
@@ -138,7 +138,7 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 void LoginDialog::loginThroughOculus() {
    qDebug() << "Attempting to login through Oculus";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-       oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString oculusID) {
+        oculusPlatformPlugin->requestNonceAndUserID([] (QString nonce, QString oculusID) {
             DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, oculusID);
         });
     }
@@ -277,10 +277,6 @@ void LoginDialog::createAccountFromSteam(QString username) {
                                         QJsonDocument(payload).toJson());
         });
     }
-}
-
-void LoginDialog::openUrl(const QString& url) const {
-    QDesktopServices::openUrl(QUrl(url));
 }
 
 void LoginDialog::linkCompleted(QNetworkReply* reply) {

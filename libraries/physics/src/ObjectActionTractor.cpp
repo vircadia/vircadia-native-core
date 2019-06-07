@@ -11,7 +11,8 @@
 
 #include "ObjectActionTractor.h"
 
-#include "QVariantGLM.h"
+#include <EntityItem.h>
+#include <QVariantGLM.h>
 
 #include "PhysicsLogging.h"
 
@@ -60,7 +61,7 @@ bool ObjectActionTractor::getTarget(float deltaTimeStep, glm::quat& rotation, gl
             }
             if (other && otherIsReady) {
                 bool success;
-                glm::vec3 otherWorldPosition = other->getWorldPosition(_otherJointIndex, success);
+                glm::vec3 otherWorldPosition = other->getJointWorldPosition(_otherJointIndex, success);
                 if (!success) {
                     linearTimeScale = FLT_MAX;
                     angularTimeScale = FLT_MAX;

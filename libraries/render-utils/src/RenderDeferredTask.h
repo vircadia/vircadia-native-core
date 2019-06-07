@@ -19,7 +19,7 @@
 #include "LightClusters.h"
 #include "RenderShadowTask.h"
 
-class DrawDeferredConfig : public render::Job::Config {
+class RenderTransparentDeferredConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
@@ -41,13 +41,13 @@ protected:
     int _numDrawn{ 0 };
 };
 
-class DrawDeferred {
+class RenderTransparentDeferred {
 public:
     using Inputs = render::VaryingSet7<render::ItemBounds, HazeStage::FramePointer, LightStage::FramePointer, LightingModelPointer, LightClustersPointer, LightStage::ShadowFramePointer, glm::vec2>;
-    using Config = DrawDeferredConfig;
-    using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
+    using Config = RenderTransparentDeferredConfig;
+    using JobModel = render::Job::ModelI<RenderTransparentDeferred, Inputs, Config>;
 
-    DrawDeferred(render::ShapePlumberPointer shapePlumber)
+    RenderTransparentDeferred(render::ShapePlumberPointer shapePlumber)
         : _shapePlumber{ shapePlumber } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }

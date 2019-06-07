@@ -12,6 +12,7 @@
 #ifndef hifi_BakerTypes_h
 #define hifi_BakerTypes_h
 
+#include <QUrl>
 #include <hfm/HFM.h>
 
 namespace baker {

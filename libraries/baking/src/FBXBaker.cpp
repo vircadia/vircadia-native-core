@@ -31,335 +31,143 @@
 #include <FBXWriter.h>
 
 #include "ModelBakingLoggingCategory.h"
-#include "TextureBaker.h"
 
-#ifdef HIFI_DUMP_FBX
-#include "FBXToJSON.h"
-#endif
-
-void FBXBaker::bake() {    
-    qDebug() << "FBXBaker" << _modelURL << "bake starting";
-
-    // setup the output folder for the results of this bake
-    setupOutputFolder();
-
-    if (shouldStop()) {
-        return;
+FBXBaker::FBXBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+        ModelBaker(inputModelURL, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
+    if (hasBeenBaked) {
+        // Look for the original model file one directory higher. Perhaps this is an oven output directory.
+        QUrl originalRelativePath = QUrl("../original/" + inputModelURL.fileName().replace(BAKED_FBX_EXTENSION, FBX_EXTENSION));
+        QUrl newInputModelURL = inputModelURL.adjusted(QUrl::RemoveFilename).resolved(originalRelativePath);
+        _modelURL = newInputModelURL;
     }
-
-    connect(this, &FBXBaker::sourceCopyReadyToLoad, this, &FBXBaker::bakeSourceCopy);
-
-    // make a local copy of the FBX file
-    loadSourceFBX();
 }
 
-void FBXBaker::bakeSourceCopy() {
-    // load the scene from the FBX file
-    importScene();
-
+void FBXBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     if (shouldStop()) {
         return;
     }
 
-    // enumerate the models and textures found in the scene and start a bake for them
-    rewriteAndBakeSceneTextures();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    rewriteAndBakeSceneModels();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    // check if we're already done with textures (in case we had none to re-write)
-    checkIfTexturesFinished();
+    rewriteAndBakeSceneModels(hfmModel->meshes, dracoMeshes, dracoMaterialLists);
 }
 
-void FBXBaker::setupOutputFolder() {
-    // make sure there isn't already an output directory using the same name
-    if (QDir(_bakedOutputDir).exists()) {
-        qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
+void FBXBaker::replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {
+    // Compress mesh information and store in dracoMeshNode
+    FBXNode dracoMeshNode;
+    bool success = buildDracoMeshNode(dracoMeshNode, dracoMeshBytes, dracoMaterialList);
+
+    if (!success) {
+        return;
     } else {
-        qCDebug(model_baking) << "Creating FBX output folder" << _bakedOutputDir;
+        meshNode.children.push_back(dracoMeshNode);
 
-        // attempt to make the output folder
-        if (!QDir().mkpath(_bakedOutputDir)) {
-            handleError("Failed to create FBX output folder " + _bakedOutputDir);
-            return;
-        }
-        // attempt to make the output folder
-        if (!QDir().mkpath(_originalOutputDir)) {
-            handleError("Failed to create FBX output folder " + _originalOutputDir);
-            return;
-        }
-    }
-}
+        static const std::vector<QString> nodeNamesToDelete {
+            // Node data that is packed into the draco mesh
+            "Vertices",
+            "PolygonVertexIndex",
+            "LayerElementNormal",
+            "LayerElementColor",
+            "LayerElementUV",
+            "LayerElementMaterial",
+            "LayerElementTexture",
 
-void FBXBaker::loadSourceFBX() {
-    // check if the FBX is local or first needs to be downloaded
-    if (_modelURL.isLocalFile()) {
-        // load up the local file
-        QFile localFBX { _modelURL.toLocalFile() };
-
-        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalModelFilePath;
-
-        if (!localFBX.exists()) {
-            //QMessageBox::warning(this, "Could not find " + _fbxURL.toString(), "");
-            handleError("Could not find " + _modelURL.toString());
-            return;
-        }
-
-        // make a copy in the output folder
-        if (!_originalOutputDir.isEmpty()) {
-            qDebug() << "Copying to: " << _originalOutputDir << "/" << _modelURL.fileName();
-            localFBX.copy(_originalOutputDir + "/" + _modelURL.fileName());
-        }
-
-        localFBX.copy(_originalModelFilePath);
-
-        // emit our signal to start the import of the FBX source copy
-        emit sourceCopyReadyToLoad();
-    } else {
-        // remote file, kick off a download
-        auto& networkAccessManager = NetworkAccessManager::getInstance();
-
-        QNetworkRequest networkRequest;
-
-        // setup the request to follow re-directs and always hit the network
-        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-
-        networkRequest.setUrl(_modelURL);
-
-        qCDebug(model_baking) << "Downloading" << _modelURL;
-        auto networkReply = networkAccessManager.get(networkRequest);
-
-        connect(networkReply, &QNetworkReply::finished, this, &FBXBaker::handleFBXNetworkReply);
-    }
-}
-
-void FBXBaker::handleFBXNetworkReply() {
-    auto requestReply = qobject_cast<QNetworkReply*>(sender());
-
-    if (requestReply->error() == QNetworkReply::NoError) {
-        qCDebug(model_baking) << "Downloaded" << _modelURL;
-
-        // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(_originalModelFilePath);
-
-        qDebug(model_baking) << "Writing copy of original FBX to" << _originalModelFilePath << copyOfOriginal.fileName();
-
-        if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
-            // add an error to the error list for this FBX stating that a duplicate of the original FBX could not be made
-            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalModelFilePath + ")");
-            return;
-        }
-        if (copyOfOriginal.write(requestReply->readAll()) == -1) {
-            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to write)");
-            return;
-        }
-
-        // close that file now that we are done writing to it
-        copyOfOriginal.close();
-
-        if (!_originalOutputDir.isEmpty()) {
-            copyOfOriginal.copy(_originalOutputDir + "/" + _modelURL.fileName());
-        }
-
-        // emit our signal to start the import of the FBX source copy
-        emit sourceCopyReadyToLoad();
-    } else {
-        // add an error to our list stating that the FBX could not be downloaded
-        handleError("Failed to download " + _modelURL.toString());
-    }
-}
-
-void FBXBaker::importScene() {
-    qDebug() << "file path: " << _originalModelFilePath.toLocal8Bit().data() << QDir(_originalModelFilePath).exists();
-
-    QFile fbxFile(_originalModelFilePath);
-    if (!fbxFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalModelFilePath + " for reading");
-        return;
-    }
-
-    FBXSerializer fbxSerializer;
-
-    qCDebug(model_baking) << "Parsing" << _modelURL;
-    _rootNode = fbxSerializer._rootNode = fbxSerializer.parseFBX(&fbxFile);
-
-#ifdef HIFI_DUMP_FBX
-    {
-        FBXToJSON fbxToJSON;
-        fbxToJSON << _rootNode;
-        QFileInfo modelFile(_originalModelFilePath);
-        QString outFilename(_bakedOutputDir + "/" + modelFile.completeBaseName() + "_FBX.json");
-        QFile jsonFile(outFilename);
-        if (jsonFile.open(QIODevice::WriteOnly)) {
-            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
-            jsonFile.close();
-        }
-    }
-#endif
-
-    _hfmModel = fbxSerializer.extractHFMModel({}, _modelURL.toString());
-    _textureContentMap = fbxSerializer._textureContent;
-}
-
-void FBXBaker::rewriteAndBakeSceneModels() {
-    unsigned int meshIndex = 0;
-    bool hasDeformers { false };
-    for (FBXNode& rootChild : _rootNode.children) {
-        if (rootChild.name == "Objects") {
-            for (FBXNode& objectChild : rootChild.children) {
-                if (objectChild.name == "Deformer") {
-                    hasDeformers = true;
-                    break;
-                }
+            // Node data that we don't support
+            "Edges",
+            "LayerElementTangent",
+            "LayerElementBinormal",
+            "LayerElementSmoothing"
+        };
+        auto& children = meshNode.children;
+        auto it = children.begin();
+        while (it != children.end()) {
+            auto begin = nodeNamesToDelete.begin();
+            auto end = nodeNamesToDelete.end();
+            if (find(begin, end, it->name) != end) {
+                it = children.erase(it);
+            } else {
+                ++it;
             }
         }
-        if (hasDeformers) {
-            break;
-        }
-    }
-    for (FBXNode& rootChild : _rootNode.children) {
-        if (rootChild.name == "Objects") {
-            for (FBXNode& objectChild : rootChild.children) {
-                if (objectChild.name == "Geometry") {
-
-                    // TODO Pull this out of _hfmModel instead so we don't have to reprocess it
-                    auto extractedMesh = FBXSerializer::extractMesh(objectChild, meshIndex, false);
-                    
-                    // Callback to get MaterialID
-                    GetMaterialIDCallback materialIDcallback = [&extractedMesh](int partIndex) {
-                        return extractedMesh.partMaterialTextures[partIndex].first;
-                    };
-                    
-                    // Compress mesh information and store in dracoMeshNode
-                    FBXNode dracoMeshNode;
-                    bool success = compressMesh(extractedMesh.mesh, hasDeformers, dracoMeshNode, materialIDcallback);
-                    
-                    // if bake fails - return, if there were errors and continue, if there were warnings.
-                    if (!success) {
-                        if (hasErrors()) {
-                            return;
-                        } else if (hasWarnings()) {
-                            continue;
-                        }
-                    } else {
-                        objectChild.children.push_back(dracoMeshNode);
-
-                        static const std::vector<QString> nodeNamesToDelete {
-                            // Node data that is packed into the draco mesh
-                            "Vertices",
-                            "PolygonVertexIndex",
-                            "LayerElementNormal",
-                            "LayerElementColor",
-                            "LayerElementUV",
-                            "LayerElementMaterial",
-                            "LayerElementTexture",
-
-                            // Node data that we don't support
-                            "Edges",
-                            "LayerElementTangent",
-                            "LayerElementBinormal",
-                            "LayerElementSmoothing"
-                        };
-                        auto& children = objectChild.children;
-                        auto it = children.begin();
-                        while (it != children.end()) {
-                            auto begin = nodeNamesToDelete.begin();
-                            auto end = nodeNamesToDelete.end();
-                            if (find(begin, end, it->name) != end) {
-                                it = children.erase(it);
-                            } else {
-                                ++it;
-                            }
-                        }
-                    }
-                }  // Geometry Object
-
-            } // foreach root child
-        }
     }
 }
 
-void FBXBaker::rewriteAndBakeSceneTextures() {
-    using namespace image::TextureUsage;
-    QHash<QString, image::TextureUsage::Type> textureTypes;
-
-    // enumerate the materials in the extracted geometry so we can determine the texture type for each texture ID
-    for (const auto& material : _hfmModel->materials) {
-        if (material.normalTexture.isBumpmap) {
-            textureTypes[material.normalTexture.id] = BUMP_TEXTURE;
-        } else {
-            textureTypes[material.normalTexture.id] = NORMAL_TEXTURE;
-        }
-
-        textureTypes[material.albedoTexture.id] = ALBEDO_TEXTURE;
-        textureTypes[material.glossTexture.id] = GLOSS_TEXTURE;
-        textureTypes[material.roughnessTexture.id] = ROUGHNESS_TEXTURE;
-        textureTypes[material.specularTexture.id] = SPECULAR_TEXTURE;
-        textureTypes[material.metallicTexture.id] = METALLIC_TEXTURE;
-        textureTypes[material.emissiveTexture.id] = EMISSIVE_TEXTURE;
-        textureTypes[material.occlusionTexture.id] = OCCLUSION_TEXTURE;
-        textureTypes[material.lightmapTexture.id] = LIGHTMAP_TEXTURE;
+void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
+    std::vector<int> meshIndexToRuntimeOrder;
+    auto meshCount = (int)meshes.size();
+    meshIndexToRuntimeOrder.resize(meshCount);
+    for (int i = 0; i < meshCount; i++) {
+        meshIndexToRuntimeOrder[meshes[i].meshIndex] = i;
     }
-
-    // enumerate the children of the root node
+    
+    // The meshIndex represents the order in which the meshes are loaded from the FBX file
+    // We replicate this order by iterating over the meshes in the same way that FBXSerializer does
+    int meshIndex = 0;
     for (FBXNode& rootChild : _rootNode.children) {
-
         if (rootChild.name == "Objects") {
-
-            // enumerate the objects
             auto object = rootChild.children.begin();
             while (object != rootChild.children.end()) {
-                if (object->name == "Texture") {
-
-                    // double check that we didn't get an abort while baking the last texture
-                    if (shouldStop()) {
-                        return;
+                if (object->name == "Geometry") {
+                    if (object->properties.at(2) == "Mesh") {
+                        int meshNum = meshIndexToRuntimeOrder[meshIndex];
+                        replaceMeshNodeWithDraco(*object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
+                        meshIndex++;
                     }
-
-                    // enumerate the texture children
-                    for (FBXNode& textureChild : object->children) {
-
-                        if (textureChild.name == "RelativeFilename") {
-                            QString hfmTextureFileName { textureChild.properties.at(0).toString() };
-                            
-                            // grab the ID for this texture so we can figure out the
-                            // texture type from the loaded materials
-                            auto textureID { object->properties[0].toString() };
-                            auto textureType = textureTypes[textureID];
-
-                            // Compress the texture information and return the new filename to be added into the FBX scene
-                            auto bakedTextureFile = compressTexture(hfmTextureFileName, textureType);
-
-                            // If no errors or warnings have occurred during texture compression add the filename to the FBX scene
-                            if (!bakedTextureFile.isNull()) {
-                                textureChild.properties[0] = bakedTextureFile;
-                            } else {
-                                // if bake fails - return, if there were errors and continue, if there were warnings.
-                                if (hasErrors()) {
-                                    return;
-                                } else if (hasWarnings()) {
-                                    continue;
+                    object++;
+                } else if (object->name == "Model") {
+                    for (FBXNode& modelChild : object->children) {
+                        if (modelChild.name == "Properties60" || modelChild.name == "Properties70") {
+                            // This is a properties node
+                            // Remove the geometric transform because that has been applied directly to the vertices in FBXSerializer
+                            static const QVariant GEOMETRIC_TRANSLATION = hifi::ByteArray("GeometricTranslation");
+                            static const QVariant GEOMETRIC_ROTATION = hifi::ByteArray("GeometricRotation");
+                            static const QVariant GEOMETRIC_SCALING = hifi::ByteArray("GeometricScaling");
+                            for (int i = 0; i < modelChild.children.size(); i++) {
+                                const auto& prop = modelChild.children[i];
+                                const auto& propertyName = prop.properties.at(0);
+                                if (propertyName == GEOMETRIC_TRANSLATION ||
+                                        propertyName == GEOMETRIC_ROTATION ||
+                                        propertyName == GEOMETRIC_SCALING) {
+                                    modelChild.children.removeAt(i);
+                                    --i;
+                                }
+                            }
+                        } else if (modelChild.name == "Vertices") {
+                            // This model is also a mesh
+                            int meshNum = meshIndexToRuntimeOrder[meshIndex];
+                            replaceMeshNodeWithDraco(*object, dracoMeshes[meshNum], dracoMaterialLists[meshNum]);
+                            meshIndex++;
+                        }
+                    }
+                    object++;
+                } else if (object->name == "Texture" || object->name == "Video") {
+                    // this is an embedded texture, we need to remove it from the FBX
+                    object = rootChild.children.erase(object);
+                } else if (object->name == "Material") {
+                    for (FBXNode& materialChild : object->children) {
+                        if (materialChild.name == "Properties60" || materialChild.name == "Properties70") {
+                            // This is a properties node
+                            // Remove the material texture scale because that is now included in the material JSON
+                            // Texture nodes are removed, so their texture scale is effectively gone already
+                            static const QVariant MAYA_UV_SCALE = hifi::ByteArray("Maya|uv_scale");
+                            static const QVariant MAYA_UV_OFFSET = hifi::ByteArray("Maya|uv_offset");
+                            for (int i = 0; i < materialChild.children.size(); i++) {
+                                const auto& prop = materialChild.children[i];
+                                const auto& propertyName = prop.properties.at(0);
+                                if (propertyName == MAYA_UV_SCALE ||
+                                    propertyName == MAYA_UV_OFFSET) {
+                                    materialChild.children.removeAt(i);
+                                    --i;
                                 }
                             }
                         }
                     }
 
-                    ++object;
-
-                } else if (object->name == "Video") {
-                    // this is an embedded texture, we need to remove it from the FBX
-                    object = rootChild.children.erase(object);
+                    object++;
                 } else {
-                    ++object;
+                    object++;
+                }
+
+                if (hasErrors()) {
+                    return;
                 }
             }
         }

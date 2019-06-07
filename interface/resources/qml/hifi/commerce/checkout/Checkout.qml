@@ -33,15 +33,19 @@ Rectangle {
     property bool balanceReceived: false;
     property bool availableUpdatesReceived: false;
     property bool itemInfoReceived: false;
+    property bool dataReady: itemInfoReceived && ownershipStatusReceived && balanceReceived && availableUpdatesReceived;
     property string baseItemName: "";
     property string itemName;
     property string itemId;
     property string itemHref;
     property string itemAuthor;
     property int itemEdition: -1;
+    property bool hasSomethingToTradeIn: itemEdition > 0; // i.e., don't trade in your artist's proof
+    property bool isTradingIn: canUpdate && hasSomethingToTradeIn;
+    property bool isStocking: (availability === 'not for sale') && (creator === Account.username) && !updated_item_id;
     property string certificateId;
     property double balanceAfterPurchase;
-    property bool alreadyOwned: false;
+    property bool alreadyOwned: false; // Including proofs
     property int itemPrice: -1;
     property bool isCertified;
     property string itemType: "unknown";
@@ -55,7 +59,10 @@ Rectangle {
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property string referrer;
     property bool isInstalled;
-    property bool isUpdating;
+    property bool canUpdate;
+    property string availability: "available";
+    property string updated_item_id: "";
+    property string creator: "";
     property string baseAppURL;
     property int currentUpdatesPage: 1;
     // Style
@@ -138,6 +145,7 @@ Rectangle {
         }
 
         onAvailableUpdatesResult: {
+            // Answers the updatable original item cert data still owned by this user that are EITHER instances of this marketplace id, or update to this marketplace id.
             if (result.status !== 'success') {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
@@ -149,7 +157,7 @@ Rectangle {
                         if (root.itemEdition !== -1 && root.itemEdition !== parseInt(result.data.updates[i].edition_number)) {
                             continue;
                         }
-                        root.isUpdating = true;
+                        root.canUpdate = true;
                         root.baseItemName = result.data.updates[i].base_item_title;
                         // This CertID is the one corresponding to the base item CertID that the user already owns
                         root.certificateId = result.data.updates[i].certificate_id;
@@ -160,7 +168,7 @@ Rectangle {
                     }
                 }
 
-                if (result.data.updates.length === 0 || root.isUpdating) {
+                if (result.data.updates.length === 0 || root.canUpdate) {
                     root.availableUpdatesReceived = true;
                     refreshBuyUI();
                 } else {
@@ -172,7 +180,7 @@ Rectangle {
 
         onUpdateItemResult: {
             if (result.status !== 'success') {
-                failureErrorText.text = result.message;
+                failureErrorText.text = result.data ? (result.data.message || "Unknown Error") : JSON.stringify(result);
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
@@ -258,13 +266,6 @@ Rectangle {
                     sendToScript(msg);
                 }
             }
-        }
-    }
-    MouseArea {
-        enabled: titleBarContainer.usernameDropdownVisible;
-        anchors.fill: parent;
-        onClicked: {
-            titleBarContainer.usernameDropdownVisible = false;
         }
     }
     //
@@ -434,7 +435,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: itemPreviewImage.right;
                 anchors.leftMargin: 12;
-                anchors.right: itemPriceContainer.left;
+                anchors.right: parent.right;
                 anchors.rightMargin: 8;
                 height: 30;
                 // Style
@@ -449,21 +450,22 @@ Rectangle {
             Item {
                 id: itemPriceContainer;
                 // Anchors
-                anchors.top: parent.top;
-                anchors.right: parent.right;
+                anchors.top: itemNameText.bottom;
+                anchors.topMargin: 8;
+                anchors.left: itemNameText.left;
                 height: 30;
-                width: itemPriceTextLabel.width + itemPriceText.width + 20;
+                width: itemPriceText.width + 20;
 
-                // "HFC" balance label
+                // "HFC" label
                 HiFiGlyphs {
                     id: itemPriceTextLabel;
-                    visible: !(root.isUpdating && root.itemEdition > 0) && (root.itemPrice > 0);
+                    visible: !isTradingIn && (root.itemPrice > 0);
                     text: hifi.glyphs.hfc;
                     // Size
                     size: 30;
                     // Anchors
-                    anchors.right: itemPriceText.left;
-                    anchors.rightMargin: 4;
+                    anchors.right: parent.right;
+                    //anchors.rightMargin: 4;
                     anchors.top: parent.top;
                     anchors.topMargin: 0;
                     width: paintedWidth;
@@ -473,13 +475,15 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: (root.isUpdating && root.itemEdition > 0) ? "FREE\nUPDATE" : ((root.itemPrice === -1) ? "--" : ((root.itemPrice > 0) ? root.itemPrice : "FREE"));
+                    text: isTradingIn ? "FREE\nUPDATE" : 
+                       (isStocking ? "Free for creator" :
+                            ((root.itemPrice === -1) ? "--" : ((root.itemPrice > 0) ? root.itemPrice : "FREE")));
                     // Text size
-                    size: (root.isUpdating && root.itemEdition > 0) ? 20 : 26;
+                    size: isTradingIn ? 20 : 26;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 16;
+                    anchors.left: itemPriceTextLabel.visible ? itemPriceTextLabel.right : parent.left;
+                    anchors.leftMargin: 4;
                     width: paintedWidth;
                     height: paintedHeight;
                     // Style
@@ -571,7 +575,7 @@ Rectangle {
             // "View in Inventory" button
             HifiControlsUit.Button {
                 id: viewInMyPurchasesButton;
-                visible: false;
+                visible: isCertified && dataReady && (isTradingIn ? hasSomethingToTradeIn : alreadyOwned);
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
@@ -579,9 +583,9 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN YOUR INVENTORY";
+                text: (canUpdate && !isTradingIn) ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN YOUR INVENTORY";
                 onClicked: {
-                    if (root.isUpdating) {
+                    if (root.canUpdate) {
                         sendToScript({method: 'checkout_goToPurchases', filterText: root.baseItemName});
                     } else {
                         sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
@@ -592,8 +596,12 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                visible: !((root.itemType === "avatar" || root.itemType === "app") && viewInMyPurchasesButton.visible)
-                enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived && availableUpdatesReceived) || (!root.isCertified) || root.isUpdating;
+                visible: isTradingIn || !alreadyOwned || isStocking || !(root.itemType === "avatar" || root.itemType === "app");
+                property bool checkBalance: dataReady && (root.availability === "available")
+                enabled: (checkBalance && (balanceAfterPurchase >= 0)) || !isCertified || isTradingIn || isStocking;
+                text: isTradingIn ? "Confirm Update" :
+                    (enabled ? (viewInMyPurchasesButton.visible ? "Get It Again" : (dataReady ? "Get Item" : "--")) :
+                        (checkBalance ? "Insufficient Funds" : availability))
                 color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
@@ -602,10 +610,8 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: (root.isUpdating && root.itemEdition > 0) ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ?
-                    ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Get It Again" : "Confirm") : "--") : "Get Item"));
                 onClicked: {
-                    if (root.isUpdating && root.itemEdition > 0) {
+                    if (isTradingIn) {
                         // If we're updating an app, the existing app needs to be uninstalled.
                         // This call will fail/return `false` if the app isn't installed, but that's OK.
                         if (root.itemType === "app") {
@@ -1063,7 +1069,11 @@ Rectangle {
                 buyButton.color = hifi.buttons.red;
                 root.shouldBuyWithControlledFailure = true;
             } else {
-                buyButton.text = (root.isCertified ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
+                buyButton.text = (root.isCertified ? 
+                    (dataReady ?
+                        (root.alreadyOwned ? "Buy Another" : "Buy") :
+                        "--") :
+                    "Get Item");
                 buyButton.color = hifi.buttons.blue;
                 root.shouldBuyWithControlledFailure = false;
             }
@@ -1091,6 +1101,9 @@ Rectangle {
         root.itemPrice = result.data.cost;
         root.itemAuthor = result.data.creator;
         root.itemType = result.data.item_type || "unknown";
+        root.availability = result.data.availability;
+        root.updated_item_id = result.data.updated_item_id || ""
+        root.creator = result.data.creator;
         if (root.itemType === "unknown") {
             root.itemHref = result.data.review_url;
         } else {
@@ -1139,7 +1152,7 @@ Rectangle {
     signal sendToScript(var message);
 
     function canBuyAgain() {
-        return (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "unknown");
+        return root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "unknown" || isStocking;
     }
 
     function handleContentSets() {
@@ -1185,29 +1198,23 @@ Rectangle {
 
     function refreshBuyUI() {
         if (root.isCertified) {
-            if (root.ownershipStatusReceived && root.balanceReceived && root.availableUpdatesReceived) {
+            if (dataReady) {
                 buyText.text = "";
 
                 // If the user IS on the checkout page for the updated version of an owned item...
-                if (root.isUpdating) {
+                if (root.canUpdate) {
                     // If the user HAS already selected a specific edition to update...
-                    if (root.itemEdition > 0) {
+                    if (hasSomethingToTradeIn) {
                         buyText.text = "By pressing \"Confirm Update\", you agree to trade in your old item for the updated item that replaces it.";
                         buyTextContainer.color = "#FFFFFF";
                         buyTextContainer.border.color = "#FFFFFF";
                     // Else if the user HAS NOT selected a specific edition to update...
                     } else {
-                        viewInMyPurchasesButton.visible = true;
-
                         handleBuyAgainLogic();
                     }     
                 // If the user IS NOT on the checkout page for the updated verison of an owned item...
                 // (i.e. they are checking out an item "normally")
                 } else {
-                    if (root.alreadyOwned) {
-                        viewInMyPurchasesButton.visible = true;
-                    }
-                    
                     handleBuyAgainLogic();
                 }
             } else {

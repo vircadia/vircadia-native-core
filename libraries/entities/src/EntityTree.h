@@ -75,7 +75,7 @@ public:
     }
 
 
-    virtual void eraseNonLocalEntities() override;
+    virtual void eraseDomainAndNonOwnedEntities() override;
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,
@@ -109,9 +109,10 @@ public:
 
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
 
-    virtual void update() override { update(true); }
-
-    void update(bool simulate);
+    // Why preUpdate() and update()?
+    // Because sometimes we need to do stuff between the two.
+    void preUpdate() override;
+    void update(bool simulate = true) override;
 
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
@@ -155,11 +156,6 @@ public:
     QMultiMap<quint64, QUuid> getRecentlyDeletedEntityIDs() const { 
         QReadLocker locker(&_recentlyDeletedEntitiesLock);
         return _recentlyDeletedEntityItemIDs;
-    }
-
-    QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
-        QReadLocker locker(&_entityCertificateIDMapLock);
-        return _entityCertificateIDMap;
     }
 
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
@@ -252,9 +248,10 @@ public:
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
-    QByteArray computeNonce(const QString& certID, const QString ownerKey);
-    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
+    QByteArray computeNonce(const EntityItemID& entityID, const QString ownerKey);
+    bool verifyNonce(const EntityItemID& entityID, const QString& nonce);
 
+    QUuid getMyAvatarSessionUUID() { return _myAvatar ? _myAvatar->getSessionUUID() : QUuid(); }
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
     void swapStaleProxies(std::vector<int>& proxies) { proxies.swap(_staleProxies); }
@@ -262,25 +259,23 @@ public:
     void setIsServerlessMode(bool value) { _serverlessDomain = value; }
     bool isServerlessMode() const { return _serverlessDomain; }
 
-    static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
-    static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
-    static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
-    static bool removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+    static void setGetEntityObjectOperator(std::function<QObject*(const QUuid&)> getEntityObjectOperator) { _getEntityObjectOperator = getEntityObjectOperator; }
+    static QObject* getEntityObject(const QUuid& id);
 
-    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
-    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
-    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
-    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+    static void setTextSizeOperator(std::function<QSizeF(const QUuid&, const QString&)> textSizeOperator) { _textSizeOperator = textSizeOperator; }
+    static QSizeF textSize(const QUuid& id, const QString& text);
 
-    static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
-    static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
-    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
-    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+    static void setEntityClicksCapturedOperator(std::function<bool()> areEntityClicksCapturedOperator) { _areEntityClicksCapturedOperator = areEntityClicksCapturedOperator; }
+    static bool areEntityClicksCaptured();
+
+    static void setEmitScriptEventOperator(std::function<void(const QUuid&, const QVariant&)> emitScriptEventOperator) { _emitScriptEventOperator = emitScriptEventOperator; }
+    static void emitScriptEvent(const QUuid& id, const QVariant& message);
 
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                  bool force, bool tellServer);
+    void startDynamicDomainVerificationOnServer(float minimumAgeToRemove);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -292,7 +287,7 @@ signals:
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
-    void killChallengeOwnershipTimeoutTimer(const QString& certID);
+    void killChallengeOwnershipTimeoutTimer(const EntityItemID& certID);
 
 protected:
 
@@ -329,10 +324,10 @@ protected:
     QHash<EntityItemID, EntityItemPointer> _entityMap;
 
     mutable QReadWriteLock _entityCertificateIDMapLock;
-    QHash<QString, EntityItemID> _entityCertificateIDMap;
+    QHash<QString, QList<EntityItemID>> _entityCertificateIDMap;
 
-    mutable QReadWriteLock _certNonceMapLock;
-    QHash<QString, QPair<QUuid, QString>> _certNonceMap;
+    mutable QReadWriteLock _entityNonceMapLock;
+    QHash<EntityItemID, QPair<QUuid, QString>> _entityNonceMap;
 
     EntitySimulationPointer _simulation;
 
@@ -379,18 +374,18 @@ protected:
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
 
 private:
+    void addCertifiedEntityOnServer(EntityItemPointer entity);
+    void removeCertifiedEntityOnServer(EntityItemPointer entity);
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
-    void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
+    void sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
-    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
+    static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
+    static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
+    static std::function<bool()> _areEntityClicksCapturedOperator;
+    static std::function<void(const QUuid&, const QVariant&)> _emitScriptEventOperator;
 
     std::vector<int32_t> _staleProxies;
 

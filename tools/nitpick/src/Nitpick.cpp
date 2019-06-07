@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Nitpick.h"
+#include "Platform.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -24,8 +25,6 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
     _ui.progressBar->setVisible(false);
     _ui.tabWidget->setCurrentIndex(0);
 
-    _signalMapper = new QSignalMapper();
-
     connect(_ui.actionClose, &QAction::triggered, this, &Nitpick::on_closePushbutton_clicked);
     connect(_ui.actionAbout, &QAction::triggered, this, &Nitpick::about);
     connect(_ui.actionContent, &QAction::triggered, this, &Nitpick::content);
@@ -40,14 +39,22 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
  
     _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v2.1.1");
+    setWindowTitle("Nitpick - " + nitpickVersion);
+
+    _GPUVendors << "Nvidia" << "AMD";
+    _ui.gpuVendorComboBox->insertItems(0, _GPUVendors);
+
+    QString gpuVendor = Platform::getGraphicsCardType().toUpper();
+    if (gpuVendor.contains("NVIDIA")) {
+        _ui.gpuVendorComboBox->setCurrentIndex(0);
+    } else {
+        _ui.gpuVendorComboBox->setCurrentIndex(1);
+    }
 }
 
 Nitpick::~Nitpick() {
-    delete _signalMapper;
-
-    if (_test) {
-        delete _test;
+    if (_testCreator) {
+        delete _testCreator;
     }
 
     if (_testRunnerDesktop) {
@@ -60,10 +67,10 @@ Nitpick::~Nitpick() {
 }
 
 void Nitpick::setup() {
-    if (_test) {
-        delete _test;
+    if (_testCreator) {
+        delete _testCreator;
     }
-    _test = new Test(_ui.progressBar, _ui.checkBoxInteractiveMode);
+    _testCreator = new TestCreator(_ui.progressBar, _ui.checkBoxInteractiveMode);
 
     std::vector<QCheckBox*> dayCheckboxes;
     dayCheckboxes.emplace_back(_ui.mondayCheckBox);
@@ -95,9 +102,12 @@ void Nitpick::setup() {
         timeEditCheckboxes, 
         timeEdits, 
         _ui.workingFolderRunOnDesktopLabel, 
-        _ui.checkBoxServerless, 
+        _ui.checkBoxServerless,
+        _ui.usePreviousInstallationOnDesktopCheckBox,
         _ui.runLatestOnDesktopCheckBox, 
         _ui.urlOnDesktopLineEdit, 
+        _ui.runFullSuiteOnDesktopCheckBox,
+        _ui.scriptURLOnDesktopLineEdit,
         _ui.runNowPushbutton,
         _ui.statusLabelOnDesktop
     );
@@ -114,19 +124,23 @@ void Nitpick::setup() {
         _ui.downloadAPKPushbutton,
         _ui.installAPKPushbutton,
         _ui.runInterfacePushbutton,
+        _ui.usePreviousInstallationOnMobileCheckBox,
         _ui.runLatestOnMobileCheckBox,
         _ui.urlOnMobileLineEdit,
+        _ui.runFullSuiteOnMobileCheckBox,
+        _ui.scriptURLOnMobileLineEdit,
         _ui.statusLabelOnMobile
     );
 }
 
-void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
-                                      const bool isRunningInAutomaticTestRun,
-                                      const QString& snapshotDirectory,
-                                      const QString& branch,
-                                      const QString& user
+void Nitpick::startTestsEvaluation(
+    const bool isRunningFromCommandLine,
+    const bool isRunningInAutomaticTestRun,
+    const QString& snapshotDirectory,
+    const QString& branch,
+    const QString& user
 ) {
-    _test->startTestsEvaluation(isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
+    _testCreator->startTestsEvaluation(_ui.gpuVendorComboBox, isRunningFromCommandLine, isRunningInAutomaticTestRun, snapshotDirectory, branch, user);
 }
 
 void Nitpick::on_tabWidget_currentChanged(int index) {
@@ -138,54 +152,52 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
 #endif
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
+        _ui.gpuVendorComboBox->setDisabled(false);
     } else {
         _ui.userLineEdit->setDisabled(true);
         _ui.branchLineEdit->setDisabled(true);
+        _ui.gpuVendorComboBox->setDisabled(true);
     }
 }
 
-void Nitpick::on_evaluateTestsPushbutton_clicked() {
-    _test->startTestsEvaluation(false, false);
-}
-
 void Nitpick::on_createRecursiveScriptPushbutton_clicked() {
-    _test->createRecursiveScript();
+    _testCreator->createRecursiveScript();
 }
 
 void Nitpick::on_createAllRecursiveScriptsPushbutton_clicked() {
-    _test->createAllRecursiveScripts();
+    _testCreator->createAllRecursiveScripts();
 }
 
 void Nitpick::on_createTestsPushbutton_clicked() {
-    _test->createTests();
+    _testCreator->createTests(_ui.gpuVendorComboBox->currentText());
 }
 
 void Nitpick::on_createMDFilePushbutton_clicked() {
-    _test->createMDFile();
+    _testCreator->createMDFile();
 }
 
 void Nitpick::on_createAllMDFilesPushbutton_clicked() {
-    _test->createAllMDFiles();
+    _testCreator->createAllMDFiles();
 }
 
 void Nitpick::on_createTestAutoScriptPushbutton_clicked() {
-    _test->createTestAutoScript();
+    _testCreator->createTestAutoScript();
 }
 
 void Nitpick::on_createAllTestAutoScriptsPushbutton_clicked() {
-    _test->createAllTestAutoScripts();
+    _testCreator->createAllTestAutoScripts();
 }
 
 void Nitpick::on_createTestsOutlinePushbutton_clicked() {
-    _test->createTestsOutline();
+    _testCreator->createTestsOutline();
 }
 
 void Nitpick::on_createTestRailTestCasesPushbutton_clicked() {
-    _test->createTestRailTestCases();
+    _testCreator->createTestRailTestCases();
 }
 
 void Nitpick::on_createTestRailRunButton_clicked() {
-    _test->createTestRailRun();
+    _testCreator->createTestRailRun();
 }
 
 void Nitpick::on_setWorkingFolderRunOnDesktopPushbutton_clicked() {
@@ -202,8 +214,17 @@ void Nitpick::on_runNowPushbutton_clicked() {
     _testRunnerDesktop->run();
 }
 
+void Nitpick::on_usePreviousInstallationOnDesktopCheckBox_clicked() {
+    _ui.runLatestOnDesktopCheckBox->setEnabled(!_ui.usePreviousInstallationOnDesktopCheckBox->isChecked());
+    _ui.urlOnDesktopLineEdit->setEnabled(!_ui.usePreviousInstallationOnDesktopCheckBox->isChecked() && !_ui.runLatestOnDesktopCheckBox->isChecked());
+}
+
 void Nitpick::on_runLatestOnDesktopCheckBox_clicked() {
     _ui.urlOnDesktopLineEdit->setEnabled(!_ui.runLatestOnDesktopCheckBox->isChecked());
+}
+
+void Nitpick::on_runFullSuiteOnDesktopCheckBox_clicked() {
+    _ui.scriptURLOnDesktopLineEdit->setEnabled(!_ui.runFullSuiteOnDesktopCheckBox->isChecked());
 }
 
 void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
@@ -211,7 +232,7 @@ void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int n
 }
 
 void Nitpick::on_updateTestRailRunResultsPushbutton_clicked() {
-    _test->updateTestRailRunResult();
+    _testCreator->updateTestRailRunResult();
 }
 
 // To toggle between show and hide
@@ -238,85 +259,24 @@ void Nitpick::on_showTaskbarPushbutton_clicked() {
 #endif
 }
 
+void Nitpick::on_evaluateTestsPushbutton_clicked() {
+    _testCreator->startTestsEvaluation(_ui.gpuVendorComboBox, false, false);
+}
+
 void Nitpick::on_closePushbutton_clicked() {
     exit(0);
 }
 
 void Nitpick::on_createPythonScriptRadioButton_clicked() {
-    _test->setTestRailCreateMode(PYTHON);
+    _testCreator->setTestRailCreateMode(PYTHON);
 }
 
 void Nitpick::on_createXMLScriptRadioButton_clicked() {
-    _test->setTestRailCreateMode(XML);
+    _testCreator->setTestRailCreateMode(XML);
 }
 
 void Nitpick::on_createWebPagePushbutton_clicked() {
-    _test->createWebPage(_ui.updateAWSCheckBox, _ui.awsURLLineEdit);
-}
-
-void Nitpick::downloadFile(const QUrl& url) {
-    _downloaders.emplace_back(new Downloader(url, this));
-    connect(_downloaders[_index], SIGNAL(downloaded()), _signalMapper, SLOT(map()));
-
-    _signalMapper->setMapping(_downloaders[_index], _index);
-
-    ++_index;
-}
-
-void Nitpick::downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller) {
-    connect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
-    
-    _directoryName = directoryName;
-    _filenames = filenames;
-    _caller = caller;
-
-    _numberOfFilesToDownload = URLs.size();
-    _numberOfFilesDownloaded = 0;
-    _index = 0;
-
-    _ui.progressBar->setMinimum(0);
-    _ui.progressBar->setMaximum(_numberOfFilesToDownload - 1);
-    _ui.progressBar->setValue(0);
-    _ui.progressBar->setVisible(true);
-
-    foreach (auto downloader, _downloaders) {
-        delete downloader;
-    }
-
-    _downloaders.clear();
-    for (int i = 0; i < _numberOfFilesToDownload; ++i) {
-        downloadFile(URLs[i]);
-    }
-}
-
-void Nitpick::saveFile(int index) {
-    try {
-        QFile file(_directoryName + "/" + _filenames[index]);
-        file.open(QIODevice::WriteOnly);
-        file.write(_downloaders[index]->downloadedData());
-        file.close();
-    } catch (...) {
-        QMessageBox::information(0, "Test Aborted", "Failed to save file: " + _filenames[index]);
-        _ui.progressBar->setVisible(false);
-        return;
-    }
-
-    ++_numberOfFilesDownloaded;
-
-    if (_numberOfFilesDownloaded == _numberOfFilesToDownload) {
-        disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
-        if (_caller == _test) {
-            _test->finishTestsEvaluation();
-        } else if (_caller == _testRunnerDesktop) {
-            _testRunnerDesktop->downloadComplete();
-        } else if (_caller == _testRunnerMobile) {
-            _testRunnerMobile->downloadComplete();
-        }
-
-        _ui.progressBar->setVisible(false);
-    } else {
-        _ui.progressBar->setValue(_numberOfFilesDownloaded);
-    }
+    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit, _ui.branchLineEdit->text(), _ui.userLineEdit->text());
 }
 
 void Nitpick::about() {
@@ -356,8 +316,17 @@ void Nitpick::on_connectDevicePushbutton_clicked() {
     _testRunnerMobile->connectDevice();
 }
 
+void Nitpick::on_usePreviousInstallationOnMobileCheckBox_clicked() {
+    _ui.runLatestOnMobileCheckBox->setEnabled(!_ui.usePreviousInstallationOnMobileCheckBox->isChecked());
+    _ui.urlOnMobileLineEdit->setEnabled(!_ui.usePreviousInstallationOnMobileCheckBox->isChecked() && !_ui.runLatestOnMobileCheckBox->isChecked());
+}
+
 void Nitpick::on_runLatestOnMobileCheckBox_clicked() {
     _ui.urlOnMobileLineEdit->setEnabled(!_ui.runLatestOnMobileCheckBox->isChecked());
+}
+
+void Nitpick::on_runFullSuiteOnMobileCheckBox_clicked() {
+    _ui.scriptURLOnMobileLineEdit->setEnabled(!_ui.runFullSuiteOnMobileCheckBox->isChecked());
 }
 
 void Nitpick::on_downloadAPKPushbutton_clicked() {

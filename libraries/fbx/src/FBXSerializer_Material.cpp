@@ -15,7 +15,6 @@
 #include <memory>
 
 #include <QBuffer>
-#include <QDataStream>
 #include <QIODevice>
 #include <QStringList>
 #include <QTextStream>
@@ -29,7 +28,7 @@
 
 HFMTexture FBXSerializer::getTexture(const QString& textureID, const QString& materialID) {
     HFMTexture texture;
-    const QByteArray& filepath = _textureFilepaths.value(textureID);
+    const hifi::ByteArray& filepath = _textureFilepaths.value(textureID);
     texture.content = _textureContent.value(filepath);
 
     if (texture.content.isEmpty()) { // the content is not inlined
@@ -75,15 +74,7 @@ HFMTexture FBXSerializer::getTexture(const QString& textureID, const QString& ma
     return texture;
 }
 
-void FBXSerializer::consolidateHFMMaterials(const QVariantHash& mapping) {
-    QJsonObject materialMap;
-    if (mapping.contains("materialMap")) {
-        QByteArray materialMapValue = mapping.value("materialMap").toByteArray();
-        materialMap = QJsonDocument::fromJson(materialMapValue).object();
-        if (materialMap.isEmpty()) {
-            qCDebug(modelformat) << "fbx Material Map found but did not produce valid JSON:" << materialMapValue;
-        }
-    }
+void FBXSerializer::consolidateHFMMaterials() {
     for (QHash<QString, HFMMaterial>::iterator it = _hfmMaterials.begin(); it != _hfmMaterials.end(); it++) {
         HFMMaterial& material = (*it);
 
@@ -265,23 +256,6 @@ void FBXSerializer::consolidateHFMMaterials(const QVariantHash& mapping) {
             }
         }
         qCDebug(modelformat) << " fbx material Name:" << material.name;
-
-        if (materialMap.contains(material.name)) {
-            QJsonObject materialOptions = materialMap.value(material.name).toObject();
-            qCDebug(modelformat) << "Mapping fbx material:" << material.name << " with HifiMaterial: " << materialOptions;
-
-            if (materialOptions.contains("scattering")) {
-                float scattering = (float) materialOptions.value("scattering").toDouble();
-                material._material->setScattering(scattering);
-            }
-
-            if (materialOptions.contains("scatteringMap")) {
-                QByteArray scatteringMap = materialOptions.value("scatteringMap").toVariant().toByteArray();
-                material.scatteringTexture = HFMTexture();
-                material.scatteringTexture.name = material.name + ".scatteringMap";
-                material.scatteringTexture.filename = scatteringMap;
-            }
-        }
 
         if (material.opacity <= 0.0f) {
             material._material->setOpacity(1.0f);

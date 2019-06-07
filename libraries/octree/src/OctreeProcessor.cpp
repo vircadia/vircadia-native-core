@@ -198,10 +198,10 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
 }
 
 
-void OctreeProcessor::clearNonLocalEntities() {
+void OctreeProcessor::clearDomainAndNonOwnedEntities() {
     if (_tree) {
         _tree->withWriteLock([&] {
-            _tree->eraseNonLocalEntities();
+            _tree->eraseDomainAndNonOwnedEntities();
         });
     }
 }

@@ -1,0 +1,74 @@
+Index: hifi/cmake/macros/SetupQt.cmake
+===================================================================
+--- hifi.orig/cmake/macros/SetupQt.cmake
++++ hifi/cmake/macros/SetupQt.cmake
+@@ -27,7 +27,7 @@ function(calculate_qt5_version result _Q
+     set(_QT_CORE_DIR "${_QT_DIR}/include/QtCore")
+   endif()
+   if(NOT EXISTS "${_QT_CORE_DIR}")
+-      message(FATAL_ERROR "Could not find 'include/QtCore' in '${_QT_DIR}'")
++      message("Could not find 'include/QtCore' in '${_QT_DIR}'")
+   endif()
+   set(subdirs "")
+   get_sub_directories(subdirs ${_QT_CORE_DIR})
+@@ -71,13 +71,13 @@ macro(setup_qt)
+ 
+     message("QT_CMAKE_PREFIX_PATH = " ${QT_CMAKE_PREFIX_PATH})
+ 
+-    # figure out where the qt dir is
+-    get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
+-    set(QT_VERSION "unknown")
+-    calculate_qt5_version(QT_VERSION "${QT_DIR}")
+-    if (QT_VERSION STREQUAL "unknown")
+-      message(FATAL_ERROR "Could not determine QT_VERSION")
+-    endif()
++    # # figure out where the qt dir is
++    # get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
++    # set(QT_VERSION "unknown")
++    # calculate_qt5_version(QT_VERSION "${QT_DIR}")
++    # if (QT_VERSION STREQUAL "unknown")
++    #   message(FATAL_ERROR "Could not determine QT_VERSION")
++    # endif()
+ 
+     if(WIN32)
+         # windows shell does not like backslashes expanded on the command line,
+Index: hifi/interface/CMakeLists.txt
+===================================================================
+--- hifi.orig/interface/CMakeLists.txt
++++ hifi/interface/CMakeLists.txt
+@@ -35,7 +35,7 @@ else ()
+   add_custom_command(
+     OUTPUT ${RESOURCES_RCC}
+     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+-    COMMAND "${QT_DIR}/bin/rcc"
++    COMMAND "rcc"
+     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+   )
+ endif()
+@@ -399,6 +399,13 @@ else()
+ 
+     optional_win_executable_signing()
+   endif()
++
++  install(
++      DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
++      DESTINATION ${INTERFACE_INSTALL_DIR}
++      COMPONENT ${CLIENT_COMPONENT}
++  )
++
+ endif()
+ 
+ if (DEV_BUILD AND (APPLE OR UNIX))
+Index: hifi/tools/nitpick/CMakeLists.txt
+===================================================================
+--- hifi.orig/tools/nitpick/CMakeLists.txt
++++ hifi/tools/nitpick/CMakeLists.txt
+@@ -12,7 +12,7 @@ generate_qrc(OUTPUT ${RESOURCES_QRC} PAT
+ add_custom_command(
+     OUTPUT ${RESOURCES_RCC}
+     DEPENDS ${RESOURCES_QRC} ${GENERATE_QRC_DEPENDS}
+-    COMMAND "${QT_DIR}/bin/rcc"
++    COMMAND "rcc"
+     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
+ )
+ 

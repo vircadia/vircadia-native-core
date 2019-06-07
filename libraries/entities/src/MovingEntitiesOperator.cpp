@@ -55,13 +55,11 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const
             qCDebug(entities) << "    oldContainingElement->bestFitBounds(newCubeClamped):" 
                             << oldContainingElement->bestFitBounds(newCubeClamped);
         } else {
-            qCDebug(entities) << "    WARNING NO OLD CONTAINING ELEMENT!!!";
+            qCDebug(entities) << "    WARNING NO OLD CONTAINING ELEMENT for entity" << entity->getEntityItemID();
         }
     }
-    
+
     if (!oldContainingElement) {
-            qCDebug(entities) << "UNEXPECTED!!!! attempting to move entity "<< entity->getEntityItemID() 
-                            << "that has no containing element. ";
         return; // bail without adding.
     }
 

@@ -13,54 +13,22 @@
 <@include DeferredBufferWrite.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-LAYOUT(binding=0) uniform sampler2D Font;
+<@include sdf_text3D.slh@>
+<$declareEvalSDFSuperSampled()$>
 
-struct TextParams {
-    vec4 color;
-    vec4 outline;
-};
-
-LAYOUT(binding=0) uniform textParamsBuffer {
-    TextParams params;
-};
-
-// the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
 
-#define TAA_TEXTURE_LOD_BIAS    -3.0
-
-const float interiorCutoff = 0.8;
-const float outlineExpansion = 0.2;
-const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
-
-float evalSDF(vec2 texCoord) {
-    // retrieve signed distance
-    float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
-    sdf = mix(sdf, mix(sdf + outlineExpansion, 1.0 - sdf, float(sdf > interiorCutoff)), float(params.outline.x > 0.0));
-
-    // Rely on TAA for anti-aliasing
-    return step(0.5, sdf);
-}
-
 void main() {
-    vec2 dxTexCoord = dFdx(_texCoord0) * 0.5 * taaBias;
-    vec2 dyTexCoord = dFdy(_texCoord0) * 0.5 * taaBias;
-
-    // Perform 4x supersampling for anisotropic filtering
-    float a;
-    a = evalSDF(_texCoord0);
-    a += evalSDF(_texCoord0 + dxTexCoord);
-    a += evalSDF(_texCoord0 + dyTexCoord);
-    a += evalSDF(_texCoord0 + dxTexCoord + dyTexCoord);
-    a *= 0.25;
+    float a = evalSDFSuperSampled(_texCoord0);
 
     packDeferredFragment(
         normalize(_normalWS),
-        a * params.color.a,
-        params.color.rgb,
+        a,
+        _color.rgb,
         DEFAULT_ROUGHNESS,
         DEFAULT_METALLIC,
         DEFAULT_EMISSIVE,

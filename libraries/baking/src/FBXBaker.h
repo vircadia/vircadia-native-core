@@ -18,46 +18,23 @@
 #include <QtNetwork/QNetworkReply>
 
 #include "Baker.h"
-#include "TextureBaker.h"
 #include "ModelBaker.h"
 #include "ModelBakingLoggingCategory.h"
 
-#include <gpu/Texture.h> 
-
 #include <FBX.h>
 
-using TextureBakerThreadGetter = std::function<QThread*()>;
 
 class FBXBaker : public ModelBaker {
     Q_OBJECT
 public:
-    using ModelBaker::ModelBaker;
+    FBXBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
-public slots:
-    virtual void bake() override;
-
-signals:
-    void sourceCopyReadyToLoad();
-
-private slots:
-    void bakeSourceCopy();
-    void handleFBXNetworkReply();
+protected:
+    virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) override;
 
 private:
-    void setupOutputFolder();
-
-    void loadSourceFBX();
-
-    void importScene();
-    void embedTextureMetaData();
-    void rewriteAndBakeSceneModels();
-    void rewriteAndBakeSceneTextures();
-
-    HFMModel* _hfmModel;
-    QHash<QString, int> _textureNameMatchCount;
-    QHash<QUrl, QString> _remappedTexturePaths;
-
-    bool _pendingErrorEmission { false };
+    void rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists);
+    void replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
 };
 
 #endif // hifi_FBXBaker_h

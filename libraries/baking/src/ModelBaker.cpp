@@ -12,8 +12,17 @@
 #include "ModelBaker.h"
 
 #include <PathUtils.h>
+#include <NetworkAccessManager.h>
+
+#include <DependencyManager.h>
+#include <hfm/ModelFormatRegistry.h>
+#include <FBXSerializer.h>
+
+#include <model-baker/Baker.h>
+#include <model-baker/PrepareJointsTask.h>
 
 #include <FBXWriter.h>
+#include <FSTReader.h>
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -31,486 +40,431 @@
 #pragma warning( pop )
 #endif
 
-ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
-                       const QString& bakedOutputDirectory, const QString& originalOutputDirectory) :
+#include "baking/BakerLibrary.h"
+
+#include <QJsonArray>
+
+ModelBaker::ModelBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
     _modelURL(inputModelURL),
     _bakedOutputDir(bakedOutputDirectory),
     _originalOutputDir(originalOutputDirectory),
-    _textureThreadGetter(inputTextureThreadGetter)
+    _hasBeenBaked(hasBeenBaked)
 {
-    auto tempDir = PathUtils::generateTemporaryDir();
+    auto bakedFilename = _modelURL.fileName();
+    if (!hasBeenBaked) {
+        bakedFilename = bakedFilename.left(bakedFilename.lastIndexOf('.'));
+        bakedFilename += BAKED_FBX_EXTENSION;
+    }
+    _bakedModelURL = _bakedOutputDir + "/" + bakedFilename;
+}
 
-    if (tempDir.isEmpty()) {
-        handleError("Failed to create a temporary directory.");
+void ModelBaker::setOutputURLSuffix(const QUrl& outputURLSuffix) {
+    _outputURLSuffix = outputURLSuffix;
+}
+
+void ModelBaker::setMappingURL(const QUrl& mappingURL) {
+    _mappingURL = mappingURL;
+}
+
+void ModelBaker::setMapping(const hifi::VariantHash& mapping) {
+    _mapping = mapping;
+}
+
+QUrl ModelBaker::getFullOutputMappingURL() const {
+    QUrl appendedURL = _outputMappingURL;
+    appendedURL.setFragment(_outputURLSuffix.fragment());
+    appendedURL.setQuery(_outputURLSuffix.query());
+    appendedURL.setUserInfo(_outputURLSuffix.userInfo());
+    return appendedURL;
+}
+
+void ModelBaker::bake() {
+    qDebug() << "ModelBaker" << _modelURL << "bake starting";
+
+    // Setup the output folders for the results of this bake
+    initializeOutputDirs();
+
+    if (shouldStop()) {
         return;
     }
 
-    _modelTempDir = tempDir;
+    connect(this, &ModelBaker::modelLoaded, this, &ModelBaker::bakeSourceCopy);
 
-    _originalModelFilePath = _modelTempDir.filePath(_modelURL.fileName());
-    qDebug() << "Made temporary dir " << _modelTempDir;
-    qDebug() << "Origin file path: " << _originalModelFilePath;
-
+    // make a local copy of the model
+    saveSourceModel();
 }
 
-ModelBaker::~ModelBaker() {
-    if (_modelTempDir.exists()) {
-        if (!_modelTempDir.remove(_originalModelFilePath)) {
-            qCWarning(model_baking) << "Failed to remove temporary copy of fbx file:" << _originalModelFilePath;
+void ModelBaker::initializeOutputDirs() {
+    // Attempt to make the output folders
+    // Warn if there is an output directory using the same name, unless we know a parent FST baker created them already
+
+    if (QDir(_bakedOutputDir).exists()) {
+        if (_mappingURL.isEmpty()) {
+            qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
         }
-        if (!_modelTempDir.rmdir(".")) {
-            qCWarning(model_baking) << "Failed to remove temporary directory:" << _modelTempDir;
+    } else {
+        qCDebug(model_baking) << "Creating baked output folder" << _bakedOutputDir;
+        if (!QDir().mkpath(_bakedOutputDir)) {
+            handleError("Failed to create baked output folder " + _bakedOutputDir);
+            return;
         }
     }
+
+    QDir originalOutputDir { _originalOutputDir };
+    if (originalOutputDir.exists()) {
+        if (_mappingURL.isEmpty()) {
+            qWarning() << "Output path" << _originalOutputDir << "already exists. Continuing.";
+        }
+    } else {
+        qCDebug(model_baking) << "Creating original output folder" << _originalOutputDir;
+        if (!QDir().mkpath(_originalOutputDir)) {
+            handleError("Failed to create original output folder " + _originalOutputDir);
+            return;
+        }
+    }
+
+    if (originalOutputDir.isReadable()) {
+        // The output directory is available. Use that to write/read the original model file
+        _originalOutputModelPath = originalOutputDir.filePath(_modelURL.fileName());
+    } else {
+        handleError("Unable to write to original output folder " + _originalOutputDir);
+    }
+}
+
+void ModelBaker::saveSourceModel() {
+    // check if the FBX is local or first needs to be downloaded
+    if (_modelURL.isLocalFile()) {
+        // load up the local file
+        QFile localModelURL { _modelURL.toLocalFile() };
+
+        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalOutputModelPath;
+
+        if (!localModelURL.exists()) {
+            //QMessageBox::warning(this, "Could not find " + _modelURL.toString(), "");
+            handleError("Could not find " + _modelURL.toString());
+            return;
+        }
+
+        localModelURL.copy(_originalOutputModelPath);
+
+        // emit our signal to start the import of the model source copy
+        emit modelLoaded();
+    } else {
+        // remote file, kick off a download
+        auto& networkAccessManager = NetworkAccessManager::getInstance();
+
+        QNetworkRequest networkRequest;
+
+        // setup the request to follow re-directs and always hit the network
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+
+        networkRequest.setUrl(_modelURL);
+
+        qCDebug(model_baking) << "Downloading" << _modelURL;
+        auto networkReply = networkAccessManager.get(networkRequest);
+
+        connect(networkReply, &QNetworkReply::finished, this, &ModelBaker::handleModelNetworkReply);
+    }
+
+    if (_mappingURL.isEmpty()) {
+        outputUnbakedFST();
+    }
+}
+
+void ModelBaker::handleModelNetworkReply() {
+    auto requestReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (requestReply->error() == QNetworkReply::NoError) {
+        qCDebug(model_baking) << "Downloaded" << _modelURL;
+
+        // grab the contents of the reply and make a copy in the output folder
+        QFile copyOfOriginal(_originalOutputModelPath);
+
+        qDebug(model_baking) << "Writing copy of original model file to" << _originalOutputModelPath << copyOfOriginal.fileName();
+
+        if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
+            // add an error to the error list for this model stating that a duplicate of the original model could not be made
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalOutputModelPath + ")");
+            return;
+        }
+        if (copyOfOriginal.write(requestReply->readAll()) == -1) {
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to write)");
+            return;
+        }
+
+        // close that file now that we are done writing to it
+        copyOfOriginal.close();
+
+        // emit our signal to start the import of the model source copy
+        emit modelLoaded();
+    } else {
+        // add an error to our list stating that the model could not be downloaded
+        handleError("Failed to download " + _modelURL.toString());
+    }
+}
+
+void ModelBaker::bakeSourceCopy() {
+    QFile modelFile(_originalOutputModelPath);
+    if (!modelFile.open(QIODevice::ReadOnly)) {
+        handleError("Error opening " + _originalOutputModelPath + " for reading");
+        return;
+    }
+    hifi::ByteArray modelData = modelFile.readAll();
+
+    std::vector<hifi::ByteArray> dracoMeshes;
+    std::vector<std::vector<hifi::ByteArray>> dracoMaterialLists; // Material order for per-mesh material lookup used by dracoMeshes
+
+    {
+        auto serializer = DependencyManager::get<ModelFormatRegistry>()->getSerializerForMediaType(modelData, _modelURL, "");
+        if (!serializer) {
+            handleError("Could not recognize file type of model file " + _originalOutputModelPath);
+            return;
+        }
+        hifi::VariantHash serializerMapping = _mapping;
+        serializerMapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
+        serializerMapping["deduplicateIndices"] = true; // Draco compression also deduplicates, but we might as well shave it off to save on some earlier processing (currently FBXSerializer only)
+        hfm::Model::Pointer loadedModel = serializer->read(modelData, serializerMapping, _modelURL);
+
+        // Temporarily support copying the pre-parsed node from FBXSerializer, for better performance in FBXBaker
+        // TODO: Pure HFM baking
+        std::shared_ptr<FBXSerializer> fbxSerializer = std::dynamic_pointer_cast<FBXSerializer>(serializer);
+        if (fbxSerializer) {
+            qCDebug(model_baking) << "Parsing" << _modelURL;
+            _rootNode = fbxSerializer->_rootNode;
+        }
+
+        baker::Baker baker(loadedModel, serializerMapping, _mappingURL);
+        auto config = baker.getConfiguration();
+        // Enable compressed draco mesh generation
+        config->getJobConfig("BuildDracoMesh")->setEnabled(true);
+        // Do not permit potentially lossy modification of joint data meant for runtime
+        ((PrepareJointsConfig*)config->getJobConfig("PrepareJoints"))->passthrough = true;
+    
+        // Begin hfm baking
+        baker.run();
+
+        _hfmModel = baker.getHFMModel();
+        _materialMapping = baker.getMaterialMapping();
+        dracoMeshes = baker.getDracoMeshes();
+        dracoMaterialLists = baker.getDracoMaterialLists();
+    }
+
+    // Do format-specific baking
+    bakeProcessedSource(_hfmModel, dracoMeshes, dracoMaterialLists);
+
+    if (shouldStop()) {
+        return;
+    }
+
+    if (!_hfmModel->materials.isEmpty()) {
+        _materialBaker = QSharedPointer<MaterialBaker>(
+            new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir),
+            &MaterialBaker::deleteLater
+        );
+        _materialBaker->setMaterials(_hfmModel->materials, _modelURL.toString());
+        connect(_materialBaker.data(), &MaterialBaker::finished, this, &ModelBaker::handleFinishedMaterialBaker);
+        _materialBaker->bake();
+    } else {
+        bakeMaterialMap();
+    }
+}
+
+void ModelBaker::handleFinishedMaterialBaker() {
+    auto baker = qobject_cast<MaterialBaker*>(sender());
+
+    if (baker) {
+        if (!baker->hasErrors()) {
+            // this MaterialBaker is done and everything went according to plan
+            qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
+
+            QString relativeBakedMaterialURL = _modelURL.fileName();
+            auto baseName = relativeBakedMaterialURL.left(relativeBakedMaterialURL.lastIndexOf('.'));
+            relativeBakedMaterialURL = baseName + BAKED_MATERIAL_EXTENSION;
+
+            auto materialResource = baker->getNetworkMaterialResource();
+            if (materialResource) {
+                for (auto materialName : materialResource->parsedMaterials.names) {
+                    QJsonObject json;
+                    json[QString("mat::" + QString(materialName.c_str()))] = relativeBakedMaterialURL + "#" + materialName.c_str();
+                    _materialMappingJSON.push_back(json);
+                }
+            }
+        } else {
+            // this material failed to bake - this doesn't fail the entire bake but we need to add the errors from
+            // the material to our warnings
+            _warningList << baker->getWarnings();
+        }
+    } else {
+        handleWarning("Failed to bake the materials for model with URL " + _modelURL.toString());
+    }
+
+    bakeMaterialMap();
+}
+
+void ModelBaker::bakeMaterialMap() {
+    if (!_materialMapping.empty()) {
+        // TODO:  The existing material map must be baked in order, so we do it all on this thread to preserve the order.
+        // It could be spread over multiple threads if we had a good way of preserving the order once all of the bakers are done
+        _materialBaker = QSharedPointer<MaterialBaker>(
+            new MaterialBaker("materialMap" + QString::number(_materialMapIndex++), true, _bakedOutputDir),
+            &MaterialBaker::deleteLater
+        );
+        _materialBaker->setMaterials(_materialMapping.front().second);
+        connect(_materialBaker.data(), &MaterialBaker::finished, this, &ModelBaker::handleFinishedMaterialMapBaker);
+        _materialBaker->bake();
+    } else {
+        outputBakedFST();
+    }
+}
+
+void ModelBaker::handleFinishedMaterialMapBaker() {
+    auto baker = qobject_cast<MaterialBaker*>(sender());
+
+    if (baker) {
+        if (!baker->hasErrors()) {
+            // this MaterialBaker is done and everything went according to plan
+            qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
+
+            QString materialName;
+            {
+                auto materialResource = baker->getNetworkMaterialResource();
+                if (materialResource) {
+                    auto url = materialResource->getURL();
+                    if (!url.isEmpty()) {
+                        QString urlString = url.toDisplayString();
+                        auto index = urlString.lastIndexOf("#");
+                        if (index != -1) {
+                            materialName = urlString.right(urlString.length() - index);
+                        }
+                    }
+                }
+            }
+
+            QJsonObject json;
+            json[QString(_materialMapping.front().first.c_str())] = baker->getMaterialData() + BAKED_MATERIAL_EXTENSION + materialName;
+            _materialMappingJSON.push_back(json);
+        } else {
+            // this material failed to bake - this doesn't fail the entire bake but we need to add the errors from
+            // the material to our warnings
+            _warningList << baker->getWarnings();
+        }
+    } else {
+        handleWarning("Failed to bake the materialMap for model with URL " + _modelURL.toString() + " and mapping target " + _materialMapping.front().first.c_str());
+    }
+
+    _materialMapping.erase(_materialMapping.begin());
+    bakeMaterialMap();
+}
+
+void ModelBaker::outputUnbakedFST() {
+    // Output an unbaked FST file in the original output folder to make it easier for FSTBaker to rebake this model
+    // TODO: Consider a more robust method that does not depend on FSTBaker navigating to a hardcoded relative path
+    QString outputFSTFilename = _modelURL.fileName();
+    auto extensionStart = outputFSTFilename.indexOf(".");
+    if (extensionStart != -1) {
+        outputFSTFilename.resize(extensionStart);
+    }
+    outputFSTFilename += FST_EXTENSION;
+    QString outputFSTURL = _originalOutputDir + "/" + outputFSTFilename;
+
+    hifi::VariantHash outputMapping;
+    outputMapping[FST_VERSION_FIELD] = FST_VERSION;
+    outputMapping[FILENAME_FIELD] = _modelURL.fileName();
+    outputMapping[COMMENT_FIELD] = "This FST file was generated by Oven for use during rebaking. It is not part of the original model. This file's existence is subject to change.";
+    hifi::ByteArray fstOut = FSTReader::writeMapping(outputMapping);
+
+    QFile fstOutputFile { outputFSTURL };
+    if (fstOutputFile.exists()) {
+        handleWarning("The file '" + outputFSTURL + "' already exists. Should that be baked instead of '" + _modelURL.toString() + "'?");
+        return;
+    }
+    if (!fstOutputFile.open(QIODevice::WriteOnly)) {
+        handleWarning("Failed to open file '" + outputFSTURL + "' for writing. Rebaking may fail on the associated model.");
+        return;
+    }
+    if (fstOutputFile.write(fstOut) == -1) {
+        handleWarning("Failed to write to file '" + outputFSTURL + "'. Rebaking may fail on the associated model.");
+    }
+}
+
+void ModelBaker::outputBakedFST() {
+    // Output FST file, copying over input mappings if available
+    QString outputFSTFilename = !_mappingURL.isEmpty() ? _mappingURL.fileName() : _modelURL.fileName();
+    auto extensionStart = outputFSTFilename.indexOf(".");
+    if (extensionStart != -1) {
+        outputFSTFilename.resize(extensionStart);
+    }
+    outputFSTFilename += ".baked.fst";
+    QString outputFSTURL = _bakedOutputDir + "/" + outputFSTFilename;
+
+    auto outputMapping = _mapping;
+    outputMapping[FST_VERSION_FIELD] = FST_VERSION;
+    outputMapping[FILENAME_FIELD] = _bakedModelURL.fileName();
+    outputMapping.remove(TEXDIR_FIELD);
+    outputMapping.remove(COMMENT_FIELD);
+    if (!_materialMappingJSON.isEmpty()) {
+        outputMapping[MATERIAL_MAPPING_FIELD] = QJsonDocument(_materialMappingJSON).toJson(QJsonDocument::Compact);
+    }
+    hifi::ByteArray fstOut = FSTReader::writeMapping(outputMapping);
+
+    QFile fstOutputFile { outputFSTURL };
+    if (!fstOutputFile.open(QIODevice::WriteOnly)) {
+        handleError("Failed to open file '" + outputFSTURL + "' for writing");
+        return;
+    }
+    if (fstOutputFile.write(fstOut) == -1) {
+        handleError("Failed to write to file '" + outputFSTURL + "'");
+        return;
+    }
+    _outputFiles.push_back(outputFSTURL);
+    _outputMappingURL = outputFSTURL;
+
+    exportScene();
+    qCDebug(model_baking) << "Finished baking, emitting finished" << _modelURL;
+    emit finished();
 }
 
 void ModelBaker::abort() {
     Baker::abort();
 
-    // tell our underlying TextureBaker instances to abort
-    // the ModelBaker will wait until all are aborted before emitting its own abort signal
-    for (auto& textureBaker : _bakingTextures) {
-        textureBaker->abort();
+    if (_materialBaker) {
+        _materialBaker->abort();
     }
 }
 
-bool ModelBaker::compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback) {
-    if (mesh.wasCompressed) {
-        handleError("Cannot re-bake a file that contains compressed mesh");
+bool ModelBaker::buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {
+    if (dracoMeshBytes.isEmpty()) {
+        handleError("Failed to finalize the baking of a draco Geometry node");
         return false;
     }
-
-    Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
-    Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
-    Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
-
-    int64_t numTriangles{ 0 };
-    for (auto& part : mesh.parts) {
-        if ((part.quadTrianglesIndices.size() % 3) != 0 || (part.triangleIndices.size() % 3) != 0) {
-            handleWarning("Found a mesh part with invalid index data, skipping");
-            continue;
-        }
-        numTriangles += part.quadTrianglesIndices.size() / 3;
-        numTriangles += part.triangleIndices.size() / 3;
-    }
-
-    if (numTriangles == 0) {
-        return false;
-    }
-
-    draco::TriangleSoupMeshBuilder meshBuilder;
-
-    meshBuilder.Start(numTriangles);
-
-    bool hasNormals{ mesh.normals.size() > 0 };
-    bool hasColors{ mesh.colors.size() > 0 };
-    bool hasTexCoords{ mesh.texCoords.size() > 0 };
-    bool hasTexCoords1{ mesh.texCoords1.size() > 0 };
-    bool hasPerFaceMaterials = (materialIDCallback) ? (mesh.parts.size() > 1 || materialIDCallback(0) != 0 ) : true;
-    bool needsOriginalIndices{ hasDeformers };
-
-    int normalsAttributeID { -1 };
-    int colorsAttributeID { -1 };
-    int texCoordsAttributeID { -1 };
-    int texCoords1AttributeID { -1 };
-    int faceMaterialAttributeID { -1 };
-    int originalIndexAttributeID { -1 };
-
-    const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
-                                                             3, draco::DT_FLOAT32);
-    if (needsOriginalIndices) {
-        originalIndexAttributeID = meshBuilder.AddAttribute(
-            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_ORIGINAL_INDEX,
-            1, draco::DT_INT32);
-    }
-
-    if (hasNormals) {
-        normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
-                                                      3, draco::DT_FLOAT32);
-    }
-    if (hasColors) {
-        colorsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::COLOR,
-                                                     3, draco::DT_FLOAT32);
-    }
-    if (hasTexCoords) {
-        texCoordsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::TEX_COORD,
-                                                        2, draco::DT_FLOAT32);
-    }
-    if (hasTexCoords1) {
-        texCoords1AttributeID = meshBuilder.AddAttribute(
-            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_TEX_COORD_1,
-            2, draco::DT_FLOAT32);
-    }
-    if (hasPerFaceMaterials) {
-        faceMaterialAttributeID = meshBuilder.AddAttribute(
-            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
-            1, draco::DT_UINT16);
-    }
-
-    auto partIndex = 0;
-    draco::FaceIndex face;
-    uint16_t materialID;
-    
-    for (auto& part : mesh.parts) {
-        materialID = (materialIDCallback) ? materialIDCallback(partIndex) : partIndex;
-        
-        auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
-            int32_t idx0 = indices[index];
-            int32_t idx1 = indices[index + 1];
-            int32_t idx2 = indices[index + 2];
-
-            if (hasPerFaceMaterials) {
-                meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
-            }
-
-            meshBuilder.SetAttributeValuesForFace(positionAttributeID, face,
-                                                  &mesh.vertices[idx0], &mesh.vertices[idx1],
-                                                  &mesh.vertices[idx2]);
-
-            if (needsOriginalIndices) {
-                meshBuilder.SetAttributeValuesForFace(originalIndexAttributeID, face,
-                                                      &mesh.originalIndices[idx0],
-                                                      &mesh.originalIndices[idx1],
-                                                      &mesh.originalIndices[idx2]);
-            }
-            if (hasNormals) {
-                meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
-                                                      &mesh.normals[idx0], &mesh.normals[idx1],
-                                                      &mesh.normals[idx2]);
-            }
-            if (hasColors) {
-                meshBuilder.SetAttributeValuesForFace(colorsAttributeID, face,
-                                                      &mesh.colors[idx0], &mesh.colors[idx1],
-                                                      &mesh.colors[idx2]);
-            }
-            if (hasTexCoords) {
-                meshBuilder.SetAttributeValuesForFace(texCoordsAttributeID, face,
-                                                      &mesh.texCoords[idx0], &mesh.texCoords[idx1],
-                                                      &mesh.texCoords[idx2]);
-            }
-            if (hasTexCoords1) {
-                meshBuilder.SetAttributeValuesForFace(texCoords1AttributeID, face,
-                                                      &mesh.texCoords1[idx0], &mesh.texCoords1[idx1],
-                                                      &mesh.texCoords1[idx2]);
-            }
-        };
-
-        for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
-            addFace(part.quadTrianglesIndices, i, face++);
-        }
-
-        for (int i = 0; (i + 2) < part.triangleIndices.size(); i += 3) {
-            addFace(part.triangleIndices, i, face++);
-        }
-
-        partIndex++;
-    }
-
-    auto dracoMesh = meshBuilder.Finalize();
-
-    if (!dracoMesh) {
-        handleWarning("Failed to finalize the baking of a draco Geometry node");
-        return false;
-    }
-
-    // we need to modify unique attribute IDs for custom attributes
-    // so the attributes are easily retrievable on the other side
-    if (hasPerFaceMaterials) {
-        dracoMesh->attribute(faceMaterialAttributeID)->set_unique_id(DRACO_ATTRIBUTE_MATERIAL_ID);
-    }
-
-    if (hasTexCoords1) {
-        dracoMesh->attribute(texCoords1AttributeID)->set_unique_id(DRACO_ATTRIBUTE_TEX_COORD_1);
-    }
-
-    if (needsOriginalIndices) {
-        dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
-    }
-
-    draco::Encoder encoder;
-
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION, 14);
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD, 12);
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL, 10);
-    encoder.SetSpeedOptions(0, 5);
-
-    draco::EncoderBuffer buffer;
-    encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
 
     FBXNode dracoNode;
     dracoNode.name = "DracoMesh";
-    auto value = QVariant::fromValue(QByteArray(buffer.data(), (int)buffer.size()));
-    dracoNode.properties.append(value);
+    dracoNode.properties.append(QVariant::fromValue(dracoMeshBytes));
+    // Additional draco mesh node information
+    {
+        FBXNode fbxVersionNode;
+        fbxVersionNode.name = "FBXDracoMeshVersion";
+        fbxVersionNode.properties.append(FBX_DRACO_MESH_VERSION);
+        dracoNode.children.append(fbxVersionNode);
+
+        FBXNode dracoVersionNode;
+        dracoVersionNode.name = "DracoMeshVersion";
+        dracoVersionNode.properties.append(DRACO_MESH_VERSION);
+        dracoNode.children.append(dracoVersionNode);
+
+        FBXNode materialListNode;
+        materialListNode.name = "MaterialList";
+        for (const hifi::ByteArray& materialID : dracoMaterialList) {
+            materialListNode.properties.append(materialID);
+        }
+        dracoNode.children.append(materialListNode);
+    }
     
     dracoMeshNode = dracoNode;
-    // Mesh compression successful return true
     return true;
-}
-
-QString ModelBaker::compressTexture(QString modelTextureFileName, image::TextureUsage::Type textureType) {
-
-    QFileInfo modelTextureFileInfo { modelTextureFileName.replace("\\", "/") };
-    
-    if (modelTextureFileInfo.suffix().toLower() == BAKED_TEXTURE_KTX_EXT.mid(1)) {
-        // re-baking a model that already references baked textures
-        // this is an error - return from here
-        handleError("Cannot re-bake a file that already references compressed textures");
-        return QString::null;
-    }
-
-    if (!image::getSupportedFormats().contains(modelTextureFileInfo.suffix())) {
-        // this is a texture format we don't bake, skip it
-        handleWarning(modelTextureFileName + " is not a bakeable texture format");
-        return QString::null;
-    }
-
-    // make sure this texture points to something and isn't one we've already re-mapped
-    QString textureChild { QString::null };
-    if (!modelTextureFileInfo.filePath().isEmpty()) {
-        // check if this was an embedded texture that we already have in-memory content for
-        QByteArray textureContent;
-        
-        // figure out the URL to this texture, embedded or external
-        if (!modelTextureFileInfo.filePath().isEmpty()) {
-            textureContent = _textureContentMap.value(modelTextureFileName.toLocal8Bit());
-        }
-        auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, !textureContent.isNull());
-
-        QString baseTextureFileName;
-        if (_remappedTexturePaths.contains(urlToTexture)) {
-            baseTextureFileName = _remappedTexturePaths[urlToTexture];
-        } else {
-            // construct the new baked texture file name and file path
-            // ensuring that the baked texture will have a unique name
-            // even if there was another texture with the same name at a different path
-            baseTextureFileName = createBaseTextureFileName(modelTextureFileInfo);
-            _remappedTexturePaths[urlToTexture] = baseTextureFileName;
-        }
-
-        qCDebug(model_baking).noquote() << "Re-mapping" << modelTextureFileName
-            << "to" << baseTextureFileName;
-
-        QString bakedTextureFilePath {
-            _bakedOutputDir + "/" + baseTextureFileName + BAKED_META_TEXTURE_SUFFIX
-        };
-
-        textureChild = baseTextureFileName + BAKED_META_TEXTURE_SUFFIX;
-
-        if (!_bakingTextures.contains(urlToTexture)) {
-            _outputFiles.push_back(bakedTextureFilePath);
-
-            // bake this texture asynchronously
-            bakeTexture(urlToTexture, textureType, _bakedOutputDir, baseTextureFileName, textureContent);
-        }
-    }
-   
-    return textureChild;
-}
-
-void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                             const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
-    
-    // start a bake for this texture and add it to our list to keep track of
-    QSharedPointer<TextureBaker> bakingTexture{
-        new TextureBaker(textureURL, textureType, outputDir, "../", bakedFilename, textureContent),
-        &TextureBaker::deleteLater
-    };
-    
-    // make sure we hear when the baking texture is done or aborted
-    connect(bakingTexture.data(), &Baker::finished, this, &ModelBaker::handleBakedTexture);
-    connect(bakingTexture.data(), &TextureBaker::aborted, this, &ModelBaker::handleAbortedTexture);
-
-    // keep a shared pointer to the baking texture
-    _bakingTextures.insert(textureURL, bakingTexture);
-
-    // start baking the texture on one of our available worker threads
-    bakingTexture->moveToThread(_textureThreadGetter());
-    QMetaObject::invokeMethod(bakingTexture.data(), "bake");
-}
-
-void ModelBaker::handleBakedTexture() {
-    TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
-    qDebug() << "Handling baked texture" << bakedTexture->getTextureURL();
-
-    // make sure we haven't already run into errors, and that this is a valid texture
-    if (bakedTexture) {
-        if (!shouldStop()) {
-            if (!bakedTexture->hasErrors()) {
-                if (!_originalOutputDir.isEmpty()) {
-                    // we've been asked to make copies of the originals, so we need to make copies of this if it is a linked texture
-
-                    // use the path to the texture being baked to determine if this was an embedded or a linked texture
-
-                    // it is embeddded if the texure being baked was inside a folder with the name of the model
-                    // since that is the fake URL we provide when baking external textures
-
-                    if (!_modelURL.isParentOf(bakedTexture->getTextureURL())) {
-                        // for linked textures we want to save a copy of original texture beside the original model
-
-                        qCDebug(model_baking) << "Saving original texture for" << bakedTexture->getTextureURL();
-
-                        // check if we have a relative path to use for the texture
-                        auto relativeTexturePath = texturePathRelativeToModel(_modelURL, bakedTexture->getTextureURL());
-
-                        QFile originalTextureFile{
-                            _originalOutputDir + "/" + relativeTexturePath + bakedTexture->getTextureURL().fileName()
-                        };
-
-                        if (relativeTexturePath.length() > 0) {
-                            // make the folders needed by the relative path
-                        }
-
-                        if (originalTextureFile.open(QIODevice::WriteOnly) && originalTextureFile.write(bakedTexture->getOriginalTexture()) != -1) {
-                            qCDebug(model_baking) << "Saved original texture file" << originalTextureFile.fileName()
-                                << "for" << _modelURL;
-                        } else {
-                            handleError("Could not save original external texture " + originalTextureFile.fileName()
-                                        + " for " + _modelURL.toString());
-                            return;
-                        }
-                    }
-                }
-
-
-                // now that this texture has been baked and handled, we can remove that TextureBaker from our hash
-                _bakingTextures.remove(bakedTexture->getTextureURL());
-
-                checkIfTexturesFinished();
-            } else {
-                // there was an error baking this texture - add it to our list of errors
-                _errorList.append(bakedTexture->getErrors());
-
-                // we don't emit finished yet so that the other textures can finish baking first
-                _pendingErrorEmission = true;
-
-                // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
-                _bakingTextures.remove(bakedTexture->getTextureURL());
-
-                // abort any other ongoing texture bakes since we know we'll end up failing
-                for (auto& bakingTexture : _bakingTextures) {
-                    bakingTexture->abort();
-                }
-
-                checkIfTexturesFinished();
-            }
-        } else {
-            // we have errors to attend to, so we don't do extra processing for this texture
-            // but we do need to remove that TextureBaker from our list
-            // and then check if we're done with all textures
-            _bakingTextures.remove(bakedTexture->getTextureURL());
-
-            checkIfTexturesFinished();
-        }
-    }
-}
-
-void ModelBaker::handleAbortedTexture() {
-    // grab the texture bake that was aborted and remove it from our hash since we don't need to track it anymore
-    TextureBaker* bakedTexture = qobject_cast<TextureBaker*>(sender());
-
-    qDebug() << "Texture aborted: " << bakedTexture->getTextureURL();
-
-    if (bakedTexture) {
-        _bakingTextures.remove(bakedTexture->getTextureURL());
-    }
-
-    // since a texture we were baking aborted, our status is also aborted
-    _shouldAbort.store(true);
-
-    // abort any other ongoing texture bakes since we know we'll end up failing
-    for (auto& bakingTexture : _bakingTextures) {
-        bakingTexture->abort();
-    }
-
-    checkIfTexturesFinished();
-}
-
-QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded) {
-    QUrl urlToTexture;
-
-    // use QFileInfo to easily split up the existing texture filename into its components
-    auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
-
-    if (isEmbedded) {
-        urlToTexture = _modelURL.toString() + "/" + apparentRelativePath.filePath();
-    } else {
-        if (textureFileInfo.exists() && textureFileInfo.isFile()) {
-            // set the texture URL to the local texture that we have confirmed exists
-            urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
-        } else {
-            // external texture that we'll need to download or find
-
-            // this is a relative file path which will require different handling
-            // depending on the location of the original model
-            if (_modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
-                // the absolute path we ran into for the texture in the model exists on this machine
-                // so use that file
-                urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
-            } else {
-                // we didn't find the texture on this machine at the absolute path
-                // so assume that it is right beside the model to match the behaviour of interface
-                urlToTexture = _modelURL.resolved(apparentRelativePath.fileName());
-            }
-        }
-    }
-
-    return urlToTexture;
-}
-
-QString ModelBaker::texturePathRelativeToModel(QUrl modelURL, QUrl textureURL) {
-    auto modelPath = modelURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
-    auto texturePath = textureURL.toString(QUrl::RemoveFilename | QUrl::RemoveQuery | QUrl::RemoveFragment);
-
-    if (texturePath.startsWith(modelPath)) {
-        // texture path is a child of the model path, return the texture path without the model path
-        return texturePath.mid(modelPath.length());
-    } else {
-        // the texture path was not a child of the model path, return the empty string
-        return "";
-    }
-}
-
-void ModelBaker::checkIfTexturesFinished() {
-    // check if we're done everything we need to do for this model
-    // and emit our finished signal if we're done
-
-    if (_bakingTextures.isEmpty()) {
-        if (shouldStop()) {
-            // if we're checking for completion but we have errors
-            // that means one or more of our texture baking operations failed
-
-            if (_pendingErrorEmission) {
-                setIsFinished(true);
-            }
-
-            return;
-        } else {
-            qCDebug(model_baking) << "Finished baking, emitting finished" << _modelURL;
-
-            texturesFinished();
-
-            setIsFinished(true);
-        }
-    }
-}
-
-QString ModelBaker::createBaseTextureFileName(const QFileInfo& textureFileInfo) {
-    // first make sure we have a unique base name for this texture
-    // in case another texture referenced by this model has the same base name
-    auto& nameMatches = _textureNameMatchCount[textureFileInfo.baseName()];
-
-    QString baseTextureFileName{ textureFileInfo.completeBaseName() };
-
-    if (nameMatches > 0) {
-        // there are already nameMatches texture with this name
-        // append - and that number to our baked texture file name so that it is unique
-        baseTextureFileName += "-" + QString::number(nameMatches);
-    }
-
-    // increment the number of name matches
-    ++nameMatches;
-
-    return baseTextureFileName;
 }
 
 void ModelBaker::setWasAborted(bool wasAborted) {
@@ -523,96 +477,26 @@ void ModelBaker::setWasAborted(bool wasAborted) {
     }
 }
 
-void ModelBaker::texturesFinished() {
-    embedTextureMetaData();
-    exportScene();
-}
-
-void ModelBaker::embedTextureMetaData() {
-    std::vector<FBXNode> embeddedTextureNodes;
-
-    for (FBXNode& rootChild : _rootNode.children) {
-        if (rootChild.name == "Objects") {
-            qlonglong maxId = 0;
-            for (auto &child : rootChild.children) {
-                if (child.properties.length() == 3) {
-                    maxId = std::max(maxId, child.properties[0].toLongLong());
-                }
-            }
-
-            for (auto& object : rootChild.children) {
-                if (object.name == "Texture") {
-                    QVariant relativeFilename;
-                    for (auto& child : object.children) {
-                        if (child.name == "RelativeFilename") {
-                            relativeFilename = child.properties[0];
-                            break;
-                        }
-                    }
-
-                    if (relativeFilename.isNull()
-                        || !relativeFilename.toString().endsWith(BAKED_META_TEXTURE_SUFFIX)) {
-                        continue;
-                    }
-                    if (object.properties.length() < 2) {
-                        qWarning() << "Found texture with unexpected number of properties: " << object.name;
-                        continue;
-                    }
-
-                    FBXNode videoNode;
-                    videoNode.name = "Video";
-                    videoNode.properties.append(++maxId);
-                    videoNode.properties.append(object.properties[1]);
-                    videoNode.properties.append("Clip");
-
-                    QString bakedTextureFilePath {
-                        _bakedOutputDir + "/" + relativeFilename.toString()
-                    };
-
-                    QFile textureFile { bakedTextureFilePath };
-                    if (!textureFile.open(QIODevice::ReadOnly)) {
-                        qWarning() << "Failed to open: " << bakedTextureFilePath;
-                        continue;
-                    }
-
-                    videoNode.children.append({ "RelativeFilename", { relativeFilename }, { } });
-                    videoNode.children.append({ "Content", { textureFile.readAll() }, { } });
-
-                    rootChild.children.append(videoNode);
-
-                    textureFile.close();
-                }
-            }
-        }
-    }
-}
-
 void ModelBaker::exportScene() {
-    // save the relative path to this FBX inside our passed output folder
-    auto fileName = _modelURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
-
-    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
     auto fbxData = FBXWriter::encodeFBX(_rootNode);
 
-    QFile bakedFile(_bakedModelFilePath);
+    QString bakedModelURL = _bakedModelURL.toString();
+    QFile bakedFile(bakedModelURL);
 
     if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedModelFilePath + " for writing");
+        handleError("Error opening " + bakedModelURL + " for writing");
         return;
     }
 
     bakedFile.write(fbxData);
 
-    _outputFiles.push_back(_bakedModelFilePath);
+    _outputFiles.push_back(bakedModelURL);
 
 #ifdef HIFI_DUMP_FBX
     {
         FBXToJSON fbxToJSON;
         fbxToJSON << _rootNode;
-        QFileInfo modelFile(_bakedModelFilePath);
+        QFileInfo modelFile(_bakedModelURL.toString());
         QString outFilename(modelFile.dir().absolutePath() + "/" + modelFile.completeBaseName() + "_FBX.json");
         QFile jsonFile(outFilename);
         if (jsonFile.open(QIODevice::WriteOnly)) {
@@ -622,5 +506,5 @@ void ModelBaker::exportScene() {
     }
 #endif
 
-    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
+    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << bakedModelURL;
 }

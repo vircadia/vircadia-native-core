@@ -103,6 +103,8 @@ TEAR_AWAY_DISTANCE = 0.15; // ungrab an entity if its bounding-box moves this fa
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 
+TELEPORT_DEADZONE = 0.15;
+
 NEAR_GRAB_DISTANCE = 0.14; // Grab an entity if its bounding box is within this distance.
 // Smaller than TEAR_AWAY_DISTANCE for hysteresis.
 
@@ -156,7 +158,9 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorOffset",
     "userData",
     "avatarEntity",
-    "owningAvatarID"
+    "owningAvatarID",
+    "certificateID",
+    "certificateType"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -339,8 +343,6 @@ entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
-        isAnothersAvatarEntity(eigProps) ||
-        isAnothersChildEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }

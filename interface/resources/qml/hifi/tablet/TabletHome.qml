@@ -6,7 +6,7 @@ import QtQuick.Layouts 1.3
 import TabletScriptingInterface 1.0
 
 import "."
-import stylesUit 1.0
+import stylesUit 1.0 as HifiStylesUit
 import "../audio" as HifiAudio
 
 Item {
@@ -40,7 +40,7 @@ Item {
             }
         }
 
-        HifiAudio.MicBar {
+        HifiAudio.MicBarApplication {
             anchors {
                 left: parent.left
                 leftMargin: 30
@@ -49,43 +49,115 @@ Item {
         }
 
         Item {
-            width: 150
-            height: 50
+            id: rightContainer
+            width: clockItem.width > loginItem.width ? clockItem.width + clockAmPmTextMetrics.width :
+                loginItem.width + clockAmPmTextMetrics.width
+            height: parent.height
+            anchors.top: parent.top
+            anchors.topMargin: 15
             anchors.right: parent.right
-            anchors.rightMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.rightMargin: 20
+            anchors.bottom: parent.bottom
 
-            ColumnLayout {
-                anchors.fill: parent
+            function timeChanged() {
+                var date = new Date();
+                clockTime.text = date.toLocaleTimeString(Qt.locale("en_US"), "h:mm ap");
+                var regex = /[\sa-zA-z]+/;
+                clockTime.text = clockTime.text.replace(regex, "");
+                clockAmPm.text = date.toLocaleTimeString(Qt.locale("en_US"), "ap");
+            }
 
-                RalewaySemiBold {
-                    text: Account.loggedIn ? qsTr("Log out") : qsTr("Log in")
-                    horizontalAlignment: Text.AlignRight
-                    Layout.alignment: Qt.AlignRight
-                    font.pixelSize: 20
-                    color: "#afafaf"
+            Timer {
+                interval: 1000; running: true; repeat: true;
+                onTriggered: rightContainer.timeChanged();
+            }
+
+            Item {
+                id: clockAmPmItem
+                width: clockAmPmTextMetrics.width
+                height: clockAmPmTextMetrics.height
+
+                anchors.top: parent.top
+                anchors.right: parent.right
+                TextMetrics {
+                    id: clockAmPmTextMetrics
+                    text: clockAmPm.text
+                    font: clockAmPm.font
                 }
-
-                RalewaySemiBold {
-                    visible: Account.loggedIn
-                    height: Account.loggedIn ? parent.height/2 - parent.spacing/2 : 0
-                    text: Account.loggedIn ? "[" + tabletRoot.usernameShort + "]" : ""
-                    horizontalAlignment: Text.AlignRight
-                    Layout.alignment: Qt.AlignRight
-                    font.pixelSize: 20
+                Text {
+                    anchors.left: parent.left
+                    id: clockAmPm
+                    anchors.right: parent.right
+                    font.capitalization: Font.AllUppercase
+                    font.pixelSize: 12
+                    font.family: "Rawline"
                     color: "#afafaf"
                 }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if (!Account.loggedIn) {
-                        DialogsManager.showLoginDialog()
-                    } else {
-                        Account.logOut()
+            Item {
+                id: clockItem
+                width: clockTimeTextMetrics.width
+                height: clockTimeTextMetrics.height
+                anchors {
+                    top: parent.top
+                    topMargin: -10
+                    right: clockAmPmItem.left
+                    rightMargin: 5
+                }
+                TextMetrics {
+                    id: clockTimeTextMetrics
+                    text: clockTime.text
+                    font: clockTime.font
+                }
+                Text {
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    id: clockTime
+                    font.bold: false
+                    font.pixelSize: 36
+                    font.family: "Rawline"
+                    color: "#afafaf"
+                }
+            }
+
+            Item {
+                id: loginItem
+                width: loginTextMetrics.width
+                height: loginTextMetrics.height
+                anchors {
+                    bottom: parent.bottom
+                    bottomMargin: 10
+                    right: clockAmPmItem.left
+                    rightMargin: 5
+                }
+                Text {
+                    id: loginText
+                    anchors.right: parent.right
+                    text: Account.loggedIn ? tabletRoot.usernameShort : qsTr("Log in")
+                    horizontalAlignment: Text.AlignRight
+                    Layout.alignment: Qt.AlignRight
+                    font.pixelSize: 18
+                    font.family: "Rawline"
+                    color: "#afafaf"
+                }
+                TextMetrics {
+                    id: loginTextMetrics
+                    text: loginText.text
+                    font: loginText.font
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        if (!Account.loggedIn) {
+                            DialogsManager.showLoginDialog();
+                        }
                     }
                 }
+            }
+            Component.onCompleted: {
+                rightContainer.timeChanged();
             }
         }
     }

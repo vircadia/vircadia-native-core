@@ -2,7 +2,7 @@
 //  MarketplaceListItem.qml
 //  qml/hifi/commerce/marketplace
 //
-//  MarketplaceListItem
+//  MarketplaceItem
 //
 //  Created by Roxanne Skelly on 2019-01-22
 //  Copyright 2019 High Fidelity, Inc.
@@ -15,6 +15,7 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 import stylesUit 1.0
+import QtGraphicalEffects 1.0
 import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
@@ -33,16 +34,18 @@ Rectangle {
     property string creator: ""
     property var categories: []
     property int price: 0
+    property string availability: "unknown"
+    property string updated_item_id: ""
     property var attributions: []
     property string description: ""
     property string license: ""
     property string posted: ""
-    property bool available: false
     property string created_at: ""
-    property bool isLoggedIn: false;
-    property int edition: -1;
-    property bool supports3DHTML: false;
-
+    property bool isLoggedIn: false
+    property int edition: -1
+    property bool supports3DHTML: false
+    property bool standaloneVisible: false
+    property bool standaloneOptimized: false
     
     onCategoriesChanged: {
         categoriesListModel.clear();
@@ -52,13 +55,7 @@ Rectangle {
     }
     
     onDescriptionChanged: {
-    
-        if(root.supports3DHTML) {
-            descriptionTextModel.clear();
-            descriptionTextModel.append({text: description});
-        } else {
-            descriptionText.text = description;
-        }
+        descriptionText.text = description;
     }
 
     onAttributionsChanged: {
@@ -246,11 +243,43 @@ Rectangle {
             right: parent.right;
             top: itemImage.bottom;
         }
-        height: categoriesList.y - buyButton.y + categoriesList.height
+        height: categoriesList.y - badges.y + categoriesList.height
         
         function evalHeight() {
-            height = categoriesList.y - buyButton.y + categoriesList.height;
-            console.log("HEIGHT: " + height);
+            height = categoriesList.y - badges.y + categoriesList.height;
+        }
+        
+        Item {
+            id: badges
+            
+            anchors {
+                right: buyButton.left
+                top: parent.top
+                rightMargin: 10
+            }
+            height: childrenRect.height
+            
+            Image {
+                id: standaloneOptomizedBadge
+
+                anchors {
+                    topMargin: 15
+                    right: parent.right
+                    top: parent.top
+                }
+                height: root.standaloneOptimized ? 50 : 0
+                width: 50
+                
+                visible: root.standaloneOptimized
+                fillMode: Image.PreserveAspectFit
+                source: "../../../../icons/standalone-optimized.svg"
+            }
+            ColorOverlay {
+                anchors.fill: standaloneOptomizedBadge
+                source: standaloneOptomizedBadge
+                color: hifi.colors.blueHighlight
+                visible: root.standaloneOptimized
+            }
         }
         
         HifiControlsUit.Button {
@@ -259,16 +288,22 @@ Rectangle {
             anchors {
                 right: parent.right
                 top: parent.top
-                left: parent.left
                 topMargin: 15
             }
-            height: 50 
+            height: 50
+            width: 180
 
-            text: root.edition >= 0 ? "UPGRADE FOR FREE" : (root.available ?  (root.price ? root.price : "FREE") : "UNAVAILABLE (not for sale)")
-            enabled: root.edition >= 0 || root.available
-            buttonGlyph: root.available ? (root.price ? hifi.glyphs.hfc : "") : ""
+            property bool isUpdate: root.edition >= 0  // Special case of updating from a specific older item
+            property bool isStocking: (creator === Account.username) && (availability === "not for sale") && !updated_item_id // Note: server will say "sold out" or "invalidated" before it says NFS
+            property bool isFreeSpecial: isStocking || isUpdate
+            enabled: isFreeSpecial || (availability === 'available')
+            buttonGlyph: (enabled && !isUpdate && (price > 0)) ? hifi.glyphs.hfc : ""
+            text: isUpdate ? "UPDATE" : (isStocking ? "FREE STOCK" : (enabled ? (price || "FREE") : availability))
             color: hifi.buttons.blue
-            
+
+            buttonGlyphSize: 24
+            fontSize: 24
+
             onClicked: root.buy();
         }
         
@@ -276,11 +311,11 @@ Rectangle {
             id: creatorItem
 
             anchors {
-                top: buyButton.bottom
+                top: parent.top
                 leftMargin: 15
                 topMargin: 15
             }
-            width: parent.width
+            width: paintedWidth
             height: childrenRect.height
             
             RalewaySemiBold {
@@ -520,7 +555,7 @@ Rectangle {
                         } else if (root.license === "Attribution-NonCommercial-NoDerivs (CC BY-NC-ND)") {
                           url = "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.txt"
                         } else if (root.license === "Proof of Provenance License (PoP License)") {
-                          url = "https://digitalassetregistry.com/PoP-License/v1/"
+                          url = "licenses/Popv1.txt"
                         }
                         if(url) {
                             showLicense(url)
@@ -529,13 +564,55 @@ Rectangle {
                 }
             }
         }
+        
+        Item {
+            id: standaloneItem
+            
+            anchors {
+                top: licenseItem.bottom
+                topMargin: 15
+                left: parent.left
+                right: parent.right
+            }
+            height: root.standaloneVisible ? childrenRect.height : 0
+            
+            visible: root.standaloneVisible
+            
+            RalewaySemiBold {
+                id: standaloneLabel
+                
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+                height: 20
+
+                text: root.standaloneOptimized  ? "STAND-ALONE OPTIMIZED:" : "STAND-ALONE INCOMPATIBLE:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
+            }
+            
+            RalewaySemiBold {
+                id: standaloneOptimizedText
+
+                anchors.top: standaloneLabel.bottom
+                anchors.left: parent.left
+                anchors.topMargin: 5
+                width: paintedWidth
+
+                text: root.standaloneOptimized ? "This item is stand-alone optimized" : "This item is incompatible with stand-alone devices"
+                size: 14
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
 
         Item {
             id: descriptionItem
             property string text: ""
 
             anchors {
-                top: licenseItem.bottom
+                top: standaloneItem.bottom
                 topMargin: 15
                 left: parent.left
                 right: parent.right

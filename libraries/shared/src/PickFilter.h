@@ -13,6 +13,34 @@
 
 class PickFilter {
 public:
+
+    /**jsdoc
+     * <p>A set of flags for a pick filter. The value is constructed by using the <code>|</code> (bitwise OR) operator on the 
+     * individual flag values.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Flag Name</th><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td>PICK_DOMAIN_ENTITIES</td><td><code>1</code></td><td>Include domain entities when intersecting.</td></tr>
+     *     <tr><td>PICK_AVATAR_ENTITIES</td><td><code>2</code></td><td>Include avatar entities when intersecting.</td></tr>
+     *     <tr><td>PICK_LOCAL_ENTITIES</td><td><code>4</code></td><td>Include local entities when intersecting.</td></tr>
+     *     <tr><td>PICK_AVATATRS</td><td><code>8</code></td><td>Include avatars when intersecting.</td></tr>
+     *     <tr><td>PICK_HUD</td><td><code>16</code></td><td>Include the HUD sphere when intersecting in HMD mode.</td></tr>
+     *     <tr><td>PICK_INCLUDE_VISIBLE</td><td><code>32</code></td><td>Include visible objects when intersecting.</td></tr>
+     *     <tr><td>PICK_INCLUDE_INVISIBLE</td><td><code>64</code></td><td>Include invisible objects when intersecting.</td></tr>
+     *     <tr><td>PICK_INCLUDE_COLLIDABLE</td><td><code>128</code></td><td>Include collidable objects when 
+     *       intersecting.</td></tr>
+     *     <tr><td>PICK_INCLUDE_NONCOLLIDABLE</td><td><code>256</code></td><td>Include non-collidable objects when 
+     *       intersecting.</td></tr>
+     *     <tr><td>PICK_PRECISE</td><td><code>512</code></td><td>Pick against exact meshes.</td></tr>
+     *     <tr><td>PICK_COARSE</td><td><code>1024</code></td><td>Pick against coarse meshes.</td></tr>
+     *     <tr><td>PICK_ALL_INTERSECTIONS</td><td><code>2048</code></td><td>Return all intersections instead of just the 
+     *       closest.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} FilterFlags
+     */
     enum FlagBit {
         DOMAIN_ENTITIES = 0,
         AVATAR_ENTITIES,
@@ -68,20 +96,11 @@ public:
     // Helpers for RayPickManager
     Flags getEntityFlags() const {
         unsigned int toReturn = 0;
-        for (int i = DOMAIN_ENTITIES; i < LOCAL_ENTITIES; i++) {
+        for (int i = DOMAIN_ENTITIES; i <= LOCAL_ENTITIES; i++) {
             if (_flags[i]) {
                 toReturn |= getBitMask(FlagBit(i));
             }
         }
-        for (int i = HUD + 1; i < NUM_FLAGS; i++) {
-            if (_flags[i]) {
-                toReturn |= getBitMask(FlagBit(i));
-            }
-        }
-        return Flags(toReturn);
-    }
-    Flags getOverlayFlags() const {
-        unsigned int toReturn = getBitMask(LOCAL_ENTITIES);
         for (int i = HUD + 1; i < NUM_FLAGS; i++) {
             if (_flags[i]) {
                 toReturn |= getBitMask(FlagBit(i));

@@ -13,7 +13,7 @@
 
 #include "ModelBakerLogging.h"
 
-QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
+QMap<QString, QString> getJointNameMapping(const hifi::VariantHash& mapping) {
     static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
     QMap<QString, QString> hfmToHifiJointNameMap;
     if (!mapping.isEmpty() && mapping.contains(JOINT_NAME_MAPPING_FIELD) && mapping[JOINT_NAME_MAPPING_FIELD].type() == QVariant::Hash) {
@@ -26,11 +26,17 @@ QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
     return hfmToHifiJointNameMap;
 }
 
-QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
+QMap<QString, glm::quat> getJointRotationOffsets(const hifi::VariantHash& mapping) {
     QMap<QString, glm::quat> jointRotationOffsets;
     static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
-    if (!mapping.isEmpty() && mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) {
-        auto offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
+    static const QString JOINT_ROTATION_OFFSET2_FIELD = "jointRotationOffset2";
+    if (!mapping.isEmpty() && ((mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) || (mapping.contains(JOINT_ROTATION_OFFSET2_FIELD) && mapping[JOINT_ROTATION_OFFSET2_FIELD].type() == QVariant::Hash))) {
+        QHash<QString, QVariant> offsets;
+        if (mapping.contains(JOINT_ROTATION_OFFSET_FIELD)) {
+            offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
+        } else {
+            offsets = mapping[JOINT_ROTATION_OFFSET2_FIELD].toHash();
+        }
         for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
             QString jointName = itr.key();
             QString line = itr.value().toString();
@@ -50,37 +56,78 @@ QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
     return jointRotationOffsets;
 }
 
+void PrepareJointsTask::configure(const Config& config) {
+    _passthrough = config.passthrough;
+}
+
 void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& jointsIn = input.get0();
-    const auto& mapping = input.get1();
     auto& jointsOut = output.edit0();
-    auto& jointRotationOffsets = output.edit1();
-    auto& jointIndices = output.edit2();
 
-    // Get joint renames
-    auto jointNameMapping = getJointNameMapping(mapping);
-    // Apply joint metadata from FST file mappings
-    for (const auto& jointIn : jointsIn) {
-        jointsOut.push_back(jointIn);
-        auto& jointOut = jointsOut.back();
+    if (_passthrough) {
+        jointsOut = jointsIn;
+    } else {
+        const auto& mapping = input.get1();
+        auto& jointRotationOffsets = output.edit1();
+        auto& jointIndices = output.edit2();
 
-        auto jointNameMapKey = jointNameMapping.key(jointIn.name);
-        if (jointNameMapping.contains(jointNameMapKey)) {
-            jointOut.name = jointNameMapKey;
+        bool newJointRot = false;
+        static const QString JOINT_ROTATION_OFFSET2_FIELD = "jointRotationOffset2";
+        QVariantHash fstHashMap = mapping;
+        if (fstHashMap.contains(JOINT_ROTATION_OFFSET2_FIELD)) {
+            newJointRot = true;
+        } else {
+            newJointRot = false;
         }
 
-        jointIndices.insert(jointOut.name, (int)jointsOut.size());
-    }
+        // Get joint renames
+        auto jointNameMapping = getJointNameMapping(mapping);
+        // Apply joint metadata from FST file mappings
+        for (const auto& jointIn : jointsIn) {
+            jointsOut.push_back(jointIn);
+            auto& jointOut = jointsOut.back();
 
-    // Get joint rotation offsets from FST file mappings
-    auto offsets = getJointRotationOffsets(mapping);
-    for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
-        QString jointName = itr.key();
-        int jointIndex = jointIndices.value(jointName) - 1;
-        if (jointIndex != -1) {
-            glm::quat rotationOffset = itr.value();
-            jointRotationOffsets.insert(jointIndex, rotationOffset);
-            qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+            if (!newJointRot) {
+                auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+                if (jointNameMapping.contains(jointNameMapKey)) {
+                    jointOut.name = jointNameMapKey;
+                }
+            }
+            jointIndices.insert(jointOut.name, (int)jointsOut.size());
+        }
+
+        // Get joint rotation offsets from FST file mappings
+        auto offsets = getJointRotationOffsets(mapping);
+        for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
+            QString jointName = itr.key();
+            int jointIndex = jointIndices.value(jointName) - 1;
+            if (jointIndex >= 0) {
+                glm::quat rotationOffset = itr.value();
+                jointRotationOffsets.insert(jointIndex, rotationOffset);
+                qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+            }
+        }
+
+        if (newJointRot) {
+            for (auto& jointOut : jointsOut) {
+                auto jointNameMapKey = jointNameMapping.key(jointOut.name);
+                int mappedIndex = jointIndices.value(jointOut.name);
+                if (jointNameMapping.contains(jointNameMapKey)) {
+                    // delete and replace with hifi name
+                    jointIndices.remove(jointOut.name);
+                    jointOut.name = jointNameMapKey;
+                    jointIndices.insert(jointOut.name, mappedIndex);
+                } else {
+                    // nothing mapped to this fbx joint name
+                    if (jointNameMapping.contains(jointOut.name)) {
+                        // but the name is in the list of hifi names is mapped to a different joint
+                        int extraIndex = jointIndices.value(jointOut.name);
+                        jointIndices.remove(jointOut.name);
+                        jointOut.name = "";
+                        jointIndices.insert(jointOut.name, extraIndex);
+                    }
+                }
+            }
         }
     }
 }

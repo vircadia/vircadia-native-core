@@ -163,7 +163,7 @@ ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,
                                                  const QString& scriptContents,
                                                  const QString& fileNameString) {
     ScriptEngine* engine = new ScriptEngine(context, scriptContents, fileNameString);
-    ScriptEnginePointer engineSP = ScriptEnginePointer(engine);
+    ScriptEnginePointer engineSP = ScriptEnginePointer(engine, &QObject::deleteLater);
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     scriptEngines->addScriptEngine(qSharedPointerCast<ScriptEngine>(engineSP));
     engine->setScriptEngines(scriptEngines);
@@ -260,19 +260,14 @@ bool ScriptEngine::isDebugMode() const {
 #endif
 }
 
-ScriptEngine::~ScriptEngine() {
-    QSharedPointer<ScriptEngines> scriptEngines(_scriptEngines);
-    if (scriptEngines) {
-        scriptEngines->removeScriptEngine(qSharedPointerCast<ScriptEngine>(sharedFromThis()));
-    }
-}
+ScriptEngine::~ScriptEngine() {}
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();
     QThread* workerThread;
     // Ensure the thread should be running, and does exist
     if (_isRunning && _isThreaded && (workerThread = thread())) {
-        connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+        connect(this, &QObject::destroyed, workerThread, &QThread::quit);
         connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
     }
 }
@@ -386,7 +381,7 @@ void ScriptEngine::runInThread() {
     // the script engine, make sure to add code to "reconnect" them to the
     // disconnectNonEssentialSignals() method
     connect(workerThread, &QThread::started, this, &ScriptEngine::run);
-    connect(this, &ScriptEngine::doneRunning, workerThread, &QThread::quit);
+    connect(this, &QObject::destroyed, workerThread, &QThread::quit);
     connect(workerThread, &QThread::finished, workerThread, &QObject::deleteLater);
 
     workerThread->start();
@@ -584,6 +579,8 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
 }
 
 /**jsdoc
+ * The <code>Resource</code> API provides values that define the possible loading states of a resource.
+ *
  * @namespace Resource
  *
  * @hifi-interface
@@ -592,7 +589,7 @@ static void scriptableResourceFromScriptValue(const QScriptValue& value, Scripta
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {Resource.State} State
+ * @property {Resource.State} State - The possible loading states of a resource. <em>Read-only.</em>
  */
 static QScriptValue createScriptableResourcePrototype(ScriptEnginePointer engine) {
     auto prototype = engine->newObject();
@@ -976,7 +973,9 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
         auto makePointerHandler = [this](QString eventName) -> PointerHandler {
             return [this, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
-                forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
+                if (!EntityTree::areEntityClicksCaptured()) {
+                    forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
+                }
             };
         };
 
@@ -988,6 +987,31 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
             };
         };
 
+        /**jsdoc
+         * The name of an entity event. When the entity event occurs, any function that has been registered for that event via 
+         * {@link Script.addEventHandler} is called with parameters per the entity event.
+         * <table>
+         *   <thead>
+         *     <tr><th>Event Name</th><th>Entity Event</th></tr>
+         *   </thead>
+         *   <tbody>
+         *     <tr><td><code>"enterEntity"</code></td><td>{@link Entities.enterEntity}</td></tr>
+         *     <tr><td><code>"leaveEntity"</code></td><td>{@link Entities.leaveEntity}</td></tr>
+         *     <tr><td><code>"mousePressOnEntity"</code></td><td>{@link Entities.mousePressOnEntity}</td></tr>
+         *     <tr><td><code>"mouseMoveOnEntity"</code></td><td>{@link Entities.mouseMoveOnEntity}</td></tr>
+         *     <tr><td><code>"mouseReleaseOnEntity"</code></td><td>{@link Entities.mouseReleaseOnEntity}</td></tr>
+         *     <tr><td><code>"clickDownOnEntity"</code></td><td>{@link Entities.clickDownOnEntity}</td></tr>
+         *     <tr><td><code>"holdingClickOnEntity"</code></td><td>{@link Entities.holdingClickOnEntity}</td></tr>
+         *     <tr><td><code>"clickReleaseOnEntity"</code></td><td>{@link Entities.clickReleaseOnEntity}</td></tr>
+         *     <tr><td><code>"hoverEnterEntity"</code></td><td>{@link Entities.hoverEnterEntity}</td></tr>
+         *     <tr><td><code>"hoverOverEntity"</code></td><td>{@link Entities.hoverOverEntity}</td></tr>
+         *     <tr><td><code>"hoverLeaveEntity"</code></td><td>{@link Entities.hoverLeaveEntity}</td></tr>
+         *     <tr><td><code>"collisionWithEntity"</code></td><td>{@link Entities.collisionWithEntity}</td></tr>
+         *   </tbody>
+         * </table>
+         *
+         * @typedef {string} Script.EntityEvent
+         */
         connect(entities.data(), &EntityScriptingInterface::enterEntity, this, makeSingleEntityHandler("enterEntity"));
         connect(entities.data(), &EntityScriptingInterface::leaveEntity, this, makeSingleEntityHandler("leaveEntity"));
 
@@ -1322,7 +1346,10 @@ void ScriptEngine::callAnimationStateHandler(QScriptValue callback, AnimVariantM
 
 void ScriptEngine::updateMemoryCost(const qint64& deltaSize) {
     if (deltaSize > 0) {
+        // We've patched qt to fix https://highfidelity.atlassian.net/browse/BUGZ-46 on mac and windows only.
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
         reportAdditionalMemoryCost(deltaSize);
+#endif
     }
 }
 
@@ -2148,7 +2175,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
 }
 
 /**jsdoc
- * Triggered when the script starts for a user.
+ * Triggered when the script starts for a user. See also, {@link Script.entityScriptPreloadFinished}.
  * <p>Note: Can only be connected to via <code>this.preload = function (...) { ... }</code> in the entity script.</p>
  * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
  * @function Entities.preload
@@ -2162,7 +2189,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
  *         this.entityID = entityID;
  *         print("Entity ID: " + this.entityID);
  *     };
- * );
+ * });
  *
  * var entityID = Entities.addEntity({
  *     type: "Box",

@@ -106,9 +106,9 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitStatusesCopy.simpleCBegin(), simpleIt));
 
             if (initialSend || *simpleIt == Updated) {
+                bytesWritten += AvatarTraits::packTrait(traitType, *traitsPacketList, *_owningAvatar);
+                
                 if (traitType == AvatarTraits::SkeletonModelURL) {
-                    bytesWritten += _owningAvatar->packTrait(traitType, *traitsPacketList);
-
                     // keep track of our skeleton version in case we get an override back
                     _currentSkeletonVersion = _currentTraitVersion;
                 }
@@ -124,7 +124,9 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
                     || instanceIDValuePair.value == Updated) {
                     // this is a changed trait we need to send or we haven't send out trait information yet
                     // ask the owning avatar to pack it
-                    bytesWritten += _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList);
+                    bytesWritten += AvatarTraits::packTraitInstance(instancedIt->traitType, instanceIDValuePair.id,
+                                                                    *traitsPacketList, *_owningAvatar);
+
                 } else if (!initialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
                     bytesWritten += AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,
@@ -144,7 +146,16 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
 void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (sendingNode->getType() == NodeType::AvatarMixer) {
         Lock lock(_traitLock);
-        while (message->getBytesLeftToRead()) {
+
+        while (message->getBytesLeftToRead() > 0) {
+            // Trying to read more bytes than available, bail
+            if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitType) +
+                                                       sizeof(AvatarTraits::TraitVersion) +
+                                                       sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Malformed trait override packet, bailling";
+                return;
+            }
+
             AvatarTraits::TraitType traitType;
             message->readPrimitive(&traitType);
 
@@ -154,6 +165,12 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
             AvatarTraits::TraitWireSize traitBinarySize;
             message->readPrimitive(&traitBinarySize);
 
+            // Trying to read more bytes than available, bail
+            if (traitBinarySize < -1 || message->getBytesLeftToRead() < traitBinarySize) {
+                qWarning() << "Malformed trait override packet, bailling";
+                return;
+            }
+
             // only accept an override if this is for a trait type we override
             // and the version matches what we last sent for skeleton
             if (traitType == AvatarTraits::SkeletonModelURL
@@ -162,11 +179,11 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
 
                 // override the skeleton URL but do not mark the trait as having changed
                 // so that we don't unecessarily send a new trait packet to the mixer with the overriden URL
-                auto encodedSkeletonURL = QUrl::fromEncoded(message->readWithoutCopy(traitBinarySize));
 
                 auto hasChangesBefore = _hasChangedTraits;
 
-                _owningAvatar->setSkeletonModelURL(encodedSkeletonURL);
+                auto traitBinaryData = message->readWithoutCopy(traitBinarySize);
+                _owningAvatar->processTrait(traitType, traitBinaryData);
 
                 // setSkeletonModelURL will flag us for changes to the SkeletonModelURL so we reset some state here to
                 // avoid unnecessarily sending the overriden skeleton model URL back to the mixer

@@ -31,8 +31,32 @@ public:
 
     BaseScriptEngine() {}
 
+    /**jsdoc
+     * @function Script.lintScript
+     * @param {string} sourceCode - Source code.
+     * @param {string} fileName - File name.
+     * @param {number} [lineNumber=1] - Line number.
+     * @returns {object} Object.
+     * @deprecated This function is deprecated and will be removed.
+     */
     Q_INVOKABLE QScriptValue lintScript(const QString& sourceCode, const QString& fileName, const int lineNumber = 1);
+
+    /**jsdoc
+     * @function Script.makeError
+     * @param {object} [other] - Other.
+     * @param {string} [type="Error"] - Error.
+     * @returns {object} Object.
+     * @deprecated This function is deprecated and will be removed.
+     */
     Q_INVOKABLE QScriptValue makeError(const QScriptValue& other = QScriptValue(), const QString& type = "Error");
+    
+    /**jsdoc
+     * @function Script.formatExecption
+     * @param {object} exception - Exception.
+     * @param {boolean} inludeExtendeDetails - Include extended details.
+     * @returns {string} String.
+     * @deprecated This function is deprecated and will be removed.
+     */
     Q_INVOKABLE QString formatException(const QScriptValue& exception, bool includeExtendedDetails);
 
     QScriptValue cloneUncaughtException(const QString& detail = QString());
@@ -48,6 +72,25 @@ public:
     // helper to detect and log warnings when other code invokes QScriptEngine/BaseScriptEngine in thread-unsafe ways
     static bool IS_THREADSAFE_INVOCATION(const QThread *thread, const QString& method);
 signals:
+    /**jsdoc
+     * @function Script.signalHandlerException
+     * @param {object} exception - Exception.
+     * @returns {Signal}
+     * @deprecated This signal is deprecated and will be removed.
+     */
+    // Script.signalHandlerException is exposed by QScriptEngine.
+    
+    /**jsdoc
+     * Triggered when a script generates an unhandled exception.
+     * @function Script.unhandledException
+     * @param {object} exception - The details of the exception.
+     * @returns {Signal}
+     * @example <caption>Report the details of an unhandled exception.</caption>
+     * Script.unhandledException.connect(function (exception) {
+     *     print("Unhandled exception: " + JSON.stringify(exception));
+     * });
+     * var properties = JSON.parse("{ x: 1"); // Invalid JSON string.
+     */
     void unhandledException(const QScriptValue& exception);
 
 protected:

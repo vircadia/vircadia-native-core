@@ -200,12 +200,12 @@ int TestScriptingInterface::getOtherAvatarsReplicaCount() {
     return qApp->getOtherAvatarsReplicaCount();
 }
 
-QString TestScriptingInterface::getOperatingSystemType() {
-#ifdef Q_OS_WIN
-    return "WINDOWS";
-#elif defined Q_OS_MAC
-    return "MACOS";
-#else
-    return "UNKNOWN";
-#endif
+void TestScriptingInterface::setMinimumGPUTextureMemStabilityCount(int count) {
+    QMetaObject::invokeMethod(qApp, "setMinimumGPUTextureMemStabilityCount", Qt::DirectConnection, Q_ARG(int, count));
+}
+
+bool TestScriptingInterface::isTextureLoadingComplete() {
+    bool result;
+    QMetaObject::invokeMethod(qApp, "gpuTextureMemSizeStable", Qt::DirectConnection, Q_RETURN_ARG(bool, result));
+    return result;
 }

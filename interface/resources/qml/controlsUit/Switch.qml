@@ -21,12 +21,14 @@ Item {
     property int switchWidth: 70;
     readonly property int switchRadius: height/2;
     property string labelTextOff: "";
+    property int labelTextSize: hifi.fontSizes.inputLabel;
     property string labelGlyphOffText: "";
     property int labelGlyphOffSize: 32;
     property string labelTextOn: "";
     property string labelGlyphOnText: "";
     property int labelGlyphOnSize: 32;
     property alias checked: originalSwitch.checked;
+    property string backgroundOnColor: "#252525";
     signal onCheckedChanged;
     signal clicked;
 
@@ -40,10 +42,10 @@ Item {
         onClicked: rootSwitch.clicked();
         hoverEnabled: true
 
-        topPadding: 3;
+        topPadding: 1;
         leftPadding: 3;
         rightPadding: 3;
-        bottomPadding: 3;
+        bottomPadding: 1;
 
         onHoveredChanged: {
             if (hovered) {
@@ -54,7 +56,7 @@ Item {
         }
 
         background: Rectangle {
-            color: "#252525";
+            color: checked ? backgroundOnColor : "#252525";
             implicitWidth: rootSwitch.switchWidth;
             implicitHeight: rootSwitch.height;
             radius: rootSwitch.switchRadius;
@@ -88,7 +90,7 @@ Item {
         RalewaySemiBold {
             id: labelOff;
             text: labelTextOff;
-            size: hifi.fontSizes.inputLabel;
+            size: labelTextSize;
             color: originalSwitch.checked ? hifi.colors.lightGrayText : "#FFFFFF";
             anchors.top: parent.top;
             anchors.right: parent.right;
@@ -129,7 +131,7 @@ Item {
         RalewaySemiBold {
             id: labelOn;
             text: labelTextOn;
-            size: hifi.fontSizes.inputLabel;
+            size: labelTextSize;
             color: originalSwitch.checked ? "#FFFFFF" : hifi.colors.lightGrayText;
             anchors.top: parent.top;
             anchors.left: parent.left;

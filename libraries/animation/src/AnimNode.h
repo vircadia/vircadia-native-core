@@ -43,6 +43,7 @@ public:
     friend class AnimDebugDraw;
     friend void buildChildMap(std::map<QString, Pointer>& map, Pointer node);
     friend class AnimStateMachine;
+    friend class AnimRandomSwitch;
 
     AnimNode(Type type, const QString& id) : _type(type), _id(id) {}
     virtual ~AnimNode() {}

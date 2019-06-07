@@ -318,11 +318,13 @@ public:
     void setTextureTransforms(const Transform& transform, MaterialMappingMode mode, bool repeat);
 
     const std::string& getName() const { return _name; }
+    void setName(const std::string& name) { _name = name; }
 
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
     glm::mat4 getTexCoordTransform(uint i) const { return _texcoordTransforms[i]; }
+    void setTexCoordTransform(uint i, const glm::mat4& mat4) { _texcoordTransforms[i] = mat4; }
     glm::vec2 getLightmapParams() const { return _lightmapParams; }
     glm::vec2 getMaterialParams() const { return _materialParams; }
 
@@ -456,11 +458,11 @@ public:
     graphics::MaterialKey getMaterialKey() const { return graphics::MaterialKey(_schemaBuffer.get<graphics::MultiMaterial::Schema>()._key); }
     const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
 
-    bool needsUpdate() const { return _needsUpdate; }
     void setNeedsUpdate(bool needsUpdate) { _needsUpdate = needsUpdate; }
-
     void setTexturesLoading(bool value) { _texturesLoading = value; }
-    bool areTexturesLoading() const { return _texturesLoading; }
+    void setInitialized() { _initialized = true; }
+
+    bool shouldUpdate() const { return !_initialized || _needsUpdate || _texturesLoading; }
 
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
@@ -471,6 +473,7 @@ private:
     gpu::TextureTablePointer _textureTable { std::make_shared<gpu::TextureTable>() };
     bool _needsUpdate { false };
     bool _texturesLoading { false };
+    bool _initialized { false };
 
     mutable size_t _textureSize { 0 };
     mutable int _textureCount { 0 };

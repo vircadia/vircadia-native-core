@@ -379,9 +379,9 @@ Item {
                     Component.onCompleted: {
                         // with the link.
                         if (completeProfileBody.withOculus) {
-                            termsText.text = qsTr("By signing up, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                            termsText.text = qsTr("By signing up, you agree to <a href='https://www.highfidelity.com/termsofservice'>High Fidelity's Terms of Service</a>")
                         } else {
-                            termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                            termsText.text = qsTr("By creating this user profile, you agree to <a href='https://www.highfidelity.com/termsofservice'>High Fidelity's Terms of Service</a>")
                         }
                     }
                 }
@@ -398,7 +398,7 @@ Item {
                     lineHeight: 1
                     lineHeightMode: Text.ProportionalHeight
 
-                    onLinkActivated: loginDialog.openUrl(link);
+                    onLinkActivated: Window.openUrl(link);
 
                     Component.onCompleted: {
                         if (termsTextMetrics.width > root.bannerWidth) {
@@ -510,7 +510,7 @@ Item {
             console.log("Create Failed: " + error);
             if (completeProfileBody.withSteam || completeProfileBody.withOculus) {
                 if (completeProfileBody.loginDialogPoppedUp) {
-                    action = completeProfileBody.withSteam ? "Steam" : "Oculus";
+                    var action = completeProfileBody.withSteam ? "Steam" : "Oculus";
                     var data = {
                         "action": "user failed to create a profile with " + action + " from the complete profile screen"
                     }

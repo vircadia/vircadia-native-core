@@ -15,6 +15,8 @@
 #include "Config.h"
 #include "Varying.h"
 
+#include <unordered_map>
+
 namespace task {
 
 class JobConcept;
@@ -152,6 +154,7 @@ public:
 
         template <class... A>
         static std::shared_ptr<Model> create(const std::string& name, const Varying& input, A&&... args) {
+            assert(input.canCast<I>());
             return std::make_shared<Model>(name, input, std::make_shared<C>(), std::forward<A>(args)...);
         }
 
@@ -174,6 +177,7 @@ public:
     template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
     template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
+    Job() {}
     Job(const ConceptPointer& concept) : _concept(concept) {}
     virtual ~Job() = default;
 
@@ -243,25 +247,6 @@ public:
         const Varying getOutput() const override { return _output; }
         Varying& editInput() override { return _input; }
 
-        typename Jobs::iterator editJob(std::string name) {
-            typename Jobs::iterator jobIt;
-            for (jobIt = _jobs.begin(); jobIt != _jobs.end(); ++jobIt) {
-                if (jobIt->getName() == name) {
-                    return jobIt;
-                }
-            }
-            return jobIt;
-        }
-        typename Jobs::const_iterator getJob(std::string name) const {
-            typename Jobs::const_iterator jobIt;
-            for (jobIt = _jobs.begin(); jobIt != _jobs.end(); ++jobIt) {
-                if (jobIt->getName() == name) {
-                    return jobIt;
-                }
-            }
-            return jobIt;
-        }
-
         TaskConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {}
 
         // Create a new job in the container's queue; returns the job's output
@@ -320,7 +305,7 @@ public:
             // swap
             Concept::_config = config;
             // Capture this
-            std::static_pointer_cast<C>(Concept::_config)->_task = this;
+            Concept::_config->_jobConcept = this;
         }
 
         QConfigPointer& getConfiguration() override {
@@ -368,8 +353,146 @@ public:
     std::shared_ptr<Config> getConfiguration() {
         return std::static_pointer_cast<Config>(JobType::_concept->getConfiguration());
     }
+};
 
-protected:
+
+// A Switch is a specialized job to run a collection of other jobs and switch between different branches at run time
+// It can be created on any type T by aliasing the type JobModel in the class T
+// using JobModel = Switch::Model<T>
+// The class T is expected to have a "build" method acting as a constructor.
+// The build method is where child Jobs can be added internally to the branches of the switch
+// where the input of the switch can be setup to feed the child jobs
+// and where the output of the switch is defined
+template <class JC, class TP>
+class Switch : public Job<JC, TP> {
+public:
+    using Context = JC;
+    using TimeProfiler = TP;
+    using ContextPointer = std::shared_ptr<Context>;
+    using Config = SwitchConfig;
+    using JobType = Job<JC, TP>;
+    using None = typename JobType::None;
+    using Concept = typename JobType::Concept;
+    using ConceptPointer = typename JobType::ConceptPointer;
+    using Branches = std::unordered_map<uint8_t, JobType>;
+
+    Switch(ConceptPointer concept) : JobType(concept) {}
+
+    class SwitchConcept : public Concept {
+    public:
+        Varying _input;
+        Varying _output;
+        Branches _branches;
+
+        const Varying getInput() const override { return _input; }
+        const Varying getOutput() const override { return _output; }
+        Varying& editInput() override { return _input; }
+
+        SwitchConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {}
+
+        template <class NT, class... NA> const Varying addBranch(std::string name, uint8_t index, const Varying& input, NA&&... args) {
+            auto& branch = _branches[index];
+            branch = JobType(NT::JobModel::create(name, input, std::forward<NA>(args)...));
+
+            // Conect the child config to this task's config
+            std::static_pointer_cast<SwitchConfig>(Concept::getConfiguration())->connectChildConfig(branch.getConfiguration(), name);
+
+            return branch.getOutput();
+        }
+        template <class NT, class... NA> const Varying addBranch(std::string name, uint8_t index, NA&&... args) {
+            const auto input = Varying(typename NT::JobModel::Input());
+            return addBranch<NT>(name, index, input, std::forward<NA>(args)...);
+        }
+    };
+
+    template <class T, class C = SwitchConfig, class I = None, class O = None> class SwitchModel : public SwitchConcept {
+    public:
+        using Data = T;
+        using Input = I;
+        using Output = O;
+
+        Data _data;
+
+        SwitchModel(const std::string& name, const Varying& input, QConfigPointer config) :
+            SwitchConcept(name, input, config),
+            _data(Data()) {
+        }
+
+        template <class... A>
+        static std::shared_ptr<SwitchModel> create(const std::string& name, const Varying& input, A&&... args) {
+            auto model = std::make_shared<SwitchModel>(name, input, std::make_shared<C>());
+
+            {
+                TimeProfiler probe("build::" + model->getName());
+                model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
+            }
+            // Recreate the Config to use the templated type
+            model->createConfiguration();
+            model->applyConfiguration();
+
+            return model;
+        }
+
+        template <class... A>
+        static std::shared_ptr<SwitchModel> create(const std::string& name, A&&... args) {
+            const auto input = Varying(Input());
+            return create(name, input, std::forward<A>(args)...);
+        }
+
+        void createConfiguration() {
+            // A brand new config
+            auto config = std::make_shared<C>();
+            // Make sure we transfer the former children configs to the new config
+            config->transferChildrenConfigs(Concept::_config);
+            // swap
+            Concept::_config = config;
+            // Capture this
+            Concept::_config->_jobConcept = this;
+        }
+
+        QConfigPointer& getConfiguration() override {
+            if (!Concept::_config) {
+                createConfiguration();
+            }
+            return Concept::_config;
+        }
+
+        void applyConfiguration() override {
+            TimeProfiler probe("configure::" + JobConcept::getName());
+            jobConfigure(_data, *std::static_pointer_cast<C>(Concept::_config));
+            for (auto& branch : SwitchConcept::_branches) {
+                branch.second.applyConfiguration();
+            }
+        }
+
+        void run(const ContextPointer& jobContext) override {
+            auto config = std::static_pointer_cast<C>(Concept::_config);
+            if (config->isEnabled()) {
+                auto jobsIt = SwitchConcept::_branches.find(config->getBranch());
+                if (jobsIt != SwitchConcept::_branches.end()) {
+                    jobsIt->second.run(jobContext);
+                }
+            }
+        }
+    };
+    template <class T, class C = SwitchConfig> using Model = SwitchModel<T, C, None, None>;
+    template <class T, class I, class C = SwitchConfig> using ModelI = SwitchModel<T, C, I, None>;
+    // TODO: Switches don't support Outputs yet
+    //template <class T, class O, class C = SwitchConfig> using ModelO = SwitchModel<T, C, None, O>;
+    //template <class T, class I, class O, class C = SwitchConfig> using ModelIO = SwitchModel<T, C, I, O>;
+
+    // Create a new job in the Switches' branches; returns the job's output
+    template <class T, class... A> const Varying addBranch(std::string name, uint8_t index, const Varying& input, A&&... args) {
+        return std::static_pointer_cast<SwitchConcept>(JobType::_concept)->template addBranch<T>(name, index, input, std::forward<A>(args)...);
+    }
+    template <class T, class... A> const Varying addBranch(std::string name, uint8_t index, A&&... args) {
+        const auto input = Varying(typename T::JobModel::Input());
+        return std::static_pointer_cast<SwitchConcept>(JobType::_concept)->template addBranch<T>(name, index, input, std::forward<A>(args)...);
+    }
+
+    std::shared_ptr<Config> getConfiguration() {
+        return std::static_pointer_cast<Config>(JobType::_concept->getConfiguration());
+    }
 };
 
 template <class JC, class TP>
@@ -406,8 +529,10 @@ protected:
 #define Task_DeclareTypeAliases(ContextType, TimeProfiler) \
     using JobConfig = task::JobConfig; \
     using TaskConfig = task::TaskConfig; \
+    using SwitchConfig = task::SwitchConfig; \
     template <class T> using PersistentConfig = task::PersistentConfig<T>; \
     using Job = task::Job<ContextType, TimeProfiler>; \
+    using Switch = task::Switch<ContextType, TimeProfiler>; \
     using Task = task::Task<ContextType, TimeProfiler>; \
     using Engine = task::Engine<ContextType, TimeProfiler>; \
     using Varying = task::Varying; \

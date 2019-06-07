@@ -11,6 +11,8 @@
 #ifndef hifi_testRunner_h
 #define hifi_testRunner_h
 
+#include "Downloader.h"
+
 #include <QCheckBox>
 #include <QDir>
 #include <QLabel>
@@ -28,7 +30,18 @@ public:
 
 class TestRunner {
 public:
+    TestRunner(
+        QLabel* workingFolderLabel,
+        QLabel* statusLabel,
+        QCheckBox* usePreviousInstallationOnMobileCheckBox,
+        QCheckBox* runLatest,
+        QLineEdit* url,
+        QCheckBox* runFullSuite,
+        QLineEdit* scriptURL
+    );
+
     void setWorkingFolder(QLabel* workingFolderLabel);
+ 
     void downloadBuildXml(void* caller);
     void parseBuildInformation();
     QString getInstallerNameFromURL(const QString& url);
@@ -36,14 +49,19 @@ public:
     void appendLog(const QString& message);
 
 protected:
+    Downloader* _downloader;
+
     QLabel* _workingFolderLabel;
     QLabel* _statusLabel;
-    QLineEdit* _url;
+    QCheckBox* _usePreviousInstallationCheckBox;
     QCheckBox* _runLatest;
+    QLineEdit* _url;
+    QCheckBox* _runFullSuite;
+    QLineEdit* _scriptURL;
 
     QString _workingFolder;
 
-    const QString DEV_BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
+    const QString DEV_BUILD_XML_URL{ "https://metaverse.highfidelity.com/dev-builds.xml" };
     const QString DEV_BUILD_XML_FILENAME{ "dev-builds.xml" };
 
     bool buildXMLDownloaded;

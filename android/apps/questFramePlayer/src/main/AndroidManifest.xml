@@ -19,24 +19,6 @@
         android:name="org.qtproject.qt5.android.bindings.QtApplication"
         tools:ignore="GoogleAppIndexingWarning,MissingApplicationIcon">
         <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_only"/>
-        <activity
-            android:name=".QuestQtActivity"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:launchMode="singleTask"
-            android:label="@string/app_name"
-            android:screenOrientation="landscape"
-            android:excludeFromRecents="false"
-            android:alwaysRetainTaskState="true"
-            android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
-            >
-            <!-- JNI nonsense -->
-            <meta-data android:name="android.app.lib_name" android:value="questFramePlayer"/>
-            <!-- Qt nonsense -->
-            <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
-            <meta-data android:name="android.app.bundled_in_lib_resource_id" android:resource="@array/bundled_in_lib"/>
-            <meta-data android:name="android.app.bundled_in_assets_resource_id" android:resource="@array/bundled_in_assets"/>
-            <meta-data android:name="android.app.load_local_libs" android:value="plugins/platforms/android/libqtforandroid.so:plugins/bearer/libqandroidbearer.so:lib/libQt5QuickParticles.so"/>
-        </activity>
 
         <activity
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
@@ -50,6 +32,13 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- JNI nonsense -->
+            <meta-data android:name="android.app.lib_name" android:value="questFramePlayer"/>
+            <!-- Qt nonsense -->
+            <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
+            <meta-data android:name="android.app.bundled_in_lib_resource_id" android:resource="@array/bundled_in_lib"/>
+            <meta-data android:name="android.app.bundled_in_assets_resource_id" android:resource="@array/bundled_in_assets"/>
+            <meta-data android:name="android.app.load_local_libs" android:value="plugins/platforms/android/libqtforandroid.so:plugins/bearer/libqandroidbearer.so:lib/libQt5QuickParticles.so"/>
         </activity>
     </application>
 </manifest>

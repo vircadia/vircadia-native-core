@@ -205,11 +205,11 @@ endif()
 # link required hifi libraries
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
-  pointers
-  recording hfm fbx networking model-networking model-baker entities avatars trackers
+  pointers recording hfm fbx networking material-networking
+  model-networking model-baker entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
-  controllers plugins image trackers
+  controllers plugins image trackers platform
   ui-plugins display-plugins input-plugins
   # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
@@ -228,6 +228,7 @@ target_bullet()
 target_opengl()
 add_crashpad()
 target_breakpad()
+target_json()
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -333,6 +334,10 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
+    #copy serverless for android
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+      "${PROJECT_SOURCE_DIR}/resources/serverless"
+      "${RESOURCES_DEV_DIR}/serverless"
     # add redirect json to macOS builds.
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
@@ -394,6 +399,20 @@ else()
 
     optional_win_executable_signing()
   endif()
+endif()
+
+if (DEV_BUILD AND (APPLE OR UNIX))
+  # create a qt.conf file to override hard-coded search paths in Qt libs
+  set(QT_LIB_PATH "${QT_CMAKE_PREFIX_PATH}/../..")
+  if (APPLE)
+    set(QT_CONF_FILE "${RESOURCES_DEV_DIR}/../Resources/qt.conf")
+  else ()
+    set(QT_CONF_FILE "${INTERFACE_EXEC_DIR}/qt.conf")
+  endif ()
+  file(GENERATE
+    OUTPUT "${QT_CONF_FILE}"
+    CONTENT "[Paths]\nPrefix=${QT_LIB_PATH}\n"
+  )
 endif()
 
 if (SCRIPTS_INSTALL_DIR)

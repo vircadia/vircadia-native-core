@@ -31,14 +31,14 @@
 
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
-class GeometryReader;
-
 class GeometryExtra {
 public:
-    const QVariantHash& mapping;
+    const GeometryMappingPair& mapping;
     const QUrl& textureBaseUrl;
     bool combineParts;
 };
+
+int geometryMappingPairTypeId = qRegisterMetaType<GeometryMappingPair>("GeometryMappingPair");
 
 // From: https://stackoverflow.com/questions/41145012/how-to-hash-qvariant
 class QVariantHasher {
@@ -76,121 +76,18 @@ namespace std {
 
     template <>
     struct hash<GeometryExtra> {
-        size_t operator()(const GeometryExtra& a) const {
+        size_t operator()(const GeometryExtra& geometryExtra) const {
             size_t result = 0;
-            hash_combine(result, a.mapping, a.textureBaseUrl, a.combineParts);
+            hash_combine(result, geometryExtra.mapping.first, geometryExtra.mapping.second, geometryExtra.textureBaseUrl,
+                geometryExtra.combineParts);
             return result;
         }
     };
 }
 
-QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
-    return textureBaseUrl.isValid() ? textureBaseUrl : url;
-}
-
-class GeometryMappingResource : public GeometryResource {
-    Q_OBJECT
-public:
-    GeometryMappingResource(const QUrl& url) : GeometryResource(url) {};
-
-    QString getType() const override { return "GeometryMapping"; }
-
-    virtual void downloadFinished(const QByteArray& data) override;
-
-private slots:
-    void onGeometryMappingLoaded(bool success);
-
-private:
-    GeometryResource::Pointer _geometryResource;
-    QMetaObject::Connection _connection;
-};
-
-void GeometryMappingResource::downloadFinished(const QByteArray& data) {
-    PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString(),
-                         { { "url", _url.toString() } });
-
-    // store parsed contents of FST file
-    _mapping = FSTReader::readMapping(data);
-
-    QString filename = _mapping.value("filename").toString();
-
-    if (filename.isNull()) {
-        finishedLoading(false);
-    } else {
-        QUrl url = _url.resolved(filename);
-
-        QString texdir = _mapping.value(TEXDIR_FIELD).toString();
-        if (!texdir.isNull()) {
-            if (!texdir.endsWith('/')) {
-                texdir += '/';
-            }
-            _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
-        } else {
-            _textureBaseUrl = url.resolved(QUrl("."));
-        }
-
-        auto scripts = FSTReader::getScripts(_url, _mapping);
-        if (scripts.size() > 0) {
-            _mapping.remove(SCRIPT_FIELD);
-            for (auto &scriptPath : scripts) {
-                _mapping.insertMulti(SCRIPT_FIELD, scriptPath);
-            }
-        }
-
-        auto animGraphVariant = _mapping.value("animGraphUrl");
-
-        if (animGraphVariant.isValid()) {
-            QUrl fstUrl(animGraphVariant.toString());
-            if (fstUrl.isValid()) {
-                _animGraphOverrideUrl = _url.resolved(fstUrl);
-            } else {
-                _animGraphOverrideUrl = QUrl();
-            }
-        } else {
-            _animGraphOverrideUrl = QUrl();
-        }
-
-        auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra { _mapping, _textureBaseUrl, false };
-
-        // Get the raw GeometryResource
-        _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
-        // Avoid caching nested resources - their references will be held by the parent
-        _geometryResource->_isCacheable = false;
-
-        if (_geometryResource->isLoaded()) {
-            onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
-        } else {
-            if (_connection) {
-                disconnect(_connection);
-            }
-
-            _connection = connect(_geometryResource.data(), &Resource::finished,
-                                  this, &GeometryMappingResource::onGeometryMappingLoaded);
-        }
-    }
-}
-
-void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
-    if (success && _geometryResource) {
-        _hfmModel = _geometryResource->_hfmModel;
-        _meshParts = _geometryResource->_meshParts;
-        _meshes = _geometryResource->_meshes;
-        _materials = _geometryResource->_materials;
-
-        // Avoid holding onto extra references
-        _geometryResource.reset();
-        // Make sure connection will not trigger again
-        disconnect(_connection); // FIXME Should not have to do this
-    }
-
-    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryMappingResource::downloadFinished", _url.toString());
-    finishedLoading(success);
-}
-
 class GeometryReader : public QRunnable {
 public:
-    GeometryReader(const ModelLoader& modelLoader, QWeakPointer<Resource>& resource, const QUrl& url, const QVariantHash& mapping,
+    GeometryReader(const ModelLoader& modelLoader, QWeakPointer<Resource>& resource, const QUrl& url, const GeometryMappingPair& mapping,
                    const QByteArray& data, bool combineParts, const QString& webMediaType) :
         _modelLoader(modelLoader), _resource(resource), _url(url), _mapping(mapping), _data(data), _combineParts(combineParts), _webMediaType(webMediaType) {
 
@@ -203,7 +100,7 @@ private:
     ModelLoader _modelLoader;
     QWeakPointer<Resource> _resource;
     QUrl _url;
-    QVariantHash _mapping;
+    GeometryMappingPair _mapping;
     QByteArray _data;
     bool _combineParts;
     QString _webMediaType;
@@ -243,8 +140,9 @@ void GeometryReader::run() {
         }
 
         HFMModel::Pointer hfmModel;
-        QVariantHash serializerMapping = _mapping;
+        QVariantHash serializerMapping = _mapping.second;
         serializerMapping["combineParts"] = _combineParts;
+        serializerMapping["deduplicateIndices"] = true;
 
         if (_url.path().toLower().endsWith(".gz")) {
             QByteArray uncompressedData;
@@ -269,15 +167,22 @@ void GeometryReader::run() {
         }
 
         // Add scripts to hfmModel
-        if (!_mapping.value(SCRIPT_FIELD).isNull()) {
-            QVariantList scripts = _mapping.values(SCRIPT_FIELD);
+        if (!serializerMapping.value(SCRIPT_FIELD).isNull()) {
+            QVariantList scripts = serializerMapping.values(SCRIPT_FIELD);
             for (auto &script : scripts) {
                 hfmModel->scripts.push_back(script.toString());
             }
         }
 
+        // Do processing on the model
+        baker::Baker modelBaker(hfmModel, _mapping.second, _mapping.first);
+        modelBaker.run();
+
+        auto processedHFMModel = modelBaker.getHFMModel();
+        auto materialMapping = modelBaker.getMaterialMapping();
+
         QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(HFMModel::Pointer, hfmModel), Q_ARG(QVariantHash, _mapping));
+                Q_ARG(HFMModel::Pointer, processedHFMModel), Q_ARG(MaterialMapping, materialMapping));
     } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
@@ -294,59 +199,133 @@ void GeometryReader::run() {
     }
 }
 
-class GeometryDefinitionResource : public GeometryResource {
-    Q_OBJECT
-public:
-    GeometryDefinitionResource(const ModelLoader& modelLoader, const QUrl& url) : GeometryResource(url), _modelLoader(modelLoader) {}
-    GeometryDefinitionResource(const GeometryDefinitionResource& other) :
-        GeometryResource(other),
-        _modelLoader(other._modelLoader),
-        _mapping(other._mapping),
-        _combineParts(other._combineParts) {}
+QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
+    return textureBaseUrl.isValid() ? textureBaseUrl : url;
+}
 
-    QString getType() const override { return "GeometryDefinition"; }
+GeometryResource::GeometryResource(const GeometryResource& other) :
+    Resource(other),
+    Geometry(other),
+    _modelLoader(other._modelLoader),
+    _mappingPair(other._mappingPair),
+    _textureBaseURL(other._textureBaseURL),
+    _combineParts(other._combineParts),
+    _isCacheable(other._isCacheable)
+{
+    if (other._geometryResource) {
+        _startedLoading = false;
+    }
+}
 
-    virtual void downloadFinished(const QByteArray& data) override;
+void GeometryResource::downloadFinished(const QByteArray& data) {
+    if (_effectiveBaseURL.fileName().toLower().endsWith(".fst")) {
+        PROFILE_ASYNC_BEGIN(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString(), { { "url", _url.toString() } });
 
-    void setExtra(void* extra) override;
+        // store parsed contents of FST file
+        _mapping = FSTReader::readMapping(data);
 
-protected:
-    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping);
+        QString filename = _mapping.value("filename").toString();
 
-private:
-    ModelLoader _modelLoader;
-    QVariantHash _mapping;
-    bool _combineParts;
-};
+        if (filename.isNull()) {
+            finishedLoading(false);
+        } else {
+            const QString baseURL = _mapping.value("baseURL").toString();
+            const QUrl base = _effectiveBaseURL.resolved(baseURL);
+            QUrl url = base.resolved(filename);
 
-void GeometryDefinitionResource::setExtra(void* extra) {
+            QString texdir = _mapping.value(TEXDIR_FIELD).toString();
+            if (!texdir.isNull()) {
+                if (!texdir.endsWith('/')) {
+                    texdir += '/';
+                }
+                _textureBaseURL = resolveTextureBaseUrl(url, base.resolved(texdir));
+            } else {
+                _textureBaseURL = url.resolved(QUrl("."));
+            }
+
+            auto scripts = FSTReader::getScripts(base, _mapping);
+            if (scripts.size() > 0) {
+                _mapping.remove(SCRIPT_FIELD);
+                for (auto &scriptPath : scripts) {
+                    _mapping.insertMulti(SCRIPT_FIELD, scriptPath);
+                }
+            }
+
+            auto animGraphVariant = _mapping.value("animGraphUrl");
+
+            if (animGraphVariant.isValid()) {
+                QUrl fstUrl(animGraphVariant.toString());
+                if (fstUrl.isValid()) {
+                    _animGraphOverrideUrl = base.resolved(fstUrl);
+                } else {
+                    _animGraphOverrideUrl = QUrl();
+                }
+            } else {
+                _animGraphOverrideUrl = QUrl();
+            }
+
+            auto modelCache = DependencyManager::get<ModelCache>();
+            GeometryExtra extra { GeometryMappingPair(base, _mapping), _textureBaseURL, false };
+
+            // Get the raw GeometryResource
+            _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
+            // Avoid caching nested resources - their references will be held by the parent
+            _geometryResource->_isCacheable = false;
+
+            if (_geometryResource->isLoaded()) {
+                onGeometryMappingLoaded(!_geometryResource->getURL().isEmpty());
+            } else {
+                if (_connection) {
+                    disconnect(_connection);
+                }
+
+                _connection = connect(_geometryResource.data(), &Resource::finished, this, &GeometryResource::onGeometryMappingLoaded);
+            }
+        }
+    } else {
+        if (_url != _effectiveBaseURL) {
+            _url = _effectiveBaseURL;
+            _textureBaseURL = _effectiveBaseURL;
+        }
+        QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mappingPair, data, _combineParts, _request->getWebMediaType()));
+    }
+}
+
+void GeometryResource::onGeometryMappingLoaded(bool success) {
+    if (success && _geometryResource) {
+        _hfmModel = _geometryResource->_hfmModel;
+        _materialMapping = _geometryResource->_materialMapping;
+        _meshParts = _geometryResource->_meshParts;
+        _meshes = _geometryResource->_meshes;
+        _materials = _geometryResource->_materials;
+
+        // Avoid holding onto extra references
+        _geometryResource.reset();
+        // Make sure connection will not trigger again
+        disconnect(_connection); // FIXME Should not have to do this
+    }
+
+    PROFILE_ASYNC_END(resource_parse_geometry, "GeometryResource::downloadFinished", _url.toString());
+    finishedLoading(success);
+}
+
+void GeometryResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
-    _mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
-    _textureBaseUrl = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
+    _mappingPair = geometryExtra ? geometryExtra->mapping : GeometryMappingPair(QUrl(), QVariantHash());
+    _textureBaseURL = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
 
-void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
-    if (_url != _effectiveBaseURL) {
-        _url = _effectiveBaseURL;
-        _textureBaseUrl = _effectiveBaseURL;
-    }
-    QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mapping, data, _combineParts, _request->getWebMediaType()));
-}
-
-void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping) {
-    // Do processing on the model
-    baker::Baker modelBaker(hfmModel, mapping);
-    modelBaker.run();
-
+void GeometryResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const MaterialMapping& materialMapping) {
     // Assume ownership of the processed HFMModel
-    _hfmModel = modelBaker.hfmModel;
+    _hfmModel = hfmModel;
+    _materialMapping = materialMapping;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
     for (const HFMMaterial& material : _hfmModel->materials) {
         materialIDAtlas[material.materialID] = _materials.size();
-        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
+        _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseURL));
     }
 
     std::shared_ptr<GeometryMeshes> meshes = std::make_shared<GeometryMeshes>();
@@ -369,6 +348,23 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmMode
     finishedLoading(true);
 }
 
+void GeometryResource::deleter() {
+    resetTextures();
+    Resource::deleter();
+}
+
+void GeometryResource::setTextures() {
+    if (_hfmModel) {
+        for (const HFMMaterial& material : _hfmModel->materials) {
+            _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseURL));
+        }
+    }
+}
+
+void GeometryResource::resetTextures() {
+    _materials.clear();
+}
+
 ModelCache::ModelCache() {
     const qint64 GEOMETRY_DEFAULT_UNUSED_MAX_SIZE = DEFAULT_UNUSED_MAX_SIZE;
     setUnusedResourceCacheSize(GEOMETRY_DEFAULT_UNUSED_MAX_SIZE);
@@ -381,22 +377,14 @@ ModelCache::ModelCache() {
 }
 
 QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
-    Resource* resource = nullptr;
-    if (url.path().toLower().endsWith(".fst")) {
-        resource = new GeometryMappingResource(url);
-    } else {
-        resource = new GeometryDefinitionResource(_modelLoader, url);
-    }
-
-    return QSharedPointer<Resource>(resource, &Resource::deleter);
+    return QSharedPointer<Resource>(new GeometryResource(url, _modelLoader), &GeometryResource::deleter);
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new GeometryResource(*resource.staticCast<GeometryResource>()), &GeometryResource::deleter);
 }
 
-GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
-                                                          const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url, const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
     bool combineParts = true;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
@@ -409,7 +397,8 @@ GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
 }
 
 GeometryResource::Pointer ModelCache::getCollisionGeometryResource(const QUrl& url,
-                                                                   const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+                                                                   const GeometryMappingPair& mapping,
+                                                                   const QUrl& textureBaseUrl) {
     bool combineParts = false;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
@@ -425,8 +414,8 @@ const QVariantMap Geometry::getTextures() const {
     QVariantMap textures;
     for (const auto& material : _materials) {
         for (const auto& texture : material->_textures) {
-            if (texture.texture) {
-                textures[texture.name] = texture.texture->getURL();
+            if (texture.second.texture) {
+                textures[texture.second.name] = texture.second.texture->getURL();
             }
         }
     }
@@ -437,6 +426,7 @@ const QVariantMap Geometry::getTextures() const {
 // FIXME: The materials should only be copied when modified, but the Model currently caches the original
 Geometry::Geometry(const Geometry& geometry) {
     _hfmModel = geometry._hfmModel;
+    _materialMapping = geometry._materialMapping;
     _meshes = geometry._meshes;
     _meshParts = geometry._meshParts;
 
@@ -454,7 +444,7 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
         for (auto& material : _materials) {
             // Check if any material textures actually changed
             if (std::any_of(material->_textures.cbegin(), material->_textures.cend(),
-                [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.texture && textureMap.contains(it.name); })) { 
+                [&textureMap](const NetworkMaterial::Textures::value_type& it) { return it.second.texture && textureMap.contains(it.second.name); })) {
 
                 // FIXME: The Model currently caches the materials (waste of space!)
                 //        so they must be copied in the Geometry copy-ctor
@@ -485,6 +475,20 @@ bool Geometry::areTexturesLoaded() const {
             material->checkResetOpacityMap();
         }
 
+        for (auto& materialMapping : _materialMapping) {
+            if (materialMapping.second) {
+                for (auto& materialPair : materialMapping.second->parsedMaterials.networkMaterials) {
+                    if (materialPair.second) {
+                        if (materialPair.second->isMissingTexture()) {
+                            return false;
+                        }
+
+                        materialPair.second->checkResetOpacityMap();
+                    }
+                }
+            }
+        }
+
         _areTexturesLoaded = true;
     }
     return true;
@@ -498,23 +502,6 @@ const std::shared_ptr<NetworkMaterial> Geometry::getShapeMaterial(int partID) co
         }
     }
     return nullptr;
-}
-
-void GeometryResource::deleter() {
-    resetTextures();
-    Resource::deleter();
-}
-
-void GeometryResource::setTextures() {
-    if (_hfmModel) {
-        for (const HFMMaterial& material : _hfmModel->materials) {
-            _materials.push_back(std::make_shared<NetworkMaterial>(material, _textureBaseUrl));
-        }
-    }
-}
-
-void GeometryResource::resetTextures() {
-    _materials.clear();
 }
 
 void GeometryResourceWatcher::startWatching() {
@@ -555,311 +542,3 @@ void GeometryResourceWatcher::resourceRefreshed() {
     // FIXME: Model is not set up to handle a refresh
     // _instance.reset();
 }
-
-NetworkMaterial::NetworkMaterial(const NetworkMaterial& m) :
-    Material(m),
-    _textures(m._textures),
-    _albedoTransform(m._albedoTransform),
-    _lightmapTransform(m._lightmapTransform),
-    _lightmapParams(m._lightmapParams),
-    _isOriginal(m._isOriginal)
-{}
-
-const QString NetworkMaterial::NO_TEXTURE = QString();
-
-const QString& NetworkMaterial::getTextureName(MapChannel channel) {
-    if (_textures[channel].texture) {
-        return _textures[channel].name;
-    }
-    return NO_TEXTURE;
-}
-
-QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const HFMTexture& texture) {
-    if (texture.content.isEmpty()) {
-        // External file: search relative to the baseUrl, in case filename is relative
-        return baseUrl.resolved(QUrl(texture.filename));
-    } else {
-        // Inlined file: cache under the fbx file to avoid namespace clashes
-        // NOTE: We cannot resolve the path because filename may be an absolute path
-        assert(texture.filename.size() > 0);
-        auto baseUrlStripped = baseUrl.toDisplayString(QUrl::RemoveFragment | QUrl::RemoveQuery | QUrl::RemoveUserInfo);
-        if (texture.filename.at(0) == '/') {
-            return baseUrlStripped + texture.filename;
-        } else {
-            return baseUrlStripped + '/' + texture.filename;
-        }
-    }
-}
-
-graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const HFMTexture& hfmTexture,
-                                                          image::TextureUsage::Type type, MapChannel channel) {
-
-    if (baseUrl.isEmpty()) {
-        return nullptr;
-    }
-
-    const auto url = getTextureUrl(baseUrl, hfmTexture);
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, hfmTexture.content, hfmTexture.maxNumPixels, hfmTexture.sourceChannel);
-    _textures[channel] = Texture { hfmTexture.name, texture };
-
-    auto map = std::make_shared<graphics::TextureMap>();
-    if (texture) {
-        map->setTextureSource(texture->_textureSource);
-    }
-    map->setTextureTransform(hfmTexture.transform);
-
-    return map;
-}
-
-graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel) {
-    auto textureCache = DependencyManager::get<TextureCache>();
-    if (textureCache && !url.isEmpty()) {
-        auto texture = textureCache->getTexture(url, type);
-        _textures[channel].texture = texture;
-
-        auto map = std::make_shared<graphics::TextureMap>();
-        if (texture) {
-            map->setTextureSource(texture->_textureSource);
-        }
-
-        return map;
-    }
-    return nullptr;
-}
-
-void NetworkMaterial::setAlbedoMap(const QUrl& url, bool useAlphaChannel) {
-    auto map = fetchTextureMap(url, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
-    if (map) {
-        map->setUseAlphaChannel(useAlphaChannel);
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
-    }
-}
-
-void NetworkMaterial::setNormalMap(const QUrl& url, bool isBumpmap) {
-    auto map = fetchTextureMap(url, isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
-    if (map) {
-        setTextureMap(MapChannel::NORMAL_MAP, map);
-    }
-}
-
-void NetworkMaterial::setRoughnessMap(const QUrl& url, bool isGloss) {
-    auto map = fetchTextureMap(url, isGloss ? image::TextureUsage::GLOSS_TEXTURE : image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-    if (map) {
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    }
-}
-
-void NetworkMaterial::setMetallicMap(const QUrl& url, bool isSpecular) {
-    auto map = fetchTextureMap(url, isSpecular ? image::TextureUsage::SPECULAR_TEXTURE : image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
-    if (map) {
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    }
-}
-
-void NetworkMaterial::setOcclusionMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
-    if (map) {
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
-    }
-}
-
-void NetworkMaterial::setEmissiveMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
-    if (map) {
-        setTextureMap(MapChannel::EMISSIVE_MAP, map);
-    }
-}
-
-void NetworkMaterial::setScatteringMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
-    if (map) {
-        setTextureMap(MapChannel::SCATTERING_MAP, map);
-    }
-}
-
-void NetworkMaterial::setLightmapMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-    if (map) {
-        //map->setTextureTransform(_lightmapTransform);
-        //map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
-    }
-}
-
-NetworkMaterial::NetworkMaterial(const HFMMaterial& material, const QUrl& textureBaseUrl) :
-    graphics::Material(*material._material),
-    _textures(MapChannel::NUM_MAP_CHANNELS)
-{
-    _name = material.name.toStdString();
-    if (!material.albedoTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
-        if (map) {
-            _albedoTransform = material.albedoTexture.transform;
-            map->setTextureTransform(_albedoTransform);
-
-            if (!material.opacityTexture.filename.isEmpty()) {
-                if (material.albedoTexture.filename == material.opacityTexture.filename) {
-                    // Best case scenario, just indicating that the albedo map contains transparency
-                    // TODO: Different albedo/opacity maps are not currently supported
-                    map->setUseAlphaChannel(true);
-                }
-            }
-        }
-
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
-    }
-
-
-    if (!material.normalTexture.filename.isEmpty()) {
-        auto type = (material.normalTexture.isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE);
-        auto map = fetchTextureMap(textureBaseUrl, material.normalTexture, type, MapChannel::NORMAL_MAP);
-        setTextureMap(MapChannel::NORMAL_MAP, map);
-    }
-
-    if (!material.roughnessTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.roughnessTexture, image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    } else if (!material.glossTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.glossTexture, image::TextureUsage::GLOSS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    }
-
-    if (!material.metallicTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.metallicTexture, image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    } else if (!material.specularTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.specularTexture, image::TextureUsage::SPECULAR_TEXTURE, MapChannel::METALLIC_MAP);
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    }
-
-    if (!material.occlusionTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.occlusionTexture, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
-        if (map) {
-            map->setTextureTransform(material.occlusionTexture.transform);
-        }
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
-    }
-
-    if (!material.emissiveTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.emissiveTexture, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
-        setTextureMap(MapChannel::EMISSIVE_MAP, map);
-    }
-
-    if (!material.scatteringTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.scatteringTexture, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
-        setTextureMap(MapChannel::SCATTERING_MAP, map);
-    }
-
-    if (!material.lightmapTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.lightmapTexture, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-        if (map) {
-            _lightmapTransform = material.lightmapTexture.transform;
-            _lightmapParams = material.lightmapParams;
-            map->setTextureTransform(_lightmapTransform);
-            map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
-    }
-}
-
-void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
-    _isOriginal = false;
-
-    const auto& albedoName = getTextureName(MapChannel::ALBEDO_MAP);
-    const auto& normalName = getTextureName(MapChannel::NORMAL_MAP);
-    const auto& roughnessName = getTextureName(MapChannel::ROUGHNESS_MAP);
-    const auto& metallicName = getTextureName(MapChannel::METALLIC_MAP);
-    const auto& occlusionName = getTextureName(MapChannel::OCCLUSION_MAP);
-    const auto& emissiveName = getTextureName(MapChannel::EMISSIVE_MAP);
-    const auto& lightmapName = getTextureName(MapChannel::LIGHTMAP_MAP);
-    const auto& scatteringName = getTextureName(MapChannel::SCATTERING_MAP);
-
-    if (!albedoName.isEmpty()) {
-        auto url = textureMap.contains(albedoName) ? textureMap[albedoName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
-        if (map) {
-            map->setTextureTransform(_albedoTransform);
-            // when reassigning the albedo texture we also check for the alpha channel used as opacity
-            map->setUseAlphaChannel(true);
-        }
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
-    }
-
-    if (!normalName.isEmpty()) {
-        auto url = textureMap.contains(normalName) ? textureMap[normalName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
-        setTextureMap(MapChannel::NORMAL_MAP, map);
-    }
-
-    if (!roughnessName.isEmpty()) {
-        auto url = textureMap.contains(roughnessName) ? textureMap[roughnessName].toUrl() : QUrl();
-        // FIXME: If passing a gloss map instead of a roughmap how do we know?
-        auto map = fetchTextureMap(url, image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    }
-
-    if (!metallicName.isEmpty()) {
-        auto url = textureMap.contains(metallicName) ? textureMap[metallicName].toUrl() : QUrl();
-        // FIXME: If passing a specular map instead of a metallic how do we know?
-        auto map = fetchTextureMap(url, image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    }
-
-    if (!occlusionName.isEmpty()) {
-        auto url = textureMap.contains(occlusionName) ? textureMap[occlusionName].toUrl() : QUrl();
-        // FIXME: we need to handle the occlusion map transform here
-        auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
-    }
-
-    if (!emissiveName.isEmpty()) {
-        auto url = textureMap.contains(emissiveName) ? textureMap[emissiveName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
-        setTextureMap(MapChannel::EMISSIVE_MAP, map);
-    }
-
-    if (!scatteringName.isEmpty()) {
-        auto url = textureMap.contains(scatteringName) ? textureMap[scatteringName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
-        setTextureMap(MapChannel::SCATTERING_MAP, map);
-    }
-
-    if (!lightmapName.isEmpty()) {
-        auto url = textureMap.contains(lightmapName) ? textureMap[lightmapName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-        if (map) {
-            map->setTextureTransform(_lightmapTransform);
-            map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
-    }
-}
-
-bool NetworkMaterial::isMissingTexture() {
-    for (auto& networkTexture : _textures) {
-        auto& texture = networkTexture.texture;
-        if (!texture) {
-            continue;
-        }
-        // Failed texture downloads need to be considered as 'loaded'
-        // or the object will never fade in
-        bool finished = texture->isFailed() || (texture->isLoaded() && texture->getGPUTexture() && texture->getGPUTexture()->isDefined());
-        if (!finished) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void NetworkMaterial::checkResetOpacityMap() {
-    // If material textures are loaded, check the material translucency
-    // FIXME: This should not be done here.  The opacity map should already be reset in Material::setTextureMap.
-    // However, currently that code can be called before the albedo map is defined, so resetOpacityMap will fail.
-    // Geometry::areTexturesLoaded() is called repeatedly until it returns true, so we do the check here for now
-    const auto& albedoTexture = _textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
-    if (albedoTexture.texture) {
-        resetOpacityMap();
-    }
-}
-
-#include "ModelCache.moc"

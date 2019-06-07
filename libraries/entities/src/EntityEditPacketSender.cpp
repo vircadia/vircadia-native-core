@@ -39,9 +39,7 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByte
     }
 }
 
-void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer entityTree,
-                                                          EntityItemID entityItemID,
-                                                          const EntityItemProperties& properties) {
+void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer entityTree, EntityItemID entityItemID) {
     assert(_myAvatar);
     if (!entityTree) {
         qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage null entityTree.";
@@ -53,11 +51,6 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer enti
         return;
     }
     entity->setLastBroadcast(usecTimestampNow());
-
-    // serialize ALL properties in an "AvatarEntity" packet
-    // rather than just the ones being edited.
-    EntityItemProperties entityProperties = entity->getProperties();
-    entityProperties.merge(properties);
 
     OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
     EncodeBitstreamParams params;
@@ -82,7 +75,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit with no myAvatar";
         } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
             // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
-            queueEditAvatarEntityMessage(entityTree, entityItemID, properties);
+            queueEditAvatarEntityMessage(entityTree, entityItemID);
         } else {
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit for another avatar";
         }
@@ -116,6 +109,10 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     }
 
     EntityPropertyFlags requestedProperties = propertiesCopy.getChangedProperties();
+
+    if (!nodeList->getThisNodeCanGetAndSetPrivateUserData() && requestedProperties.getHasProperty(PROP_PRIVATE_USER_DATA)) {
+        requestedProperties -= PROP_PRIVATE_USER_DATA;
+    }
 
     while (encodeResult == OctreeElement::PARTIAL) {
         encodeResult = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut, requestedProperties, didntFitProperties);

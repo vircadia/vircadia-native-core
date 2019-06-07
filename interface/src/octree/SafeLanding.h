@@ -38,13 +38,14 @@ private slots:
 
 private:
     bool isSequenceNumbersComplete();
+    bool isEntityPhysicsReady(const EntityItemPointer& entity);
     void debugDumpSequenceIDs() const;
     bool isEntityLoadingComplete();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;
     bool _trackingEntities { false };
-    EntityTreePointer _entityTree;
+    QSharedPointer<EntityTreeRenderer> _entityTreeRenderer;
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
     EntityMap _trackedEntities;
 

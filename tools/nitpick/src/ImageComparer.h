@@ -10,12 +10,22 @@
 #ifndef hifi_ImageComparer_h
 #define hifi_ImageComparer_h
 
+#include "common.h"
+
 #include <QtCore/QString>
 #include <QImage>
 
 class ImageComparer {
 public:
-    double compareImages(QImage resultImage, QImage expectedImage) const;
+    void compareImages(const QImage& resultImage, const QImage& expectedImage);
+
+    double getSSIMValue();
+    double getWorstTileValue();
+
+    SSIMResults getSSIMResults();
+
+private:
+    SSIMResults _ssimResults;
 };
 
 #endif // hifi_ImageComparer_h

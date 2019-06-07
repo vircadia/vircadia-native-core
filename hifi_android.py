@@ -45,17 +45,17 @@ ANDROID_PACKAGES = {
         'sharedLibFolder': 'lib',
         'includeLibs': ['libnvtt.so', 'libnvmath.so', 'libnvimage.so', 'libnvcore.so']
     },
-    'oculus': {
-        'file': 'ovr_sdk_mobile_1.19.0.zip',
-        'versionId': 's_RN1vlEvUi3pnT7WPxUC4pQ0RJBs27y',
-        'checksum': '98f0afb62861f1f02dd8110b31ed30eb',
+    'oculus_1.22': {
+        'file': 'ovr_sdk_mobile_1.22.zip',
+        'versionId': 'InhomR5gwkzyiLAelH3X9k4nvV3iIpA_',
+        'checksum': '1ac3c5b0521e5406f287f351015daff8',
         'sharedLibFolder': 'VrApi/Libs/Android/arm64-v8a/Release',
         'includeLibs': ['libvrapi.so']
     },
     'oculusPlatform': {
-        'file': 'OVRPlatformSDK_v1.32.0.zip',
-        'versionId': 'jG9DB16zOGxSrmtZy4jcQnwO0TJUuaeL',
-        'checksum': 'ab5b203b3a39a56ab148d68fff769e05',
+        'file': 'OVRPlatformSDK_v1.34.0.zip',
+        'versionId': 'vbRUkkyzUAXfTGSEtuiUr_7.Fm5h5BZk',
+        'checksum': '16e4c5f39520f122bc49cb6d5bb88289',
         'sharedLibFolder': 'Android/libs/arm64-v8a',
         'includeLibs': ['libovrplatformloader.so']
     },

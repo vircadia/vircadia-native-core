@@ -30,8 +30,27 @@ class AudioInjectorManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 public:
     ~AudioInjectorManager();
+
+    AudioInjectorPointer playSound(const SharedSoundPointer& sound, const AudioInjectorOptions& options, bool setPendingDelete = false);
+    AudioInjectorPointer playSound(const AudioDataPointer& audioData, const AudioInjectorOptions& options, bool setPendingDelete = false);
+
+    size_t getNumInjectors();
+
+public slots:
+    void setOptionsAndRestart(const AudioInjectorPointer& injector, const AudioInjectorOptions& options);
+    void restart(const AudioInjectorPointer& injector);
+
+    void setOptions(const AudioInjectorPointer& injector, const AudioInjectorOptions& options);
+    AudioInjectorOptions getOptions(const AudioInjectorPointer& injector);
+
+    float getLoudness(const AudioInjectorPointer& injector);
+    bool isPlaying(const AudioInjectorPointer& injector);
+
+    void stop(const AudioInjectorPointer& injector);
+
 private slots:
     void run();
+
 private:
 
     using TimeInjectorPointerPair = std::pair<uint64_t, AudioInjectorPointer>;
@@ -49,11 +68,10 @@ private:
     using Lock = std::unique_lock<Mutex>;
 
     bool threadInjector(const AudioInjectorPointer& injector);
-    bool restartFinishedInjector(const AudioInjectorPointer& injector);
     void notifyInjectorReadyCondition() { _injectorReady.notify_one(); }
     bool wouldExceedLimits();
 
-    AudioInjectorManager() {};
+    AudioInjectorManager() { createThread(); }
     AudioInjectorManager(const AudioInjectorManager&) = delete;
     AudioInjectorManager& operator=(const AudioInjectorManager&) = delete;
 

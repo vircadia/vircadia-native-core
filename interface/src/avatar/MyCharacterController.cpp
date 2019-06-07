@@ -377,21 +377,18 @@ void MyCharacterController::updateMassProperties() {
     _rigidBody->setMassProps(mass, inertia);
 }
 
-btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(int jointIndex) {
+const btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(int32_t jointIndex) {
     ShapeInfo shapeInfo;
     _avatar->computeDetailedShapeInfo(shapeInfo, jointIndex);
     if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-        if (shape) {
-            shape->setMargin(0.001f);
-        }
+        const btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
         return shape;
     }
     return nullptr;
 }
 
-DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int jointIndex) {
-    auto shape = createDetailedCollisionShapeForJoint(jointIndex);
+DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int32_t jointIndex) {
+    const btCollisionShape* shape = createDetailedCollisionShapeForJoint(jointIndex);
     if (shape) {
         DetailedMotionState* motionState = new DetailedMotionState(_avatar, shape, jointIndex);
         motionState->setMass(_avatar->computeMass());
@@ -423,24 +420,15 @@ void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& 
     }
     if (_pendingFlags & PENDING_FLAG_ADD_DETAILED_TO_SIMULATION) {
         _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
-        for (int i = 0; i < _avatar->getJointCount(); i++) {
+        for (int32_t i = 0; i < _avatar->getJointCount(); i++) {
             auto dMotionState = createDetailedMotionStateForJoint(i);
             if (dMotionState) {
                 _detailedMotionStates.push_back(dMotionState);
                 transaction.objectsToAdd.push_back(dMotionState);
             }
         }
-    } 
-}
-
-void MyCharacterController::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
-    // things on objectsToRemove are ready for delete
-    for (auto object : transaction.objectsToRemove) {
-        delete object;
     }
-    transaction.clear();
 }
-
 
 class DetailedRayResultCallback : public btCollisionWorld::AllHitsRayResultCallback {
 public:
@@ -467,7 +455,7 @@ std::vector<MyCharacterController::RayAvatarResult> MyCharacterController::rayTe
         _dynamicsWorld->rayTest(origin, end, rayCallback);
         if (rayCallback.m_hitFractions.size() > 0) {
             foundAvatars.reserve(rayCallback.m_hitFractions.size());
-            for (int i = 0; i < rayCallback.m_hitFractions.size(); i++) {
+            for (int32_t i = 0; i < rayCallback.m_hitFractions.size(); i++) {
                 auto object = rayCallback.m_collisionObjects[i];
                 ObjectMotionState* motionState = static_cast<ObjectMotionState*>(object->getUserPointer());
                 if (motionState && motionState->getType() == MOTIONSTATE_TYPE_DETAILED) {

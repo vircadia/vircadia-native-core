@@ -84,8 +84,6 @@ public:
 
     void setUnscaledDimensions(const glm::vec3& value) override;
 
-    bool shouldBePhysical() const override { return !isDead(); }
-    
     bool supportsDetailedIntersection() const override;
     bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                 OctreeElementPointer& element, float& distance,
@@ -112,7 +110,7 @@ protected:
     //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain
     //! prior functionality where new or unsupported shapes are treated as
     //! ellipsoids.
-    ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
+    ShapeType _collisionShapeType { ShapeType::SHAPE_TYPE_ELLIPSOID };
 };
 
 #endif // hifi_ShapeEntityItem_h

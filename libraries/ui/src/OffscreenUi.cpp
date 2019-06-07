@@ -240,13 +240,21 @@ class MessageBoxListener : public ModalDialogListener {
         return static_cast<QMessageBox::StandardButton>(_result.toInt());
     }
 
+protected slots:
+    virtual void onDestroyed() override {
+        ModalDialogListener::onDestroyed();
+        onSelected(QMessageBox::NoButton);
+    }
+
 private slots:
     void onSelected(int button) {
         _result = button;
         _finished = true;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         emit response(_result);
-        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
+        if (!offscreenUi.isNull()) {
+            offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
+        }
         disconnect(_dialog);
     }
 };

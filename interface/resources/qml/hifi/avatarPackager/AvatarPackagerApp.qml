@@ -133,7 +133,7 @@ Item {
         states: [
             State {
                 name: AvatarPackagerState.main
-                PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); docsEnabled: true; backButtonVisible: false }
+                PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); docsEnabled: true; videoEnabled: true; backButtonVisible: false }
                 PropertyChanges { target: avatarPackagerMain; visible: true }
                 PropertyChanges { target: avatarPackagerFooter; content: avatarPackagerMain.footer }
             },
@@ -142,6 +142,18 @@ Item {
                 PropertyChanges { target: avatarPackagerHeader; title: qsTr("Create Project") }
                 PropertyChanges { target: createAvatarProject; visible: true }
                 PropertyChanges { target: avatarPackagerFooter; content: createAvatarProject.footer }
+            },
+            State {
+                name: AvatarPackagerState.avatarDoctorDiagnose
+                PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                PropertyChanges { target: avatarDoctorDiagnose; visible: true }
+                PropertyChanges { target: avatarPackagerFooter; content: avatarDoctorDiagnose.footer }
+            },
+            State {
+                name: AvatarPackagerState.avatarDoctorErrorReport
+                PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                PropertyChanges { target: avatarDoctorErrorReport; visible: true }
+                PropertyChanges { target: avatarPackagerFooter; content: avatarDoctorErrorReport.footer }
             },
             State {
                 name: AvatarPackagerState.project
@@ -168,7 +180,7 @@ Item {
                 return status;
             }
             avatarProject.reset();
-            avatarPackager.state = AvatarPackagerState.project;
+            avatarPackager.state = AvatarPackagerState.avatarDoctorDiagnose;
             return status;
         }
 
@@ -217,7 +229,11 @@ Item {
         }
 
         function openDocs() {
-            Qt.openUrlExternally("https://docs.highfidelity.com/create/avatars/create-avatars#how-to-package-your-avatar");
+            Qt.openUrlExternally("https://docs.highfidelity.com/create/avatars/package-avatar.html");
+        }
+
+        function openVideo() {
+            Qt.openUrlExternally("https://youtu.be/zrkEowu_yps");
         }
 
         AvatarPackagerHeader {
@@ -231,6 +247,9 @@ Item {
             onDocsButtonClicked: {
                 avatarPackager.openDocs();
             }
+            onVideoButtonClicked: {
+                avatarPackager.openVideo();
+            }
         }
 
         Item {
@@ -240,6 +259,23 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 color: "#404040"
+            }
+
+            AvatarDoctorDiagnose {
+                id: avatarDoctorDiagnose
+                anchors.fill: parent
+                onErrorsChanged: {
+                    avatarDoctorErrorReport.errors = avatarDoctorDiagnose.errors;
+                }
+                onDoneDiagnosing: {
+                    avatarPackager.state = avatarDoctorDiagnose.errors.length > 0 ? AvatarPackagerState.avatarDoctorErrorReport
+                                                                                  : AvatarPackagerState.project;
+                }
+            }
+
+            AvatarDoctorErrorReport {
+                id: avatarDoctorErrorReport
+                anchors.fill: parent
             }
 
             AvatarProject {
@@ -383,6 +419,7 @@ Item {
                                 title: modelData.name
                                 path: modelData.projectPath
                                 onOpen: avatarPackager.openProject(modelData.path)
+                                hasError: modelData.hadErrors
                             }
                         }
                     }

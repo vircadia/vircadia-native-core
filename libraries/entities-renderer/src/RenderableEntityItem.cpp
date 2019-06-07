@@ -32,19 +32,6 @@
 using namespace render;
 using namespace render::entities;
 
-// These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawItemStatus
-// job in the current rendering pipeline defined as of now  (11/2015) in render-utils/RenderDeferredTask.cpp.
-enum class RenderItemStatusIcon {
-    ACTIVE_IN_BULLET = 0,
-    PACKET_SENT = 1,
-    PACKET_RECEIVED = 2,
-    SIMULATION_OWNER = 3,
-    HAS_ACTIONS = 4,
-    OTHER_SIMULATION_OWNER = 5,
-    ENTITY_HOST_TYPE = 6,
-    NONE = 255
-};
-
 void EntityRenderer::initEntityRenderers() {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(PolyVox, RenderablePolyVoxEntityItem::factory)
@@ -67,7 +54,7 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
         return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
             render::Item::Status::Value::GREEN :
             render::Item::Status::Value::RED),
-            (unsigned char)RenderItemStatusIcon::PACKET_RECEIVED);
+            (unsigned char)render::Item::Status::Icon::PACKET_RECEIVED);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
@@ -79,17 +66,17 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
         return render::Item::Status::Value(1.0f - normalizedDelta, (normalizedDelta > 1.0f ?
             render::Item::Status::Value::MAGENTA :
             render::Item::Status::Value::CYAN),
-            (unsigned char)RenderItemStatusIcon::PACKET_SENT);
+            (unsigned char)render::Item::Status::Icon::PACKET_SENT);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         ObjectMotionState* motionState = static_cast<ObjectMotionState*>(entity->getPhysicsInfo());
         if (motionState && motionState->isActive()) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
-                (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
+                (unsigned char)render::Item::Status::Icon::ACTIVE_IN_BULLET);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
-            (unsigned char)RenderItemStatusIcon::ACTIVE_IN_BULLET);
+            (unsigned char)render::Item::Status::Icon::ACTIVE_IN_BULLET);
     });
 
     statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
@@ -98,39 +85,39 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
 
         if (weOwnSimulation) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
-                (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
+                (unsigned char)render::Item::Status::Icon::SIMULATION_OWNER);
         } else if (otherOwnSimulation) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                (unsigned char)RenderItemStatusIcon::OTHER_SIMULATION_OWNER);
+                (unsigned char)render::Item::Status::Icon::OTHER_SIMULATION_OWNER);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::BLUE,
-            (unsigned char)RenderItemStatusIcon::SIMULATION_OWNER);
+            (unsigned char)render::Item::Status::Icon::SIMULATION_OWNER);
     });
 
     statusGetters.push_back([entity] () -> render::Item::Status::Value {
         if (entity->hasActions()) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+                (unsigned char)render::Item::Status::Icon::HAS_ACTIONS);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::HAS_ACTIONS);
+            (unsigned char)render::Item::Status::Icon::HAS_ACTIONS);
     });
 
     statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
         if (entity->isAvatarEntity()) {
             if (entity->getOwningAvatarID() == myNodeID) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+                    (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
             } else {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+                    (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
             }
         } else if (entity->isLocalEntity()) {
             return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
-                (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+                (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
+            (unsigned char)render::Item::Status::Icon::ENTITY_HOST_TYPE);
     });
 }
 
@@ -146,10 +133,9 @@ EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entit
         _needsRenderUpdate = true;
         emit requestRenderUpdate();
     });
-    _materials = entity->getMaterials();
 }
 
-EntityRenderer::~EntityRenderer() { }
+EntityRenderer::~EntityRenderer() {}
 
 //
 // Smart payload proxy members, implementing the payload interface
@@ -167,7 +153,10 @@ ShapeKey EntityRenderer::getShapeKey() {
 }
 
 render::hifi::Tag EntityRenderer::getTagMask() const {
-    return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
+    render::hifi::Tag mask = render::hifi::TAG_NONE;
+    mask = (render::hifi::Tag)(mask | (!_cauterized * render::hifi::TAG_MAIN_VIEW));
+    mask = (render::hifi::Tag)(mask | (_isVisibleInSecondaryCamera * render::hifi::TAG_SECONDARY_VIEW));
+    return mask;
 }
 
 render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
@@ -216,12 +205,7 @@ void EntityRenderer::render(RenderArgs* args) {
         emit requestRenderUpdate();
     }
 
-    auto& renderMode = args->_renderMode;
-    bool cauterized = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE &&
-                       renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE &&
-                       _cauterized);
-
-    if (_visible && !cauterized) {
+    if (_visible && (args->_renderMode != RenderArgs::RenderMode::DEFAULT_RENDER_MODE || !_cauterized)) {
         doRender(args);
     }
 }
@@ -321,6 +305,7 @@ bool EntityRenderer::addToScene(const ScenePointer& scene, Transaction& transact
     transaction.resetItem(_renderItemID, renderPayload);
     onAddToScene(_entity);
     updateInScene(scene, transaction);
+    _entity->bumpAncestorChainRenderableVersion();
     return true;
 }
 
@@ -328,6 +313,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
     onRemoveFromScene(_entity);
     transaction.removeItem(_renderItemID);
     Item::clearID(_renderItemID);
+    _entity->bumpAncestorChainRenderableVersion();
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
@@ -351,14 +337,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
-}
-
-void EntityRenderer::clearSubRenderItemIDs() {
-    _subRenderItemIDs.clear();
-}
-
-void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
-    _subRenderItemIDs = ids;
 }
 
 //
@@ -428,6 +406,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         if (fading) {
             _isFading = Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
         }
+
         _prevIsTransparent = transparent;
 
         updateModelTransformAndBound();

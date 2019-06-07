@@ -365,6 +365,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
 
         // For the rest of the rendering, bind the lighting model
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
     });
 }
 
@@ -416,6 +417,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // THe lighting model
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
+        batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
 
         // Subsurface scattering specific
         if (surfaceGeometryFramebuffer) {
@@ -642,22 +644,35 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
-
-
 void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
     if (!_defaultLight || !_defaultBackground) {
+        auto defaultSkyboxURL = PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json";
+        auto defaultAmbientURL = PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap-ambient.texmeta.json";
+
         if (!_defaultSkyboxNetworkTexture) {
             PROFILE_RANGE(render, "Process Default Skybox");
             _defaultSkyboxNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
-                PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json", image::TextureUsage::CUBE_TEXTURE);
+                defaultSkyboxURL, image::TextureUsage::SKY_TEXTURE);
+        }
+
+        if (!_defaultAmbientNetworkTexture) {
+            PROFILE_RANGE(render, "Process Default Ambient map");
+            _defaultAmbientNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
+                defaultAmbientURL, image::TextureUsage::AMBIENT_TEXTURE);
         }
 
         if (_defaultSkyboxNetworkTexture && _defaultSkyboxNetworkTexture->isLoaded() && _defaultSkyboxNetworkTexture->getGPUTexture()) {
-            _defaultSkyboxAmbientTexture = _defaultSkyboxNetworkTexture->getGPUTexture();
-            _defaultSkybox->setCubemap(_defaultSkyboxAmbientTexture);
+            _defaultSkybox->setCubemap(_defaultSkyboxNetworkTexture->getGPUTexture());
         } else {
             // Don't do anything until the skybox has loaded
+            return;
+        }
+
+        if (_defaultAmbientNetworkTexture && _defaultAmbientNetworkTexture->isLoaded() && _defaultAmbientNetworkTexture->getGPUTexture()) {
+            _defaultAmbientTexture = _defaultAmbientNetworkTexture->getGPUTexture();
+        } else {
+            // Don't do anything until the ambient box has been loaded
             return;
         }
 
@@ -674,8 +689,8 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 
             lp->setAmbientIntensity(0.5f);
-            lp->setAmbientMap(_defaultSkyboxAmbientTexture);
-            auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
+            lp->setAmbientMap(_defaultAmbientTexture);
+            auto irradianceSH = _defaultAmbientTexture->getIrradiance();
             if (irradianceSH) {
                 lp->setAmbientSphere((*irradianceSH));
             }

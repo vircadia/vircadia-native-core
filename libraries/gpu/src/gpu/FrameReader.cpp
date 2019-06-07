@@ -18,7 +18,6 @@
 #include "Batch.h"
 #include "TextureTable.h"
 
-
 #include "FrameIOKeys.h"
 
 namespace gpu {
@@ -40,7 +39,7 @@ public:
             auto lastSlash = filename.rfind('/');
             result = filename.substr(0, lastSlash + 1);
         } else {
-            std::string result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
+            result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
             if (*result.rbegin() != '/') {
                 result += '/';
             }
@@ -324,6 +323,13 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     readOptional(ktxFile, node, keys::ktxFile);
     Element ktxTexelFormat, ktxMipFormat;
     if (!ktxFile.empty()) {
+        // If we get a texture that starts with ":" we need to re-route it to the resources directory
+        if (ktxFile.at(0) == ':') {
+            QString frameReaderPath = __FILE__;
+            frameReaderPath.replace("\\", "/");
+            frameReaderPath.replace("libraries/gpu/src/gpu/framereader.cpp", "interface/resources", Qt::CaseInsensitive);
+            ktxFile.replace(0, 1, frameReaderPath.toStdString());
+        }
         if (QFileInfo(ktxFile.c_str()).isRelative()) {
             ktxFile = basedir + ktxFile;
         }
@@ -388,10 +394,23 @@ ShaderPointer Deserializer::readShader(const json& node) {
         return nullptr;
     }
 
+    static std::map<std::string, uint32_t> shadersIdsByName;
+    if (shadersIdsByName.empty()) {
+        for (const auto id : shader::allShaders()) {
+            const auto& shaderSource = shader::Source::get(id);
+            shadersIdsByName[shaderSource.name] = id;
+        }
+    }
+
     // FIXME support procedural shaders
     Shader::Type type = node[keys::type];
     std::string name = node[keys::name];
-    uint32_t id = node[keys::id];
+    // Using the serialized ID is bad, because it's generated at 
+    // cmake time, and can change across platforms or when 
+    // shaders are added or removed
+    // uint32_t id = node[keys::id];
+    
+    uint32_t id = shadersIdsByName[name];
     ShaderPointer result;
     switch (type) {
         //case Shader::Type::GEOMETRY:

@@ -1,0 +1,214 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+#include "verrsrc.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "#include ""verrsrc.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#include ""res\\Launcher.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""      // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\interface.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BINARY
+//
+
+IDR_FONT_REGULAR        BINARY                  "res\\Graphikregular.ttf"
+
+IDR_FONT_BOLD           BINARY                  "res\\Graphikbold.ttf"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_LAUNCHER_DIALOG DIALOGEX 0, 0, 300, 196
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION
+EXSTYLE WS_EX_APPWINDOW
+FONT 10, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_VOXEL,"Static",SS_BLACKRECT,65,27,174,123
+    EDITTEXT        IDC_ORGNAME,44,68,219,12,ES_AUTOHSCROLL | NOT WS_VISIBLE | NOT WS_BORDER
+    EDITTEXT        IDC_USERNAME,44,95,219,12,ES_AUTOHSCROLL | NOT WS_VISIBLE | NOT WS_BORDER
+    EDITTEXT        IDC_PASSWORD,44,122,219,12,ES_PASSWORD | ES_AUTOHSCROLL | NOT WS_VISIBLE | NOT WS_BORDER
+    LTEXT           "Organization name",IDC_ORGNAME_BANNER,48,68,219,12,NOT WS_VISIBLE
+    LTEXT           "Username",IDC_USERNAME_BANNER,48,95,219,12,NOT WS_VISIBLE
+    LTEXT           "Password",IDC_PASSWORD_BANNER,48,122,219,12,NOT WS_VISIBLE
+    CTEXT           "",IDC_MESSAGE_LABEL,5,39,299,23,NOT WS_VISIBLE
+    CTEXT           "",IDC_ACTION_LABEL,10,15,286,25,NOT WS_VISIBLE
+    CTEXT           "",IDC_MESSAGE2_LABEL,35,172,239,15,NOT WS_VISIBLE
+    CTEXT           "",IDC_ACTION2_LABEL,15,147,278,25,NOT WS_VISIBLE
+    RTEXT           "",IDC_TERMS,15,172,180,15,NOT WS_VISIBLE
+    LTEXT           "",IDC_TERMS2,197,172,80,15,NOT WS_VISIBLE
+    CTEXT           "",IDC_TROUBLE,65,203,174,15,NOT WS_VISIBLE
+    CONTROL         "NEXT",IDC_BUTTON_NEXT,"Button",BS_OWNERDRAW | BS_FLAT | NOT WS_VISIBLE | WS_TABSTOP,107,158,94,16
+    CONTROL         "Having Trouble?",IDC_TROUBLE_LINK,"Button",BS_OWNERDRAW | BS_FLAT | NOT WS_VISIBLE | WS_TABSTOP,126,203,56,11
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName", "High Fidelity Inc."
+            VALUE "FileDescription", "HQ Launcher"
+            VALUE "FileVersion", "1.0.0.1"
+            VALUE "InternalName", "HQ Launcher"
+            VALUE "LegalCopyright", "High Fidelity Inc.  All rights reserved."
+            VALUE "OriginalFilename", "HQ Launcher.exe"
+            VALUE "ProductName", "HQ Launcher"
+            VALUE "ProductVersion", "0.0.8.5"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_LAUNCHER_DIALOG, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_LAUNCHER_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_PNG1                PNG                     "res\\HiFi_Window.png"
+
+IDB_PNG2                PNG                     "res\\HiFi_Logo_Large.png"
+
+IDB_PNG4                PNG                     "res\\HiFi_Voxel.png"
+
+IDB_PNG5                PNG                     "res\\HiFi_Logo_Small.png"
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+#include "res\Launcher.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"      // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

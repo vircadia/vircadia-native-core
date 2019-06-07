@@ -37,8 +37,8 @@ View View::evalFromFrustum(const ViewFrustum& frustum, const glm::vec3& offset) 
 
 Sphere View::evalRegionSphere(const View& view, float originRadius, float maxDistance) {
     float radius = (maxDistance + originRadius) / 2.0f;
-    float center = radius - originRadius;
-    return Sphere(view.origin + view.direction * center, radius);
+    float distanceToCenter = radius - originRadius;
+    return Sphere(view.origin + view.direction * distanceToCenter, radius);
 }
 
 void View::updateRegionsDefault(View& view) {

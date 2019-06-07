@@ -7,11 +7,13 @@
 //
 
 #include "Profile.h"
+#include <chrono>
 
 Q_LOGGING_CATEGORY(trace_app, "trace.app")
 Q_LOGGING_CATEGORY(trace_app_detail, "trace.app.detail")
 Q_LOGGING_CATEGORY(trace_metadata, "trace.metadata")
 Q_LOGGING_CATEGORY(trace_network, "trace.network")
+Q_LOGGING_CATEGORY(trace_picks, "trace.picks")
 Q_LOGGING_CATEGORY(trace_parse, "trace.parse")
 Q_LOGGING_CATEGORY(trace_render, "trace.render")
 Q_LOGGING_CATEGORY(trace_render_detail, "trace.render.detail")
@@ -37,17 +39,27 @@ Q_LOGGING_CATEGORY(trace_baker, "trace.baker")
 #endif
 
 static bool tracingEnabled() {
-    return DependencyManager::isSet<tracing::Tracer>() && DependencyManager::get<tracing::Tracer>()->isEnabled();
+    // Cheers, love! The cavalry's here!
+    auto tracer = DependencyManager::get<tracing::Tracer>();
+    return (tracer && tracer->isEnabled());
 }
 
-Duration::Duration(const QLoggingCategory& category, const QString& name, uint32_t argbColor, uint64_t payload, const QVariantMap& baseArgs) : _name(name), _category(category) {
+DurationBase::DurationBase(const QLoggingCategory& category, const QString& name) : _name(name), _category(category) {
+}
+
+Duration::Duration(const QLoggingCategory& category,
+                   const QString& name,
+                   uint32_t argbColor,
+                   uint64_t payload,
+                   const QVariantMap& baseArgs) :
+    DurationBase(category, name) {
     if (tracingEnabled() && category.isDebugEnabled()) {
         QVariantMap args = baseArgs;
         args["nv_payload"] = QVariant::fromValue(payload);
         tracing::traceEvent(_category, _name, tracing::DurationBegin, "", args);
 
 #if defined(NSIGHT_TRACING)
-        nvtxEventAttributes_t eventAttrib { 0 };
+        nvtxEventAttributes_t eventAttrib{ 0 };
         eventAttrib.version = NVTX_VERSION;
         eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
         eventAttrib.colorType = NVTX_COLOR_ARGB;
@@ -97,3 +109,17 @@ void Duration::endRange(const QLoggingCategory& category, uint64_t rangeId) {
 #endif
 }
 
+ConditionalDuration::ConditionalDuration(const QLoggingCategory& category, const QString& name, uint32_t minTime) :
+    DurationBase(category, name), _startTime(tracing::Tracer::now()), _minTime(minTime * USECS_PER_MSEC) {
+}
+
+ConditionalDuration::~ConditionalDuration() {
+    if (tracingEnabled() && _category.isDebugEnabled()) {
+        auto endTime = tracing::Tracer::now();
+        auto duration = endTime - _startTime;
+        if (duration >= _minTime) {
+            tracing::traceEvent(_category, _startTime, _name, tracing::DurationBegin);
+            tracing::traceEvent(_category, endTime, _name, tracing::DurationEnd);
+        }
+    }
+}

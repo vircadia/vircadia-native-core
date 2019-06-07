@@ -550,7 +550,7 @@ public:
     void setUsage(const Usage& usage) { _usage = usage; }
     Usage getUsage() const { return _usage; }
 
-    // For Cube Texture, it's possible to generate the irradiance spherical harmonics and make them availalbe with the texture
+    // For Cube Texture, it's possible to generate the irradiance spherical harmonics and make them available with the texture
     bool generateIrradiance(gpu::BackendTarget target);
     const SHPointer& getIrradiance(uint16 slice = 0) const { return _irradiance; }
     void overrideIrradiance(SHPointer irradiance) { _irradiance = irradiance; }

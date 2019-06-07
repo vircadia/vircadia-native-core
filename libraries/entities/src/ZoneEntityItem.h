@@ -62,9 +62,12 @@ public:
     virtual bool isReadyToComputeShape() const override { return false; }
     virtual void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
+    bool shouldBePhysical() const override { return false; }
 
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
+
+    virtual bool matchesJSONFilters(const QJsonObject& jsonFilters) const override;
 
     KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
     AmbientLightPropertyGroup getAmbientLightProperties() const { return resultWithReadLock<AmbientLightPropertyGroup>([&] { return _ambientLightProperties; }); }
@@ -95,6 +98,9 @@ public:
     void setGhostingAllowed(bool value) { _ghostingAllowed = value; }
     QString getFilterURL() const;
     void setFilterURL(const QString url); 
+
+    uint32_t getAvatarPriority() const { return _avatarPriority; }
+    void setAvatarPriority(uint32_t value) { _avatarPriority = value; }
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
@@ -128,7 +134,7 @@ protected:
     KeyLightPropertyGroup _keyLightProperties;
     AmbientLightPropertyGroup _ambientLightProperties;
 
-    ShapeType _shapeType = DEFAULT_SHAPE_TYPE;
+    ShapeType _shapeType { DEFAULT_SHAPE_TYPE };
     QString _compoundShapeURL;
 
     // The following 3 values are the defaults for zone creation
@@ -146,6 +152,9 @@ protected:
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
     QString _filterURL { DEFAULT_FILTER_URL };
+
+    // Avatar-updates priority
+    uint32_t _avatarPriority { COMPONENT_MODE_INHERIT };
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };

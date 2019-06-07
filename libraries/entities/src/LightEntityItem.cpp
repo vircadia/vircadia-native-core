@@ -55,8 +55,8 @@ void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
-void LightEntityItem::locationChanged(bool tellPhysics) {
-    EntityItem::locationChanged(tellPhysics);
+void LightEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
+    EntityItem::locationChanged(tellPhysics, tellChildren);
     withWriteLock([&] {
         _lightPropertiesChanged = true;
     });

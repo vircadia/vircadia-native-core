@@ -212,7 +212,8 @@ protected:
     HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
     NetworkTexturePointer _defaultSkyboxNetworkTexture;
-    gpu::TexturePointer _defaultSkyboxAmbientTexture;
+    NetworkTexturePointer _defaultAmbientNetworkTexture;
+    gpu::TexturePointer _defaultAmbientTexture;
 };
 
 #endif // hifi_DeferredLightingEffect_h

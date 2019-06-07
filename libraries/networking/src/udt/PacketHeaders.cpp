@@ -27,7 +27,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::StunResponse:
             return 17;
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::AuthenticationOptional);
+            return static_cast<PacketVersion>(DomainListVersion::HasTimestamp);
         case PacketType::EntityAdd:
         case PacketType::EntityClone:
         case PacketType::EntityEdit:
@@ -38,10 +38,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendMaxTranslationDimension);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendVerificationFailed);
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
-            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendMaxTranslationDimension);
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SendVerificationFailed);
         case PacketType::MessagesData:
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         // ICE packets
@@ -72,7 +72,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(DomainConnectionDeniedVersion::IncludesExtraInfo);
 
         case PacketType::DomainConnectRequest:
-            return static_cast<PacketVersion>(DomainConnectRequestVersion::AlwaysHasMachineFingerprint);
+            return static_cast<PacketVersion>(DomainConnectRequestVersion::HasTimestamp);
 
         case PacketType::DomainServerAddedNode:
             return static_cast<PacketVersion>(DomainServerAddedNodeVersion::PermissionsGrid);
@@ -86,7 +86,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::MicrophoneAudioNoEcho:
         case PacketType::MicrophoneAudioWithEcho:
         case PacketType::AudioStreamStats:
-            return static_cast<PacketVersion>(AudioVersion::HighDynamicRangeVolume);
+        case PacketType::StopInjector:
+            return static_cast<PacketVersion>(AudioVersion::StopInjectors);
         case PacketType::DomainSettings:
             return 18;  // replace min_avatar_scale and max_avatar_scale with min_avatar_height and max_avatar_height
         case PacketType::Ping:

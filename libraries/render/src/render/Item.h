@@ -354,6 +354,22 @@ public:
     // This is Used for monitoring and dynamically adjust the quality
     class Status {
     public:
+        
+        enum class Icon {
+            ACTIVE_IN_BULLET = 0,
+            PACKET_SENT = 1,
+            PACKET_RECEIVED = 2,
+            SIMULATION_OWNER = 3,
+            HAS_ACTIONS = 4,
+            OTHER_SIMULATION_OWNER = 5,
+            ENTITY_HOST_TYPE = 6,
+            GENERIC_TRANSITION = 7,
+            GENERIC_TRANSITION_OUT = 8,
+            GENERIC_TRANSITION_IN = 9,
+            USER_TRANSITION_OUT = 10,
+            USER_TRANSITION_IN = 11,
+            NONE = 255
+        };
 
         // Status::Value class is the data used to represent the transient information of a status as a square icon
         // The "icon" is a square displayed in the 3D scene over the render::Item AABB center.

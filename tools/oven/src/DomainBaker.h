@@ -12,14 +12,16 @@
 #ifndef hifi_DomainBaker_h
 #define hifi_DomainBaker_h
 
+#include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 
-#include "Baker.h"
-#include "FBXBaker.h"
+#include "ModelBaker.h"
 #include "TextureBaker.h"
+#include "JSBaker.h"
+#include "MaterialBaker.h"
 
 class DomainBaker : public Baker {
     Q_OBJECT
@@ -29,7 +31,7 @@ public:
     // That means you must pass a usable running QThread when constructing a domain baker.
     DomainBaker(const QUrl& localEntitiesFileURL, const QString& domainName,
                 const QString& baseOutputPath, const QUrl& destinationPath,
-                bool shouldRebakeOriginals = false);
+                bool shouldRebakeOriginals);
 
 signals:
     void allModelsFinished();
@@ -38,7 +40,9 @@ signals:
 private slots:
     virtual void bake() override;
     void handleFinishedModelBaker();
-    void handleFinishedSkyboxBaker();
+    void handleFinishedTextureBaker();
+    void handleFinishedScriptBaker();
+    void handleFinishedMaterialBaker();
 
 private:
     void setupOutputFolder();
@@ -46,9 +50,6 @@ private:
     void enumerateEntities();
     void checkIfRewritingComplete();
     void writeNewEntitiesFile();
-
-    void bakeSkybox(QUrl skyboxURL, QJsonValueRef entity);
-    bool rewriteSkyboxURL(QJsonValueRef urlValue, TextureBaker* baker);
 
     QUrl _localEntitiesFileURL;
     QString _domainName;
@@ -59,17 +60,26 @@ private:
     QString _originalOutputPath;
     QUrl _destinationPath;
 
+    QJsonDocument _json;
     QJsonArray _entities;
 
     QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
-    QHash<QUrl, QSharedPointer<TextureBaker>> _skyboxBakers;
+    QHash<TextureKey, QSharedPointer<TextureBaker>> _textureBakers;
+    TextureFileNamer _textureFileNamer;
+    QHash<QUrl, QSharedPointer<JSBaker>> _scriptBakers;
+    QHash<QUrl, QSharedPointer<MaterialBaker>> _materialBakers;
     
-    QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
+    QMultiHash<QUrl, std::pair<QString, QJsonValueRef>> _entitiesNeedingRewrite;
 
     int _totalNumberOfSubBakes { 0 };
     int _completedSubBakes { 0 };
 
     bool _shouldRebakeOriginals { false };
+
+    void addModelBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
+    void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef);
+    void addScriptBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
+    void addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef, QUrl destinationPath = QUrl());
 };
 
 #endif // hifi_DomainBaker_h

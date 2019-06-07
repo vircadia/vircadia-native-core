@@ -108,7 +108,7 @@ public:
     virtual void setJointTranslations(const QVector<glm::vec3>& translations) override;
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet) override;
 
-    virtual void locationChanged(bool tellPhysics = true) override;
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true) override;
 
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
@@ -160,8 +160,6 @@ protected:
     virtual bool needsRenderUpdate() const override;
     virtual void doRender(RenderArgs* args) override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-
-    render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
     void setRenderLayer(RenderLayer value) override;

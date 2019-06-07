@@ -9,7 +9,7 @@
 //
 
 #include "TestRailInterface.h"
-#include "Test.h"
+#include "TestCreator.h"
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
@@ -258,7 +258,7 @@ bool TestRailInterface::requestTestRailResultsDataFromUser() {
 }
 
 bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
-    if (Test::isAValidDirectory(directory)) {
+    if (TestCreator::isAValidDirectory(directory)) {
         // Ignore the utils and preformance directories
         if (directory.right(QString("utils").length()) == "utils" ||
             directory.right(QString("performance").length()) == "performance") {
@@ -352,6 +352,7 @@ void TestRailInterface::createAddTestCasesPythonScript(const QString& testDirect
     ) {
         QProcess* process = new QProcess();
 
+        _busyWindow.setWindowTitle("Updating TestRail");
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
         connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
@@ -482,6 +483,7 @@ void TestRailInterface::addRun() {
                                         QMessageBox::Yes | QMessageBox::No).exec()
     ) {
         QProcess* process = new QProcess();
+        _busyWindow.setWindowTitle("Updating TestRail");
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
         connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
@@ -591,6 +593,7 @@ void TestRailInterface::updateRunWithResults() {
                                         QMessageBox::Yes | QMessageBox::No).exec()
     ) {
         QProcess* process = new QProcess();
+        _busyWindow.setWindowTitle("Updating TestRail");
         connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
         connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
         connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,

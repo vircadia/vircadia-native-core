@@ -20,10 +20,26 @@
 #include <TransformNode.h>
 #include <PickFilter.h>
 
+/**jsdoc
+ * <p>The type of an intersection.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Name</th><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td>INTERSECTED_NONE</td><td><code>0</code></td><td>Intersected nothing.</td></tr>
+ *     <tr><td>INTERSECTED_ENTITY</td><td><code>1</code></td><td>Intersected an entity.</td></tr>
+ *     <tr><td>INTERSECTED_LOCAL_ENTITY</td><td><code>2</code></td><td>Intersected a local entity.</td></tr>
+ *     <tr><td>INTERSECTED_AVATAR</td><td><code>3</code></td><td>Intersected an avatar.</td></tr>
+ *     <tr><td>INTERSECTED_HUD</td><td><code>4</code></td><td>Intersected the HUD sphere.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {number} IntersectionType
+ */
 enum IntersectionType {
     NONE = 0,
     ENTITY,
-    OVERLAY,
+    LOCAL_ENTITY,
     AVATAR,
     HUD
 };
@@ -61,7 +77,7 @@ public:
     virtual ~PickQuery() = default;
 
     /**jsdoc
-     * Enum for different types of Picks and Pointers.
+     * The <code>PickType</code> API provides constant numeric values that represent different types of picks.
      *
      * @namespace PickType
      * @variation 0
@@ -70,22 +86,28 @@ public:
      * @hifi-client-entity
      * @hifi-avatar
      *
-     * @property {number} Ray Ray picks intersect a ray with the nearest object in front of them, along a given direction.
-     * @property {number} Stylus Stylus picks provide "tapping" functionality on/into flat surfaces.
-     * @property {number} Parabola Parabola picks intersect a parabola with the nearest object in front of them, with a given 
-     *     initial velocity and acceleration.
-     * @property {number} Collision Collision picks intersect a collision volume with avatars and entities that have collisions.
+     * @property {number} Ray - Ray picks intersect a ray with objects in front of them, along their direction.
+     * @property {number} Parabola - Parabola picks intersect a parabola with objects in front of them, along their arc.
+     * @property {number} Stylus - Stylus picks provide "tapping" functionality on or into flat surfaces.
+     * @property {number} Collision - Collision picks intersect a collision volume with avatars and entities that have 
+     *     collisions.
      */
-    /**jsdoc
+
+     /**jsdoc
+     * <p>A type of pick.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td></td></tr>
-     *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td></td></tr>
-     *     <tr><td><code>{@link PickType(0)|PickType.Parabola}</code></td><td></td></tr>
-     *     <tr><td><code>{@link PickType(0)|PickType.Collision}</code></td><td></td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Ray}</code></td><td>Ray picks intersect a ray with objects in front of 
+     *       them, along their direction.</td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Parabola}</code></td><td>Parabola picks intersect a parabola with objects
+     *       in front of them, along their arc.</td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Stylus}</code></td><td>Stylus picks provide "tapping" functionality on or
+     *       into flat surfaces.</td></tr>
+     *     <tr><td><code>{@link PickType(0)|PickType.Collision}</code></td><td>Collision picks intersect a collision volume 
+     *       with avatars and entities that have collisions.</td></tr>
      *   </tbody>
      * </table>
      * @typedef {number} PickType
@@ -177,7 +199,6 @@ public:
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
     virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
-    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 

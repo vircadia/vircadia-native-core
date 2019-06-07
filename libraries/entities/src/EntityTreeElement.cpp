@@ -139,15 +139,25 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
+bool EntityTreeElement::checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
     bool visible = entity->isVisible();
-    bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
+    entity::HostType hostType = entity->getEntityHostType();
     if ((!searchFilter.doesPickVisible() && visible) || (!searchFilter.doesPickInvisible() && !visible) ||
-        (!searchFilter.doesPickCollidable() && collidable) || (!searchFilter.doesPickNonCollidable() && !collidable) ||
-        (!searchFilter.doesPickDomainEntities() && entity->isDomainEntity()) ||
-        (!searchFilter.doesPickAvatarEntities() && entity->isAvatarEntity()) ||
-        (!searchFilter.doesPickLocalEntities() && entity->isLocalEntity())) {
+        (!searchFilter.doesPickDomainEntities() && hostType == entity::HostType::DOMAIN) ||
+        (!searchFilter.doesPickAvatarEntities() && hostType == entity::HostType::AVATAR) ||
+        (!searchFilter.doesPickLocalEntities() && hostType == entity::HostType::LOCAL)) {
         return false;
+    }
+    // We only check the collidable filters for non-local entities, because local entities are always collisionless,
+    // but picks always include COLLIDABLE (see PickScriptingInterface::getPickFilter()), so if we were to respect
+    // the getCollisionless() property of Local entities then we would *never* intersect them in a pick.
+    // An unfortunate side effect of the following code is that Local entities are intersected even if the
+    // pick explicitly requested only COLLIDABLE entities (but, again, Local entities are always collisionless).
+    if (hostType != entity::HostType::LOCAL) {
+        bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
+        if ((collidable && !searchFilter.doesPickCollidable()) || (!collidable && !searchFilter.doesPickNonCollidable())) {
+            return false;
+        }
     }
     return true;
 }
@@ -691,11 +701,11 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
     return foundEntity;
 }
 
-void EntityTreeElement::cleanupNonLocalEntities() {
+void EntityTreeElement::cleanupDomainAndNonOwnedEntities() {
     withWriteLock([&] {
         EntityItems savedEntities;
         foreach(EntityItemPointer entity, _entityItems) {
-            if (!entity->isLocalEntity()) {
+            if (!(entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 entity->preDelete();
                 entity->_element = NULL;
             } else {

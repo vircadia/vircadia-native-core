@@ -14,10 +14,13 @@
 #include <QtCore/QCoreApplication>
 
 #include <SharedUtil.h>
+#include <shared/QtHelpers.h>
 
 #include "AudioConstants.h"
 #include "AudioInjector.h"
 #include "AudioLogging.h"
+
+#include "AudioSRC.h"
 
 AudioInjectorManager::~AudioInjectorManager() {
     _shouldStop = true;
@@ -30,7 +33,7 @@ AudioInjectorManager::~AudioInjectorManager() {
         auto& timePointerPair = _injectors.top();
 
         // ask it to stop and be deleted
-        timePointerPair.second->stop();
+        timePointerPair.second->finish();
 
         _injectors.pop();
     }
@@ -46,6 +49,8 @@ AudioInjectorManager::~AudioInjectorManager() {
         _thread->quit();
         _thread->wait();
     }
+
+    moveToThread(qApp->thread());
 }
 
 void AudioInjectorManager::createThread() {
@@ -54,6 +59,8 @@ void AudioInjectorManager::createThread() {
 
     // when the thread is started, have it call our run to handle injection of audio
     connect(_thread, &QThread::started, this, &AudioInjectorManager::run, Qt::DirectConnection);
+
+    moveToThread(_thread);
 
     // start the thread
     _thread->start();
@@ -98,6 +105,8 @@ void AudioInjectorManager::run() {
                         if (nextCallDelta >= 0 && !injector->isFinished()) {
                             // enqueue the injector with the correct timing in our holding queue
                             heldInjectors.emplace(heldInjectors.end(), usecTimestampNow() + nextCallDelta, injector);
+                        } else {
+                            injector->sendStopInjectorPacket();
                         }
                     }
 
@@ -141,36 +150,7 @@ bool AudioInjectorManager::wouldExceedLimits() { // Should be called inside of a
 
 bool AudioInjectorManager::threadInjector(const AudioInjectorPointer& injector) {
     if (_shouldStop) {
-        qCDebug(audio)  << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
-        return false;
-    }
-
-    // guard the injectors vector with a mutex
-    Lock lock(_injectorsMutex);
-
-    if (wouldExceedLimits()) {
-        return false;
-    } else {
-        if (!_thread) {
-            createThread();
-        }
-
-        // move the injector to the QThread
-        injector->moveToThread(_thread);
-
-        // add the injector to the queue with a send timestamp of now
-        _injectors.emplace(usecTimestampNow(), injector);
-
-        // notify our wait condition so we can inject two frames for this injector immediately
-        _injectorReady.notify_one();
-
-        return true;
-    }
-}
-
-bool AudioInjectorManager::restartFinishedInjector(const AudioInjectorPointer& injector) {
-    if (_shouldStop) {
-        qCDebug(audio)  << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        qCDebug(audio) << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
         return false;
     }
 
@@ -187,4 +167,193 @@ bool AudioInjectorManager::restartFinishedInjector(const AudioInjectorPointer& i
         _injectorReady.notify_one();
     }
     return true;
+}
+
+AudioInjectorPointer AudioInjectorManager::playSound(const SharedSoundPointer& sound, const AudioInjectorOptions& options, bool setPendingDelete) {
+    if (_shouldStop) {
+        qCDebug(audio) << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        return nullptr;
+    }
+
+    AudioInjectorPointer injector = nullptr;
+    if (sound && sound->isReady()) {
+        if (options.pitch == 1.0f) {
+            injector = QSharedPointer<AudioInjector>(new AudioInjector(sound, options), &AudioInjector::deleteLater);
+        } else {
+            using AudioConstants::AudioSample;
+            using AudioConstants::SAMPLE_RATE;
+            const int standardRate = SAMPLE_RATE;
+            // limit pitch to 4 octaves
+            const float pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+            const int resampledRate = glm::round(SAMPLE_RATE / pitch);
+
+            auto audioData = sound->getAudioData();
+            auto numChannels = audioData->getNumChannels();
+            auto numFrames = audioData->getNumFrames();
+
+            AudioSRC resampler(standardRate, resampledRate, numChannels);
+
+            // create a resampled buffer that is guaranteed to be large enough
+            const int maxOutputFrames = resampler.getMaxOutput(numFrames);
+            const int maxOutputSize = maxOutputFrames * numChannels * sizeof(AudioSample);
+            QByteArray resampledBuffer(maxOutputSize, '\0');
+            auto bufferPtr = reinterpret_cast<AudioSample*>(resampledBuffer.data());
+
+            resampler.render(audioData->data(), bufferPtr, numFrames);
+
+            int numSamples = maxOutputFrames * numChannels;
+            auto newAudioData = AudioData::make(numSamples, numChannels, bufferPtr);
+
+            injector = QSharedPointer<AudioInjector>(new AudioInjector(newAudioData, options), &AudioInjector::deleteLater);
+        }
+    }
+
+    if (!injector) {
+        return nullptr;
+    }
+
+    if (setPendingDelete) {
+        injector->_state |= AudioInjectorState::PendingDelete;
+    }
+
+    injector->moveToThread(_thread);
+    injector->inject(&AudioInjectorManager::threadInjector);
+
+    return injector;
+}
+
+AudioInjectorPointer AudioInjectorManager::playSound(const AudioDataPointer& audioData, const AudioInjectorOptions& options, bool setPendingDelete) {
+    if (_shouldStop) {
+        qCDebug(audio) << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
+        return nullptr;
+    }
+
+    AudioInjectorPointer injector = nullptr;
+    if (options.pitch == 1.0f) {
+        injector = QSharedPointer<AudioInjector>(new AudioInjector(audioData, options), &AudioInjector::deleteLater);
+    } else {
+        using AudioConstants::AudioSample;
+        using AudioConstants::SAMPLE_RATE;
+        const int standardRate = SAMPLE_RATE;
+        // limit pitch to 4 octaves
+        const float pitch = glm::clamp(options.pitch, 1 / 16.0f, 16.0f);
+        const int resampledRate = glm::round(SAMPLE_RATE / pitch);
+
+        auto numChannels = audioData->getNumChannels();
+        auto numFrames = audioData->getNumFrames();
+
+        AudioSRC resampler(standardRate, resampledRate, numChannels);
+
+        // create a resampled buffer that is guaranteed to be large enough
+        const int maxOutputFrames = resampler.getMaxOutput(numFrames);
+        const int maxOutputSize = maxOutputFrames * numChannels * sizeof(AudioSample);
+        QByteArray resampledBuffer(maxOutputSize, '\0');
+        auto bufferPtr = reinterpret_cast<AudioSample*>(resampledBuffer.data());
+
+        resampler.render(audioData->data(), bufferPtr, numFrames);
+
+        int numSamples = maxOutputFrames * numChannels;
+        auto newAudioData = AudioData::make(numSamples, numChannels, bufferPtr);
+
+        injector = QSharedPointer<AudioInjector>(new AudioInjector(newAudioData, options), &AudioInjector::deleteLater);
+    }
+
+    if (!injector) {
+        return nullptr;
+    }
+
+    if (setPendingDelete) {
+        injector->_state |= AudioInjectorState::PendingDelete;
+    }
+
+    injector->moveToThread(_thread);
+    injector->inject(&AudioInjectorManager::threadInjector);
+
+    return injector;
+}
+
+void AudioInjectorManager::setOptionsAndRestart(const AudioInjectorPointer& injector, const AudioInjectorOptions& options) {
+    if (!injector) {
+        return;
+    }
+
+    if (QThread::currentThread() != _thread) {
+        QMetaObject::invokeMethod(this, "setOptionsAndRestart", Q_ARG(const AudioInjectorPointer&, injector), Q_ARG(const AudioInjectorOptions&, options));
+        _injectorReady.notify_one();
+        return;
+    }
+
+    injector->setOptions(options);
+    injector->restart();
+}
+
+void AudioInjectorManager::restart(const AudioInjectorPointer& injector) {
+    if (!injector) {
+        return;
+    }
+
+    if (QThread::currentThread() != _thread) {
+        QMetaObject::invokeMethod(this, "restart", Q_ARG(const AudioInjectorPointer&, injector));
+        _injectorReady.notify_one();
+        return;
+    }
+
+    injector->restart();
+}
+
+void AudioInjectorManager::setOptions(const AudioInjectorPointer& injector, const AudioInjectorOptions& options) {
+    if (!injector) {
+        return;
+    }
+
+    if (QThread::currentThread() != _thread) {
+        QMetaObject::invokeMethod(this, "setOptions", Q_ARG(const AudioInjectorPointer&, injector), Q_ARG(const AudioInjectorOptions&, options));
+        _injectorReady.notify_one();
+        return;
+    }
+
+    injector->setOptions(options);
+}
+
+AudioInjectorOptions AudioInjectorManager::getOptions(const AudioInjectorPointer& injector) {
+    if (!injector) {
+        return AudioInjectorOptions();
+    }
+
+    return injector->getOptions();
+}
+
+float AudioInjectorManager::getLoudness(const AudioInjectorPointer& injector) {
+    if (!injector) {
+        return 0.0f;
+    }
+
+    return injector->getLoudness();
+}
+
+bool AudioInjectorManager::isPlaying(const AudioInjectorPointer& injector) {
+    if (!injector) {
+        return false;
+    }
+
+    return injector->isPlaying();
+}
+
+void AudioInjectorManager::stop(const AudioInjectorPointer& injector) {
+    if (!injector) {
+        return;
+    }
+
+    if (QThread::currentThread() != _thread) {
+        QMetaObject::invokeMethod(this, "stop", Q_ARG(const AudioInjectorPointer&, injector));
+        _injectorReady.notify_one();
+        return;
+    }
+
+    injector->finish();
+}
+
+size_t AudioInjectorManager::getNumInjectors() {
+    Lock lock(_injectorsMutex);
+    return _injectors.size();
 }

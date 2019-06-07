@@ -164,7 +164,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
         Parent::simulate(deltaTime, fullUpdate);
     }
 
-    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem and ModelOverlay,
+    // FIXME: This texture loading logic should probably live in Avatar, to mirror RenderableModelEntityItem,
     // but Avatars don't get updates in the same way
     if (!_texturesLoaded && getGeometry() && getGeometry()->areTexturesLoaded()) {
         _texturesLoaded = true;
@@ -270,28 +270,19 @@ bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3&
         getJointPosition(_rig.indexOfJoint("RightEye"), secondEyePosition)) {
         return true;
     }
-    // no eye joints; try to estimate based on head/neck joints
-    glm::vec3 neckPosition, headPosition;
-    if (getJointPosition(_rig.indexOfJoint("Neck"), neckPosition) &&
-        getJointPosition(_rig.indexOfJoint("Head"), headPosition)) {
-        const float EYE_PROPORTION = 0.6f;
-        glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
+
+    int headJointIndex = _rig.indexOfJoint("Head");
+    glm::vec3 headPosition;
+    if (getJointPosition(headJointIndex, headPosition)) {
+
+        // get head joint rotation.
         glm::quat headRotation;
-        getJointRotation(_rig.indexOfJoint("Head"), headRotation);
-        const float EYES_FORWARD = 0.25f;
-        const float EYE_SEPARATION = 0.1f;
-        float headHeight = glm::distance(neckPosition, headPosition);
-        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
-        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
-        return true;
-    } else if (getJointPosition(_rig.indexOfJoint("Head"), headPosition)) {
-        glm::vec3 baseEyePosition = headPosition;
-        glm::quat headRotation;
-        getJointRotation(_rig.indexOfJoint("Head"), headRotation);
-        const float EYES_FORWARD_HEAD_ONLY = 0.30f;
-        const float EYE_SEPARATION = 0.1f;
-        firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
-        secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD_HEAD_ONLY);
+        getJointRotation(headJointIndex, headRotation);
+
+        float heightRatio = _rig.getUnscaledEyeHeight() / DEFAULT_AVATAR_EYE_HEIGHT;
+        glm::vec3 ipdOffset = glm::vec3(DEFAULT_AVATAR_IPD / 2.0f, 0.0f, 0.0f);
+        firstEyePosition = headPosition + headRotation * heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET + ipdOffset);
+        secondEyePosition = headPosition + headRotation * heightRatio * (DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET - ipdOffset);
         return true;
     }
     return false;
@@ -338,24 +329,20 @@ void SkeletonModel::computeBoundingShape() {
 void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& batch, float scale, float alpha) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // draw a blue sphere at the capsule top point
-    glm::vec3 topPoint = _translation + getRotation() * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
-
+    glm::vec3 topPoint = _translation + _rotation * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
     batch.setModelTransform(Transform().setTranslation(topPoint).postScale(scale * _boundingCapsuleRadius));
     geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
-    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
-    glm::vec3 axis = topPoint - bottomPoint;
-
+    glm::vec3 bottomPoint = topPoint - _rotation * glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
     batch.setModelTransform(Transform().setTranslation(bottomPoint).postScale(scale * _boundingCapsuleRadius));
     geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
-    glm::vec3 origin(0.0f);
-    batch.setModelTransform(Transform().setTranslation(bottomPoint));
-    geometryCache->bindSimpleProgram(batch);
-    Avatar::renderJointConnectingCone(batch, origin, axis, scale * _boundingCapsuleRadius, scale * _boundingCapsuleRadius,
-                                      glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+    float capsuleDiameter = 2.0f * _boundingCapsuleRadius;
+    glm::vec3 cylinderDimensions = glm::vec3(capsuleDiameter, _boundingCapsuleHeight, capsuleDiameter);
+    batch.setModelTransform(Transform().setScale(scale * cylinderDimensions).setRotation(_rotation).setTranslation(0.5f * (topPoint + bottomPoint)));
+    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Shape::Cylinder, glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 
 bool SkeletonModel::hasSkeleton() {

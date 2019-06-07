@@ -82,11 +82,11 @@ void OctreePersistThread::start() {
         }
 
         if (data.readOctreeDataInfoFromData(_cachedJSONData)) {
-            qCDebug(octree) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.version << ")";
+            qCDebug(octree) << "Current octree data: ID(" << data.id << ") DataVersion(" << data.dataVersion << ")";
             packet->writePrimitive(true);
             auto id = data.id.toRfc4122();
             packet->write(id);
-            packet->writePrimitive(data.version);
+            packet->writePrimitive(data.dataVersion);
         } else {
             _cachedJSONData.clear();
             qCWarning(octree) << "No octree data found";
@@ -144,8 +144,8 @@ void OctreePersistThread::handleOctreeDataFileReply(QSharedPointer<ReceivedMessa
     quint64 loadStarted = usecTimestampNow();
 
     if (hasValidOctreeData) {
-        qDebug() << "Setting entity version info to: " << data.id << data.version;
-        _tree->setOctreeVersionInfo(data.id, data.version);
+        qDebug() << "Setting entity version info to: " << data.id << data.dataVersion;
+        _tree->setOctreeVersionInfo(data.id, data.dataVersion);
     }
 
     bool persistentFileRead;
@@ -242,6 +242,7 @@ bool OctreePersistThread::backupCurrentFile() {
 }
 
 void OctreePersistThread::process() {
+    _tree->preUpdate();
     _tree->update();
 
     auto now = std::chrono::steady_clock::now();

@@ -31,13 +31,13 @@ public:
 protected:
     virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;
     virtual ShapeKey getShapeKey() override;
     virtual void doRender(RenderArgs* args) override;
 
-    void buildPipeline();
+    static void buildPipelines();
     void updateGeometry();
     void updateData();
 
@@ -51,14 +51,14 @@ protected:
     float _textureAspectRatio { 1.0f };
     bool _textureLoaded { false };
 
-    bool _isUVModeStretch;
-    bool _faceCamera;
-    bool _glow;
+    bool _isUVModeStretch { false };
+    bool _faceCamera { false };
+    bool _glow { false };
 
     size_t _numVertices;
     gpu::BufferPointer _polylineDataBuffer;
     gpu::BufferPointer _polylineGeometryBuffer;
-    static gpu::PipelinePointer _pipeline;
+    static std::map<std::pair<render::Args::RenderMethod, bool>, gpu::PipelinePointer> _pipelines;
 };
 
 } } // namespace 

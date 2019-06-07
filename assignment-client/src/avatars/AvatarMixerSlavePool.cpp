@@ -63,10 +63,6 @@ bool AvatarMixerSlaveThread::try_pop(SharedNodePointer& node) {
     return _pool._queue.try_pop(node);
 }
 
-#ifdef AVATAR_SINGLE_THREADED
-static AvatarMixerSlave slave;
-#endif
-
 void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end) {
     _function = &AvatarMixerSlave::processIncomingPackets;
     _configure = [=](AvatarMixerSlave& slave) { 
@@ -80,7 +76,8 @@ void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end,
                                                float maxKbpsPerNode, float throttlingRatio) {
     _function = &AvatarMixerSlave::broadcastAvatarData;
     _configure = [=](AvatarMixerSlave& slave) { 
-        slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio);
+        slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio,
+            _priorityReservedFraction);
    };
     run(begin, end);
 }
@@ -89,19 +86,9 @@ void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     _begin = begin;
     _end = end;
 
-#ifdef AUDIO_SINGLE_THREADED
-    _configure(slave);
-    std::for_each(begin, end, [&](const SharedNodePointer& node) {
-        _function(slave, node);
-});
-#else
     // fill the queue
     std::for_each(_begin, _end, [&](const SharedNodePointer& node) {
-#if defined(__clang__) && defined(Q_OS_LINUX)
         _queue.push(node);
-#else
-        _queue.emplace(node);
-#endif
     });
 
     {
@@ -121,19 +108,27 @@ void AvatarMixerSlavePool::run(ConstIter begin, ConstIter end) {
     }
 
     assert(_queue.empty());
-#endif
 }
 
 
 void AvatarMixerSlavePool::each(std::function<void(AvatarMixerSlave& slave)> functor) {
-#ifdef AVATAR_SINGLE_THREADED
-    functor(slave);
-#else
     for (auto& slave : _slaves) {
         functor(*slave.get());
     }
-#endif
 }
+
+#ifdef DEBUG_EVENT_QUEUE
+void AvatarMixerSlavePool::queueStats(QJsonObject& stats) {
+    unsigned i = 0;
+    for (auto& slave : _slaves) {
+        int queueSize = ::hifi::qt::getEventQueueSize(slave.get());
+        QString queueName = QString("avatar_thread_event_queue_%1").arg(i);
+        stats[queueName] = queueSize;
+
+        i++;
+    }
+}
+#endif // DEBUG_EVENT_QUEUE
 
 void AvatarMixerSlavePool::setNumThreads(int numThreads) {
     // clamp to allowed size
@@ -158,9 +153,6 @@ void AvatarMixerSlavePool::setNumThreads(int numThreads) {
 void AvatarMixerSlavePool::resize(int numThreads) {
     assert(_numThreads == (int)_slaves.size());
 
-#ifdef AVATAR_SINGLE_THREADED
-    qDebug("%s: running single threaded", __FUNCTION__, numThreads);
-#else
     qDebug("%s: set %d threads (was %d)", __FUNCTION__, numThreads, _numThreads);
 
     Lock lock(_mutex);
@@ -208,5 +200,4 @@ void AvatarMixerSlavePool::resize(int numThreads) {
 
     _numThreads = _numStarted = _numFinished = numThreads;
     assert(_numThreads == (int)_slaves.size());
-#endif
 }

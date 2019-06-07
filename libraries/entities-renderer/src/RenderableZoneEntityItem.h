@@ -24,9 +24,6 @@
 #include "RenderableEntityItem.h"
 #include <ComponentMode.h>
 
-#if 0
-#include <Model.h>
-#endif
 namespace render { namespace entities { 
 
 class ZoneEntityRenderer : public TypedEntityRenderer<ZoneEntityItem> {
@@ -40,7 +37,6 @@ protected:
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
     virtual ItemKey getKey() override;
     virtual void doRender(RenderArgs* args) override;
-    virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction) override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
@@ -76,14 +72,7 @@ private:
     glm::vec3 _lastPosition;
     glm::vec3 _lastDimensions;
     glm::quat _lastRotation;
-
-    // FIXME compount shapes are currently broken
-    // FIXME draw zone boundaries are currently broken (also broken in master)
-#if 0
-    ModelPointer _model;
-    bool _lastModelActive { false };
-    QString _lastShapeURL;
-#endif
+    bool _lastVisible;
 
     LightStagePointer _stage;
     const graphics::LightPointer _sunLight { std::make_shared<graphics::Light>() };
@@ -136,26 +125,5 @@ private:
 };
 
 } } // namespace 
-
-#if 0
-
-class NetworkGeometry;
-class KeyLightPayload;
-
-class RenderableZoneEntityItemMeta;
-
-class RenderableZoneEntityItem : public ZoneEntityItem, public RenderableEntityInterface  {
-public:
-    virtual bool contains(const glm::vec3& point) const override;
-    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-private:
-    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
-    virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
-    void notifyBoundChanged();
-    void notifyChangedRenderItem();
-    void sceneUpdateRenderItemFromEntity(render::Transaction& transaction);
-};
-#endif
 
 #endif // hifi_RenderableZoneEntityItem_h

@@ -307,6 +307,13 @@ void OffscreenQmlSurface::onRootContextCreated(QQmlContext* qmlContext) {
 #endif
 }
 
+void OffscreenQmlSurface::applyWhiteList(const QUrl& url, QQmlContext* context) {
+    QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(url);
+    for(const auto& callback : callbacks){
+        callback(context);
+    }
+}
+
 QQmlContext* OffscreenQmlSurface::contextForUrl(const QUrl& qmlSource, QQuickItem* parent, bool forceNewContext) {
     // Get any whitelist functionality
     QList<QmlContextCallback> callbacks = getQmlWhitelist()->getCallbacksForUrl(qmlSource);
@@ -719,11 +726,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        emit scriptEventReceived(message);
-    }
+    emit scriptEventReceived(message);
 }
 
 void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {

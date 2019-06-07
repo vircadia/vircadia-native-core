@@ -145,11 +145,14 @@ public:
     virtual bool rootElementHasData() const { return false; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
 
-    virtual void update() { } // nothing to do by default
+    // Why preUpdate() and update()?
+    // Because EntityTree needs them.
+    virtual void preUpdate() { }
+    virtual void update(bool simulate = true) { }
 
     OctreeElementPointer getRoot() { return _rootElement; }
 
-    virtual void eraseNonLocalEntities() { _isDirty = true; };
+    virtual void eraseDomainAndNonOwnedEntities() { _isDirty = true; };
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,  uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args);

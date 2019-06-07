@@ -32,12 +32,15 @@ class Scene;
 // These changes must be expressed through the corresponding command from the Transaction
 // THe Transaction is then queued on the Scene so all the pending transactions can be consolidated and processed at the time
 // of updating the scene before it s rendered.
-// 
+//
+
+
 class Transaction {
     friend class Scene;
 public:
 
     typedef std::function<void(ItemID, const Transition*)> TransitionQueryFunc;
+    typedef std::function<void()> TransitionFinishedFunc;
     typedef std::function<void(HighlightStyle const*)> SelectionHighlightQueryFunc;
 
     Transaction() {}
@@ -47,19 +50,18 @@ public:
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
     bool hasRemovedItems() const { return !_removedItems.empty(); }
-
-    void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
-    void removeTransitionFromItem(ItemID id);
-    void reApplyTransitionToItem(ItemID id);
-    void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
-
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
         updateItem(id, std::make_shared<UpdateFunctor<T>>(func));
     }
-
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
     void updateItem(ItemID id) { updateItem(id, nullptr); }
 
+    // Transition (applied to an item) transactions
+    void resetTransitionOnItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
+    void removeTransitionFromItem(ItemID id);
+    void setTransitionFinishedOperator(ItemID id, TransitionFinishedFunc func);
+    void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
+   
     // Selection transactions
     void resetSelection(const Selection& selection);
 
@@ -74,18 +76,19 @@ public:
     void merge(Transaction&& transaction);
     void clear();
 
-    // Checkers if there is work to do when processing the transaction
-    bool touchTransactions() const { return !_resetSelections.empty(); }
-
 protected:
 
     using Reset = std::tuple<ItemID, PayloadPointer>;
     using Remove = ItemID;
     using Update = std::tuple<ItemID, UpdateFunctorPointer>;
-    using TransitionAdd = std::tuple<ItemID, Transition::Type, ItemID>;
+
+    using TransitionReset = std::tuple<ItemID, Transition::Type, ItemID>;
+    using TransitionRemove = ItemID;
+    using TransitionFinishedOperator = std::tuple<ItemID, TransitionFinishedFunc>;
     using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
-    using TransitionReApply = ItemID;
+
     using SelectionReset = Selection;
+
     using HighlightReset = std::tuple<std::string, HighlightStyle>;
     using HighlightRemove = std::string;
     using HighlightQuery = std::tuple<std::string, SelectionHighlightQueryFunc>;
@@ -93,10 +96,14 @@ protected:
     using Resets = std::vector<Reset>;
     using Removes = std::vector<Remove>;
     using Updates = std::vector<Update>;
-    using TransitionAdds = std::vector<TransitionAdd>;
+
+    using TransitionResets = std::vector<TransitionReset>;
+    using TransitionRemoves = std::vector<TransitionRemove>;
+    using TransitionFinishedOperators = std::vector<TransitionFinishedOperator>;
     using TransitionQueries = std::vector<TransitionQuery>;
-    using TransitionReApplies = std::vector<TransitionReApply>;
+
     using SelectionResets = std::vector<SelectionReset>;
+
     using HighlightResets = std::vector<HighlightReset>;
     using HighlightRemoves = std::vector<HighlightRemove>;
     using HighlightQueries = std::vector<HighlightQuery>;
@@ -104,10 +111,14 @@ protected:
     Resets _resetItems;
     Removes _removedItems;
     Updates _updatedItems;
-    TransitionAdds _addedTransitions;
+    
+    TransitionResets _resetTransitions;
+    TransitionRemoves _removeTransitions;
+    TransitionFinishedOperators _transitionFinishedOperators;
     TransitionQueries _queriedTransitions;
-    TransitionReApplies _reAppliedTransitions;
+
     SelectionResets _resetSelections;
+    
     HighlightResets _highlightResets;
     HighlightRemoves _highlightRemoves;
     HighlightQueries _highlightQueries;
@@ -167,10 +178,8 @@ public:
     // Access the spatialized items
     const ItemSpatialTree& getSpatialTree() const { return _masterSpatialTree; }
 
-    // Access non-spatialized items (overlays, backgrounds)
+    // Access non-spatialized items (layered objects, backgrounds)
     const ItemIDSet& getNonspatialSet() const { return _masterNonspatialSet; }
-
-
 
     // Access a particular Stage (empty if doesn't exist)
     // Thread safe
@@ -183,7 +192,7 @@ public:
     void resetStage(const Stage::Name& name, const StagePointer& stage);
 
     void setItemTransition(ItemID id, Index transitionId);
-    void resetItemTransition(ItemID id);
+    void removeItemTransition(ItemID id);
 
 protected:
 
@@ -210,11 +219,14 @@ protected:
     ItemIDSet _masterNonspatialSet;
 
     void resetItems(const Transaction::Resets& transactions);
+    void resetTransitionFinishedOperator(const Transaction::TransitionFinishedOperators& transactions);
     void removeItems(const Transaction::Removes& transactions);
     void updateItems(const Transaction::Updates& transactions);
-    void transitionItems(const Transaction::TransitionAdds& transactions);
-    void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
+
+    void resetTransitionItems(const Transaction::TransitionResets& transactions);
+    void removeTransitionItems(const Transaction::TransitionRemoves& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
+
     void resetHighlights(const Transaction::HighlightResets& transactions);
     void removeHighlights(const Transaction::HighlightRemoves& transactions);
     void queryHighlights(const Transaction::HighlightQueries& transactions);
@@ -224,6 +236,8 @@ protected:
     // The Selection map
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
+
+    std::unordered_map<int32_t, std::vector<Transaction::TransitionFinishedFunc>> _transitionFinishedOperatorMap;
 
     void resetSelections(const Transaction::SelectionResets& transactions);
   // More actions coming to selections soon:

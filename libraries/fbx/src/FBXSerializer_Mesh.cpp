@@ -13,11 +13,19 @@
 #pragma warning( push )
 #pragma warning( disable : 4267 )
 #endif
+// gcc and clang
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 #include <draco/compression/decode.h>
 
 #ifdef _WIN32
 #pragma warning( pop )
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 #include <iostream>
@@ -190,8 +198,8 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
 
     bool isMaterialPerPolygon = false;
 
-    static const QVariant BY_VERTICE = QByteArray("ByVertice");
-    static const QVariant INDEX_TO_DIRECT = QByteArray("IndexToDirect");
+    static const QVariant BY_VERTICE = hifi::ByteArray("ByVertice");
+    static const QVariant INDEX_TO_DIRECT = hifi::ByteArray("IndexToDirect");
 
     bool isDracoMesh = false;
 
@@ -321,7 +329,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
-            static const QVariant BY_POLYGON = QByteArray("ByPolygon");
+            static const QVariant BY_POLYGON = hifi::ByteArray("ByPolygon");
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
@@ -345,10 +353,26 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
             isDracoMesh = true;
             data.extracted.mesh.wasCompressed = true;
 
+            // Check for additional metadata
+            unsigned int dracoMeshNodeVersion = 1;
+            std::vector<QString> dracoMaterialList;
+            for (const auto& dracoChild : child.children) {
+                if (dracoChild.name == "FBXDracoMeshVersion") {
+                    if (!dracoChild.properties.isEmpty()) {
+                        dracoMeshNodeVersion = dracoChild.properties[0].toUInt();
+                    }
+                } else if (dracoChild.name == "MaterialList") {
+                    dracoMaterialList.reserve(dracoChild.properties.size());
+                    for (const auto& materialID : dracoChild.properties) {
+                        dracoMaterialList.push_back(materialID.toString());
+                    }
+                }
+            }
+
             // load the draco mesh from the FBX and create a draco::Mesh
             draco::Decoder decoder;
             draco::DecoderBuffer decodedBuffer;
-            QByteArray dracoArray = child.properties.at(0).value<QByteArray>();
+            hifi::ByteArray dracoArray = child.properties.at(0).value<hifi::ByteArray>();
             decodedBuffer.Init(dracoArray.data(), dracoArray.size());
 
             std::unique_ptr<draco::Mesh> dracoMesh(new draco::Mesh());
@@ -462,8 +486,20 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 // grab or setup the HFMMeshPart for the part this face belongs to
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
-                    data.extracted.partMaterialTextures.append(materialTexture);
                     data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
+                    HFMMeshPart& part = data.extracted.mesh.parts.back();
+
+                    // Figure out what material this part is
+                    if (dracoMeshNodeVersion >= 2) {
+                        // Define the materialID now
+                        if (materialID < dracoMaterialList.size()) {
+                            part.materialID = dracoMaterialList[materialID];
+                        }
+                    } else {
+                        // Define the materialID later, based on the order of first appearance of the materials in the _connectionChildMap
+                        data.extracted.partMaterialTextures.append(materialTexture);
+                    }
+
                     partIndexPlusOne = data.extracted.mesh.parts.size();
                 }
 

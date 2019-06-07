@@ -19,31 +19,20 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
     const auto& normalsPerBlendshapePerMesh = input.get0();
     const auto& blendshapesPerMesh = input.get1();
     const auto& meshes = input.get2();
-    const auto& materials = input.get3();
     auto& tangentsPerBlendshapePerMeshOut = output;
     
     tangentsPerBlendshapePerMeshOut.reserve(normalsPerBlendshapePerMesh.size());
     for (size_t i = 0; i < blendshapesPerMesh.size(); i++) {
-        const auto& normalsPerBlendshape = normalsPerBlendshapePerMesh[i];
+        const auto& normalsPerBlendshape = baker::safeGet(normalsPerBlendshapePerMesh, i);
         const auto& blendshapes = blendshapesPerMesh[i];
         const auto& mesh = meshes[i];
         tangentsPerBlendshapePerMeshOut.emplace_back();
         auto& tangentsPerBlendshapeOut = tangentsPerBlendshapePerMeshOut[tangentsPerBlendshapePerMeshOut.size()-1];
 
-        // Check if we actually need to calculate the tangents, or just append empty arrays
-        bool needTangents = false;
-        for (const auto& meshPart : mesh.parts) {
-            auto materialIt = materials.find(meshPart.materialID);
-            if (materialIt != materials.end() && (*materialIt).needTangentSpace()) {
-                needTangents = true;
-                break;
-            }
-        }
-
         for (size_t j = 0; j < blendshapes.size(); j++) {
             const auto& blendshape = blendshapes[j];
             const auto& tangentsIn = blendshape.tangents;
-            const auto& normals = normalsPerBlendshape[j];
+            const auto& normals = baker::safeGet(normalsPerBlendshape, j);
             tangentsPerBlendshapeOut.emplace_back();
             auto& tangentsOut = tangentsPerBlendshapeOut[tangentsPerBlendshapeOut.size()-1];
 
@@ -53,8 +42,8 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
                 continue;
             }
 
-            // Check if we can and should calculate tangents (we need normals to calculate the tangents)
-            if (normals.empty() || !needTangents) {
+            // Check if we can calculate tangents (we need normals and texcoords to calculate the tangents)
+            if (normals.empty() || normals.size() != (size_t)mesh.texCoords.size()) {
                 continue;
             }
             tangentsOut.resize(normals.size());

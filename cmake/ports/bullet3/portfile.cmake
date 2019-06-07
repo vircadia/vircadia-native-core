@@ -1,4 +1,7 @@
+# Updated June 6th, 2019, to force new vckpg hash
+#
 # Common Ambient Variables:
+#
 #   CURRENT_BUILDTREES_DIR    = ${VCPKG_ROOT_DIR}\buildtrees\${PORT}
 #   CURRENT_PACKAGES_DIR      = ${VCPKG_ROOT_DIR}\packages\${PORT}_${TARGET_TRIPLET}
 #   CURRENT_PORT_DIR          = ${VCPKG_ROOT_DIR}\ports\${PORT}
@@ -9,6 +12,7 @@
 #   VCPKG_ROOT_DIR            = <C:\path\to\current\vcpkg>
 #   VCPKG_TARGET_ARCHITECTURE = target architecture (x64, x86, arm)
 #
+
 include(vcpkg_common_functions)
 
 if (VCPKG_LIBRARY_LINKAGE STREQUAL dynamic)
@@ -25,14 +29,13 @@ vcpkg_from_github(
     HEAD_REF master
 )
 
-
 vcpkg_configure_cmake(
     SOURCE_PATH ${SOURCE_PATH}
     OPTIONS
         -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=ON
         -DUSE_MSVC_RUNTIME_LIBRARY_DLL=ON
-        -DUSE_GLUT=0 
-        -DUSE_DX11=0	
+        -DUSE_GLUT=0
+        -DUSE_DX11=0
         -DBUILD_DEMOS=OFF
         -DBUILD_OPENGL3_DEMOS=OFF
         -DBUILD_BULLET3=OFF

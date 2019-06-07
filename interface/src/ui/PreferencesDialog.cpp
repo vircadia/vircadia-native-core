@@ -15,6 +15,7 @@
 #include <OffscreenUi.h>
 #include <Preferences.h>
 #include <RenderShadowTask.h>
+#include <plugins/PluginUtils.h>
 #include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
@@ -81,12 +82,40 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(GRAPHICS_QUALITY, "Show Shadows", getterShadow, setterShadow));
     }
 
+    {
+        auto getter = []()->QString {
+            RefreshRateManager::RefreshRateProfile refreshRateProfile = qApp->getRefreshRateManager().getRefreshRateProfile();
+            return QString::fromStdString(RefreshRateManager::refreshRateProfileToString(refreshRateProfile));
+        };
+
+        auto setter = [](QString value) {
+            std::string profileName = value.toStdString();
+            RefreshRateManager::RefreshRateProfile refreshRateProfile = RefreshRateManager::refreshRateProfileFromString(profileName);
+            qApp->getRefreshRateManager().setRefreshRateProfile(refreshRateProfile);
+        };
+
+        auto preference = new ComboBoxPreference(GRAPHICS_QUALITY, "Refresh Rate", getter, setter);
+        QStringList refreshRateProfiles
+            { QString::fromStdString(RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile::ECO)),
+              QString::fromStdString(RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile::INTERACTIVE)),
+              QString::fromStdString(RefreshRateManager::refreshRateProfileToString(RefreshRateManager::RefreshRateProfile::REALTIME)) };
+
+        preference->setItems(refreshRateProfiles);
+        preferences->addPreference(preference);
+    }
+
     // UI
     static const QString UI_CATEGORY { "User Interface" };
     {
         auto getter = []()->bool { return qApp->getSettingConstrainToolbarPosition(); };
         auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Constrain Toolbar Position to Horizontal Center", getter, setter));
+    }
+	
+    {
+        auto getter = []()->bool { return qApp->getAwayStateWhenFocusLostInVREnabled(); };
+        auto setter = [](bool value) { qApp->setAwayStateWhenFocusLostInVREnabled(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Go into away state when interface window loses focus in VR", getter, setter));
     }
 
     {
@@ -266,11 +295,38 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->bool { return myAvatar->getStrafeEnabled(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setStrafeEnabled(value); };
+        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Strafing", getter, setter));
+    }
+    {
         auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
         auto setter = [myAvatar](bool value) { myAvatar->setFlyingHMDPref(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Jumping and flying", getter, setter);
         preference->setIndented(true);
         preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]() -> bool { return myAvatar->hoverWhenUnsupported(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setHoverWhenUnsupported(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Hover When Unsupported", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
+        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
+        //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Movement Direction", getter, setter);
+        QStringList items;
+        items << "HMD-Relative" << "Hand-Relative" << "Hand-Relative (Leveled)";
+        preference->setHeading("Movement Direction");
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [myAvatar](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(VR_MOVEMENT, "Dominant Hand", getter, setter));
     }
     {
         auto getter = [myAvatar]()->int { return myAvatar->getSnapTurn() ? 0 : 1; };
@@ -280,6 +336,26 @@ void setupPreferences() {
         items << "Snap turn" << "Smooth turn";
         preference->setHeading("Rotation mode");
         preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int { return myAvatar->getControlScheme(); };
+        auto setter = [myAvatar](int index) { myAvatar->setControlScheme(index); };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Control Scheme", getter, setter);
+        QStringList items;
+        items << "Default" << "Analog" << "Analog++";
+        preference->setHeading("Control Scheme Selection");
+        preference->setItems(items);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->float { return myAvatar->getAnalogPlusWalkSpeed(); };
+        auto setter = [myAvatar](float value) { myAvatar->setAnalogPlusWalkSpeed(value); };
+        auto preference = new SpinnerSliderPreference(VR_MOVEMENT, "Analog++ Walk Speed", getter, setter);
+        preference->setMin(6.0f);
+        preference->setMax(30.0f);
+        preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {

@@ -83,7 +83,7 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
 
-    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
+    if (_drawMaterials.shouldUpdate()) {
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 
@@ -154,8 +154,7 @@ void MeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
@@ -329,7 +328,7 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withDeformed();
     }
 
-    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
+    if (_drawMaterials.shouldUpdate()) {
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 
@@ -347,7 +346,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         return;
     }
 
-    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
+    if (_drawMaterials.shouldUpdate()) {
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 
@@ -416,7 +415,7 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, RenderArgs::RenderMo
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
-    if (!args) {
+    if (!args || (args->_renderMode == RenderArgs::RenderMode::DEFAULT_RENDER_MODE && _cauterized)) {
         return;
     }
 
@@ -434,8 +433,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     // apply material properties
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
+    if (RenderPipelines::bindMaterials(_drawMaterials, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 
@@ -452,9 +450,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4>& clusterMatrices) {
     _adjustedLocalBound = _localBound;
     if (clusterMatrices.size() > 0) {
-        _adjustedLocalBound.transform(clusterMatrices[0]);
+        _adjustedLocalBound.transform(clusterMatrices.back());
 
-        for (int i = 1; i < (int)clusterMatrices.size(); ++i) {
+        for (int i = 0; i < (int)clusterMatrices.size() - 1; ++i) {
             AABox clusterBound = _localBound;
             clusterBound.transform(clusterMatrices[i]);
             _adjustedLocalBound += clusterBound;
@@ -465,12 +463,12 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<glm::mat4
 void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::TransformDualQuaternion>& clusterDualQuaternions) {
     _adjustedLocalBound = _localBound;
     if (clusterDualQuaternions.size() > 0) {
-        Transform rootTransform(clusterDualQuaternions[0].getRotation(),
-                                clusterDualQuaternions[0].getScale(),
-                                clusterDualQuaternions[0].getTranslation());
+        Transform rootTransform(clusterDualQuaternions.back().getRotation(),
+                                clusterDualQuaternions.back().getScale(),
+                                clusterDualQuaternions.back().getTranslation());
         _adjustedLocalBound.transform(rootTransform);
 
-        for (int i = 1; i < (int)clusterDualQuaternions.size(); ++i) {
+        for (int i = 0; i < (int)clusterDualQuaternions.size() - 1; ++i) {
             AABox clusterBound = _localBound;
             Transform transform(clusterDualQuaternions[i].getRotation(),
                                 clusterDualQuaternions[i].getScale(),

@@ -35,11 +35,11 @@ EntityItemProperties ImageEntityItem::getProperties(const EntityPropertyFlags& d
     withReadLock([&] {
         _pulseProperties.getProperties(properties);
     });
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(imageURL, getImageURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emissive, getEmissive);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keepAspectRatio, getKeepAspectRatio);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(subImage, getSubImage);
 
     return properties;
@@ -54,11 +54,11 @@ bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
     });
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(imageURL, setImageURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emissive, setEmissive);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keepAspectRatio, setKeepAspectRatio);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(subImage, setSubImage);
 
     if (somethingChanged) {
@@ -91,11 +91,11 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         bytesRead += bytesFromPulse;
         dataAt += bytesFromPulse;
     });
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
     READ_ENTITY_PROPERTY(PROP_IMAGE_URL, QString, setImageURL);
     READ_ENTITY_PROPERTY(PROP_EMISSIVE, bool, setEmissive);
     READ_ENTITY_PROPERTY(PROP_KEEP_ASPECT_RATIO, bool, setKeepAspectRatio);
-    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     READ_ENTITY_PROPERTY(PROP_SUB_IMAGE, QRect, setSubImage);
 
     return bytesRead;
@@ -107,11 +107,11 @@ EntityPropertyFlags ImageEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
     requestedProperties += _pulseProperties.getEntityProperties(params);
+    requestedProperties += PROP_BILLBOARD_MODE;
 
     requestedProperties += PROP_IMAGE_URL;
     requestedProperties += PROP_EMISSIVE;
     requestedProperties += PROP_KEEP_ASPECT_RATIO;
-    requestedProperties += PROP_BILLBOARD_MODE;
     requestedProperties += PROP_SUB_IMAGE;
 
     return requestedProperties;
@@ -133,12 +133,22 @@ void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
             propertyFlags, propertiesDidntFit, propertyCount, appendState);
     });
+    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
 
     APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, getImageURL());
     APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, getEmissive());
     APPEND_ENTITY_PROPERTY(PROP_KEEP_ASPECT_RATIO, getKeepAspectRatio());
-    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
     APPEND_ENTITY_PROPERTY(PROP_SUB_IMAGE, getSubImage());
+}
+
+glm::vec3 ImageEntityItem::getRaycastDimensions() const {
+    glm::vec3 dimensions = getScaledDimensions();
+    if (getBillboardMode() != BillboardMode::NONE) {
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        return glm::vec3(SQRT_2 * max);
+    }
+    return dimensions;
 }
 
 bool ImageEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -149,6 +159,7 @@ bool ImageEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode, EntityItem::getPrimaryViewFrustumPosition());
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 forward = rotation * Vectors::FRONT;

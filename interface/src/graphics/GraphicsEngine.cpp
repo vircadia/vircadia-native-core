@@ -65,15 +65,15 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }
 
-void GraphicsEngine::initializeRender(bool disableDeferred) {
+void GraphicsEngine::initializeRender() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
 #ifndef Q_OS_ANDROID
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor, !disableDeferred);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
 #endif
-    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, !disableDeferred, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, render::ItemKey::TAG_BITS_0, render::ItemKey::TAG_BITS_0);
     _renderEngine->load();
     _renderEngine->registerScene(_renderScene);
 
@@ -244,6 +244,7 @@ void GraphicsEngine::render_performFrame() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
+    std::queue<Application::SnapshotOperator> snapshotOperators;
     if (!_programsCompiled.load()) {
         gpu::doInBatch("splashFrame", _gpuContext, [&](gpu::Batch& batch) {
             batch.setFramebuffer(finalFramebuffer);
@@ -271,6 +272,7 @@ void GraphicsEngine::render_performFrame() {
             PROFILE_RANGE(render, "/runRenderFrame");
             renderArgs._hudOperator = displayPlugin->getHUDOperator();
             renderArgs._hudTexture = qApp->getApplicationOverlay().getOverlayTexture();
+            renderArgs._takingSnapshot = qApp->takeSnapshotOperators(snapshotOperators);
             renderArgs._blitFramebuffer = finalFramebuffer;
             render_runRenderFrame(&renderArgs);
         }
@@ -285,6 +287,7 @@ void GraphicsEngine::render_performFrame() {
             frameBufferCache->releaseFramebuffer(framebuffer);
         }
     };
+    frame->snapshotOperators = snapshotOperators;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");

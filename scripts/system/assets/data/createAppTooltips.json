@@ -134,6 +134,9 @@
     "bloom.bloomSize": {
         "tooltip": "The radius of bloom. The higher the value, the larger the bloom."
     },
+    "avatarPriority": {
+        "tooltip":  "Alter Avatars' update priorities."
+    },
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
     },
@@ -223,6 +226,14 @@
     },
     "speedSpread": {
         "tooltip": "The spread in speeds at which particles are emitted at, resulting in a variety of speeds."
+    },
+    "particleShapeType": {
+        "tooltip": "The shape of the surface from which to emit particles.",
+        "jsPropertyName": "shapeType"
+    },
+    "particleCompoundShapeURL": {
+        "tooltip": "The model file to use for the particle emitter if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
     },
     "emitDimensions": {
         "tooltip": "The outer limit radius in dimensions that the particles can be emitted from."
@@ -355,17 +366,8 @@
     "materialData": {
         "tooltip": "Can be used instead of a JSON file when material set to materialData."
     },
-    "materialNameToReplace": {
-        "tooltip": "Material name of parent entity to map this material entity on.",
-        "jsPropertyName": "parentMaterialName"
-    },
-    "submeshToReplace": {
-        "tooltip": "Submesh index of the parent entity to map this material on.",
-        "jsPropertyName": "parentMaterialName"
-    },
-    "selectSubmesh": {
-        "tooltip": "If enabled, \"Submesh to Replace\" property will show up, otherwise \"Material to Replace\" will be shown.",
-        "skipJSProperty": true
+    "parentMaterialName": {
+        "tooltip": "The target mesh indices or material names that this material entity should be assigned to on it's parent. This only supports parents that are Avatars as well as Shape or Model entity types."
     },
     "priority": {
         "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
@@ -490,6 +492,9 @@
     "canCastShadow": {
         "tooltip": "If enabled, this geometry of this entity casts shadows when a shadow-casting light source shines on it."
     },
+    "ignorePickIntersection": {
+        "tooltip": "If enabled, this entity will not be considered for ray picks, and will also not occlude other entities when picking."
+    },
     "parentID": {
         "tooltip": "The ID of the entity or avatar that this entity is parented to."
     },
@@ -545,6 +550,27 @@
     },
     "acceleration": {
         "tooltip": "A acceleration that the entity should move with, in world space."
+    },
+    "renderLayer": {
+        "tooltip": "The layer on which this entity is rendered."
+    },
+    "primitiveMode": {
+        "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
+    },
+    "groupCulled": {
+        "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
+    },
+    "webColor": {
+        "tooltip": "The tint of the web entity."
+    },
+    "webAlpha": {
+        "tooltip": "The alpha of the web entity."
+    },
+    "maxFPS": {
+        "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
+    },
+    "scriptURL": {
+        "tooltip": "The URL of a script to inject into the web page."
     },
     "alignToGrid": {
         "tooltip": "Used to align entities to the grid, or floor of the environment.",

@@ -11,6 +11,7 @@
 import QtQuick 2.5
 
 import "windows" as Windows
+import "."
 import controlsUit 1.0 as Controls
 import stylesUit 1.0
 
@@ -55,12 +56,8 @@ Windows.ScrollingWindow {
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
 
-        Controls.WebView {
+        QmlWebWindowView {
             id: webview
-            url: "about:blank"
-            property string userScriptUrl: ""
-            anchors.fill: parent
-            focus: true
         }
     }
 }

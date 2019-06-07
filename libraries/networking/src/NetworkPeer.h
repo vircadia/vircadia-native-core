@@ -23,10 +23,10 @@
 
 const QString ICE_SERVER_HOSTNAME = "localhost";
 const quint16 ICE_SERVER_DEFAULT_PORT = 7337;
-const int ICE_HEARBEAT_INTERVAL_MSECS = 2 * 1000;
+const int ICE_HEARBEAT_INTERVAL_MSECS = 1 * 1000;
 const int MAX_ICE_CONNECTION_ATTEMPTS = 5;
 
-const int UDP_PUNCH_PING_INTERVAL_MS = 25;
+const int UDP_PUNCH_PING_INTERVAL_MS = 250;
 
 class NetworkPeer : public QObject {
     Q_OBJECT

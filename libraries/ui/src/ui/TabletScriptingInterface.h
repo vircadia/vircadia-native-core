@@ -98,7 +98,6 @@ public:
      * @function tabletInterface.getTablet
      * @param {string} name - Tablet name.
      * @returns {TabletProxy} Tablet instance.
-     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.getTablet} instead.
      */
     Q_INVOKABLE TabletProxy* getTablet(const QString& tabletId);
 
@@ -111,7 +110,6 @@ public:
     /**jsdoc
      * @function tabletInterface.playSound
      * @param {Tablet.AudioEvents} sound
-     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.playSound} instead.
      */
     Q_INVOKABLE void playSound(TabletAudioEvents aEvent);
 
@@ -134,7 +132,6 @@ signals:
      * Triggered when a tablet message or dialog is created.
      * @function tabletInterface.tabletNotification
      * @returns {Signal}
-     * @deprecated This function is deprecated and will be removed. Use {@link Tablet.tabletNotification} instead.
      */
     void tabletNotification();
 

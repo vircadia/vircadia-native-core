@@ -49,9 +49,9 @@
 
 const int INVALID_PORT = -1;
 
-const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
+const quint64 NODE_SILENCE_THRESHOLD_MSECS = 10 * 1000;
 
-extern const std::set<NodeType_t> SOLO_NODE_TYPES;
+static const size_t DEFAULT_MAX_CONNECTION_RATE { std::numeric_limits<size_t>::max() };
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
@@ -122,6 +122,7 @@ public:
     bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getThisNodeCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
+    bool getThisNodeCanGetAndSetPrivateUserData() const { return _permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData); }
 
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
@@ -205,7 +206,10 @@ public:
                     int* lockWaitOut = nullptr,
                     int* nodeTransformOut = nullptr,
                     int* functorOut = nullptr) {
-        auto start = usecTimestampNow();
+        quint64 start, endTransform, endFunctor;
+
+        start = usecTimestampNow();
+        std::vector<SharedNodePointer> nodes;
         {
             QReadLocker readLock(&_nodeMutex);
             auto endLock = usecTimestampNow();
@@ -216,21 +220,21 @@ public:
             // Size of _nodeHash could change at any time,
             // so reserve enough memory for the current size
             // and then back insert all the nodes found
-            std::vector<SharedNodePointer> nodes;
             nodes.reserve(_nodeHash.size());
             std::transform(_nodeHash.cbegin(), _nodeHash.cend(), std::back_inserter(nodes), [&](const NodeHash::value_type& it) {
                 return it.second;
             });
-            auto endTransform = usecTimestampNow();
+
+            endTransform = usecTimestampNow();
             if (nodeTransformOut) {
                 *nodeTransformOut = (endTransform - endLock);
             }
+        }
 
-            functor(nodes.cbegin(), nodes.cend());
-            auto endFunctor = usecTimestampNow();
-            if (functorOut) {
-                *functorOut = (endFunctor - endTransform);
-            }
+        functor(nodes.cbegin(), nodes.cend());
+        endFunctor = usecTimestampNow();
+        if (functorOut) {
+            *functorOut = (endFunctor - endTransform);
         }
     }
 
@@ -316,10 +320,22 @@ public:
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
 
+    size_t getMaxConnectionRate() const { return _maxConnectionRate; }
+    void setMaxConnectionRate(size_t rate) { _maxConnectionRate = rate; }
+
     int getInboundPPS() const { return _inboundPPS; }
     int getOutboundPPS() const { return _outboundPPS; }
     float getInboundKbps() const { return _inboundKbps; }
     float getOutboundKbps() const { return _outboundKbps; }
+
+    const std::set<NodeType_t> SOLO_NODE_TYPES = {
+        NodeType::AvatarMixer,
+        NodeType::AudioMixer,
+        NodeType::AssetServer,
+        NodeType::EntityServer,
+        NodeType::MessagesMixer,
+        NodeType::EntityScriptServer
+    };
 
 public slots:
     void reset();
@@ -360,6 +376,7 @@ signals:
     void canWriteAssetsChanged(bool canWriteAssets);
     void canKickChanged(bool canKick);
     void canReplaceContentChanged(bool canReplaceContent);
+    void canGetAndSetPrivateUserDataChanged(bool canGetAndSetPrivateUserData);
 
 protected slots:
     void connectedForLocalSocketTest();
@@ -367,7 +384,20 @@ protected slots:
 
     void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
+    void processDelayedAdds();
+
 protected:
+    struct NewNodeInfo {
+        qint8 type;
+        QUuid uuid;
+        HifiSockAddr publicSocket;
+        HifiSockAddr localSocket;
+        NodePermissions permissions;
+        bool isReplicated;
+        Node::LocalID sessionLocalID;
+        QUuid connectionSecretUUID;
+    };
+
     LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
     LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
@@ -389,6 +419,11 @@ protected:
                                const QUuid& peerRequestID = QUuid());
 
     bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr);
+
+    void addNewNode(NewNodeInfo info);
+    void delayNodeAdd(NewNodeInfo info);
+    void removeDelayedAdd(QUuid nodeUUID);
+    bool isDelayedNode(QUuid nodeUUID);
 
     NodeHash _nodeHash;
     mutable QReadWriteLock _nodeMutex { QReadWriteLock::Recursive };
@@ -439,6 +474,10 @@ private:
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
     bool _flagTimeForConnectionStep { false }; // only keep track in interface
+
+    size_t _maxConnectionRate { DEFAULT_MAX_CONNECTION_RATE };
+    size_t _nodesAddedInCurrentTimeSlice { 0 };
+    std::vector<NewNodeInfo> _delayedNodeAdds;
 
     int _inboundPPS { 0 };
     int _outboundPPS { 0 };

@@ -79,6 +79,7 @@ namespace particle {
     static const QString DEFAULT_TEXTURES = "";
     static const bool DEFAULT_EMITTER_SHOULD_TRAIL = false;
     static const bool DEFAULT_ROTATE_WITH_ENTITY = false;
+    static const ShapeType DEFAULT_SHAPE_TYPE = ShapeType::SHAPE_TYPE_ELLIPSOID;
 
     template <typename T>
     struct Range {
@@ -230,6 +231,8 @@ public:
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
+    bool shouldBePhysical() const override { return false; }
+
     void setColor(const glm::u8vec3& value);
     glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
 
@@ -255,7 +258,10 @@ public:
     float getAlphaSpread() const { return _particleProperties.alpha.gradient.spread; }
 
     void setShapeType(ShapeType type) override;
-    virtual ShapeType getShapeType() const override { return _shapeType; }
+    virtual ShapeType getShapeType() const override;
+
+    QString getCompoundShapeURL() const;
+    virtual void setCompoundShapeURL(const QString& url);
 
     virtual void debugDump() const override;
 
@@ -349,7 +355,8 @@ protected:
     PulsePropertyGroup _pulseProperties;
     bool _isEmitting { true };
 
-    ShapeType _shapeType { SHAPE_TYPE_NONE };
+    ShapeType _shapeType{ particle::DEFAULT_SHAPE_TYPE };
+    QString _compoundShapeURL { "" };
 };
 
 #endif // hifi_ParticleEffectEntityItem_h

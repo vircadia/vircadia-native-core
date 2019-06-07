@@ -32,6 +32,7 @@ public:
     int numIdentityPacketsSent { 0 };
     int numOthersIncluded { 0 };
     int overBudgetAvatars { 0 };
+    int numHeroesIncluded { 0 };
 
     quint64 ignoreCalculationElapsedTime { 0 };
     quint64 avatarDataPackingElapsedTime { 0 };
@@ -57,6 +58,7 @@ public:
         numIdentityPacketsSent = 0;
         numOthersIncluded = 0;
         overBudgetAvatars = 0;
+        numHeroesIncluded = 0;
 
         ignoreCalculationElapsedTime = 0;
         avatarDataPackingElapsedTime = 0;
@@ -80,6 +82,7 @@ public:
         numIdentityPacketsSent += rhs.numIdentityPacketsSent;
         numOthersIncluded += rhs.numOthersIncluded;
         overBudgetAvatars += rhs.overBudgetAvatars;
+        numHeroesIncluded += rhs.numHeroesIncluded;
 
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
         avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;
@@ -90,9 +93,13 @@ public:
     }
 };
 
+class EntityTree;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
+
 struct SlaveSharedData {
     QStringList skeletonURLWhitelist;
     QUrl skeletonReplacementURL;
+    EntityTreePointer entityTree;
 };
 
 class AvatarMixerSlave {
@@ -103,7 +110,8 @@ public:
     void configure(ConstIter begin, ConstIter end);
     void configureBroadcast(ConstIter begin, ConstIter end, 
                     p_high_resolution_clock::time_point lastFrameTimestamp, 
-                    float maxKbpsPerNode, float throttlingRatio);
+                    float maxKbpsPerNode, float throttlingRatio,
+                    float priorityReservedFraction);
 
     void processIncomingPackets(const SharedNodePointer& node);
     void broadcastAvatarData(const SharedNodePointer& node);
@@ -133,6 +141,7 @@ private:
     p_high_resolution_clock::time_point _lastFrameTimestamp;
     float _maxKbpsPerNode { 0.0f };
     float _throttlingRatio { 0.0f };
+    float _avatarHeroFraction { 0.4f };
 
     AvatarMixerSlaveStats _stats;
     SlaveSharedData* _sharedData;

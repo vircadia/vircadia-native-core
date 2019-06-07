@@ -73,7 +73,7 @@ RUN mkdir "$HIFI_BASE" && \
 
 RUN git clone https://github.com/jherico/hifi.git && \
     cd ~/hifi && \
-    git checkout feature/quest_frame_player
+    git checkout quest/build
 
 WORKDIR /home/jenkins/hifi
 

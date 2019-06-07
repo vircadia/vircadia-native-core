@@ -43,6 +43,7 @@ public:
                                          EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                          bool& somethingChanged) override;
 
+    glm::vec3 getRaycastDimensions() const override;
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
@@ -77,15 +78,15 @@ public:
     PulsePropertyGroup getPulseProperties() const;
 
 protected:
-    QString _imageURL;
-    bool _emissive { false };
-    bool _keepAspectRatio { true };
-    BillboardMode _billboardMode;
-    QRect _subImage;
-
     glm::u8vec3 _color;
     float _alpha;
     PulsePropertyGroup _pulseProperties;
+    BillboardMode _billboardMode;
+
+    QString _imageURL;
+    bool _emissive { false };
+    bool _keepAspectRatio { true };
+    QRect _subImage;
 };
 
 #endif // hifi_ImageEntityItem_h

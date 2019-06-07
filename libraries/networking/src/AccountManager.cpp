@@ -97,6 +97,7 @@ void AccountManager::logout() {
 
     // remove this account from the account settings file
     removeAccountFromFile();
+    saveLoginStatus(false);
 
     emit logoutComplete();
     // the username has changed to blank
@@ -536,7 +537,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append("username=" + login + "&");
+    postData.append("username=" + QUrl::toPercentEncoding(login) + "&");
     postData.append("password=" + QUrl::toPercentEncoding(password) + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
@@ -647,6 +648,39 @@ void AccountManager::refreshAccessToken() {
     } else {
         qCWarning(networking) << "Cannot refresh access token without refresh token."
             << "Access token will need to be manually refreshed.";
+    }
+}
+
+void AccountManager::setAccessTokens(const QString& response) {
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(response.toUtf8());
+    const QJsonObject& rootObject = jsonResponse.object();
+
+    if (!rootObject.contains("error")) {
+        // construct an OAuthAccessToken from the json object
+
+        if (!rootObject.contains("access_token") || !rootObject.contains("expires_in")
+            || !rootObject.contains("token_type")) {
+            // TODO: error handling - malformed token response
+            qCDebug(networking) << "Received a response for password grant that is missing one or more expected values.";
+        } else {
+            // clear the path from the response URL so we have the right root URL for this access token
+            QUrl rootURL = rootObject.contains("url") ? rootObject["url"].toString() : _authURL;
+            rootURL.setPath("");
+
+            qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
+
+            _accountInfo = DataServerAccountInfo();
+            _accountInfo.setAccessTokenFromJSON(rootObject);
+            emit loginComplete(rootURL);
+
+            persistAccountToFile();
+            saveLoginStatus(true);
+            requestProfile();
+        }
+    } else {
+        // TODO: error handling
+        qCDebug(networking) << "Error in response for password grant -" << rootObject["error_description"].toString();
+        emit loginFailed();
     }
 }
 
@@ -894,4 +928,35 @@ void AccountManager::handleKeypairGenerationError() {
 
 void AccountManager::setLimitedCommerce(bool isLimited) {
     _limitedCommerce = isLimited;
+}
+
+void AccountManager::saveLoginStatus(bool isLoggedIn) {
+    if (!_configFileURL.isEmpty()) {
+        QFile configFile(_configFileURL);
+        configFile.open(QIODevice::ReadOnly | QIODevice::Text);
+        QJsonParseError error;
+        QJsonDocument jsonDocument = QJsonDocument::fromJson(configFile.readAll(), &error);
+        configFile.close();
+        QString launcherPath;
+        if (error.error == QJsonParseError::NoError) {
+            QJsonObject rootObject = jsonDocument.object();
+            if (rootObject.contains("launcherPath")) {
+                launcherPath = rootObject["launcherPath"].toString();
+            }
+            if (rootObject.contains("loggedIn")) {
+                rootObject["loggedIn"] = isLoggedIn;
+            }
+            jsonDocument = QJsonDocument(rootObject);
+
+        }
+        configFile.open(QFile::WriteOnly | QFile::Text | QFile::Truncate);
+        configFile.write(jsonDocument.toJson());
+        configFile.close();
+        if (!isLoggedIn && !launcherPath.isEmpty()) {
+            QProcess launcher;
+            launcher.setProgram(launcherPath);
+            launcher.startDetached();
+            qApp->quit();
+        }
+    }
 }

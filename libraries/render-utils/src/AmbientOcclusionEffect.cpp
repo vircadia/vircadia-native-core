@@ -205,7 +205,7 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
 }
 
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
-    render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
+    render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion"),
     perspectiveScale{ 1.0f },
     edgeSharpness{ 1.0f },
     blurRadius{ 4 },
@@ -473,6 +473,10 @@ void AmbientOcclusionEffect::updateBlurParameters() {
         frameSize.x >>= 1;
     }
     const auto occlusionSize = frameSize >> resolutionLevel;
+
+    if (occlusionSize.x == 0 || occlusionSize.y == 0) {
+        return;
+    }
 
     // Occlusion UV limit
     hblur._blurAxis.z = occlusionSize.x / float(frameSize.x);

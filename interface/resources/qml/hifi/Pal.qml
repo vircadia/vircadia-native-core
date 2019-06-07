@@ -42,6 +42,8 @@ Rectangle {
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
     property bool punctuationMode: false;
+    property double loudSortTime: 0.0;
+    readonly property double kLOUD_SORT_PERIOD_MS: 1000.0;
 
     HifiConstants { id: hifi; }
     RootHttpRequest { id: http; }
@@ -1247,12 +1249,25 @@ Rectangle {
                     }
                 }
             }
+            if (nearbyTable.sortIndicatorColumn == 0 && Date.now() - pal.loudSortTime >= pal.kLOUD_SORT_PERIOD_MS) {
+                // Current sort by loudness so re-sort.
+                sortModel();
+                pal.loudSortTime = Date.now();
+            }
             break;
         case 'clearLocalQMLData':
             ignored = {};
             break;
         case 'refreshConnections':
             refreshConnections();
+            break;
+        case 'connectionRemoved':
+            for (var i=0; i<connectionsUserModel.count; ++i) {
+                if (connectionsUserModel.get(i).userName === message.params) {
+                    connectionsUserModel.remove(i);
+                    break;
+                }
+            }
             break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];

@@ -30,6 +30,7 @@
 using namespace hifi;
 
 const char* OculusControllerManager::NAME = "Oculus";
+const QString OCULUS_LAYOUT = "OculusConfiguration.qml";
 
 const quint64 LOST_TRACKING_DELAY = 3000000;
 
@@ -41,6 +42,22 @@ bool OculusControllerManager::activate() {
     InputPlugin::activate();
     checkForConnectedDevices();
     return true;
+}
+
+QString OculusControllerManager::configurationLayout() {
+    return OCULUS_LAYOUT;
+}
+
+void OculusControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
+    if (configurationSettings.contains("trackControllersInOculusHome")) {
+        _touch->_trackControllersInOculusHome.set(configurationSettings["trackControllersInOculusHome"].toBool());
+    }
+}
+
+QJsonObject OculusControllerManager::configurationSettings() {
+    QJsonObject configurationSettings;
+    configurationSettings["trackControllersInOculusHome"] = _touch->_trackControllersInOculusHome.get();
+    return configurationSettings;
 }
 
 void OculusControllerManager::checkForConnectedDevices() {
@@ -215,13 +232,14 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
     quint64 currentTime = usecTimestampNow();
     static const auto REQUIRED_HAND_STATUS = ovrStatus_OrientationTracked | ovrStatus_PositionTracked;
     bool hasInputFocus = ovr::hasInputFocus();
+    bool trackControllersInOculusHome = _trackControllersInOculusHome.get();
     auto tracking = ovr::getTrackingState(); // ovr_GetTrackingState(_parent._session, 0, false);
     ovr::for_each_hand([&](ovrHandType hand) {
         ++numTrackedControllers;
         int controller = (hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND);
 
         // Disable hand tracking while in Oculus Dash (Dash renders it's own hands)
-        if (!hasInputFocus) {
+        if (!hasInputFocus && !trackControllersInOculusHome) {
             _poseStateMap.erase(controller);
             _poseStateMap[controller].valid = false;
             return;
@@ -391,9 +409,10 @@ void OculusControllerManager::TouchDevice::stopHapticPulse(bool leftHand) {
 }
 
 /**jsdoc
- * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing Oculus Rift. The property values are 
- * integer IDs, uniquely identifying each output. <em>Read-only.</em> These can be mapped to actions or functions or 
- * <code>Controller.Standard</code> items in a {@link RouteObject} mapping.</p>
+ * <p>The <code>Controller.Hardware.OculusTouch</code> object has properties representing the Oculus Rift. The property values 
+ * are integer IDs, uniquely identifying each output. <em>Read-only.</em></p>
+ * <p>These outputs can be mapped to actions or functions or <code>Controller.Standard</code> items in a {@link RouteObject} 
+ * mapping.</p>
  * <table>
  *   <thead>
  *     <tr><th>Property</th><th>Type</th><th>Data</th><th>Description</th></tr>

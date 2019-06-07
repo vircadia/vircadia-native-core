@@ -38,6 +38,7 @@
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 #include <shared/ConicalViewFrustum.h>
+#include <ui/AvatarInputs.h>
 
 #include "Application.h"
 #include "InterfaceLogging.h"
@@ -45,6 +46,7 @@
 #include "MyAvatar.h"
 #include "DebugDraw.h"
 #include "SceneScriptingInterface.h"
+#include "ui/AvatarCertifyBanner.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
 // in the update loop - this also results in ~30hz when in desktop mode which is essentially
@@ -84,7 +86,6 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-
     const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
     if (otherAvatar && _space) {
         std::unique_lock<std::mutex> lock(_spaceLock);
@@ -100,7 +101,7 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
 }
 
 AvatarManager::~AvatarManager() {
-    assert(_avatarsToChangeInPhysics.empty());
+    assert(_otherAvatarsToChangeInPhysics.empty());
 }
 
 void AvatarManager::init() {
@@ -120,6 +121,8 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, transaction);
         scene->enqueueTransaction(transaction);
     }
+
+    setEnableDebugDrawOtherSkeletons(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawOtherSkeletons));
 }
 
 void AvatarManager::setSpace(workload::SpacePointer& space ) {
@@ -176,6 +179,13 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
     }
+
+    static AvatarCertifyBanner theftBanner;
+    if (_myAvatar->isCertifyFailed()) {
+        theftBanner.show(_myAvatar->getSessionUUID());
+    } else {
+        theftBanner.clear();
+    }
 }
 
 
@@ -210,7 +220,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     {
         // lock the hash for read to check the size
         QReadLocker lock(&_hashLock);
-        if (_avatarHash.size() < 2 && _avatarsToFadeOut.isEmpty()) {
+        if (_avatarHash.size() < 2) {
             return;
         }
     }
@@ -232,93 +242,147 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     auto avatarMap = getHashCopy();
 
     const auto& views = qApp->getConicalViews();
-    PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(views,
-            AvatarData::_avatarSortCoefficientSize,
-            AvatarData::_avatarSortCoefficientCenter,
-            AvatarData::_avatarSortCoefficientAge);
-    sortedAvatars.reserve(avatarMap.size() - 1); // don't include MyAvatar
+    // Prepare 2 queues for heros and for crowd avatars
+    using AvatarPriorityQueue = PrioritySortUtil::PriorityQueue<SortableAvatar>;
+    // Keep two independent queues, one for heroes and one for the riff-raff.
+    enum PriorityVariants
+    {
+        kHero = 0,
+        kNonHero,
+        NumVariants
+    };
+    AvatarPriorityQueue avatarPriorityQueues[NumVariants] = {
+             { views,
+               AvatarData::_avatarSortCoefficientSize,
+               AvatarData::_avatarSortCoefficientCenter,
+               AvatarData::_avatarSortCoefficientAge },
+             { views,
+               AvatarData::_avatarSortCoefficientSize,
+               AvatarData::_avatarSortCoefficientCenter,
+               AvatarData::_avatarSortCoefficientAge } };
+    // Reserve space
+    //avatarPriorityQueues[kHero].reserve(10);  // just few
+    avatarPriorityQueues[kNonHero].reserve(avatarMap.size() - 1);  // don't include MyAvatar
 
     // Build vector and compute priorities
     auto nodeList = DependencyManager::get<NodeList>();
     AvatarHash::iterator itr = avatarMap.begin();
     while (itr != avatarMap.end()) {
-        const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
+        auto avatar = std::static_pointer_cast<Avatar>(*itr);
         // DO NOT update _myAvatar!  Its update has already been done earlier in the main loop.
         // DO NOT update or fade out uninitialized Avatars
         if (avatar != _myAvatar && avatar->isInitialized() && !nodeList->isPersonalMutingNode(avatar->getID())) {
-            sortedAvatars.push(SortableAvatar(avatar));
+            if (avatar->getHasPriority()) {
+                avatarPriorityQueues[kHero].push(SortableAvatar(avatar));
+            } else {
+                avatarPriorityQueues[kNonHero].push(SortableAvatar(avatar));
+            }
         }
         ++itr;
     }
-    // Sort
-    const auto& sortedAvatarVector = sortedAvatars.getSortedVector();
+
+    _numHeroAvatars = (int)avatarPriorityQueues[kHero].size();
 
     // process in sorted order
     uint64_t startTime = usecTimestampNow();
-    uint64_t updateExpiry = startTime + MAX_UPDATE_AVATARS_TIME_BUDGET;
+
+    const uint64_t MAX_UPDATE_HEROS_TIME_BUDGET = uint64_t(0.8 * MAX_UPDATE_AVATARS_TIME_BUDGET);
+
+    uint64_t updatePriorityExpiries[NumVariants] = { startTime + MAX_UPDATE_HEROS_TIME_BUDGET, startTime + MAX_UPDATE_AVATARS_TIME_BUDGET };
+    int numHerosUpdated = 0;
     int numAvatarsUpdated = 0;
-    int numAVatarsNotUpdated = 0;
+    int numAvatarsNotUpdated = 0;
 
     render::Transaction renderTransaction;
     workload::Transaction workloadTransaction;
-    for (auto it = sortedAvatarVector.begin(); it != sortedAvatarVector.end(); ++it) {
-        const SortableAvatar& sortData = *it;
-        const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
-        if (!avatar->_isClientAvatar) {
-            avatar->setIsClientAvatar(true);
-        }
-        // TODO: to help us scale to more avatars it would be nice to not have to poll this stuff every update
-        if (avatar->getSkeletonModel()->isLoaded()) {
-            // remove the orb if it is there
-            avatar->removeOrb();
-            if (avatar->needsPhysicsUpdate()) {
-                _avatarsToChangeInPhysics.insert(avatar);
-            }
-        } else {
-            avatar->updateOrbPosition();
-        }
 
-        // for ALL avatars...
-        if (_shouldRender) {
-            avatar->ensureInScene(avatar, qApp->getMain3DScene());
-        }
-        avatar->animateScaleChanges(deltaTime);
+    for (int p = kHero; p < NumVariants; p++) {
+        auto& priorityQueue = avatarPriorityQueues[p];
+        // Sorting the current queue HERE as part of the measured timing.
+        const auto& sortedAvatarVector = priorityQueue.getSortedVector();
 
-        uint64_t now = usecTimestampNow();
-        if (now < updateExpiry) {
-            // we're within budget
-            bool inView = sortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
-            if (inView && avatar->hasNewJointData()) {
-                numAvatarsUpdated++;
-            }
-            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_serverPosition, _transitConfig);
-            if (avatar->getIsNewAvatar() && (transitStatus == AvatarTransit::Status::START_TRANSIT || transitStatus == AvatarTransit::Status::ABORT_TRANSIT)) {
-                avatar->_transit.reset();
-                avatar->setIsNewAvatar(false);
-            }
-            avatar->simulate(deltaTime, inView);
-            avatar->updateRenderItem(renderTransaction);
-            avatar->updateSpaceProxy(workloadTransaction);
-            avatar->setLastRenderUpdateTime(startTime);
-        } else {
-            // we've spent our full time budget --> bail on the rest of the avatar updates
-            // --> more avatars may freeze until their priority trickles up
-            // --> some scale animations may glitch
-            // --> some avatar velocity measurements may be a little off
+        auto passExpiry = updatePriorityExpiries[p];
 
-            // no time to simulate, but we take the time to count how many were tragically missed
-            while (it != sortedAvatarVector.end()) {
-                const SortableAvatar& newSortData = *it;
-                const auto& newAvatar = newSortData.getAvatar();
-                bool inView = newSortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
-                // Once we reach an avatar that's not in view, all avatars after it will also be out of view
-                if (!inView) {
-                    break;
+        for (auto it = sortedAvatarVector.begin(); it != sortedAvatarVector.end(); ++it) {
+            const SortableAvatar& sortData = *it;
+            const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
+            if (!avatar->_isClientAvatar) {
+                avatar->setIsClientAvatar(true);
+            }
+            // TODO: to help us scale to more avatars it would be nice to not have to poll this stuff every update
+            if (avatar->getSkeletonModel()->isLoaded()) {
+                // remove the orb if it is there
+                avatar->removeOrb();
+                if (avatar->needsPhysicsUpdate()) {
+                    _otherAvatarsToChangeInPhysics.insert(avatar);
                 }
-                numAVatarsNotUpdated += (int)(newAvatar->hasNewJointData());
-                ++it;
+            } else {
+                avatar->updateOrbPosition();
             }
-            break;
+
+            // for ALL avatars...
+            if (_shouldRender) {
+                avatar->ensureInScene(avatar, qApp->getMain3DScene());
+            }
+
+            avatar->animateScaleChanges(deltaTime);
+
+            uint64_t now = usecTimestampNow();
+            if (now < passExpiry) {
+                // we're within budget
+                bool inView = sortData.getPriority() > OUT_OF_VIEW_THRESHOLD;
+                if (inView && avatar->hasNewJointData()) {
+                    numAvatarsUpdated++;
+                }
+                auto transitStatus = avatar->_transit.update(deltaTime, avatar->_serverPosition, _transitConfig);
+                if (avatar->getIsNewAvatar() && (transitStatus == AvatarTransit::Status::START_TRANSIT ||
+                                                 transitStatus == AvatarTransit::Status::ABORT_TRANSIT)) {
+                    avatar->_transit.reset();
+                    avatar->setIsNewAvatar(false);
+                }
+                avatar->simulate(deltaTime, inView);
+                if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
+                    _myAvatar->addAvatarHandsToFlow(avatar);
+                }
+                if (_drawOtherAvatarSkeletons) {
+                    avatar->debugJointData();
+                }
+                avatar->setEnableMeshVisible(!_drawOtherAvatarSkeletons);
+                avatar->updateRenderItem(renderTransaction);
+                avatar->updateSpaceProxy(workloadTransaction);
+                avatar->setLastRenderUpdateTime(startTime);
+
+            } else {
+                // we've spent our time budget for this priority bucket
+                // let's deal with the reminding avatars if this pass and BREAK from the for loop
+
+                if (p == kHero) {
+                    // Hero,
+                    // --> put them back in the non hero queue
+
+                    auto& crowdQueue = avatarPriorityQueues[kNonHero];
+                    while (it != sortedAvatarVector.end()) {
+                        crowdQueue.push(SortableAvatar((*it).getAvatar()));
+                        ++it;
+                    }
+                } else {
+                    // Non Hero
+                    // --> bail on the rest of the avatar updates
+                    // --> more avatars may freeze until their priority trickles up
+                    // --> some scale animations may glitch
+                    // --> some avatar velocity measurements may be a little off
+
+                    // no time to simulate, but we take the time to count how many were tragically missed
+                    numAvatarsNotUpdated = sortedAvatarVector.end() - it;
+                }
+
+                // We had to cut short this pass, we must break out of the for loop here
+                break;
+            }
+        }
+
+        if (p == kHero) {
+            numHerosUpdated = numAvatarsUpdated;
         }
     }
 
@@ -326,17 +390,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         qApp->getMain3DScene()->enqueueTransaction(renderTransaction);
     }
 
-    if (!_spaceProxiesToDelete.empty() && _space) {
-        std::unique_lock<std::mutex> lock(_spaceLock);
-        workloadTransaction.remove(_spaceProxiesToDelete);
-        _spaceProxiesToDelete.clear();
-    }
     _space->enqueueTransaction(workloadTransaction);
 
     _numAvatarsUpdated = numAvatarsUpdated;
-    _numAvatarsNotUpdated = numAVatarsNotUpdated;
-
-    simulateAvatarFades(deltaTime);
+    _numAvatarsNotUpdated = numAvatarsNotUpdated;
+    _numHeroAvatarsUpdated = numHerosUpdated;
 
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }
@@ -350,106 +408,123 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
     }
 }
 
-void AvatarManager::simulateAvatarFades(float deltaTime) {
-    if (_avatarsToFadeOut.empty()) {
-        return;
-    }
-
-    QReadLocker locker(&_hashLock);
-    QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFadeOut.begin();
-    const render::ScenePointer& scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    while (avatarItr != _avatarsToFadeOut.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        avatar->updateFadingStatus();
-        if (!avatar->isFading()) {
-            // fading to zero is such a rare event we push a unique transaction for each
-            if (avatar->isInScene()) {
-                avatar->removeFromScene(*avatarItr, scene, transaction);
-            }
-            avatarItr = _avatarsToFadeOut.erase(avatarItr);
-        } else {
-            ++avatarItr;
-        }
-    }
-    scene->enqueueTransaction(transaction);
-}
-
 AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
     auto otherAvatar = new OtherAvatar(qApp->thread());
     otherAvatar->setSessionUUID(sessionUUID);
     auto nodeList = DependencyManager::get<NodeList>();
-    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+    if (nodeList && !nodeList->isIgnoringNode(sessionUUID)) {
         otherAvatar->createOrb();
     }
     return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {
-    _avatarsToChangeInPhysics.insert(avatar);
+    _otherAvatarsToChangeInPhysics.insert(avatar);
+}
+
+DetailedMotionState* AvatarManager::createDetailedMotionState(OtherAvatarPointer avatar, int32_t jointIndex) {
+    bool isBound = false;
+    std::vector<int32_t> boundJoints;
+    const btCollisionShape* shape = avatar->createCollisionShape(jointIndex, isBound, boundJoints);
+    if (shape) {
+        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
+        motionState->setMass(0.0f); // DetailedMotionState has KINEMATIC MotionType, so zero mass is ok
+        motionState->setIsBound(isBound, boundJoints);
+        return motionState;
+    }
+    return nullptr;
+}
+
+void AvatarManager::rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, OtherAvatarPointer avatar) {
+    if (!avatar->_motionState) {
+        avatar->_motionState = new AvatarMotionState(avatar, nullptr);
+    }
+    AvatarMotionState* motionState = avatar->_motionState;
+    ShapeInfo shapeInfo;
+    avatar->computeShapeInfo(shapeInfo);
+    const btCollisionShape* shape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
+    assert(shape);
+    motionState->setShape(shape);
+    motionState->setMass(avatar->computeMass());
+    if (motionState->getRigidBody()) {
+        transaction.objectsToReinsert.push_back(motionState);
+    } else {
+        transaction.objectsToAdd.push_back(motionState);
+    }
+    motionState->clearIncomingDirtyFlags();
+
+    // Rather than reconcile numbers of joints after change to model or LOD
+    // we blow away old detailedMotionStates and create anew all around.
+
+    // delete old detailedMotionStates
+    auto& detailedMotionStates = avatar->getDetailedMotionStates();
+    if (detailedMotionStates.size() != 0) {
+        for (auto& detailedMotionState : detailedMotionStates) {
+            transaction.objectsToRemove.push_back(detailedMotionState);
+        }
+        avatar->resetDetailedMotionStates();
+    }
+
+    // build new detailedMotionStates
+    OtherAvatar::BodyLOD lod = avatar->getBodyLOD();
+    if (lod == OtherAvatar::BodyLOD::Sphere) {
+        auto dMotionState = createDetailedMotionState(avatar, -1);
+        if (dMotionState) {
+            detailedMotionStates.push_back(dMotionState);
+            transaction.objectsToAdd.push_back(dMotionState);
+        }
+    } else {
+        int32_t numJoints = avatar->getJointCount();
+        for (int32_t i = 0; i < numJoints; i++) {
+            auto dMotionState = createDetailedMotionState(avatar, i);
+            if (dMotionState) {
+                detailedMotionStates.push_back(dMotionState);
+                transaction.objectsToAdd.push_back(dMotionState);
+            }
+        }
+    }
+    avatar->_needsReinsertion = false;
 }
 
 void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
-    SetOfOtherAvatars failedShapeBuilds;
-    for (auto avatar : _avatarsToChangeInPhysics) {
+    _myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
+    for (auto avatar : _otherAvatarsToChangeInPhysics) {
         bool isInPhysics = avatar->isInPhysicsSimulation();
         if (isInPhysics != avatar->shouldBeInPhysicsSimulation()) {
             if (isInPhysics) {
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
                 auto& detailedMotionStates = avatar->getDetailedMotionStates();
-                for (auto& mState : detailedMotionStates) {
-                    transaction.objectsToRemove.push_back(mState);
+                for (auto& motionState : detailedMotionStates) {
+                    transaction.objectsToRemove.push_back(motionState);
                 }
                 avatar->resetDetailedMotionStates();
-                
             } else {
-                if (avatar->getDetailedMotionStates().size() == 0) {
-                    avatar->createDetailedMotionStates(avatar);
-                    for (auto dMotionState : avatar->getDetailedMotionStates()) {
-                        transaction.objectsToAdd.push_back(dMotionState);
-                    }
-                }
-                if (avatar->getDetailedMotionStates().size() > 0) {
-                    ShapeInfo shapeInfo;
-                    avatar->computeShapeInfo(shapeInfo);
-                    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-                    if (shape) {
-                        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-                        motionState->setMass(avatar->computeMass());
-                        avatar->_motionState = motionState;
-                        transaction.objectsToAdd.push_back(motionState);
-                    } else {
-                        failedShapeBuilds.insert(avatar);
-                    }
-                } else {
-                    failedShapeBuilds.insert(avatar);
-                }
+                rebuildAvatarPhysics(transaction, avatar);
             }
         } else if (isInPhysics) {
-            transaction.objectsToChange.push_back(avatar->_motionState);
-            
-            auto& detailedMotionStates = avatar->getDetailedMotionStates();
-            for (auto& mState : detailedMotionStates) {
-                if (mState) {
-                    transaction.objectsToChange.push_back(mState);
-                }
+            AvatarMotionState* motionState = avatar->_motionState;
+            uint32_t flags = motionState->getIncomingDirtyFlags();
+            if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
+                motionState->handleEasyChanges(flags);
             }
-            
+            // NOTE: we don't call detailedMotionState->handleEasyChanges() here because they are KINEMATIC
+            // and Bullet will automagically call DetailedMotionState::getWorldTransform() on all that are active.
+
+            if (motionState->needsNewShape()) {
+                rebuildAvatarPhysics(transaction, avatar);
+            } else {
+                if (flags & (Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP)) {
+                    transaction.objectsToReinsert.push_back(motionState);
+                }
+                motionState->clearIncomingDirtyFlags();
+            }
         }
     }
-    _avatarsToChangeInPhysics.swap(failedShapeBuilds);
+    _otherAvatarsToChangeInPhysics.clear();
 }
 
 void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
-    // things on objectsToChange correspond to failed changes
-    // so we push them back onto _avatarsToChangeInPhysics
-    for (auto object : transaction.objectsToChange) {
-        AvatarMotionState* motionState = static_cast<AvatarMotionState*>(object);
-        assert(motionState);
-        assert(motionState->_avatar);
-        _avatarsToChangeInPhysics.insert(motionState->_avatar);
-    }
     // things on objectsToRemove are ready for delete
     for (auto object : transaction.objectsToRemove) {
         delete object;
@@ -458,22 +533,37 @@ void AvatarManager::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction
 }
 
 void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     for (auto entity : deadEntities) {
-        QUuid sessionID = entity->getOwningAvatarID();
-        AvatarSharedPointer avatar = getAvatarBySessionID(sessionID);
+        QUuid entityOwnerID = entity->getOwningAvatarID();
+        AvatarSharedPointer avatar = getAvatarBySessionID(entityOwnerID);
+        const bool REQUIRES_REMOVAL_FROM_TREE = false;
         if (avatar) {
-            const bool REQUIRES_REMOVAL_FROM_TREE = false;
             avatar->clearAvatarEntity(entity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+        }
+        if (entityTree && entity->isMyAvatarEntity()) {
+            entityTree->withWriteLock([&] {
+                // We only need to delete the direct children (rather than the descendants) because
+                // when the child is deleted, it will take care of its own children.  If the child
+                // is also an avatar-entity, we'll end up back here.  If it's not, the entity-server
+                // will take care of it in the usual way.
+                entity->forEachChild([&](SpatiallyNestablePointer child) {
+                    EntityItemPointer childEntity = std::dynamic_pointer_cast<EntityItem>(child);
+                    if (childEntity) {
+                        entityTree->deleteEntity(childEntity->getID(), true, true);
+                        if (avatar) {
+                            avatar->clearAvatarEntity(childEntity->getID(), REQUIRES_REMOVAL_FROM_TREE);
+                        }
+                    }
+                });
+            });
         }
     }
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
-    {
-        std::unique_lock<std::mutex> lock(_spaceLock);
-        _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
-    }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
     avatar->tearDownGrabs();
 
@@ -484,16 +574,47 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // it might not fire until after we create a new instance for the same remote avatar, which creates a race
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
+    if (removalReason != KillAvatarReason::AvatarDisconnected) {
+        if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+            emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
+            emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+        }
 
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
-        emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
-    } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
+        workload::Transaction workloadTransaction;
+        workloadTransaction.remove(avatar->getSpaceIndex());
+        _space->enqueueTransaction(workloadTransaction);
+
+        const render::ScenePointer& scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        avatar->removeFromScene(avatar, scene, transaction);
+        scene->enqueueTransaction(transaction);
+    } else {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
-        avatar->fadeOut(qApp->getMain3DScene(), removalReason);
+        render::Transaction transaction;
+        auto scene = qApp->getMain3DScene();
+        avatar->fadeOut(transaction, removalReason);
+
+        workload::SpacePointer space = _space;
+        transaction.setTransitionFinishedOperator(avatar->getRenderItemID(), [space, avatar]() {
+            if (avatar->getLastFadeRequested() != render::Transition::Type::USER_LEAVE_DOMAIN) {
+                // The avatar is using another transition besides the fade-out transition, which means it is still in use.
+                // Deleting the avatar now could cause state issues, so abort deletion and show message.
+                qCWarning(interfaceapp) << "An ending fade-out transition wants to delete an avatar, but the avatar is still in use. Avatar deletion has aborted. (avatar ID: " << avatar->getSessionUUID() << ")";
+            } else {
+                const render::ScenePointer& scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                avatar->removeFromScene(avatar, scene, transaction);
+                scene->enqueueTransaction(transaction);
+
+                workload::Transaction workloadTransaction;
+                workloadTransaction.remove(avatar->getSpaceIndex());
+                space->enqueueTransaction(workloadTransaction);
+            }
+        });
+        scene->enqueueTransaction(transaction);
     }
-    _avatarsToFadeOut.push_back(removedAvatar);
 }
 
 void AvatarManager::clearOtherAvatars() {
@@ -517,7 +638,7 @@ void AvatarManager::clearOtherAvatars() {
                 ++avatarIterator;
             }
         }
-    }    
+    }
 
     for (auto& av : removedAvatars) {
         handleRemovedAvatar(av);
@@ -525,7 +646,7 @@ void AvatarManager::clearOtherAvatars() {
 }
 
 void AvatarManager::deleteAllAvatars() {
-    assert(_avatarsToChangeInPhysics.empty());
+    _otherAvatarsToChangeInPhysics.clear();
     QReadLocker locker(&_hashLock);
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
@@ -535,7 +656,7 @@ void AvatarManager::deleteAllAvatars() {
         if (avatar != _myAvatar) {
             auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
             assert(!otherAvatar->_motionState);
-            assert(otherAvatar->getDetailedMotionStates().size() == 0);            
+            assert(otherAvatar->getDetailedMotionStates().size() == 0);
         }
     }
 }
@@ -579,8 +700,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                     // but most avatars are roughly the same size, so let's not be so fancy yet.
                     const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                    _collisionInjectors.remove_if(
-                        [](const AudioInjectorPointer& injector) { return !injector || injector->isFinished(); });
+                    _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) { return !injector; });
 
                     static const int MAX_INJECTOR_COUNT = 3;
                     if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
@@ -590,7 +710,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                         options.volume = energyFactorOfFull;
                         options.pitch = 1.0f / AVATAR_STRETCH_FACTOR;
 
-                        auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
+                        auto injector = DependencyManager::get<AudioInjectorManager>()->playSound(collisionSound, options, true);
                         _collisionInjectors.emplace_back(injector);
                     }
                 }
@@ -690,7 +810,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     boxHit._distance = FLT_MAX;
 
                     for (size_t i = 0; i < hit._boundJoints.size(); i++) {
-                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        assert(hit._boundJoints[i] < (int)multiSpheres.size());
                         auto &mSphere = multiSpheres[hit._boundJoints[i]];
                         if (mSphere.isValid()) {
                             float boundDistance = FLT_MAX;
@@ -716,7 +836,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 }
             }
 
-            if (rayAvatarResult._intersect && pickAgainstMesh) {
+            if (avatar && rayAvatarResult._intersect && pickAgainstMesh) {
                 glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
                 glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayAvatarResult._distance * rayDirection, rayAvatarResult._intersectWithJoint);
 
@@ -897,6 +1017,19 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
+/**jsdoc
+ * PAL (People Access List) data for an avatar.
+ * @typedef {object} AvatarManager.PalData
+ * @property {Uuid} sessionUUID - The avatar's session ID. <code>""</code> if the avatar is your own.
+ * @property {string} sessionDisplayName - The avatar's display name, sanitized and versioned, as defined by the avatar mixer. 
+ *     It is unique among all avatars present in the domain at the time.
+ * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
+ *     domain.
+ * @property {boolean} isReplicated - <span class="important">Deprecated: This property is deprecated and will be 
+ *     removed.</span>
+ * @property {Vec3} position - The position of the avatar.
+ * @property {number} palOrbOffset - The vertical offset from the avatar's position that an overlay orb should be displayed at.
+ */
 QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifiers) {
     QJsonArray palData;
 
