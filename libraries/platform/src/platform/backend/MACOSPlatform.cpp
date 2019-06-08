@@ -37,53 +37,7 @@ void MACOSInstance::enumerateCpu() {
 
 void MACOSInstance::enumerateGpu() {
 #ifdef Q_OS_MAC
-/*    uint32_t cglDisplayMask = -1; // Iterate over all of them.
-    CGLRendererInfoObj rendererInfo;
-    GLint rendererInfoCount;
-    CGLError err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &rendererInfoCount);
-    GLint j, numRenderers = 0, deviceVRAM, bestVRAM = 0;
-    err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &numRenderers);
-    if (0 == err) {
-        // Iterate over all of them and use the figure for the one with the most VRAM,
-        // on the assumption that this is the one that will actually be used.
-        CGLDescribeRenderer(rendererInfo, 0, kCGLRPRendererCount, &numRenderers);
-        for (j = 0; j < numRenderers; j++) {
-            CGLDescribeRenderer(rendererInfo, j, kCGLRPVideoMemoryMegabytes, &deviceVRAM);
-            if (deviceVRAM > bestVRAM) {
-                bestVRAM = deviceVRAM;
-                isValid = true;
-            }
-        }
-    }
-    
-    //get gpu name
-    FILE* stream = popen("system_profiler SPDisplaysDataType | grep Chipset", "r");
-    
-    std::ostringstream hostStream;
-    while (!feof(stream) && !ferror(stream)) {
-        char buf[128];
-        int bytesRead = fread(buf, 1, 128, stream);
-        hostStream.write(buf, bytesRead);
-    }
-    
-    QString result = QString::fromStdString(hostStream.str());
-    QStringList parts = result.split('\n');
-    std::string name;
-    
-    for (int i = 0; i < parts.size(); ++i) {
-        if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
-            _name=parts[i];
-        }
-    }
-    
-    _dedicatedMemoryMB = bestVRAM;
-    CGLDestroyRendererInfo(rendererInfo);
-*/
-    
-   // auto displayID = CGMainDisplayID();
-   // auto displayGLMask = CGDisplayIDToOpenGLDisplayMask(displayID);
-  //  auto metalDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
-    
+
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
 
@@ -108,8 +62,6 @@ void MACOSInstance::enumerateDisplays() {
     auto displaySizeHeightInches = displaySize.height * MM_TO_IN;
     auto displaySizeDiagonalInches = sqrt(displaySizeWidthInches * displaySizeWidthInches + displaySizeHeightInches * displaySizeHeightInches);
     
-    auto displayPixelsWidth= CGDisplayPixelsWide(displayID);
-    auto displayPixelsHeight= CGDisplayPixelsHigh(displayID);
     auto displayBounds = CGDisplayBounds(displayID);
     auto displayMaster =CGDisplayIsMain(displayID);
     
