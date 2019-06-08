@@ -5171,11 +5171,13 @@ ivec2 Application::getMouse() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
+#ifdef HAVE_DDE
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
     if (dde && dde->isActive()) {
         return static_cast<FaceTracker*>(dde.data());
     }
+#endif
 
     return nullptr;
 }
@@ -7218,7 +7220,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _entityEditSender.nodeKilled(node);
-
+     
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {
