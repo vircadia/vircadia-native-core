@@ -2759,7 +2759,6 @@ void Application::cleanupBeforeQuit() {
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
-    DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
     // The PointerManager must be destroyed before the PickManager because when a Pointer is deleted,
@@ -2819,6 +2818,7 @@ Application::~Application() {
 
     DependencyManager::destroy<SoundCacheScriptingInterface>();
 
+    DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCacheScriptingInterface>();
     DependencyManager::destroy<AnimationCache>();
