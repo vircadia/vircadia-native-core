@@ -102,8 +102,10 @@ void MACOSInstance::enumerateDisplays() {
 #ifdef Q_OS_MAC
     auto displayID = CGMainDisplayID();
     auto displaySize = CGDisplayScreenSize(displayID);
-    auto displaySizeWidthInches = displaySize.width * 0.0393701;
-    auto displaySizeHeightInches = displaySize.height * 0.0393701;
+
+    const auto MM_TO_IN = 0.0393701;
+    auto displaySizeWidthInches = displaySize.width * MM_TO_IN;
+    auto displaySizeHeightInches = displaySize.height * MM_TO_IN;
     auto displaySizeDiagonalInches = sqrt(displaySizeWidthInches * displaySizeWidthInches + displaySizeHeightInches * displaySizeHeightInches);
     
     auto displayPixelsWidth= CGDisplayPixelsWide(displayID);
@@ -125,12 +127,10 @@ void MACOSInstance::enumerateDisplays() {
     
     json display = {};
     
-   // display["physicalWidth"] = displaySizeWidthInches;
-   // display["physicalHeight"] = displaySizeHeightInches;
+    display["physicalWidth"] = displaySizeWidthInches;
+    display["physicalHeight"] = displaySizeHeightInches;
     display["physicalDiagonal"] = displaySizeDiagonalInches;
     
-  //  display["ppiH"] = displayModeWidth / displaySizeWidthInches;
-  //  display["ppiV"] = displayModeHeight / displaySizeHeightInches;
     display["ppi"] = sqrt(displayModeHeight * displayModeHeight + displayModeWidth * displayModeWidth) / displaySizeDiagonalInches;
     
     display["coordLeft"] = displayBounds.origin.x;
@@ -148,8 +148,7 @@ void MACOSInstance::enumerateDisplays() {
     display["refreshrate"] =displayRefreshrate;
     display["modeWidth"] = displayModeWidth;
     display["modeHeight"] = displayModeHeight;
-    
-    
+
     _display.push_back(display);
 #endif
 }

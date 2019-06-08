@@ -69,19 +69,22 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
 
-        //    DependencyManager::get<LODManager>()->setWorldDetailQuality()
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(0.5f);
 
         break;
         case PerformancePreset::MID:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(0.5f);
 
         break;
         case PerformancePreset::LOW:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::FORWARD);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);
+
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(0.75f);
 
         break;
         case PerformancePreset::UNKNOWN:

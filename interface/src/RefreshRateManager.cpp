@@ -107,9 +107,7 @@ RefreshRateManager::RefreshRateProfile RefreshRateManager::getRefreshRateProfile
     RefreshRateManager::RefreshRateProfile profile = RefreshRateManager::RefreshRateProfile::REALTIME;
 
     if (getUXMode() != RefreshRateManager::UXMode::VR) {
-        profile =(RefreshRateManager::RefreshRateProfile) _refreshRateProfileSettingLock.resultWithReadLock<int>([&] {
-            return _refreshRateProfileSetting.get();
-        });
+        return _refreshRateProfile;
     }
 
     return profile;
@@ -138,15 +136,20 @@ void RefreshRateManager::setUXMode(RefreshRateManager::UXMode uxMode) {
     }
 }
 
+int RefreshRateManager::queryRefreshRateTarget(RefreshRateProfile profile, RefreshRateRegime regime, UXMode uxMode) const {
+    int targetRefreshRate;
+    if (uxMode == RefreshRateManager::UXMode::DESKTOP) {
+        targetRefreshRate = REFRESH_RATE_PROFILES[profile][regime];
+    }
+    else {
+        targetRefreshRate = VR_TARGET_RATE;
+    }
+    return targetRefreshRate;
+}
+
 void RefreshRateManager::updateRefreshRateController() const {
     if (_refreshRateOperator) {
-        int targetRefreshRate;
-        if (_uxMode == RefreshRateManager::UXMode::DESKTOP) {
-            targetRefreshRate = REFRESH_RATE_PROFILES[_refreshRateProfile][_refreshRateRegime];
-        } else {
-            targetRefreshRate = VR_TARGET_RATE;
-        }
-
+        int targetRefreshRate = queryRefreshRateTarget(_refreshRateProfile, _refreshRateRegime, _uxMode);
         _refreshRateOperator(targetRefreshRate);
         _activeRefreshRate = targetRefreshRate;
     }
