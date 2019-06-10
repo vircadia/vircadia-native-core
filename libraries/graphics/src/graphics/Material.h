@@ -53,7 +53,7 @@ public:
         ROUGHNESS_MAP_BIT,
         NORMAL_MAP_BIT,
         OCCLUSION_MAP_BIT,
-        LIGHTMAP_MAP_BIT,
+        LIGHT_MAP_BIT,
         SCATTERING_MAP_BIT,
 
         NUM_FLAGS,
@@ -67,7 +67,7 @@ public:
         ROUGHNESS_MAP,
         NORMAL_MAP,
         OCCLUSION_MAP,
-        LIGHTMAP_MAP,
+        LIGHT_MAP,
         SCATTERING_MAP,
 
         NUM_MAP_CHANNELS,
@@ -107,7 +107,7 @@ public:
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
         Builder& withOcclusionMap() { _flags.set(OCCLUSION_MAP_BIT); return (*this); }
-        Builder& withLightmapMap() { _flags.set(LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withLightMap() { _flags.set(LIGHT_MAP_BIT); return (*this); }
         Builder& withScatteringMap() { _flags.set(SCATTERING_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
@@ -157,8 +157,8 @@ public:
     void setOcclusionMap(bool value) { _flags.set(OCCLUSION_MAP_BIT, value); }
     bool isOcclusionMap() const { return _flags[OCCLUSION_MAP_BIT]; }
 
-    void setLightmapMap(bool value) { _flags.set(LIGHTMAP_MAP_BIT, value); }
-    bool isLightmapMap() const { return _flags[LIGHTMAP_MAP_BIT]; }
+    void setLightMap(bool value) { _flags.set(LIGHT_MAP_BIT, value); }
+    bool isLightMap() const { return _flags[LIGHT_MAP_BIT]; }
 
     void setScattering(bool value) { _flags.set(SCATTERING_VAL_BIT, value); }
     bool isScattering() const { return _flags[SCATTERING_VAL_BIT]; }
@@ -235,8 +235,8 @@ public:
         Builder& withoutOcclusionMap()       { _value.reset(MaterialKey::OCCLUSION_MAP_BIT); _mask.set(MaterialKey::OCCLUSION_MAP_BIT); return (*this); }
         Builder& withOcclusionMap()        { _value.set(MaterialKey::OCCLUSION_MAP_BIT);  _mask.set(MaterialKey::OCCLUSION_MAP_BIT); return (*this); }
 
-        Builder& withoutLightmapMap()       { _value.reset(MaterialKey::LIGHTMAP_MAP_BIT); _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
-        Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
+        Builder& withoutLightMap()       { _value.reset(MaterialKey::LIGHT_MAP_BIT); _mask.set(MaterialKey::LIGHT_MAP_BIT); return (*this); }
+        Builder& withLightMap()        { _value.set(MaterialKey::LIGHT_MAP_BIT);  _mask.set(MaterialKey::LIGHT_MAP_BIT); return (*this); }
 
         Builder& withoutScattering()       { _value.reset(MaterialKey::SCATTERING_VAL_BIT); _mask.set(MaterialKey::SCATTERING_VAL_BIT); return (*this); }
         Builder& withScattering()        { _value.set(MaterialKey::SCATTERING_VAL_BIT);  _mask.set(MaterialKey::SCATTERING_VAL_BIT); return (*this); }

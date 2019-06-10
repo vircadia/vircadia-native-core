@@ -51,9 +51,9 @@ protected:
     float _textureAspectRatio { 1.0f };
     bool _textureLoaded { false };
 
-    bool _isUVModeStretch;
-    bool _faceCamera;
-    bool _glow;
+    bool _isUVModeStretch { false };
+    bool _faceCamera { false };
+    bool _glow { false };
 
     size_t _numVertices;
     gpu::BufferPointer _polylineDataBuffer;

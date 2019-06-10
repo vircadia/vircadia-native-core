@@ -21,6 +21,7 @@ PerformanceScriptingInterface::PerformanceScriptingInterface() {
 
 void PerformanceScriptingInterface::setPerformancePreset(PerformancePreset performancePreset) {
     qApp->getPerformanceManager().setPerformancePreset((PerformanceManager::PerformancePreset)performancePreset);
+    emit settingsChanged();
 }
 
 PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::getPerformancePreset() const {
@@ -28,12 +29,13 @@ PerformanceScriptingInterface::PerformancePreset PerformanceScriptingInterface::
 }
 
 QStringList PerformanceScriptingInterface::getPerformancePresetNames() const {
-    static const QStringList performancePresetNames = { "Low", "Mid", "High" };
+    static const QStringList performancePresetNames = { "UNKNOWN", "LOW", "MID", "HIGH" };
     return performancePresetNames;
 }
 
 void PerformanceScriptingInterface::setRefreshRateProfile(RefreshRateProfile refreshRateProfile) {
     qApp->getRefreshRateManager().setRefreshRateProfile((RefreshRateManager::RefreshRateProfile)refreshRateProfile);
+    emit settingsChanged();
 }
 
 PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface::getRefreshRateProfile() const {
@@ -41,7 +43,7 @@ PerformanceScriptingInterface::RefreshRateProfile PerformanceScriptingInterface:
 }
 
 QStringList PerformanceScriptingInterface::getRefreshRateProfileNames() const {
-    static const QStringList refreshRateProfileNames = { "Eco", "Interactive", "Realtime" };
+    static const QStringList refreshRateProfileNames = { "ECO", "INTERACTIVE", "REALTIME" };
     return refreshRateProfileNames;
 }
 

@@ -4947,34 +4947,54 @@ void MyAvatar::setWalkSpeed(float value) {
 }
 
 void MyAvatar::setWalkBackwardSpeed(float value) {
+    bool changed = true;
+    float prevVal;
     switch (_controlSchemeIndex) {
         case LocomotionControlsMode::CONTROLS_DEFAULT:
+            prevVal = _defaultWalkBackwardSpeed.get();
             _defaultWalkBackwardSpeed.set(value);
             break;
         case LocomotionControlsMode::CONTROLS_ANALOG:
+            prevVal = _analogWalkBackwardSpeed.get();
             _analogWalkBackwardSpeed.set(value);
             break;
         case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            prevVal = _analogPlusWalkBackwardSpeed.get();
             _analogPlusWalkBackwardSpeed.set(value);
             break;
         default:
+            changed = false;
             break;
+    }
+    
+    if (changed && prevVal != value) {
+        emit walkBackwardSpeedChanged(value);
     }
 }
 
 void MyAvatar::setSprintSpeed(float value) {
+    bool changed = true;
+    float prevVal;
     switch (_controlSchemeIndex) {
         case LocomotionControlsMode::CONTROLS_DEFAULT:
+            prevVal = _defaultSprintSpeed.get();
             _defaultSprintSpeed.set(value);
             break;
         case LocomotionControlsMode::CONTROLS_ANALOG:
+            prevVal = _analogSprintSpeed.get();
             _analogSprintSpeed.set(value);
             break;
         case LocomotionControlsMode::CONTROLS_ANALOG_PLUS:
+            prevVal = _analogPlusSprintSpeed.get();
             _analogPlusSprintSpeed.set(value);
             break;
         default:
+            changed = false;
             break;
+    }
+
+    if (changed && prevVal != value) {
+        emit analogPlusSprintSpeedChanged(value);
     }
 }
 
@@ -5013,9 +5033,12 @@ float MyAvatar::getAnalogSprintSpeed() const {
 }
 
 void MyAvatar::setAnalogPlusWalkSpeed(float value) {
-    _analogPlusWalkSpeed.set(value);
-    // Sprint speed for Analog Plus should be double walk speed.
-    _analogPlusSprintSpeed.set(value * 2.0f);
+    if (_analogPlusWalkSpeed.get() != value) {
+        _analogPlusWalkSpeed.set(value);
+        emit analogPlusWalkSpeedChanged(value);
+        // Sprint speed for Analog Plus should be double walk speed.
+        _analogPlusSprintSpeed.set(value * 2.0f);
+    }
 }
 
 float MyAvatar::getAnalogPlusWalkSpeed() const {
@@ -5023,7 +5046,10 @@ float MyAvatar::getAnalogPlusWalkSpeed() const {
 }
 
 void MyAvatar::setAnalogPlusSprintSpeed(float value) {
-    _analogPlusSprintSpeed.set(value);
+    if (_analogPlusSprintSpeed.get() != value) {
+        _analogPlusSprintSpeed.set(value);
+        emit analogPlusSprintSpeedChanged(value);
+    }
 }
 
 float MyAvatar::getAnalogPlusSprintSpeed() const {

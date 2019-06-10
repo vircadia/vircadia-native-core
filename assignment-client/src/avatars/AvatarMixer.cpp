@@ -365,7 +365,7 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
 
     // there is no need to manage identity data we haven't received yet
     // so bail early if we've never received an identity packet for this avatar
-    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity()) {
+    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity() || !node->getActiveSocket()) {
         return;
     }
 

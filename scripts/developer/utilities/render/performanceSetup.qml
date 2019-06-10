@@ -24,33 +24,42 @@ Rectangle {
     color: global.colorBack
 
     ScrollView {
-    anchors.fill: parent 
+        anchors.fill: parent 
         clip: true
-    Column {    
-        anchors.left: parent.left 
-        anchors.right: parent.right 
+        Column {    
+            anchors.left: parent.left 
+            anchors.right: parent.right 
 
-        Prop.PropFolderPanel {
-            label: "Performance Settings"
-            isUnfold: true
-            panelFrameData: Component {
-                PerformanceSettings {}
+            Prop.PropFolderPanel {
+                label: "Performance Settings"
+                isUnfold: true
+                panelFrameData: Component {
+                    PerformanceSettings {
+                        anchors.left: parent.left 
+                        anchors.right: parent.right 
+                    }
+                }
+            }
+            Prop.PropFolderPanel {
+                label: "Render Settings"
+                isUnfold: true
+                panelFrameData: Component {
+                    RenderSettings {
+                        anchors.left: parent.left 
+                        anchors.right: parent.right 
+                    }
+                }
+            }
+            Prop.PropFolderPanel {
+                label: "Platform"
+                panelFrameData: Component {
+                    Platform {
+                        anchors.left: parent.left 
+                        anchors.right: parent.right  
+                    }
+                }
             }
         }
-        Prop.PropFolderPanel {
-            label: "Render Settings"
-            isUnfold: true
-            panelFrameData: Component {
-                RenderSettings {}
-            }
-        }
-        Prop.PropFolderPanel {
-            label: "Platform"
-            panelFrameData: Component {
-                Platform {}
-            }
-        }
-    }
     }
 }
 

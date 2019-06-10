@@ -132,7 +132,7 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
     }
 
-    if (channel == MaterialKey::LIGHTMAP_MAP) {
+    if (channel == MaterialKey::LIGHT_MAP) {
         // update the texcoord1 with lightmap
         _texcoordTransforms[1] = (textureMap ? textureMap->getTextureTransform().getMatrix() : glm::mat4());
         _lightmapParams = (textureMap ? glm::vec2(textureMap->getLightmapOffsetScale()) : glm::vec2(0.0, 1.0));

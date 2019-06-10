@@ -359,9 +359,9 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 if (value.isString()) {
                     auto valueString = value.toString();
                     if (valueString == FALLTHROUGH) {
-                        material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::LIGHTMAP_MAP_BIT);
+                        material->setPropertyDoesFallthrough(graphics::MaterialKey::FlagBit::LIGHT_MAP_BIT);
                     } else {
-                        material->setLightmapMap(baseUrl.resolved(valueString));
+                        material->setLightMap(baseUrl.resolved(valueString));
                     }
                 }
             } else if (key == "texCoordTransform0") {
@@ -604,12 +604,12 @@ void NetworkMaterial::setScatteringMap(const QUrl& url) {
     }
 }
 
-void NetworkMaterial::setLightmapMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
+void NetworkMaterial::setLightMap(const QUrl& url) {
+    auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHT_MAP);
     if (map) {
         //map->setTextureTransform(_lightmapTransform);
         //map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
+        setTextureMap(MapChannel::LIGHT_MAP, map);
     }
 }
 
@@ -677,14 +677,14 @@ NetworkMaterial::NetworkMaterial(const HFMMaterial& material, const QUrl& textur
     }
 
     if (!material.lightmapTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.lightmapTexture, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
+        auto map = fetchTextureMap(textureBaseUrl, material.lightmapTexture, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHT_MAP);
         if (map) {
             _lightmapTransform = material.lightmapTexture.transform;
             _lightmapParams = material.lightmapParams;
             map->setTextureTransform(_lightmapTransform);
             map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
         }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
+        setTextureMap(MapChannel::LIGHT_MAP, map);
     }
 }
 
@@ -697,7 +697,7 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
     const auto& metallicName = getTextureName(MapChannel::METALLIC_MAP);
     const auto& occlusionName = getTextureName(MapChannel::OCCLUSION_MAP);
     const auto& emissiveName = getTextureName(MapChannel::EMISSIVE_MAP);
-    const auto& lightmapName = getTextureName(MapChannel::LIGHTMAP_MAP);
+    const auto& lightmapName = getTextureName(MapChannel::LIGHT_MAP);
     const auto& scatteringName = getTextureName(MapChannel::SCATTERING_MAP);
 
     if (!albedoName.isEmpty()) {
@@ -752,12 +752,12 @@ void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
 
     if (!lightmapName.isEmpty()) {
         auto url = textureMap.contains(lightmapName) ? textureMap[lightmapName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
+        auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHT_MAP);
         if (map) {
             map->setTextureTransform(_lightmapTransform);
             map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
         }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
+        setTextureMap(MapChannel::LIGHT_MAP, map);
     }
 }
 

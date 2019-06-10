@@ -114,7 +114,7 @@ def main():
     args = parse_args()
 
     if args.ci_build:
-        logging.basicConfig(datefmt='%s', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
+        logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
 
     logger.info('sha=%s' % headSha())
     logger.info('start')

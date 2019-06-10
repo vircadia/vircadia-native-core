@@ -270,8 +270,8 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
         if (drawMaterialKey.isNormalMap()) {
             builder.withTangents();
         }
-        if (drawMaterialKey.isLightmapMap()) {
-            builder.withLightmap();
+        if (drawMaterialKey.isLightMap()) {
+            builder.withLightMap();
         }
         if (drawMaterialKey.isUnlit()) {
             builder.withUnlit();

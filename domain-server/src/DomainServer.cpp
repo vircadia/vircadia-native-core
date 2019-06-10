@@ -322,6 +322,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _contentManager->initialize(true);
 
     connect(_contentManager.get(), &DomainContentBackupManager::recoveryCompleted, this, &DomainServer::restart);
+
+static const int NODE_PING_MONITOR_INTERVAL_MSECS = 1 * MSECS_PER_SECOND;
+    _nodePingMonitorTimer = new QTimer{ this };
+    connect(_nodePingMonitorTimer, &QTimer::timeout, this, &DomainServer::nodePingMonitor);
+    _nodePingMonitorTimer->start(NODE_PING_MONITOR_INTERVAL_MSECS);
 }
 
 void DomainServer::parseCommandLine(int argc, char* argv[]) {
@@ -1720,6 +1725,18 @@ void DomainServer::sendHeartbeatToIceServer() {
         qCDebug(domain_server_ice) << "Not sending ice-server heartbeat since there is no selected ice-server.";
         qCDebug(domain_server_ice) << "Waiting for" << _iceServerAddr << "host lookup response";
     }
+}
+
+void DomainServer::nodePingMonitor() {
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    quint64 now = usecTimestampNow();
+
+    nodeList->eachNode([now](const SharedNodePointer& node) {
+        quint64 lastHeard = now - node->getLastHeardMicrostamp();
+        if (lastHeard > 2 * USECS_PER_SECOND) {
+            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << " in " << lastHeard / USECS_PER_MSEC << " msec";
+        }
+    });
 }
 
 void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessage> message) {

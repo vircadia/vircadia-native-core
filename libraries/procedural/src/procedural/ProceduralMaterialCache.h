@@ -31,7 +31,7 @@ public:
     void setOcclusionMap(const QUrl& url);
     void setEmissiveMap(const QUrl& url);
     void setScatteringMap(const QUrl& url);
-    void setLightmapMap(const QUrl& url);
+    void setLightMap(const QUrl& url);
 
     bool isMissingTexture();
     void checkResetOpacityMap();
