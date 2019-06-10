@@ -30,7 +30,7 @@ PropItem {
 
     Component.onCompleted: {
         valueVar = root.valueVarGetter();
-    }
+    }     
 
     PropLabel {
         id: valueLabel

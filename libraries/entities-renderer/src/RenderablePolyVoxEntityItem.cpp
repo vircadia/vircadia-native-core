@@ -1653,7 +1653,7 @@ void PolyVoxEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& s
 
 #ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     if (!_hasTransitioned) {
-        transaction.addTransitionToItem(_renderItemID, render::Transition::ELEMENT_ENTER_DOMAIN);
+        transaction.resetTransitionOnItem(_renderItemID, render::Transition::ELEMENT_ENTER_DOMAIN);
         _hasTransitioned = true;
     }
 #endif

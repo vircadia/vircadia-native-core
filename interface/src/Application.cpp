@@ -867,7 +867,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<SoundCache>();
     DependencyManager::set<SoundCacheScriptingInterface>();
+    
+#ifdef HAVE_DDE
     DependencyManager::set<DdeFaceTracker>();
+#endif
+    
     DependencyManager::set<EyeTracker>();
     DependencyManager::set<AudioClient>();
     DependencyManager::set<AudioScope>();
@@ -1311,12 +1315,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
-    addressManager->setPositionGetter([this] {
+    addressManager->setPositionGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         return myAvatar ? myAvatar->getWorldFeetPosition() : Vectors::ZERO;
     });
-    addressManager->setOrientationGetter([this] {
+    addressManager->setOrientationGetter([] {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto myAvatar = avatarManager ? avatarManager->getMyAvatar() : nullptr;
         return myAvatar ? myAvatar->getWorldOrientation() : glm::quat();
@@ -2759,7 +2763,6 @@ void Application::cleanupBeforeQuit() {
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
-    DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
     // The PointerManager must be destroyed before the PickManager because when a Pointer is deleted,
@@ -2819,6 +2822,7 @@ Application::~Application() {
 
     DependencyManager::destroy<SoundCacheScriptingInterface>();
 
+    DependencyManager::destroy<AudioInjectorManager>();
     DependencyManager::destroy<AvatarManager>();
     DependencyManager::destroy<AnimationCacheScriptingInterface>();
     DependencyManager::destroy<AnimationCache>();
@@ -3324,7 +3328,9 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
 
     surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
+#ifdef HAVE_DDE
     surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
+#endif
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
@@ -4303,10 +4309,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_B:
-                if (isMeta) {
-                    auto offscreenUi = getOffscreenUI();
-                    offscreenUi->load("Browser.qml");
-                } else if (isOption) {
+                if (isOption) {
                     controller::InputRecorder* inputRecorder = controller::InputRecorder::getInstance();
                     inputRecorder->stopPlayback();
                 }
@@ -4342,12 +4345,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     if (audioScriptingInterface && audioScriptingInterface->getPTT()) {
                        audioScriptingInterface->setPushingToTalk(!audioClient->isMuted());
                     }
-                }
-                break;
-
-            case Qt::Key_N:
-                if (!isOption && !isShifted && isMeta) {
-                    DependencyManager::get<NodeList>()->toggleIgnoreRadius();
                 }
                 break;
 
@@ -5174,9 +5171,15 @@ ivec2 Application::getMouse() const {
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
+#ifdef HAVE_DDE
     auto dde = DependencyManager::get<DdeFaceTracker>();
 
-    return dde->isActive() ? static_cast<FaceTracker*>(dde.data()) : nullptr;
+    if (dde && dde->isActive()) {
+        return static_cast<FaceTracker*>(dde.data());
+    }
+#endif
+
+    return nullptr;
 }
 
 FaceTracker* Application::getSelectedFaceTracker() {
@@ -5375,25 +5378,13 @@ void Application::loadSettings() {
         }
     }
 
-    if (_firstRun.get()) {
-        // If this is our first run, evalute the Platform Tier and assign the matching Performance profile by default.
-        // A bunch of Performance, Simulation and Render settings will be set to a matching default value from this
+    // Load settings of the RenderScritpingInterface
+    // Do that explicitely before being used
+    RenderScriptingInterface::getInstance()->loadSettings();
 
-        // Here is the mapping between pelatformTIer and performance profile
-        const std::array<PerformanceManager::PerformancePreset, platform::Profiler::NumTiers> platformToPerformancePresetMap = {{
-            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::UNKNOWN
-            PerformanceManager::PerformancePreset::LOW,  // platform::Profiler::LOW
-            PerformanceManager::PerformancePreset::MID,  // platform::Profiler::MID
-            PerformanceManager::PerformancePreset::HIGH  // platform::Profiler::HIGH
-        }};
-
-        // What is our profile?
-        auto platformTier = platform::Profiler::profilePlatform();
-
-        // Then let's assign the performance preset setting from it
-        getPerformanceManager().setPerformancePreset(platformToPerformancePresetMap[platformTier]);
-        
-    }
+    // Setup the PerformanceManager which will enforce the several settings to match the Preset
+    // On the first run, the Preset is evaluated from the 
+    getPerformanceManager().setupPerformancePresetSettings(_firstRun.get());
 
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
     // dictated that we should be in first person
@@ -7022,7 +7013,10 @@ void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
 // feature.  However, we still use this to reset face trackers, eye trackers, audio and to optionally re-load the avatar
 // rig and animations from scratch.
 void Application::resetSensors(bool andReload) {
+#ifdef HAVE_DDE
     DependencyManager::get<DdeFaceTracker>()->reset();
+#endif
+    
     DependencyManager::get<EyeTracker>()->reset();
     _overlayConductor.centerUI();
     getActiveDisplayPlugin()->resetSensors();
@@ -7226,7 +7220,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _entityEditSender.nodeKilled(node);
-
+     
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {
@@ -7414,8 +7408,10 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGlobalObject("AccountServices", AccountServicesScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine.data(), DownloadInfoResultToScriptValue, DownloadInfoResultFromScriptValue);
 
+#ifdef HAVE_DDE
     scriptEngine->registerGlobalObject("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
-
+#endif
+    
     scriptEngine->registerGlobalObject("AvatarManager", DependencyManager::get<AvatarManager>().data());
 
     scriptEngine->registerGlobalObject("LODManager", DependencyManager::get<LODManager>().data());

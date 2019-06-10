@@ -150,7 +150,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
                 _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
-                QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+                QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)),
+                                 Qt::QueuedConnection);
+                emit mainWindow->windowGeometryChanged(qApp->getWindow()->geometry());
             }
         });
         _dockWidget->setSource(QUrl(sourceUrl));

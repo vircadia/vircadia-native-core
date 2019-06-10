@@ -72,7 +72,12 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
                 fillColor: global.colorOrangeAccent 
-                iconMouseArea.onClicked: { root.isUnfold = !root.isUnfold }
+
+                 MouseArea{
+                    id: mousearea
+                    anchors.fill: parent
+                    onClicked: { root.isUnfold = !root.isUnfold }
+                }
             }
         }
 

@@ -616,23 +616,25 @@ bool adjustedFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 
     qCDebug(audioclient) << "The desired format for audio I/O is" << desiredAudioFormat;
 
-#if defined(Q_OS_ANDROID) || defined(Q_OS_OSX)
-    // As of Qt5.6, Android returns the native OpenSLES sample rate when possible, else 48000
-    // Mac OSX returns the preferred CoreAudio format
-    if (nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat)) {
-        return true;
-    }
-#endif
-
 #if defined(Q_OS_WIN)
     if (IsWindows8OrGreater()) {
         // On Windows using WASAPI shared-mode, returns the internal mix format
-        if (nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat)) {
-            return true;
-        }
-    }
+        return nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat);
+    }   // else enumerate formats
 #endif
-
+    
+#if defined(Q_OS_MAC)
+    // Mac OSX returns the preferred CoreAudio format
+    return nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat);
+#endif
+    
+#if defined(Q_OS_ANDROID)
+    // As of Qt5.6, Android returns the native OpenSLES sample rate when possible, else 48000
+    if (nativeFormatForAudioDevice(audioDevice, adjustedAudioFormat)) {
+        return true;
+    }   // else enumerate formats
+#endif
+    
     adjustedAudioFormat = desiredAudioFormat;
 
     //

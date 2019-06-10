@@ -263,7 +263,7 @@ namespace controller {
          * methods. The mapping can then be enabled using {@link Controller.enableMapping|enableMapping} for it to take effect.
          * @function Controller.newMapping
          * @param {string} [mappingName=Uuid.generate()] - A unique name for the mapping. If not specified a new UUID generated 
-         *     by {@link Uuid.generate} is used.
+         *     by {@link Uuid(0).generate|Uuid.generate} is used.
          * @returns {MappingObject} A controller mapping object.
          * @example <caption>Create a simple mapping that makes the right trigger move your avatar up.</caption>
          * var MAPPING_NAME = "com.highfidelity.controllers.example.newMapping";

@@ -94,7 +94,7 @@ void RefreshRateManager::toggleInactive() {
 }
 
 void RefreshRateManager::setRefreshRateProfile(RefreshRateManager::RefreshRateProfile refreshRateProfile) {
-    if (_refreshRateProfile != refreshRateProfile) {
+    if (isValidRefreshRateProfile(refreshRateProfile) && (_refreshRateProfile != refreshRateProfile)) {
         _refreshRateProfileSettingLock.withWriteLock([&] {
             _refreshRateProfile = refreshRateProfile;
             _refreshRateProfileSetting.set((int) refreshRateProfile);
@@ -124,7 +124,7 @@ RefreshRateManager::RefreshRateRegime RefreshRateManager::getRefreshRateRegime()
 }
 
 void RefreshRateManager::setRefreshRateRegime(RefreshRateManager::RefreshRateRegime refreshRateRegime) {
-    if (_refreshRateRegime != refreshRateRegime) {
+    if (isValidRefreshRateRegime(refreshRateRegime) && (_refreshRateRegime != refreshRateRegime)) {
         _refreshRateRegime = refreshRateRegime;
         updateRefreshRateController();
     }
@@ -132,7 +132,7 @@ void RefreshRateManager::setRefreshRateRegime(RefreshRateManager::RefreshRateReg
 }
 
 void RefreshRateManager::setUXMode(RefreshRateManager::UXMode uxMode) {
-    if (_uxMode != uxMode) {
+    if (isValidUXMode(uxMode) && (_uxMode != uxMode)) {
         _uxMode = uxMode;
         updateRefreshRateController();
     }

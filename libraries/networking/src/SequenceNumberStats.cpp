@@ -89,7 +89,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
         } else if (absGap > MAX_REASONABLE_SEQUENCE_GAP) {
             arrivalInfo._status = Unreasonable;
 
-            HIFI_FCDEBUG(networking(), "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence);
+            qCDebug(networking) << "unreasonable sequence number:" << incoming << "previous:" << _lastReceivedSequence;
 
             _stats._unreasonable++;
             
@@ -153,7 +153,7 @@ SequenceNumberStats::ArrivalInfo SequenceNumberStats::sequenceNumberReceived(qui
 
                 arrivalInfo._status = Unreasonable;
 
-                HIFI_FCDEBUG(networking(), "unreasonable sequence number:" << incoming << "(possible duplicate)");
+                qCDebug(networking) << "unreasonable sequence number:" << incoming << "(possible duplicate)";
 
                 _stats._unreasonable++;
 

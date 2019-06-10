@@ -474,6 +474,10 @@ void AmbientOcclusionEffect::updateBlurParameters() {
     }
     const auto occlusionSize = frameSize >> resolutionLevel;
 
+    if (occlusionSize.x == 0 || occlusionSize.y == 0) {
+        return;
+    }
+
     // Occlusion UV limit
     hblur._blurAxis.z = occlusionSize.x / float(frameSize.x);
     hblur._blurAxis.w = occlusionSize.y / float(frameSize.y);
