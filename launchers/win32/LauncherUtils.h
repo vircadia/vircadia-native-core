@@ -30,6 +30,13 @@ public:
 		NoError
 	};
 
+    enum DeleteDirError {
+        NoErrorDeleting = 0,
+        ErrorDeletingApplicationDir,
+        ErrorDeletingDownloadsDir,
+        ErrorDeletingBothDirs
+    };
+
 	struct DownloadThreadData {
 		int _type;
 		CString _url;
@@ -52,6 +59,13 @@ public:
 		}
 	};
 
+    struct DeleteThreadData {
+        CString _applicationDir;
+        CString _downloadsDir;
+        std::function<void(int)> callback;
+        void setCallback(std::function<void(int)> fn) { callback = std::bind(fn, std::placeholders::_1); }
+    };
+
 	static BOOL parseJSON(const CString& jsonTxt, Json::Value& jsonObject);
 	static ResponseError makeHTTPCall(const CString& callerName, const CString& mainUrl,
 		const CString& dirUrl, const CString& contentType,
@@ -69,9 +83,14 @@ public:
 	static BOOL deleteRegistryKey(const CString& registryPath);
 	static BOOL unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, std::function<void(int, int)> callback);
 	static BOOL downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int)> callback);
+    static BOOL deleteDirectoriesOnThread(const CString& applicationDir,
+                                              const CString& downloadsDir,
+                                              std::function<void(int)> callback);
+    static CString urlEncodeString(const CString& url);
 
 private:
 	// Threads
 	static DWORD WINAPI unzipThread(LPVOID lpParameter);
 	static DWORD WINAPI downloadThread(LPVOID lpParameter);
+    static DWORD WINAPI deleteDirectoriesThread(LPVOID lpParameter);
 };
