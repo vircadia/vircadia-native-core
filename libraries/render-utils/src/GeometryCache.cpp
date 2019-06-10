@@ -939,6 +939,11 @@ void GeometryCache::renderWireSphere(gpu::Batch& batch, const glm::vec4& color) 
 void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
         int majorRows, int majorCols, float majorEdge, int minorRows, int minorCols, float minorEdge,
         const glm::vec4& color, bool forward, int id) {
+
+    if (majorRows == 0 || majorCols == 0) {
+        return;
+    }
+
     Vec2FloatPair majorKey(glm::vec2(majorRows, majorCols), majorEdge);
     Vec2FloatPair minorKey(glm::vec2(minorRows, minorCols), minorEdge);
     Vec2FloatPairPair key(majorKey, minorKey);
@@ -962,8 +967,8 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
             gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
             gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
             gridBuffer.edit<GridSchema>().offset.y = -(majorEdge / majorCols) / 2;
-            gridBuffer.edit<GridSchema>().offset.z = -(minorEdge / minorRows) / 2;
-            gridBuffer.edit<GridSchema>().offset.w = -(minorEdge / minorCols) / 2;
+            gridBuffer.edit<GridSchema>().offset.z = minorRows == 0 ? 0 : -(minorEdge / minorRows) / 2;
+            gridBuffer.edit<GridSchema>().offset.w = minorCols == 0 ? 0 : -(minorEdge / minorCols) / 2;
             gridBuffer.edit<GridSchema>().edge = glm::vec4(glm::vec2(majorEdge),
                 // If rows or columns are not set, do not draw minor gridlines
                 glm::vec2((minorRows != 0 && minorCols != 0) ? minorEdge : 0.0f));
