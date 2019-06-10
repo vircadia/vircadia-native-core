@@ -137,12 +137,9 @@ void RefreshRateManager::setUXMode(RefreshRateManager::UXMode uxMode) {
 }
 
 int RefreshRateManager::queryRefreshRateTarget(RefreshRateProfile profile, RefreshRateRegime regime, UXMode uxMode) const {
-    int targetRefreshRate;
+    int targetRefreshRate = VR_TARGET_RATE;
     if (uxMode == RefreshRateManager::UXMode::DESKTOP) {
         targetRefreshRate = REFRESH_RATE_PROFILES[profile][regime];
-    }
-    else {
-        targetRefreshRate = VR_TARGET_RATE;
     }
     return targetRefreshRate;
 }
