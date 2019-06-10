@@ -66,6 +66,7 @@
 
 -(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     NSLog(@"completed; error: %@", error);
+    [[Launcher sharedLauncher] displayErrorPage];
 }
 
 
