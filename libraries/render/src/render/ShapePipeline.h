@@ -74,7 +74,7 @@ public:
 
         Builder& withMaterial() { _flags.set(MATERIAL); return (*this); }
         Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
-        Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
+        Builder& withLightMap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
         Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
         Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
@@ -116,8 +116,8 @@ public:
             Builder& withTranslucent() { _flags.set(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
             Builder& withOpaque() { _flags.reset(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
 
-            Builder& withLightmap() { _flags.set(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
-            Builder& withoutLightmap() { _flags.reset(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
+            Builder& withLightMap() { _flags.set(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
+            Builder& withoutLightMap() { _flags.reset(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
 
             Builder& withTangents() { _flags.set(TANGENTS); _mask.set(TANGENTS); return (*this); }
             Builder& withoutTangents() { _flags.reset(TANGENTS); _mask.set(TANGENTS); return (*this); }
@@ -160,7 +160,7 @@ public:
     };
 
     bool useMaterial() const { return _flags[MATERIAL]; }
-    bool hasLightmap() const { return _flags[LIGHTMAP]; }
+    bool hasLightMap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
@@ -199,7 +199,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
         } else {
             debug << "[ShapeKey:"
                 << "useMaterial:" << key.useMaterial()
-                << "hasLightmap:" << key.hasLightmap()
+                << "hasLightmap:" << key.hasLightMap()
                 << "hasTangents:" << key.hasTangents()
                 << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
