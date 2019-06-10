@@ -57,6 +57,7 @@ typedef enum LoginErrorTypes
 - (BOOL) loginShouldSetErrorState;
 - (void) displayErrorPage;
 - (void) showLoginScreen;
+- (NSString*) getLauncherPath;
 - (ProcessState) currentProccessState;
 - (void) setCurrentProcessState:(ProcessState) aProcessState;
 - (void) setLoginErrorState:(LoginError) aLoginError;

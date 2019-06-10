@@ -107,7 +107,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         model_translucent_normal_map, nullptr, nullptr);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
-        Key::Builder().withMaterial().withTranslucent().withLightmap(),
+        Key::Builder().withMaterial().withTranslucent().withLightMap(),
         model_translucent, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
@@ -127,21 +127,21 @@ void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePip
         model_translucent_normal_map_fade, batchSetter, itemSetter);
     addPipeline(
         // FIXME: Ignore lightmap for translucents meshpart
-        Key::Builder().withMaterial().withTranslucent().withLightmap().withFade(),
+        Key::Builder().withMaterial().withTranslucent().withLightMap().withFade(),
         model_translucent_fade, batchSetter, itemSetter);
     // Lightmapped
     addPipeline(
-        Key::Builder().withMaterial().withLightmap(),
+        Key::Builder().withMaterial().withLightMap(),
         model_lightmap, nullptr, nullptr);
     addPipeline(
-        Key::Builder().withMaterial().withLightmap().withTangents(),
+        Key::Builder().withMaterial().withLightMap().withTangents(),
         model_lightmap_normal_map, nullptr, nullptr);
     // Same thing but with Fade on
     addPipeline(
-        Key::Builder().withMaterial().withLightmap().withFade(),
+        Key::Builder().withMaterial().withLightMap().withFade(),
         model_lightmap_fade, batchSetter, itemSetter);
     addPipeline(
-        Key::Builder().withMaterial().withLightmap().withTangents().withFade(),
+        Key::Builder().withMaterial().withLightMap().withTangents().withFade(),
         model_lightmap_normal_map_fade, batchSetter, itemSetter);
 
     // matrix palette skinned
@@ -228,10 +228,10 @@ void initForwardPipelines(ShapePlumber& plumber) {
 
     // Opaques
     addPipeline(Key::Builder().withMaterial(), program::forward_model);
-    addPipeline(Key::Builder().withMaterial().withLightmap(), program::forward_model_lightmap);
+    addPipeline(Key::Builder().withMaterial().withLightMap(), program::forward_model_lightmap);
     addPipeline(Key::Builder().withMaterial().withUnlit(), program::forward_model_unlit);
     addPipeline(Key::Builder().withMaterial().withTangents(), program::forward_model_normal_map);
-    addPipeline(Key::Builder().withMaterial().withTangents().withLightmap(), program::forward_model_normal_map_lightmap);
+    addPipeline(Key::Builder().withMaterial().withTangents().withLightMap(), program::forward_model_normal_map_lightmap);
 
     // Deformed Opaques
     addPipeline(Key::Builder().withMaterial().withDeformed(), program::forward_deformed_model);
@@ -581,7 +581,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                     break;
                 case graphics::MaterialKey::EMISSIVE_MAP_BIT:
                     // Lightmap takes precendence over emissive map for legacy reasons
-                    if (materialKey.isEmissiveMap() && !materialKey.isLightmapMap()) {
+                    if (materialKey.isEmissiveMap() && !materialKey.isLightMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
@@ -595,14 +595,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                             forceDefault = true;
                         }
                         schemaKey.setEmissiveMap(true);
-                    } else if (materialKey.isLightmapMap()) {
+                    } else if (materialKey.isLightMap()) {
                         // We'll set this later when we check the lightmap
                         wasSet = true;
                     }
                     break;
-                case graphics::MaterialKey::LIGHTMAP_MAP_BIT:
-                    if (materialKey.isLightmapMap()) {
-                        auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
+                case graphics::MaterialKey::LIGHT_MAP_BIT:
+                    if (materialKey.isLightMap()) {
+                        auto itr = textureMaps.find(graphics::MaterialKey::LIGHT_MAP);
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
@@ -614,7 +614,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         } else {
                             forceDefault = true;
                         }
-                        schemaKey.setLightmapMap(true);
+                        schemaKey.setLightMap(true);
                     }
                     break;
                 case graphics::Material::TEXCOORDTRANSFORM0:
@@ -712,12 +712,12 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 }
                 break;
             case graphics::MaterialKey::EMISSIVE_MAP_BIT:
-                if (schemaKey.isEmissiveMap() && !schemaKey.isLightmapMap()) {
+                if (schemaKey.isEmissiveMap() && !schemaKey.isLightMap()) {
                     drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
                 }
                 break;
-            case graphics::MaterialKey::LIGHTMAP_MAP_BIT:
-                if (schemaKey.isLightmapMap()) {
+            case graphics::MaterialKey::LIGHT_MAP_BIT:
+                if (schemaKey.isLightMap()) {
                     drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
                 }
                 break;
@@ -765,7 +765,7 @@ bool RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
             batch.setResourceTextureTable(multiMaterial.getTextureTable());
         } else {
             if (renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-                if (key.isLightmapMap()) {
+                if (key.isLightMap()) {
                     defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
                 } else if (key.isEmissiveMap()) {
                     defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
