@@ -29,6 +29,7 @@ public:
         REALTIME,
         PROFILE_NUM
     };
+    static bool isValidRefreshRateProfile(RefreshRateProfile value) { return (value >= RefreshRateProfile::ECO && value <= RefreshRateProfile::REALTIME); }
 
     enum RefreshRateRegime {
         FOCUS_ACTIVE = 0,
@@ -39,12 +40,14 @@ public:
         SHUTDOWN,
         REGIME_NUM
     };
+    static bool isValidRefreshRateRegime(RefreshRateRegime value) { return (value >= RefreshRateRegime::FOCUS_ACTIVE && value <= RefreshRateRegime::SHUTDOWN); }
 
     enum UXMode {
         DESKTOP = 0,
         VR,
         UX_NUM
     };
+    static bool isValidUXMode(UXMode value) { return (value >= UXMode::DESKTOP && value <= UXMode::VR); }
 
     RefreshRateManager();
     ~RefreshRateManager() = default;

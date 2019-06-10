@@ -41,7 +41,7 @@ void PerformanceManager::setupPerformancePresetSettings(bool evaluatePlatformTie
 }
 
 void PerformanceManager::setPerformancePreset(PerformanceManager::PerformancePreset preset) {
-    if (getPerformancePreset() != preset) {
+    if (isValidPerformancePreset(preset) && (getPerformancePreset() != preset)) {
         _performancePresetSettingLock.withWriteLock([&] {
             _performancePresetSetting.set((int)preset);
         });

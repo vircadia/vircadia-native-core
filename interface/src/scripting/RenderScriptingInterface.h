@@ -41,6 +41,7 @@ public:
         FORWARD = render::Args::RenderMethod::FORWARD,
     };
     Q_ENUM(RenderMethod)
+    static bool isValidRenderMethod(RenderMethod value) { return (value >= RenderMethod::DEFERRED && value <= RenderMethod::FORWARD); }
 
 
     // Load Settings

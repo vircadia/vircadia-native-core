@@ -100,7 +100,8 @@ glm::vec2 vec2FromVariant(const QVariant& object);
 * @property {number} x - X-coordinate of the vector. Synonyms: <code>r</code>, <code>red</code>.
 * @property {number} y - Y-coordinate of the vector. Synonyms: <code>g</code>, <code>green</code>.
 * @property {number} z - Z-coordinate of the vector. Synonyms: <code>b</code>, <code>blue</code>.
-* @example <caption>Vec3s can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
+* @example <caption>Vec3 values can be set in multiple ways and modified with their aliases, but still stringify in the same 
+*     way.</caption>
 * Entities.editEntity(<id>, { position: { x: 1, y: 2, z: 3 }});                 // { x: 1, y: 2, z: 3 }
 * Entities.editEntity(<id>, { position: { r: 4, g: 5, b: 6 }});                 // { x: 4, y: 5, z: 6 }
 * Entities.editEntity(<id>, { position: { red: 7, green: 8, blue: 9 }});        // { x: 7, y: 8, z: 9 }
@@ -640,6 +641,12 @@ Q_DECLARE_METATYPE(Collision)
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision);
 void collisionFromScriptValue(const QScriptValue &object, Collision& collision);
 
+/**jsdoc
+ * UUIDs (Universally Unique IDentifiers) are used to uniquely identify entities, avatars, and the like. They are represented 
+ * in JavaScript as strings in the format, <code>"{nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn}"</code>, where the "n"s are
+ * hexadecimal digits.
+ * @typedef {string} Uuid
+ */
 //Q_DECLARE_METATYPE(QUuid) // don't need to do this for QUuid since it's already a meta type
 QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid);
 void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid);

@@ -114,7 +114,7 @@ public:
  * @hifi-assignment-client
  *
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
- *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
+ *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
  *     clear keyboard focus.
  */
 /// handles scripting of Entity commands from JS passed to assigned clients
@@ -267,7 +267,7 @@ public slots:
      *     follows you to each domain you visit, rendering at the same world coordinates unless it's parented to your avatar.
      *     If <code>"local"</code>, the entity is created as a local entity, which will only render for you and isn't sent over the wire.
      *     Otherwise it is created as a normal entity and sent over the entity server.
-     * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
+     * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid(0)|Uuid.NULL}.
      * @example <caption>Create a box entity in front of your avatar.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -294,7 +294,7 @@ public slots:
      * @function Entities.addEntity
      * @param {Entities.EntityProperties} properties - The properties of the entity to create.
      * @param {boolean} [avatarEntity=false] - Whether to create an avatar entity or a domain entity
-     * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
+     * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid(0)|Uuid.NULL}.
      */
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool avatarEntity = false) {
         entity::HostType entityHostType = avatarEntity ? entity::HostType::AVATAR : entity::HostType::DOMAIN;
@@ -312,7 +312,7 @@ public slots:
      * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
      * @function Entities.cloneEntity
      * @param {Uuid} entityID - The ID of the entity to clone.
-     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
+     * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid(0)|Uuid.NULL}.
      */
     Q_INVOKABLE QUuid cloneEntity(const QUuid& entityID);
 
@@ -1446,7 +1446,7 @@ public slots:
      * Set the {@link Entities.EntityType|Web} entity that has keyboard focus.
      * @function Entities.setKeyboardFocusEntity
      * @param {Uuid} id - The ID of the {@link Entities.EntityType|Web} entity to set keyboard focus to. Use 
-     *     <code>null</code> or {@link Uuid|Uuid.NULL} to unset keyboard focus from an entity.
+     *     <code>null</code> or {@link Uuid(0)|Uuid.NULL} to unset keyboard focus from an entity.
      */
     Q_INVOKABLE void setKeyboardFocusEntity(const QUuid& id);
 

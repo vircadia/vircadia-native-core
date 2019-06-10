@@ -50,20 +50,18 @@ public:
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
     bool hasRemovedItems() const { return !_removedItems.empty(); }
-
-    void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
-    void removeTransitionFromItem(ItemID id);
-    void reApplyTransitionToItem(ItemID id);
-    void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
-    void transitionFinishedOperator(ItemID id, TransitionFinishedFunc func);
-
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
         updateItem(id, std::make_shared<UpdateFunctor<T>>(func));
     }
-
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
     void updateItem(ItemID id) { updateItem(id, nullptr); }
 
+    // Transition (applied to an item) transactions
+    void resetTransitionOnItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
+    void removeTransitionFromItem(ItemID id);
+    void setTransitionFinishedOperator(ItemID id, TransitionFinishedFunc func);
+    void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
+   
     // Selection transactions
     void resetSelection(const Selection& selection);
 
@@ -83,11 +81,14 @@ protected:
     using Reset = std::tuple<ItemID, PayloadPointer>;
     using Remove = ItemID;
     using Update = std::tuple<ItemID, UpdateFunctorPointer>;
-    using TransitionAdd = std::tuple<ItemID, Transition::Type, ItemID>;
-    using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
+
+    using TransitionReset = std::tuple<ItemID, Transition::Type, ItemID>;
+    using TransitionRemove = ItemID;
     using TransitionFinishedOperator = std::tuple<ItemID, TransitionFinishedFunc>;
-    using TransitionReApply = ItemID;
+    using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
+
     using SelectionReset = Selection;
+
     using HighlightReset = std::tuple<std::string, HighlightStyle>;
     using HighlightRemove = std::string;
     using HighlightQuery = std::tuple<std::string, SelectionHighlightQueryFunc>;
@@ -95,11 +96,14 @@ protected:
     using Resets = std::vector<Reset>;
     using Removes = std::vector<Remove>;
     using Updates = std::vector<Update>;
-    using TransitionAdds = std::vector<TransitionAdd>;
-    using TransitionQueries = std::vector<TransitionQuery>;
+
+    using TransitionResets = std::vector<TransitionReset>;
+    using TransitionRemoves = std::vector<TransitionRemove>;
     using TransitionFinishedOperators = std::vector<TransitionFinishedOperator>;
-    using TransitionReApplies = std::vector<TransitionReApply>;
+    using TransitionQueries = std::vector<TransitionQuery>;
+
     using SelectionResets = std::vector<SelectionReset>;
+
     using HighlightResets = std::vector<HighlightReset>;
     using HighlightRemoves = std::vector<HighlightRemove>;
     using HighlightQueries = std::vector<HighlightQuery>;
@@ -107,11 +111,14 @@ protected:
     Resets _resetItems;
     Removes _removedItems;
     Updates _updatedItems;
-    TransitionAdds _addedTransitions;
-    TransitionQueries _queriedTransitions;
-    TransitionReApplies _reAppliedTransitions;
+    
+    TransitionResets _resetTransitions;
+    TransitionRemoves _removeTransitions;
     TransitionFinishedOperators _transitionFinishedOperators;
+    TransitionQueries _queriedTransitions;
+
     SelectionResets _resetSelections;
+    
     HighlightResets _highlightResets;
     HighlightRemoves _highlightRemoves;
     HighlightQueries _highlightQueries;
@@ -185,7 +192,7 @@ public:
     void resetStage(const Stage::Name& name, const StagePointer& stage);
 
     void setItemTransition(ItemID id, Index transitionId);
-    void resetItemTransition(ItemID id);
+    void removeItemTransition(ItemID id);
 
 protected:
 
@@ -215,9 +222,11 @@ protected:
     void resetTransitionFinishedOperator(const Transaction::TransitionFinishedOperators& transactions);
     void removeItems(const Transaction::Removes& transactions);
     void updateItems(const Transaction::Updates& transactions);
-    void transitionItems(const Transaction::TransitionAdds& transactions);
-    void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
+
+    void resetTransitionItems(const Transaction::TransitionResets& transactions);
+    void removeTransitionItems(const Transaction::TransitionRemoves& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
+
     void resetHighlights(const Transaction::HighlightResets& transactions);
     void removeHighlights(const Transaction::HighlightRemoves& transactions);
     void queryHighlights(const Transaction::HighlightQueries& transactions);

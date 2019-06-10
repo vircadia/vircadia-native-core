@@ -623,7 +623,7 @@ public:
     /**jsdoc
      * @function Script.generateUUID
      * @returns {Uuid} A new UUID.
-     * @deprecated This function is deprecated and will be removed. Use {@link Uuid.generate} instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link Uuid(0).generate|Uuid.generate} instead.
      */
     Q_INVOKABLE QUuid generateUUID() { return QUuid::createUuid(); }
 

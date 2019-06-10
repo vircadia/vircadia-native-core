@@ -170,9 +170,9 @@ public:
                             glFinish();
                         }
                         currentPlugin = newPlugin;
-                        _newPluginQueue.pop();
-                        _condition.notify_one();
                     }
+                    _newPluginQueue.pop();
+                    _condition.notify_one();
                 }
             }
 

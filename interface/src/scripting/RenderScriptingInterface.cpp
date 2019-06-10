@@ -42,7 +42,7 @@ RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod
 }
 
 void RenderScriptingInterface::setRenderMethod(RenderMethod renderMethod) {
-    if (_renderMethod != (int) renderMethod) {
+    if (isValidRenderMethod(renderMethod) && (_renderMethod != (int) renderMethod)) {
         forceRenderMethod(renderMethod);
         emit settingsChanged();
     }

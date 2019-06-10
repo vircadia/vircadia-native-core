@@ -128,7 +128,7 @@ namespace image {
         QImage _packedData;
         FloatPixels _floatData;
         glm::ivec2 _dims;
-        Format _format;
+        Format _format { Format_Invalid };
     };
 
 } // namespace image

@@ -50,7 +50,7 @@ Rectangle {
                     }
                 }
             }
-     /*       Prop.PropFolderPanel {
+            Prop.PropFolderPanel {
                 label: "Platform"
                 panelFrameData: Component {
                     Platform {
@@ -58,7 +58,7 @@ Rectangle {
                         anchors.right: parent.right  
                     }
                 }
-            }*/
+            }
         }
     }
 }

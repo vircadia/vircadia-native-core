@@ -260,9 +260,7 @@ Rectangle {
             id: statusButton
             property string currentStatus
             anchors.centerIn: parent
-            anchors.horizontalCenterOffset: 1
-            anchors.verticalCenterOffset: 2
-            width: 13
+            width: 15
             height: width
             radius: width/2
             visible: false
@@ -270,7 +268,7 @@ Rectangle {
 
         ColorOverlay {
             anchors.fill: statusButton
-            opacity: statusButton.currentStatus ? 1 : 0
+            opacity: statusButton.currentStatus ? (statusButtonMouseArea.containsMouse ? 1.0 : 0.7) : 0.7
             source: statusButton
             color: if (statusButton.currentStatus === "busy") {
                 "#ff001a"
@@ -278,17 +276,9 @@ Rectangle {
                 "#009036"
             } else if (statusButton.currentStatus) {
                 "#ffed00"
+            } else {
+                "#7e8c81"
             }
-        }
-
-        Image {
-            id: focusIcon
-            source: "./images/focus.svg"
-            opacity: statusButtonMouseArea.containsMouse ? 1.0 : (statusButton.currentStatus === "busy" ? 0.7 : 0.3)
-            anchors.centerIn: parent
-            width: 36
-            height: 20
-            fillMode: Image.PreserveAspectFit
         }
 
         MouseArea {

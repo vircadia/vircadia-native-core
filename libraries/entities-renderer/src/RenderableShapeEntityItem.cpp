@@ -197,7 +197,7 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
 
         bool isTranslucent = drawMaterialKey.isTranslucent();
         bool hasTangents = drawMaterialKey.isNormalMap();
-        bool hasLightmap = drawMaterialKey.isLightmapMap();
+        bool hasLightmap = drawMaterialKey.isLightMap();
         bool isUnlit = drawMaterialKey.isUnlit();
 
         ShapeKey::Builder builder;
@@ -210,7 +210,7 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
             builder.withTangents();
         }
         if (hasLightmap) {
-            builder.withLightmap();
+            builder.withLightMap();
         }
         if (isUnlit) {
             builder.withUnlit();

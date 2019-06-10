@@ -29,7 +29,7 @@ Column {
         label: "Debug Buffer"
         object: config
         property: "mode"
-        valueVar: 0
+       // valueVar: 0
         enums: [
             "Off",
             "Depth",
