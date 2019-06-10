@@ -223,6 +223,13 @@ qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& 
 
 qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
 
+    // don't attempt to write the datagram if we're unbound.  Just drop it.
+    // _udpSocket.writeDatagram will return an error anyway, but there are
+    // potential crashes in Qt when that happens.
+    if (_udpSocket.state() != QAbstractSocket::BoundState) {
+        qCDebug(networking) << "Attempt to writeDatagram when in unbound state";
+        return -1;
+    }
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
 
     if (bytesWritten < 0) {
@@ -500,6 +507,10 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
     qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << socketError << "(" << _udpSocket.errorString() << ")";
+#ifdef WIN32
+    int wsaError = WSAGetLastError();
+    qCDebug(networking) << "windows socket error " << wsaError;
+#endif
 #ifdef DEBUG_EVENT_QUEUE
     int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
     qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
