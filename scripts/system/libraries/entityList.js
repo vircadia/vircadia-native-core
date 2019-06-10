@@ -10,7 +10,7 @@
 
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
    cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible,
-   keyUpEventFromUIWindow */
+   keyUpEventFromUIWindow, Script, SelectionDisplay, SelectionManager, Clipboard */
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
@@ -148,6 +148,20 @@ EntityListTool = function(shouldUseEditTabletApp) {
         return value !== undefined ? value : "";
     }
 
+    function entityIsBaked(properties) {
+        if (properties.type === "Model") {
+            var lowerModelURL = properties.modelURL.toLowerCase();
+            return lowerModelURL.endsWith(".baked.fbx") || lowerModelURL.endsWith(".baked.fst");
+        } else if (properties.type === "Zone") {
+            var lowerSkyboxURL = properties.skybox ? properties.skybox.url.toLowerCase() : "";
+            var lowerAmbientURL = properties.ambientLight ? properties.ambientLight.ambientURL.toLowerCase() : "";
+            return (lowerSkyboxURL === "" || lowerSkyboxURL.endsWith(".texmeta.json")) &&
+                (lowerAmbientURL === "" || lowerAmbientURL.endsWith(".texmeta.json"));
+        } else {
+            return false;
+        }
+    }
+
     that.sendUpdate = function() {
         PROFILE('Script-sendUpdate', function() {
             var entities = [];
@@ -164,7 +178,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
             var cameraPosition = Camera.position;
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
-                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID']);
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID',
+                    'skybox.url', 'ambientLight.url']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -193,7 +208,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                                 valueIfDefined(properties.renderInfo.texturesSize) : ""),
                             hasTransparent: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.hasTransparent) : ""),
-                            isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
+                            isBaked: entityIsBaked(properties),
                             drawCalls: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.drawCalls) : ""),
                             hasScript: properties.script !== ""
