@@ -115,8 +115,8 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-    if (drawMaterialKey.isLightmapMap()) {
-        builder.withLightmap();
+    if (drawMaterialKey.isLightMap()) {
+        builder.withLightMap();
     }
     return builder.build();
 }
@@ -354,7 +354,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
-    bool hasLightmap = drawMaterialKey.isLightmapMap();
+    bool hasLightmap = drawMaterialKey.isLightMap();
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isDeformed = _isBlendShaped || _isSkinned;
@@ -374,7 +374,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         builder.withTangents();
     }
     if (hasLightmap) {
-        builder.withLightmap();
+        builder.withLightMap();
     }
     if (isUnlit) {
         builder.withUnlit();

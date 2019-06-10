@@ -80,7 +80,7 @@ public:
 
 class AudioInputDeviceList : public AudioDeviceList {
     Q_OBJECT
-    Q_PROPERTY(bool peakValuesAvailable READ peakValuesAvailable)
+    Q_PROPERTY(bool peakValuesAvailable READ peakValuesAvailable CONSTANT)
     Q_PROPERTY(bool peakValuesEnabled READ peakValuesEnabled WRITE setPeakValuesEnabled NOTIFY peakValuesEnabledChanged)
 
 public:

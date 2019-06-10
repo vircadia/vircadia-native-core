@@ -111,7 +111,7 @@ void setupPreferences() {
         auto setter = [](bool value) { qApp->setSettingConstrainToolbarPosition(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Constrain Toolbar Position to Horizontal Center", getter, setter));
     }
-	
+
     {
         auto getter = []()->bool { return qApp->getAwayStateWhenFocusLostInVREnabled(); };
         auto setter = [](bool value) { qApp->setAwayStateWhenFocusLostInVREnabled(value); };
@@ -231,7 +231,7 @@ void setupPreferences() {
                                 "installation and system details, and crash events. By allowing High Fidelity to collect "
                                 "this information you are helping to improve the product. ", getter, setter));
     }
-    
+
     static const QString AVATAR_TUNING { "Avatar Tuning" };
     {
         auto getter = [myAvatar]()->QString { return myAvatar->getDominantHand(); };
@@ -247,8 +247,8 @@ void setupPreferences() {
         preference->setStep(0.05f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
-        
-        // When the Interface is first loaded, this section setupPreferences(); is loaded - 
+
+        // When the Interface is first loaded, this section setupPreferences(); is loaded -
         // causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values
         // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
         // is a way around this, therefore they're not specified here but in the QML.
@@ -271,10 +271,14 @@ void setupPreferences() {
 
     static const QString FACE_TRACKING{ "Face Tracking" };
     {
+#ifdef HAVE_DDE
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
         auto setter = [](float value) { DependencyManager::get<DdeFaceTracker>()->setEyeClosingThreshold(value); };
         preferences->addPreference(new SliderPreference(FACE_TRACKING, "Eye Closing Threshold", getter, setter));
+#endif
     }
+
+
     {
         auto getter = []()->float { return FaceTracker::getEyeDeflection(); };
         auto setter = [](float value) { FaceTracker::setEyeDeflection(value); };
@@ -307,14 +311,14 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]() -> bool { return myAvatar->hoverWhenUnsupported(); };
+        auto getter = [myAvatar]()->bool { return myAvatar->hoverWhenUnsupported(); };
         auto setter = [myAvatar](bool value) { myAvatar->setHoverWhenUnsupported(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Hover When Unsupported", getter, setter);
         preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
-        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
+        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value); };
         //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
         auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Movement Direction", getter, setter);
         QStringList items;
@@ -520,6 +524,5 @@ void setupPreferences() {
             preference->setStep(10);
             preferences->addPreference(preference);
         }
-
     }
 }

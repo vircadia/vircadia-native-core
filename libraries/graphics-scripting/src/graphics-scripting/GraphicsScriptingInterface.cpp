@@ -430,10 +430,10 @@ namespace scriptable {
             obj.setProperty("occlusionMap", material.occlusionMap);
         }
 
-        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::LIGHTMAP_MAP_BIT)) {
-            obj.setProperty("lightmapMap", FALLTHROUGH);
-        } else if (!material.lightmapMap.isEmpty()) {
-            obj.setProperty("lightmapMap", material.lightmapMap);
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::LIGHT_MAP_BIT)) {
+            obj.setProperty("lightMap", FALLTHROUGH);
+        } else if (!material.lightMap.isEmpty()) {
+            obj.setProperty("lightMap", material.lightMap);
         }
 
         if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_MAP_BIT)) {
