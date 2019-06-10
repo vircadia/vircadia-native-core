@@ -73,6 +73,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return filePath;
 }
 
+- (NSString*) getLauncherPath
+{
+    return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
+}
+
 - (void) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
 {
     NSTask* task = [[NSTask alloc] init];
@@ -174,7 +179,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (NSString*) getAppPath
 {
-    return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
+    return [self getDownloadPathForContentAndScripts];
 }
 
 - (BOOL) loginShouldSetErrorState
@@ -317,7 +322,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) launchInterface
 {
-    NSString* launcherPath = [[self getAppPath] stringByAppendingString:@"HQ Launcher"];
+    NSString* launcherPath = [[self getLauncherPath] stringByAppendingString:@"HQ Launcher"];
     
     [[Settings sharedSettings] setLauncherPath:launcherPath];
     [[Settings sharedSettings] save];
@@ -350,8 +355,6 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                             @"--no-launcher", nil];
     }
     [workspace launchApplicationAtURL:url options:NSWorkspaceLaunchNewInstance configuration:[NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:&error];
-    
-    //NSLog(@"arguments %@", [NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments]);
     
     [NSApp terminate:self];
 }
