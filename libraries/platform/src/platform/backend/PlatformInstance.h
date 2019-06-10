@@ -37,6 +37,7 @@ public:
     void virtual enumerateCpu()=0;
     void virtual enumerateMemory()=0;
     void virtual enumerateGpu()=0;
+    void virtual enumerateDisplays() {}
     void virtual enumerateComputer()=0;
     
     virtual ~Instance();
