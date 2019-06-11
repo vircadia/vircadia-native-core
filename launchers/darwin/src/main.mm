@@ -17,7 +17,7 @@ void redirectLogToDocuments()
 
 int main(int argc, const char* argv[]) {
     //NSApp.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
-    redirectLogToDocuments();
+    //redirectLogToDocuments();
     NSArray* apps = [NSRunningApplication runningApplicationsWithBundleIdentifier:@"com.highfidelity.launcher"];
     if ([apps count] > 1) {
         NSLog(@"launcher is already running");
@@ -41,5 +41,6 @@ int main(int argc, const char* argv[]) {
     [appMenu addItem:quitMenuItem];
     [appMenuItem setSubmenu:appMenu];
     
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
     return NSApplicationMain(argc, argv);
 }
