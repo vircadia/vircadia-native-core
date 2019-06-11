@@ -35,7 +35,7 @@ static bool flipNormalsMyAvatarVsBackfacingTriangles(btManifoldPoint& cp,
         const btVector3* v = triShape->m_vertices1;
         btVector3 faceNormal = colObj1Wrap->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
         float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
-        if (nDotF <= 0.0f) {
+        if (nDotF <= 0.0f && faceNormal.length2() > EPSILON) {
             faceNormal.normalize();
             // flip the contact normal to be aligned with the face normal
             cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
