@@ -131,7 +131,6 @@ def signBuild(executablePath):
     if HF_PFX_PASSPHRASE == "":
         print('Skipping signing because HF_PFX_PASSPHRASE is empty')
         return
-    print("QQQ {}".format(base64.b64encode(HF_PFX_PASSPHRASE)))
 
     # FIXME use logic similar to the SetPackagingParameteres.cmake to locate the executable
     SIGN_TOOL = "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64/signtool.exe"
@@ -145,7 +144,7 @@ def signBuild(executablePath):
             '/p', HF_PFX_PASSPHRASE,
             '/tr', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp',
             '/td', 'SHA256',
-            '"{}"'.format(executablePath)
+            executablePath
         ])
 
 
