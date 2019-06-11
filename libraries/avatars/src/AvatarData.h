@@ -302,6 +302,15 @@ namespace AvatarDataPacket {
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
     static_assert(sizeof(AvatarLocalPosition) == AVATAR_LOCAL_POSITION_SIZE, "AvatarDataPacket::AvatarLocalPosition size doesn't match.");
 
+    PACKED_BEGIN struct HandControllers {
+        SixByteQuat leftHandRotation;
+        SixByteTrans leftHandTranslation;
+        SixByteQuat rightHandRotation;
+        SixByteTrans rightHandTranslation;
+    } PACKED_END;
+    static const size_t HAND_CONTROLLERS_SIZE = 24;
+    static_assert(sizeof(HandControllers) == HAND_CONTROLLERS_SIZE, "AvatarDataPacket::HandControllers size doesn't match.");
+
     const size_t MAX_CONSTANT_HEADER_SIZE = HEADER_SIZE +
         AVATAR_GLOBAL_POSITION_SIZE +
         AVATAR_BOUNDING_BOX_SIZE +
@@ -312,17 +321,8 @@ namespace AvatarDataPacket {
         SENSOR_TO_WORLD_SIZE +
         ADDITIONAL_FLAGS_SIZE +
         PARENT_INFO_SIZE +
-        AVATAR_LOCAL_POSITION_SIZE;
-
-    PACKED_BEGIN struct HandControllers {
-        SixByteQuat leftHandRotation;
-        SixByteTrans leftHandTranslation;
-        SixByteQuat rightHandRotation;
-        SixByteTrans rightHandTranslation;
-    } PACKED_END;
-    static const size_t HAND_CONTROLLERS_SIZE = 24;
-    static_assert(sizeof(HandControllers) == HAND_CONTROLLERS_SIZE, "AvatarDataPacket::HandControllers size doesn't match.");
-
+        AVATAR_LOCAL_POSITION_SIZE +
+        HAND_CONTROLLERS_SIZE;
 
     // variable length structure follows
 

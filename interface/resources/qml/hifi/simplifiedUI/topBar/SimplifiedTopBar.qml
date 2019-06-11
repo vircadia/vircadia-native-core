@@ -18,6 +18,16 @@ import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same c
 
 Rectangle {
     id: root
+    focus: true
+    
+    signal keyPressEvent(int key, int modifiers)
+    Keys.onPressed: {
+        keyPressEvent(event.key, event.modifiers);
+    }
+    signal keyReleaseEvent(int key, int modifiers)
+    Keys.onReleased: {
+        keyReleaseEvent(event.key, event.modifiers);
+    }
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -83,6 +93,12 @@ Rectangle {
                 topBarInventoryModel.getNextPage();
             } else {
                 inventoryFullyReceived = true;
+
+                // If we have an avatar in our inventory AND we haven't already auto-selected an avatar...
+                if (!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) && topBarInventoryModel.count > 0) {
+                    Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
+                    MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+                }
             }
         }
     }
@@ -455,5 +471,5 @@ Rectangle {
                 break;
         }
     }
-    signal sendToScript(var message);
+    signal sendToScript(var message)
 }
