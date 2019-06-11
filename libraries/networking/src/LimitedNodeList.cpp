@@ -1239,6 +1239,7 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
             if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
+                reset();
                 _nodeSocket.rebind(0);
                 _localSockAddr.setPort(_nodeSocket.localPort());
             }

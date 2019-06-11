@@ -33,6 +33,7 @@ using namespace udt;
 
 Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
+    _udpSocket(parent),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
@@ -50,6 +51,7 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
 }
 
 void Socket::bind(const QHostAddress& address, quint16 port) {
+
     _udpSocket.bind(address, port);
 
     if (_shouldChangeSocketOptions) {
@@ -72,8 +74,7 @@ void Socket::rebind() {
 }
 
 void Socket::rebind(quint16 localPort) {
-    _udpSocket.close();
-    _udpSocket.waitForDisconnected();
+    _udpSocket.abort();
     bind(QHostAddress::AnyIPv4, localPort);
 }
 
