@@ -253,6 +253,7 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 }
 
 Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreate) {
+    Lock connectionsLock(_connectionsHashMutex);
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
@@ -292,6 +293,7 @@ void Socket::clearConnections() {
         return;
     }
 
+    Lock connectionsLock(_connectionsHashMutex);
     if (_connectionsHash.size() > 0) {
         // clear all of the current connections in the socket
         qCDebug(networking) << "Clearing all remaining connections in Socket.";
@@ -300,6 +302,7 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
+    Lock connectionsLock(_connectionsHashMutex);
     auto numErased = _connectionsHash.erase(sockAddr);
 
     if (numErased > 0) {
@@ -457,6 +460,7 @@ void Socket::readPendingDatagrams() {
 }
 
 void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
+    Lock connectionsLock(_connectionsHashMutex);
     auto it = _connectionsHash.find(destinationAddr);
     if (it != _connectionsHash.end()) {
         connect(it->second.get(), SIGNAL(packetSent()), receiver, slot);
@@ -473,6 +477,7 @@ void Socket::setConnectionMaxBandwidth(int maxBandwidth) {
     qInfo() << "Setting socket's maximum bandwith to" << maxBandwidth << "bps. ("
             << _connectionsHash.size() << "live connections)";
     _maxBandwidth = maxBandwidth;
+    Lock connectionsLock(_connectionsHashMutex);
     for (auto& pair : _connectionsHash) {
         auto& connection = pair.second;
         connection->setMaxBandwidth(_maxBandwidth);
@@ -490,6 +495,8 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
 
 Socket::StatsVector Socket::sampleStatsForAllConnections() {
     StatsVector result;
+    Lock connectionsLock(_connectionsHashMutex);
+
     result.reserve(_connectionsHash.size());
     for (const auto& connectionPair : _connectionsHash) {
         result.emplace_back(connectionPair.first, connectionPair.second->sampleStats());
@@ -500,6 +507,8 @@ Socket::StatsVector Socket::sampleStatsForAllConnections() {
 
 std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
     std::vector<HifiSockAddr> addr;
+    Lock connectionsLock(_connectionsHashMutex);
+
     addr.reserve(_connectionsHash.size());
 
     for (const auto& connectionPair : _connectionsHash) {
