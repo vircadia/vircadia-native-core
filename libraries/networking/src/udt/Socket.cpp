@@ -59,10 +59,13 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
         auto sd = _udpSocket.socketDescriptor();
         int val = IP_PMTUDISC_DONT;
         setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
-#elif defined(Q_OS_WINDOWS)
+#elif defined(Q_OS_WIN)
         auto sd = _udpSocket.socketDescriptor();
         int val = 0; // false
-        setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+        if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&val, sizeof(val))) {
+            int wsaError = WSAGetLastError();
+            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << wsaError;
+        }
 #endif
     }
 }
@@ -231,14 +234,14 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
         return -1;
     }
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
-
-    if (bytesWritten < 0) {
-        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << _udpSocket.error() << "(" << _udpSocket.errorString() << ")";
-
+    int pending = _udpSocket.bytesToWrite();
+    if (bytesWritten < 0 || pending) {
+        int wsaError = 0;
 #ifdef WIN32
-        int wsaError = WSAGetLastError();
-        qCDebug(networking) << "windows socket error " << wsaError;
+        wsaError = WSAGetLastError();
 #endif
+        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
+            << (pending ? "pending bytes:" : "pending:") << pending;
 
 #ifdef DEBUG_EVENT_QUEUE
         int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
@@ -506,11 +509,13 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << socketError << "(" << _udpSocket.errorString() << ")";
+    int wsaError = 0;
 #ifdef WIN32
-    int wsaError = WSAGetLastError();
-    qCDebug(networking) << "windows socket error " << wsaError;
+    wsaError = WSAGetLastError();
 #endif
+    int pending = _udpSocket.bytesToWrite();
+    qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << wsaError << socketError << "(" << _udpSocket.errorString() << ")"
+        << (pending ? "pending bytes:" : "pending:") << pending;
 #ifdef DEBUG_EVENT_QUEUE
     int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
     qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
