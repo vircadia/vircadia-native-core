@@ -950,6 +950,19 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
 
+    QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
+    if (!setBookmarkValue.isEmpty()) {
+        // Bookmarks are expected to be in a name=url form.
+        // An `=` character in the name or url is unsupported.
+        auto parts = setBookmarkValue.split("=");
+        if (parts.length() != 2) {
+            qWarning() << "Malformed setBookmark argument: " << setBookmarkValue;
+        } else {
+            qDebug() << "Setting bookmark" << parts[0] << "to" << parts[1];
+            DependencyManager::get<LocationBookmarks>()->insert(parts[0], parts[1]);
+        }
+    }
+
     return previousSessionCrashed;
 }
 
