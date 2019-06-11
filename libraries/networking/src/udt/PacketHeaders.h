@@ -366,7 +366,8 @@ enum class DomainListVersion : PacketVersion {
     GetUsernameFromUUIDSupport,
     GetMachineFingerprintFromUUIDSupport,
     AuthenticationOptional,
-    HasTimestamp
+    HasTimestamp,
+    HasConnectReason
 };
 
 enum class AudioVersion : PacketVersion {

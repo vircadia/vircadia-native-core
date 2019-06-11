@@ -27,7 +27,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::StunResponse:
             return 17;
         case PacketType::DomainList:
-            return static_cast<PacketVersion>(DomainListVersion::HasTimestamp);
+            return static_cast<PacketVersion>(DomainListVersion::HasConnectReason);
         case PacketType::EntityAdd:
         case PacketType::EntityClone:
         case PacketType::EntityEdit:
