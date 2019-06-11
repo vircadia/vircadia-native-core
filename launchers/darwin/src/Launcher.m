@@ -343,14 +343,14 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                         @"--tokens", userToken,
                         @"--cache", contentPath,
                         @"--displayName", displayName,
-                        @"--script", scriptsPath,
+                        @"--scripts", scriptsPath,
                         @"--no-updater",
                         @"--no-launcher", nil];
     } else {
         arguments = [NSArray arrayWithObjects:
                             @"--url" , domainUrl,
                             @"--cache", contentPath,
-                            @"--script", scriptsPath,
+                            @"--scripts", scriptsPath,
                             @"--no-updater",
                             @"--no-launcher", nil];
     }

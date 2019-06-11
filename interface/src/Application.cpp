@@ -5611,7 +5611,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         scriptEngines->reloadLocalFiles();
 
         // if the --scripts command-line argument was used.
-        if (!_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
+        if (_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
             scriptEngines->loadDefaultScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {
