@@ -181,9 +181,9 @@ def buildLightLauncher():
         launcherDestFile = os.path.join(BUILD_PATH, "{}.exe".format(computeArchiveName('Launcher')))
         launcherSourceFile = os.path.join(launcherBuildPath, "Release", "HQLauncher.exe")
 
-    signBuild(launcherSourceFile)
     print("Moving {} to {}".format(launcherSourceFile, launcherDestFile))
     shutil.move(launcherSourceFile, launcherDestFile)
+    signBuild(launcherDestFile)
 
 
 
