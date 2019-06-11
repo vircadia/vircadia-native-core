@@ -146,16 +146,25 @@ def buildLightLauncher():
         launcherSourceFile = os.path.join(launcherBuildPath, "Release", "HQLauncher.exe")
     print("Moving {} to {}".format(launcherSourceFile, launcherDestFile))
     shutil.move(launcherSourceFile, launcherDestFile)
+    if sys.platform != 'win32':
+        print('Skipping signing because platform is not win32')
     RELEASE_TYPE = os.getenv("RELEASE_TYPE", "")
+    if RELEASE_TYPE != "PRODUCTION":
+        print('Skipping signing because RELEASE_TYPE "{}" != "PRODUCTION"'.format(RELEASE_TYPE))
+        return
     HF_PFX_FILE = os.getenv("HF_PFX_FILE", "")
+    if HF_PFX_FILE == "":
+        print('Skipping signing because HF_PFX_FILE is empty')
+        return
     HF_PFX_PASSPHRASE = os.getenv("HF_PFX_PASSPHRASE", "")
+    if HF_PFX_PASSPHRASE == "":
+        print('Skipping signing because HF_PFX_PASSPHRASE is empty')
+        return
     # FIXME use logic similar to the SetPackagingParameteres.cmake to locate the executable
     SIGN_TOOL = "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64/signtool.exe"
-    # Only perform this signing work on Windows non-PR / DEV builds 
-    if (sys.platform == 'win32') and (RELEASE_TYPE == "PRODUCTION") and (HF_PFX_FILE != "") and (HF_PFX_PASSPHRASE != ""):
-        # sign the launcher executable
-        print("Signing {}".format(launcherDestFile))
-        hifi_utils.executeSubprocess([
+    # sign the launcher executable
+    print("Signing {}".format(launcherDestFile))
+    hifi_utils.executeSubprocess([
             SIGN_TOOL,
             'sign', 
             '/fd', 'sha256',
