@@ -28,6 +28,7 @@ public:
     Bookmarks();
 
     virtual void setupMenus(Menu* menubar, MenuWrapper* menu) = 0;
+    void insert(const QString& name, const QVariant& address);  // Overwrites any existing entry with same name.
     QString addressForBookmark(const QString& name) const;
 
 protected:
@@ -37,7 +38,6 @@ protected:
     virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) = 0;
     void enableMenuItems(bool enabled);
     virtual void readFromFile();
-    void insert(const QString& name, const QVariant& address);  // Overwrites any existing entry with same name.
     void sortActions(Menu* menubar, MenuWrapper* menu);
     int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
     void removeBookmarkFromMenu(Menu* menubar, const QString& name);

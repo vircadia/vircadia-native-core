@@ -85,6 +85,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
     QCommandLineOption responseTokensOption("tokens", "set response tokens <json>", "json");
     QCommandLineOption displayNameOption("displayName", "set user display name <string>", "string");
+    QCommandLineOption setBookmarkOption("setBookmark", "set bookmark key=value pair", "string");
 
     parser.addOption(urlOption);
     parser.addOption(noLauncherOption);
@@ -97,6 +98,7 @@ int main(int argc, const char* argv[]) {
     parser.addOption(allowMultipleInstancesOption);
     parser.addOption(responseTokensOption);
     parser.addOption(displayNameOption);
+    parser.addOption(setBookmarkOption);
 
     if (!parser.parse(arguments)) {
         std::cout << parser.errorText().toStdString() << std::endl; // Avoid Qt log spam

@@ -11,22 +11,22 @@
 #pragma once
 
 #ifndef __AFXWIN_H__
-	#error "include 'stdafx.h' before including this file for PCH"
+    #error "include 'stdafx.h' before including this file for PCH"
 #endif
 
-#include "resource.h"		// main symbols
+#include "resource.h"       // main symbols
 #include "LauncherManager.h"
 
 class CLauncherApp : public CWinApp
 {
 public:
-	CLauncherApp();
-	virtual BOOL InitInstance();
-	void setDialogOnFront() { SetWindowPos(m_pMainWnd->GetSafeHwnd(), HWND_TOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE); }
-	LauncherManager _manager;
+    CLauncherApp();
+    virtual BOOL InitInstance();
+    void setDialogOnFront() { SetWindowPos(m_pMainWnd->GetSafeHwnd(), HWND_TOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE); }
+    LauncherManager _manager;
 private:
-	BOOL installFont(int fontID);	
-	DECLARE_MESSAGE_MAP()
+    BOOL installFont(int fontID);   
+    DECLARE_MESSAGE_MAP()
 };
 
 extern CLauncherApp theApp;
