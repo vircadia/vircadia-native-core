@@ -296,6 +296,8 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
+    int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
+
     // On ThreadedAssignments (assignment clients), this function
     // is called by the server check-in timer thread
     // not the NodeList thread.  Calling it on the NodeList thread
@@ -414,6 +416,16 @@ void NodeList::sendDomainServerCheckIn() {
             // now add the machine fingerprint
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
+
+            packetStream << ((outstandingCheckins >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) ? RECONNECT : START);
+
+            if (_nodeDisconnectTimestamp < _nodeConnectTimestamp) {
+                _nodeDisconnectTimestamp = usecTimestampNow();
+            }
+            quint64 previousConnectionUptime = _nodeConnectTimestamp ? _nodeDisconnectTimestamp - _nodeConnectTimestamp : 0;
+
+            packetStream << previousConnectionUptime;
+
         }
 
         packetStream << quint64(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
@@ -439,7 +451,6 @@ void NodeList::sendDomainServerCheckIn() {
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
         static const int REBIND_CHECKIN_COUNT = 2;
-        int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
 
         if (outstandingCheckins > REBIND_CHECKIN_COUNT) {
             _nodeSocket.rebind();
@@ -626,6 +637,7 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     _domainHandler.setConnectionToken(QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
 
     _domainHandler.clearPendingCheckins();
+    _nodeConnectTimestamp = usecTimestampNow();
     sendDomainServerCheckIn();
 }
 

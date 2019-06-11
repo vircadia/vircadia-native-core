@@ -59,10 +59,13 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
         auto sd = _udpSocket.socketDescriptor();
         int val = IP_PMTUDISC_DONT;
         setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
-#elif defined(Q_OS_WINDOWS)
+#elif defined(Q_OS_WIN)
         auto sd = _udpSocket.socketDescriptor();
         int val = 0; // false
-        setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+        if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char*)&val, sizeof(val))) {
+            auto err = WSAGetLastError();
+            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << err;
+        }
 #endif
     }
 }
@@ -232,13 +235,16 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
     }
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
 
+
+
     if (bytesWritten < 0) {
-        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << _udpSocket.error() << "(" << _udpSocket.errorString() << ")";
 
 #ifdef WIN32
         int wsaError = WSAGetLastError();
         qCDebug(networking) << "windows socket error " << wsaError;
 #endif
+
+        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << _udpSocket.error() << "(" << _udpSocket.errorString() << ")";
 
 #ifdef DEBUG_EVENT_QUEUE
         int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
@@ -506,11 +512,13 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << socketError << "(" << _udpSocket.errorString() << ")";
+
 #ifdef WIN32
     int wsaError = WSAGetLastError();
     qCDebug(networking) << "windows socket error " << wsaError;
 #endif
+
+    qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << socketError << "(" << _udpSocket.errorString() << ")";
 #ifdef DEBUG_EVENT_QUEUE
     int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
     qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;

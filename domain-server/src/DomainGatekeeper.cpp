@@ -57,7 +57,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     if (message->getSize() == 0) {
         return;
     }
-    
+
     QDataStream packetStream(message->getMessage());
 
     // read a NodeConnectionData object from the packet so we can pass around this data while we're inspecting it
@@ -88,11 +88,10 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     auto pendingAssignment = _pendingAssignedNodes.find(nodeConnection.connectUUID);
 
     SharedNodePointer node;
-
+    QString username;
     if (pendingAssignment != _pendingAssignedNodes.end()) {
         node = processAssignmentConnectRequest(nodeConnection, pendingAssignment->second);
     } else if (!STATICALLY_ASSIGNED_NODES.contains(nodeConnection.nodeType)) {
-        QString username;
         QByteArray usernameSignature;
 
         if (message->getBytesLeftToRead() > 0) {
@@ -122,9 +121,13 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         nodeData->setNodeInterestSet(safeInterestSet);
         nodeData->setPlaceName(nodeConnection.placeName);
 
-        qDebug() << "Allowed connection from node" << uuidStringWithoutCurlyBraces(node->getUUID())
-            << "on" << message->getSenderSockAddr() << "with MAC" << nodeConnection.hardwareAddress
-            << "and machine fingerprint" << nodeConnection.machineFingerprint;
+        qDebug() << "Allowed connection from node" << uuidStringWithoutCurlyBraces(node->getUUID()) 
+            << "on" << message->getSenderSockAddr() 
+            << "with MAC" << nodeConnection.hardwareAddress 
+            << "and machine fingerprint" << nodeConnection.machineFingerprint 
+            << "user" << username 
+            << "reason" << nodeConnection.connectReason
+            << "previous connection uptime" << nodeConnection.previousConnectionUpTime/USECS_PER_MSEC << "msec";
 
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
@@ -468,7 +471,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
             // we have a node that already has these exact sockets
             // this can occur if a node is failing to connect to the domain
-            
+
             // remove the old node before adding the new node
             qDebug() << "Deleting existing connection from same sockaddr: " << node->getUUID();
             existingNodeID = node->getUUID();
@@ -842,7 +845,7 @@ void DomainGatekeeper::processICEPingPacket(QSharedPointer<ReceivedMessage> mess
 
     // before we respond to this ICE ping packet, make sure we have a peer in the list that matches
     QUuid icePeerID = QUuid::fromRfc4122({ message->getRawMessage(), NUM_BYTES_RFC4122_UUID });
-    
+
     if (_icePeers.contains(icePeerID)) {
         auto pingReplyPacket = limitedNodeList->constructICEPingReplyPacket(*message, limitedNodeList->getSessionUUID());
 
@@ -881,7 +884,6 @@ void DomainGatekeeper::getGroupMemberships(const QString& username) {
 
     QJsonArray groupIDs = QJsonArray::fromStringList(groupIDSet.toList());
     json["groups"] = groupIDs;
-
 
     // if we've already asked, wait for the answer before asking again
     QString lowerUsername = username.toLower();
@@ -969,7 +971,7 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
                                                               QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
                                                               NULL, QVariantMap());
     }
-    
+
 }
 
 void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply* requestReply) {
