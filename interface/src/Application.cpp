@@ -978,7 +978,7 @@ Setting::Handle<int> sessionRunTime{ "sessionRunTime", 0 };
 
 const float DEFAULT_HMD_TABLET_SCALE_PERCENT = 60.0f;
 const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
-const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
+const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_STYLUS_OVER_LASER = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
@@ -9301,6 +9301,7 @@ void Application::updateSystemTabletMode() {
         if (isHMDMode()) {
             DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getHmdTabletBecomesToolbarSetting());
         } else {
+            //_desktopTabletBecomesToolbarSetting.set(false);
             DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
         }
     }

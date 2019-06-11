@@ -457,9 +457,15 @@ function onGeometryChanged(rect) {
     }
 }
 
-function ensureFirstPersonCameraInHMD(isHMDMode) {
+function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
+    } else {
+        //works for now, but not a permanent fix by any means.
+        Script.setTimeout(function () {
+            var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
+            toolbar.writeProperty("visible", false);
+        }, 700);
     }
 }
 
@@ -505,7 +511,7 @@ function startup() {
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
-    HMD.displayModeChanged.connect(ensureFirstPersonCameraInHMD);
+    HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.serverInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
@@ -559,7 +565,7 @@ function shutdown() {
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
-    HMD.displayModeChanged.disconnect(ensureFirstPersonCameraInHMD);
+    HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.serverInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
