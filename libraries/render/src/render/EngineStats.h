@@ -96,7 +96,7 @@ namespace render {
 
         quint32 frameTextureCount{ 0 };
         quint32 frameTextureRate{ 0 };
-        qint64 frameTextureMemoryUsage{ 0 };
+        quint64 frameTextureMemoryUsage{ 0 };
 
         quint32 frameSetPipelineCount{ 0 };
 
