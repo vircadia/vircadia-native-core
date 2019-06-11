@@ -173,7 +173,7 @@ private:
     void handleKillNode(SharedNodePointer nodeToKill);
     void broadcastNodeDisconnect(const SharedNodePointer& disconnnectedNode);
 
-    void sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr& senderSockAddr);
+    void sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr& senderSockAddr, bool newConnection);
 
     bool isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB);
 

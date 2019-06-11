@@ -31,7 +31,7 @@ public:
     QString placeName;
     QString hardwareAddress;
     QUuid machineFingerprint;
-    quint32 connectReason;
+    quint32 wasSilentDomainDisconnect;
     quint64 previousConnectionUpTime;
 
     QByteArray protocolVersion;

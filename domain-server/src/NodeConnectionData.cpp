@@ -36,7 +36,7 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
         // now the machine fingerprint
         dataStream >> newHeader.machineFingerprint;
 
-        dataStream >> newHeader.connectReason;
+        dataStream >> newHeader.wasSilentDomainDisconnect;
 
         dataStream >> newHeader.previousConnectionUpTime;
     }
