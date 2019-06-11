@@ -396,9 +396,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE + NUM_BYTES_RFC4122_UUID +
-         AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) +
-         AvatarDataPacket::maxJointDataSize(_jointData.size()) +
-         AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size());
+        AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getBlendshapeCoefficients().size()) +
+        AvatarDataPacket::maxJointDataSize(_jointData.size()) +
+        AvatarDataPacket::maxJointDefaultPoseFlagsSize(_jointData.size()) +
+        AvatarDataPacket::FAR_GRAB_JOINTS_SIZE;
 
     if (maxDataSize == 0) {
         maxDataSize = (int)byteArraySize;
