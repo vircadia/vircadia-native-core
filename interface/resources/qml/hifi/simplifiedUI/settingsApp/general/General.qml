@@ -101,7 +101,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 id: performanceTitle
-                text: "Graphics Preset"
+                text: "Graphics Settings"
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 22
@@ -115,7 +115,7 @@ Flickable {
 
                 SimplifiedControls.RadioButton {
                     id: performanceLow
-                    text: "Low"
+                    text: "Low Quality" + (PlatformInfo.getTierProfiled() === PerformanceEnums.LOW ? " (Recommended)" : "")
                     checked: Performance.getPerformancePreset() === PerformanceEnums.LOW
                     onClicked: {
                         Performance.setPerformancePreset(PerformanceEnums.LOW);
@@ -124,7 +124,7 @@ Flickable {
 
                 SimplifiedControls.RadioButton {
                     id: performanceMedium
-                    text: "Medium"
+                    text: "Medium Quality" + (PlatformInfo.getTierProfiled() === PerformanceEnums.MID ? " (Recommended)" : "")
                     checked: Performance.getPerformancePreset() === PerformanceEnums.MID
                     onClicked: {
                         Performance.setPerformancePreset(PerformanceEnums.MID);
@@ -133,7 +133,7 @@ Flickable {
 
                 SimplifiedControls.RadioButton {
                     id: performanceHigh
-                    text: "High"
+                    text: "High Quality" + (PlatformInfo.getTierProfiled() === PerformanceEnums.HIGH ? " (Recommended)" : "")
                     checked: Performance.getPerformancePreset() === PerformanceEnums.HIGH
                     onClicked: {
                         Performance.setPerformancePreset(PerformanceEnums.HIGH);
