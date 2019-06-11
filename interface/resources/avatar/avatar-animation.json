@@ -1463,7 +1463,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0.5, 1.8, 2.3, 3.2, 4.5],
+                                                                                            "characteristicSpeeds": [0.5, 1.8, 2.3, 3.0, 5.0],
                                                                                             "alphaVar": "moveForwardAlpha",
                                                                                             "desiredSpeedVar": "moveForwardSpeed"
                                                                                         },
@@ -1509,8 +1509,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/jog_fwd.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 25.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 22.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1522,7 +1522,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/run_fwd.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 22.0,
+                                                                                                    "endFrame": 23.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
