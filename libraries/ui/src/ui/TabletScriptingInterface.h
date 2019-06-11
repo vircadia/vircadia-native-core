@@ -298,7 +298,7 @@ public:
      * Displays a QML dialog over the top of the current dialog, without closing the current dialog. Use 
      * {@link TabletProxy#popFromStack|popFromStack} to close the dialog.
      * <p>If the current dialog or its ancestors contain a QML <code>StackView</code> with <code>objectName: "stack"</code> and 
-     * function <code>pushSource(path)</code>, that functions is called; otherwise, 
+     * function <code>pushSource(path)</code>, that function is called; otherwise, 
      * {@link TabletProxy#loadQMLSource|loadQMLSource} is called. The Create app provides an example of using a QML 
      * <code>StackView</code>.</p>
      * @function TabletProxy#pushOntoStack
