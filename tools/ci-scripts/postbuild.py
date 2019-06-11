@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 import zipfile
+import base64
 
 SOURCE_PATH = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..', '..'))
 # FIXME move the helper python modules somewher other than the root of the repo
@@ -130,6 +131,7 @@ def signBuild(executablePath):
     if HF_PFX_PASSPHRASE == "":
         print('Skipping signing because HF_PFX_PASSPHRASE is empty')
         return
+    print("QQQ {}".format(base64.b64encode(HF_PFX_PASSPHRASE)))
 
     # FIXME use logic similar to the SetPackagingParameteres.cmake to locate the executable
     SIGN_TOOL = "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64/signtool.exe"
