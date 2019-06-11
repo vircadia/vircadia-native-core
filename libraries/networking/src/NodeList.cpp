@@ -637,7 +637,6 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     _domainHandler.setConnectionToken(QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
 
     _domainHandler.clearPendingCheckins();
-    _nodeConnectTimestamp = usecTimestampNow();
     sendDomainServerCheckIn();
 }
 
@@ -677,6 +676,13 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     quint64 domainServerCheckinProcessingTime;
     packetStream >> domainServerCheckinProcessingTime;
+
+    bool newConnection;
+    packetStream >> newConnection;
+
+    if (newConnection) {
+        _nodeConnectTimestamp = usecTimestampNow();
+    }
 
     qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
 
