@@ -535,7 +535,9 @@ function shutdown() {
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
-            toolbar.writeProperty("visible", true);
+            if (toolbar) {
+                toolbar.writeProperty("visible", true);
+            } 
         }
     }
     

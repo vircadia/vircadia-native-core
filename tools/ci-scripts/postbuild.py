@@ -112,9 +112,6 @@ def fixupWinZip(filename):
     shutil.move(outFullPath, fullPath)
 
 def buildLightLauncher():
-    # FIXME remove once MFC is enabled on the windows build hosts
-    if sys.platform == 'win32':
-        return
     launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
     launcherBuildPath = os.path.join(BUILD_PATH, 'launcher') 
     if not os.path.exists(launcherBuildPath):
@@ -146,7 +143,7 @@ def buildLightLauncher():
     elif sys.platform == 'win32':
         # FIXME
         launcherDestFile = os.path.join(BUILD_PATH, "{}.exe".format(computeArchiveName('Launcher')))
-        launcherSourceFile = os.path.join(launcherBuildPath, "Launcher.exe")
+        launcherSourceFile = os.path.join(launcherBuildPath, "Release", "HQLauncher.exe")
     print("Moving {} to {}".format(launcherSourceFile, launcherDestFile))
     shutil.move(launcherSourceFile, launcherDestFile)
 

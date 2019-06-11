@@ -55,7 +55,7 @@ protected:
     bool _faceCamera { false };
     bool _glow { false };
 
-    size_t _numVertices;
+    size_t _numVertices { 0 };
     gpu::BufferPointer _polylineDataBuffer;
     gpu::BufferPointer _polylineGeometryBuffer;
     static std::map<std::pair<render::Args::RenderMethod, bool>, gpu::PipelinePointer> _pipelines;

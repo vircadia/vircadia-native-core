@@ -109,6 +109,8 @@ private: \
  * @property {number} shadowRendered - <em>Read-only.</em>
  * @property {string} sendingMode - <em>Read-only.</em>
  * @property {string} packetStats - <em>Read-only.</em>
+ * @property {number} lodAngle - <em>Read-only.</em>
+ * @property {number} lodTargetFramerate - <em>Read-only.</em>
  * @property {string} lodStatus - <em>Read-only.</em>
  * @property {string} timingStats - <em>Read-only.</em>
  * @property {string} gameUpdateStats - <em>Read-only.</em>
@@ -272,6 +274,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, shadowRendered, 0)
     STATS_PROPERTY(QString, sendingMode, QString())
     STATS_PROPERTY(QString, packetStats, QString())
+    STATS_PROPERTY(int, lodAngle, 0)
+    STATS_PROPERTY(int, lodTargetFramerate, 0)
     STATS_PROPERTY(QString, lodStatus, QString())
     STATS_PROPERTY(QString, timingStats, QString())
     STATS_PROPERTY(QString, gameUpdateStats, QString())
@@ -857,6 +861,20 @@ signals:
      * @returns {Signal}
      */
     void packetStatsChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>lodAngle</code> property changes.
+     * @function Stats.lodAngleChanged
+     * @returns {Signal}
+     */
+    void lodAngleChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>lodTargetFramerate</code> property changes.
+     * @function Stats.lodTargetFramerateChanged
+     * @returns {Signal}
+     */
+    void lodTargetFramerateChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>lodStatus</code> property changes.

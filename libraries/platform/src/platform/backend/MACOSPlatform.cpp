@@ -18,6 +18,9 @@
 #include <unistd.h>
 #include <cpuid.h>
 #include <sys/sysctl.h>
+
+#include <CoreFoundation/CoreFoundation.h>
+#include <ApplicationServices/ApplicationServices.h>
 #endif
 
 using namespace platform;
@@ -33,16 +36,73 @@ void MACOSInstance::enumerateCpu() {
 }
 
 void MACOSInstance::enumerateGpu() {
+#ifdef Q_OS_MAC
+
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
+
     gpu[keys::gpu::vendor] = ident->getName().toUtf8().constData();
     gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
     gpu[keys::gpu::videoMemory] = ident->getMemory();
     gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
 
     _gpu.push_back(gpu);
-    _display = ident->getOutput();
+    
+#endif
 
+}
+
+void MACOSInstance::enumerateDisplays() {
+#ifdef Q_OS_MAC
+    auto displayID = CGMainDisplayID();
+    auto displaySize = CGDisplayScreenSize(displayID);
+
+    const auto MM_TO_IN = 0.0393701;
+    auto displaySizeWidthInches = displaySize.width * MM_TO_IN;
+    auto displaySizeHeightInches = displaySize.height * MM_TO_IN;
+    auto displaySizeDiagonalInches = sqrt(displaySizeWidthInches * displaySizeWidthInches + displaySizeHeightInches * displaySizeHeightInches);
+    
+    auto displayBounds = CGDisplayBounds(displayID);
+    auto displayMaster =CGDisplayIsMain(displayID);
+    
+    auto displayUnit =CGDisplayUnitNumber(displayID);
+    auto displayModel =CGDisplayModelNumber(displayID);
+    auto displayVendor = CGDisplayVendorNumber(displayID);
+    auto displaySerial = CGDisplaySerialNumber(displayID);
+
+    auto displayMode = CGDisplayCopyDisplayMode(displayID);
+    auto displayModeWidth = CGDisplayModeGetPixelWidth(displayMode);
+    auto displayModeHeight = CGDisplayModeGetPixelHeight(displayMode);
+    auto displayRefreshrate = CGDisplayModeGetRefreshRate(displayMode);
+
+    CGDisplayModeRelease(displayMode);
+    
+    json display = {};
+    
+    display["physicalWidth"] = displaySizeWidthInches;
+    display["physicalHeight"] = displaySizeHeightInches;
+    display["physicalDiagonal"] = displaySizeDiagonalInches;
+    
+    display["ppi"] = sqrt(displayModeHeight * displayModeHeight + displayModeWidth * displayModeWidth) / displaySizeDiagonalInches;
+    
+    display["coordLeft"] = displayBounds.origin.x;
+    display["coordRight"] = displayBounds.origin.x + displayBounds.size.width;
+    display["coordTop"] = displayBounds.origin.y;
+    display["coordBottom"] = displayBounds.origin.y + displayBounds.size.height;
+    
+    display["isMaster"] = displayMaster;
+
+    display["unit"] = displayUnit;
+    display["vendor"] = displayVendor;
+    display["model"] = displayModel;
+    display["serial"] = displaySerial;
+    
+    display["refreshrate"] =displayRefreshrate;
+    display["modeWidth"] = displayModeWidth;
+    display["modeHeight"] = displayModeHeight;
+
+    _display.push_back(display);
+#endif
 }
 
 void MACOSInstance::enumerateMemory() {
