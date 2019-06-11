@@ -63,7 +63,8 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
         auto sd = _udpSocket.socketDescriptor();
         int val = 0; // false
         if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&val, sizeof(val))) {
-            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << WSAGetLastError();
+            int wsaError = WSAGetLastError();
+            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << wsaError;
         }
 #endif
     }
