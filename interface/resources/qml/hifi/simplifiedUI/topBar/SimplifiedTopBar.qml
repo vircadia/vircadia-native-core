@@ -93,6 +93,12 @@ Rectangle {
                 topBarInventoryModel.getNextPage();
             } else {
                 inventoryFullyReceived = true;
+
+                // If we have an avatar in our inventory AND we haven't already auto-selected an avatar...
+                if (!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) && topBarInventoryModel.count > 0) {
+                    Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
+                    MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+                }
             }
         }
     }
