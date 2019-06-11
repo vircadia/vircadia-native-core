@@ -146,8 +146,29 @@ def buildLightLauncher():
         launcherSourceFile = os.path.join(launcherBuildPath, "Release", "HQLauncher.exe")
     print("Moving {} to {}".format(launcherSourceFile, launcherDestFile))
     shutil.move(launcherSourceFile, launcherDestFile)
+    RELEASE_TYPE = os.getenv("RELEASE_TYPE", "")
+    HF_PFX_FILE = os.getenv("HF_PFX_FILE", "")
+    HF_PFX_PASSPHRASE = os.getenv("HF_PFX_PASSPHRASE", "")
+    # FIXME use logic similar to the SetPackagingParameteres.cmake to locate the executable
+    SIGN_TOOL = "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64/signtool.exe"
+    # Only perform this signing work on Windows non-PR / DEV builds 
+    if (sys.platform == 'win32') and (RELEASE_TYPE == "PRODUCTION") and (HF_PFX_FILE != "") and (HF_PFX_PASSPHRASE != ""):
+        # sign the launcher executable
+        print("Signing {}".format(launcherDestFile))
+        hifi_utils.executeSubprocess([
+            SIGN_TOOL,
+            'sign', 
+            '/fd', 'sha256',
+            '/f', HF_PFX_FILE,
+            '/p', HF_PFX_PASSPHRASE,
+            '/tr', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp',
+            '/td', 'SHA256',
+            '"{}"'.format(launcherDestFile)
+        ], folder=launcherBuildPath)
 
 
+
+# Main 
 for wipePath in WIPE_PATHS:
     wipeClientBuildPath(wipePath)
 
