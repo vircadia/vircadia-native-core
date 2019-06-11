@@ -113,6 +113,9 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
+    connect(&_domainHandler, &DomainHandler::limitOfSilentDomainCheckInsReached,
+        this, [this]() {_wasSilentDomainDisconnect = true; });
+
     // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setConnectionCreationFilterOperator(std::bind(&NodeList::sockAddrBelongsToDomainOrNode, this, _1));
@@ -296,8 +299,6 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
-    int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
-
     // On ThreadedAssignments (assignment clients), this function
     // is called by the server check-in timer thread
     // not the NodeList thread.  Calling it on the NodeList thread
@@ -417,7 +418,7 @@ void NodeList::sendDomainServerCheckIn() {
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
-            packetStream << ((outstandingCheckins >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) ? RECONNECT : START);
+            packetStream << quint32(_wasSilentDomainDisconnect ? 1 : 0);
 
             if (_nodeDisconnectTimestamp < _nodeConnectTimestamp) {
                 _nodeDisconnectTimestamp = usecTimestampNow();
@@ -451,7 +452,7 @@ void NodeList::sendDomainServerCheckIn() {
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
         static const int REBIND_CHECKIN_COUNT = 2;
-
+        int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
         if (outstandingCheckins > REBIND_CHECKIN_COUNT) {
             _nodeSocket.rebind();
         }
@@ -637,7 +638,6 @@ void NodeList::processDomainServerConnectionTokenPacket(QSharedPointer<ReceivedM
     _domainHandler.setConnectionToken(QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID)));
 
     _domainHandler.clearPendingCheckins();
-    _nodeConnectTimestamp = usecTimestampNow();
     sendDomainServerCheckIn();
 }
 
@@ -677,6 +677,14 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     quint64 domainServerCheckinProcessingTime;
     packetStream >> domainServerCheckinProcessingTime;
+
+    bool newConnection;
+    packetStream >> newConnection;
+
+    if (newConnection) {
+        _nodeConnectTimestamp = usecTimestampNow();
+        _wasSilentDomainDisconnect = false;
+    }
 
     qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
 

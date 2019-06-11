@@ -337,12 +337,6 @@ public:
         NodeType::EntityScriptServer
     };
 
-    enum DomainConnectReason : quint32 {
-        START = 0,
-        RECONNECT
-    };
-    Q_ENUM(DomainConnectReason);
-
 public slots:
     void reset();
     void eraseAllNodes();
@@ -469,6 +463,7 @@ protected:
     std::unordered_map<QUuid, ConnectionID> _connectionIDs;
     quint64 _nodeConnectTimestamp { 0 };
     quint64 _nodeDisconnectTimestamp { 0 };
+    bool _wasSilentDomainDisconnect { false };
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
