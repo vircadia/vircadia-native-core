@@ -87,6 +87,7 @@ public:
                                               const CString& downloadsDir,
                                               std::function<void(int)> callback);
     static CString urlEncodeString(const CString& url);
+    static HWND executeOnForeground(const CString& path, const CString& params);
 
 private:
     // Threads
