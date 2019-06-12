@@ -688,6 +688,12 @@ void OffscreenUi::createDesktop(const QUrl& url) {
             menuInitializer(_vrMenu);
         }
 
+
+        QString toolbarName = newObject->property("toolbarObjectName").toString(); // will return "com.highfidelity.interface.toolbar.system"
+        auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>();
+        _currentToolbarProxy = dynamic_cast<ToolbarProxy*>(toolbarScriptingInterface->getToolbar(toolbarName));
+        connect(_desktop, SIGNAL(toolbarVisibleChanged(bool)), _currentToolbarProxy, SLOT(onToolbarVisibleChanged(bool)));
+
         auto keyboardFocus = new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
         emit desktopReady();

@@ -12,6 +12,8 @@ import controlsUit 1.0
 OriginalDesktop.Desktop {
     id: desktop
 
+    property alias toolbarObjectName: sysToolbar.objectName
+
     MouseArea {
         id: hoverWatch
         anchors.fill: parent
@@ -70,7 +72,13 @@ OriginalDesktop.Desktop {
         x: sysToolbar.x
         buttonModel: tablet ? tablet.buttons : null;
         shown: tablet ? tablet.toolbarMode : false;
+
+        onVisibleChanged: {
+            console.log("ZRF HERE DESKTOP.QML: " + visible);
+            desktop.toolbarVisibleChanged(visible);
+        }
     }
+    signal toolbarVisibleChanged(bool isVisible);
 
     QtSettings.Settings {
         id: settings;
