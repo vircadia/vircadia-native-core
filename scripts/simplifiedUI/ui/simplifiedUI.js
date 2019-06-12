@@ -457,6 +457,7 @@ function onGeometryChanged(rect) {
     }
 }
 
+var TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS = 700
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
@@ -465,7 +466,7 @@ function onDisplayModeChanged(isHMDMode) {
         Script.setTimeout(function () {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
             toolbar.writeProperty("visible", false);
-        }, 700);
+        }, TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS);
     }
 }
 
