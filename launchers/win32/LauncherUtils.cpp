@@ -13,6 +13,7 @@
 #include <tlhelp32.h>
 #include <strsafe.h>
 #include <winhttp.h>
+
 #pragma comment(lib, "winhttp")
 
 #include "LauncherUtils.h"
@@ -449,4 +450,39 @@ BOOL LauncherUtils::deleteDirectoriesOnThread(const CString& applicationDir,
         return TRUE;
     }
     return FALSE;
+}
+
+HWND LauncherUtils::executeOnForeground(const CString& path, const CString& params) {
+    SHELLEXECUTEINFO info;
+    info.cbSize = sizeof(SHELLEXECUTEINFO);
+    info.lpVerb = _T("open");
+    info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC | SEE_MASK_WAITFORINPUTIDLE;
+    info.hwnd = NULL;
+    info.lpVerb = NULL;
+    info.lpParameters = NULL;
+    info.lpDirectory = NULL;
+    info.nShow = SW_SHOWNORMAL;
+    info.hInstApp = NULL;
+    info.lpFile = path;
+    info.lpParameters = params;
+    HWND hwnd = NULL;
+    if (!ShellExecuteEx(&info)) {
+        return FALSE;
+    } else {
+        DWORD infopid = GetProcessId(info.hProcess);
+        AllowSetForegroundWindow(infopid);
+        hwnd = GetTopWindow(0);
+        while (hwnd) {
+            DWORD pid;
+            DWORD dwTheardId = ::GetWindowThreadProcessId(hwnd, &pid);
+            if (pid == infopid) {
+                SetForegroundWindow(hwnd);
+                SetActiveWindow(hwnd);
+                break;
+            }
+            hwnd = ::GetNextWindow(hwnd, GW_HWNDNEXT);
+        }
+        CloseHandle(info.hProcess);
+    }
+    return hwnd;
 }

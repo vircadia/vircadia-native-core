@@ -70,7 +70,7 @@ public:
     BOOL deleteApplicationRegistryKeys();
     BOOL createShortcuts();
     BOOL deleteShortcuts();
-    BOOL launchApplication(const CString& tokensJSON = _T(""));
+    HWND launchApplication();
     BOOL uninstallApplication();
     BOOL installLauncher();
 
@@ -79,6 +79,7 @@ public:
     const CString& getdomainURL() const { return _domainURL; }
     const CString& getVersion() const { return _version; }
     BOOL shouldShutDown() const { return _shouldShutdown; }
+    BOOL shouldLaunch() const { return _shouldLaunch; }
     BOOL needsUpdate() { return _shouldUpdate; }
     BOOL needsUninstall() { return _shouldUninstall; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
@@ -108,6 +109,7 @@ private:
     BOOL _shouldUpdate{ FALSE };
     BOOL _shouldUninstall{ FALSE };
     BOOL _shouldShutdown{ FALSE };
+    BOOL _shouldLaunch{ FALSE };
     CStdioFile _logFile;
 };
 

@@ -8,6 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+#include <limits>
 #include "Context.h"
 
 #include <shared/GlobalAppProperties.h>
@@ -18,19 +19,28 @@
 
 using namespace gpu;
 
+template<typename T>
+T subWrap(T endValue, T beginValue) {
+    if (endValue >= beginValue) {
+        return endValue - beginValue;
+    } else {
+        return endValue + ((std::numeric_limits<T>::max() - beginValue) + 1);
+    }
+}
+
 void ContextStats::evalDelta(const ContextStats& begin, const ContextStats& end) {
-    _ISNumFormatChanges = end._ISNumFormatChanges - begin._ISNumFormatChanges;
-    _ISNumInputBufferChanges = end._ISNumInputBufferChanges - begin._ISNumInputBufferChanges;
-    _ISNumIndexBufferChanges = end._ISNumIndexBufferChanges - begin._ISNumIndexBufferChanges;
+    _ISNumFormatChanges = subWrap<uint32_t>(end._ISNumFormatChanges, begin._ISNumFormatChanges);
+    _ISNumInputBufferChanges = subWrap<uint32_t>(end._ISNumInputBufferChanges, begin._ISNumInputBufferChanges);
+    _ISNumIndexBufferChanges = subWrap<uint32_t>(end._ISNumIndexBufferChanges, begin._ISNumIndexBufferChanges);
 
-    _RSNumTextureBounded = end._RSNumTextureBounded - begin._RSNumTextureBounded;
-    _RSAmountTextureMemoryBounded = end._RSAmountTextureMemoryBounded - begin._RSAmountTextureMemoryBounded;
+    _RSNumTextureBounded = subWrap<uint32_t>(end._RSNumTextureBounded, begin._RSNumTextureBounded);
+    _RSAmountTextureMemoryBounded = subWrap<uint64_t>(end._RSAmountTextureMemoryBounded, begin._RSAmountTextureMemoryBounded);
 
-    _DSNumAPIDrawcalls = end._DSNumAPIDrawcalls - begin._DSNumAPIDrawcalls;
-    _DSNumDrawcalls = end._DSNumDrawcalls - begin._DSNumDrawcalls;
-    _DSNumTriangles= end._DSNumTriangles - begin._DSNumTriangles;
+    _DSNumAPIDrawcalls = subWrap<uint32_t>(end._DSNumAPIDrawcalls, begin._DSNumAPIDrawcalls);
+    _DSNumDrawcalls = subWrap<uint32_t>(end._DSNumDrawcalls, begin._DSNumDrawcalls);
+    _DSNumTriangles= subWrap<uint32_t>(end._DSNumTriangles, begin._DSNumTriangles);
 
-    _PSNumSetPipelines = end._PSNumSetPipelines - begin._PSNumSetPipelines;
+    _PSNumSetPipelines = subWrap<uint32_t>(end._PSNumSetPipelines, begin._PSNumSetPipelines);
 }
 
 
