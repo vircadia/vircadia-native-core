@@ -88,7 +88,7 @@ Rectangle {
 
     Image {
         id: accent
-        source: "../images/accent.svg"
+        source: "images/accent.svg"
         anchors.top: parent.top
         anchors.right: parent.right
         width: 60

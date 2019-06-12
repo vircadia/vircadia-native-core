@@ -47,7 +47,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: uiControlsTitle
                 text: "User Interface"
                 Layout.maximumWidth: parent.width

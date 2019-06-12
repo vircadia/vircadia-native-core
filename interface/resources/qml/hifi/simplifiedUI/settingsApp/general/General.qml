@@ -51,7 +51,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: avatarNameTagsTitle
                 text: "Avatar Name Tags"
                 Layout.maximumWidth: parent.width
@@ -99,7 +99,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: performanceTitle
                 text: "Graphics Settings"
                 Layout.maximumWidth: parent.width
@@ -147,7 +147,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: cameraTitle
                 text: "Camera View"
                 Layout.maximumWidth: parent.width
@@ -199,7 +199,7 @@ Flickable {
             wrapMode: Text.Wrap
             width: paintedWidth
             height: paintedHeight
-            size: 22
+            size: 14
             color: simplifiedUI.colors.text.lightBlue
 
             MouseArea {
