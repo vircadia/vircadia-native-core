@@ -126,7 +126,7 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
             << "with MAC" << nodeConnection.hardwareAddress 
             << "and machine fingerprint" << nodeConnection.machineFingerprint 
             << "user" << username 
-            << "reason" << QString(nodeConnection.connectReason ? "Silent Domain Disconnect" : "Connect")
+            << "reason" << QString(nodeConnection.connectReason ? "SilentDomainDisconnect" : "Connect")
             << "previous connection uptime" << nodeConnection.previousConnectionUpTime/USECS_PER_MSEC << "msec";
 
         // signal that we just connected a node so the DomainServer can get it a list
