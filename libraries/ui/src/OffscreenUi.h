@@ -270,7 +270,7 @@ private:
     QList<QObject*> _modalDialogListeners;
     std::unordered_map<int, bool> _pressedKeys;
     VrMenu* _vrMenu { nullptr };
-    QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers;
+    QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers; 
 };
 
 #endif

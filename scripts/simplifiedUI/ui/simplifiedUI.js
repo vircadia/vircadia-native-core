@@ -466,7 +466,9 @@ function onDisplayModeChanged(isHMDMode) {
 function onToolbarVisibleChanged(isVisible, toolbarName) {
     if (isVisible && toolbarName == TOOLBAR_NAME) {
         var toolbar = Toolbars.getToolbar(toolbarName);
-        toolbar.writeProperty("visible", false);
+        if (toolbar) {
+            toolbar.writeProperty("visible", false);
+        }
     }
 }
 
