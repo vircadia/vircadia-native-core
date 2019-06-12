@@ -108,6 +108,13 @@ public:
     };
 
     Q_ENUM(ConnectionStep);
+
+    enum ConnectReason : quint32 {
+        Connect = 0,
+        SilentDomainDisconnect
+    };
+    Q_ENUM(ConnectReason);
+
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
     Node::LocalID getSessionLocalID() const;
@@ -461,6 +468,9 @@ protected:
     }
 
     std::unordered_map<QUuid, ConnectionID> _connectionIDs;
+    quint64 _nodeConnectTimestamp{ 0 };
+    quint64 _nodeDisconnectTimestamp{ 0 };
+    ConnectReason _connectReason { Connect };
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
