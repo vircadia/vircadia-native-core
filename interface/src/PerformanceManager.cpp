@@ -63,9 +63,15 @@ PerformanceManager::PerformancePreset PerformanceManager::getPerformancePreset()
 
 void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformancePreset preset) {
 
+    // Ugly case that prevent us to run deferred everywhere...
+    bool isDeferredCapable = platform::Profiler::isRenderMethodDeferredCapable();
+
     switch (preset) {
         case PerformancePreset::HIGH:
-            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
+            RenderScriptingInterface::getInstance()->setRenderMethod( ( isDeferredCapable ?
+                RenderScriptingInterface::RenderMethod::DEFERRED : 
+                RenderScriptingInterface::RenderMethod::FORWARD ) );
+
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
 
@@ -73,7 +79,10 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
 
         break;
         case PerformancePreset::MID:
-            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
+            RenderScriptingInterface::getInstance()->setRenderMethod((isDeferredCapable ?
+                RenderScriptingInterface::RenderMethod::DEFERRED :
+                RenderScriptingInterface::RenderMethod::FORWARD));
+
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
             DependencyManager::get<LODManager>()->setWorldDetailQuality(0.5f);

@@ -125,3 +125,33 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
     // Not able to profile
     return false;
 }
+
+// Ugly very adhoc capability check to know if a particular hw can REnder with Deferred method or not
+// YES for PC  windows and linux
+// NO for android
+// YES on macos EXCEPT for macbookair with gpu intel iris or intel HD 6000
+bool Profiler::isRenderMethodDeferredCapable() {
+#if defined(Q_OS_MAC)
+    auto computerInfo = platform::getComputer();
+    if (computer.count(keys::computer::model)) {
+        const auto model = computer[keys::computer::model].get<std::string>();
+        if (model.find("MacBookAir") != std::string::npos) {
+            return false;
+        }
+    }
+
+
+/*    auto gpuInfo = platform::getGPU(0);
+    if (gpuInfo.count(keys::gpu::model)) {
+        const auto model = computer[keys::gpu::model].get<std::string>();
+        if (model.find("MacBookAir") != std::string::npos) {
+        }
+    }
+*/
+    return true;
+#elif defined(Q_OS_ANDROID)
+    return false;
+#else
+    return true;
+#endif
+}
