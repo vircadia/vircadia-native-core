@@ -24,7 +24,6 @@
 #include <DependencyManager.h>
 
 #include "ui/OffscreenQmlSurface.h"
-#include "ui/ToolbarScriptingInterface.h"
 #include "OffscreenQmlElement.h"
 
 class VrMenu;
@@ -272,7 +271,6 @@ private:
     std::unordered_map<int, bool> _pressedKeys;
     VrMenu* _vrMenu { nullptr };
     QQueue<std::function<void(VrMenu*)>> _queuedMenuInitializers;
-    ToolbarProxy* _currentToolbarProxy;
 };
 
 #endif

@@ -27,6 +27,7 @@
 #include "VrMenu.h"
 
 #include "ui/Logging.h"
+#include "ui/ToolbarScriptingInterface.h"
 
 #include <PointerManager.h>
 #include "MainWindow.h"
