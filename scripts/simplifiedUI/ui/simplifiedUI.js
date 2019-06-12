@@ -457,7 +457,7 @@ function onGeometryChanged(rect) {
     }
 }
 
-var TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS = 700
+var TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS = 700;
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
