@@ -457,9 +457,19 @@ function onGeometryChanged(rect) {
     }
 }
 
+<<<<<<< HEAD
+=======
+var TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS = 700;
+>>>>>>> f360adccbc827bb52dc4a73ebe2c6890e8be039e
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
+    } else if (Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false)) {
+        // works for now, but not a permanent fix by any means.
+        Script.setTimeout(function () {
+            var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
+            toolbar.writeProperty("visible", false);
+        }, TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS);
     }
 }
 

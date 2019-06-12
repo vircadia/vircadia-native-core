@@ -165,11 +165,21 @@ Rectangle {
     }
 
     Image {
-        source: "../images/accent.svg"
+        source: {
+            if (root.activeTabView === "generalTabView") {
+                "images/accent1.svg"
+            } else if (root.activeTabView === "audioTabView") {
+                "images/accent2.svg"
+            } else if (root.activeTabView === "vrTabView") {
+                "images/accent3.svg"
+            } else {
+                "images/accent3.svg"
+            }
+        }
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        width: 94
-        height: 175
+        anchors.top: tabContainer.bottom
+        width: 106
+        height: 200
     }
 
 

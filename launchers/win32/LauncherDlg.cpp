@@ -120,8 +120,16 @@ BOOL CLauncherDlg::OnInitDialog() {
 BOOL CLauncherDlg::PreTranslateMessage(MSG* pMsg) {
     if ((pMsg->message == WM_KEYDOWN))
     {
-        if (pMsg->wParam == VK_RETURN)
-        {
+        if (pMsg->wParam == 'A' && GetKeyState(VK_CONTROL) < 0) {
+            CWnd* wnd = GetFocus();
+            CWnd* myWnd = this->GetDlgItem(IDC_ORGNAME);
+            if (wnd && (wnd == this->GetDlgItem(IDC_ORGNAME) ||
+                        wnd == this->GetDlgItem(IDC_USERNAME) ||
+                        wnd == this->GetDlgItem(IDC_PASSWORD))) {
+                ((CEdit*)wnd)->SetSel(0, -1);
+            }
+            return TRUE;
+        } else if (pMsg->wParam == VK_RETURN) {
             OnNextClicked();
             return TRUE;
         }
@@ -140,7 +148,6 @@ void CLauncherDlg::setCustomDialog() {
     SetWindowLong(GetSafeHwnd(), GWL_EXSTYLE, lExStyle);
 
     SetWindowPos(NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-    // theApp.setDialogOnFront();
 }
 
 void CLauncherDlg::OnPaint()
@@ -210,7 +217,7 @@ BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
 }
 
 afx_msg void CLauncherDlg::OnTroubleClicked() {
-    ShellExecute(0, NULL, TROUBLE_URL, NULL, NULL, SW_SHOWDEFAULT);
+    LauncherUtils::executeOnForeground(TROUBLE_URL, _T(""));
 }
 
 afx_msg void CLauncherDlg::OnNextClicked() {
@@ -584,10 +591,14 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             } else {
                 theApp._manager.addToLog(_T("Start splash screen"));
                 setDrawDialog(DrawStep::DrawLogo);
-            }           
+            }
         } else if (_splashStep > 100) {
             _showSplash = false;
             if (theApp._manager.shouldShutDown()) {
+                if (_applicationWND != NULL) {
+                    ::SetForegroundWindow(_applicationWND);
+                    ::SetActiveWindow(_applicationWND);
+                }
                 if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
                     exit(0);
                 }
@@ -606,6 +617,9 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
         if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
             exit(0);
         }
+    }
+    if (theApp._manager.shouldLaunch()) {
+        _applicationWND = theApp._manager.launchApplication();
     }
 }
 
