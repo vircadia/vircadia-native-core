@@ -34,7 +34,7 @@ void LauncherManager::init() {
         addToLog(_T("Installed version: ") + currentVersion);
         if (_latestVersion.Compare(currentVersion) == 0) {
             addToLog(_T("Already running most recent build. Launching interface.exe"));
-            launchApplication();
+            _shouldLaunch = TRUE;
             _shouldShutdown = TRUE;
         } else {
             addToLog(_T("New build found. Updating"));
@@ -94,7 +94,7 @@ BOOL LauncherManager::installLauncher() {
             // The installer is not running on the desired location and has to be installed
             // Kill of running before self-copy
             if (LauncherUtils::IsProcessRunning(LAUNCHER_EXE_FILENAME)) {
-                ::ShellExecute(NULL, NULL, L"taskkill", L"/F /T /IM " + LAUNCHER_EXE_FILENAME, NULL, SW_HIDE);
+                ShellExecute(NULL, NULL, L"taskkill", L"/F /T /IM " + LAUNCHER_EXE_FILENAME, NULL, SW_HIDE);
             }
             CopyFile(appPath, instalationPath, FALSE);
         }
@@ -218,24 +218,27 @@ BOOL LauncherManager::getInstalledVersion(const CString& path, CString& version)
 }
 
 
-BOOL LauncherManager::launchApplication(const CString& tokensJSON) {
+HWND LauncherManager::launchApplication() {
     CString installDir;
     LauncherManager::getAndCreatePaths(PathType::Interface_Directory, installDir);
     CString interfaceExe = installDir + _T("\\interface.exe");
-    CString params1 = _T("--url \"") + _domainURL + ("\" ");
+    CString urlParam = _T("--url \"") + _domainURL + ("\" ");
     CString scriptsURL = installDir + _T("\\scripts\\simplifiedUI");
-    CString params2 = _T("--scripts \"") + scriptsURL + ("\" ");
+    CString scriptsParam = _T("--scripts \"") + scriptsURL + ("\" ");
     CString cacheDir;
     LauncherManager::getAndCreatePaths(PathType::Content_Directory, cacheDir);
-    CString params3 = _T("--cache \"") + cacheDir + ("\" ");
-    CString params4 = !_displayName.IsEmpty() ? _T("--displayName \"") + _displayName + ("\" ") : _T("");
-    CString parsedTokens = tokensJSON;
-    parsedTokens.Replace(_T("\""), _T("\\\""));
-    CString params5 = !tokensJSON.IsEmpty() ? _T("--tokens \"") + parsedTokens + ("\"") : _T("");
-    CString params = params1 + params2 + params3 + params4 + params5 + EXTRA_PARAMETERS;
-        
-    auto rs = ShellExecute(NULL, L"open", interfaceExe, params, NULL, SW_SHOW);
-    return (rs != NULL);
+    CString cacheParam = _T("--cache \"") + cacheDir + ("\" ");
+    CString nameParam = !_displayName.IsEmpty() ? _T("--displayName \"") + _displayName + ("\" ") : _T("");
+    CString tokensParam = _T("");
+    if (!_tokensJSON.IsEmpty()) {
+        CString parsedTokens = _tokensJSON;
+        parsedTokens.Replace(_T("\""), _T("\\\""));
+        tokensParam = _T("--tokens \"");
+        tokensParam += parsedTokens + _T("\"");
+    }
+    CString params = urlParam + scriptsParam + cacheParam + nameParam + tokensParam + EXTRA_PARAMETERS;
+    _shouldLaunch = FALSE;
+    return LauncherUtils::executeOnForeground(interfaceExe, params);
 }
 
 BOOL LauncherManager::createConfigJSON() {
@@ -288,8 +291,8 @@ LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, C
 LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString& hash) {
     CString contentTypeJson = L"content-type:application/json";
     CString response;
-    CString url = _T("/hifi-public/huffman/organizations/") + hash + _T(".json");
-    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", L"s3.amazonaws.com", url,
+    CString url = _T("/organizations/") + hash + _T(".json");
+    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", L"orgs.highfidelity.com", url,
         contentTypeJson, CStringA(), response, false);
     if (error != LauncherUtils::ResponseError::NoError) {
         return error;
@@ -407,9 +410,11 @@ void LauncherManager::onZipExtracted(ZipType type, int size) {
         addToLog(_T("Creating config.json"));
         createConfigJSON();
         addToLog(_T("Launching application."));
-        launchApplication(_tokensJSON);
-        addToLog(_T("Creating registry keys."));
-        createApplicationRegistryKeys(size);
+        _shouldLaunch = TRUE;
+        if (!_shouldUpdate) {
+            addToLog(_T("Creating registry keys."));
+            createApplicationRegistryKeys(size);
+        }
         _shouldShutdown = TRUE;
     }
 }
@@ -429,7 +434,7 @@ void LauncherManager::onFileDownloaded(DownloadType type) {
         addToLog(_T("Installing content."));
         installContent();
     } else if (type == DownloadType::DownloadApplication) {
-            addToLog(_T("Installing application."));
+        addToLog(_T("Installing application."));
         extractApplication();
     }
 }
