@@ -452,6 +452,7 @@ void NodeList::sendDomainServerCheckIn() {
         static const int MAX_CHECKINS_TOGETHER = 20;
         static const int REBIND_CHECKIN_COUNT = 2;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
+
         if (outstandingCheckins > REBIND_CHECKIN_COUNT) {
             _nodeSocket.rebind();
         }

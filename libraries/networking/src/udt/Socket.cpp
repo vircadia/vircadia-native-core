@@ -62,9 +62,9 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
 #elif defined(Q_OS_WIN)
         auto sd = _udpSocket.socketDescriptor();
         int val = 0; // false
-        if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char*)&val, sizeof(val))) {
-            auto err = WSAGetLastError();
-            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << err;
+        if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&val, sizeof(val))) {
+            auto wsaErr = WSAGetLastError();
+            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << wsaErr;
         }
 #endif
     }
@@ -234,7 +234,6 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
         return -1;
     }
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
-
     int pending = _udpSocket.bytesToWrite();
     if (bytesWritten < 0 || pending) {
         int wsaError = 0;
@@ -243,9 +242,6 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 #endif
         qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
             << (pending ? "pending bytes:" : "pending:") << pending;
-
-        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << _udpSocket.error() << "(" << _udpSocket.errorString() << ")";
-
 #ifdef DEBUG_EVENT_QUEUE
         int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
         qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
