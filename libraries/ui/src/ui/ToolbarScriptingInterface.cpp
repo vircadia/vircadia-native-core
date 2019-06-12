@@ -120,8 +120,3 @@ ToolbarProxy* ToolbarScriptingInterface::getToolbar(const QString& toolbarId) {
 
     return new ToolbarProxy(rawToolbar);
 }
-
-void ToolbarScriptingInterface::onToolbarVisibleChanged(bool isVisible, QString toolbarName) {
-    qDebug() << "ZRF HERE IN ENGINE SLOT" << isVisible << toolbarName;
-    emit ToolbarScriptingInterface::toolbarVisibleChanged(isVisible, toolbarName);
-}

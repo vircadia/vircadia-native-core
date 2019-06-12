@@ -74,7 +74,6 @@ OriginalDesktop.Desktop {
         shown: tablet ? tablet.toolbarMode : false;
 
         onVisibleChanged: {
-            console.log("ZRF HERE DESKTOP.QML: " + visible + " " + sysToolbar.objectName);
             desktop.toolbarVisibleChanged(visible, sysToolbar.objectName);
         }
     }

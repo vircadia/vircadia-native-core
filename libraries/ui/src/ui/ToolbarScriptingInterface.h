@@ -151,9 +151,6 @@ public:
      */
     Q_INVOKABLE ToolbarProxy* getToolbar(const QString& toolbarId);
 
-public slots:
-    void onToolbarVisibleChanged(bool isVisible, QString toolbarName);
-
 signals:
     void toolbarVisibleChanged(bool isVisible, QString toolbarName);
 };
