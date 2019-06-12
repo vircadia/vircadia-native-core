@@ -461,8 +461,8 @@ var TIMEOUT_BEFORE_REHIDE_TOOLBAR_MS = 700
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
-    } else {
-        //works for now, but not a permanent fix by any means.
+    } else if (Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false)) {
+        // works for now, but not a permanent fix by any means.
         Script.setTimeout(function () {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
             toolbar.writeProperty("visible", false);
