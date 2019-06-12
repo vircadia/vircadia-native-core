@@ -64,6 +64,7 @@ protected:
     void handlePointerEventAsTouch(const PointerEvent& event);
     void handlePointerEventAsMouse(const PointerEvent& event);
 
+    void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 private:
     void onTimeout();
     void buildWebSurface(const EntityItemPointer& entity, const QString& newSourceURL);
