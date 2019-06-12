@@ -2190,33 +2190,35 @@ signals:
     void audioListenerModeChanged();
 
     /**jsdoc
-     * Notifies when the analogPlusWalkSpeed value is changed.
+     * Triggered when the walk speed set for the "AnalogPlus" control scheme changes.
      * @function MyAvatar.analogPlusWalkSpeedChanged
-     * @param {float} value - the new avatar walk speed
+     * @param {number} speed - The new walk speed set for the "AnalogPlus" control scheme.
      * @returns {Signal} 
      */
     void analogPlusWalkSpeedChanged(float value);
 
     /**jsdoc
-     * Notifies when the analogPlusSprintSpeed value is changed.
+     * Triggered when the sprint (run) speed set for the "AnalogPlus" control scheme changes.
      * @function MyAvatar.analogPlusSprintSpeedChanged
-     * @param {float} value - the new avatar sprint speed
+     * @param {number} speed - The new sprint speed set for the "AnalogPlus" control scheme.
      * @returns {Signal} 
      */
     void analogPlusSprintSpeedChanged(float value);
 
     /**jsdoc
-     * Notifies when the sprintSpeed value is changed.
+     * Triggered when the sprint (run) speed set for the current control scheme (see 
+     * {@link MyAvatar.getControlScheme|getControlScheme}) changes.
      * @function MyAvatar.sprintSpeedChanged
-     * @param {float} value - the new avatar sprint speed
+     * @param {number} speed -The new sprint speed set for the current control scheme.
      * @returns {Signal} 
      */
     void sprintSpeedChanged(float value);
 
     /**jsdoc
-     * Notifies when the walkBackwardSpeed value is changed.
+     * Triggered when the walk backward speed set for the current control scheme (see 
+     * {@link MyAvatar.getControlScheme|getControlScheme}) changes.
      * @function MyAvatar.walkBackwardSpeedChanged
-     * @param {float} value - the new avatar walk backward speed
+     * @param {number} speed - The new walk backward speed set for the current control scheme.
      * @returns {Signal} 
      */
     void walkBackwardSpeedChanged(float value);
