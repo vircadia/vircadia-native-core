@@ -267,7 +267,7 @@ class MyAvatar : public Avatar {
      * @property {number} analogPlusWalkSpeed - The walk speed of your avatar for the "AnalogPlus" control scheme.
      *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice 
      *     the value.</p>
-     * @property {number} analogPlusSprintSpeed - The sprint speed of your avatar for the "AnalogPlus" control scheme.
+     * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
      * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
      *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
