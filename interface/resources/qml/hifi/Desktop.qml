@@ -74,11 +74,11 @@ OriginalDesktop.Desktop {
         shown: tablet ? tablet.toolbarMode : false;
 
         onVisibleChanged: {
-            console.log("ZRF HERE DESKTOP.QML: " + visible);
-            desktop.toolbarVisibleChanged(visible);
+            console.log("ZRF HERE DESKTOP.QML: " + visible + " " + sysToolbar.objectName);
+            desktop.toolbarVisibleChanged(visible, sysToolbar.objectName);
         }
     }
-    signal toolbarVisibleChanged(bool isVisible);
+    signal toolbarVisibleChanged(bool isVisible, string toolbarName);
 
     QtSettings.Settings {
         id: settings;

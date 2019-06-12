@@ -691,8 +691,7 @@ void OffscreenUi::createDesktop(const QUrl& url) {
 
         QString toolbarName = newObject->property("toolbarObjectName").toString(); // will return "com.highfidelity.interface.toolbar.system"
         auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>();
-        _currentToolbarProxy = dynamic_cast<ToolbarProxy*>(toolbarScriptingInterface->getToolbar(toolbarName));
-        connect(_desktop, SIGNAL(toolbarVisibleChanged(bool)), _currentToolbarProxy, SLOT(onToolbarVisibleChanged(bool)));
+        connect(_desktop, SIGNAL(toolbarVisibleChanged(bool, QString)), toolbarScriptingInterface.data(), SLOT(onToolbarVisibleChanged(bool, QString)));
 
         auto keyboardFocus = new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));

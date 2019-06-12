@@ -63,11 +63,6 @@ void ToolbarButtonProxy::editProperties(const QVariantMap& properties) {
     }
 }
 
-void ToolbarProxy::onToolbarVisibleChanged(bool isVisible) {
-    qDebug() << "ZRF HERE IN ENGINE SLOT";
-    emit ToolbarProxy::toolbarVisibleChanged(isVisible);
-}
-
 ToolbarProxy::ToolbarProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) { 
     Q_ASSERT(QThread::currentThread() == qApp->thread());
 }
@@ -124,4 +119,9 @@ ToolbarProxy* ToolbarScriptingInterface::getToolbar(const QString& toolbarId) {
     }
 
     return new ToolbarProxy(rawToolbar);
+}
+
+void ToolbarScriptingInterface::onToolbarVisibleChanged(bool isVisible, QString toolbarName) {
+    qDebug() << "ZRF HERE IN ENGINE SLOT" << isVisible << toolbarName;
+    emit ToolbarScriptingInterface::toolbarVisibleChanged(isVisible, toolbarName);
 }

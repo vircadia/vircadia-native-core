@@ -129,12 +129,6 @@ public:
      * @param {string[]} propertyList
      * @returns {object}
      */
-
-public slots:
-    void onToolbarVisibleChanged(bool isVisible);
-
-signals:
-    void toolbarVisibleChanged(bool isVisible);
 };
 
 Q_DECLARE_METATYPE(ToolbarProxy*);
@@ -156,6 +150,12 @@ public:
      * @returns {ToolbarProxy}
      */
     Q_INVOKABLE ToolbarProxy* getToolbar(const QString& toolbarId);
+
+public slots:
+    void onToolbarVisibleChanged(bool isVisible, QString toolbarName);
+
+signals:
+    void toolbarVisibleChanged(bool isVisible, QString toolbarName);
 };
 
 
