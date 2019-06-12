@@ -464,7 +464,7 @@ function onDisplayModeChanged(isHMDMode) {
 }
 
 function onToolbarVisibleChanged(isVisible, toolbarName) {
-    if (isVisible && toolbarName == TOOLBAR_NAME) {
+    if (isVisible && toolbarName == TOOLBAR_NAME && Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false)) {
         var toolbar = Toolbars.getToolbar(toolbarName);
         if (toolbar) {
             toolbar.writeProperty("visible", false);
