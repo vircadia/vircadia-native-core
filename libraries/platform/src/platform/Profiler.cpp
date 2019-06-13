@@ -12,6 +12,7 @@
 
 #include "Platform.h"
 #include "PlatformKeys.h"
+#include <qglobal.h>
 
 using namespace platform;
 
@@ -132,7 +133,7 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
 // YES on macos EXCEPT for macbookair with gpu intel iris or intel HD 6000
 bool Profiler::isRenderMethodDeferredCapable() {
 #if defined(Q_OS_MAC)
-    auto computerInfo = platform::getComputer();
+    auto computer = platform::getComputer();
     if (computer.count(keys::computer::model)) {
         const auto model = computer[keys::computer::model].get<std::string>();
         if (model.find("MacBookAir") != std::string::npos) {
