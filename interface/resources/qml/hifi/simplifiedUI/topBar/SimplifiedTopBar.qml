@@ -47,6 +47,11 @@ Rectangle {
 
         onSkeletonModelURLChanged: {
             root.updatePreviewUrl();
+
+            if (MyAvatar.skeletonModelURL.indexOf("defaultAvatar" > -1) && topBarInventoryModel.count > 0) {
+                Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
+                MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+            }
         }
     }
 
