@@ -134,21 +134,22 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
 bool Profiler::isRenderMethodDeferredCapable() {
 #if defined(Q_OS_MAC)
     auto computer = platform::getComputer();
-    if (computer.count(keys::computer::model)) {
-        const auto model = computer[keys::computer::model].get<std::string>();
-        if (model.find("MacBookAir") != std::string::npos) {
-            return false;
-        }
+    const auto computerModel = (computer.count(keys::computer::model) ? computer[keys::computer::model].get<std::string>() : "");
+
+    auto gpuInfo = platform::getGPU(0);
+    const auto gpuModel = (gpuInfo.count(keys::gpu::model) ? gpuInfo[keys::gpu::model].get<std::string>() : "");
+    
+    
+    // Macbook air 2018 are a problem
+    if ((computerModel.find("MacBookAir") != std::string::npos) && (gpuModel.find("Intel HD Graphics 6000") != std::string::npos)) {
+        return false;
+    }
+    
+    // We know for fact that the INtel Iris is problematic...
+    if ((gpuModel.find("Intel Iris") != std::string::npos)) {
+        return false;
     }
 
-
-/*    auto gpuInfo = platform::getGPU(0);
-    if (gpuInfo.count(keys::gpu::model)) {
-        const auto model = computer[keys::gpu::model].get<std::string>();
-        if (model.find("MacBookAir") != std::string::npos) {
-        }
-    }
-*/
     return true;
 #elif defined(Q_OS_ANDROID)
     return false;
