@@ -470,6 +470,8 @@ void WebEntityRenderer::handlePointerEventAsMouse(const PointerEvent& event) {
 }
 
 void WebEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
+    // HACK: destroyWebSurface() here to avoid a crash on shutdown.
+    // TODO: fix the real problem: EntityRenderer<>::dtor never called on shutdown for smart-pointer resource leak.
     destroyWebSurface();
 }
 
