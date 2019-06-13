@@ -122,7 +122,7 @@ Rectangle {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 // Can't use `Window.location` in QML, so just use what setting `Window.location` actually calls under the hood:
                 // AddressManager.handleLookupString().
-                AddressManager.handleLookupString(LocationBookmarks.getHomeLocationAddress());
+                AddressManager.handleLookupString(LocationBookmarks.getAddress("hqhome"));
             }
         }
     }
