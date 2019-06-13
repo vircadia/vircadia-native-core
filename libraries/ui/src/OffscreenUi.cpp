@@ -27,6 +27,7 @@
 #include "VrMenu.h"
 
 #include "ui/Logging.h"
+#include "ui/ToolbarScriptingInterface.h"
 
 #include <PointerManager.h>
 #include "MainWindow.h"
@@ -687,6 +688,10 @@ void OffscreenUi::createDesktop(const QUrl& url) {
         for (const auto& menuInitializer : _queuedMenuInitializers) {
             menuInitializer(_vrMenu);
         }
+
+
+        auto toolbarScriptingInterface = DependencyManager::get<ToolbarScriptingInterface>();
+        connect(_desktop, SIGNAL(toolbarVisibleChanged(bool, QString)), toolbarScriptingInterface.data(), SIGNAL(toolbarVisibleChanged(bool, QString)));
 
         auto keyboardFocus = new KeyboardFocusHack();
         connect(_desktop, SIGNAL(showDesktop()), this, SIGNAL(showDesktop()));
