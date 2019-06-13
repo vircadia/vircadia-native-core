@@ -145,10 +145,10 @@ bool Profiler::isRenderMethodDeferredCapable() {
         return false;
     }
     
-    // We know for fact that the INtel Iris is problematic...
-    if ((gpuModel.find("Intel Iris") != std::string::npos)) {
-        return false;
-    }
+    // We know for fact that one INtel Iris is problematic, not enough info yet for sure
+    // if ((gpuModel.find("Intel Iris ....") != std::string::npos)) {
+    //     return false;
+    //}
 
     return true;
 #elif defined(Q_OS_ANDROID)
