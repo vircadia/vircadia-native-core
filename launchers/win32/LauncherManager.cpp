@@ -234,9 +234,10 @@ HWND LauncherManager::launchApplication() {
         CString parsedTokens = _tokensJSON;
         parsedTokens.Replace(_T("\""), _T("\\\""));
         tokensParam = _T("--tokens \"");
-        tokensParam += parsedTokens + _T("\"");
+        tokensParam += parsedTokens + _T("\" ");
     }
-    CString params = urlParam + scriptsParam + cacheParam + nameParam + tokensParam + EXTRA_PARAMETERS;
+    CString bookmarkParam = _T("--setBookmark hqhome=\"") + _domainURL + ("\" ");
+    CString params = urlParam + scriptsParam + cacheParam + nameParam + tokensParam + bookmarkParam + EXTRA_PARAMETERS;
     _shouldLaunch = FALSE;
     return LauncherUtils::executeOnForeground(interfaceExe, params);
 }
