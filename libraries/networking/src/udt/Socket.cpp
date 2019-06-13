@@ -63,8 +63,8 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
         auto sd = _udpSocket.socketDescriptor();
         int val = 0; // false
         if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&val, sizeof(val))) {
-            int wsaError = WSAGetLastError();
-            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << wsaError;
+            auto wsaErr = WSAGetLastError();
+            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << wsaErr;
         }
 #endif
     }
@@ -242,7 +242,6 @@ qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& soc
 #endif
         qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << ") error - " << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
             << (pending ? "pending bytes:" : "pending:") << pending;
-
 #ifdef DEBUG_EVENT_QUEUE
         int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
         qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;

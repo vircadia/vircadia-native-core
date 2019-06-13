@@ -632,6 +632,7 @@ void LimitedNodeList::processKillNode(ReceivedMessage& message) {
 }
 
 void LimitedNodeList::handleNodeKill(const SharedNodePointer& node, ConnectionID nextConnectionID) {
+    _nodeDisconnectTimestamp = usecTimestampNow();
     qCDebug(networking) << "Killed" << *node;
     node->stopPingTimer();
     emit nodeKilled(node);

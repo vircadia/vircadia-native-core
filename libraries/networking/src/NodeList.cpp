@@ -113,6 +113,8 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
+    connect(&_domainHandler, &DomainHandler::limitOfSilentDomainCheckInsReached, this, [this]() { _connectReason = LimitedNodeList::SilentDomainDisconnect; });
+
     // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setConnectionCreationFilterOperator(std::bind(&NodeList::sockAddrBelongsToDomainOrNode, this, _1));
@@ -414,6 +416,16 @@ void NodeList::sendDomainServerCheckIn() {
             // now add the machine fingerprint
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
+
+            packetStream << _connectReason;
+
+            if (_nodeDisconnectTimestamp < _nodeConnectTimestamp) {
+                _nodeDisconnectTimestamp = usecTimestampNow();
+            }
+            quint64 previousConnectionUptime = _nodeConnectTimestamp ? _nodeDisconnectTimestamp - _nodeConnectTimestamp : 0;
+
+            packetStream << previousConnectionUptime;
+
         }
 
         packetStream << quint64(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
@@ -665,6 +677,14 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     quint64 domainServerCheckinProcessingTime;
     packetStream >> domainServerCheckinProcessingTime;
+
+    bool newConnection;
+    packetStream >> newConnection;
+
+    if (newConnection) {
+        _nodeConnectTimestamp = usecTimestampNow();
+        _connectReason = Connect;
+    }
 
     qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
 
