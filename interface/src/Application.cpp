@@ -2708,6 +2708,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    getEntities()->clear();
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
