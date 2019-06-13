@@ -46,6 +46,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 }
 
 -(void)awakeFromNib {
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
     [[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self
                                                            selector:@selector(didTerminateApp:)
                                                                name:NSWorkspaceDidTerminateApplicationNotification
@@ -114,6 +115,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                                        userInfo:nil
                                         repeats:NO];
     }
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
 }
 
 - (void) setDownloadContextFilename:(NSString *)aFilename
@@ -277,6 +279,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 -(void)onSplashScreenTimerFinished:(NSTimer *)timer
 {
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
     [self showLoginScreen];
 }
 
@@ -336,6 +339,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUI/"];
     NSString* domainUrl = [[Settings sharedSettings] getDomainUrl];
     NSString* userToken = [[Launcher sharedLauncher] getTokenString];
+    NSString* homeBookmark = [[NSString stringWithFormat:@"hqhome="] stringByAppendingString:domainUrl];
     NSArray* arguments;
     if (userToken != nil) {
         arguments = [NSArray arrayWithObjects:
@@ -344,6 +348,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                         @"--cache", contentPath,
                         @"--displayName", displayName,
                         @"--scripts", scriptsPath,
+                        @"--setBookmark", homeBookmark,
                         @"--no-updater",
                         @"--no-launcher", nil];
     } else {
@@ -351,6 +356,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                             @"--url" , domainUrl,
                             @"--cache", contentPath,
                             @"--scripts", scriptsPath,
+                            @"--setBookmark", homeBookmark,
                             @"--no-updater",
                             @"--no-launcher", nil];
     }
