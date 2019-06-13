@@ -686,7 +686,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         return;
     }
 
-    bool android;
+    bool android = false;
 #if defined(Q_OS_ANDROID)
     android = true;
 #endif
