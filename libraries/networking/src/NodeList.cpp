@@ -306,7 +306,8 @@ void NodeList::sendDomainServerCheckIn() {
     // may be called by multiple threads.
 
     if (!_sendDomainServerCheckInEnabled) {
-        qCDebug(networking_ice) << "Refusing to send a domain-server check in while it is disabled.";
+        static const QString DISABLED_CHECKIN_DEBUG{ "Refusing to send a domain-server check in while it is disabled." };
+        HIFI_FCDEBUG(networking_ice(), DISABLED_CHECKIN_DEBUG);
         return;
     }
 
@@ -450,13 +451,17 @@ void NodeList::sendDomainServerCheckIn() {
 
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
-        static const int REBIND_CHECKIN_COUNT = 2;
+        static const int WARNING_CHECKIN_COUNT = 2;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
+        /*
+        if (outstandingCheckins > WARNING_CHECKIN_COUNT) {
+            // We may be headed for a disconnect, as we've written two DomainListRequests without getting anything back.
+            // In some cases, we've found that nothing is going out on the wire despite not getting any errors from 
+            // sendPacket => writeDatagram, below. In at least some such cases, we've found that the DomainDisconnectRequest
+            // does go through, so let's at least try to mix it up with a different safe packet.
+            // TODO: send ICEPing, and later on tell the other nodes to shut up for a moment.
 
-        if (outstandingCheckins > REBIND_CHECKIN_COUNT) {
-            _nodeSocket.rebind();
-        }
-
+        }*/
         int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
