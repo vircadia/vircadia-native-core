@@ -710,6 +710,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _domainHandler.clearPendingCheckins();
+    setDropOutgoingNodeTraffic(false);
 
     // emit our signal so listeners know we just heard from the DS
     emit receivedDomainServerList();

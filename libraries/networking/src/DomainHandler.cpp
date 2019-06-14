@@ -566,9 +566,14 @@ bool DomainHandler::checkInPacketTimeout() {
         qCDebug(networking_ice) << "Silent domain checkins:" << _checkInPacketsSinceLastReply;
     }
 
-    if (_checkInPacketsSinceLastReply > MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    auto nodeList = DependencyManager::get<NodeList>();
 
-        auto nodeList = DependencyManager::get<NodeList>();
+    if(_checkInPacketsSinceLastReply > 2) {
+        qCDebug(networking_ice) << _checkInPacketsSinceLastReply << "seconds since last domain list request, squelching traffic";
+        nodeList->setDropOutgoingNodeTraffic(true);
+    }
+
+    if (_checkInPacketsSinceLastReply > MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
 
         // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
         // so emit our signal that says that
