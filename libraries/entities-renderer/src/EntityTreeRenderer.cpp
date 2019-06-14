@@ -256,28 +256,18 @@ void EntityTreeRenderer::clear() {
     }
 
     // reset the engine
+    if (_wantScripts && !_shuttingDown) {
+        resetEntitiesScriptEngine();
+    }
+    // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
-    if (_shuttingDown) {
-        if (scene) {
-            render::Transaction transaction;
-            for (const auto& entry :  _entitiesInScene) {
-                const auto& renderer = entry.second;
-                renderer->removeFromScene(scene, transaction);
-            }
-            scene->enqueueTransaction(transaction);
+    if (scene) {
+        for (const auto& entry :  _entitiesInScene) {
+            const auto& renderer = entry.second;
+            fadeOutRenderable(renderer);
         }
     } else {
-        if (_wantScripts) {
-            resetEntitiesScriptEngine();
-        }
-        if (scene) {
-            for (const auto& entry :  _entitiesInScene) {
-                const auto& renderer = entry.second;
-                fadeOutRenderable(renderer);
-            }
-        } else {
-            qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene";
-        }
+        qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
     _entitiesInScene.clear();
     _renderablesToUpdate.clear();
