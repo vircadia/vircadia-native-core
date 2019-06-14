@@ -101,9 +101,13 @@ public:
 };
 
 /**jsdoc
- * The Entities API provides facilities to create and interact with entities. Entities are 2D and 3D objects that are visible
- * to everyone and typically are persisted to the domain. For Interface scripts, the entities available are those that 
- * Interface has displayed and so knows about.
+ * The <code>Entities</code> API provides facilities to create and interact with entities. Entities are 2D or 3D objects 
+ * displayed in-world. Depending on their {@link Entities.EntityHostType|EntityHostType}, they may persist in the domain as 
+ * "domain" entities, travel to different domains with a user as "avatar" entities, or be visible only to an individual user as 
+ * "local" entities (a.k.a. "overlays").
+ *
+ * <p>Note: For Interface scripts, the entities available to scripts are those that Interface has displayed and so knows 
+ * about.</p>
  *
  * @namespace Entities
  *
@@ -113,9 +117,9 @@ public:
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
- *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
- *     clear keyboard focus.
+ * @property {Uuid} keyboardFocusEntity -  The {@link Entities.EntityType|Web} entity that has keyboard focus. If no Web entity 
+ *     has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to clear 
+ *     keyboard focus.
  */
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
@@ -245,35 +249,39 @@ public slots:
     Q_INVOKABLE bool canGetAndSetPrivateUserData();
 
     /**jsdoc
-     * <p>How an entity is sent over the wire.</p>
+     * <p>How an entity is hosted and sent to others for display.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-      *     <tr><td><code>domain</code></td><td>Domain entities are sent over the entity server to everyone else</td></tr>
-      *     <tr><td><code>avatar</code></td><td>Avatar entities are sent over the avatar entity and are associated with one avatar</td></tr>
-      *     <tr><td><code>local</code></td><td>Local entities are not sent over the wire and will only render for you, locally</td></tr>
+     *     <tr><td><code>"domain"</code></td><td>Domain entities are stored on the domain, are visible to everyone, and are 
+     *       sent to everyone by the entity server.</td></tr>
+     *     <tr><td><code>"avatar"</code></td><td>Avatar entities are stored on an Interface client, are visible to everyone, 
+     *       and are sent to everyone by the avatar mixer. They follow the client to each domain visited, displaying at the 
+     *       same domain coordinates unless parented to the client's avatar.</td></tr>
+     *     <tr><td><code>"local"</code></td><td>Local entities are ephemeral &mdash; they aren't stored anywhere &mdash; and 
+     *       are visible only to the client. They follow the client to each domain visited, displaying at the same domain 
+     *       coordinates unless parented to the client's avatar. Additionally, local entities are collisionless.</td></tr>
      *   </tbody>
      * </table>
-     * @typedef {string} EntityHostType
+     * @typedef {string} Entities.EntityHostType
      */
 
     /**jsdoc
-     * Add a new entity with specified properties.
+     * Adds a new domain, avatar, or local entity.
      * @function Entities.addEntity
      * @param {Entities.EntityProperties} properties - The properties of the entity to create.
-     * @param {EntityHostType} [entityHostType="domain"] - If <code>"avatar"</code> the entity is created as an avatar entity.  An avatar entity
-     *     follows you to each domain you visit, rendering at the same world coordinates unless it's parented to your avatar.
-     *     If <code>"local"</code>, the entity is created as a local entity, which will only render for you and isn't sent over the wire.
-     *     Otherwise it is created as a normal entity and sent over the entity server.
+     * @param {Entities.EntityHostType} [entityHostType="domain"] - The type of entity to create.
+     
      * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid(0)|Uuid.NULL}.
-     * @example <caption>Create a box entity in front of your avatar.</caption>
+     * @example <caption>Create a box domain entity in front of your avatar.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
      *     rotation: MyAvatar.orientation,
-     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 }
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     lifetime: 300  // Delete after 5 minutes.
      * });
      * print("Entity created: " + entityID);
      */
@@ -290,10 +298,13 @@ public slots:
     }
 
     /**jsdoc
-     * Add a new entity with specified properties.
+     * Adds a new avatar entity (<code>{@link Entities.EntityProperties|entityHostType}</code> property is 
+     * <code>"avatar"</code>) or domain entity (<code>{@link Entities.EntityProperties|entityHostType}</code> property is 
+     * <code>"domain"</code>).
      * @function Entities.addEntity
      * @param {Entities.EntityProperties} properties - The properties of the entity to create.
-     * @param {boolean} [avatarEntity=false] - Whether to create an avatar entity or a domain entity
+     * @param {boolean} [avatarEntity=false] - <code>true</code> to create an avatar entity, <code>false</code> to create a 
+     *     domain entity.
      * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid(0)|Uuid.NULL}.
      */
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool avatarEntity = false) {
@@ -307,9 +318,13 @@ public slots:
                                      bool collisionless, bool grabbable, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
-     * Create a clone of an entity. A clone can be created by a client that doesn't have rez permissions in the current domain.
-     * The entity must have its <code>cloneable</code> property set to <code>true</code>. The clone has a modified name, other 
-     * properties set per its clone related-properties, and its clone-related properties are set to defaults. 
+     * Creates a clone of an entity. The clone has a modified <code>name</code> property, other properties set per the original
+     * entity's clone-related {@link Entities.EntityProperties|properties} (e.g., <code>cloneLifetime</code>), and 
+     * clone-related properties set to defaults.
+     * <p>Domain entities must have their <code>cloneable</code> property value be <code>true</code> in order to be cloned. A 
+     * domain entity can be cloned by a client that doesn't have rez permissions in the domain.</p>
+     * <p>Avatar entities must have their <code>cloneable</code> and <code>cloneAvatarEntity</code> property values be 
+     * <code>true</code> in order to be cloned.</p>
      * @function Entities.cloneEntity
      * @param {Uuid} entityID - The ID of the entity to clone.
      * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid(0)|Uuid.NULL}.
@@ -317,18 +332,21 @@ public slots:
     Q_INVOKABLE QUuid cloneEntity(const QUuid& entityID);
 
     /**jsdoc
-     * Get the properties of an entity.
+     * Gets the properties of an entity.
      * @function Entities.getEntityProperties
      * @param {Uuid} entityID - The ID of the entity to get the properties of.
-     * @param {string[]} [desiredProperties=[]] - Array of the names of the properties to get. If the array is empty,
-     *     all properties are returned.
+     * @param {string|string[]} [desiredProperties=[]] - The names of the properties to get. For properties that are objects 
+     *     (e.g., the <code>"keyLight"</code> property), use the property and subproperty names in dot notation (e.g., 
+     *     <code>"keyLight.color"</code>).
      * @returns {Entities.EntityProperties} The properties of the entity if the entity can be found, otherwise an empty object.
+     *     If no properties are specified, then all properties are returned.
      * @example <caption>Report the color of a new box entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
      *     rotation: MyAvatar.orientation,
-     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 }
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     lifetime: 300  // Delete after 5 minutes.
      * });
      * var properties = Entities.getEntityProperties(entityID, ["color"]);
      * print("Entity color: " + JSON.stringify(properties.color));
@@ -337,17 +355,18 @@ public slots:
     Q_INVOKABLE EntityItemProperties getEntityProperties(const QUuid& entityID, EntityPropertyFlags desiredProperties);
 
     /**jsdoc
-     * Update an entity with specified properties.
+     * Edits an entity, changing one or more of its properties.
      * @function Entities.editEntity
      * @param {Uuid} entityID - The ID of the entity to edit.
-     * @param {Entities.EntityProperties} properties - The properties to update the entity with.
-     * @returns {Uuid} The ID of the entity if the edit was successful, otherwise <code>null</code>.
+     * @param {Entities.EntityProperties} properties - The new property values.
+     * @returns {Uuid} The ID of the entity if the edit was successful, otherwise <code>null</code> or {@link Uuid|Uuid.NULL}.
      * @example <caption>Change the color of an entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
      *     rotation: MyAvatar.orientation,
-     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 }
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     lifetime: 300  // Delete after 5 minutes.
      * });
      * var properties = Entities.getEntityProperties(entityID, ["color"]);
      * print("Entity color: " + JSON.stringify(properties.color));
@@ -361,7 +380,7 @@ public slots:
     Q_INVOKABLE QUuid editEntity(const QUuid& entityID, const EntityItemProperties& properties);
 
     /**jsdoc
-     * Delete an entity.
+     * Deletes an entity.
      * @function Entities.deleteEntity
      * @param {Uuid} entityID - The ID of the entity to delete.
      * @example <caption>Delete an entity a few seconds after creating it.</caption>
@@ -379,9 +398,10 @@ public slots:
     Q_INVOKABLE void deleteEntity(const QUuid& entityID);
 
     /**jsdoc
-     * Get an entities type as a string.
-     * @function Entities.deleteEntity
-     * @param {Uuid} id - The id of the entity to get the type of.
+     * Gets an entity's type.
+     * @function Entities.getEntityType
+     * @param {Uuid} id - The ID of the entity to get the type of.
+     * @returns {Entities.EntityType} The type of the entity.
      */
     Q_INVOKABLE QString getEntityType(const QUuid& entityID);
 
@@ -1436,14 +1456,14 @@ public slots:
     Q_INVOKABLE QString getNestableType(const QUuid& id);
 
     /**jsdoc
-     * Get the ID of the {@link Entities.EntityType|Web} entity that has keyboard focus.
+     * Gets the ID of the {@link Entities.EntityType|Web} entity that has keyboard focus.
      * @function Entities.getKeyboardFocusEntity
      * @returns {Uuid} The ID of the {@link Entities.EntityType|Web} entity that has focus, if any, otherwise <code>null</code>.
      */
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
 
     /**jsdoc
-     * Set the {@link Entities.EntityType|Web} entity that has keyboard focus.
+     * Sets the {@link Entities.EntityType|Web} entity that has keyboard focus.
      * @function Entities.setKeyboardFocusEntity
      * @param {Uuid} id - The ID of the {@link Entities.EntityType|Web} entity to set keyboard focus to. Use 
      *     <code>null</code> or {@link Uuid(0)|Uuid.NULL} to unset keyboard focus from an entity.
