@@ -76,10 +76,6 @@ void Socket::rebind() {
 
 void Socket::rebind(quint16 localPort) {
     _udpSocket.close();
-#ifdef WIN32
-    WSAData ws;
-    WSAStartup(MAKEWORD(2, 2), &ws);
-#endif
     bind(QHostAddress::AnyIPv4, localPort);
 }
 

@@ -1735,7 +1735,12 @@ void DomainServer::nodePingMonitor() {
     nodeList->eachNode([now](const SharedNodePointer& node) {
         quint64 lastHeard = now - node->getLastHeardMicrostamp();
         if (lastHeard > 2 * USECS_PER_SECOND) {
-            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << " in " << lastHeard / USECS_PER_MSEC << " msec";
+            QString username;
+            DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if(nodeData) {
+                username = nodeData->getUsername();
+            }
+            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << username << " in " << lastHeard / USECS_PER_MSEC << " msec";
         }
     });
 }
