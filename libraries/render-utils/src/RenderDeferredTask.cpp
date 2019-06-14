@@ -99,7 +99,7 @@ void RenderDeferredTask::configure(const Config& config) {
     auto upsamplePrimaryBufferConfig = config.getConfig<Upsample>("PrimaryBufferUpscale");
     assert(preparePrimaryBufferConfig);
     assert(upsamplePrimaryBufferConfig);
-    preparePrimaryBufferConfig->setProperty("resolutionScale", config.resolutionScale);
+    preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
     upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 

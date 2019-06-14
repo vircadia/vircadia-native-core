@@ -29,6 +29,7 @@ class RenderScriptingInterface : public QObject {
     Q_PROPERTY(bool shadowsEnabled READ getShadowsEnabled WRITE setShadowsEnabled NOTIFY settingsChanged)
     Q_PROPERTY(bool ambientOcclusionEnabled READ getAmbientOcclusionEnabled WRITE setAmbientOcclusionEnabled NOTIFY settingsChanged)
     Q_PROPERTY(bool antialiasingEnabled READ getAntialiasingEnabled WRITE setAntialiasingEnabled NOTIFY settingsChanged)
+    Q_PROPERTY(float viewportResolutionScale READ getViewportResolutionScale WRITE setViewportResolutionScale NOTIFY settingsChanged)
 
 public:
     RenderScriptingInterface();
@@ -66,7 +67,7 @@ public slots:
      * @function Render.getRenderMethod
      * @returns {number} <code>"DEFERRED"</code> or <code>"FORWARD"</code>
      */
-    RenderMethod getRenderMethod();
+    RenderMethod getRenderMethod() const;
 
     /**jsdoc
      * Sets the current render method
@@ -88,7 +89,7 @@ public slots:
      * @function Render.getShadowsEnabled
      * @returns {bool} <code>true</code> if shadows are enabled, otherwise <code>false</code>
      */
-    bool getShadowsEnabled();
+    bool getShadowsEnabled() const;
 
     /**jsdoc
      * Enables or disables shadows
@@ -102,7 +103,7 @@ public slots:
      * @function Render.getAmbientOcclusionEnabled
      * @returns {bool} <code>true</code> if ambient occlusion is enabled, otherwise <code>false</code>
      */
-    bool getAmbientOcclusionEnabled();
+    bool getAmbientOcclusionEnabled() const;
 
     /**jsdoc
      * Enables or disables ambient occlusion
@@ -116,7 +117,7 @@ public slots:
      * @function Render.getAntialiasingEnabled
      * @returns {bool} <code>true</code> if anti-aliasing is enabled, otherwise <code>false</code>
      */
-    bool getAntialiasingEnabled();
+    bool getAntialiasingEnabled() const;
 
     /**jsdoc
      * Enables or disables anti-aliasing
@@ -130,14 +131,14 @@ public slots:
      * @function Render.getViewportResolutionScale
      * @returns {number} 
      */
-  //  float getViewportResolutionScale();
+    float getViewportResolutionScale() const;
 
     /**jsdoc
      * Sets the current viewport resolution scale
      * @function Render.setViewportResolutionScale
      * @param {number} resolutionScale - between epsilon and 1.0
      */
-  //  void setViewportResolutionScale(float resolutionScale);
+    void setViewportResolutionScale(float resolutionScale);
 
 signals:
     void settingsChanged();
@@ -150,7 +151,8 @@ private:
     int  _renderMethod{ RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
     bool _shadowsEnabled{ true };
     bool _ambientOcclusionEnabled{ false };
-    bool _antialiasingEnabled { true };
+    bool _antialiasingEnabled{ true };
+    float _viewportResolutionScale{ 1.0f };
 
     // Actual settings saved on disk
     Setting::Handle<int> _renderMethodSetting { "renderMethod", RENDER_FORWARD ? render::Args::RenderMethod::FORWARD : render::Args::RenderMethod::DEFERRED };
@@ -163,6 +165,7 @@ private:
     void forceShadowsEnabled(bool enabled);
     void forceAmbientOcclusionEnabled(bool enabled);
     void forceAntialiasingEnabled(bool enabled);
+    void forceViewportResolutionScale(float scale);
 
     static std::once_flag registry_flag;
 };

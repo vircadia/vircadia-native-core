@@ -313,7 +313,7 @@ gpu::FramebufferPointer PreparePrimaryFramebuffer::createFramebuffer(const char*
 }
 
 void PreparePrimaryFramebuffer::configure(const Config& config) {
-    _resolutionScale = config.resolutionScale;
+    _resolutionScale = config.getResolutionScale();
 }
 
 void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, Output& primaryFramebuffer) {

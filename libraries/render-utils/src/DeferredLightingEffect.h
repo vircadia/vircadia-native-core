@@ -89,13 +89,18 @@ private:
 
 class PreparePrimaryFramebufferConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float resolutionScale MEMBER resolutionScale NOTIFY dirty)
+    Q_PROPERTY(float resolutionScale  WRITE setResolutionScale READ getResolutionScale)
 public:
-
-    float resolutionScale{ 1.0f };
+    float getResolutionScale() const { return resolutionScale; }
+    void setResolutionScale(float scale) {
+        resolutionScale = std::max(0.1f, std::min(1.0f, resolutionScale));
+    }
 
 signals:
     void dirty();
+
+protected:
+    float resolutionScale{ 1.0f };
 };
 
 class PreparePrimaryFramebuffer {

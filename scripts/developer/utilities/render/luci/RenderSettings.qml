@@ -30,5 +30,12 @@ Column {
         object: Render
         property: "shadowsEnabled"  
     }
+    Prop.PropScalar {
+        label: "Viewport Resolution Scale"
+        object: Render
+        property: "viewportResolutionScale"
+        min: 0.1
+        max: 1.0
+    }
 }
 

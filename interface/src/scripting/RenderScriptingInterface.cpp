@@ -37,7 +37,7 @@ void RenderScriptingInterface::loadSettings() {
     forceAntialiasingEnabled(_antialiasingEnabled);
 }
 
-RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod() {
+RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod() const {
     return (RenderMethod) _renderMethod;
 }
 
@@ -64,7 +64,7 @@ QStringList RenderScriptingInterface::getRenderMethodNames() const {
     return refrenderMethodNames;
 }
 
-bool RenderScriptingInterface::getShadowsEnabled() {
+bool RenderScriptingInterface::getShadowsEnabled() const {
     return _shadowsEnabled;
 }
 
@@ -88,7 +88,7 @@ void RenderScriptingInterface::forceShadowsEnabled(bool enabled) {
     });
 }
 
-bool RenderScriptingInterface::getAmbientOcclusionEnabled() {
+bool RenderScriptingInterface::getAmbientOcclusionEnabled() const {
     return _ambientOcclusionEnabled;
 }
 
@@ -112,7 +112,7 @@ void RenderScriptingInterface::forceAmbientOcclusionEnabled(bool enabled) {
     });
 }
 
-bool RenderScriptingInterface::getAntialiasingEnabled() {
+bool RenderScriptingInterface::getAntialiasingEnabled() const {
     return _antialiasingEnabled;
 }
 
@@ -145,3 +145,47 @@ void RenderScriptingInterface::forceAntialiasingEnabled(bool enabled) {
 }
 
 
+float RenderScriptingInterface::getViewportResolutionScale() const {
+    return _viewportResolutionScale;
+}
+
+void RenderScriptingInterface::setViewportResolutionScale(float scale) {
+    if (_viewportResolutionScale != scale) {
+        forceViewportResolutionScale(scale);
+        emit settingsChanged();
+    }
+}
+
+void RenderScriptingInterface::forceViewportResolutionScale(float scale) {
+    _renderSettingLock.withWriteLock([&] {
+        _viewportResolutionScale = (scale);
+      //  _antialiasingEnabledSetting.set(enabled);
+
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        assert(renderConfig);
+        auto deferredView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
+        // mainView can be null if we're rendering in forward mode
+        if (deferredView) {
+            deferredView->setProperty("resolutionScale", _viewportResolutionScale);
+        }
+        auto forwardView = renderConfig->getConfig("RenderMainView.RenderForwardTask");
+        // mainView can be null if we're rendering in forward mode
+        if (forwardView) {
+            forwardView->setProperty("resolutionScale", _viewportResolutionScale);
+        }
+/*
+        auto mainViewJitterCamConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<JitterSample>("RenderMainView.JitterCam");
+        auto mainViewAntialiasingConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<Antialiasing>("RenderMainView.Antialiasing");
+        if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
+            Menu::getInstance()->setIsOptionChecked(MenuOption::AntiAliasing, enabled);
+            if (enabled) {
+                mainViewJitterCamConfig->play();
+                mainViewAntialiasingConfig->setDebugFXAA(false);
+            }
+            else {
+                mainViewJitterCamConfig->none();
+                mainViewAntialiasingConfig->setDebugFXAA(true);
+            }
+        }*/
+    });
+}
