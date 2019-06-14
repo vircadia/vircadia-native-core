@@ -451,9 +451,9 @@ void NodeList::sendDomainServerCheckIn() {
 
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
-        static const int WARNING_CHECKIN_COUNT = 2;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
         /*
+        static const int WARNING_CHECKIN_COUNT = 2;
         if (outstandingCheckins > WARNING_CHECKIN_COUNT) {
             // We may be headed for a disconnect, as we've written two DomainListRequests without getting anything back.
             // In some cases, we've found that nothing is going out on the wire despite not getting any errors from 
