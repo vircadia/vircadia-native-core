@@ -1737,7 +1737,7 @@ void DomainServer::nodePingMonitor() {
         if (lastHeard > 2 * USECS_PER_SECOND) {
             QString username;
             DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
-            if(nodeData) {
+            if (nodeData) {
                 username = nodeData->getUsername();
             }
             qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << username << " in " << lastHeard / USECS_PER_MSEC << " msec";

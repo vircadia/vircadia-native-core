@@ -559,6 +559,8 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
     }
 }
 
+static const int SILENT_DOMAIN_TRAFFIC_DROP_MIN = 2;
+
 bool DomainHandler::checkInPacketTimeout() {
     ++_checkInPacketsSinceLastReply;
 
@@ -568,7 +570,7 @@ bool DomainHandler::checkInPacketTimeout() {
 
     auto nodeList = DependencyManager::get<NodeList>();
 
-    if(_checkInPacketsSinceLastReply > 2) {
+    if (_checkInPacketsSinceLastReply > SILENT_DOMAIN_TRAFFIC_DROP_MIN) {
         qCDebug(networking_ice) << _checkInPacketsSinceLastReply << "seconds since last domain list request, squelching traffic";
         nodeList->setDropOutgoingNodeTraffic(true);
     }

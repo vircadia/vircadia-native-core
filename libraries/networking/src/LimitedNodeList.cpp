@@ -409,9 +409,12 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
 
-    if(_dropOutgoingNodeTraffic) {
+    if (_dropOutgoingNodeTraffic) {
         auto destinationNode = findNodeWithAddr(sockAddr);
-        if (!destinationNode.isNull() && (destinationNode->getType() != NodeType::DomainServer)) {
+
+        // findNodeWithAddr returns null for the address of the domain server
+        if (!destinationNode.isNull()) {
+            // This only suppresses individual unreliable packets, not unreliable packet lists
             return ERROR_SENDING_PACKET_BYTES;
         }
     }
