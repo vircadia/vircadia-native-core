@@ -141,14 +141,19 @@ bool Profiler::isRenderMethodDeferredCapable() {
     
     
     // Macbook air 2018 are a problem
-    if ((computerModel.find("MacBookAir") != std::string::npos) && (gpuModel.find("Intel HD Graphics 6000") != std::string::npos)) {
+    if ((computerModel.find("MacBookAir7,2") != std::string::npos) && (gpuModel.find("Intel HD Graphics 6000") != std::string::npos)) {
         return false;
     }
     
-    // We know for fact that one INtel Iris is problematic, not enough info yet for sure
-    // if ((gpuModel.find("Intel Iris ....") != std::string::npos)) {
-    //     return false;
-    //}
+    // We know for fact that the Mac BOok Pro 13 from Mid 2014 INtel Iris is problematic,
+    if ((computerModel.find("MacBookPro11,1") != std::string::npos) && (gpuModel.find("Intel Iris") != std::string::npos)) {
+         return false;
+    }
+    
+    // TO avoid issues for the next few days, we are excluding all of intel chipset...
+    if ((gpuModel.find("Intel ") != std::string::npos)) {
+        return false;
+    }
 
     return true;
 #elif defined(Q_OS_ANDROID)
