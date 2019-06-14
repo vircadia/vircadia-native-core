@@ -59,13 +59,13 @@ public:
      *       <code>"Sphere"</code>. If an entity of type <code>Box</code> or <code>Shape</code> has its <code>shape</code> set
      *       to <code>"Sphere"</code> then its <code>type</code> will be reported as <code>"Sphere"</code>.
      *       <td>{@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}</td></tr>
-     *     <tr><td><code>"Model"</code></td><td>A mesh model from an FBX or OBJ file.</td>
+     *     <tr><td><code>"Model"</code></td><td>A mesh model from a glTf, FBX, or OBJ file.</td>
      *       <td>{@link Entities.EntityProperties-Model|EntityProperties-Model}</td></tr>
      *     <tr><td><code>"Text"</code></td><td>A pane of text oriented in space.</td>
      *       <td>{@link Entities.EntityProperties-Text|EntityProperties-Text}</td></tr>
      *     <tr><td><code>"Image"</code></td><td>An image oriented in space.</td>
      *       <td>{@link Entities.EntityProperties-Image|EntityProperties-Image}</td></tr>
-     *     <tr><td><code>"Web"</code></td><td>A browsable Web page.</td>
+     *     <tr><td><code>"Web"</code></td><td>A browsable web page.</td>
      *       <td>{@link Entities.EntityProperties-Web|EntityProperties-Web}</td></tr>
      *     <tr><td><code>"ParticleEffect"</code></td><td>A particle system that can be used to simulate things such as fire, 
      *       smoke, snow, magic spells, etc.</td>
