@@ -19,6 +19,7 @@
 #include <gpu/Texture.h>
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
+#include <render/ResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -50,11 +51,11 @@ extern void initForwardPipelines(ShapePlumber& plumber);
 void RenderForwardTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
     auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
-//    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample>("PrimaryBufferUpscale");
+    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample2>("PrimaryBufferUpscale");
     assert(preparePrimaryBufferConfig);
-//    assert(upsamplePrimaryBufferConfig);
+    assert(upsamplePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
- //   upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
+    upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -141,24 +142,35 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
+
+    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
     // Just resolve the msaa
     const auto resolveInputs =
-        ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+      //  ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+        ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
-    //auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
+   // auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
 
 #if defined(Q_OS_ANDROID)
 #else
+
+    // Upscale to finale resolution
+    const auto primaryFramebuffer = task.addJob<render::Upsample2>("PrimaryBufferUpscale", resolvedFramebuffer);
+
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+    //  const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+      const auto toneMappingInputs = ToneMappingDeferred::Inputs(primaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+   // const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, newResolvedFramebuffer).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+
+
 #endif
 
     // Layered Overlays
     // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD", resolvedFramebuffer);
+    task.addJob<CompositeHUD>("HUD", primaryFramebuffer);
 
     const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
     const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
@@ -201,20 +213,12 @@ void PreparePrimaryFramebufferMSAA::run(const RenderContextPointer& renderContex
     if (!_framebuffer || (_framebuffer->getSize() != scaledFrameSize) || (_framebuffer->getNumSamples() != _numSamples)) {
         _framebuffer = createFramebuffer("forward", scaledFrameSize, _numSamples);
     }
-/*
-    auto args = renderContext->args;
-    gpu::doInBatch("PrepareFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setFramebuffer(_framebuffer);
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 0), 1.0, 0, true);
-    });*/
 
     framebuffer = _framebuffer;
+
+    // Set viewport for the rest of the scaled passes
+    renderContext->args->_viewport.z = scaledFrameSize.x;
+    renderContext->args->_viewport.w = scaledFrameSize.y;
 }
 
 void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {

@@ -135,3 +135,50 @@ void Upsample::run(const RenderContextPointer& renderContext, const gpu::Framebu
         args->_viewport = viewport;
     }
 }
+
+gpu::PipelinePointer Upsample2::_pipeline;
+
+void Upsample2::configure(const Config& config) {
+    _factor = config.factor;
+}
+
+void Upsample2::run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer) {
+    assert(renderContext->args);
+    assert(renderContext->args->hasViewFrustum());
+    RenderArgs* args = renderContext->args;
+    auto sourceFramebuffer = input;
+ //   auto srcFramebuffer = input.get0();
+  //  auto dstFramebuffer = input.get1();
+
+//    resampledFrameBuffer = getResampledFrameBuffer(sourceFramebuffer);
+    resampledFrameBuffer = args->_blitFramebuffer;
+
+    if (resampledFrameBuffer != sourceFramebuffer) {
+        if (!_pipeline) {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            state->setDepthTest(gpu::State::DepthTest(false, false));
+            _pipeline = gpu::Pipeline::create(program, state);
+        }
+        const auto bufferSize = resampledFrameBuffer->getSize();
+        glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
+
+        gpu::doInBatch("Upsample::run", args->_context, [&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+
+            batch.setFramebuffer(resampledFrameBuffer);
+
+            batch.setViewportTransform(viewport);
+            batch.setProjectionTransform(glm::mat4());
+            batch.resetViewTransform();
+            batch.setPipeline(_pipeline);
+
+            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
+            batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+
+        // Set full final viewport
+        args->_viewport = viewport;
+    }
+}

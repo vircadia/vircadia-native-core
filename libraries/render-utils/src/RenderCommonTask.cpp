@@ -205,6 +205,27 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
+void NewFramebuffer::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
+    RenderArgs* args = renderContext->args;
+   // auto frameSize = input;
+    output.reset();
+
+    glm::uvec2 frameSize(args->_viewport.z, args->_viewport.w);
+
+    if (_outputFramebuffer && _outputFramebuffer->getSize() != frameSize) {
+        _outputFramebuffer.reset();
+    }
+
+    if (!_outputFramebuffer) {
+        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer.out"));
+        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+        auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _outputFramebuffer->setRenderBuffer(0, colorTexture);
+    }
+
+    output = _outputFramebuffer;
+}
 
 void ResolveFramebuffer::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     RenderArgs* args = renderContext->args;

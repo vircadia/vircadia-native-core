@@ -47,7 +47,7 @@ class PreparePrimaryFramebufferMSAAConfig : public render::Job::Config {
 public:
     float getResolutionScale() const { return resolutionScale; }
     void setResolutionScale(float scale) {
-        resolutionScale = std::max(0.1f, std::min(1.0f, resolutionScale));
+        resolutionScale = std::max(0.1f, std::min(2.0f, scale));
     }
 
     int getNumSamples() const { return numSamples; }

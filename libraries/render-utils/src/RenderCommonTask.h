@@ -95,6 +95,17 @@ public:
 };
 
 
+class NewFramebuffer {
+public:
+    using Input = glm::uvec2;
+    using Output = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelIO<NewFramebuffer, Input, Output>;
+
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
+};
+
 class ResolveFramebuffer {
 public:
     using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
