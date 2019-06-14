@@ -490,7 +490,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
     _myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
     for (auto avatar : _otherAvatarsToChangeInPhysics) {
         bool isInPhysics = avatar->isInPhysicsSimulation();
-        if (isInPhysics != avatar->shouldBeInPhysicsSimulation()) {
+        if (isInPhysics != avatar->shouldBeInPhysicsSimulation() || avatar->_needsReinsertion) {
             if (isInPhysics) {
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
