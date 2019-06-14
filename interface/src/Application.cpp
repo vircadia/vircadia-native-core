@@ -950,6 +950,19 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
 
+    QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
+    if (!setBookmarkValue.isEmpty()) {
+        // Bookmarks are expected to be in a name=url form.
+        // An `=` character in the name or url is unsupported.
+        auto parts = setBookmarkValue.split("=");
+        if (parts.length() != 2) {
+            qWarning() << "Malformed setBookmark argument: " << setBookmarkValue;
+        } else {
+            qDebug() << "Setting bookmark" << parts[0] << "to" << parts[1];
+            DependencyManager::get<LocationBookmarks>()->insert(parts[0], parts[1]);
+        }
+    }
+
     return previousSessionCrashed;
 }
 
@@ -2695,6 +2708,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    getEntities()->clear();
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
@@ -5611,7 +5625,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         scriptEngines->reloadLocalFiles();
 
         // if the --scripts command-line argument was used.
-        if (!_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
+        if (_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
             scriptEngines->loadDefaultScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {

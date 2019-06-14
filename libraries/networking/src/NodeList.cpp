@@ -113,6 +113,8 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
+    connect(&_domainHandler, &DomainHandler::limitOfSilentDomainCheckInsReached, this, [this]() { _connectReason = LimitedNodeList::SilentDomainDisconnect; });
+
     // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setConnectionCreationFilterOperator(std::bind(&NodeList::sockAddrBelongsToDomainOrNode, this, _1));
@@ -304,7 +306,8 @@ void NodeList::sendDomainServerCheckIn() {
     // may be called by multiple threads.
 
     if (!_sendDomainServerCheckInEnabled) {
-        qCDebug(networking_ice) << "Refusing to send a domain-server check in while it is disabled.";
+        static const QString DISABLED_CHECKIN_DEBUG{ "Refusing to send a domain-server check in while it is disabled." };
+        HIFI_FCDEBUG(networking_ice(), DISABLED_CHECKIN_DEBUG);
         return;
     }
 
@@ -414,6 +417,16 @@ void NodeList::sendDomainServerCheckIn() {
             // now add the machine fingerprint
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
+
+            packetStream << _connectReason;
+
+            if (_nodeDisconnectTimestamp < _nodeConnectTimestamp) {
+                _nodeDisconnectTimestamp = usecTimestampNow();
+            }
+            quint64 previousConnectionUptime = _nodeConnectTimestamp ? _nodeDisconnectTimestamp - _nodeConnectTimestamp : 0;
+
+            packetStream << previousConnectionUptime;
+
         }
 
         packetStream << quint64(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
@@ -439,6 +452,16 @@ void NodeList::sendDomainServerCheckIn() {
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
+        /*
+        static const int WARNING_CHECKIN_COUNT = 2;
+        if (outstandingCheckins > WARNING_CHECKIN_COUNT) {
+            // We may be headed for a disconnect, as we've written two DomainListRequests without getting anything back.
+            // In some cases, we've found that nothing is going out on the wire despite not getting any errors from 
+            // sendPacket => writeDatagram, below. In at least some such cases, we've found that the DomainDisconnectRequest
+            // does go through, so let's at least try to mix it up with a different safe packet.
+            // TODO: send ICEPing, and later on tell the other nodes to shut up for a moment.
+
+        }*/
         int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
@@ -660,6 +683,14 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     quint64 domainServerCheckinProcessingTime;
     packetStream >> domainServerCheckinProcessingTime;
 
+    bool newConnection;
+    packetStream >> newConnection;
+
+    if (newConnection) {
+        _nodeConnectTimestamp = usecTimestampNow();
+        _connectReason = Connect;
+    }
+
     qint64 pingLagTime = (now - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);
 
     qint64 domainServerRequestLag = (qint64(domainServerPingSendTime - domainServerCheckinProcessingTime) - qint64(connectRequestTimestamp)) / qint64(USECS_PER_MSEC);;
@@ -673,13 +704,6 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
         // refuse to process this packet if we aren't currently connected to the DS
         return;
     }
-#ifdef DEBUG_EVENT_QUEUE
-    {
-        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
-        qCDebug(networking) << "DomainList received, pending count =" << _domainHandler.getCheckInPacketsSinceLastReply()
-            << "NodeList thread event queue size =" << nodeListQueueSize;
-    }
-#endif
 
     // warn if ping lag is getting long
     if (pingLagTime > qint64(MSECS_PER_SECOND)) {

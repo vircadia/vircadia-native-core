@@ -40,10 +40,10 @@ static CString TROUBLE_URL = _T("https://www.highfidelity.com/hq-support");
 
 
 CLauncherDlg::CLauncherDlg(CWnd* pParent)
-	: CDialog(IDD_LAUNCHER_DIALOG, pParent)
+    : CDialog(IDD_LAUNCHER_DIALOG, pParent)
 {
-	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	EnableD2DSupport();
+    m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+    EnableD2DSupport();
 }
 
 CLauncherDlg::~CLauncherDlg() {
@@ -52,109 +52,116 @@ CLauncherDlg::~CLauncherDlg() {
 
 void CLauncherDlg::DoDataExchange(CDataExchange* pDX)
 {
-	DDX_Control(pDX, IDC_BUTTON_NEXT, m_btnNext);
-	DDX_Control(pDX, IDC_TROUBLE_LINK, m_trouble_link);
-	DDX_Control(pDX, IDC_ORGNAME, m_orgname);
-	DDX_Control(pDX, IDC_USERNAME, m_username);
-	DDX_Control(pDX, IDC_PASSWORD, m_password);
-	CDialog::DoDataExchange(pDX);
+    DDX_Control(pDX, IDC_BUTTON_NEXT, m_btnNext);
+    DDX_Control(pDX, IDC_TROUBLE_LINK, m_trouble_link);
+    DDX_Control(pDX, IDC_ORGNAME, m_orgname);
+    DDX_Control(pDX, IDC_USERNAME, m_username);
+    DDX_Control(pDX, IDC_PASSWORD, m_password);
+    CDialog::DoDataExchange(pDX);
 }
 
 BEGIN_MESSAGE_MAP(CLauncherDlg, CDialog)
-	ON_WM_PAINT()
-	ON_WM_QUERYDRAGICON()
-	ON_WM_TIMER()
-	ON_EN_SETFOCUS(IDC_ORGNAME, &CLauncherDlg::OnOrgEditChangeFocus)
-	ON_EN_SETFOCUS(IDC_USERNAME, &CLauncherDlg::OnUserEditChangeFocus)
-	ON_EN_SETFOCUS(IDC_PASSWORD, &CLauncherDlg::OnPassEditChangeFocus)
-	ON_BN_CLICKED(IDC_BUTTON_NEXT, &CLauncherDlg::OnNextClicked)
-	ON_BN_CLICKED(IDC_TROUBLE_LINK, &CLauncherDlg::OnTroubleClicked)
-	ON_WM_CTLCOLOR()
-	ON_WM_DRAWITEM()
-	ON_WM_SETCURSOR()
+    ON_WM_PAINT()
+    ON_WM_QUERYDRAGICON()
+    ON_WM_TIMER()
+    ON_EN_SETFOCUS(IDC_ORGNAME, &CLauncherDlg::OnOrgEditChangeFocus)
+    ON_EN_SETFOCUS(IDC_USERNAME, &CLauncherDlg::OnUserEditChangeFocus)
+    ON_EN_SETFOCUS(IDC_PASSWORD, &CLauncherDlg::OnPassEditChangeFocus)
+    ON_BN_CLICKED(IDC_BUTTON_NEXT, &CLauncherDlg::OnNextClicked)
+    ON_BN_CLICKED(IDC_TROUBLE_LINK, &CLauncherDlg::OnTroubleClicked)
+    ON_WM_CTLCOLOR()
+    ON_WM_DRAWITEM()
+    ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
 // CLauncherDlg message handlers
 
 BOOL CLauncherDlg::OnInitDialog() {
-	CDialog::OnInitDialog();
+    CDialog::OnInitDialog();
 
-	SetIcon(m_hIcon, TRUE);			// Set big icon
-	SetIcon(m_hIcon, FALSE);		// Set small icon
+    SetIcon(m_hIcon, TRUE);         // Set big icon
+    SetIcon(m_hIcon, FALSE);        // Set small icon
 
-	CFont editFont;
-	if (LauncherUtils::getFont(GRAPHIK_REGULAR, FIELDS_FONT_SIZE, true, editFont)) {
-		m_orgname.SetFont(&editFont);
-		m_username.SetFont(&editFont);
-		m_password.SetFont(&editFont);
-	}
-	CFont buttonFont;
-	if (LauncherUtils::getFont(_T("Graphik-Bold"), BUTTON_FONT_SIZE, true, buttonFont)) {
-		m_btnNext.SetFont(&editFont);
-	}
+    CFont editFont;
+    if (LauncherUtils::getFont(GRAPHIK_REGULAR, FIELDS_FONT_SIZE, true, editFont)) {
+        m_orgname.SetFont(&editFont);
+        m_username.SetFont(&editFont);
+        m_password.SetFont(&editFont);
+    }
+    CFont buttonFont;
+    if (LauncherUtils::getFont(_T("Graphik-Bold"), BUTTON_FONT_SIZE, true, buttonFont)) {
+        m_btnNext.SetFont(&editFont);
+    }
 
-	m_message_label = (CStatic *)GetDlgItem(IDC_MESSAGE_LABEL);
-	m_action_label = (CStatic *)GetDlgItem(IDC_ACTION_LABEL);
-	m_message2_label = (CStatic *)GetDlgItem(IDC_MESSAGE2_LABEL);
-	m_action2_label = (CStatic *)GetDlgItem(IDC_ACTION2_LABEL);
+    m_message_label = (CStatic *)GetDlgItem(IDC_MESSAGE_LABEL);
+    m_action_label = (CStatic *)GetDlgItem(IDC_ACTION_LABEL);
+    m_message2_label = (CStatic *)GetDlgItem(IDC_MESSAGE2_LABEL);
+    m_action2_label = (CStatic *)GetDlgItem(IDC_ACTION2_LABEL);
 
-	m_orgname_banner = (CStatic *)GetDlgItem(IDC_ORGNAME_BANNER);
-	m_username_banner = (CStatic *)GetDlgItem(IDC_USERNAME_BANNER);
-	m_password_banner = (CStatic *)GetDlgItem(IDC_PASSWORD_BANNER);
+    m_orgname_banner = (CStatic *)GetDlgItem(IDC_ORGNAME_BANNER);
+    m_username_banner = (CStatic *)GetDlgItem(IDC_USERNAME_BANNER);
+    m_password_banner = (CStatic *)GetDlgItem(IDC_PASSWORD_BANNER);
 
-	m_terms = (CStatic *)GetDlgItem(IDC_TERMS);
-	m_terms2 = (CStatic *)GetDlgItem(IDC_TERMS2);
-	m_trouble = (CStatic *)GetDlgItem(IDC_TROUBLE);
+    m_terms = (CStatic *)GetDlgItem(IDC_TERMS);
+    m_terms2 = (CStatic *)GetDlgItem(IDC_TERMS2);
+    m_trouble = (CStatic *)GetDlgItem(IDC_TROUBLE);
 
-	m_voxel = (CStatic *)GetDlgItem(IDC_VOXEL);
+    m_voxel = (CStatic *)GetDlgItem(IDC_VOXEL);
 
-	m_voxel->EnableD2DSupport();
+    m_voxel->EnableD2DSupport();
 
-	m_pRenderTarget = GetRenderTarget();
+    m_pRenderTarget = GetRenderTarget();
 
-	SetTimer(1, 2, NULL);
-	
-	return TRUE;
+    SetTimer(1, 2, NULL);
+    
+    return TRUE;
 }
 
 BOOL CLauncherDlg::PreTranslateMessage(MSG* pMsg) {
-	if ((pMsg->message == WM_KEYDOWN))
-	{
-		if (pMsg->wParam == VK_RETURN)
-		{
-			OnNextClicked();
-			return TRUE;
-		}
-	}
-	return CDialog::PreTranslateMessage(pMsg);
+    if ((pMsg->message == WM_KEYDOWN))
+    {
+        if (pMsg->wParam == 'A' && GetKeyState(VK_CONTROL) < 0) {
+            CWnd* wnd = GetFocus();
+            CWnd* myWnd = this->GetDlgItem(IDC_ORGNAME);
+            if (wnd && (wnd == this->GetDlgItem(IDC_ORGNAME) ||
+                        wnd == this->GetDlgItem(IDC_USERNAME) ||
+                        wnd == this->GetDlgItem(IDC_PASSWORD))) {
+                ((CEdit*)wnd)->SetSel(0, -1);
+            }
+            return TRUE;
+        } else if (pMsg->wParam == VK_RETURN) {
+            OnNextClicked();
+            return TRUE;
+        }
+    }
+    return CDialog::PreTranslateMessage(pMsg);
 }
 
 void CLauncherDlg::setCustomDialog() {
-	
-	LONG lStyle = GetWindowLong(GetSafeHwnd(), GWL_STYLE);
-	lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
-	SetWindowLong(GetSafeHwnd(), GWL_STYLE, lStyle);
+    
+    LONG lStyle = GetWindowLong(GetSafeHwnd(), GWL_STYLE);
+    lStyle &= ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+    SetWindowLong(GetSafeHwnd(), GWL_STYLE, lStyle);
 
-	LONG lExStyle = GetWindowLong(GetSafeHwnd(), GWL_EXSTYLE);
-	lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-	SetWindowLong(GetSafeHwnd(), GWL_EXSTYLE, lExStyle);
+    LONG lExStyle = GetWindowLong(GetSafeHwnd(), GWL_EXSTYLE);
+    lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+    SetWindowLong(GetSafeHwnd(), GWL_EXSTYLE, lExStyle);
 
-	SetWindowPos(NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-	// theApp.setDialogOnFront();
+    SetWindowPos(NULL, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 }
 
 void CLauncherDlg::OnPaint()
 {
-	CPaintDC dc(this);
-	setCustomDialog();
-	CDialog::OnPaint();
+    CPaintDC dc(this);
+    setCustomDialog();
+    CDialog::OnPaint();
 }
 
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
 HCURSOR CLauncherDlg::OnQueryDragIcon()
 {
-	return static_cast<HCURSOR>(m_hIcon);
+    return static_cast<HCURSOR>(m_hIcon);
 }
 
 void CLauncherDlg::startProcess() {
@@ -202,15 +209,15 @@ void CLauncherDlg::startProcess() {
 }
 
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
-	CString hash;
+    CString hash;
     CString lowerOrgName = orgname;
     lowerOrgName.MakeLower();
     LauncherUtils::hMac256(lowerOrgName, LAUNCHER_HMAC_SECRET, hash);
-	return theApp._manager.readOrganizationJSON(hash) == LauncherUtils::ResponseError::NoError;
+    return theApp._manager.readOrganizationJSON(hash) == LauncherUtils::ResponseError::NoError;
 }
 
 afx_msg void CLauncherDlg::OnTroubleClicked() {
-	ShellExecute(0, NULL, TROUBLE_URL, NULL, NULL, SW_SHOWDEFAULT);
+    LauncherUtils::executeOnForeground(TROUBLE_URL, _T(""));
 }
 
 afx_msg void CLauncherDlg::OnNextClicked() {
@@ -255,414 +262,421 @@ afx_msg void CLauncherDlg::OnNextClicked() {
 }
 
 void CLauncherDlg::drawBackground(CHwndRenderTarget* pRenderTarget) {
-	CD2DBitmap m_pBitmamBackground(pRenderTarget, IDB_PNG1, _T("PNG"));
-	auto size = pRenderTarget->GetSize();
-	CD2DRectF backRec(0.0f, 0.0f, size.width, size.height);
-	pRenderTarget->DrawBitmap(&m_pBitmamBackground, backRec);
+    CD2DBitmap m_pBitmamBackground(pRenderTarget, IDB_PNG1, _T("PNG"));
+    auto size = pRenderTarget->GetSize();
+    CD2DRectF backRec(0.0f, 0.0f, size.width, size.height);
+    pRenderTarget->DrawBitmap(&m_pBitmamBackground, backRec);
 }
 
 void CLauncherDlg::drawLogo(CHwndRenderTarget* pRenderTarget) {
-	CD2DBitmap m_pBitmamLogo(pRenderTarget, IDB_PNG2, _T("PNG"));
-	auto size = pRenderTarget->GetSize();
-	int logoWidth = 231;
-	int logoHeight = 181;
-	float logoPosX = 0.5f * (size.width - logoWidth);
-	float logoPosY = 0.95f * (size.height - logoHeight);
-	CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
-	pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
+    CD2DBitmap m_pBitmamLogo(pRenderTarget, IDB_PNG2, _T("PNG"));
+    auto size = pRenderTarget->GetSize();
+    int logoWidth = 231;
+    int logoHeight = 181;
+    float logoPosX = 0.5f * (size.width - logoWidth);
+    float logoPosY = 0.95f * (size.height - logoHeight);
+    CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
+    pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
 }
 
 void CLauncherDlg::drawSmallLogo(CHwndRenderTarget* pRenderTarget) {
-	CD2DBitmap m_pBitmamLogo(pRenderTarget, IDB_PNG5, _T("PNG"));
-	auto size = pRenderTarget->GetSize();
-	int padding = 6;
-	int logoWidth = 100;
-	int logoHeight = 18;
-	float logoPosX = size.width - logoWidth - padding;
-	float logoPosY = size.height - logoHeight - padding;
-	CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
-	pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
+    CD2DBitmap m_pBitmamLogo(pRenderTarget, IDB_PNG5, _T("PNG"));
+    auto size = pRenderTarget->GetSize();
+    int padding = 6;
+    int logoWidth = 100;
+    int logoHeight = 18;
+    float logoPosX = size.width - logoWidth - padding;
+    float logoPosY = size.height - logoHeight - padding;
+    CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
+    pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
 }
 
 void CLauncherDlg::drawVoxel(CHwndRenderTarget* pRenderTarget) {
-	CD2DBitmap m_pBitmamVoxel(pRenderTarget, IDB_PNG4, _T("PNG"));
-	auto size = pRenderTarget->GetSize();
-	int logoWidth = 132;
-	int logoHeight = 134;
-	float voxelPosX = 0.5f * (size.width - logoWidth);
-	float voxelPosY = 0.5f * (size.height - logoHeight);
-	CD2DRectF voxelRec(voxelPosX, voxelPosY, voxelPosX + logoWidth, voxelPosY + logoHeight);
-	auto midPoint = D2D1::Point2F(0.5f * size.width, 0.5f * size.height);
-	_logoRotation += 2.0f;
-	CD2DSolidColorBrush brush(pRenderTarget, D2D1::ColorF(0.0f, 0.0f, 0.0f));
-	pRenderTarget->SetTransform(D2D1::Matrix3x2F::Rotation(_logoRotation - 2.0f, midPoint));
-	pRenderTarget->FillRectangle(voxelRec, &brush);
-	pRenderTarget->SetTransform(D2D1::Matrix3x2F::Rotation(_logoRotation, midPoint));
-	pRenderTarget->DrawBitmap(&m_pBitmamVoxel, voxelRec);
-	pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
+    CD2DBitmap m_pBitmamVoxel(pRenderTarget, IDB_PNG4, _T("PNG"));
+    auto size = pRenderTarget->GetSize();
+    int logoWidth = 132;
+    int logoHeight = 134;
+    float voxelPosX = 0.5f * (size.width - logoWidth);
+    float voxelPosY = 0.5f * (size.height - logoHeight);
+    CD2DRectF voxelRec(voxelPosX, voxelPosY, voxelPosX + logoWidth, voxelPosY + logoHeight);
+    auto midPoint = D2D1::Point2F(0.5f * size.width, 0.5f * size.height);
+    _logoRotation += 2.0f;
+    CD2DSolidColorBrush brush(pRenderTarget, D2D1::ColorF(0.0f, 0.0f, 0.0f));
+    pRenderTarget->SetTransform(D2D1::Matrix3x2F::Rotation(_logoRotation - 2.0f, midPoint));
+    pRenderTarget->FillRectangle(voxelRec, &brush);
+    pRenderTarget->SetTransform(D2D1::Matrix3x2F::Rotation(_logoRotation, midPoint));
+    pRenderTarget->DrawBitmap(&m_pBitmamVoxel, voxelRec);
+    pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 }
 
 
 void CLauncherDlg::showWindows(std::vector<CStatic*> windows, bool show) {
-	for (auto window : windows) {
-		window->ShowWindow(show ? SW_SHOW : SW_HIDE);
-	}
+    for (auto window : windows) {
+        window->ShowWindow(show ? SW_SHOW : SW_HIDE);
+    }
 }
 
 void CLauncherDlg::prepareLogin(DrawStep step) {
-	m_voxel->ShowWindow(SW_HIDE);
-	m_orgname_banner->SetWindowTextW(_T("Organization Name"));
-	m_username_banner->SetWindowTextW(_T("Username"));
-	m_password_banner->SetWindowTextW(_T("Password"));
-	CString editText;
-	m_orgname.GetWindowTextW(editText);
-	m_orgname_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
-	m_username.GetWindowTextW(editText);
-	m_username_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
-	m_password.GetWindowTextW(editText);
-	m_password_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
-	m_orgname.ShowWindow(SW_SHOW);
-	m_username.ShowWindow(SW_SHOW);
-	m_password.ShowWindow(SW_SHOW);
-	CString actionText = step == DrawStep::DrawLoginLogin ? _T("Please log in") : _T("Uh-oh, we have a problem");
-	CString messageText = step == DrawStep::DrawLoginLogin ? _T("Be sure you've uploaded your Avatar before signing in.") :
-		step == DrawStep::DrawLoginErrorCred ? _T("There is a problem with your credentials\n please try again.") : _T("There is a problem with your Organization name\n please try again.");
-	m_action_label->SetWindowTextW(actionText);
-	m_message_label->SetWindowTextW(messageText);
-	m_action_label->ShowWindow(SW_SHOW);
-	m_message_label->ShowWindow(SW_SHOW);
-	m_btnNext.ShowWindow(SW_SHOW);
-	m_trouble->SetWindowTextW(_T("Having Trouble?"));
-	m_trouble->ShowWindow(SW_SHOW);
-	m_trouble_link.ShowWindow(SW_SHOW);
-	
+    m_voxel->ShowWindow(SW_HIDE);
+    m_orgname_banner->SetWindowTextW(_T("Organization Name"));
+    m_username_banner->SetWindowTextW(_T("Username"));
+    m_password_banner->SetWindowTextW(_T("Password"));
+    CString editText;
+    m_orgname.GetWindowTextW(editText);
+    m_orgname_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
+    m_username.GetWindowTextW(editText);
+    m_username_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
+    m_password.GetWindowTextW(editText);
+    m_password_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
+    m_orgname.ShowWindow(SW_SHOW);
+    m_username.ShowWindow(SW_SHOW);
+    m_password.ShowWindow(SW_SHOW);
+    CString actionText = step == DrawStep::DrawLoginLogin ? _T("Please log in") : _T("Uh-oh, we have a problem");
+    CString messageText = step == DrawStep::DrawLoginLogin ? _T("Be sure you've uploaded your Avatar before signing in.") :
+        step == DrawStep::DrawLoginErrorCred ? _T("There is a problem with your credentials\n please try again.") : _T("There is a problem with your Organization name\n please try again.");
+    m_action_label->SetWindowTextW(actionText);
+    m_message_label->SetWindowTextW(messageText);
+    m_action_label->ShowWindow(SW_SHOW);
+    m_message_label->ShowWindow(SW_SHOW);
+    m_btnNext.ShowWindow(SW_SHOW);
+    m_trouble->SetWindowTextW(_T("Having Trouble?"));
+    m_trouble->ShowWindow(SW_SHOW);
+    m_trouble_link.ShowWindow(SW_SHOW);
+    
 }
 
 
 void CLauncherDlg::prepareChoose() {
-	m_orgname.ShowWindow(SW_HIDE);
-	m_username.SetWindowTextW(_T(""));
-	m_username_banner->SetWindowTextW(_T("Display Name"));
-	CString editText;
-	m_username.GetWindowTextW(editText);
-	m_username_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
-	m_password.ShowWindow(SW_HIDE);
-	m_orgname_banner->ShowWindow(SW_HIDE);
-	m_password_banner->ShowWindow(SW_HIDE);
-	m_action_label->SetWindowTextW(_T("Choose a display name"));
-	m_message_label->SetWindowTextW(_T("This is the name that your teammates will see."));
-	m_terms->ShowWindow(SW_SHOW);
-	m_terms2->ShowWindow(SW_SHOW);
-	m_terms->SetWindowTextW(_T("By signing in, you agree to the High Fidelity"));
-	m_terms2->SetWindowTextW(_T("Terms of Service"));
-	CRect rec;
-	m_btnNext.GetWindowRect(&rec);
-	ScreenToClient(&rec);
-	if (rec.top > 281) {
-		rec.bottom -= 35;
-		rec.top -= 35;
-		m_btnNext.MoveWindow(rec, FALSE);
-	}
-	m_btnNext.ShowWindow(SW_SHOW);
+    m_orgname.ShowWindow(SW_HIDE);
+    m_username.SetWindowTextW(_T(""));
+    m_username_banner->SetWindowTextW(_T("Display Name"));
+    CString editText;
+    m_username.GetWindowTextW(editText);
+    m_username_banner->ShowWindow(editText.GetLength() == 0 ? SW_SHOW : SW_HIDE);
+    m_password.ShowWindow(SW_HIDE);
+    m_orgname_banner->ShowWindow(SW_HIDE);
+    m_password_banner->ShowWindow(SW_HIDE);
+    m_action_label->SetWindowTextW(_T("Choose a display name"));
+    m_message_label->SetWindowTextW(_T("This is the name that your teammates will see."));
+    m_terms->ShowWindow(SW_SHOW);
+    m_terms2->ShowWindow(SW_SHOW);
+    m_terms->SetWindowTextW(_T("By signing in, you agree to the High Fidelity"));
+    m_terms2->SetWindowTextW(_T("Terms of Service"));
+    CRect rec;
+    m_btnNext.GetWindowRect(&rec);
+    ScreenToClient(&rec);
+    if (rec.top > 281) {
+        rec.bottom -= 35;
+        rec.top -= 35;
+        m_btnNext.MoveWindow(rec, FALSE);
+    }
+    m_btnNext.ShowWindow(SW_SHOW);
 }
 
 void CLauncherDlg::prepareProcess(DrawStep step) {
-	m_trouble->ShowWindow(SW_HIDE);
-	m_trouble_link.ShowWindow(SW_HIDE);
-	m_terms->ShowWindow(SW_HIDE);
-	m_terms2->ShowWindow(SW_HIDE);
-	m_orgname_banner->ShowWindow(SW_HIDE);
-	m_username_banner->ShowWindow(SW_HIDE);
-	m_password_banner->ShowWindow(SW_HIDE);
-	m_orgname.ShowWindow(SW_HIDE);
-	m_username.ShowWindow(SW_HIDE);
-	m_password.ShowWindow(SW_HIDE);
-	m_action_label->SetWindowTextW(_T(""));
-	m_message_label->SetWindowTextW(_T(""));
-	m_btnNext.ShowWindow(SW_HIDE);
-	m_action_label->ShowWindow(SW_HIDE);
-	m_message_label->ShowWindow(SW_HIDE);
-	m_voxel->ShowWindow(SW_SHOW);
-	CString actionText = _T("");
-	CString messageText = _T("");
-	switch (step) {
-	case DrawStep::DrawProcessSetup:
-		actionText = _T("We're building your virtual HQ");
-		messageText = _T("Set up may take several minutes.");
-		break;
-	case DrawStep::DrawProcessUpdate:
-		actionText = _T("Getting updates...");
-		messageText = _T("We're getting the latest and greatest for you, one sec.");
-		break;
-	case DrawStep::DrawProcessFinishHq:
-		actionText = _T("Your new HQ is all setup");
-		messageText = _T("Thanks for being patient.");
-		break;
-	case DrawStep::DrawProcessFinishUpdate:
-		actionText = _T("You're good to go!");
-		messageText = _T("Thanks for being patient.");
-		break;
-	case DrawStep::DrawProcessUninstall:
-		actionText = _T("Uninstalling...");
-		messageText = _T("It'll take one sec.");
-		break;
-	}
-	m_action2_label->SetWindowTextW(actionText);
-	m_message2_label->SetWindowTextW(messageText);
-	m_action2_label->ShowWindow(SW_SHOW);
-	m_message2_label->ShowWindow(SW_SHOW);
+    m_trouble->ShowWindow(SW_HIDE);
+    m_trouble_link.ShowWindow(SW_HIDE);
+    m_terms->ShowWindow(SW_HIDE);
+    m_terms2->ShowWindow(SW_HIDE);
+    m_orgname_banner->ShowWindow(SW_HIDE);
+    m_username_banner->ShowWindow(SW_HIDE);
+    m_password_banner->ShowWindow(SW_HIDE);
+    m_orgname.ShowWindow(SW_HIDE);
+    m_username.ShowWindow(SW_HIDE);
+    m_password.ShowWindow(SW_HIDE);
+    m_action_label->SetWindowTextW(_T(""));
+    m_message_label->SetWindowTextW(_T(""));
+    m_btnNext.ShowWindow(SW_HIDE);
+    m_action_label->ShowWindow(SW_HIDE);
+    m_message_label->ShowWindow(SW_HIDE);
+    m_voxel->ShowWindow(SW_SHOW);
+    CString actionText = _T("");
+    CString messageText = _T("");
+    switch (step) {
+    case DrawStep::DrawProcessSetup:
+        actionText = _T("We're building your virtual HQ");
+        messageText = _T("Set up may take several minutes.");
+        break;
+    case DrawStep::DrawProcessUpdate:
+        actionText = _T("Getting updates...");
+        messageText = _T("We're getting the latest and greatest for you, one sec.");
+        break;
+    case DrawStep::DrawProcessFinishHq:
+        actionText = _T("Your new HQ is all setup");
+        messageText = _T("Thanks for being patient.");
+        break;
+    case DrawStep::DrawProcessFinishUpdate:
+        actionText = _T("You're good to go!");
+        messageText = _T("Thanks for being patient.");
+        break;
+    case DrawStep::DrawProcessUninstall:
+        actionText = _T("Uninstalling...");
+        messageText = _T("It'll take one sec.");
+        break;
+    }
+    m_action2_label->SetWindowTextW(actionText);
+    m_message2_label->SetWindowTextW(messageText);
+    m_action2_label->ShowWindow(SW_SHOW);
+    m_message2_label->ShowWindow(SW_SHOW);
 }
 
 void CLauncherDlg::prepareError() {
 }
 
 BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
-	// Set default values for message
-	BOOL isText = TRUE;
-	formatOut.color = COLOR_LIGHT_GREY;
-	formatOut.isBold = false;
-	formatOut.isButton = false;
-	formatOut.size = MESSAGE_FONT_SIZE;
-	formatOut.underlined = false;
-	
-	switch (resID) {
-	case IDC_VOXEL:
-	case IDD_LAUNCHER_DIALOG:
-		isText = FALSE;
-	case IDC_MESSAGE_LABEL:
-	case IDC_MESSAGE2_LABEL:
-		// Default values
-		break;
-	case IDC_ACTION_LABEL:
-	case IDC_ACTION2_LABEL:
-		formatOut.size = ACTION_FONT_SIZE;
-		formatOut.isBold = true;
-		formatOut.color = COLOR_LIGHTER_GREY;
-		break;
-	case IDC_USERNAME:
-	case IDC_PASSWORD:
-	case IDC_ORGNAME:
-		formatOut.color = COLOR_WHITE;
-		formatOut.size = FIELDS_FONT_SIZE;
-		formatOut.underlined = true;
-		break;
-	case IDC_USERNAME_BANNER:
-	case IDC_PASSWORD_BANNER:
-	case IDC_ORGNAME_BANNER:
-		formatOut.size = FIELDS_FONT_SIZE;
-		formatOut.color = COLOR_GREY;
-		break;
-	case IDC_TERMS:
-		formatOut.size = TERMS_FONT_SIZE;
-		break;
-	case IDC_TERMS2:
-		formatOut.size = TERMS_FONT_SIZE;
-		formatOut.isBold = true;
-		break;
-	case IDC_TROUBLE:
-		formatOut.size = TROUBLE_FONT_SIZE;
-		formatOut.color = COLOR_BLUE;
-		break;
-	}
-	return isText;
+    // Set default values for message
+    BOOL isText = TRUE;
+    formatOut.color = COLOR_LIGHT_GREY;
+    formatOut.isBold = false;
+    formatOut.isButton = false;
+    formatOut.size = MESSAGE_FONT_SIZE;
+    formatOut.underlined = false;
+    
+    switch (resID) {
+    case IDC_VOXEL:
+    case IDD_LAUNCHER_DIALOG:
+        isText = FALSE;
+    case IDC_MESSAGE_LABEL:
+    case IDC_MESSAGE2_LABEL:
+        // Default values
+        break;
+    case IDC_ACTION_LABEL:
+    case IDC_ACTION2_LABEL:
+        formatOut.size = ACTION_FONT_SIZE;
+        formatOut.isBold = true;
+        formatOut.color = COLOR_LIGHTER_GREY;
+        break;
+    case IDC_USERNAME:
+    case IDC_PASSWORD:
+    case IDC_ORGNAME:
+        formatOut.color = COLOR_WHITE;
+        formatOut.size = FIELDS_FONT_SIZE;
+        formatOut.underlined = true;
+        break;
+    case IDC_USERNAME_BANNER:
+    case IDC_PASSWORD_BANNER:
+    case IDC_ORGNAME_BANNER:
+        formatOut.size = FIELDS_FONT_SIZE;
+        formatOut.color = COLOR_GREY;
+        break;
+    case IDC_TERMS:
+        formatOut.size = TERMS_FONT_SIZE;
+        break;
+    case IDC_TERMS2:
+        formatOut.size = TERMS_FONT_SIZE;
+        formatOut.isBold = true;
+        break;
+    case IDC_TROUBLE:
+        formatOut.size = TROUBLE_FONT_SIZE;
+        formatOut.color = COLOR_BLUE;
+        break;
+    }
+    return isText;
 }
 
 HBRUSH CLauncherDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 
-	HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
-	TextFormat textFormat;
-	int resId = pWnd->GetDlgCtrlID();
-	if (getTextFormat(resId, textFormat)) {
-		pDC->SetTextColor(textFormat.color);
-		pDC->SetBkMode(TRANSPARENT);
-		CFont textFont;
-		CString fontFamily = textFormat.isBold ? GRAPHIK_SEMIBOLD : GRAPHIK_REGULAR;
-		if (LauncherUtils::getFont(fontFamily, textFormat.size, textFormat.isBold, textFont)) {
-			pDC->SelectObject(&textFont);
-		}
-		if (textFormat.underlined) {
-			CRect rect;
-			pWnd->GetClientRect(&rect);
-			int borderThick = 1;
-			int padding = 4;
-			CRect lineRect = CRect(rect.left + padding, rect.bottom, rect.right - padding, rect.bottom + borderThick);
-			lineRect.MoveToY(lineRect.bottom + 1);
-			pDC->FillSolidRect(lineRect, COLOR_GREY);
-		}
-	} 
-	return (HBRUSH)GetStockObject(BLACK_BRUSH);
+    HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
+    TextFormat textFormat;
+    int resId = pWnd->GetDlgCtrlID();
+    if (getTextFormat(resId, textFormat)) {
+        pDC->SetTextColor(textFormat.color);
+        pDC->SetBkMode(TRANSPARENT);
+        CFont textFont;
+        CString fontFamily = textFormat.isBold ? GRAPHIK_SEMIBOLD : GRAPHIK_REGULAR;
+        if (LauncherUtils::getFont(fontFamily, textFormat.size, textFormat.isBold, textFont)) {
+            pDC->SelectObject(&textFont);
+        }
+        if (textFormat.underlined) {
+            CRect rect;
+            pWnd->GetClientRect(&rect);
+            int borderThick = 1;
+            int padding = 4;
+            CRect lineRect = CRect(rect.left + padding, rect.bottom, rect.right - padding, rect.bottom + borderThick);
+            lineRect.MoveToY(lineRect.bottom + 1);
+            pDC->FillSolidRect(lineRect, COLOR_GREY);
+        }
+    } 
+    return (HBRUSH)GetStockObject(BLACK_BRUSH);
 }
 
 void CLauncherDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
-	CDC dc;
-	dc.Attach(lpDrawItemStruct->hDC);
-	CRect rect = lpDrawItemStruct->rcItem;
-	CRect defrect = rect;
-	CString btnName = _T("");
-	int xpan = 0;
-	if (nIDCtl == IDC_BUTTON_NEXT) {
-		if (_drawStep == DrawStep::DrawChoose || _drawStep == DrawStep::DrawLoginLogin) {
-			btnName += _drawStep == DrawStep::DrawLoginLogin ? _T("NEXT") : _T("LOG IN");
-			int xpan = -20;
-			defrect = CRect(rect.left - xpan, rect.top, rect.right + xpan, rect.bottom);
-		} else {
-			btnName += _T("TRY AGAIN");
-		}
-		int borderThick = 2;
-		dc.FillSolidRect(rect, COLOR_BLACK);
-		dc.FillSolidRect(defrect, COLOR_WHITE);
-		defrect.DeflateRect(borderThick, borderThick, borderThick, borderThick);
-		dc.FillSolidRect(defrect, COLOR_BLACK);
-		UINT state = lpDrawItemStruct->itemState;
-		dc.SetTextColor(COLOR_WHITE);
+    CDC dc;
+    dc.Attach(lpDrawItemStruct->hDC);
+    CRect rect = lpDrawItemStruct->rcItem;
+    CRect defrect = rect;
+    CString btnName = _T("");
+    int xpan = 0;
+    if (nIDCtl == IDC_BUTTON_NEXT) {
+        if (_drawStep == DrawStep::DrawChoose || _drawStep == DrawStep::DrawLoginLogin) {
+            btnName += _drawStep == DrawStep::DrawLoginLogin ? _T("NEXT") : _T("LOG IN");
+            int xpan = -20;
+            defrect = CRect(rect.left - xpan, rect.top, rect.right + xpan, rect.bottom);
+        } else {
+            btnName += _T("TRY AGAIN");
+        }
+        int borderThick = 2;
+        dc.FillSolidRect(rect, COLOR_BLACK);
+        dc.FillSolidRect(defrect, COLOR_WHITE);
+        defrect.DeflateRect(borderThick, borderThick, borderThick, borderThick);
+        dc.FillSolidRect(defrect, COLOR_BLACK);
+        UINT state = lpDrawItemStruct->itemState;
+        dc.SetTextColor(COLOR_WHITE);
 
-		CFont buttonFont;
-		if (LauncherUtils::getFont(GRAPHIK_SEMIBOLD, BUTTON_FONT_SIZE, true, buttonFont)) {
-			dc.SelectObject(buttonFont);
-		}
-		dc.DrawText(btnName, CRect(rect.left, rect.top + 4, rect.right, rect.bottom - 8), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-		dc.Detach();
-	} else if (nIDCtl == IDC_TROUBLE_LINK) {
-		dc.FillSolidRect(rect, COLOR_BLACK);
-		dc.SetTextColor(COLOR_BLUE);
-		CFont buttonFont;
-		if (LauncherUtils::getFont(GRAPHIK_SEMIBOLD, TROUBLE_FONT_SIZE, true, buttonFont)) {
-			dc.SelectObject(buttonFont);
-		}
-		dc.DrawText(_T("Having Trouble"), CRect(rect.left, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-	}
+        CFont buttonFont;
+        if (LauncherUtils::getFont(GRAPHIK_SEMIBOLD, BUTTON_FONT_SIZE, true, buttonFont)) {
+            dc.SelectObject(buttonFont);
+        }
+        dc.DrawText(btnName, CRect(rect.left, rect.top + 4, rect.right, rect.bottom - 8), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        dc.Detach();
+    } else if (nIDCtl == IDC_TROUBLE_LINK) {
+        dc.FillSolidRect(rect, COLOR_BLACK);
+        dc.SetTextColor(COLOR_BLUE);
+        CFont buttonFont;
+        if (LauncherUtils::getFont(GRAPHIK_SEMIBOLD, TROUBLE_FONT_SIZE, true, buttonFont)) {
+            dc.SelectObject(buttonFont);
+        }
+        dc.DrawText(_T("Having Trouble"), CRect(rect.left, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    }
 
 }
 
 void CLauncherDlg::redrawBanner(const CEdit& edit, CStatic* banner) {
-	CString editText;
-	edit.GetWindowTextW(editText);
-	if (editText.GetLength() == 0) {
-		banner->Invalidate();
-	}
+    CString editText;
+    edit.GetWindowTextW(editText);
+    if (editText.GetLength() == 0) {
+        banner->Invalidate();
+    }
 }
 
 void CLauncherDlg::OnOrgEditChangeFocus() {
-	redrawBanner(m_username, m_username_banner);
-	redrawBanner(m_password, m_password_banner);
+    redrawBanner(m_username, m_username_banner);
+    redrawBanner(m_password, m_password_banner);
 }
 
 void CLauncherDlg::OnUserEditChangeFocus() {
-	redrawBanner(m_orgname, m_orgname_banner);
-	redrawBanner(m_password, m_password_banner);
+    redrawBanner(m_orgname, m_orgname_banner);
+    redrawBanner(m_password, m_password_banner);
 }
 
 void CLauncherDlg::OnPassEditChangeFocus() {
-	redrawBanner(m_orgname, m_orgname_banner);
-	redrawBanner(m_username, m_username_banner);
+    redrawBanner(m_orgname, m_orgname_banner);
+    redrawBanner(m_username, m_username_banner);
 }
 BOOL CLauncherDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
-	if (pWnd->IsKindOf(RUNTIME_CLASS(CButton))) {
-		::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
-		return TRUE;
-	}
-	return CDialog::OnSetCursor(pWnd, nHitTest, message);
+    if (pWnd->IsKindOf(RUNTIME_CLASS(CButton))) {
+        ::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_HAND));
+        return TRUE;
+    }
+    return CDialog::OnSetCursor(pWnd, nHitTest, message);
 }
 
 void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
-	const int CONSOLE_MAX_SHUTDOWN_TRY_COUNT = 10;
-	const int CONSOLE_DELTATIME_BETWEEN_TRYS = 10;
-	if (_drawStep == DrawStep::DrawProcessSetup || 
-		_drawStep == DrawStep::DrawProcessUpdate || 
-		_drawStep == DrawStep::DrawProcessUninstall) {
-		// Refresh
-		setDrawDialog(_drawStep, true);
-	}
-	if (_showSplash) {
-		if (_splashStep == 0){
+    const int CONSOLE_MAX_SHUTDOWN_TRY_COUNT = 10;
+    const int CONSOLE_DELTATIME_BETWEEN_TRYS = 10;
+    if (_drawStep == DrawStep::DrawProcessSetup || 
+        _drawStep == DrawStep::DrawProcessUpdate || 
+        _drawStep == DrawStep::DrawProcessUninstall) {
+        // Refresh
+        setDrawDialog(_drawStep, true);
+    }
+    if (_showSplash) {
+        if (_splashStep == 0){
             if (theApp._manager.needsUninstall()) {
                 theApp._manager.addToLog(_T("Waiting to uninstall"));
                 setDrawDialog(DrawStep::DrawProcessUninstall);
             } else {
                 theApp._manager.addToLog(_T("Start splash screen"));
                 setDrawDialog(DrawStep::DrawLogo);
-            }			
-		} else if (_splashStep > 100) {
-			_showSplash = false;
-			if (theApp._manager.shouldShutDown()) {
-				if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
-					exit(0);
-				}
-			} else if (theApp._manager.needsUpdate()) {
-				startProcess();
-			} else if (theApp._manager.needsUninstall()) {
-				theApp._manager.uninstallApplication();
-				exit(0);
-			} else {
+            }
+        } else if (_splashStep > 100) {
+            _showSplash = false;
+            if (theApp._manager.shouldShutDown()) {
+                if (_applicationWND != NULL) {
+                    ::SetForegroundWindow(_applicationWND);
+                    ::SetActiveWindow(_applicationWND);
+                }
+                if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
+                    exit(0);
+                }
+            } else if (theApp._manager.needsUpdate()) {
+                startProcess();
+            } else if (theApp._manager.needsUninstall()) {
+                theApp._manager.uninstallApplication();
+                exit(0);
+            } else {
                 theApp._manager.addToLog(_T("Starting login"));
-				setDrawDialog(DrawStep::DrawLoginLogin);
-			}
-		}
-		_splashStep++;
-	} else if (theApp._manager.shouldShutDown()) {
-		if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
-			exit(0);
-		}
-	}
+                setDrawDialog(DrawStep::DrawLoginLogin);
+            }
+        }
+        _splashStep++;
+    } else if (theApp._manager.shouldShutDown()) {
+        if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
+            exit(0);
+        }
+    }
+    if (theApp._manager.shouldLaunch()) {
+        _applicationWND = theApp._manager.launchApplication();
+    }
 }
 
 void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
-	_drawStep = step;
-	auto m_pRenderTarget = GetRenderTarget();
-	auto m_voxelRenderTarget = m_voxel->GetRenderTarget();
-	switch (_drawStep) {
-	case DrawStep::DrawLogo:
-		m_pRenderTarget->BeginDraw();
-		drawBackground(m_pRenderTarget);
-		m_pRenderTarget->EndDraw();
-		m_voxelRenderTarget->BeginDraw();
-		drawLogo(m_voxelRenderTarget);
-		m_voxelRenderTarget->EndDraw();
-		break;
-	case DrawStep::DrawLoginLogin:
-	case DrawStep::DrawLoginErrorOrg:
-	case DrawStep::DrawLoginErrorCred:
-		prepareLogin(_drawStep);
-		m_pRenderTarget->BeginDraw();
-		drawBackground(m_pRenderTarget);
-		drawSmallLogo(m_pRenderTarget);
-		m_pRenderTarget->EndDraw();
-		RedrawWindow();
-		break;
-	case DrawStep::DrawChoose:
-		prepareChoose();
-		m_pRenderTarget->BeginDraw();
-		drawBackground(m_pRenderTarget);
-		drawSmallLogo(m_pRenderTarget);
-		m_pRenderTarget->EndDraw();
-		RedrawWindow();
-		break;
-	case DrawStep::DrawProcessFinishHq:
-	case DrawStep::DrawProcessFinishUpdate:
-	case DrawStep::DrawProcessUpdate:
-	case DrawStep::DrawProcessUninstall:
-	case DrawStep::DrawProcessSetup:	
-		if (!isUpdate) {
-			m_voxelRenderTarget->BeginDraw();
-			m_voxelRenderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f));
-			m_voxelRenderTarget->EndDraw();
-			m_pRenderTarget->BeginDraw();
-			prepareProcess(_drawStep);
-			drawBackground(m_pRenderTarget);
-			drawSmallLogo(m_pRenderTarget);
-			m_pRenderTarget->EndDraw();
-			RedrawWindow();
-		}	
-		m_voxelRenderTarget->BeginDraw();
-		drawVoxel(m_voxelRenderTarget);
-		m_voxelRenderTarget->EndDraw();		
-		break;
-	default:
-		break;
-	}
+    _drawStep = step;
+    auto m_pRenderTarget = GetRenderTarget();
+    auto m_voxelRenderTarget = m_voxel->GetRenderTarget();
+    switch (_drawStep) {
+    case DrawStep::DrawLogo:
+        m_pRenderTarget->BeginDraw();
+        drawBackground(m_pRenderTarget);
+        m_pRenderTarget->EndDraw();
+        m_voxelRenderTarget->BeginDraw();
+        drawLogo(m_voxelRenderTarget);
+        m_voxelRenderTarget->EndDraw();
+        break;
+    case DrawStep::DrawLoginLogin:
+    case DrawStep::DrawLoginErrorOrg:
+    case DrawStep::DrawLoginErrorCred:
+        prepareLogin(_drawStep);
+        m_pRenderTarget->BeginDraw();
+        drawBackground(m_pRenderTarget);
+        drawSmallLogo(m_pRenderTarget);
+        m_pRenderTarget->EndDraw();
+        RedrawWindow();
+        break;
+    case DrawStep::DrawChoose:
+        prepareChoose();
+        m_pRenderTarget->BeginDraw();
+        drawBackground(m_pRenderTarget);
+        drawSmallLogo(m_pRenderTarget);
+        m_pRenderTarget->EndDraw();
+        RedrawWindow();
+        break;
+    case DrawStep::DrawProcessFinishHq:
+    case DrawStep::DrawProcessFinishUpdate:
+    case DrawStep::DrawProcessUpdate:
+    case DrawStep::DrawProcessUninstall:
+    case DrawStep::DrawProcessSetup:    
+        if (!isUpdate) {
+            m_voxelRenderTarget->BeginDraw();
+            m_voxelRenderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f));
+            m_voxelRenderTarget->EndDraw();
+            m_pRenderTarget->BeginDraw();
+            prepareProcess(_drawStep);
+            drawBackground(m_pRenderTarget);
+            drawSmallLogo(m_pRenderTarget);
+            m_pRenderTarget->EndDraw();
+            RedrawWindow();
+        }   
+        m_voxelRenderTarget->BeginDraw();
+        drawVoxel(m_voxelRenderTarget);
+        m_voxelRenderTarget->EndDraw();     
+        break;
+    default:
+        break;
+    }
 }
 
 

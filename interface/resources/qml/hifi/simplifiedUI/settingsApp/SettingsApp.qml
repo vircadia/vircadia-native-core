@@ -14,15 +14,40 @@ import stylesUit 1.0 as HifiStylesUit
 import "./audio" as AudioSettings
 import "./general" as GeneralSettings
 import "./vr" as VrSettings
+import "./dev" as DevSettings
 
 Rectangle {
     property string activeTabView: "generalTabView"
     id: root
     color: simplifiedUI.colors.darkBackground
     anchors.fill: parent
+    property bool developerModeEnabled: Settings.getValue("simplifiedUI/developerModeEnabled", false)
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
+    }
+            
+    focus: true        
+    Keys.onPressed: {
+        if ((event.key == Qt.Key_D) && (event.modifiers & Qt.ControlModifier && event.modifiers & Qt.AltModifier && event.modifiers & Qt.ShiftModifier)) {
+            var currentSetting = Settings.getValue("simplifiedUI/developerModeEnabled", false);
+            var newSetting = !currentSetting;
+            Settings.setValue("simplifiedUI/developerModeEnabled", newSetting);
+            root.developerModeEnabled = newSetting;
+            if (newSetting) {
+                console.log("Developer mode ON. You are now a developer!");
+            } else {
+                console.log("Developer mode OFF.");
+                if (root.activeTabView === "devTabView") {
+                    tabListView.currentIndex = 2;
+                    root.activeTabView = "vrTabView";
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: {
+        root.forceActiveFocus();
     }
 
 
@@ -49,6 +74,10 @@ Rectangle {
                 tabTitle: "VR"
                 tabViewName: "vrTabView"
             }
+            ListElement {
+                tabTitle: "Dev"
+                tabViewName: "devTabView"
+            }
         }
 
 
@@ -70,6 +99,8 @@ Rectangle {
             highlight: highlightBar
             interactive: contentItem.width > width
             delegate: Item {
+                visible: model.tabTitle !== "Dev" || (model.tabTitle === "Dev" && root.developerModeEnabled)
+
                 width: tabTitleText.paintedWidth + 64
                 height: parent.height
 
@@ -125,14 +156,30 @@ Rectangle {
             visible: activeTabView === "vrTabView"
             anchors.fill: parent
         }
+
+        DevSettings.Dev {
+            id: devTabViewContainer
+            visible: activeTabView === "devTabView"
+            anchors.fill: parent
+        }
     }
 
     Image {
-        source: "../images/accent.svg"
+        source: {
+            if (root.activeTabView === "generalTabView") {
+                "images/accent1.svg"
+            } else if (root.activeTabView === "audioTabView") {
+                "images/accent2.svg"
+            } else if (root.activeTabView === "vrTabView") {
+                "images/accent3.svg"
+            } else {
+                "images/accent3.svg"
+            }
+        }
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        width: 94
-        height: 175
+        anchors.top: tabContainer.bottom
+        width: 106
+        height: 200
     }
 
 

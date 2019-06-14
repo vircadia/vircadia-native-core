@@ -66,6 +66,10 @@ endfunction()
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME})
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
+if (LAUNCHER_HMAC_SECRET STREQUAL "")
+    message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
 
 file(GLOB NIB_FILES "nib/*.xib")

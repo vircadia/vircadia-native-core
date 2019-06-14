@@ -18,6 +18,7 @@ bool Instance::enumeratePlatform() {
     enumerateComputer();
     enumerateCpu();
     enumerateGpu();
+    enumerateDisplays();
     enumerateMemory();
 
     // And profile the platform and put the tier in "computer"

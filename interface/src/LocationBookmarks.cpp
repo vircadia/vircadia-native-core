@@ -67,6 +67,10 @@ QString LocationBookmarks::getHomeLocationAddress() {
     return addressForBookmark(HOME_BOOKMARK);
 }
 
+QString LocationBookmarks::getAddress(const QString& bookmarkName) {
+    return addressForBookmark(bookmarkName);
+}
+
 void LocationBookmarks::teleportToBookmark() {
     QAction* action = qobject_cast<QAction*>(sender());
     QString address = action->data().toString();

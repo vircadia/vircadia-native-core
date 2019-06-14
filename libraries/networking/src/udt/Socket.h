@@ -129,6 +129,7 @@ private:
     ConnectionCreationFilterOperator _connectionCreationFilterOperator;
 
     Mutex _unreliableSequenceNumbersMutex;
+    Mutex _connectionsHashMutex;
 
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;
