@@ -739,6 +739,10 @@ void DomainServer::setupNodeListAndAssignments() {
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
+    connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged, this,
+        [this](const HifiSockAddr& localSockAddr) {
+        DependencyManager::get<LimitedNodeList>()->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, localSockAddr.getPort());
+    });
 
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();

@@ -1237,16 +1237,18 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
 
         if (_localSockAddr.isNull()) {
             qCInfo(networking) << "Local socket is" << sockAddr;
+            _localSockAddr = sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
+            _localSockAddr = sockAddr;
             if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
                 reset();
                 _nodeSocket.rebind(0);
                 _localSockAddr.setPort(_nodeSocket.localPort());
+                qCInfo(networking) << "Local port changed to" << _localSockAddr.getPort();
             }
         }
 
-        _localSockAddr = sockAddr;
         emit localSockAddrChanged(_localSockAddr);
     }
 }
