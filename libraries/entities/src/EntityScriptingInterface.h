@@ -117,9 +117,9 @@ public:
  * @hifi-server-entity
  * @hifi-assignment-client
  *
- * @property {Uuid} keyboardFocusEntity -  The {@link Entities.EntityType|Web} entity that has keyboard focus. If no Web entity 
- *     has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to clear 
- *     keyboard focus.
+ * @property {Uuid} keyboardFocusEntity -  The {@link Entities.EntityProperties-Web|Web} entity that has keyboard focus. If no 
+ *     Web entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
+ *     clear keyboard focus.
  */
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
@@ -658,70 +658,72 @@ public slots:
 
 
     /**jsdoc
-     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. By default, Light 
-     * entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
+     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Light|Light} entities. By 
+     * default, Light entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
      *     {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.setLightsArePickable
      * @param {boolean} value - Set <code>true</code> to make ray picks intersect the bounding box of 
-     *     {@link Entities.EntityType|Light} entities, otherwise <code>false</code>.
+     *     {@link Entities.EntityProperties-Light|Light} entities, otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE void setLightsArePickable(bool value);
 
     /**jsdoc
-     * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
+     * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Light|Light} entities. Ray 
+     * picks are done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.getLightsArePickable
-     * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of {@link Entities.EntityType|Light} 
-     *     entities, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of 
+     *     {@link Entities.EntityProperties-Light|Light} entities, otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool getLightsArePickable() const;
 
     /**jsdoc
-     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. By default, Light 
-     * entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
-     *     {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
+     * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Zone|Zone} entities. By 
+     * default, Light entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
+     * {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.setZonesArePickable
      * @param {boolean} value - Set <code>true</code> to make ray picks intersect the bounding box of 
-     *     {@link Entities.EntityType|Zone} entities, otherwise <code>false</code>.
+     *     {@link Entities.EntityProperties-Zone|Zone} entities, otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE void setZonesArePickable(bool value);
 
     /**jsdoc
-     * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
+     * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Zone|Zone} entities. Ray 
+     * picks are done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.getZonesArePickable
-     * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of {@link Entities.EntityType|Zone} 
-     *      entities, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of 
+     *      {@link Entities.EntityProperties-Zone|Zone} entities, otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool getZonesArePickable() const;
 
     /**jsdoc
-     * Set whether or not {@link Entities.EntityType|Zone} entities' boundaries should be drawn. <em>Currently not used.</em>
+     * Set whether or not {@link Entities.EntityProperties-Zone|Zone} entities' boundaries should be drawn. <em>Currently not 
+     * used.</em>
      * @function Entities.setDrawZoneBoundaries
-     * @param {boolean} value - Set to <code>true</code> if {@link Entities.EntityType|Zone} entities' boundaries should be 
-     *     drawn, otherwise <code>false</code>.
+     * @param {boolean} value - Set to <code>true</code> if {@link Entities.EntityProperties-Zone|Zone} entities' boundaries 
+     *     should be drawn, otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE void setDrawZoneBoundaries(bool value);
 
     /**jsdoc
-    * Get whether or not {@link Entities.EntityType|Zone} entities' boundaries should be drawn. <em>Currently not used.</em>
-    * @function Entities.getDrawZoneBoundaries
-    * @returns {boolean} <code>true</code> if {@link Entities.EntityType|Zone} entities' boundaries should be drawn, 
-    *    otherwise <code>false</code>.
-    */
+     * Get whether or not {@link Entities.EntityProperties-Zone|Zone} entities' boundaries should be drawn. <em>Currently 
+     * not used.</em>
+     * @function Entities.getDrawZoneBoundaries
+     * @returns {boolean} <code>true</code> if {@link Entities.EntityProperties-Zone|Zone} entities' boundaries should be 
+     *    drawn, otherwise <code>false</code>.
+     */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool getDrawZoneBoundaries() const;
 
 
     /**jsdoc
-     * Set the values of all voxels in a spherical portion of a {@link Entities.EntityType|PolyVox} entity.
+     * Set the values of all voxels in a spherical portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxelSphere
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} center - The center of the sphere of voxels to set, in world coordinates.
      * @param {number} radius - The radius of the sphere of voxels to set, in world coordinates.
      * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
@@ -740,9 +742,9 @@ public slots:
     Q_INVOKABLE bool setVoxelSphere(const QUuid& entityID, const glm::vec3& center, float radius, int value);
     
     /**jsdoc
-     * Set the values of all voxels in a capsule-shaped portion of a {@link Entities.EntityType|PolyVox} entity.
+     * Set the values of all voxels in a capsule-shaped portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxelCapsule
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} start - The center of the sphere of voxels to set, in world coordinates.
      * @param {Vec3} end - The center of the sphere of voxels to set, in world coordinates.
      * @param {number} radius - The radius of the capsule cylinder and spherical ends, in world coordinates.
@@ -764,9 +766,9 @@ public slots:
     Q_INVOKABLE bool setVoxelCapsule(const QUuid& entityID, const glm::vec3& start, const glm::vec3& end, float radius, int value);
 
     /**jsdoc
-     * Set the value of a particular voxels in a {@link Entities.EntityType|PolyVox} entity.
+     * Set the value of a particular voxels in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxel
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} position - The position relative to the minimum axes values corner of the entity. The 
      *     <code>position</code> coordinates are rounded to the nearest integer to get the voxel coordinate. The minimum axes 
      *     corner voxel is <code>{ x: 0, y: 0, z: 0 }</code>.
@@ -786,9 +788,9 @@ public slots:
     Q_INVOKABLE bool setVoxel(const QUuid& entityID, const glm::vec3& position, int value);
 
     /**jsdoc
-     * Set the values of all voxels in a {@link Entities.EntityType|PolyVox} entity.
+     * Set the values of all voxels in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setAllVoxels
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
      * @example <caption>Create a PolyVox cube.</caption>
      * var entity = Entities.addEntity({
@@ -804,9 +806,9 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(const QUuid& entityID, int value);
 
     /**jsdoc
-     * Set the values of all voxels in a cubic portion of a {@link Entities.EntityType|PolyVox} entity.
+     * Set the values of all voxels in a cubic portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxelsInCuboid
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} lowPosition - The position of the minimum axes value corner of the cube of voxels to set, in voxel 
      *     coordinates.
      * @param {Vec3} cuboidSize - The size of the cube of voxels to set, in voxel coordinates.
@@ -829,14 +831,14 @@ public slots:
     Q_INVOKABLE bool setVoxelsInCuboid(const QUuid& entityID, const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int value);
 
     /**jsdoc
-     * Convert voxel coordinates in a {@link Entities.EntityType|PolyVox} entity to world coordinates. Voxel coordinates are 
+     * Convert voxel coordinates in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity to world coordinates. Voxel coordinates are
      * relative to the minimum axes values corner of the entity with a scale of <code>Vec3.ONE</code> being the dimensions of 
      * each voxel.
      * @function Entities.voxelCoordsToWorldCoords
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The world coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
+     *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Create a PolyVox cube with the 0,0,0 voxel replaced by a sphere.</caption>
      * // Cube PolyVox with 0,0,0 voxel missing.
      * var polyVox = Entities.addEntity({
@@ -864,26 +866,26 @@ public slots:
     Q_INVOKABLE glm::vec3 voxelCoordsToWorldCoords(const QUuid& entityID, glm::vec3 voxelCoords);
 
     /**jsdoc
-     * Convert world coordinates to voxel coordinates in a {@link Entities.EntityType|PolyVox} entity. Voxel coordinates are 
+     * Convert world coordinates to voxel coordinates in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity. Voxel coordinates are
      * relative to the minimum axes values corner of the entity, with a scale of <code>Vec3.ONE</code> being the dimensions of 
      * each voxel.
      * @function Entities.worldCoordsToVoxelCoords
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} worldCoords - The world coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 worldCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 worldCoords);
 
     /**jsdoc
-     * Convert voxel coordinates in a {@link Entities.EntityType|PolyVox} entity to local coordinates relative to the minimum 
+     * Convert voxel coordinates in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity to local coordinates relative to the minimum
      * axes value corner of the entity, with the scale being the same as world coordinates.
      * @function Entities.voxelCoordsToLocalCoords
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
      * @returns {Vec3} The local coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
+     *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</caption>
      * var polyVox = Entities.addEntity({
      *     type: "PolyVox",
@@ -899,24 +901,24 @@ public slots:
     Q_INVOKABLE glm::vec3 voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords);
 
     /**jsdoc
-     * Convert local coordinates to voxel coordinates in a {@link Entities.EntityType|PolyVox} entity. Local coordinates are 
+     * Convert local coordinates to voxel coordinates in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity. Local coordinates are
      * relative to the minimum axes value corner of the entity, with the scale being the same as world coordinates.
      * @function Entities.localCoordsToVoxelCoords
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|PolyVox} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} localCoords - The local coordinates. May be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
-     *     {@link Entities.EntityType|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
+     *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be fractional.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
 
     /**jsdoc
-     * Set the <code>linePoints</code> property of a {@link Entities.EntityType|Line} entity.
+     * Set the <code>linePoints</code> property of a {@link Entities.EntityProperties-Line|Line} entity.
      * @function Entities.setAllPoints
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Line} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Line|Line} entity.
      * @param {Vec3[]} points - The array of points to set the entity's <code>linePoints</code> property to.
      * @returns {boolean} <code>true</code> if the entity's property was updated, otherwise <code>false</code>. The property 
-     *     may fail to be updated if the entity does not exist, the entity is not a {@link Entities.EntityType|Line} entity, 
+     *     may fail to be updated if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line} entity, 
      *     one of the points is outside the entity's dimensions, or the number of points is greater than the maximum allowed.
      * @example <caption>Change the shape of a Line entity.</caption>
      * // Draw a horizontal line between two points.
@@ -945,12 +947,12 @@ public slots:
     Q_INVOKABLE bool setAllPoints(const QUuid& entityID, const QVector<glm::vec3>& points);
     
     /**jsdoc
-     * Append a point to a {@link Entities.EntityType|Line} entity.
+     * Append a point to a {@link Entities.EntityProperties-Line|Line} entity.
      * @function Entities.appendPoint
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Line} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Line|Line} entity.
      * @param {Vec3} point - The point to add to the line. The coordinates are relative to the entity's position.
      * @returns {boolean} <code>true</code> if the point was added to the line, otherwise <code>false</code>. The point may 
-     *     fail to be added if the entity does not exist, the entity is not a {@link Entities.EntityType|Line} entity, the 
+     *     fail to be added if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line} entity, the 
      *     point is outside the entity's dimensions, or the maximum number of points has been reached.
      * @example <caption>Append a point to a Line entity.</caption>
      * // Draw a line between two points.
@@ -1045,13 +1047,13 @@ public slots:
 
 
     /**jsdoc
-     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * Get the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
      * orientation.
      * @function Entities.getAbsoluteJointTranslationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @returns {Vec3} The translation of the joint relative to the entity's position and orientation if the entity is a
-     *     {@link Entities.EntityType|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
+     *     {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
      *     <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      */
     // FIXME move to a renderable entity interface
@@ -1067,13 +1069,13 @@ public slots:
     Q_INVOKABLE int getJointParent(const QUuid& entityID, int index);
     
     /**jsdoc
-     * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * Get the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
      * orientation.
      * @function Entities.getAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @returns {Quat} The rotation of the joint relative to the entity's orientation if the entity is a
-     *     {@link Entities.EntityType|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
+     *     {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, and the joint index is valid; otherwise 
      *     <code>{@link Quat(0)|Quat.IDENTITY}</code>.
      * @example <caption>Compare the local and absolute rotations of an avatar model's left hand joint.</caption>
      * entityID = Entities.addEntity({
@@ -1097,13 +1099,13 @@ public slots:
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Set the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * Set the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
      * orientation.
      * @function Entities.setAbsoluteJointTranslationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Vec3} translation - The translation to set the joint to relative to the entity's position and orientation.
-     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
+     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the translation is different to the joint's current translation; otherwise 
      *     <code>false</code>.
      */
@@ -1111,13 +1113,13 @@ public slots:
     Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
 
     /**jsdoc
-     * Set the rotation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
+     * Set the rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
      * orientation.
      * @function Entities.setAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Quat} rotation - The rotation to set the joint to relative to the entity's orientation.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
      * @example <caption>Raise an avatar model's left palm.</caption>
      * entityID = Entities.addEntity({
@@ -1142,22 +1144,22 @@ public slots:
 
 
     /**jsdoc
-     * Get the local translation of a joint in a {@link Entities.EntityType|Model} entity.
+     * Get the local translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getLocalJointTranslation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @returns {Vec3} The local translation of the joint if the entity is a {@link Entities.EntityType|Model} entity, the 
+     * @returns {Vec3} The local translation of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the 
      *     entity is loaded, and the joint index is valid; otherwise <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 getLocalJointTranslation(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Get the local rotation of a joint in a {@link Entities.EntityType|Model} entity.
+     * Get the local rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getLocalJointRotation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @returns {Quat} The local rotation of the joint if the entity is a {@link Entities.EntityType|Model} entity, the entity 
+     * @returns {Quat} The local rotation of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
      *     is loaded, and the joint index is valid; otherwise <code>{@link Quat(0)|Quat.IDENTITY}</code>.
      * @example <caption>Report the local rotation of an avatar model's head joint.</caption>
      * entityID = Entities.addEntity({
@@ -1179,12 +1181,12 @@ public slots:
     Q_INVOKABLE glm::quat getLocalJointRotation(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Set the local translation of a joint in a {@link Entities.EntityType|Model} entity.
+     * Set the local translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointTranslation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Vec3} translation - The local translation to set the joint to.
-     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
+     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the translation is different to the joint's current translation; otherwise 
      *     <code>false</code>.
      */
@@ -1192,12 +1194,12 @@ public slots:
     Q_INVOKABLE bool setLocalJointTranslation(const QUuid& entityID, int jointIndex, glm::vec3 translation);
 
     /**jsdoc
-     * Set the local rotation of a joint in a {@link Entities.EntityType|Model} entity.
+     * Set the local rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointRotation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Quat} rotation - The local rotation to set the joint to.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
      *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
      * @example <caption>Make an avatar model turn its head left.</caption>
      * entityID = Entities.addEntity({
@@ -1221,11 +1223,11 @@ public slots:
 
 
     /**jsdoc
-     * Set the local translations of joints in a {@link Entities.EntityType|Model} entity.
+     * Set the local translations of joints in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointTranslations
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Vec3[]} translations - The local translations to set the joints to.
-     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
+     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
      *     the model has joints, and at least one of the translations is different to the model's current translations; 
      *     otherwise <code>false</code>.
      */
@@ -1233,11 +1235,11 @@ public slots:
     Q_INVOKABLE bool setLocalJointTranslations(const QUuid& entityID, const QVector<glm::vec3>& translations);
 
     /**jsdoc
-     * Set the local rotations of joints in a {@link Entities.EntityType|Model} entity.
+     * Set the local rotations of joints in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointRotations
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Quat[]} rotations - The local rotations to set the joints to.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded, 
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
      *     the model has joints, and at least one of the rotations is different to the model's current rotations; otherwise 
      *     <code>false</code>.
      * @example <caption>Raise both palms of an avatar model.</caption>
@@ -1275,14 +1277,14 @@ public slots:
     Q_INVOKABLE bool setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations);
 
     /**jsdoc
-     * Set the local rotations and translations of joints in a {@link Entities.EntityType|Model} entity. This is the same as 
+     * Set the local rotations and translations of joints in a {@link Entities.EntityProperties-Model|Model} entity. This is the same as
      * calling both {@link Entities.setLocalJointRotations|setLocalJointRotations} and 
      * {@link Entities.setLocalJointTranslations|setLocalJointTranslations} at the same time.
      * @function Entities.setLocalJointsData
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Quat[]} rotations - The local rotations to set the joints to.
      * @param {Vec3[]} translations - The local translations to set the joints to.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityType|Model} entity, the entity is loaded,
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded,
      *     the model has joints, and at least one of the rotations or translations is different to the model's current values; 
      *     otherwise <code>false</code>.
      */
@@ -1293,11 +1295,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the index of a named joint in a {@link Entities.EntityType|Model} entity.
+     * Get the index of a named joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getJointIndex
      * @param {Uuid} entityID - The ID of the entity.
      * @param {string} name - The name of the joint.
-     * @returns {number} The integer index of the joint if the entity is a {@link Entities.EntityType|Model} entity, the entity 
+     * @returns {number} The integer index of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
      *     is loaded, and the joint is present; otherwise <code>-1</code>. The joint indexes are in order per 
      *     {@link Entities.getJointNames|getJointNames}.
      * @example <caption>Report the index of a model's head joint.</caption>
@@ -1319,10 +1321,10 @@ public slots:
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
 
     /**jsdoc
-     * Get the names of all the joints in a {@link Entities.EntityType|Model} entity.
+     * Get the names of all the joints in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getJointNames
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Model} entity.
-     * @returns {string[]} The names of all the joints in the entity if it is a {@link Entities.EntityType|Model} entity and 
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Model|Model} entity.
+     * @returns {string[]} The names of all the joints in the entity if it is a {@link Entities.EntityProperties-Model|Model} entity and 
      *     is loaded, otherwise an empty array. The joint names are in order per {@link Entities.getJointIndex|getJointIndex}.
      * @example <caption>Report a model's joint names.</caption>
      * entityID = Entities.addEntity({
@@ -1456,16 +1458,16 @@ public slots:
     Q_INVOKABLE QString getNestableType(const QUuid& id);
 
     /**jsdoc
-     * Gets the ID of the {@link Entities.EntityType|Web} entity that has keyboard focus.
+     * Gets the ID of the {@link Entities.EntityProperties-Web|Web} entity that has keyboard focus.
      * @function Entities.getKeyboardFocusEntity
-     * @returns {Uuid} The ID of the {@link Entities.EntityType|Web} entity that has focus, if any, otherwise <code>null</code>.
+     * @returns {Uuid} The ID of the {@link Entities.EntityProperties-Web|Web} entity that has focus, if any, otherwise <code>null</code>.
      */
     Q_INVOKABLE QUuid getKeyboardFocusEntity() const;
 
     /**jsdoc
-     * Sets the {@link Entities.EntityType|Web} entity that has keyboard focus.
+     * Sets the {@link Entities.EntityProperties-Web|Web} entity that has keyboard focus.
      * @function Entities.setKeyboardFocusEntity
-     * @param {Uuid} id - The ID of the {@link Entities.EntityType|Web} entity to set keyboard focus to. Use 
+     * @param {Uuid} id - The ID of the {@link Entities.EntityProperties-Web|Web} entity to set keyboard focus to. Use 
      *     <code>null</code> or {@link Uuid(0)|Uuid.NULL} to unset keyboard focus from an entity.
      */
     Q_INVOKABLE void setKeyboardFocusEntity(const QUuid& id);
@@ -1543,8 +1545,8 @@ public slots:
     Q_INVOKABLE void sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event);
 
     /**jsdoc
-     * Check whether an entity wants hand controller pointer events. For example, a {@link Entities.EntityType|Web} entity does 
-     * but a {@link Entities.EntityType|Shape} entity doesn't.
+     * Check whether an entity wants hand controller pointer events. For example, a {@link Entities.EntityProperties-Web|Web} entity does
+     * but a {@link Entities.EntityProperties-Shape|Shape} entity doesn't.
      * @function Entities.wantsHandControllerPointerEvents
      * @param {Uuid} entityID -  The ID of the entity.
      * @returns {boolean} <code>true</code> if the entity can be found and it wants hand controller pointer events, otherwise 
@@ -1553,9 +1555,9 @@ public slots:
     Q_INVOKABLE bool wantsHandControllerPointerEvents(const QUuid& id);
 
     /**jsdoc
-     * Send a script event over a {@link Entities.EntityType|Web} entity's <code>EventBridge</code> to the Web page's scripts.
+     * Send a script event over a {@link Entities.EntityProperties-Web|Web} entity's <code>EventBridge</code> to the Web page's scripts.
      * @function Entities.emitScriptEvent
-     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Web} entity.
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Web|Web} entity.
      * @param {string} message - The message to send.
      */
     Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
@@ -1574,7 +1576,7 @@ public slots:
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
     /**jsdoc
-     * Get the meshes in a {@link Entities.EntityType|Model} or {@link Entities.EntityType|PolyVox} entity.
+     * Get the meshes in a {@link Entities.EntityProperties-Model|Model} or {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.getMeshes
      * @param {Uuid} entityID - The ID of the <code>Model</code> or <code>PolyVox</code> entity to get the meshes of.
      * @param {Entities~getMeshesCallback} callback - The function to call upon completion.

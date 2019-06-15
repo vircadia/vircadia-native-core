@@ -608,9 +608,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 }
 
 /**jsdoc
- * Different entity types have different properties: some common to all entities (listed below) and some specific to each
- * {@link Entities.EntityType|EntityType} (linked to below). The properties are accessed as an object of property names and 
- * values.
+ * Different entity types have different properties: some common to all entities (listed in the table) and some specific to 
+ * each {@link Entities.EntityType|EntityType} (linked to below). The properties are accessed as an object of property names 
+ * and values.
  *
  * @typedef {object} Entities.EntityProperties
  * @property {Uuid} id - The ID of the entity. <em>Read-only.</em>
@@ -648,9 +648,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
  * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
  * @property {boolean} canCastShadow=true - Whether or not the entity can cast a shadow. Currently applicable only to 
- *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities. Shadows are cast if inside a 
- *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
- *     {@link Entities.EntityProperties-Zone|keyLight} property.
+ *     {@link Entities.EntityProperties-Model|Model} and {@link Entities.EntityProperties-Shape|Shape} entities. Shadows are 
+ *     cast if inside a {@link Entities.EntityProperties-Zone|Zone} entity with <code>castShadows</code> enabled in its 
+ *     <code>keyLight</code> property.
  * @property {boolean} isVisibleInSecondaryCamera=true - <code>true</code> if the entity is rendered in the secondary camera, 
  *     <code>false</code> if it isn't.
  * @property {Entities.RenderLayer} renderLayer="world" - Which layer the entity renders in.
