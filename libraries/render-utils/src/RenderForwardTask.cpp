@@ -33,6 +33,7 @@
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
+#include "RenderHUDLayerTask.h"
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -168,14 +169,9 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
 #endif
 
-    // Layered Overlays
-    // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD", primaryFramebuffer);
-
-    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
-    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
-    task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
-    task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
+    // HUD Layer
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
+    task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 
     // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!

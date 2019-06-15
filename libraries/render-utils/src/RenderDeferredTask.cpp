@@ -47,6 +47,7 @@
 #include "FadeEffect.h"
 #include "BloomStage.h"
 #include "RenderUtilsLogging.h"
+#include "RenderHUDLayerTask.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
@@ -232,8 +233,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
     task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
-    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneLayeredAntialiasing");
-
     // AA job before bloom to limit flickering
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, lightingFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
@@ -257,16 +256,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Upscale to finale resolution
     const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
 
-    // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD", primaryFramebuffer);
-
-    const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
-    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
-    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
-    task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
-    task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
-
-    task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
+    task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 
     // Blit!
     task.addJob<Blit>("Blit", primaryFramebuffer);
