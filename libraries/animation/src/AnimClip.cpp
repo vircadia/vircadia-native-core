@@ -10,9 +10,12 @@
 
 #include "AnimClip.h"
 
+#include <assert.h>
+
 #include "GLMHelpers.h"
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
+
 
 AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
     AnimNode(AnimNode::Type::Clip, id),
