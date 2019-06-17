@@ -122,7 +122,7 @@ Rectangle {
 
             ColorOverlay {
                 opacity: mouseArea.containsMouse ? 1.0 : 0.7
-                visible: level === 0 || micBar.muted
+                visible: level === 0 || micBar.muted || micBar.clipping
                 id: imageOverlay
                 anchors { fill: image }
                 source: image
@@ -131,7 +131,7 @@ Rectangle {
 
             OpacityMask {
                 id: bar
-                visible: level > 0 && !micBar.muted
+                visible: level > 0 && !micBar.muted && !micBar.clipping
                 anchors.fill: meterGradient
                 source: meterGradient
                 maskSource: image
@@ -179,7 +179,7 @@ Rectangle {
             }
             
             ColorOverlay {
-                visible: level > 0 && !micBar.muted
+                visible: level > 0 && !micBar.muted && !micBar.clipping
                 anchors { fill: maskImage }
                 source: maskImage
                 color: "#b2b2b2"
