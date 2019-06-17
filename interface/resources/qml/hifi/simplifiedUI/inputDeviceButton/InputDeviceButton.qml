@@ -33,6 +33,7 @@ Rectangle {
     readonly property string unmutedIcon: "images/mic-unmute-i.svg"
     readonly property string mutedIcon: "images/mic-mute-i.svg"
     readonly property string pushToTalkIcon: "images/mic-ptt-i.svg"
+    readonly property string pushToTalkMutedIcon: "images/mic-ptt-mute-i.svg"
     readonly property string clippingIcon: "images/mic-clip-i.svg"
     readonly property string gatedIcon: "images/mic-gate-i.svg"
     
@@ -114,7 +115,7 @@ Rectangle {
             Image {
                 id: image
                 visible: false
-                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
+                source: (pushToTalk) ? (pushingToTalk ? pushToTalkIcon : pushToTalkMutedIcon) : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.fill: parent
             }
@@ -125,7 +126,7 @@ Rectangle {
                 id: imageOverlay
                 anchors { fill: image }
                 source: image
-                color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : colors.icon
+                color: pushToTalk ? (pushingToTalk ? colors.icon : colors.mutedColor) : colors.icon
             }
 
             OpacityMask {
@@ -169,7 +170,7 @@ Rectangle {
             Image {
                 id: maskImage
                 visible: false
-                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
+                source: (pushToTalk) ? (pushingToTalk ? pushToTalkIcon : pushToTalkMutedIcon) : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.top: parent.top
                 anchors.left: parent.left
