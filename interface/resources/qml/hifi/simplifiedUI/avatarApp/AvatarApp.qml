@@ -10,6 +10,7 @@
 
 import QtQuick 2.10
 import "../simplifiedConstants" as SimplifiedConstants
+import "../simplifiedControls" as SimplifiedControls
 import "./components" as AvatarAppComponents
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
@@ -244,6 +245,10 @@ Rectangle {
             wrapMode: Text.Wrap 
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
+        }
+
+        SimplifiedControls.VerticalScrollBar {
+            parent: inventoryContentsList
         }
     }
 
