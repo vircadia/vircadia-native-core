@@ -119,7 +119,9 @@ static std::vector<int> buildJointIndexMap(const AnimSkeleton& dstSkeleton, cons
             *bad_ptr = 0x0badf00d;    \
         }                             \
     } while (0)
-#endif // #ifdef USE_CUSTOM_ASSERT
+#else
+#define ASSERT assert
+#endif
 
 void AnimClip::copyFromNetworkAnim() {
     assert(_networkAnim && _networkAnim->isLoaded() && _skeleton);
