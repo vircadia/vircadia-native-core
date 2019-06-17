@@ -409,6 +409,16 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
 
+    if (_dropOutgoingNodeTraffic) {
+        auto destinationNode = findNodeWithAddr(sockAddr);
+
+        // findNodeWithAddr returns null for the address of the domain server
+        if (!destinationNode.isNull()) {
+            // This only suppresses individual unreliable packets, not unreliable packet lists
+            return ERROR_SENDING_PACKET_BYTES;
+        }
+    }
+
     fillPacketHeader(packet, hmacAuth);
 
     return _nodeSocket.writePacket(packet, sockAddr);
@@ -632,6 +642,7 @@ void LimitedNodeList::processKillNode(ReceivedMessage& message) {
 }
 
 void LimitedNodeList::handleNodeKill(const SharedNodePointer& node, ConnectionID nextConnectionID) {
+    _nodeDisconnectTimestamp = usecTimestampNow();
     qCDebug(networking) << "Killed" << *node;
     node->stopPingTimer();
     emit nodeKilled(node);

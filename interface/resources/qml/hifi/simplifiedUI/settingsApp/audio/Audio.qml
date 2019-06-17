@@ -57,7 +57,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: volumeControlsTitle
                 text: "Volume Controls"
                 Layout.preferredWidth: parent.width
@@ -154,7 +154,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: micControlsTitle
                 text: "Default Mute Controls"
                 Layout.maximumWidth: parent.width
@@ -196,7 +196,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: inputDeviceTitle
                 text: "Which input device?"
                 Layout.maximumWidth: parent.width
@@ -291,7 +291,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: outputDeviceTitle
                 text: "Which output device?"
                 Layout.maximumWidth: parent.width

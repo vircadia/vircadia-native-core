@@ -46,6 +46,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 }
 
 -(void)awakeFromNib {
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
     [[[NSWorkspace sharedWorkspace] notificationCenter] addObserver:self
                                                            selector:@selector(didTerminateApp:)
                                                                name:NSWorkspaceDidTerminateApplicationNotification
@@ -71,6 +72,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     }
     
     return filePath;
+}
+
+- (NSString*) getLauncherPath
+{
+    return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
 }
 
 - (void) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
@@ -109,6 +115,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                                        userInfo:nil
                                         repeats:NO];
     }
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
 }
 
 - (void) setDownloadContextFilename:(NSString *)aFilename
@@ -174,7 +181,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (NSString*) getAppPath
 {
-    return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
+    return [self getDownloadPathForContentAndScripts];
 }
 
 - (BOOL) loginShouldSetErrorState
@@ -272,6 +279,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 -(void)onSplashScreenTimerFinished:(NSTimer *)timer
 {
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
     [self showLoginScreen];
 }
 
@@ -317,7 +325,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) launchInterface
 {
-    NSString* launcherPath = [[self getAppPath] stringByAppendingString:@"HQ Launcher"];
+    NSString* launcherPath = [[self getLauncherPath] stringByAppendingString:@"HQ Launcher"];
     
     [[Settings sharedSettings] setLauncherPath:launcherPath];
     [[Settings sharedSettings] save];
@@ -331,6 +339,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUI/"];
     NSString* domainUrl = [[Settings sharedSettings] getDomainUrl];
     NSString* userToken = [[Launcher sharedLauncher] getTokenString];
+    NSString* homeBookmark = [[NSString stringWithFormat:@"hqhome="] stringByAppendingString:domainUrl];
     NSArray* arguments;
     if (userToken != nil) {
         arguments = [NSArray arrayWithObjects:
@@ -338,20 +347,20 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                         @"--tokens", userToken,
                         @"--cache", contentPath,
                         @"--displayName", displayName,
-                        @"--script", scriptsPath,
+                        @"--scripts", scriptsPath,
+                        @"--setBookmark", homeBookmark,
                         @"--no-updater",
                         @"--no-launcher", nil];
     } else {
         arguments = [NSArray arrayWithObjects:
                             @"--url" , domainUrl,
                             @"--cache", contentPath,
-                            @"--script", scriptsPath,
+                            @"--scripts", scriptsPath,
+                            @"--setBookmark", homeBookmark,
                             @"--no-updater",
                             @"--no-launcher", nil];
     }
     [workspace launchApplicationAtURL:url options:NSWorkspaceLaunchNewInstance configuration:[NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:&error];
-    
-    //NSLog(@"arguments %@", [NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments]);
     
     [NSApp terminate:self];
 }

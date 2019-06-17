@@ -7,8 +7,9 @@
 - (void) confirmCredentials:(NSString*)username :(NSString*)password {
 
     NSLog(@"web request started");
+    NSString* trimmedUsername = [username stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     NSString *post = [NSString stringWithFormat:@"grant_type=password&username=%@&password=%@&scope=owner",
-        [username stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]],
+        [trimmedUsername stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]],
         [password stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]]];
     NSData *postData = [post dataUsingEncoding:NSUTF8StringEncoding];
     NSString *postLength = [NSString stringWithFormat:@"%ld", (unsigned long)[postData length]];

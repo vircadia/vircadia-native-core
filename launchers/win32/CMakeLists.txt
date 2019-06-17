@@ -50,6 +50,11 @@ function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
 endfunction()
 
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
+
+if (LAUNCHER_HMAC_SECRET STREQUAL "")
+    message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
 
 

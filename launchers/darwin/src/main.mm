@@ -41,5 +41,6 @@ int main(int argc, const char* argv[]) {
     [appMenu addItem:quitMenuItem];
     [appMenuItem setSubmenu:appMenu];
     
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
     return NSApplicationMain(argc, argv);
 }

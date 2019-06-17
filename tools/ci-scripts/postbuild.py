@@ -3,6 +3,7 @@ import os
 import sys
 import shutil
 import zipfile
+import base64
 
 SOURCE_PATH = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..', '..'))
 # FIXME move the helper python modules somewher other than the root of the repo
@@ -111,10 +112,43 @@ def fixupWinZip(filename):
     print("Replacing {} with fixed {}".format(fullPath, outFullPath))
     shutil.move(outFullPath, fullPath)
 
-def buildLightLauncher():
-    # FIXME remove once MFC is enabled on the windows build hosts
-    if sys.platform == 'win32':
+def signBuild(executablePath):
+    if sys.platform != 'win32':
+        print('Skipping signing because platform is not win32')
         return
+
+    RELEASE_TYPE = os.getenv("RELEASE_TYPE", "")
+    if RELEASE_TYPE != "PRODUCTION":
+        print('Skipping signing because RELEASE_TYPE "{}" != "PRODUCTION"'.format(RELEASE_TYPE))
+        return
+
+    HF_PFX_FILE = os.getenv("HF_PFX_FILE", "")
+    if HF_PFX_FILE == "":
+        print('Skipping signing because HF_PFX_FILE is empty')
+        return
+
+    HF_PFX_PASSPHRASE = os.getenv("HF_PFX_PASSPHRASE", "")
+    if HF_PFX_PASSPHRASE == "":
+        print('Skipping signing because HF_PFX_PASSPHRASE is empty')
+        return
+
+    # FIXME use logic similar to the SetPackagingParameteres.cmake to locate the executable
+    SIGN_TOOL = "C:/Program Files (x86)/Windows Kits/10/bin/10.0.17763.0/x64/signtool.exe"
+    # sign the launcher executable
+    print("Signing {}".format(executablePath))
+    hifi_utils.executeSubprocess([
+            SIGN_TOOL,
+            'sign', 
+            '/fd', 'sha256',
+            '/f', HF_PFX_FILE,
+            '/p', HF_PFX_PASSPHRASE,
+            '/tr', 'http://sha256timestamp.ws.symantec.com/sha256/timestamp',
+            '/td', 'SHA256',
+            executablePath
+        ])
+
+
+def buildLightLauncher():
     launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
     launcherBuildPath = os.path.join(BUILD_PATH, 'launcher') 
     if not os.path.exists(launcherBuildPath):
@@ -144,13 +178,16 @@ def buildLightLauncher():
         launcherDestFile = os.path.join(BUILD_PATH, "{}.dmg".format(computeArchiveName('Launcher')))
         launcherSourceFile = os.path.join(launcherBuildPath, "HQ Launcher.dmg")
     elif sys.platform == 'win32':
-        # FIXME
         launcherDestFile = os.path.join(BUILD_PATH, "{}.exe".format(computeArchiveName('Launcher')))
-        launcherSourceFile = os.path.join(launcherBuildPath, "Launcher.exe")
+        launcherSourceFile = os.path.join(launcherBuildPath, "Release", "HQLauncher.exe")
+
     print("Moving {} to {}".format(launcherSourceFile, launcherDestFile))
     shutil.move(launcherSourceFile, launcherDestFile)
+    signBuild(launcherDestFile)
 
 
+
+# Main 
 for wipePath in WIPE_PATHS:
     wipeClientBuildPath(wipePath)
 

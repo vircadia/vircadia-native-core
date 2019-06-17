@@ -68,6 +68,16 @@ void interactiveWindowPointerFromScriptValue(const QScriptValue& object, Interac
     }
 }
 
+void InteractiveWindow::forwardKeyPressEvent(int key, int modifiers) {
+    QKeyEvent* event = new QKeyEvent(QEvent::KeyPress, key, static_cast<Qt::KeyboardModifiers>(modifiers));
+    QCoreApplication::postEvent(QCoreApplication::instance(), event);
+}
+
+void InteractiveWindow::forwardKeyReleaseEvent(int key, int modifiers) {
+    QKeyEvent* event = new QKeyEvent(QEvent::KeyRelease, key, static_cast<Qt::KeyboardModifiers>(modifiers));
+    QCoreApplication::postEvent(QCoreApplication::instance(), event);
+}
+
 /**jsdoc
  * A set of properties used when creating an <code>InteractiveWindow</code>.
  * @typedef {object} InteractiveWindow.Properties
@@ -152,11 +162,15 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                 _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
                 QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)),
                                  Qt::QueuedConnection);
+                QObject::connect(rootItem, SIGNAL(keyPressEvent(int, int)), this, SLOT(forwardKeyPressEvent(int, int)),
+                                 Qt::QueuedConnection);
+                QObject::connect(rootItem, SIGNAL(keyReleaseEvent(int, int)), this, SLOT(forwardKeyReleaseEvent(int, int)),
+                                 Qt::QueuedConnection);
                 emit mainWindow->windowGeometryChanged(qApp->getWindow()->geometry());
             }
         });
+
         _dockWidget->setSource(QUrl(sourceUrl));
-        
         
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {

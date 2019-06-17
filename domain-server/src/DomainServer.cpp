@@ -1079,7 +1079,7 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
     // client-side send time of last connect/domain list request
     nodeData->setLastDomainCheckinTimestamp(nodeRequestData.lastPingTimestamp);
 
-    sendDomainListToNode(sendingNode, message->getFirstPacketReceiveTime(), message->getSenderSockAddr());
+    sendDomainListToNode(sendingNode, message->getFirstPacketReceiveTime(), message->getSenderSockAddr(), false);
 }
 
 bool DomainServer::isInInterestSet(const SharedNodePointer& nodeA, const SharedNodePointer& nodeB) {
@@ -1145,7 +1145,7 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode, quint64 reques
     DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(newNode->getLinkedData());
 
     // reply back to the user with a PacketType::DomainList
-    sendDomainListToNode(newNode, requestReceiveTime, nodeData->getSendingSockAddr());
+    sendDomainListToNode(newNode, requestReceiveTime, nodeData->getSendingSockAddr(), true);
 
     // if this node is a user (unassigned Agent), signal
     if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
@@ -1161,7 +1161,7 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode, quint64 reques
     broadcastNewNode(newNode);
 }
 
-void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr &senderSockAddr) {
+void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 requestPacketReceiveTime, const HifiSockAddr &senderSockAddr, bool newConnection) {
     const int NUM_DOMAIN_LIST_EXTENDED_HEADER_BYTES = NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID +
         NUM_BYTES_RFC4122_UUID + NLPacket::NUM_BYTES_LOCALID + 4;
 
@@ -1181,6 +1181,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, quint64 r
     extendedHeaderStream << nodeData->getLastDomainCheckinTimestamp();
     extendedHeaderStream << quint64(duration_cast<microseconds>(system_clock::now().time_since_epoch()).count());
     extendedHeaderStream << quint64(duration_cast<microseconds>(p_high_resolution_clock::now().time_since_epoch()).count()) - requestPacketReceiveTime;
+    extendedHeaderStream << newConnection;
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);
 
     // always send the node their own UUID back
@@ -1734,7 +1735,12 @@ void DomainServer::nodePingMonitor() {
     nodeList->eachNode([now](const SharedNodePointer& node) {
         quint64 lastHeard = now - node->getLastHeardMicrostamp();
         if (lastHeard > 2 * USECS_PER_SECOND) {
-            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << " in " << lastHeard / USECS_PER_MSEC << " msec";
+            QString username;
+            DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData) {
+                username = nodeData->getUsername();
+            }
+            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << username << " in " << lastHeard / USECS_PER_MSEC << " msec";
         }
     });
 }
