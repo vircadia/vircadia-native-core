@@ -107,7 +107,7 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.rightMargin: 2
-        width: muted ? 20 : 16
+        width: pushToTalk ? 16 : (muted ? 20 : 16)
         height: 22
 
         Item {
