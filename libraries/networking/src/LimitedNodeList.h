@@ -335,6 +335,8 @@ public:
     float getInboundKbps() const { return _inboundKbps; }
     float getOutboundKbps() const { return _outboundKbps; }
 
+    void setDropOutgoingNodeTraffic(bool squelchOutgoingNodeTraffic) { _dropOutgoingNodeTraffic = squelchOutgoingNodeTraffic; }
+
     const std::set<NodeType_t> SOLO_NODE_TYPES = {
         NodeType::AvatarMixer,
         NodeType::AudioMixer,
@@ -493,6 +495,8 @@ private:
     int _outboundPPS { 0 };
     float _inboundKbps { 0.0f };
     float _outboundKbps { 0.0f };
+
+    bool _dropOutgoingNodeTraffic { false };
 };
 
 #endif // hifi_LimitedNodeList_h

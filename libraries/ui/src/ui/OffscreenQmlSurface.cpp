@@ -686,43 +686,52 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
         return;
     }
 
-#if !defined(Q_OS_ANDROID)
-    // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
-    if (!raised || qApp->property(hifi::properties::HMD).toBool()) {
-        QQuickItem* item = dynamic_cast<QQuickItem*>(object);
-        if (!item) {
-            return;
-        }
+    bool android = false;
+#if defined(Q_OS_ANDROID)
+    android = true;
+#endif
 
-        // for future probably makes sense to consider one of the following:
-        // 1. make keyboard a singleton, which will be dynamically re-parented before showing
-        // 2. track currently visible keyboard somewhere, allow to subscribe for this signal
-        // any of above should also eliminate need in duplicated properties and code below
+    bool hmd = qApp->property(hifi::properties::HMD).toBool();
 
-        while (item) {
-            // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
-            numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
-
-            if (item->property("keyboardRaised").isValid()) {
-                // FIXME - HMD only: Possibly set value of "keyboardEnabled" per isHMDMode() for use in WebView.qml.
-                if (item->property("punctuationMode").isValid()) {
-                    item->setProperty("punctuationMode", QVariant(numeric));
-                }
-                if (item->property("passwordField").isValid()) {
-                    item->setProperty("passwordField", QVariant(passwordField));
-                }
-
-                if (raised) {
-                    item->setProperty("keyboardRaised", QVariant(!raised));
-                }
-
-                item->setProperty("keyboardRaised", QVariant(raised));
+    if (!android || hmd) {
+        // if HMD is being worn, allow keyboard to open.  allow it to close, HMD or not.
+        if (!raised || hmd) {
+            QQuickItem* item = dynamic_cast<QQuickItem*>(object);
+            if (!item) {
                 return;
             }
-            item = dynamic_cast<QQuickItem*>(item->parentItem());
+
+            // for future probably makes sense to consider one of the following:
+            // 1. make keyboard a singleton, which will be dynamically re-parented before showing
+            // 2. track currently visible keyboard somewhere, allow to subscribe for this signal
+            // any of above should also eliminate need in duplicated properties and code below
+
+            while (item) {
+                // Numeric value may be set in parameter from HTML UI; for QML UI, detect numeric fields here.
+                numeric = numeric || QString(item->metaObject()->className()).left(7) == "SpinBox";
+
+                if (item->property("keyboardRaised").isValid()) {
+
+                    if (item->property("punctuationMode").isValid()) {
+                        item->setProperty("punctuationMode", QVariant(numeric));
+                    }
+                    if (item->property("passwordField").isValid()) {
+                        item->setProperty("passwordField", QVariant(passwordField));
+                    }
+
+                    if (hmd && item->property("keyboardEnabled").isValid()) {
+                        item->setProperty("keyboardEnabled", true);
+                    }
+
+                    item->setProperty("keyboardRaised", QVariant(raised));
+
+                    return;
+                }
+                item = dynamic_cast<QQuickItem*>(item->parentItem());
+            }
         }
     }
-#endif
+
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {

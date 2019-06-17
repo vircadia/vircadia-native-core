@@ -47,6 +47,12 @@ Rectangle {
 
         onSkeletonModelURLChanged: {
             root.updatePreviewUrl();
+
+            if ((MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) &&
+                topBarInventoryModel.count > 0) {
+                Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
+                MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+            }
         }
     }
 
@@ -95,7 +101,8 @@ Rectangle {
                 inventoryFullyReceived = true;
 
                 // If we have an avatar in our inventory AND we haven't already auto-selected an avatar...
-                if (!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) && topBarInventoryModel.count > 0) {
+                if ((!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) ||
+                    MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) && topBarInventoryModel.count > 0) {
                     Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
                     MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
                 }

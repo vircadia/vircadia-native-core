@@ -26,8 +26,9 @@ Rectangle {
     color: global.color
 
     ScrollView {
-        id: control
+        id: scrollView
         anchors.fill: parent 
+        contentWidth: parent.width
         clip: true
          
         Column {
