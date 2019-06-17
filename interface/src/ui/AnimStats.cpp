@@ -117,7 +117,7 @@ void AnimStats::updateStats(bool force) {
         if (type == AnimNodeType::Clip) {
 
             // figure out the grayScale color of this line.
-            const float LIT_TIME = 2.0f;
+            const float LIT_TIME = 20.0f;
             const float FADE_OUT_TIME = 1.0f;
             float grayScale = 0.0f;
             float secondsElapsed = (float)(now - _animAlphaValueChangedTimers[key]) / (float)USECS_PER_SECOND;
