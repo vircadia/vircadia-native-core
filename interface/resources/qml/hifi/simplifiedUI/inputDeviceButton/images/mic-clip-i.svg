@@ -1,20 +1,14 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="18.338" height="32" fill="none" version="1.1" viewBox="0 0 18.338 32" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
- <metadata>
-  <rdf:RDF>
-   <cc:Work rdf:about="">
-    <dc:format>image/svg+xml</dc:format>
-    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:title/>
-   </cc:Work>
-  </rdf:RDF>
- </metadata>
- <g transform="translate(-7)" clip-path="url(#clip0)">
-  <path d="m25.338 4.1345-1.467 1.4671c-1.9339-2.1339-4.668-3.5343-7.8022-3.5343-3.0008 0-5.6682 1.3337-7.602 3.3342l-1.4671-1.4671c2.2673-2.4006 5.5348-3.9344 9.0691-3.9344 3.6677 0 7.0019 1.6004 9.2692 4.1345zm-3.4007 3.4014-1.4671 1.4671c-1.0002-1.3337-2.6007-2.1339-4.4012-2.1339-1.6671 0-3.1342 0.80022-4.2011 1.9339l-1.4671-1.4671c1.4004-1.5338 3.4009-2.534 5.6682-2.534 2.334 0 4.4679 1.067 5.8683 2.7341zm-3.9801 22.621c0 1.0199-0.8268 1.8467-1.8467 1.8467s-1.8466-0.8268-1.8466-1.8467 0.8267-1.8467 1.8466-1.8467 1.8467 0.8268 1.8467 1.8467zm0.4057-19.077h-4.2035l0.8519 14.774h2.4751z" clip-rule="evenodd" fill="#ea4c5f" fill-rule="evenodd"/>
- </g>
- <defs>
-  <clipPath id="clip0">
-   <rect width="32" height="32" fill="#fff"/>
-  </clipPath>
- </defs>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 23.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 79.98 110.81" style="enable-background:new 0 0 79.98 110.81;" xml:space="preserve">
+<g>
+	<g>
+		<path d="M39.99,50.72c4.92,0,8.94-4.02,8.94-8.94V8.94c0-4.91-4.02-8.94-8.94-8.94c-4.91,0-8.94,4.02-8.94,8.94v32.84
+			C31.05,46.7,35.07,50.72,39.99,50.72z M39.99,73.3c4.94,0,8.94-4,8.94-8.94s-4-8.94-8.94-8.94s-8.94,4-8.94,8.94
+			S35.05,73.3,39.99,73.3z M73.98,39.27c-3.31,0-6,2.69-6,6v5.28c0,16.74-12.56,30.36-27.99,30.36S12,67.29,12,50.55v-5.28
+			c0-3.31-2.69-6-6-6s-6,2.69-6,6v5.28c0,21.2,14.78,38.81,33.99,41.88v6.38H20.76c-3.31,0-6,2.69-6,6s2.69,6,6,6h38.46
+			c3.31,0,6-2.69,6-6s-2.69-6-6-6H45.99v-6.38c19.22-3.08,33.99-20.68,33.99-41.88v-5.28C79.98,41.96,77.3,39.27,73.98,39.27z"/>
+	</g>
+</g>
 </svg>

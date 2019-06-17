@@ -1,57 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="18.333099"
-   height="31.9998"
-   viewBox="0 0 18.333099 31.9998"
-   version="1.1"
-   id="svg4"
-   sodipodi:docname="mic-unmute-a.svg"
-   style="fill:none"
-   inkscape:version="0.92.4 (5da689c313, 2019-01-14)">
-  <metadata
-     id="metadata10">
-    <rdf:RDF>
-      <cc:Work
-         rdf:about="">
-        <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
-      </cc:Work>
-    </rdf:RDF>
-  </metadata>
-  <defs
-     id="defs8" />
-  <sodipodi:namedview
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1"
-     objecttolerance="10"
-     gridtolerance="10"
-     guidetolerance="10"
-     inkscape:pageopacity="0"
-     inkscape:pageshadow="2"
-     inkscape:window-width="2560"
-     inkscape:window-height="1377"
-     id="namedview6"
-     showgrid="false"
-     inkscape:zoom="7.375"
-     inkscape:cx="9"
-     inkscape:cy="15.9998"
-     inkscape:window-x="2552"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg4" />
-  <path
-     d="M 16.8664,5.59992 18.3331,4.13328 C 16.0664,1.59998 12.7332,0 9.0665,0 5.5333,0 2.26664,1.53331 0,3.93328 L 1.46665,5.39993 C 3.4,3.39995 6.0666,2.06664 9.0665,2.06664 c 3.1333,0 5.8666,1.39998 7.7999,3.53328 z m -3.4,3.39983 1.4667,-1.46665 c -1.4,-1.66664 -3.5333,-2.7333 -5.8666,-2.7333 -2.2666,0 -4.2666,0.99999 -5.6666,2.5333 l 1.4666,1.46665 c 1.0667,-1.13332 2.5333,-1.93331 4.2,-1.93331 1.8,0 3.3999,0.79999 4.3999,2.13331 z m -1.933,2.80065 v 2.9333 H 6.6001 v -2.9333 c 0,-1.3334 1.1333,-2.40001 2.4666,-2.40001 1.4,0 2.4667,1.06661 2.4667,2.40001 z m -4.9333,5.4662 v 2.8666 c 0,1.3333 1.1333,2.4 2.4666,2.4 1.3333,0 2.4667,-1.0667 2.4667,-2.4 v -2.8666 z m 9.9331,-0.1999 V 20.6 c 0,3.3999 -2.6667,6.1332 -6.1333,6.7332 v 2.2666 h 2.9333 c 0.6667,0 1.2,0.5334 1.2,1.2 0,0.6667 -0.5333,1.2 -1.2,1.2 H 5.1333 c -0.6666,0 -1.2,-0.5333 -1.2,-1.2 0,-0.6666 0.5334,-1.2 1.2,-1.2 H 7.9999 V 27.3332 C 4.5333,26.7999 1.8667,23.9999 1.8667,20.6 v -3.6667 c 0,-0.6666 0.59999,-1.1333 1.2666,-1.0666 0.6,0 1.0667,0.5333 1.0667,1.2 V 20.6 c 0,2.4666 2.2666,4.4666 4.9999,4.4666 2.7333,0 5,-2 5,-4.4666 v -3.4667 c 0,-0.6666 0.4666,-1.1999 1.1333,-1.1999 0.6,0 1.2,0.4666 1.2,1.1333 z"
-     id="path2"
-     inkscape:connector-curvature="0"
-     style="clip-rule:evenodd;fill:#ffffff;fill-rule:evenodd" />
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 23.0.3, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 148 148" style="enable-background:new 0 0 148 148;" xml:space="preserve">
+<path d="M58.9,35.07L41.16,52.24c-1.03,0.98-2.43,1.53-3.88,1.53H23.63c-3.03,0-5.49,2.33-5.49,5.21v29.58
+	c0,2.88,2.46,5.21,5.49,5.21h13.64c1.46,0,2.85,0.55,3.88,1.53l17.74,17.17c3.46,3.28,9.37,0.96,9.37-3.68V38.76
+	C68.27,34.11,62.36,31.79,58.9,35.07z M95.54,74c0-7.16-3.85-13.85-10.06-17.44c-1.67-0.97-3.81-0.4-4.78,1.27
+	c-0.97,1.67-0.4,3.81,1.27,4.78c4.05,2.35,6.57,6.71,6.57,11.38s-2.52,9.04-6.57,11.38c-1.67,0.97-2.24,3.11-1.28,4.78
+	c0.65,1.12,1.82,1.75,3.03,1.75c0.6,0,1.2-0.15,1.75-0.47C91.68,87.85,95.54,81.16,95.54,74z M102.81,27.12
+	c-1.67-0.97-3.81-0.4-4.78,1.27c-0.97,1.67-0.4,3.81,1.27,4.78c14.53,8.41,23.55,24.06,23.55,40.82c0,16.77-9.03,32.42-23.56,40.83
+	c-1.67,0.97-2.24,3.11-1.28,4.78c0.65,1.12,1.82,1.75,3.03,1.75c0.6,0,1.2-0.15,1.75-0.47c16.69-9.66,27.05-27.63,27.05-46.89
+	C129.85,54.74,119.49,36.78,102.81,27.12z M112.7,74c0-13.58-7.31-26.25-19.07-33.06c-1.67-0.97-3.81-0.4-4.78,1.27
+	c-0.97,1.67-0.4,3.81,1.27,4.78c9.61,5.57,15.58,15.91,15.58,27c0,11.09-5.97,21.44-15.58,27c-1.67,0.97-2.24,3.11-1.28,4.78
+	c0.65,1.12,1.82,1.75,3.03,1.75c0.6,0,1.2-0.15,1.75-0.47C105.39,100.25,112.7,87.58,112.7,74z"/>
 </svg>
