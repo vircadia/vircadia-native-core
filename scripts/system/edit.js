@@ -43,9 +43,8 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
-
 var createToolsWindow = new CreateWindow(
-    Script.resourcesPath() + "qml/hifi/tablet/EditTools.qml",
+    Script.resolvePath("create/EditTools.qml"),
     'Create Tools',
     'com.highfidelity.create.createToolsWindow',
     function () {
@@ -812,7 +811,7 @@ var toolBar = (function () {
         tablet.screenChanged.connect(function (type, url) {
             var isGoingToHomescreenOnDesktop = (!shouldUseEditTabletApp() &&
                 (url === 'hifi/tablet/TabletHome.qml' || url === ''));
-            if (isActive && (type !== "QML" || url !== "hifi/tablet/Edit.qml") && !isGoingToHomescreenOnDesktop) {
+            if (isActive && (type !== "QML" || url !== Script.resolvePath("create/Edit.qml")) && !isGoingToHomescreenOnDesktop) {
                 that.setActive(false);
             }
         });
@@ -841,10 +840,10 @@ var toolBar = (function () {
                 if (shouldUseEditTabletApp()) {
                     // tablet version of new-model dialog
                     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-                    tablet.pushOntoStack("hifi/tablet/New" + entityType + "Dialog.qml");
+                    tablet.pushOntoStack(Script.resolvePath("create/New" + entityType + "Dialog.qml"));
                 } else {
                     closeExistingDialogWindow();
-                    var qmlPath = Script.resourcesPath() + "qml/hifi/tablet/New" + entityType + "Window.qml";
+                    var qmlPath = Script.resourcesPath() + Script.resolvePath("create/New" + entityType + "Window.qml");
                     var DIALOG_WINDOW_SIZE = { x: 500, y: 300 };
                     dialogWindow = Desktop.createWindow(qmlPath, {
                         title: "New " + entityType + " Entity",
@@ -965,7 +964,7 @@ var toolBar = (function () {
             Controller.disableMapping(CONTROLLER_MAPPING_NAME);
         } else {
             if (shouldUseEditTabletApp()) {
-                tablet.loadQMLSource("hifi/tablet/Edit.qml", true);
+                tablet.loadQMLSource(Script.resolvePath("create/Edit.qml"), true);
             } else {
                 // make other apps inactive while in desktop mode
                 tablet.gotoHomeScreen();

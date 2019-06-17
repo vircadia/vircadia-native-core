@@ -1,8 +1,8 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtWebChannel 1.0
-import "../../controls"
-import "../toolbars"
+import "qrc:////qml//controls"
+import "qrc:////qml//hifi//toolbars"
 import QtGraphicalEffects 1.0
 import controlsUit 1.0 as HifiControls
 import stylesUit 1.0
@@ -78,7 +78,7 @@ TabBar {
 
 
                         NewEntityButton {
-                            icon: "icons/create-icons/94-model-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/94-model-01.svg"
                             text: "MODEL"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -90,7 +90,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/21-cube-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/21-cube-01.svg"
                             text: "SHAPE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -102,7 +102,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/24-light-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/24-light-01.svg"
                             text: "LIGHT"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -114,7 +114,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/20-text-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/20-text-01.svg"
                             text: "TEXT"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -126,7 +126,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/image.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/image.svg"
                             text: "IMAGE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -138,7 +138,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/25-web-1-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/25-web-1-01.svg"
                             text: "WEB"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -150,7 +150,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/23-zone-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/23-zone-01.svg"
                             text: "ZONE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -162,7 +162,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/90-particles-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/90-particles-01.svg"
                             text: "PARTICLE"
                             onClicked: {
                                 editRoot.sendToScript({
@@ -174,7 +174,7 @@ TabBar {
                         }
 
                         NewEntityButton {
-                            icon: "icons/create-icons/126-material-01.svg"
+                            icon: "build/interface/Release/scripts/system/create/create-icons/126-material-01.svg"
                             text: "MATERIAL"
                             onClicked: {
                                 editRoot.sendToScript({

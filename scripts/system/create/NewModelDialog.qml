@@ -14,7 +14,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import stylesUit 1.0
 import controlsUit 1.0
-import "../dialogs"
+import "qrc:////qml//hifi//dialogs"
 
 Rectangle {
     id: newModelDialog
