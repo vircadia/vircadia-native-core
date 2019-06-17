@@ -196,6 +196,7 @@ public:
     void initAnimGraph(const QUrl& url);
 
     AnimNode::ConstPointer getAnimNode() const { return _animNode; }
+    AnimNode::ConstPointer findAnimNodeByName(const QString& name) const;
     AnimSkeleton::ConstPointer getAnimSkeleton() const { return _animSkeleton; }
     QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList);
     void removeAnimationStateHandler(QScriptValue handler);
@@ -243,7 +244,7 @@ public:
     Flow& getFlow() { return _internalFlow; }
 
     float getUnscaledEyeHeight() const;
-
+    void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) const;
 
 signals:
     void onLoadComplete();
@@ -252,7 +253,6 @@ protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
     void applyOverridePoses();
-    void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
     void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool hipsEstimated,
