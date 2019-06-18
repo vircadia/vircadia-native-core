@@ -145,7 +145,7 @@ bool ObjectActionOffset::updateArguments(QVariantMap arguments) {
 /**jsdoc
  * The <code>"offset"</code> {@link Entities.ActionType|ActionType} moves an entity so that it is a set distance away from a 
  * target point.
- * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:
  *
  * @typedef {object} Entities.ActionArguments-Offset
  * @property {Vec3} pointToOffsetFrom=0,0,0 - The target point to offset the entity from.

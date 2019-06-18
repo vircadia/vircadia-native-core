@@ -57,7 +57,7 @@ private:
 };
 
 /**jsdoc
- * The result of a {@link PickRay} search using {@link Entities.findRayIntersection|findRayIntersection}.
+ * The result of a {@link Entities.findRayIntersection|findRayIntersection} search using a {@link PickRay}.
  * @typedef {object} Entities.RayToEntityIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected an entity, otherwise 
  *     <code>false</code>.
@@ -154,17 +154,20 @@ public:
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     /**jsdoc
-    * Get the properties of multiple entities.
-    * @function Entities.getMultipleEntityProperties
-    * @param {Uuid[]} entityIDs - The IDs of the entities to get the properties of.
-    * @param {string[]|string} [desiredProperties=[]] - Either string with property name or array of the names of the properties
-    *     to get. If the array is empty, all properties are returned.
-    * @returns {Entities.EntityProperties[]} The properties of the entity if the entity can be found, otherwise an empty object.
-    * @example <caption>Retrieve the names of the nearby entities</caption>
-    * var SEARCH_RADIUS = 50; // meters
-    * var entityIds = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
-    * var propertySets = Entities.getMultipleEntityProperties(entityIds, "name");
-    * print("Nearby entity names: " + JSON.stringify(propertySets));
+     * Gets the properties of multiple entities.
+     * @function Entities.getMultipleEntityProperties
+     * @param {Uuid[]} entityIDs - The IDs of the entities to get the properties of.
+     * @param {string[]|string} [desiredProperties=[]] - The name or names of the properties to get. For properties that are 
+     *     objects (e.g., the <code>"keyLight"</code> property), use the property and subproperty names in dot notation (e.g., 
+     *     <code>"keyLight.color"</code>).
+     * @returns {Entities.EntityProperties[]} The specified properties of each entity for each entity that can be found. If 
+     *     none of the entities can be found then an empty array. If no properties are specified, then all properties are 
+     *     returned.
+     * @example <caption>Retrieve the names of the nearby entities</caption>
+     * var SEARCH_RADIUS = 50; // meters
+     * var entityIDs = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
+     * var propertySets = Entities.getMultipleEntityProperties(entityIDs, "name");
+     * print("Nearby entity names: " + JSON.stringify(propertySets));
     */
     static QScriptValue getMultipleEntityProperties(QScriptContext* context, QScriptEngine* engine);
     QScriptValue getMultipleEntityPropertiesInternal(QScriptEngine* engine, QVector<QUuid> entityIDs, const QScriptValue& extendedDesiredProperties);
@@ -314,6 +317,7 @@ public slots:
 
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
+    // FIXME: Deprecate and remove from the API.
     Q_INVOKABLE QUuid addModelEntity(const QString& name, const QString& modelUrl, const QString& textures, const QString& shapeType, bool dynamic,
                                      bool collisionless, bool grabbable, const glm::vec3& position, const glm::vec3& gravity);
 
@@ -332,14 +336,14 @@ public slots:
     Q_INVOKABLE QUuid cloneEntity(const QUuid& entityID);
 
     /**jsdoc
-     * Gets the properties of an entity.
+     * Gets an entity's property values.
      * @function Entities.getEntityProperties
      * @param {Uuid} entityID - The ID of the entity to get the properties of.
-     * @param {string|string[]} [desiredProperties=[]] - The names of the properties to get. For properties that are objects 
-     *     (e.g., the <code>"keyLight"</code> property), use the property and subproperty names in dot notation (e.g., 
+     * @param {string|string[]} [desiredProperties=[]] - The name or names of the properties to get. For properties that are 
+     *     objects (e.g., the <code>"keyLight"</code> property), use the property and subproperty names in dot notation (e.g., 
      *     <code>"keyLight.color"</code>).
-     * @returns {Entities.EntityProperties} The properties of the entity if the entity can be found, otherwise an empty object.
-     *     If no properties are specified, then all properties are returned.
+     * @returns {Entities.EntityProperties} The specified properties of the entity if the entity can be found, otherwise an 
+     *     empty object. If no properties are specified, then all properties are returned.
      * @example <caption>Report the color of a new box entity.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -355,7 +359,7 @@ public slots:
     Q_INVOKABLE EntityItemProperties getEntityProperties(const QUuid& entityID, EntityPropertyFlags desiredProperties);
 
     /**jsdoc
-     * Edits an entity, changing one or more of its properties.
+     * Edits an entity, changing one or more of its property values.
      * @function Entities.editEntity
      * @param {Uuid} entityID - The ID of the entity to edit.
      * @param {Entities.EntityProperties} properties - The new property values.
@@ -406,16 +410,56 @@ public slots:
     Q_INVOKABLE QString getEntityType(const QUuid& entityID);
 
     /**jsdoc
-     * Get the entity script object. In particular, this is useful for accessing the event bridge for a <code>Web</code> 
-     * entity.
+     * Gets an entity's script object. In particular, this is useful for accessing a {@link Entities.EntityProperties-Web|Web} 
+     * entity's event bridge.
      * @function Entities.getEntityObject
-     * @param {Uuid} id - The ID of the entity to get the script object of.
+     * @param {Uuid} id - The ID of the entity to get the script object for.
      * @returns {object} The script object for the entity if found.
+     * @example <caption>Receive "hello" messages from a Web entity.</caption>
+     * // HTML file, name: "webEntity.html".
+     * <!DOCTYPE html>
+     * <html>
+     * <head>
+     *     <title>HELLO</title>
+     * </head>
+     * <body>
+     *     <h1>HELLO</h1></h1>
+     *     <script>
+     *         setInterval(function () {
+     *             console.log("$$$$$$$ send");
+     *             EventBridge.emitWebEvent("hello");
+     *         }, 2000);
+     *     </script>
+     * </body>
+     * </html>
+     * 
+     * // Script file.
+     * var webEntity = Entities.addEntity({
+     *     type: "Web",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
+     *     rotation: MyAvatar.orientation,
+     *     sourceUrl: Script.resolvePath("webEntity.html"),
+     *     alpha: 1.0
+     * });
+     * 
+     * function onWebEventReceived(event) {
+     *     print("onWebEventReceived() : " + JSON.stringify(event));
+     * }
+     * 
+     * Script.setTimeout(function () {
+     *     var entityObject = Entities.getEntityObject(webEntity);
+     *     print("$$$$ entityObject: " + entityObject);
+     *     entityObject.webEventReceived.connect(onWebEventReceived);
+     * }, 500);
+     * 
+     * Script.scriptEnding.connect(function () {
+     *     Entities.deleteEntity(webEntity);
+     * });
      */
     Q_INVOKABLE QObject* getEntityObject(const QUuid& id);
 
     /**jsdoc
-     * Check whether an entities's assets have been loaded. For example, for an <code>Model</code> entity the result indicates
+     * Checks whether an entities's assets have been loaded. For example, for an <code>Model</code> entity the result indicates
      * whether its textures have been loaded.
      * @function Entities.isLoaded
      * @param {Uuid} id - The ID of the entity to check.
@@ -432,7 +476,7 @@ public slots:
     Q_INVOKABLE bool isAddedEntity(const QUuid& id);
 
     /**jsdoc
-     * Calculates the size of the given text in the specified object if it is a text entity.
+     * Calculates the size of some text in a text entity.
      * @function Entities.textSize
      * @param {Uuid} id - The ID of the entity to use for calculation.
      * @param {string} text - The string to calculate the size of.
@@ -478,11 +522,11 @@ public slots:
         const QStringList& params = QStringList());
 
     /**jsdoc
-     * Find the non-local entity with a position closest to a specified point and within a specified radius.
+     * Finds the domain or avatar entity with a position closest to a specified point and within a specified radius.
      * @function Entities.findClosestEntity
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @returns {Uuid} The ID of the entity that is closest to the <code>center</code> and within the <code>radius</code> if
+     * @returns {Uuid} The ID of the entity that is closest to the <code>center</code> and within the <code>radius</code>, if
      *     there is one, otherwise <code>null</code>.
      * @example <caption>Find the closest entity within 10m of your avatar.</caption>
      * var entityID = Entities.findClosestEntity(MyAvatar.position, 10);
@@ -492,12 +536,12 @@ public slots:
     Q_INVOKABLE QUuid findClosestEntity(const glm::vec3& center, float radius) const;
 
     /**jsdoc
-     * Find all non-local entities that intersect a sphere defined by a center point and radius.
+     * Finds all domain and avatar entities that intersect a sphere.
      * @function Entities.findEntities
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @returns {Uuid[]} An array of entity IDs that were found that intersect the search sphere. The array is empty if no 
-     *     entities could be found.
+     * @returns {Uuid[]} An array of entity IDs that intersect the search sphere. The array is empty if no entities could be 
+     *     found.
      * @example <caption>Report how many entities are within 10m of your avatar.</caption>
      * var entityIDs = Entities.findEntities(MyAvatar.position, 10);
      * print("Number of entities within 10m: " + entityIDs.length);
@@ -506,8 +550,7 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntities(const glm::vec3& center, float radius) const;
 
     /**jsdoc
-     * Find all non-local entities whose axis-aligned boxes intersect a search axis-aligned box defined by its minimum coordinates corner
-     * and dimensions.
+     * Finds all domain and avatar entities whose axis-aligned boxes intersect a search axis-aligned box.
      * @function Entities.findEntitiesInBox
      * @param {Vec3} corner - The corner of the search AA box with minimum co-ordinate values.
      * @param {Vec3} dimensions - The dimensions of the search AA box.
@@ -518,12 +561,12 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
 
     /**jsdoc
-     * Find all non-local entities whose axis-aligned boxes intersect a search frustum.
+     * Finds all domain and avatar entities whose axis-aligned boxes intersect a search frustum.
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
      *     <code>projection</code>, and <code>centerRadius</code> properties must be specified.
-     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum. The array is empty if no entities
-     *     could be found.
+     * @returns {Uuid[]} An array of entity IDs whose axis-aligned boxes intersect the search frustum. The array is empty if no 
+     *     entities could be found.
      * @example <caption>Report the number of entities in view.</caption>
      * var entityIDs = Entities.findEntitiesInFrustum(Camera.frustum);
      * print("Number of entities in view: " + entityIDs.length);
@@ -532,7 +575,7 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesInFrustum(QVariantMap frustum) const;
 
     /**jsdoc
-     * Find all non-local entities of a particular type that intersect a sphere defined by a center point and radius.
+     * Finds all domain and avatar entities of a particular type that intersect a sphere.
      * @function Entities.findEntitiesByType
      * @param {Entities.EntityType} entityType - The type of entity to search for.
      * @param {Vec3} center - The point about which to search.
@@ -547,33 +590,35 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /**jsdoc
-    * Find all non-local entities with a particular name that intersect a sphere defined by a center point and radius.
-    * @function Entities.findEntitiesByName
-    * @param {string} entityName - The name of the entity to search for.
-    * @param {Vec3} center - The point about which to search.
-    * @param {number} radius - The radius within which to search.
-    * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
-    * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is empty 
-    *     if no entities could be found.
-    * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
-    * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
-    * print("Number of entities with the name Light-Target: " + entityIDs.length);
-    */
+     * Finds all domain and avatar entities with a particular name that intersect a sphere.
+     * @function Entities.findEntitiesByName
+     * @param {string} entityName - The name of the entity to search for.
+     * @param {Vec3} center - The point about which to search.
+     * @param {number} radius - The radius within which to search.
+     * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+     * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is 
+     *     empty if no entities could be found.
+     * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
+     * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
+     * print("Number of entities with the name Light-Target: " + entityIDs.length);
+     */
     Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius,
         bool caseSensitiveSearch = false) const;
 
     /**jsdoc
-     * Find the first non-local entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not
-     * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable}
-     * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
+     * Finds the first avatar or domain entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> 
+     * entities are not intersected unless they've been configured as pickable using 
+     * {@link Entities.setLightsArePickable|setLightsArePickable} and {@link Entities.setZonesArePickable|setZonesArePickable}, 
+     * respectively.
      * @function Entities.findRayIntersection
-     * @param {PickRay} pickRay - The PickRay to use for finding entities.
-     * @param {boolean} [precisionPicking=false] - If <code>true</code> and the intersected entity is a <code>Model</code> 
-     *     entity, the result's <code>extraInfo</code> property includes more information than it otherwise would.
+     * @param {PickRay} pickRay - The pick ray to use for finding entities.
+     * @param {boolean} [precisionPicking=false] - <code>true</code> to pick against precise meshes, <code>false</code> to pick 
+     *     against coarse meshes. If <code>true</code> and the intersected entity is a <code>Model</code> entity, the result's 
+     *     <code>extraInfo</code> property includes more information than it otherwise would.
      * @param {Uuid[]} [entitiesToInclude=[]] - If not empty then the search is restricted to these entities.
      * @param {Uuid[]} [entitiesToDiscard=[]] - Entities to ignore during the search.
      * @param {boolean} [visibleOnly=false] - If <code>true</code> then only entities that are 
-     *     <code>{@link Entities.EntityProperties|visible}<code> are searched.
+     *     <code>{@link Entities.EntityProperties|visible}</code> are searched.
      * @param {boolean} [collideableOnly=false] - If <code>true</code> then only entities that are not 
      *     <code>{@link Entities.EntityProperties|collisionless}</code> are searched.
      * @returns {Entities.RayToEntityIntersectionResult} The result of the search for the first intersected entity.
@@ -626,33 +671,33 @@ public slots:
     Q_INVOKABLE bool getServerScriptStatus(const QUuid& entityID, QScriptValue callback);
 
     /**jsdoc
-    * Get metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
-    * @function Entities.queryPropertyMetadata
-    * @param {Uuid} entityID - The ID of the entity to get the metadata for.
-    * @param {string} property - The property name to get the metadata for.
-    * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
-    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, otherwise 
-    *     <code>false</code>.
-    * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
-    */
+     * Gets metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
+     * @function Entities.queryPropertyMetadata
+     * @param {Uuid} entityID - The ID of the entity to get the metadata for.
+     * @param {string} property - The property name to get the metadata for.
+     * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
+     * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, otherwise 
+     *     <code>false</code>.
+     * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
+     */
     /**jsdoc
-    * Get metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
-    * @function Entities.queryPropertyMetadata
-    * @param {Uuid} entityID - The ID of the entity to get the metadata for.
-    * @param {string} property - The property name to get the metadata for.
-    * @param {object} scope - The "<code>this</code>" context that the callback will be executed within.
-    * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
-    * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, otherwise 
-    *     <code>false</code>.
-    * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
-    */
+     * Gets metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
+     * @function Entities.queryPropertyMetadata
+     * @param {Uuid} entityID - The ID of the entity to get the metadata for.
+     * @param {string} property - The property name to get the metadata for.
+     * @param {object} scope - The "<code>this</code>" context that the callback will be executed within.
+     * @param {Entities~queryPropertyMetadataCallback} callback - The function to call upon completion.
+     * @returns {boolean} <code>true</code> if the request for metadata was successfully sent to the server, otherwise 
+     *     <code>false</code>.
+     * @throws Throws an error if <code>property</code> is not handled yet or <code>callback</code> is not a function.
+     */
     /**jsdoc
-    * Called when {@link Entities.queryPropertyMetadata} is complete.
-    * @callback Entities~queryPropertyMetadataCallback
-    * @param {string} error - <code>undefined</code> if there was no error, otherwise an error message.
-    * @param {object} result - The metadata for the requested entity property if there was no error, otherwise
-    *     <code>undefined</code>.
-    */
+     * Called when a {@link Entities.queryPropertyMetadata} call is complete.
+     * @callback Entities~queryPropertyMetadataCallback
+     * @param {string} error - <code>undefined</code> if there was no error, otherwise an error message.
+     * @param {object} result - The metadata for the requested entity property if there was no error, otherwise
+     *     <code>undefined</code>.
+     */
     Q_INVOKABLE bool queryPropertyMetadata(const QUuid& entityID, QScriptValue property, QScriptValue scopeOrCallback,
         QScriptValue methodOrName = QScriptValue());
 
@@ -721,7 +766,7 @@ public slots:
 
 
     /**jsdoc
-     * Set the values of all voxels in a spherical portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
+     * Sets the values of all voxels in a spherical portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxelSphere
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} center - The center of the sphere of voxels to set, in world coordinates.
@@ -742,7 +787,7 @@ public slots:
     Q_INVOKABLE bool setVoxelSphere(const QUuid& entityID, const glm::vec3& center, float radius, int value);
     
     /**jsdoc
-     * Set the values of all voxels in a capsule-shaped portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
+     * Sets the values of all voxels in a capsule-shaped portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxelCapsule
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} start - The center of the sphere of voxels to set, in world coordinates.
@@ -766,7 +811,7 @@ public slots:
     Q_INVOKABLE bool setVoxelCapsule(const QUuid& entityID, const glm::vec3& start, const glm::vec3& end, float radius, int value);
 
     /**jsdoc
-     * Set the value of a particular voxels in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
+     * Sets the value of a particular voxel in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxel
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} position - The position relative to the minimum axes values corner of the entity. The 
@@ -788,7 +833,7 @@ public slots:
     Q_INVOKABLE bool setVoxel(const QUuid& entityID, const glm::vec3& position, int value);
 
     /**jsdoc
-     * Set the values of all voxels in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
+     * Sets the values of all voxels in a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setAllVoxels
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {number} value - If <code>value % 256 == 0</code> then each voxel is cleared, otherwise each voxel is set.
@@ -806,7 +851,7 @@ public slots:
     Q_INVOKABLE bool setAllVoxels(const QUuid& entityID, int value);
 
     /**jsdoc
-     * Set the values of all voxels in a cubic portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
+     * Sets the values of all voxels in a cubic portion of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @function Entities.setVoxelsInCuboid
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
      * @param {Vec3} lowPosition - The position of the minimum axes value corner of the cube of voxels to set, in voxel 
@@ -913,12 +958,12 @@ public slots:
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
 
     /**jsdoc
-     * Set the <code>linePoints</code> property of a {@link Entities.EntityProperties-Line|Line} entity.
+     * Sets all the points in a {@link Entities.EntityProperties-Line|Line} entity.
      * @function Entities.setAllPoints
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Line|Line} entity.
-     * @param {Vec3[]} points - The array of points to set the entity's <code>linePoints</code> property to.
-     * @returns {boolean} <code>true</code> if the entity's property was updated, otherwise <code>false</code>. The property 
-     *     may fail to be updated if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line} entity, 
+     * @param {Vec3[]} points - The points that the entity should draw lines between.
+     * @returns {boolean} <code>true</code> if the entity was updated, otherwise <code>false</code>. The property may fail to 
+     *     be updated if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line} entity, 
      *     one of the points is outside the entity's dimensions, or the number of points is greater than the maximum allowed.
      * @example <caption>Change the shape of a Line entity.</caption>
      * // Draw a horizontal line between two points.
@@ -947,7 +992,7 @@ public slots:
     Q_INVOKABLE bool setAllPoints(const QUuid& entityID, const QVector<glm::vec3>& points);
     
     /**jsdoc
-     * Append a point to a {@link Entities.EntityProperties-Line|Line} entity.
+     * Appends a point to a {@link Entities.EntityProperties-Line|Line} entity.
      * @function Entities.appendPoint
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Line|Line} entity.
      * @param {Vec3} point - The point to add to the line. The coordinates are relative to the entity's position.
@@ -982,14 +1027,14 @@ public slots:
 
 
     /**jsdoc
-     * Add an action to an entity. An action is registered with the physics engine and is applied every physics simulation 
+     * Adds an action to an entity. An action is registered with the physics engine and is applied every physics simulation
      * step. Any entity may have more than one action associated with it, but only as many as will fit in an entity's 
-     * <code>actionData</code> property.
+     * <code>{@link Entities.EntityProperties|actionData}</code> property.
      * @function Entities.addAction
      * @param {Entities.ActionType} actionType - The type of action.
      * @param {Uuid} entityID - The ID of the entity to add the action to.
-     * @param {Entities.ActionArguments} arguments - Configure the action.
-     * @returns {Uuid} The ID of the action added if successfully added, otherwise <code>null</code>.
+     * @param {Entities.ActionArguments} arguments - Configures the action.
+     * @returns {Uuid} The ID of the action if successfully added, otherwise <code>null</code>.
      * @example <caption>Constrain a cube to move along a vertical line.</caption>
      * var entityID = Entities.addEntity({
      *     type: "Box",
@@ -1010,7 +1055,7 @@ public slots:
     Q_INVOKABLE QUuid addAction(const QString& actionTypeString, const QUuid& entityID, const QVariantMap& arguments);
 
     /**jsdoc
-     * Update an entity action.
+     * Updates an entity action.
      * @function Entities.updateAction
      * @param {Uuid} entityID - The ID of the entity with the action to update.
      * @param {Uuid} actionID - The ID of the action to update.
@@ -1020,35 +1065,35 @@ public slots:
     Q_INVOKABLE bool updateAction(const QUuid& entityID, const QUuid& actionID, const QVariantMap& arguments);
 
     /**jsdoc
-     * Delete an action from an entity.
+     * Deletes an action from an entity.
      * @function Entities.deleteAction
      * @param {Uuid} entityID - The ID of entity to delete the action from.
      * @param {Uuid} actionID - The ID of the action to delete.
-     * @returns {boolean} <code>true</code> if the update was successful, otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the delete was successful, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool deleteAction(const QUuid& entityID, const QUuid& actionID);
 
     /**jsdoc
-     * Get the IDs of the actions that  are associated with an entity.
+     * Gets the IDs of the actions that are associated with an entity.
      * @function Entities.getActionIDs
      * @param {Uuid} entityID - The entity to get the action IDs for.
-     * @returns {Uuid[]} An array of action IDs if any are found, otherwise an empty array.
+     * @returns {Uuid[]} The action IDs if any are found, otherwise an empty array.
      */
     Q_INVOKABLE QVector<QUuid> getActionIDs(const QUuid& entityID);
 
     /**jsdoc
-     * Get the arguments of an action.
+     * Gets the arguments of an action.
      * @function Entities.getActionArguments
      * @param {Uuid} entityID - The ID of the entity with the action.
      * @param {Uuid} actionID - The ID of the action to get the arguments of.
-     * @returns {Entities.ActionArguments} The arguments of the requested action if found, otherwise an empty object.
+     * @returns {Entities.ActionArguments} The arguments of the action if found, otherwise an empty object.
      */
     Q_INVOKABLE QVariantMap getActionArguments(const QUuid& entityID, const QUuid& actionID);
 
 
     /**jsdoc
-     * Get the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
-     * orientation.
+     * Gets the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
+     * position and orientation.
      * @function Entities.getAbsoluteJointTranslationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
@@ -1060,17 +1105,17 @@ public slots:
     Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
     
     /**jsdoc
-     * Get the index of the parent joint.
+     * Gets the index of the parent joint of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getJointParent
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} index - The integer index of the joint.
-     * @returns {number} The index of the parent joint.
+     * @returns {number} The index of the parent joint if found, otherwise <code>-1</code>.
      */
     Q_INVOKABLE int getJointParent(const QUuid& entityID, int index);
     
     /**jsdoc
-     * Get the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
-     * orientation.
+     * Gets the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
+     * position and orientation.
      * @function Entities.getAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
@@ -1099,28 +1144,29 @@ public slots:
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Set the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
-     * orientation.
+     * Sets the translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's 
+     * position and orientation.
      * @function Entities.setAbsoluteJointTranslationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Vec3} translation - The translation to set the joint to relative to the entity's position and orientation.
-     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
-     *     the joint index is valid, and the translation is different to the joint's current translation; otherwise 
+     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the joint index is valid, and the translation is different to the joint's current translation; otherwise 
      *     <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
 
     /**jsdoc
-     * Set the rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position and
-     * orientation.
+     * Sets the rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity relative to the entity's position 
+     * and orientation.
      * @function Entities.setAbsoluteJointRotationInObjectFrame
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Quat} rotation - The rotation to set the joint to relative to the entity's orientation.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
-     *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the joint index is valid, and the rotation is different to the joint's current rotation; otherwise 
+     *     <code>false</code>.
      * @example <caption>Raise an avatar model's left palm.</caption>
      * entityID = Entities.addEntity({
      *     type: "Model",
@@ -1144,23 +1190,23 @@ public slots:
 
 
     /**jsdoc
-     * Get the local translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Gets the local translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getLocalJointTranslation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @returns {Vec3} The local translation of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the 
-     *     entity is loaded, and the joint index is valid; otherwise <code>{@link Vec3(0)|Vec3.ZERO}</code>.
+     * @returns {Vec3} The local translation of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} 
+     *     entity, the entity is loaded, and the joint index is valid; otherwise <code>{@link Vec3(0)|Vec3.ZERO}</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 getLocalJointTranslation(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Get the local rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Gets the local rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getLocalJointRotation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
-     * @returns {Quat} The local rotation of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
-     *     is loaded, and the joint index is valid; otherwise <code>{@link Quat(0)|Quat.IDENTITY}</code>.
+     * @returns {Quat} The local rotation of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, 
+     *     the entity is loaded, and the joint index is valid; otherwise <code>{@link Quat(0)|Quat.IDENTITY}</code>.
      * @example <caption>Report the local rotation of an avatar model's head joint.</caption>
      * entityID = Entities.addEntity({
      *     type: "Model",
@@ -1181,26 +1227,27 @@ public slots:
     Q_INVOKABLE glm::quat getLocalJointRotation(const QUuid& entityID, int jointIndex);
 
     /**jsdoc
-     * Set the local translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Sets the local translation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointTranslation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Vec3} translation - The local translation to set the joint to.
-     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
-     *     the joint index is valid, and the translation is different to the joint's current translation; otherwise 
+     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the joint index is valid, and the translation is different to the joint's current translation; otherwise 
      *     <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setLocalJointTranslation(const QUuid& entityID, int jointIndex, glm::vec3 translation);
 
     /**jsdoc
-     * Set the local rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Sets the local rotation of a joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointRotation
      * @param {Uuid} entityID - The ID of the entity.
      * @param {number} jointIndex - The integer index of the joint.
      * @param {Quat} rotation - The local rotation to set the joint to.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
-     *     the joint index is valid, and the rotation is different to the joint's current rotation; otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the joint index is valid, and the rotation is different to the joint's current rotation; otherwise 
+     *     <code>false</code>.
      * @example <caption>Make an avatar model turn its head left.</caption>
      * entityID = Entities.addEntity({
      *     type: "Model",
@@ -1223,25 +1270,25 @@ public slots:
 
 
     /**jsdoc
-     * Set the local translations of joints in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Sets the local translations of joints in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointTranslations
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Vec3[]} translations - The local translations to set the joints to.
-     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
-     *     the model has joints, and at least one of the translations is different to the model's current translations; 
-     *     otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code>if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the model has joints, and at least one of the translations is different to the model's current 
+     *     translations; otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setLocalJointTranslations(const QUuid& entityID, const QVector<glm::vec3>& translations);
 
     /**jsdoc
-     * Set the local rotations of joints in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Sets the local rotations of joints in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.setLocalJointRotations
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Quat[]} rotations - The local rotations to set the joints to.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded, 
-     *     the model has joints, and at least one of the rotations is different to the model's current rotations; otherwise 
-     *     <code>false</code>.
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the model has joints, and at least one of the rotations is different to the model's current rotations; 
+     *     otherwise <code>false</code>.
      * @example <caption>Raise both palms of an avatar model.</caption>
      * entityID = Entities.addEntity({
      *     type: "Model",
@@ -1277,16 +1324,16 @@ public slots:
     Q_INVOKABLE bool setLocalJointRotations(const QUuid& entityID, const QVector<glm::quat>& rotations);
 
     /**jsdoc
-     * Set the local rotations and translations of joints in a {@link Entities.EntityProperties-Model|Model} entity. This is the same as
-     * calling both {@link Entities.setLocalJointRotations|setLocalJointRotations} and 
+     * Sets the local rotations and translations of joints in a {@link Entities.EntityProperties-Model|Model} entity. This is 
+     * the same as calling both {@link Entities.setLocalJointRotations|setLocalJointRotations} and 
      * {@link Entities.setLocalJointTranslations|setLocalJointTranslations} at the same time.
      * @function Entities.setLocalJointsData
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Quat[]} rotations - The local rotations to set the joints to.
      * @param {Vec3[]} translations - The local translations to set the joints to.
-     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity is loaded,
-     *     the model has joints, and at least one of the rotations or translations is different to the model's current values; 
-     *     otherwise <code>false</code>.
+     * @returns {boolean} <code>true</code> if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
+     *     is loaded, the model has joints, and at least one of the rotations or translations is different to the model's 
+     *     current values; otherwise <code>false</code>.
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE bool setLocalJointsData(const QUuid& entityID,
@@ -1295,13 +1342,13 @@ public slots:
 
 
     /**jsdoc
-     * Get the index of a named joint in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Gets the index of a named joint in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getJointIndex
      * @param {Uuid} entityID - The ID of the entity.
      * @param {string} name - The name of the joint.
-     * @returns {number} The integer index of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} entity, the entity 
-     *     is loaded, and the joint is present; otherwise <code>-1</code>. The joint indexes are in order per 
-     *     {@link Entities.getJointNames|getJointNames}.
+     * @returns {number} The integer index of the joint if the entity is a {@link Entities.EntityProperties-Model|Model} 
+     *     entity, the entity is loaded, and the joint is present; otherwise <code>-1</code>. The joint indexes are in order 
+     *     per {@link Entities.getJointNames|getJointNames}.
      * @example <caption>Report the index of a model's head joint.</caption>
      * entityID = Entities.addEntity({
      *     type: "Model",
@@ -1321,11 +1368,12 @@ public slots:
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
 
     /**jsdoc
-     * Get the names of all the joints in a {@link Entities.EntityProperties-Model|Model} entity.
+     * Gets the names of all the joints in a {@link Entities.EntityProperties-Model|Model} entity.
      * @function Entities.getJointNames
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Model|Model} entity.
-     * @returns {string[]} The names of all the joints in the entity if it is a {@link Entities.EntityProperties-Model|Model} entity and 
-     *     is loaded, otherwise an empty array. The joint names are in order per {@link Entities.getJointIndex|getJointIndex}.
+     * @returns {string[]} The names of all the joints in the entity if it is a {@link Entities.EntityProperties-Model|Model} 
+     *     entity and is loaded, otherwise an empty array. The joint names are in order per 
+     *     {@link Entities.getJointIndex|getJointIndex}.
      * @example <caption>Report a model's joint names.</caption>
      * entityID = Entities.addEntity({
      *     type: "Model",
@@ -1346,7 +1394,8 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities and avatars that are directly parented to an entity or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity or avatar. 
+     * Gets the IDs of entities and avatars that are directly parented to an entity or avatar model. To get all descendants, 
+     * you can recurse on the IDs returned.
      * @function Entities.getChildrenIDs
      * @param {Uuid} parentID - The ID of the entity or avatar to get the children IDs of.
      * @returns {Uuid[]} An array of entity and avatar IDs that are parented directly to the <code>parentID</code> 
@@ -1376,7 +1425,8 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
 
     /**jsdoc
-     * Get the IDs of entities and avatars that are directly parented to an entity or avatar model's joint.
+     * Gets the IDs of entities and avatars that are directly parented to an entity or avatar model's joint. To get all 
+     * descendants, you can use {@link Entities.getChildrenIDs|getChildrenIDs} to recurse on the IDs returned.
      * @function Entities.getChildrenIDsOfJoint
      * @param {Uuid} parentID - The ID of the entity or avatar to get the children IDs of.
      * @param {number} jointIndex - Integer number of the model joint to get the children IDs of.
@@ -1411,7 +1461,7 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
     /**jsdoc
-     * Check whether an entity has an entity as an ancestor (parent, parent's parent, etc.).
+     * Checks whether an entity has an entity as an ancestor (parent, parent's parent, etc.).
      * @function Entities.isChildOfParent
      * @param {Uuid} childID - The ID of the child entity to test for being a child, grandchild, etc.
      * @param {Uuid} parentID - The ID of the parent entity to test for being a parent, grandparent, etc.
@@ -1440,12 +1490,11 @@ public slots:
     Q_INVOKABLE bool isChildOfParent(const QUuid& childID, const QUuid& parentID);
 
     /**jsdoc
-     * Get the type &mdash; entity or avatar &mdash; of an in-world item.
+     * Gets the type &mdash; entity or avatar &mdash; of an in-world item.
      * @function Entities.getNestableType
      * @param {Uuid} id - The ID of the item to get the type of.
-     * @returns {string} The type of the item: <code>"entity"</code> if the item is an entity, <code>"avatar"</code>
-     *    if the item is an avatar; otherwise <code>"unknown"</code> if the item cannot be found.
-     * @example <caption>Print some nestable types.</caption>
+     * @returns {Entities.NestableType} The type of the item.
+     * @example <caption>Report some nestable types.</caption>
      * var entity = Entities.addEntity({
      *     type: "Sphere",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 1, z: -2 })),
@@ -1545,8 +1594,8 @@ public slots:
     Q_INVOKABLE void sendHoverLeaveEntity(const EntityItemID& id, const PointerEvent& event);
 
     /**jsdoc
-     * Check whether an entity wants hand controller pointer events. For example, a {@link Entities.EntityProperties-Web|Web} entity does
-     * but a {@link Entities.EntityProperties-Shape|Shape} entity doesn't.
+     * Checks whether an entity wants hand controller pointer events. For example, a {@link Entities.EntityProperties-Web|Web} 
+     * entity does but a {@link Entities.EntityProperties-Shape|Shape} entity doesn't.
      * @function Entities.wantsHandControllerPointerEvents
      * @param {Uuid} entityID -  The ID of the entity.
      * @returns {boolean} <code>true</code> if the entity can be found and it wants hand controller pointer events, otherwise 
@@ -1576,14 +1625,15 @@ public slots:
                                             const glm::vec3& start, const glm::vec3& end, float radius);
 
     /**jsdoc
-     * Get the meshes in a {@link Entities.EntityProperties-Model|Model} or {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
+     * Gets the meshes in a {@link Entities.EntityProperties-Model|Model} or {@link Entities.EntityProperties-PolyVox|PolyVox} 
+     * entity.
      * @function Entities.getMeshes
      * @param {Uuid} entityID - The ID of the <code>Model</code> or <code>PolyVox</code> entity to get the meshes of.
      * @param {Entities~getMeshesCallback} callback - The function to call upon completion.
      * @deprecated This function is deprecated and will be removed. Use the {@link Graphics} API instead.
      */
      /**jsdoc
-      * Called when {@link Entities.getMeshes} is complete.
+      * Called when a {@link Entities.getMeshes} call is complete.
       * @callback Entities~getMeshesCallback
       * @param {MeshProxy[]} meshes - If <code>success<</code> is <code>true</code>, a {@link MeshProxy} per mesh in the 
       *     <code>Model</code> or <code>PolyVox</code> entity; otherwise <code>undefined</code>. 
@@ -1595,7 +1645,7 @@ public slots:
     Q_INVOKABLE void getMeshes(const QUuid& entityID, QScriptValue callback);
 
     /**jsdoc
-     * Get the object to world transform, excluding scale, of an entity.
+     * Gets the object to world transform, excluding scale, of an entity.
      * @function Entities.getEntityTransform
      * @param {Uuid} entityID - The ID of the entity.
      * @returns {Mat4} The entity's object to world transform excluding scale (i.e., translation and rotation, with scale of 1) 
@@ -1623,11 +1673,12 @@ public slots:
     Q_INVOKABLE glm::mat4 getEntityTransform(const QUuid& entityID);
 
     /**jsdoc
-     * Get the object to parent transform, excluding scale, of an entity.
+     * Gets the object to parent transform, excluding scale, of an entity.
      * @function Entities.getEntityLocalTransform
      * @param {Uuid} entityID - The ID of the entity.
      * @returns {Mat4} The entity's object to parent transform excluding scale (i.e., translation and rotation, with scale of 
-     *     1) if the entity can be found, otherwise a transform with zero translation and rotation and a scale of 1.
+     *     1) if the entity can be found, otherwise a transform with zero translation and rotation and a scale of 1. If the 
+     *     entity doesn't have a parent, its world transform is returned.
      * @example <caption>Position and rotation in an entity's local transform.</caption>
      * function createEntity(position, rotation, parent) {
      *     var entity = Entities.addEntity({
@@ -1779,18 +1830,20 @@ public slots:
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
 
     /**jsdoc
-     * Get information about entity properties including a minimum to maximum range for numerical properties 
-     * as well as property enum value.
+     * Gets information about an entity property, including a minimum to maximum range for some numerical properties.
      * @function Entities.getPropertyInfo
      * @param {string} propertyName - The name of the property to get the information for.
-     * @returns {Entities.EntityPropertyInfo} The information data including propertyEnum, minimum, and maximum
-     * if the property can be found, otherwise an empty object.
+     * @returns {Entities.EntityPropertyInfo} The information about the property if it can be found, otherwise an empty object.
+     * @example <caption>Report property info. for some properties.</caption>
+     * print("alpha: " + JSON.stringify(Entities.getPropertyInfo("alpha")));
+     * print("script: " + JSON.stringify(Entities.getPropertyInfo("script")));
      */
     Q_INVOKABLE const EntityPropertyInfo getPropertyInfo(const QString& propertyName) const;
 
 signals:
     /**jsdoc
-     * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered 
+     * #######<br />
+     * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered
      * for a collision with an avatar.
      * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.collisionWithEntity

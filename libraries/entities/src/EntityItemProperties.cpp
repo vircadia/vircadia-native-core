@@ -757,10 +757,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     unnecessary entity server updates. Scripts should not change this property's value.
  *
  * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
- *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it.
- *     The size of this property increases with the number of actions. Because this property value has to fit within a High 
- *     Fidelity datagram packet there is a limit to the number of actions that an entity can have, and edits which would result 
- *     in overflow are rejected. <em>Read-only.</em>
+ *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it, e.g., 
+ *     {@link Entities.addAction}. The size of this property increases with the number of actions. Because this property value 
+ *     has to fit within a High Fidelity datagram packet there is a limit to the number of actions that an entity can have, and
+ *     edits which would result in overflow are rejected. <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
  *
@@ -2876,6 +2876,13 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
     return false;
 }
 
+/**jsdoc
+ * Information about an entity property.
+ * @typedef {object} Entities.EntityPropertyInfo
+ * @property {number} propertyEnum - The internal number of the property.
+ * @property {string} minimum - The minimum numerical value the property may have, if available, otherwise <code>""</code>.
+ * @property {string} maximum - The maximum numerical value the property may have, if available, otherwise <code>""</code>.
+ */
 QScriptValue EntityPropertyInfoToScriptValue(QScriptEngine* engine, const EntityPropertyInfo& propertyInfo) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("propertyEnum", propertyInfo.propertyEnum);
