@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.10
+import QtQuick.Controls 2.3
 import "../../simplifiedConstants" as SimplifiedConstants
 import "../../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
@@ -20,8 +21,6 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: generalColumnLayout.height
-    topMargin: 24
-    bottomMargin: 24
     clip: true
 
     onAvatarNametagModeChanged: {
@@ -31,7 +30,7 @@ Flickable {
     onVisibleChanged: {
         if (visible) {
             root.contentX = 0;
-            root.contentY = -root.topMargin;
+            root.contentY = 0;
         }
     }
 
@@ -39,16 +38,35 @@ Flickable {
         id: simplifiedUI
     }
 
+
+    Image {
+        id: accent
+        source: "../images/accent1.svg"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: 83
+        height: 156
+        transform: Scale {
+            xScale: -1
+            origin.x: accent.width / 2
+            origin.y: accent.height / 2
+        }
+    }
+
+
     ColumnLayout {
         id: generalColumnLayout
         anchors.left: parent.left
+        anchors.leftMargin: 26
         anchors.right: parent.right
+        anchors.rightMargin: 26
         anchors.top: parent.top
         spacing: simplifiedUI.margins.settings.spacingBetweenSettings
 
         ColumnLayout {
             id: avatarNameTagsContainer
             Layout.preferredWidth: parent.width
+            Layout.topMargin: 24
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {
@@ -193,29 +211,36 @@ Flickable {
             }
         }
 
-        HifiStylesUit.GraphikRegular {
-            id: logoutText
-            text: (AccountServices.username === "Unknown user" ? "Log In" : "Logout " + AccountServices.username)
-            wrapMode: Text.Wrap
-            width: paintedWidth
-            height: paintedHeight
-            size: 14
-            color: simplifiedUI.colors.text.lightBlue
+        ColumnLayout {
+            id: logoutContainer
+            Layout.preferredWidth: parent.width
+            Layout.bottomMargin: 24
+            spacing: 0
 
-            MouseArea {
-                anchors.fill: parent
-                hoverEnabled: true
-                onEntered: {
-                    parent.color = simplifiedUI.colors.text.lightBlueHover;
-                }
-                onExited: {
-                    parent.color = simplifiedUI.colors.text.lightBlue;
-                }
-                onClicked: {
-                    if (Account.loggedIn) {
-                        AccountServices.logOut();
-                    } else {
-                        DialogsManager.showLoginDialog();
+            HifiStylesUit.GraphikRegular {
+                id: logoutText
+                text: (AccountServices.username === "Unknown user" ? "Log In" : "Logout " + AccountServices.username)
+                wrapMode: Text.Wrap
+                width: paintedWidth
+                height: paintedHeight
+                size: 14
+                color: simplifiedUI.colors.text.lightBlue
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: {
+                        parent.color = simplifiedUI.colors.text.lightBlueHover;
+                    }
+                    onExited: {
+                        parent.color = simplifiedUI.colors.text.lightBlue;
+                    }
+                    onClicked: {
+                        if (Account.loggedIn) {
+                            AccountServices.logOut();
+                        } else {
+                            DialogsManager.showLoginDialog();
+                        }
                     }
                 }
             }

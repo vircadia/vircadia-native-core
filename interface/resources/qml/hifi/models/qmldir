@@ -1,0 +1,3 @@
+module hifiModels
+PSFListModel 1.0 PSFListModel.qml
+S3Model 1.0 S3Model.qml

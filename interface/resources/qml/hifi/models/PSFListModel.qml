@@ -75,21 +75,31 @@ ListModel {
     // 1: equivalent to paging when reaching end (and not before).
     // 0: don't getNextPage on scroll at all here. The application code will do it.
     property real pageAhead: 2.0;
-    function needsEarlyYFetch() {
-         return flickable
-            && !flickable.atYBeginning
-            && (flickable.contentY - flickable.originY) >= (flickable.contentHeight - (pageAhead * flickable.height));
+    function onContentXChanged() {
+        if (flickable &&
+            !flickable.atXBeginning &&
+            (flickable.contentX - flickable.originX) >= (flickable.contentWidth - (pageAhead * flickable.width))) {
+            getNextPage();
+        }
     }
-    function needsEarlyXFetch() {
-        return flickable
-            && !flickable.atXBeginning
-            && (flickable.contentX - flickable.originX) >= (flickable.contentWidth - (pageAhead * flickable.width));
+    function onContentYChanged() {
+        if (flickable &&
+            !flickable.atYBeginning &&
+            (flickable.contentY - flickable.originY) >= (flickable.contentHeight - (pageAhead * flickable.height))) {
+            getNextPage();
+        }
     }
-    function getNextPageIfHorizontalScroll() {
-        if (needsEarlyXFetch()) { getNextPage(); }
+    function onWidthChanged() {
+        if (flickable &&
+            (flickable.contentX - flickable.originX) >= (flickable.contentWidth - (pageAhead * flickable.width))) {
+            getNextPage();
+        }
     }
-    function getNextPageIfVerticalScroll() {
-        if (needsEarlyYFetch()) { getNextPage(); }
+    function onHeightChanged() {
+        if (flickable &&
+            (flickable.contentY - flickable.originY) >= (flickable.contentHeight - (pageAhead * flickable.height))) {
+            getNextPage();
+        }
     }
     function needsMoreHorizontalResults() {
         return flickable
@@ -118,8 +128,10 @@ ListModel {
         initialized = true;
         if (flickable && pageAhead > 0.0) {
             // Pun: Scrollers are usually one direction or another, such that only one of the following will actually fire.
-            flickable.contentXChanged.connect(getNextPageIfHorizontalScroll);
-            flickable.contentYChanged.connect(getNextPageIfVerticalScroll);
+            flickable.contentXChanged.connect(onContentXChanged);
+            flickable.contentYChanged.connect(onContentYChanged);
+            flickable.widthChanged.connect(onWidthChanged);
+            flickable.heightChanged.connect(onHeightChanged);
             flickable.contentWidthChanged.connect(getNextPageIfNotEnoughHorizontalResults);
             flickable.contentHeightChanged.connect(getNextPageIfNotEnoughVerticalResults);
         }
