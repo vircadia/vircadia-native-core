@@ -25,7 +25,7 @@
             break;
         case CHECKING_UPDATE:
             [self.boldStatus setStringValue:@"Getting updates..."];
-            [self.smallStatus setStringValue:@"We're getting the lastest and greatest for you, one sec."];
+            [self.smallStatus setStringValue:@"We're getting the latest and greatest for you, one sec."];
             break;
         case RUNNING_INTERFACE_AFTER_UPDATE:
             [self.boldStatus setStringValue:@"You're good to go!"];

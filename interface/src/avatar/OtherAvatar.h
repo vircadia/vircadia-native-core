@@ -54,7 +54,7 @@ public:
 
     const btCollisionShape* createCollisionShape(int32_t jointIndex, bool& isBound, std::vector<int32_t>& boundJoints);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
-    void resetDetailedMotionStates();
+    void forgetDetailedMotionStates();
     BodyLOD getBodyLOD() { return _bodyLOD; }
     void computeShapeLOD();
 
@@ -90,7 +90,7 @@ protected:
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };
     BodyLOD _bodyLOD { BodyLOD::Sphere };
-    bool _needsReinsertion { false };
+    bool _needsDetailedRebuild { false };
 };
 
 using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;
