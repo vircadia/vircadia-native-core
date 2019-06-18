@@ -105,6 +105,7 @@ protected:
     virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
     virtual void compositeExtra() {};
+    virtual gpu::PipelinePointer getCompositeScenePipeline();
 
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
@@ -149,8 +150,8 @@ protected:
     gpu::PipelinePointer _hudPipeline;
     gpu::PipelinePointer _mirrorHUDPipeline;
     gpu::ShaderPointer _mirrorHUDPS;
-    gpu::PipelinePointer _simplePipeline;
-    gpu::PipelinePointer _presentPipeline;
+    gpu::PipelinePointer _drawTexturePipeline;
+    gpu::PipelinePointer _compositePipeline;
     gpu::PipelinePointer _cursorPipeline;
     gpu::TexturePointer _displayTexture{};
     float _compositeHUDAlpha { 1.0f };

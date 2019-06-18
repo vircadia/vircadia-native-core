@@ -109,6 +109,14 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
+gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline() {
+#if defined(Q_OS_ANDROID)
+        return _compositePipeline;
+#endif
+        return _drawTexturePipeline;
+}
+
+
 void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
 #if defined(Q_OS_ANDROID)
     auto& virtualPadManager = VirtualPad::Manager::instance();

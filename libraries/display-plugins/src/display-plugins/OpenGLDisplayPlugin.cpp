@@ -48,12 +48,16 @@
 #include "CompositorHelper.h"
 #include "Logging.h"
 #include "RefreshRateController.h"
+
+using namespace shader::gpu::program;
+
 extern QThread* RENDER_THREAD;
 
 class PresentThread : public QThread, public Dependency {
     using Mutex = std::mutex;
     using Condition = std::condition_variable;
     using Lock = std::unique_lock<Mutex>;
+
 public:
 
     PresentThread() {
@@ -170,9 +174,9 @@ public:
                             glFinish();
                         }
                         currentPlugin = newPlugin;
+                        _newPluginQueue.pop();
+                        _condition.notify_one();
                     }
-                    _newPluginQueue.pop();
-                    _condition.notify_one();
                 }
             }
 
@@ -380,53 +384,37 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
     }
 
-    if (!_presentPipeline) {
-        gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
-        blendState->setDepthTest(gpu::State::DepthTest(false));
-        blendState->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
+    blendState->setDepthTest(gpu::State::DepthTest(false));
+    blendState->setBlendFunction(true,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
-        gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
-        scissorState->setDepthTest(gpu::State::DepthTest(false));
-        scissorState->setScissorEnable(true);
+    gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
+    scissorState->setDepthTest(gpu::State::DepthTest(false));
+    scissorState->setScissorEnable(true);
 
-        {
-#ifdef Q_OS_ANDROID
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaLinearToSRGB);
-#else
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
-#endif 
-           _simplePipeline = gpu::Pipeline::create(program, scissorState);
-        }
-        {
-#ifdef Q_OS_ANDROID
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaLinearToSRGB);
-#else
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaSRGBToLinear);
-#endif
-            _presentPipeline = gpu::Pipeline::create(program, scissorState);
-        }
-
-        {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
-            _hudPipeline = gpu::Pipeline::create(program, blendState);
-        }
-        {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
-            _mirrorHUDPipeline = gpu::Pipeline::create(program, blendState);
-        }
-
-        {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTransformedTexture);
-            _cursorPipeline = gpu::Pipeline::create(program, blendState);
-        }
+    {
+        _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
     }
+    {
+        _compositePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
+    }
+    {
+        _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
+    }
+    {
+        _mirrorHUDPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), blendState);
+    }
+    {
+        _cursorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTransformedTexture), blendState);
+    }
+
     updateCompositeFramebuffer();
 }
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
-    _presentPipeline.reset();
+
     _cursorPipeline.reset();
     _hudPipeline.reset();
     _mirrorHUDPipeline.reset();
@@ -535,11 +523,9 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setStateScissorRect(scissor);
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
-#ifndef USE_GLES
-    batch.setPipeline(_presentPipeline);
-#else
-    batch.setPipeline(_simplePipeline);
-#endif
+
+    batch.setPipeline(_drawTexturePipeline);
+
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
         gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
@@ -644,6 +630,10 @@ void OpenGLDisplayPlugin::compositePointer() {
     });
 }
 
+gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
+    return _drawTexturePipeline;
+}
+
 void OpenGLDisplayPlugin::compositeScene() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -652,7 +642,7 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
-        batch.setPipeline(_simplePipeline);
+        batch.setPipeline(getCompositeScenePipeline());
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
@@ -928,7 +918,6 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
-       // _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
     }
 }
 

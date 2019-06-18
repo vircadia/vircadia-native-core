@@ -37,6 +37,8 @@ public:
 
     virtual void pluginUpdate() override {};
 
+    virtual gpu::PipelinePointer getCompositeScenePipeline() override;
+
 protected:
     mutable bool _isThrottled = false;
 
