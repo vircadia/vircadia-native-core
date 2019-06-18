@@ -12,6 +12,7 @@
 
 #include "Platform.h"
 #include "PlatformKeys.h"
+#include <qglobal.h>
 
 using namespace platform;
 
@@ -124,4 +125,40 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
 
     // Not able to profile
     return false;
+}
+
+// Ugly very adhoc capability check to know if a particular hw can REnder with Deferred method or not
+// YES for PC  windows and linux
+// NO for android
+// YES on macos EXCEPT for macbookair with gpu intel iris or intel HD 6000
+bool Profiler::isRenderMethodDeferredCapable() {
+#if defined(Q_OS_MAC)
+    auto computer = platform::getComputer();
+    const auto computerModel = (computer.count(keys::computer::model) ? computer[keys::computer::model].get<std::string>() : "");
+
+    auto gpuInfo = platform::getGPU(0);
+    const auto gpuModel = (gpuInfo.count(keys::gpu::model) ? gpuInfo[keys::gpu::model].get<std::string>() : "");
+    
+    
+    // Macbook air 2018 are a problem
+    if ((computerModel.find("MacBookAir7,2") != std::string::npos) && (gpuModel.find("Intel HD Graphics 6000") != std::string::npos)) {
+        return false;
+    }
+    
+    // We know for fact that the Mac BOok Pro 13 from Mid 2014 INtel Iris is problematic,
+    if ((computerModel.find("MacBookPro11,1") != std::string::npos) && (gpuModel.find("Intel Iris") != std::string::npos)) {
+         return false;
+    }
+    
+    // TO avoid issues for the next few days, we are excluding all of intel chipset...
+    if ((gpuModel.find("Intel ") != std::string::npos)) {
+        return false;
+    }
+
+    return true;
+#elif defined(Q_OS_ANDROID)
+    return false;
+#else
+    return true;
+#endif
 }

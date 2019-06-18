@@ -83,9 +83,7 @@
         // The initial delay cooldown keeps us from tracking progress before the allotted time
         // has passed.
         INITIAL_DELAY_COOLDOWN_TIME = 1000,
-        initialDelayCooldown = 0,
-
-        isInInterstitialMode = false;
+        initialDelayCooldown = 0;
 
     function fade() {
 
@@ -267,7 +265,7 @@
 
         // Update state
         if (!visible) { // Not visible because no recent downloads
-            if ((displayProgress < 100 || gpuTextures > 0) && !isInInterstitialMode && !isInterstitialOverlaysVisible) { // Have started downloading so fade in
+            if (displayProgress < 100 || gpuTextures > 0) { // Have started downloading so fade in
                 visible = true;
                 alphaDelta = ALPHA_DELTA_IN;
                 fadeTimer = Script.setInterval(fade, FADE_INTERVAL);
@@ -306,9 +304,6 @@
                 x = x * barDesktop.repeat;
             } else {
                 x = x * BAR_HMD_REPEAT;
-            }
-            if (isInInterstitialMode || isInterstitialOverlaysVisible) {
-                visible = false;
             }
 
             // Update progress bar
@@ -349,10 +344,6 @@
         }
     }
 
-    function interstitialModeChanged(inMode) {
-        isInInterstitialMode = inMode;
-    }
-
     function setUp() {
         var is4k = Window.innerWidth > 3000;
 
@@ -378,7 +369,6 @@
     }
 
     setUp();
-    Window.interstitialModeChanged.connect(interstitialModeChanged);
     GlobalServices.downloadInfoChanged.connect(onDownloadInfoChanged);
     GlobalServices.updateDownloadInfo();
     Script.setInterval(update, 1000 / 60);
