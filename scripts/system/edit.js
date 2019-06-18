@@ -43,6 +43,7 @@ var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
+
 var createToolsWindow = new CreateWindow(
     Script.resolvePath("create/EditTools.qml"),
     'Create Tools',
@@ -843,7 +844,7 @@ var toolBar = (function () {
                     tablet.pushOntoStack(Script.resolvePath("create/New" + entityType + "Dialog.qml"));
                 } else {
                     closeExistingDialogWindow();
-                    var qmlPath = Script.resourcesPath() + Script.resolvePath("create/New" + entityType + "Window.qml");
+                    var qmlPath = Script.resolvePath("create/New" + entityType + "Window.qml");
                     var DIALOG_WINDOW_SIZE = { x: 500, y: 300 };
                     dialogWindow = Desktop.createWindow(qmlPath, {
                         title: "New " + entityType + " Entity",
