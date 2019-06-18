@@ -106,6 +106,9 @@ protected:
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
+    virtual gpu::PipelinePointer getCompositeScenePipeline();
+    virtual gpu::Element getCompositeFBColorSpace();
+
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
     virtual void uncustomizeContext();
@@ -149,9 +152,11 @@ protected:
     gpu::PipelinePointer _hudPipeline;
     gpu::PipelinePointer _mirrorHUDPipeline;
     gpu::ShaderPointer _mirrorHUDPS;
-    gpu::PipelinePointer _simplePipeline;
-    gpu::PipelinePointer _presentPipeline;
+    gpu::PipelinePointer _drawTexturePipeline;
+    gpu::PipelinePointer _compositePipeline;
+    gpu::PipelinePointer _SRGBToLinearPipeline;
     gpu::PipelinePointer _cursorPipeline;
+
     gpu::TexturePointer _displayTexture{};
     float _compositeHUDAlpha { 1.0f };
 
