@@ -1416,6 +1416,10 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
     }
 }
 
+void MyAvatar::setDebugDrawAnimPoseName(QString poseName) {
+    _debugDrawAnimPoseName.set(poseName);
+}
+
 void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
     if (isEnabled) {
         const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
@@ -3086,15 +3090,26 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         }
 
         if (_enableDebugDrawAnimPose && animSkeleton) {
-            // build absolute AnimPoseVec from rig
+
             AnimPoseVec absPoses;
             const Rig& rig = _skeletonModel->getRig();
-            absPoses.reserve(rig.getJointStateCount());
-            for (int i = 0; i < rig.getJointStateCount(); i++) {
-                absPoses.push_back(AnimPose(rig.getJointTransform(i)));
+            const glm::vec4 CYAN(0.1f, 0.6f, 0.6f, 1.0f);
+
+            QString name = _debugDrawAnimPoseName.get();
+            if (name.isEmpty()) {
+                // build absolute AnimPoseVec from rig transforms. i.e. the same that are used for rendering.
+                absPoses.reserve(rig.getJointStateCount());
+                for (int i = 0; i < rig.getJointStateCount(); i++) {
+                    absPoses.push_back(AnimPose(rig.getJointTransform(i)));
+                }
+                AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, CYAN);
+            } else {
+                AnimNode::ConstPointer node = rig.findAnimNodeByName(name);
+                if (node) {
+                    rig.buildAbsoluteRigPoses(node->getPoses(), absPoses);
+                    AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, CYAN);
+                }
             }
-            glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
-            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, cyan);
         }
     }
 

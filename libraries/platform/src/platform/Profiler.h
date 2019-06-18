@@ -28,6 +28,9 @@ public:
     static const std::array<const char*, Tier::NumTiers> TierNames;
 
     static Tier profilePlatform();
+
+    // Ugly very adhoc capability check to know if a particular hw can REnder with Deferred method or not
+    static bool isRenderMethodDeferredCapable();
 };
 
 }

@@ -58,6 +58,7 @@ Windows.Window {
         }
         QmlSurface.load(source, contentHolder, function(newObject) {
             dynamicContent = newObject;
+            updateInteractiveWindowSizeForMode();
             if (dynamicContent && dynamicContent.anchors) {
                 dynamicContent.anchors.fill = contentHolder;
             }
@@ -81,10 +82,12 @@ Windows.Window {
     }
 
     function updateInteractiveWindowSizeForMode() {
-        if (presentationMode === Desktop.PresentationMode.VIRTUAL) {
-            width = interactiveWindowSize.width;
-            height = interactiveWindowSize.height;
-        } else if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
+        root.width = interactiveWindowSize.width;
+        root.height = interactiveWindowSize.height;
+        contentHolder.width = interactiveWindowSize.width;
+        contentHolder.height = interactiveWindowSize.height;
+
+        if (presentationMode === Desktop.PresentationMode.NATIVE && nativeWindow) {
             nativeWindow.width = interactiveWindowSize.width;
             nativeWindow.height = interactiveWindowSize.height;
         }
@@ -134,6 +137,9 @@ Windows.Window {
 
             Window {
                 id: root;
+                width: interactiveWindowSize.width
+                height: interactiveWindowSize.height
+
                 Rectangle {
                     color: hifi.colors.baseGray
                     anchors.fill: parent
