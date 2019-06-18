@@ -1796,6 +1796,18 @@ void AudioReverb::render(float** inputs, float** outputs, int numFrames) {
 
 #include <emmintrin.h>
 
+// unaligned load/store without undefined behavior
+static inline __m128i mm_loadu_si32(void const* mem_addr) {
+    int32_t temp;
+    memcpy(&temp, mem_addr, sizeof(int32_t));
+    return _mm_cvtsi32_si128(temp);
+}
+
+static inline void mm_storeu_si32(void* mem_addr, __m128i a) {
+   int32_t temp = _mm_cvtsi128_si32(a);
+   memcpy(mem_addr, &temp, sizeof(int32_t));
+}
+
 // convert int16_t to float, deinterleave stereo
 void AudioReverb::convertInput(const int16_t* input, float** outputs, int numFrames) {
     __m128 scale = _mm_set1_ps(1/32768.0f);
@@ -1816,7 +1828,7 @@ void AudioReverb::convertInput(const int16_t* input, float** outputs, int numFra
         _mm_storeu_ps(&outputs[1][i], f1);
     }
     for (; i < numFrames; i++) {
-        __m128i a0 = _mm_cvtsi32_si128(*(int32_t*)&input[2*i]);
+        __m128i a0 = mm_loadu_si32((__m128i*)&input[2*i]);
         __m128i a1 = a0;
 
         // deinterleave and sign-extend
@@ -1887,7 +1899,7 @@ void AudioReverb::convertOutput(float** inputs, int16_t* output, int numFrames) 
 
         // interleave
         a0 = _mm_unpacklo_epi16(a0, a1);
-        *(int32_t*)&output[2*i] = _mm_cvtsi128_si32(a0);
+        mm_storeu_si32((__m128i*)&output[2*i], a0);
     }
 }
 
