@@ -56,7 +56,6 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         auto fadeEffect = DependencyManager::get<FadeEffect>();
         initZPassPipelines(*shapePlumber, state, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     }
-
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", input);
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Output>(1);
     const auto shadowFrame = setupOutput.getN<RenderShadowSetup::Output>(3);
@@ -318,15 +317,43 @@ RenderShadowSetup::RenderShadowSetup() :
 }
 
 void RenderShadowSetup::configure(const Config& configuration) {
-    setConstantBias(0, configuration.constantBias0);
-    setSlopeBias(0, configuration.slopeBias0);
-#if SHADOW_CASCADE_MAX_COUNT>1
-    setConstantBias(1, configuration.constantBias1);
-    setSlopeBias(1, configuration.slopeBias1);
-    setConstantBias(2, configuration.constantBias2);
-    setSlopeBias(2, configuration.slopeBias2);
-    setConstantBias(3, configuration.constantBias3);
-    setSlopeBias(3, configuration.slopeBias3);
+
+    // change shadow map based on distinct constant and slope values
+    float constant0 = configuration.constantBias0;
+    float constant1 = configuration.constantBias1;
+    float constant2 = configuration.constantBias2;
+    float constant3 = configuration.constantBias3;
+    float slope0 = configuration.slopeBias0;
+    float slope1 = configuration.slopeBias1;
+    float slope2 = configuration.slopeBias2;
+    float slope3 = configuration.slopeBias3;
+    
+    // based on external bias input
+    if (prevBiasInput != configuration.biasInput) {
+        prevBiasInput = configuration.biasInput;
+        _biasInput = configuration.biasInput;
+
+        constant0 = (cacasdeDepths[0] / resolution) * _biasInput;
+        constant1 = (cacasdeDepths[1] / resolution) * _biasInput;
+        constant2 = (cacasdeDepths[2] / resolution) * _biasInput * 1.1f;
+        constant3 = (cacasdeDepths[3] / resolution) * _biasInput * 1.3f;
+        slope0 = constant0 * 2.7f;
+        slope1 = constant1 * 3.0f;
+        slope2 = constant2 * 3.7f;
+        slope3 = constant3 * 3.3f;
+    }
+    
+    setConstantBias(0, constant0);
+    setSlopeBias(0, slope0);
+
+#if SHADOW_CASCADE_MAX_COUNT > 1
+    setConstantBias(1, constant1);
+    setConstantBias(2, constant2);
+    setConstantBias(3, constant3);
+
+    setSlopeBias(1, slope1);
+    setSlopeBias(2, slope2);
+    setSlopeBias(3, slope3);
 #endif
 }
 
@@ -368,7 +395,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     if (!_globalShadowObject) {
         _globalShadowObject = std::make_shared<LightStage::Shadow>(currentKeyLight, SHADOW_CASCADE_COUNT);
     }
-
+    resolution = _globalShadowObject->MAP_SIZE;
     _globalShadowObject->setLight(currentKeyLight);
     _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
@@ -378,6 +405,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
 
     // Adjust each cascade frustum
     const auto biasScale = currentKeyLight->getShadowsBiasScale();
+    setBiasInput(currentKeyLight->getBiasInput());
     for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& bias = _bias[cascadeIndex];
         _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
@@ -398,6 +426,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     auto bottom = glm::dot(farBottomRight, firstCascadeFrustum->getUp());
     auto near = firstCascadeFrustum->getNearClip();
     auto far = firstCascadeFrustum->getFarClip();
+    cacasdeDepths[0] = far;
 
     for (cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& cascadeFrustum = _globalShadowObject->getCascade(cascadeIndex).getFrustum();
@@ -417,6 +446,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         top = glm::max(top, cascadeTop);
         near = glm::min(near, cascadeNear);
         far = glm::max(far, cascadeFar);
+        cacasdeDepths[cascadeIndex] = far;
     }
 
     _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());

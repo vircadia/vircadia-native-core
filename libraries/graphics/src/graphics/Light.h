@@ -112,6 +112,9 @@ public:
     void setShadowsBiasScale(const float scale);
     float getShadowsBiasScale() const;
 
+    void setBiasInput(const float bias);
+    float getBiasInput() const;
+
     void setOrientation(const Quat& orientation);
     const glm::quat& getOrientation() const { return _transform.getRotation(); }
 
@@ -200,6 +203,7 @@ protected:
 
     float _shadowsMaxDistance{ 40.0f };
     float _shadowsBiasScale{ 1.0f };
+    float _biasInput{ 0.3f }; // gives default constant and slope values
     bool _castShadows{ false };
 
     void updateLightRadius();

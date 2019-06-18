@@ -87,7 +87,11 @@ class RenderShadowSetupConfig : public render::Job::Config {
         Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
         Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
         Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
+        Q_PROPERTY(float biasInput MEMBER biasInput NOTIFY dirty)
+
 public:
+
+    float biasInput { 0.3f };
 
     float constantBias0{ 0.15f };
     float constantBias1{ 0.15f };
@@ -112,6 +116,11 @@ public:
     RenderShadowSetup();
     void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
+    
+    float _biasInput;
+    float prevBiasInput { _biasInput };
+    int resolution { 1024 };
+    QVector<float> cacasdeDepths = QVector<float>(4);
 
 private:
 
@@ -127,6 +136,7 @@ private:
 
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);
+    void setBiasInput(float input) { _biasInput = input; }
 };
 
 class RenderShadowCascadeSetup {

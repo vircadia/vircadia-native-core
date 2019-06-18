@@ -151,6 +151,7 @@ LightStage::Shadow::Shadow(graphics::LightPointer light, unsigned int cascadeCou
 
     if (light) {
         setMaxDistance(light->getShadowsMaxDistance());
+        setBiasInput(light->getBiasInput());
     }
 }
 
