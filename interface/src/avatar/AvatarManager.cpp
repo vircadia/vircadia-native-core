@@ -435,7 +435,7 @@ DetailedMotionState* AvatarManager::createDetailedMotionState(OtherAvatarPointer
     return nullptr;
 }
 
-void AvatarManager::rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, OtherAvatarPointer avatar) {
+void AvatarManager::rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar) {
     if (!avatar->_motionState) {
         avatar->_motionState = new AvatarMotionState(avatar, nullptr);
     }
@@ -452,20 +452,24 @@ void AvatarManager::rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction
         transaction.objectsToAdd.push_back(motionState);
     }
     motionState->clearIncomingDirtyFlags();
+}
 
-    // Rather than reconcile numbers of joints after change to model or LOD
-    // we blow away old detailedMotionStates and create anew all around.
-
+void AvatarManager::removeDetailedAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar) {
     // delete old detailedMotionStates
     auto& detailedMotionStates = avatar->getDetailedMotionStates();
     if (detailedMotionStates.size() != 0) {
         for (auto& detailedMotionState : detailedMotionStates) {
             transaction.objectsToRemove.push_back(detailedMotionState);
         }
-        avatar->resetDetailedMotionStates();
+        avatar->forgetDetailedMotionStates();
     }
+}
 
-    // build new detailedMotionStates
+void AvatarManager::rebuildDetailedAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar) {
+    // Rather than reconcile numbers of joints after change to model or LOD
+    // we blow away old detailedMotionStates and create anew all around.
+    removeDetailedAvatarPhysics(transaction, avatar);
+    auto& detailedMotionStates = avatar->getDetailedMotionStates();
     OtherAvatar::BodyLOD lod = avatar->getBodyLOD();
     if (lod == OtherAvatar::BodyLOD::Sphere) {
         auto dMotionState = createDetailedMotionState(avatar, -1);
@@ -483,24 +487,21 @@ void AvatarManager::rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction
             }
         }
     }
-    avatar->_needsReinsertion = false;
+    avatar->_needsDetailedRebuild = false;
 }
 
 void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
     _myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
     for (auto avatar : _otherAvatarsToChangeInPhysics) {
         bool isInPhysics = avatar->isInPhysicsSimulation();
-        if (isInPhysics != avatar->shouldBeInPhysicsSimulation() || avatar->_needsReinsertion) {
+        if (isInPhysics != avatar->shouldBeInPhysicsSimulation()) {
             if (isInPhysics) {
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
-                auto& detailedMotionStates = avatar->getDetailedMotionStates();
-                for (auto& motionState : detailedMotionStates) {
-                    transaction.objectsToRemove.push_back(motionState);
-                }
-                avatar->resetDetailedMotionStates();
+                removeDetailedAvatarPhysics(transaction, avatar);
             } else {
                 rebuildAvatarPhysics(transaction, avatar);
+                rebuildDetailedAvatarPhysics(transaction, avatar);
             }
         } else if (isInPhysics) {
             AvatarMotionState* motionState = avatar->_motionState;
@@ -518,6 +519,10 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                     transaction.objectsToReinsert.push_back(motionState);
                 }
                 motionState->clearIncomingDirtyFlags();
+            }
+
+            if (avatar->_needsDetailedRebuild) {
+                rebuildDetailedAvatarPhysics(transaction, avatar);
             }
         }
     }

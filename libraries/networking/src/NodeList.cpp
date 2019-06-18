@@ -306,7 +306,8 @@ void NodeList::sendDomainServerCheckIn() {
     // may be called by multiple threads.
 
     if (!_sendDomainServerCheckInEnabled) {
-        qCDebug(networking_ice) << "Refusing to send a domain-server check in while it is disabled.";
+        static const QString DISABLED_CHECKIN_DEBUG{ "Refusing to send a domain-server check in while it is disabled." };
+        HIFI_FCDEBUG(networking_ice(), DISABLED_CHECKIN_DEBUG);
         return;
     }
 
@@ -450,12 +451,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // Send duplicate check-ins in the exponentially increasing sequence 1, 1, 2, 4, ...
         static const int MAX_CHECKINS_TOGETHER = 20;
-        static const int REBIND_CHECKIN_COUNT = 2;
         int outstandingCheckins = _domainHandler.getCheckInPacketsSinceLastReply();
-
-        if (outstandingCheckins > REBIND_CHECKIN_COUNT) {
-            _nodeSocket.rebind();
-        }
 
         int checkinCount = outstandingCheckins > 1 ? std::pow(2, outstandingCheckins - 2) : 1;
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
@@ -710,6 +706,7 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
 
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _domainHandler.clearPendingCheckins();
+    setDropOutgoingNodeTraffic(false);
 
     // emit our signal so listeners know we just heard from the DS
     emit receivedDomainServerList();

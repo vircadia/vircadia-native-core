@@ -47,6 +47,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     GLint rendererInfoCount;
     CGLError err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &rendererInfoCount);
     GLint j, numRenderers = 0, deviceVRAM, bestVRAM = 0;
+    int bestGPUid = 0;
     err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &numRenderers);
     if (0 == err) {
         // Iterate over all of them and use the figure for the one with the most VRAM,
@@ -55,6 +56,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         for (j = 0; j < numRenderers; j++) {
             CGLDescribeRenderer(rendererInfo, j, kCGLRPVideoMemoryMegabytes, &deviceVRAM);
             if (deviceVRAM > bestVRAM) {
+                bestGPUid = j;
                 bestVRAM = deviceVRAM;
                 _isValid = true;
             }
@@ -77,6 +79,8 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     
     for (int i = 0; i < parts.size(); ++i) {
         if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
+            _name=parts[i];
+        } else if (i == bestGPUid) {
             _name=parts[i];
         }
     }

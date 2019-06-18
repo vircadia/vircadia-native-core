@@ -415,7 +415,7 @@ function getInputDeviceMutedOverlayTopY() {
 var inputDeviceMutedOverlay = false;
 var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 353;
 var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 95;
-var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20;
+var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20 + TOP_BAR_HEIGHT_PX;
 function updateInputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
