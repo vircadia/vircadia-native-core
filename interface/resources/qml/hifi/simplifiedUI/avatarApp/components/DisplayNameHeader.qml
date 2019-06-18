@@ -94,6 +94,7 @@ Item {
                 text: MyAvatar.sessionDisplayName === "" ? MyAvatar.displayName : MyAvatar.sessionDisplayName
                 maximumLength: 256
                 clip: true
+                selectByMouse: true
                 anchors.fill: parent
                 onEditingFinished: {
                     if (MyAvatar.displayName !== text) {
