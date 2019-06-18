@@ -35,16 +35,6 @@ static const double SQRT2 = 1.41421356237309504880;
 static const double FIXQ31 = 2147483648.0;
 static const double FIXQ32 = 4294967296.0;
 
-// Round an integer to the next power-of-two, at compile time.
-// VS2013 does not support constexpr so macros are used instead.
-#define SETBITS0(x) (x)
-#define SETBITS1(x) (SETBITS0(x) | (SETBITS0(x) >>  1))
-#define SETBITS2(x) (SETBITS1(x) | (SETBITS1(x) >>  2))
-#define SETBITS3(x) (SETBITS2(x) | (SETBITS2(x) >>  4))
-#define SETBITS4(x) (SETBITS3(x) | (SETBITS3(x) >>  8))
-#define SETBITS5(x) (SETBITS4(x) | (SETBITS4(x) >> 16))
-#define NEXTPOW2(x) (SETBITS5((x) - 1) + 1)
-
 //
 // Allpass delay modulation
 //
@@ -110,6 +100,18 @@ static const int M_AP18 = 131;
 static const int M_AP19 = 113;
 static const int M_AP20 = 107;
 static const int M_AP21 = 127;
+
+// Round an integer to the next power-of-two, at compile time
+constexpr uint32_t NEXTPOW2(uint32_t n) {
+    n -= 1;
+    n |= (n >> 1);
+    n |= (n >> 2);
+    n |= (n >> 4);
+    n |= (n >> 8);
+    n |= (n >> 16);
+    n += 1;
+    return n;
+}
 
 //
 // Filter design tools using analog-matched response.
