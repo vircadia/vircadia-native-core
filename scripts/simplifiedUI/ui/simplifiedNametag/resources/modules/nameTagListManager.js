@@ -224,6 +224,7 @@ function maybeClearAlwaysOnAvatarDistanceCheck() {
     }
 }
 
+
 // #endregion
 // *************************************
 // END UTILTY
