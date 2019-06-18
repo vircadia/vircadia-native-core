@@ -161,7 +161,7 @@ void AnimStats::updateStats(bool force) {
         }
 
         // figure out the grayScale color of this line.
-        const float LIT_TIME = 2.0f;
+        const float LIT_TIME = 20.0f;
         const float FADE_OUT_TIME = 0.5f;
         float grayScale = 0.0f;
         float secondsElapsed = (float)(now - _animVarChangedTimers[key]) / (float)USECS_PER_SECOND;

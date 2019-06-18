@@ -159,15 +159,15 @@ std::map<QString, QString> AnimVariantMap::toDebugMap() const {
                 arg(QString::number(value.y, 'f', 3)).
                 arg(QString::number(value.z, 'f', 3)).
                 arg(QString::number(value.w, 'f', 3));
-            break;
             */
+            break;
         }
         case AnimVariant::Type::String:
             // To prevent filling up anim stats, don't show string values
             /*
             result[pair.first] = pair.second.getString();
-            break;
             */
+            break;
         default:
             // invalid AnimVariant::Type
             assert(false);
