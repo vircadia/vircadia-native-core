@@ -17,6 +17,7 @@ import "./audio" as AudioSettings
 import "./general" as GeneralSettings
 import "./vr" as VrSettings
 import "./dev" as DevSettings
+import "./about" as AboutSettings
 
 Rectangle {
     property string activeTabView: "generalTabView"
@@ -77,6 +78,10 @@ Rectangle {
                 tabViewName: "vrTabView"
             }
             ListElement {
+                tabTitle: "About"
+                tabViewName: "aboutTabView"
+            }
+            ListElement {
                 tabTitle: "Dev"
                 tabViewName: "devTabView"
             }
@@ -103,7 +108,7 @@ Rectangle {
             delegate: Item {
                 visible: model.tabTitle !== "Dev" || (model.tabTitle === "Dev" && root.developerModeEnabled)
 
-                width: tabTitleText.paintedWidth + 64
+                width: tabTitleText.paintedWidth + 32
                 height: parent.height
 
                 HifiStylesUit.GraphikRegular {
@@ -163,6 +168,12 @@ Rectangle {
             anchors.fill: parent
         }
 
+        AboutSettings.About {
+            id: aboutTabViewContainer
+            visible: activeTabView === "aboutTabView"
+            anchors.fill: parent
+        }
+
         SimplifiedControls.VerticalScrollBar {
             parent: {
                 if (activeTabView === "generalTabView") {
@@ -173,6 +184,8 @@ Rectangle {
                     vrTabViewContainer
                 } else if (activeTabView === "devTabView") {
                     devTabViewContainer
+                } else if (activeTabView === "aboutTabView") {
+                    aboutTabViewContainer
                 }
             }
         }
