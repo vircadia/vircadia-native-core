@@ -47,8 +47,8 @@ Flickable {
             source: "images/logo.png"
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 16
-            Layout.preferredWidth: 240
-            Layout.preferredHeight: 180
+            Layout.preferredWidth: 200
+            Layout.preferredHeight: 150
             fillMode: Image.PreserveAspectFit
             mipmap: true
         }
@@ -72,11 +72,35 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 text: "Platform Info"
                 Layout.maximumWidth: parent.width
-                Layout.topMargin: 24
-                Layout.bottomMargin: 14
+                Layout.topMargin: 8
+                Layout.bottomMargin: 8
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+            }
+
+            HifiStylesUit.GraphikRegular {
+                text: "<b>Computer Vendor/Model:</b>"
+                Layout.maximumWidth: parent.width
+                height: paintedHeight
+                size: 16
+                color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+
+                Component.onCompleted: {
+                    var computer = JSON.parse(PlatformInfo.getComputer());
+                    var computerVendor = computer.vendor;
+                    if (computerVendor.length === 0) {
+                        computerVendor = "Unknown";
+                    }
+                    var computerModel = computer.model;
+                    if (computerModel.length === 0) {
+                        computerModel = "Unknown";
+                    }
+
+                    text = "<b>Computer Vendor/Model:</b> " + computerVendor + "/" + computerModel;
+                }
             }
 
             HifiStylesUit.GraphikRegular {
@@ -152,7 +176,7 @@ Flickable {
             }
 
             SimplifiedControls.Button {
-                Layout.topMargin: 24
+                Layout.topMargin: 8
                 width: 200
                 height: 32
                 text: "Copy to Clipboard"
@@ -168,6 +192,18 @@ Flickable {
         var textToCopy = "**About Interface**\n";
         textToCopy += "Interface Version: " + Window.checkVersion() + "\n";
         textToCopy += "\n**Platform Info**\n";
+
+        var computer = JSON.parse(PlatformInfo.getComputer());
+        var computerVendor = computer.vendor;
+        if (computerVendor.length === 0) {
+            computerVendor = "Unknown";
+        }
+        var computerModel = computer.model;
+        if (computerModel.length === 0) {
+            computerModel = "Unknown";
+        }
+
+        textToCopy += "Computer Vendor/Model: " + computerVendor + "/" + computerModel + "\n";
         textToCopy += "Profiled Platform Tier: " + PlatformInfo.getTierProfiled() + "\n";
         textToCopy += "OS Type: " + PlatformInfo.getOperatingSystemType() + "\n";
         textToCopy += "CPU: " + PlatformInfo.getCPUBrand() + "\n";
