@@ -165,9 +165,9 @@ Flickable {
     }
 
     function buildPlatformInfoTextToCopy() {
-        var textToCopy = "About Interface:\n";
+        var textToCopy = "**About Interface**\n";
         textToCopy += "Interface Version: " + Window.checkVersion() + "\n";
-        textToCopy += "\nPlatform Info:\n";
+        textToCopy += "\n**Platform Info**\n";
         textToCopy += "Profiled Platform Tier: " + PlatformInfo.getTierProfiled() + "\n";
         textToCopy += "OS Type: " + PlatformInfo.getOperatingSystemType() + "\n";
         textToCopy += "CPU: " + PlatformInfo.getCPUBrand() + "\n";
