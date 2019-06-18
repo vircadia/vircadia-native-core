@@ -499,7 +499,7 @@ private:
     bool _dropOutgoingNodeTraffic { false };
 
     quint64 _sendErrorStatsTime { (quint64)0 };
-    static const quint64 ERROR_STATS_PERIOD_US { 2 * USECS_PER_SECOND };
+    static const quint64 ERROR_STATS_PERIOD_US { 1 * USECS_PER_SECOND };
 };
 
 #endif // hifi_LimitedNodeList_h
