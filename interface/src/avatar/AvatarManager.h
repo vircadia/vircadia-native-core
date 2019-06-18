@@ -274,7 +274,9 @@ public slots:
 protected:
     AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) override;
     DetailedMotionState* createDetailedMotionState(OtherAvatarPointer avatar, int32_t jointIndex);
-    void rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, OtherAvatarPointer avatar);
+    void rebuildAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar);
+    void removeDetailedAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar);
+    void rebuildDetailedAvatarPhysics(PhysicsEngine::Transaction& transaction, const OtherAvatarPointer& avatar);
 
 private:
     explicit AvatarManager(QObject* parent = 0);

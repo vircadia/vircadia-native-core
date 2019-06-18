@@ -152,7 +152,7 @@ function simplifiedStatusIndicator(properties) {
 
 
     // When avatar goes away, set status to busy
-    var previousStatus;
+    var previousStatus = "available";
     function onWentAway() {
         previousStatus = currentStatus;
         if (currentStatus !== "busy") {
