@@ -66,18 +66,36 @@ Flickable {
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {
-                id: platformInfoTitle
-                text: "Platform Info"
+                text: "About Interface"
                 Layout.maximumWidth: parent.width
+                Layout.bottomMargin: 14
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
             }
 
             HifiStylesUit.GraphikRegular {
-                text: "<b>Platform Tier:</b> " + PlatformInfo.getTierProfiled()
+                text: "<b>Interface Version:</b> " + Window.checkVersion()
                 Layout.maximumWidth: parent.width
-                Layout.topMargin: 14
+                height: paintedHeight
+                size: 16
+                color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+            }
+
+            HifiStylesUit.GraphikSemiBold {
+                text: "Platform Info"
+                Layout.maximumWidth: parent.width
+                Layout.topMargin: 24
+                Layout.bottomMargin: 14
+                height: paintedHeight
+                size: 22
+                color: simplifiedUI.colors.text.white
+            }
+
+            HifiStylesUit.GraphikRegular {
+                text: "<b>Profiled Platform Tier:</b> " + PlatformInfo.getTierProfiled()
+                Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -130,7 +148,7 @@ Flickable {
             }
 
             HifiStylesUit.GraphikRegular {
-                text: "<b>GPU Type:</b> " + PlatformInfo.getGraphicsCardType()
+                text: "<b>GPU:</b> " + PlatformInfo.getGraphicsCardType()
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 16
@@ -161,14 +179,16 @@ Flickable {
     }
 
     function buildPlatformInfoTextToCopy() {
-        var textToCopy = "Platform Info:\n";
-        textToCopy += "Platform Tier: " + PlatformInfo.getTierProfiled() + "\n";
+        var textToCopy = "About Interface:\n";
+        textToCopy += "Interface Version: " + Window.checkVersion() + "\n";
+        textToCopy += "\nPlatform Info:\n";
+        textToCopy += "Profiled Platform Tier: " + PlatformInfo.getTierProfiled() + "\n";
         textToCopy += "OS Type: " + PlatformInfo.getOperatingSystemType() + "\n";
         textToCopy += "CPU: " + PlatformInfo.getCPUBrand() + "\n";
         textToCopy += "# CPUs: " + PlatformInfo.getNumCPUs() + "\n";
         textToCopy += "# CPU Cores: " + PlatformInfo.getNumLogicalCores() + "\n";
         textToCopy += "RAM: " + PlatformInfo.getTotalSystemMemoryMB() + " MB\n";
-        textToCopy += "GPU Type: " + PlatformInfo.getGraphicsCardType() + "\n";
+        textToCopy += "GPU: " + PlatformInfo.getGraphicsCardType() + "\n";
         textToCopy += "VR Hand Controllers: " + (PlatformInfo.hasRiftControllers() ? "Rift" : (PlatformInfo.hasViveControllers() ? "Vive" : "None"));
 
         return textToCopy;
