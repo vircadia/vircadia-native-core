@@ -113,7 +113,15 @@ gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline
 #if defined(Q_OS_ANDROID)
         return _compositePipeline;
 #endif
-        return _drawTexturePipeline;
+        //return _drawTexturePipeline;
+        return _SRGBToLinearPipeline;
+}
+
+gpu::Element Basic2DWindowOpenGLDisplayPlugin::getCompositeFBColorSpace() {
+#if defined(Q_OS_ANDROID)
+    return gpu::Element::COLOR_SRGBA_32;
+#endif
+    return gpu::Element::COLOR_RGBA_32;
 }
 
 

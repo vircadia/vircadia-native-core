@@ -401,6 +401,9 @@ void OpenGLDisplayPlugin::customizeContext() {
         _compositePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
     }
     {
+        _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
+    }
+    {
         _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
     }
     {
@@ -525,7 +528,7 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setResourceTexture(0, texture);
 
     batch.setPipeline(_drawTexturePipeline);
-
+    
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
         gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
@@ -914,10 +917,14 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
+gpu::Element OpenGLDisplayPlugin::getCompositeFBColorSpace() {
+    return gpu::Element::COLOR_RGBA_32;
+}
+
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", getCompositeFBColorSpace(), renderSize.x, renderSize.y));
     }
 }
 
