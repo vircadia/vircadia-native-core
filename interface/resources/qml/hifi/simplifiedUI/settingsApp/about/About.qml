@@ -34,21 +34,6 @@ Flickable {
     }
 
 
-    Image {
-        id: accent
-        source: "../images/accent3.svg"
-        anchors.left: parent.left
-        anchors.top: parent.top
-        width: 83
-        height: 156
-        transform: Scale {
-            xScale: -1
-            origin.x: accent.width / 2
-            origin.y: accent.height / 2
-        }
-    }
-
-
     ColumnLayout {
         id: aboutColumnLayout
         anchors.left: parent.left
@@ -56,26 +41,27 @@ Flickable {
         anchors.right: parent.right
         anchors.rightMargin: 26
         anchors.top: parent.top
-        spacing: simplifiedUI.margins.settings.spacingBetweenSettings
+        spacing: 0
+
+        Image {
+            source: "images/logo.png"
+            Layout.alignment: Qt.AlignHCenter
+            Layout.topMargin: 16
+            Layout.preferredWidth: 240
+            Layout.preferredHeight: 180
+            fillMode: Image.PreserveAspectFit
+            mipmap: true
+        }
         
         ColumnLayout {
             id: platformInfoContainer
             Layout.preferredWidth: parent.width
-            Layout.topMargin: 24
             Layout.bottomMargin: 24
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {
-                text: "About Interface"
-                Layout.maximumWidth: parent.width
-                Layout.bottomMargin: 14
-                height: paintedHeight
-                size: 22
-                color: simplifiedUI.colors.text.white
-            }
-
-            HifiStylesUit.GraphikRegular {
-                text: "<b>Interface Version:</b> " + Window.checkVersion()
+                text: "Version " + Window.checkVersion()
+                Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 16
