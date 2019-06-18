@@ -127,7 +127,12 @@ void PickManager::update() {
         _updatedPickCounts[PickQuery::Stylus] = _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
     }
     {
-        PROFILE_RANGE(picks, "RayPicks");
+        int count = 0;
+        for (int i = 0; i < 4; i++) {
+            count += _totalPickCounts[i];
+        }
+
+        PROFILE_RANGE_EX(picks, "RayPicks", 0xffff0000, (uint64_t)count);
         PerformanceTimer perfTimer("RayPicks");
         _updatedPickCounts[PickQuery::Ray] = _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
     }
