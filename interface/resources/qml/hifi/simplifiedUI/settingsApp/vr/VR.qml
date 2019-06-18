@@ -19,8 +19,6 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: vrColumnLayout.height
-    topMargin: 24
-    bottomMargin: 24
     clip: true
 
     function changePeakValuesEnabled(enabled) {
@@ -33,7 +31,7 @@ Flickable {
         AudioScriptingInterface.devices.input.peakValuesEnabled = visible;
         if (visible) {
             root.contentX = 0;
-            root.contentY = -root.topMargin;
+            root.contentY = 0;
             AudioScriptingInterface.devices.input.peakValuesEnabledChanged.connect(changePeakValuesEnabled);
         } else {
             AudioScriptingInterface.devices.input.peakValuesEnabledChanged.disconnect(changePeakValuesEnabled);
@@ -45,16 +43,35 @@ Flickable {
         id: simplifiedUI
     }
 
+
+    Image {
+        id: accent
+        source: "../images/accent3.svg"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: 83
+        height: 156
+        transform: Scale {
+            xScale: -1
+            origin.x: accent.width / 2
+            origin.y: accent.height / 2
+        }
+    }
+
+
     ColumnLayout {
         id: vrColumnLayout
         anchors.left: parent.left
+        anchors.leftMargin: 26
         anchors.right: parent.right
+        anchors.rightMargin: 26
         anchors.top: parent.top
         spacing: simplifiedUI.margins.settings.spacingBetweenSettings
 
         ColumnLayout {
             id: controlsContainer
             Layout.preferredWidth: parent.width
+        Layout.topMargin: 24
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {
@@ -278,6 +295,7 @@ Flickable {
         ColumnLayout {
             id: outputDeviceContainer
             Layout.preferredWidth: parent.width
+            Layout.bottomMargin: 24
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {

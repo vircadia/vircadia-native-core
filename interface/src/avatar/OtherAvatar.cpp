@@ -177,7 +177,7 @@ const btCollisionShape* OtherAvatar::createCollisionShape(int32_t jointIndex, bo
     return ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 }
 
-void OtherAvatar::resetDetailedMotionStates() {
+void OtherAvatar::forgetDetailedMotionStates() {
     // NOTE: the DetailedMotionStates are deleted after being added to PhysicsEngine::Transaction::_objectsToRemove
     // See AvatarManager::handleProcessedPhysicsTransaction()
     _detailedMotionStates.clear();
@@ -209,7 +209,7 @@ void OtherAvatar::computeShapeLOD() {
     if (newLOD != _bodyLOD) {
         _bodyLOD = newLOD;
         if (isInPhysicsSimulation()) {
-            _needsReinsertion = true;
+            _needsDetailedRebuild = true;
         }
     }
 }
@@ -224,14 +224,14 @@ bool OtherAvatar::shouldBeInPhysicsSimulation() const {
 
 bool OtherAvatar::needsPhysicsUpdate() const {
     constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION | Simulation::DIRTY_COLLISION_GROUP;
-    return (_needsReinsertion || (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST)));
+    return (_needsDetailedRebuild || (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST)));
 }
 
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
         // do not actually rebuild here, instead flag for later
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
-        _needsReinsertion = true;
+        _needsDetailedRebuild = true;
     }
 }
 
