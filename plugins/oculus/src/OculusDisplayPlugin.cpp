@@ -124,6 +124,10 @@ void OculusDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
+gpu::PipelinePointer OculusDisplayPlugin::getCompositeScenePipeline() {
+    return _SRGBToLinearPipeline;
+}
+
 static const uint64_t FRAME_BUDGET = (11 * USECS_PER_MSEC);
 static const uint64_t FRAME_OVER_BUDGET = (15 * USECS_PER_MSEC);
 

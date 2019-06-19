@@ -102,10 +102,6 @@ void OculusMobileDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
-gpu::Element OculusMobileDisplayPlugin::getCompositeFBColorSpace() {
-    return gpu::Element::COLOR_SRGBA_32;
-}
-
 QRectF OculusMobileDisplayPlugin::getPlayAreaRect() {
     QRectF result;
     VrHandler::withOvrMobile([&](ovrMobile* session){

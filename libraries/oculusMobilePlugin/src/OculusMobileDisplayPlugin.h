@@ -44,8 +44,6 @@ public:
     void init() override;
     void deinit() override;
 
-    virtual gpu::Element getCompositeFBColorSpace() override;
-
 protected:
     const QString getName() const override { return NAME; }
 

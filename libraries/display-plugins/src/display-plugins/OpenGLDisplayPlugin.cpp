@@ -398,7 +398,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
     }
     {
-        _compositePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
+        _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
     }
     {
         _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
@@ -917,6 +917,8 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
+// FIXME: added this to allow desktop composite framebuffer to be RGBA while mobile is SRGBA.
+// This is a workaround
 gpu::Element OpenGLDisplayPlugin::getCompositeFBColorSpace() {
     return gpu::Element::COLOR_RGBA_32;
 }

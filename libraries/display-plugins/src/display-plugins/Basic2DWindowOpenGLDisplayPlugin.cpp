@@ -111,7 +111,7 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
 
 gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline() {
 #if defined(Q_OS_ANDROID)
-        return _compositePipeline;
+        return _linearToSRGBPipeline;
 #endif
         //return _drawTexturePipeline;
         return _SRGBToLinearPipeline;

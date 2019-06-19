@@ -153,7 +153,7 @@ protected:
     gpu::PipelinePointer _mirrorHUDPipeline;
     gpu::ShaderPointer _mirrorHUDPS;
     gpu::PipelinePointer _drawTexturePipeline;
-    gpu::PipelinePointer _compositePipeline;
+    gpu::PipelinePointer _linearToSRGBPipeline;
     gpu::PipelinePointer _SRGBToLinearPipeline;
     gpu::PipelinePointer _cursorPipeline;
 
