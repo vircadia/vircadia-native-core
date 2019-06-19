@@ -174,9 +174,9 @@ public:
                             glFinish();
                         }
                         currentPlugin = newPlugin;
-                        _newPluginQueue.pop();
-                        _condition.notify_one();
                     }
+                    _newPluginQueue.pop();
+                    _condition.notify_one();
                 }
             }
 
@@ -384,33 +384,30 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
     }
 
-    gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
-    blendState->setDepthTest(gpu::State::DepthTest(false));
-    blendState->setBlendFunction(true,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    if (!_drawTexturePipeline) {
+        gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
+        blendState->setDepthTest(gpu::State::DepthTest(false));
+        blendState->setBlendFunction(true,
+                                     gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
+                                     gpu::State::INV_SRC_ALPHA,
+                                     gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD,
+                                     gpu::State::ONE);
 
-    gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
-    scissorState->setDepthTest(gpu::State::DepthTest(false));
-    scissorState->setScissorEnable(true);
+        gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
+        scissorState->setDepthTest(gpu::State::DepthTest(false));
+        scissorState->setScissorEnable(true);
 
-    {
-        _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
-    }
-    {
-        _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
-    }
-    {
-        _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
-    }
-    {
-        _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
-    }
-    {
-        _mirrorHUDPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), blendState);
-    }
-    {
-        _cursorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTransformedTexture), blendState);
+            _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
+
+            _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
+
+            _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
+
+            _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
+
+            _mirrorHUDPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), blendState);
+
+            _cursorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTransformedTexture), blendState);
     }
 
     updateCompositeFramebuffer();
@@ -418,10 +415,14 @@ void OpenGLDisplayPlugin::customizeContext() {
 
 void OpenGLDisplayPlugin::uncustomizeContext() {
 
-    _cursorPipeline.reset();
+    _drawTexturePipeline.reset();
+    _linearToSRGBPipeline.reset();
+    _SRGBToLinearPipeline.reset();
     _hudPipeline.reset();
     _mirrorHUDPipeline.reset();
+    _cursorPipeline.reset();
     _compositeFramebuffer.reset();
+
     withPresentThreadLock([&] {
         _currentFrame.reset();
         _lastFrame = nullptr;

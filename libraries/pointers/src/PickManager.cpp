@@ -128,8 +128,8 @@ void PickManager::update() {
     }
     {
         int count = 0;
-        for (int i = 0; i < 4; i++) {
-            count += _totalPickCounts[i];
+        for (int i = 0; i < _totalPickCounts.size(); i++) {
+            count += _totalPickCounts[PickQuery::Ray];
         }
 
         PROFILE_RANGE_EX(picks, "RayPicks", 0xffff0000, (uint64_t)count);
