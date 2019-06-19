@@ -149,6 +149,11 @@ bool Profiler::isRenderMethodDeferredCapable() {
     if ((computerModel.find("MacBookPro11,1") != std::string::npos) && (gpuModel.find("Intel Iris") != std::string::npos)) {
          return false;
     }
+    
+    // TO avoid issues for the next few days, we are excluding all of intel chipset...
+    if ((gpuModel.find("Intel ") != std::string::npos)) {
+        return false;
+    }
 
     return true;
 #elif defined(Q_OS_ANDROID)

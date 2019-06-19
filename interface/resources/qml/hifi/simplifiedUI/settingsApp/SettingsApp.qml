@@ -9,12 +9,15 @@
 //
 
 import QtQuick 2.10
+import QtQuick.Controls 2.3
 import "../simplifiedConstants" as SimplifiedConstants
+import "../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
 import "./audio" as AudioSettings
 import "./general" as GeneralSettings
 import "./vr" as VrSettings
 import "./dev" as DevSettings
+import "./about" as AboutSettings
 
 Rectangle {
     property string activeTabView: "generalTabView"
@@ -75,6 +78,10 @@ Rectangle {
                 tabViewName: "vrTabView"
             }
             ListElement {
+                tabTitle: "About"
+                tabViewName: "aboutTabView"
+            }
+            ListElement {
                 tabTitle: "Dev"
                 tabViewName: "devTabView"
             }
@@ -101,7 +108,7 @@ Rectangle {
             delegate: Item {
                 visible: model.tabTitle !== "Dev" || (model.tabTitle === "Dev" && root.developerModeEnabled)
 
-                width: tabTitleText.paintedWidth + 64
+                width: tabTitleText.paintedWidth + 32
                 height: parent.height
 
                 HifiStylesUit.GraphikRegular {
@@ -129,9 +136,7 @@ Rectangle {
         id: tabViewContainers
         anchors.top: tabContainer.bottom
         anchors.left: parent.left
-        anchors.leftMargin: 26
         anchors.right: parent.right
-        anchors.rightMargin: 26
         anchors.bottom: parent.bottom
 
 
@@ -162,24 +167,28 @@ Rectangle {
             visible: activeTabView === "devTabView"
             anchors.fill: parent
         }
-    }
 
-    Image {
-        source: {
-            if (root.activeTabView === "generalTabView") {
-                "images/accent1.svg"
-            } else if (root.activeTabView === "audioTabView") {
-                "images/accent2.svg"
-            } else if (root.activeTabView === "vrTabView") {
-                "images/accent3.svg"
-            } else {
-                "images/accent3.svg"
+        AboutSettings.About {
+            id: aboutTabViewContainer
+            visible: activeTabView === "aboutTabView"
+            anchors.fill: parent
+        }
+
+        SimplifiedControls.VerticalScrollBar {
+            parent: {
+                if (activeTabView === "generalTabView") {
+                    generalTabViewContainer
+                } else if (activeTabView === "audioTabView") {
+                    audioTabViewContainer
+                } else if (activeTabView === "vrTabView") {
+                    vrTabViewContainer
+                } else if (activeTabView === "devTabView") {
+                    devTabViewContainer
+                } else if (activeTabView === "aboutTabView") {
+                    aboutTabViewContainer
+                }
             }
         }
-        anchors.right: parent.right
-        anchors.top: tabContainer.bottom
-        width: 106
-        height: 200
     }
 
 

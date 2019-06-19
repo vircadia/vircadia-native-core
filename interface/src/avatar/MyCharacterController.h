@@ -48,7 +48,6 @@ public:
     DetailedMotionState* createDetailedMotionStateForJoint(int32_t jointIndex);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void clearDetailedMotionStates();
-    void resetDetailedMotionStates();
 
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
 

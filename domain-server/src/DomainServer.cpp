@@ -739,6 +739,10 @@ void DomainServer::setupNodeListAndAssignments() {
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
+    connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged, this,
+        [this](const HifiSockAddr& localSockAddr) {
+        DependencyManager::get<LimitedNodeList>()->putLocalPortIntoSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this, localSockAddr.getPort());
+    });
 
     // register as the packet receiver for the types we want
     PacketReceiver& packetReceiver = nodeList->getPacketReceiver();
@@ -1735,7 +1739,12 @@ void DomainServer::nodePingMonitor() {
     nodeList->eachNode([now](const SharedNodePointer& node) {
         quint64 lastHeard = now - node->getLastHeardMicrostamp();
         if (lastHeard > 2 * USECS_PER_SECOND) {
-            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << " in " << lastHeard / USECS_PER_MSEC << " msec";
+            QString username;
+            DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+            if (nodeData) {
+                username = nodeData->getUsername();
+            }
+            qCDebug(domain_server) << "Haven't heard from " << node->getPublicSocket() << username << " in " << lastHeard / USECS_PER_MSEC << " msec";
         }
     });
 }
