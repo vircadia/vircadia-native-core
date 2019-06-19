@@ -192,7 +192,7 @@ QString PlatformInfoScriptingInterface::getDisplay(int index) {
 }
 
 QString PlatformInfoScriptingInterface::getMemory() {
-    auto desc = platform::getMemory(0);
+    auto desc = platform::getMemory();
     return QString(desc.dump().c_str());
 }
 
@@ -201,6 +201,10 @@ QString PlatformInfoScriptingInterface::getComputer() {
     return QString(desc.dump().c_str());
 }
 
+QString PlatformInfoScriptingInterface::getPlatform() {
+    auto desc = platform::getAll();
+    return QString(desc.dump().c_str());
+}
 
 PlatformInfoScriptingInterface::PlatformTier PlatformInfoScriptingInterface::getTierProfiled() {
     return (PlatformInfoScriptingInterface::PlatformTier) platform::Profiler::profilePlatform();

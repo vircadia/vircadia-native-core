@@ -11,6 +11,8 @@
 #include "../PlatformKeys.h"
 
 namespace platform { namespace keys {
+    const char*  UNKNOWN = "UNKNOWN";
+
     namespace cpu {
         const char*  vendor = "vendor";
         const char*  vendor_Intel = "Intel";
@@ -38,14 +40,17 @@ namespace platform { namespace keys {
         const char*  coordsTop = "coordinatestop";
         const char*  coordsBottom = "coordinatesbottom";
     }
-    const char*  memTotal = "memTotal";
-
+    namespace memory {
+        const char*  memTotal = "memTotal";
+    }
     namespace computer {
         const char*  OS = "OS";
         const char*  OS_WINDOWS = "WINDOWS";
         const char*  OS_MACOS = "MACOS";
         const char*  OS_LINUX = "LINUX";
         const char*  OS_ANDROID = "ANDROID";
+
+        const char*  OSVersion = "OSVersion";
 
         const char*  vendor = "vendor";
         const char*  vendor_Apple = "Apple";
@@ -54,6 +59,12 @@ namespace platform { namespace keys {
 
         const char*  profileTier = "profileTier";
     }
+
+    const char*  CPUS = "cpus";
+    const char*  GPUS = "gpus";
+    const char*  DISPLAYS = "displays";
+    const char*  MEMORY = "memory";
+    const char*  COMPUTER = "computer";
 }}
 
 #include <qglobal.h>
@@ -117,14 +128,14 @@ json platform::getDisplay(int index) {
     return _instance->getDisplay(index);
 }
 
-int platform::getNumMemories() {
-    return _instance->getNumMemories();
+json platform::getMemory() {
+    return _instance->getMemory();
 }
 
-json platform::getMemory(int index) {
-    return _instance->getMemory(index);
-}
-
-json platform::getComputer(){
+json platform::getComputer() {
     return _instance->getComputer();
+}
+
+json platform::getAll() {
+    return _instance->getAll();
 }
