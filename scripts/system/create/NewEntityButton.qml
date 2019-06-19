@@ -6,7 +6,7 @@ Item {
     id: newEntityButton
     property var uuid;
     property string text: "ENTITY"
-    property string icon: "icons/edit-icon.svg"
+    property string icon: Path.resources + "icons/edit-icon.svg"
     property string activeText: newEntityButton.text
     property string activeIcon: newEntityButton.icon
     property bool isActive: false
@@ -45,14 +45,6 @@ Item {
         anchors.bottomMargin: 0
         anchors.top: parent.top
         anchors.topMargin: 0
-    }
-
-    function urlHelper(src) {
-        if (src.match(/\bhttp/)) {
-            return src;
-        } else {
-            return "../../../" + src;
-        }
     }
 
     Rectangle {
@@ -96,7 +88,7 @@ Item {
         anchors.bottomMargin: 5
         anchors.horizontalCenter: parent.horizontalCenter
         fillMode: Image.Stretch
-        source: newEntityButton.urlHelper(newEntityButton.icon)
+        source: newEntityButton.icon
     }
 
     ColorOverlay {

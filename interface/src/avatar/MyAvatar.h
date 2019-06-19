@@ -2018,11 +2018,19 @@ public slots:
     void setEnableDebugDrawDefaultPose(bool isEnabled);
 
     /**jsdoc
-     * Displays animation debug graphics.
+     * Displays animation debug graphics.  By default it shows the animation poses used for rendering.
+     * However, the property MyAvatar.setDebugDrawAnimPoseName can be used to draw a specific animation node.
      * @function MyAvatar.setEnableDebugDrawAnimPose
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawAnimPose(bool isEnabled);
+
+    /**jsdoc
+     * If set it determines which animation debug graphics to draw, when MyAvatar.setEnableDebugDrawAnimPose is set to true.
+     * @function MyAvatar.setDebugDrawAnimPoseName
+     * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
+     */
+    void setDebugDrawAnimPoseName(QString poseName);
 
     /**jsdoc
      * Displays position debug graphics.
@@ -2665,6 +2673,8 @@ private:
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
+
+    ThreadSafeValueCache<QString> _debugDrawAnimPoseName;
 
     mutable bool _cauterizationNeedsUpdate { false }; // do we need to scan children and update their "cauterized" state?
 
