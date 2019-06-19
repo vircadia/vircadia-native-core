@@ -1112,7 +1112,7 @@
                                                                                                             "currentState": "masterIdle1",
                                                                                                             "triggerRandomSwitch": "masterIdleSwitch",
                                                                                                             "randomSwitchTimeMin": 10.0,
-                                                                                                            "randomSwitchTimeMax": 120.0,
+                                                                                                            "randomSwitchTimeMax": 30.0,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "masterIdle1",
@@ -1168,7 +1168,7 @@
                                                                                                                     "url": "qrc:///avatar/animations/idle02.fbx",
                                                                                                                     "startFrame": 1.0,
                                                                                                                     "endFrame": 400.0,
-                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "timeScale": 0.75,
                                                                                                                     "loopFlag": true
                                                                                                                 },
                                                                                                                 "children": []
