@@ -593,9 +593,10 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGL
         hudEyeViewports[eye] = eyeViewport(eye);
     });
     return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (hudPipeline && hudTexture) {
+        auto pipeline = mirror ? hudMirrorPipeline : hudPipeline;
+        if (pipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
+            batch.setPipeline(pipeline);
             batch.setResourceTexture(0, hudTexture);
             if (hudStereo) {
                 for_each_eye([&](Eye eye) {
@@ -659,17 +660,6 @@ void OpenGLDisplayPlugin::compositeLayers() {
     {
         PROFILE_RANGE_EX(render_detail, "compositeScene", 0xff0077ff, (uint64_t)presentCount())
         compositeScene();
-    }
-
-#ifdef HIFI_ENABLE_NSIGHT_DEBUG
-    if (false) // do not draw the HUD if running nsight debug
-#endif
-    {
-        PROFILE_RANGE_EX(render_detail, "handleHUDBatch", 0xff0077ff, (uint64_t)presentCount())
-        auto hudOperator = getHUDOperator();
-        withPresentThreadLock([&] {
-            _hudOperator = hudOperator;
-        });
     }
 
     {
