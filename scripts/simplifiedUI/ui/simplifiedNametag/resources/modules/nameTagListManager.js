@@ -156,11 +156,11 @@ function getDistance(uuid, checkAvatar, shouldSave) {
 
 // Quick check for distance from avatar
 function quickDistanceCheckForNonSelectedAvatars(uuid) {
-    var eye = MyAvatar.position;
+    var source = MyAvatar.position;
 
     var target = AvatarManager.getAvatar(uuid).position;
 
-    var avatarDistance = Vec3.distance(target, eye);
+    var avatarDistance = Vec3.distance(target, source);
 
     return avatarDistance;
 }
@@ -211,6 +211,7 @@ function handleAlwaysOnMode(shouldTurnOnAlwaysOnMode) {
                     }
                 }
             });
+        maybeClearAlwaysOnAvatarDistanceCheck();
         alwaysOnAvatarDistanceCheck = Script.setInterval(maybeAddOrRemoveIntervalCheck, DISTANCE_CHECK_INTERVAL_MS);
     }
 }
@@ -549,7 +550,7 @@ function create() {
 }
 
 
-// Destory the manager
+// Destroy the manager
 function destroy() {
     _this.reset();
 
