@@ -210,6 +210,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
+    var LEFT_HAND = Controller.Standard.LeftHand;
+    var RIGHT_HAND = Controller.Standard.RightHand;
     var leftNearGrabEntity = new NearGrabEntity(LEFT_HAND);
     var rightNearGrabEntity = new NearGrabEntity(RIGHT_HAND);
 
