@@ -2232,6 +2232,14 @@ void Rig::initAnimGraph(const QUrl& url) {
     }
 }
 
+AnimNode::ConstPointer Rig::findAnimNodeByName(const QString& name) const {
+    if (_animNode) {
+        return _animNode->findByName(name);
+    } else {
+        return nullptr;
+    }
+}
+
 bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const {
     if (_animSkeleton && _rootJointIndex >= 0) {
         modelRegistrationPointOut = _geometryOffset * -_animSkeleton->getAbsoluteDefaultPose(_rootJointIndex).trans();
@@ -2258,7 +2266,7 @@ void Rig::applyOverridePoses() {
     }
 }
 
-void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) {
+void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) const {
     DETAILED_PERFORMANCE_TIMER("buildAbsolute");
     if (!_animSkeleton) {
         return;
