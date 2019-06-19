@@ -6,7 +6,7 @@ Item {
     id: newEntityButton
     property var uuid;
     property string text: "ENTITY"
-    property string icon: Path.resources + "icons/edit-icon.svg"
+    property string icon: Script.resolvePath("../../../interface/resources/icons/edit-icon.svg")
     property string activeText: newEntityButton.text
     property string activeIcon: newEntityButton.icon
     property bool isActive: false
