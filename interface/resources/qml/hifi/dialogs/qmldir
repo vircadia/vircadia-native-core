@@ -1,0 +1,18 @@
+module dialogs
+AboutDialog 1.0 AboutDialog.qml
+AdvancedPreferencesDialog 1.0 AdvancedPreferencesDialog.qml
+AudioBuffers 1.0 AudioBuffers.qml
+AvatarPreferencesDialog 1.0 AvatarPreferencesDialog.qml
+GeneralPreferencesDialog 1.0 GeneralPreferencesDialog.qml
+LodPreferencesDialog 1.0 LodPreferencesDialog.qml
+ModelBrowserDialog 1.0 ModelBrowserDialog.qml
+NetworkingPreferencesDialog 1.0 NetworkingPreferencesDialog.qml
+RunningScripts 1.0 RunningScripts.qml
+TabletAboutDialog 1.0 TabletAboutDialog.qml
+TabletAssetServer 1.0 TabletAssetServer.qml
+TabletDCDialog 1.0 TabletDCDialog.qml
+TabletDebugWindow 1.0 TabletDebugWindow.qml
+TabletEntityStatistics 1.0 TabletEntityStatistics.qml
+TabletEntityStatisticsItem 1.0 TabletEntityStatisticsItem.qml
+TabletLODTools 1.0 TabletLODTools.qml
+TabletRunningScripts 1.0 TabletRunningScripts.qml
