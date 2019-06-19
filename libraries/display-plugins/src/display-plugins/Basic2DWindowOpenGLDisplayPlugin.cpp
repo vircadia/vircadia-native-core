@@ -113,7 +113,6 @@ gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline
 #if defined(Q_OS_ANDROID)
         return _linearToSRGBPipeline;
 #endif
-        //return _drawTexturePipeline;
         return _SRGBToLinearPipeline;
 }
 

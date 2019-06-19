@@ -633,6 +633,7 @@ void OpenGLDisplayPlugin::compositePointer() {
     });
 }
 
+// Overridden by Basic2DWindowDisplayPlugin and OculusDisplayPlugin
 gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
     return _drawTexturePipeline;
 }
@@ -917,8 +918,9 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
-// FIXME: added this to allow desktop composite framebuffer to be RGBA while mobile is SRGBA.
-// This is a workaround
+// Added this to allow desktop composite framebuffer to be RGBA while mobile is SRGBA
+// Overridden by Basic2DWindowDisplayPlugin
+// FIXME: Eventually it would be ideal to have both framebuffers be of the same type
 gpu::Element OpenGLDisplayPlugin::getCompositeFBColorSpace() {
     return gpu::Element::COLOR_RGBA_32;
 }
