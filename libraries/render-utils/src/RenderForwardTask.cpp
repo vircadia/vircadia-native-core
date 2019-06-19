@@ -52,7 +52,7 @@ extern void initForwardPipelines(ShapePlumber& plumber);
 void RenderForwardTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
     auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
-    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample2>("PrimaryBufferUpscale");
+    auto upsamplePrimaryBufferConfig = config.getConfig<UpsampleToBlitFramebuffer>("PrimaryBufferUpscale");
     assert(preparePrimaryBufferConfig);
     assert(upsamplePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
@@ -143,31 +143,35 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
-
-    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
-    // Just resolve the msaa
-    const auto resolveInputs =
-      //  ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-        ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
-    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
-   // auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
-
 #if defined(Q_OS_ANDROID)
-#else
+    const auto resolveInputs =
+          ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
 
-    // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<render::Upsample2>("PrimaryBufferUpscale", resolvedFramebuffer);
+    // Just resolve the msaa
+     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+
+     const auto toneMappedBuffer = resolvedFramebuffer;
+#else
+    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
+
+    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
+
+    // Just resolve the msaa
+    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
     //  const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-      const auto toneMappingInputs = ToneMappingDeferred::Inputs(primaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-   // const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, newResolvedFramebuffer).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-
+ //   const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
+    // const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, newResolvedFramebuffer).asVarying();
+    const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
 #endif
+
+    // Upscale to finale resolution
+    const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
@@ -175,7 +179,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!
-    // task.addJob<Blit>("Blit", framebuffer);
+    // task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
 gpu::FramebufferPointer PreparePrimaryFramebufferMSAA::createFramebuffer(const char* name, const glm::uvec2& frameSize, int numSamples) {

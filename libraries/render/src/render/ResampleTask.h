@@ -68,14 +68,14 @@ namespace render {
         gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
     };
 
-    class Upsample2 {
+    class UpsampleToBlitFramebuffer {
     public:
        // using Input = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
         using Input = gpu::FramebufferPointer;
         using Config = UpsampleConfig;
-        using JobModel = Job::ModelIO<Upsample2, Input, gpu::FramebufferPointer, Config>;
+        using JobModel = Job::ModelIO<UpsampleToBlitFramebuffer, Input, gpu::FramebufferPointer, Config>;
 
-        Upsample2(float factor = 2.0f) : _factor{ factor } {}
+        UpsampleToBlitFramebuffer(float factor = 2.0f) : _factor{ factor } {}
 
         void configure(const Config& config);
         void run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer);

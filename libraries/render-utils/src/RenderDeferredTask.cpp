@@ -242,8 +242,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    const auto toneMappingInputs = ToneMappingDeferred::Input(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
+    const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer
@@ -254,13 +254,15 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     }
 
     // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
+    //const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", toneMappedBuffer);
+    const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
+    // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 
     // Blit!
-    task.addJob<Blit>("Blit", primaryFramebuffer);
+  //  task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
 RenderDeferredTaskDebug::RenderDeferredTaskDebug() {

@@ -105,18 +105,6 @@ public:
     void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
 };
 
-class ResolveNewFramebuffer {
-public:
-    using Inputs = gpu::FramebufferPointer;
-    using Outputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelIO<ResolveNewFramebuffer, Inputs, Outputs>;
-
-    void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
-private:
-    gpu::FramebufferPointer _outputFramebuffer;
-};
-
-
 class ExtractFrustums {
 public:
 

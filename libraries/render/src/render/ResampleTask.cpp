@@ -136,13 +136,13 @@ void Upsample::run(const RenderContextPointer& renderContext, const gpu::Framebu
     }
 }
 
-gpu::PipelinePointer Upsample2::_pipeline;
+gpu::PipelinePointer UpsampleToBlitFramebuffer::_pipeline;
 
-void Upsample2::configure(const Config& config) {
+void UpsampleToBlitFramebuffer::configure(const Config& config) {
     _factor = config.factor;
 }
 
-void Upsample2::run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer) {
+void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
