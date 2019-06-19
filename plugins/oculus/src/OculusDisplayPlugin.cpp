@@ -124,6 +124,10 @@ void OculusDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
+gpu::PipelinePointer OculusDisplayPlugin::getCompositeScenePipeline() {
+    return _SRGBToLinearPipeline;
+}
+
 static const uint64_t FRAME_BUDGET = (11 * USECS_PER_MSEC);
 static const uint64_t FRAME_OVER_BUDGET = (15 * USECS_PER_MSEC);
 
@@ -163,7 +167,7 @@ void OculusDisplayPlugin::hmdPresent() {
             batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
             batch.resetViewTransform();
             batch.setProjectionTransform(mat4());
-            batch.setPipeline(_presentPipeline);
+            batch.setPipeline(_drawTexturePipeline);
             batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });

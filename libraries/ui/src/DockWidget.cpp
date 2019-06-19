@@ -17,6 +17,7 @@
 #include <QtQml/QQmlEngine>
 #include <QtQml/QQmlContext>
 #include <QQuickView>
+#include <gl/GLHelpers.h>
 
 #include <PathUtils.h>
 
@@ -28,6 +29,7 @@ DockWidget::DockWidget(const QString& title, QWidget* parent) : QDockWidget(titl
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto qmlEngine = offscreenUi->getSurfaceContext()->engine();
     _quickView = std::shared_ptr<QQuickView>(new QQuickView(qmlEngine, nullptr), quickViewDeleter);
+    _quickView->setFormat(getDefaultOpenGLSurfaceFormat());
     QWidget* widget = QWidget::createWindowContainer(_quickView.get());
     setWidget(widget);
     QWidget* headerWidget = new QWidget();
