@@ -86,6 +86,8 @@ public:
 
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
 
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
+
 protected:
     friend class PresentThread;
 
@@ -102,7 +104,6 @@ protected:
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
     virtual void compositeScene();
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
     virtual void compositeExtra() {};
 
