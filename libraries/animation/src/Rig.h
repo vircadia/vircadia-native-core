@@ -246,6 +246,10 @@ public:
     float getUnscaledEyeHeight() const;
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) const;
 
+    int getOverrideJointCount() const;
+    bool getFlowActive() const;
+    bool getNetworkGraphActive() const;
+
 signals:
     void onLoadComplete();
 
