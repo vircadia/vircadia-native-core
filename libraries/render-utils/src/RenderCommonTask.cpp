@@ -199,6 +199,35 @@ void NewFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     output = _outputFramebuffer;
 }
 
+void NewOrDefaultFramebuffer::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
+    RenderArgs* args = renderContext->args;
+    // auto frameSize = input;
+    glm::uvec2 frameSize(args->_viewport.z, args->_viewport.w);
+    output.reset();
+
+    // First if the default Framebuffer is the correct size then use it
+    auto destBlitFbo = args->_blitFramebuffer;
+    if (destBlitFbo && destBlitFbo->getSize() == frameSize) {
+        output = destBlitFbo;
+        return;
+    }
+
+    // Else use the lodal Framebuffer
+    if (_outputFramebuffer && _outputFramebuffer->getSize() != frameSize) {
+        _outputFramebuffer.reset();
+    }
+
+    if (!_outputFramebuffer) {
+        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer.out"));
+        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+        auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _outputFramebuffer->setRenderBuffer(0, colorTexture);
+    }
+
+    output = _outputFramebuffer;
+}
+
 void ResolveFramebuffer::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     RenderArgs* args = renderContext->args;
     auto srcFbo = inputs.get0();

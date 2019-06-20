@@ -144,28 +144,24 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     }
 
 #if defined(Q_OS_ANDROID)
-    const auto resolveInputs =
-          ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
 
     // Just resolve the msaa
+    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
      const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
      const auto toneMappedBuffer = resolvedFramebuffer;
 #else
-    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
+    const auto newResolvedFramebuffer = task.addJob<NewOrDefaultFramebuffer>("MakeResolvingFramebuffer");
 
-    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
 
     // Just resolve the msaa
+    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    //  const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
- //   const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
     const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
-    // const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, newResolvedFramebuffer).asVarying();
     const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
 #endif

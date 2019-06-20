@@ -3743,13 +3743,6 @@ void Application::resizeGL() {
 
     auto renderResolutionScale = getRenderResolutionScale();
     if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
-        auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
-        assert(renderConfig);
-        auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
-        // mainView can be null if we're rendering in forward mode
-        if (mainView) {
-            mainView->setProperty("resolutionScale", renderResolutionScale);
-        }
         displayPlugin->setRenderResolutionScale(renderResolutionScale);
     }
 

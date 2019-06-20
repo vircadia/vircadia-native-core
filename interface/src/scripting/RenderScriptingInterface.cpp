@@ -30,11 +30,13 @@ void RenderScriptingInterface::loadSettings() {
         _shadowsEnabled = (_shadowsEnabledSetting.get());
         _ambientOcclusionEnabled = (_ambientOcclusionEnabledSetting.get());
         _antialiasingEnabled = (_antialiasingEnabledSetting.get());
+        _viewportResolutionScale = (_viewportResolutionScaleSetting.get());
     });
     forceRenderMethod((RenderMethod)_renderMethod);
     forceShadowsEnabled(_shadowsEnabled);
     forceAmbientOcclusionEnabled(_ambientOcclusionEnabled);
     forceAntialiasingEnabled(_antialiasingEnabled);
+    forceViewportResolutionScale(_viewportResolutionScale);
 }
 
 RenderScriptingInterface::RenderMethod RenderScriptingInterface::getRenderMethod() const {
@@ -159,7 +161,7 @@ void RenderScriptingInterface::setViewportResolutionScale(float scale) {
 void RenderScriptingInterface::forceViewportResolutionScale(float scale) {
     _renderSettingLock.withWriteLock([&] {
         _viewportResolutionScale = (scale);
-      //  _antialiasingEnabledSetting.set(enabled);
+        _viewportResolutionScaleSetting.set(scale);
 
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         assert(renderConfig);
@@ -173,19 +175,5 @@ void RenderScriptingInterface::forceViewportResolutionScale(float scale) {
         if (forwardView) {
             forwardView->setProperty("resolutionScale", _viewportResolutionScale);
         }
-/*
-        auto mainViewJitterCamConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<JitterSample>("RenderMainView.JitterCam");
-        auto mainViewAntialiasingConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<Antialiasing>("RenderMainView.Antialiasing");
-        if (mainViewJitterCamConfig && mainViewAntialiasingConfig) {
-            Menu::getInstance()->setIsOptionChecked(MenuOption::AntiAliasing, enabled);
-            if (enabled) {
-                mainViewJitterCamConfig->play();
-                mainViewAntialiasingConfig->setDebugFXAA(false);
-            }
-            else {
-                mainViewJitterCamConfig->none();
-                mainViewAntialiasingConfig->setDebugFXAA(true);
-            }
-        }*/
     });
 }

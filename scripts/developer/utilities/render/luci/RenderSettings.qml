@@ -34,8 +34,8 @@ Column {
         label: "Viewport Resolution Scale"
         object: Render
         property: "viewportResolutionScale"
-        min: 0.1
-        max: 1.1
+        min: 0.5
+        max: 1.0
     }
 }
 
