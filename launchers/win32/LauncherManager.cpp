@@ -427,6 +427,11 @@ BOOL LauncherManager::extractApplication() {
         LauncherUtils::cStringToStd(installPath), [&](int type, int size) {
         onZipExtracted((ZipType)type, size);
     });
+    if (success) {
+        addToLog(_T("Created thread for unzipping application."));
+    } else {
+        addToLog(_T("Failed to create thread for unzipping application."));
+    }
     return success;
 }
 
@@ -449,6 +454,11 @@ BOOL LauncherManager::installContent() {
         LauncherUtils::cStringToStd(contentPath), [&](int type, int size) {
         onZipExtracted((ZipType)type, size);
     });
+    if (success) {
+        addToLog(_T("Created thread for unzipping content."));
+    } else {
+        addToLog(_T("Failed to create thread for unzipping content."));
+    }
     return success;
 }
 
