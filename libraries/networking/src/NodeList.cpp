@@ -418,6 +418,20 @@ void NodeList::sendDomainServerCheckIn() {
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
+            QString systemInfo;
+#if defined Q_OS_WIN
+            systemInfo = "OS:Windows";
+#elif defined Q_OS_OSX
+            systemInfo = "OS:OSX";
+#elif defined Q_OS_LINUX
+            systemInfo = "OS:Linux";
+#elif defined Q_OS_ANDROID
+            systemInfo = "OS:Android";
+#else
+            systemInfo = "OS:Unknown";
+#endif
+            packetStream << systemInfo;
+
             packetStream << _connectReason;
 
             if (_nodeDisconnectTimestamp < _nodeConnectTimestamp) {
