@@ -1968,7 +1968,6 @@ public slots:
 
 signals:
     /**jsdoc
-     * #######<br />
      * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered
      * for a collision with an avatar.
      * <p>See also, {@link Script.addEventHandler}.</p>
@@ -2014,7 +2013,7 @@ signals:
      * Triggered when your ability to change the <code>locked</code> property of entities changes.
      * @function Entities.canAdjustLocksChanged
      * @param {boolean} canAdjustLocks - <code>true</code> if the script can change the <code>locked</code> property of an 
-     *     entity, otherwise <code>false</code>.
+     *     entity, <code>false</code> if it can't.
      * @returns {Signal}
      * @example <caption>Report when your ability to change locks changes.</caption>
      * function onCanAdjustLocksChanged(canAdjustLocks) {
@@ -2027,7 +2026,7 @@ signals:
     /**jsdoc
      * Triggered when your ability to rez (create) entities changes.
      * @function Entities.canRezChanged
-     * @param {boolean} canRez - <code>true</code> if the script can rez (create) entities, otherwise <code>false</code>.
+     * @param {boolean} canRez - <code>true</code> if the script can rez (create) entities, <code>false</code> if it can't.
      * @returns {Signal}
      */
     void canRezChanged(bool canRez);
@@ -2036,8 +2035,8 @@ signals:
      * Triggered when your ability to rez (create) temporary entities changes. Temporary entities are entities with a finite
      * <code>lifetime</code> property value set.
      * @function Entities.canRezTmpChanged
-     * @param {boolean} canRezTmp - <code>true</code> if the script can rez (create) temporary entities, otherwise 
-     *     <code>false</code>.
+     * @param {boolean} canRezTmp - <code>true</code> if the script can rez (create) temporary entities, <code>false</code> if 
+     *   it can't.
      * @returns {Signal}
      */
     void canRezTmpChanged(bool canRezTmp);
@@ -2046,8 +2045,8 @@ signals:
      * Triggered when your ability to rez (create) certified entities changes. Certified entities are entities that have PoP
      * certificates.
      * @function Entities.canRezCertifiedChanged
-     * @param {boolean} canRezCertified - <code>true</code> if the script can rez (create) certified entities, otherwise 
-     *     <code>false</code>.
+     * @param {boolean} canRezCertified - <code>true</code> if the script can rez (create) certified entities, 
+     *     <code>false</code> if it can't.
      * @returns {Signal}
      */
     void canRezCertifiedChanged(bool canRezCertified);
@@ -2057,7 +2056,7 @@ signals:
      * finite <code>lifetime</code> property value set. Certified entities are entities that have PoP certificates.
      * @function Entities.canRezTmpCertifiedChanged
      * @param {boolean} canRezTmpCertified - <code>true</code> if the script can rez (create) temporary certified entities,
-     *     otherwise <code>false</code>.
+     *     <code>false</code> if it can't.
      * @returns {Signal}
      */
     void canRezTmpCertifiedChanged(bool canRezTmpCertified);
@@ -2066,7 +2065,7 @@ signals:
      * Triggered when your ability to make changes to the asset server's assets changes.
      * @function Entities.canWriteAssetsChanged
      * @param {boolean} canWriteAssets - <code>true</code> if the script can change the <code>?</code> property of an entity,
-     *     otherwise <code>false</code>.
+     *     <code>false</code> if it can't.
      * @returns {Signal}
      */
     void canWriteAssetsChanged(bool canWriteAssets);
@@ -2074,8 +2073,8 @@ signals:
     /**jsdoc
      * Triggered when your ability to get and set private user data changes.
      * @function Entities.canGetAndSetPrivateUserDataChanged
-     * @param {boolean} canGetAndSetPrivateUserData - <code>true</code> if you can change the <code>privateUserData</code> property of an entity,
-     *     otherwise <code>false</code>.
+     * @param {boolean} canGetAndSetPrivateUserData - <code>true</code> if the script change the <code>privateUserData</code> 
+     *     property of an entity, <code>false</code> if it can't.
      * @returns {Signal}
      */
     void canGetAndSetPrivateUserDataChanged(bool canGetAndSetPrivateUserData);
@@ -2146,7 +2145,7 @@ signals:
 
 
     /**jsdoc
-     * Triggered when a mouse button is clicked while the mouse cursor is on an entity. Note: Not triggered by controller.
+     * Triggered when a mouse button is clicked while the mouse cursor is on an entity. Note: Not triggered by controllers.
      * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.clickDownOnEntity
      * @param {Uuid} entityID - The ID of the entity that was clicked on.
@@ -2157,7 +2156,7 @@ signals:
 
     /**jsdoc
      * Repeatedly triggered while a mouse button continues to be held after clicking an entity, even if the mouse cursor has 
-     * moved off the entity. Note: Not triggered by controller.
+     * moved off the entity. Note: Not triggered by controllers.
      * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.holdingClickOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally clicked.
@@ -2168,7 +2167,8 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is released after clicking on an entity, even if the mouse cursor has moved off the 
-     * entity. Note: Not triggered by controller.
+     * entity. Note: Not triggered by controllers.
+     * <p>See also, {@link Script.addEventHandler}.</p>
      * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.clickReleaseOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally clicked.
@@ -2209,41 +2209,58 @@ signals:
 
 
     /**jsdoc
-     * Triggered when an avatar enters an entity.
+     * Triggered when an avatar enters an entity if the entity has a function connected to this event. If used in an entity 
+     * script then the function is called only for enter events on that entity.
      * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.enterEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar entered.
      * @returns {Signal}
-     * @example <caption>Change the color of an entity when an avatar enters or leaves.</caption>
+     * @example <caption>Change the color of entities when an avatar enters or leaves.</caption>
+     * // Change the color of entities when an avatar enters or leaves.
      * var entityScript = (function () {
      *     this.enterEntity = function (entityID) {
-     *         print("Enter entity");
+     *         print("Entity : Enter entity: " + entityID); // Only this entity.
      *         Entities.editEntity(entityID, {
-     *             color: { red: 255, green: 64, blue: 64 },
+     *             color: { red: 255, green: 64, blue: 64 }
      *         });
      *     };
      *     this.leaveEntity = function (entityID) {
-     *         print("Leave entity");
+     *         print("Entity : Leave entity: " + entityID); // Only this entity.
      *         Entities.editEntity(entityID, {
-     *             color: { red: 128, green: 128, blue: 128 },
+     *             color: { red: 128, green: 128, blue: 128 }
      *         });
      *     };
      * });
-     *
-     * var entityID = Entities.addEntity({
-     *     type: "Sphere",
-     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
-     *     dimensions: { x: 3, y: 3, z: 3 },
-     *     color: { red: 128, green: 128, blue: 128 },
-     *     collisionless: true,  // So that avatar can walk through entity.
-     *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
-     *     lifetime: 300  // Delete after 5 minutes.
+     * 
+     * function addSphere(deltaPosition) {
+     *     Entities.addEntity({
+     *         type: "Sphere",
+     *         position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, deltaPosition)),
+     *         dimensions: { x: 3, y: 3, z: 3 },
+     *         color: { red: 128, green: 128, blue: 128 },
+     *         collisionless: true,  // So that avatar can walk through entity.
+     *         script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *         lifetime: 300  // Delete after 5 minutes.
+     *     });
+     * }
+     * 
+     * // Create two spheres that change color whan an avatar enters.
+     * addSphere({ x: -2, y: 0, z: -5 });
+     * addSphere({ x: 2, y: 0, z: -5 });
+     * 
+     * Entities.enterEntity.connect(function (entityID) {
+     *     print("Interface : Enter entity : " + entityID); // Both entities.
+     * });
+     * 
+     * Entities.leaveEntity.connect(function (entityID) {
+     *     print("Interface : Enter entity : " + entityID); // Both entities.
      * });
      */
     void enterEntity(const EntityItemID& entityItemID);
 
     /**jsdoc
-     * Triggered when an avatar leaves an entity.
+     * Triggered when an avatar leaves an entity if the entity has a function connected to this event. If used in an entity 
+     * script then the function is called only for leave events on that entity.
      * <p>See also, {@link Script.addEventHandler}.</p>
      * @function Entities.leaveEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar left.
@@ -2265,9 +2282,9 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
 
     /**jsdoc
-     * Triggered when an entity is added to Interface's local in-memory tree of entities it knows about. This may occur when 
+     * Triggered when an entity is added to Interface's local in-memory tree of entities it knows about. This may occur when
      * entities are loaded upon visiting a domain, when the user rotates their view so that more entities become visible, and 
-     * when any type of entity is added (e.g., by {@Entities.addEntity|addEntity}).
+     * when any type of entity is created (e.g., by {@link Entities.addEntity|addEntity}).
      * @function Entities.addingEntity
      * @param {Uuid} entityID - The ID of the entity added.
      * @returns {Signal}
@@ -2279,33 +2296,33 @@ signals:
     void addingEntity(const EntityItemID& entityID);
 
     /**jsdoc
-    * Triggered when an 'wearable' entity is deleted.
-    * @function Entities.deletingWearable
-    * @param {Uuid} entityID - The ID of the 'wearable' entity deleted.
-    * @returns {Signal}
-    * @example <caption>Report when an 'wearable' entity is deleted.</caption>
-    * Entities.deletingWearable.connect(function (entityID) {
-    *     print("Deleted wearable: " + entityID);
-    * });
-    */
+     * Triggered when an "wearable" entity is deleted, for example when removing a "wearable" from your avatar.
+     * @function Entities.deletingWearable
+     * @param {Uuid} entityID - The ID of the "wearable" entity deleted.
+     * @returns {Signal}
+     * @example <caption>Report when a "wearable" entity is deleted.</caption>
+     * Entities.deletingWearable.connect(function (entityID) {
+     *     print("Deleted wearable: " + entityID);
+     * });
+     */
     void deletingWearable(const EntityItemID& entityID);
 
     /**jsdoc
-    * Triggered when an 'wearable' entity is added to Interface's local in-memory tree of entities it knows about. This may occur when
-    * 'wearable' entities are added to avatar
-    * @function Entities.addingWearable
-    * @param {Uuid} entityID - The ID of the 'wearable' entity added.
-    * @returns {Signal}
-    * @example <caption>Report when an 'wearable' entity is added.</caption>
-    * Entities.addingWearable.connect(function (entityID) {
-    *     print("Added wearable: " + entityID);
-    * });
-    */
+     * Triggered when an "wearable" entity is added to Interface's local in-memory tree of entities it knows about, for example 
+     * when adding a "wearable" to your avatar.
+     * @function Entities.addingWearable
+     * @param {Uuid} entityID - The ID of the "wearable" entity added.
+     * @returns {Signal}
+     * @example <caption>Report when a "wearable" entity is added.</caption>
+     * Entities.addingWearable.connect(function (entityID) {
+     *     print("Added wearable: " + entityID);
+     * });
+     */
     void addingWearable(const EntityItemID& entityID);
 
     /**jsdoc
-     * Triggered when you disconnect from a domain, at which time Interface's local in-memory tree of entities it knows about
-     * is cleared.
+     * Triggered when you disconnect from a domain, at which time Interface's local in-memory tree of entities that it knows 
+     * about is cleared.
      * @function Entities.clearingEntities
      * @returns {Signal}
      * @example <caption>Report when Interfaces's entity tree is cleared.</caption>
@@ -2316,10 +2333,14 @@ signals:
     void clearingEntities();
     
     /**jsdoc
-     * Triggered in when a script in a {@link Entities.EntityType|Web} entity's Web page script sends an event over the 
-     * script's <code>EventBridge</code>.
+     * Triggered when a script in a {@link Entities.EntityProperties-Web|Web} entity's HTML sends an event over the entity's 
+     * HTML event bridge. The HTML web page can send a message by calling:
+     * <pre class="prettyprint"><code>EventBridge.emitWebEvent(message);</code></pre>
+     * <p>Use {@link Entities.emitScriptEvent} to send messages to the Web entity's HTML page.</p>
+     * <p>Alternatively, you can use {@link Entities.getEntityObject} to exchange messages over a Web entity's HTML event 
+     * bridge.</p>
      * @function Entities.webEventReceived
-     * @param {Uuid} entityID - The ID of the entity that event was received from.
+     * @param {Uuid} entityID - The ID of the Web entity that the message was received from.
      * @param {string} message - The message received.
      * @returns {Signal}
      */
