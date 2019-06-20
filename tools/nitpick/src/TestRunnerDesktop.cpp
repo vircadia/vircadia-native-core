@@ -265,8 +265,8 @@ void TestRunnerDesktop::runInstaller() {
         folderName += QString(" - ") + getPRNumberFromURL(_url->text());
     }
 
-    script.write((QString("cp -rf \"$VOLUME/") + folderName + "/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
-    script.write((QString("cp -rf \"$VOLUME/") + folderName + "/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
+    script.write((QString("cp -Rf \"$VOLUME/") + folderName + "/interface.app\" \"" + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
+    script.write((QString("cp -Rf \"$VOLUME/") + folderName + "/Sandbox.app\" \""   + _workingFolder + "/High_Fidelity/\"\n").toStdString().c_str());
     
     script.write("hdiutil detach \"$VOLUME\"\n");
     script.write("killall yes\n");

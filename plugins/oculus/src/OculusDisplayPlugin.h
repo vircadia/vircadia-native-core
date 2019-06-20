@@ -34,6 +34,8 @@ protected:
     void uncustomizeContext() override;
     void cycleDebugOutput() override;
 
+    virtual gpu::PipelinePointer getCompositeScenePipeline() override;
+
 private:
     static const char* NAME;
     ovrTextureSwapChain _textureSwapChain;

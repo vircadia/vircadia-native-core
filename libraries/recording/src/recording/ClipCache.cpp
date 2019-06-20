@@ -18,7 +18,13 @@
 using namespace recording;
 NetworkClipLoader::NetworkClipLoader(const QUrl& url) :
     Resource(url),
-    _clip(std::make_shared<NetworkClip>(url)) {}
+    _clip(std::make_shared<NetworkClip>(url)) {
+    if (url.isEmpty()) {
+        _loaded = false;
+        _startedLoading = false;
+        _failedToLoad = true;
+    }
+}
 
 void NetworkClip::init(const QByteArray& clipData) {
     _clipData = clipData;

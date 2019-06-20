@@ -16,32 +16,33 @@
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
+#include <QSysInfo>
 #endif
 
 using namespace platform;
 
-void WINInstance::enumerateCpu() {
+void WINInstance::enumerateCpus() {
     json cpu = {};
     
     cpu[keys::cpu::vendor] = CPUIdent::Vendor();
     cpu[keys::cpu::model] = CPUIdent::Brand();
     cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
 
-    _cpu.push_back(cpu);
+    _cpus.push_back(cpu);
 }
 
-void WINInstance::enumerateGpu() {
+void WINInstance::enumerateGpus() {
 
     GPUIdent* ident = GPUIdent::getInstance();
    
     json gpu = {};
-    gpu[keys::gpu::vendor] = ident->getName().toUtf8().constData();
     gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
+    gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
     gpu[keys::gpu::videoMemory] = ident->getMemory();
     gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
 
-    _gpu.push_back(gpu);
-    _display = ident->getOutput();
+    _gpus.push_back(gpu);
+    _displays = ident->getOutput();
 }
 
 void WINInstance::enumerateMemory() {
@@ -52,9 +53,9 @@ void WINInstance::enumerateMemory() {
     statex.dwLength = sizeof(statex);
     GlobalMemoryStatusEx(&statex);
     int totalRam = statex.ullTotalPhys / 1024 / 1024;
-    ram[platform::keys::memTotal] = totalRam;
+    ram[platform::keys::memory::memTotal] = totalRam;
 #endif
-    _memory.push_back(ram);
+    _memory = ram;
 }
 
 void WINInstance::enumerateComputer(){
@@ -62,5 +63,8 @@ void WINInstance::enumerateComputer(){
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";
     
+    auto sysInfo = QSysInfo();
+
+    _computer[keys::computer::OSVersion] = sysInfo.kernelVersion().toStdString();
 }
 
