@@ -2200,6 +2200,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
+// The JSDoc is for the callEntityScriptMethod() call in this method.
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success , const QString& status) {
@@ -2384,8 +2385,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
  * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
  * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
  * @function Entities.unload
+ * @param {Uuid} entityID - The ID of the entity that the script is running in.
  * @returns {Signal}
  */
+// The JSDoc is for the callEntityScriptMethod() call in this method.
 void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
