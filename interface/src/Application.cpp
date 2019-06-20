@@ -6978,7 +6978,7 @@ void Application::updateWindowTitle() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
 
-    QString buildVersion = " - Kasen v0.82.1 - "
+    QString buildVersion = " - Kasen v0.83.0 - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 
