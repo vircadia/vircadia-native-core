@@ -51,6 +51,8 @@ public slots:
      * Gets the operating system type.
      * @function PlatformInfo.getOperatingSystemType
      * @returns {string} <code>"WINDOWS"</code>, <code>"MACOS"</code>, or <code>"UNKNOWN"</code>.
+     * @deprecated This function is deprecated and will be removed.
+     *             use getComputer()["OS"] instead
      */
     QString getOperatingSystemType();
 
@@ -61,6 +63,10 @@ public slots:
      * @example <caption>Report the CPU being used.</caption>
      * print("CPU: " + PlatformInfo.getCPUBrand());
      * // Example: Intel(R) Core(TM) i7-7820HK CPU @ 2.90GHz
+     * @deprecated This function is deprecated and will be removed.
+     *             use getNumCPUs() to know the number of CPUs in the hardware, at least one is expected
+     *             use getCPU(0)["vendor"] to get the brand of the vendor
+     *             use getCPU(0)["model"] to get the model name of the cpu
      */
     QString getCPUBrand();
 
@@ -68,6 +74,8 @@ public slots:
      * Gets the number of logical CPU cores.
      * @function PlatformInfo.getNumLogicalCores
      * @returns {number} The number of logical CPU cores.
+     * @deprecated This function is deprecated and will be removed.
+     *             use getCPU(0)["numCores"] instead
      */
     unsigned int getNumLogicalCores();
 
@@ -75,6 +83,8 @@ public slots:
      * Returns the total system memory in megabytes.
      * @function PlatformInfo.getTotalSystemMemoryMB
      * @returns {number} The total system memory in megabytes.
+     * @deprecated This function is deprecated and will be removed.
+     *             use getMemory()["memTotal"] instead
      */
     int getTotalSystemMemoryMB();
 
@@ -82,6 +92,10 @@ public slots:
      * Gets the graphics card type.
      * @function PlatformInfo.getGraphicsCardType
      * @returns {string} The graphics card type.
+     * @deprecated This function is deprecated and will be removed.
+     *             use getNumGPUs() to know the number of GPUs in the hardware, at least one is expected
+     *             use getGPU(0)["vendor"] to get the brand of the vendor
+     *             use getGPU(0)["model"] to get the model name of the gpu
      */
     QString getGraphicsCardType();
 
@@ -141,7 +155,7 @@ public slots:
     /**jsdoc
      * Get the description of the GPU at the index parameter
      * expected fields are:
-     *  - gpuVendor...
+     *  - vendor, model...
      * @param index The index of the GPU of the platform
      * @function PlatformInfo.getGPU
      * @returns {string} The GPU description json field
@@ -183,6 +197,14 @@ public slots:
     */
     QString getComputer();
 
+    /**jsdoc
+    * Get the complete description of the Platform as an aggregated Json
+    * The expected object description is:
+    *  { "computer": {...}, "memory": {...}, "cpus": [{...}, ...], "gpus": [{...}, ...], "displays": [{...}, ...] }
+    * @function PlatformInfo.getPlatform
+    * @returns {string} The Platform description json field
+    */
+    QString getPlatform();
 
     /**jsdoc
     * Get the Platform TIer profiled on startup of the Computer
