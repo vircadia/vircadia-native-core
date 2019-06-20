@@ -2775,7 +2775,6 @@ void Application::cleanupBeforeQuit() {
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
