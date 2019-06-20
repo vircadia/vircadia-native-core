@@ -139,6 +139,7 @@ option(BUILD_MANUAL_TESTS "Build manual tests" ${BUILD_MANUAL_TESTS_OPTION})
 option(BUILD_TOOLS "Build tools" ${BUILD_TOOLS_OPTION})
 option(BUILD_INSTALLER "Build installer" ${BUILD_INSTALLER_OPTION})
 option(USE_GLES "Use OpenGL ES" ${GLES_OPTION})
+option(USE_KHR_ROBUSTNESS "Use KHR_robustness" OFF)
 option(DISABLE_QML "Disable QML" ${DISABLE_QML_OPTION})
 option(DISABLE_KTX_CACHE "Disable KTX Cache" OFF)
 option(
@@ -148,6 +149,10 @@ option(
 )
 
 set(PLATFORM_QT_GL OpenGL)
+
+if (USE_KHR_ROBUSTNESS)
+  add_definitions(-DUSE_KHR_ROBUSTNESS)
+endif()
 
 if (USE_GLES)
   add_definitions(-DUSE_GLES)
