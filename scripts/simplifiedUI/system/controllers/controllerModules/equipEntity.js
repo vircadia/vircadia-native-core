@@ -17,7 +17,6 @@ Script.include("/~/system/libraries/Xform.js");
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 Script.include("/~/system/libraries/cloneEntityUtils.js");
-Script.include("/~/system/libraries/utils.js");
 
 
 var DEFAULT_SPHERE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/equip-Fresnel-3.fbx";

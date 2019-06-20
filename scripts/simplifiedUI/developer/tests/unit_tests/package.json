@@ -1,0 +1,6 @@
+{
+  "name": "unit_tests",
+  "devDependencies": {
+    "jasmine-console-reporter": "^1.2.7"
+  }
+}

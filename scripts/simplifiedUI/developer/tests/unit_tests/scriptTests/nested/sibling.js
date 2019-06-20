@@ -1,0 +1,3 @@
+sibling = {
+    lib: "nested/sibling",
+};
