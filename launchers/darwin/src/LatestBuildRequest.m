@@ -1,8 +1,7 @@
 #import "LatestBuildRequest.h"
 #import "Launcher.h"
 #import "Settings.h"
-// https://thunder.highfidelity.com/builds/api/tags/latest?format=json
-// https://httpbin.org/status/500
+
 @implementation LatestBuildRequest
 
 - (void) requestLatestBuildInfo {
