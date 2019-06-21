@@ -574,9 +574,10 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGL
     std::array<glm::ivec4, 2> hudEyeViewports;
     for_each_eye([&](Eye eye) { hudEyeViewports[eye] = eyeViewport(eye); });
     return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (hudPipeline && hudTexture) {
+        auto pipeline = mirror ? hudMirrorPipeline : hudPipeline;
+        if (pipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
+            batch.setPipeline(pipeline);
             batch.setResourceTexture(0, hudTexture);
             if (hudStereo) {
                 for_each_eye([&](Eye eye) {
@@ -954,6 +955,9 @@ gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
     return _drawTexturePipeline;
 }
 
+// Added this to allow desktop composite framebuffer to be RGBA while mobile is SRGBA, so that tone mapping looks right on both platforms
+// Overridden by Basic2DWindowDisplayPlugin to achieve this
+// FIXME: Eventually it would be ideal to have both framebuffers be of the same type
 gpu::Element OpenGLDisplayPlugin::getCompositeFBColorSpace() {
     return gpu::Element::COLOR_RGBA_32;
 }

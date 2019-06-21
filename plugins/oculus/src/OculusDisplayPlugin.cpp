@@ -167,7 +167,6 @@ void OculusDisplayPlugin::hmdPresent() {
             batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
             batch.resetViewTransform();
             batch.setProjectionTransform(mat4());
-            //batch.setPipeline(_drawTexturePipeline);
             batch.setPipeline(_drawTexturePipeline);
             batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
