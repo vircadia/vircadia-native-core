@@ -147,14 +147,6 @@ public:
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
     virtual void captureFrame(const std::string& outputName) const { }
 
-    virtual float getRenderResolutionScale() const {
-        return _renderResolutionScale;
-    }
-
-    void setRenderResolutionScale(float renderResolutionScale) {
-        _renderResolutionScale = renderResolutionScale;
-    }
-
     // The size of the rendering target (may be larger than the device size due to distortion)
     virtual glm::uvec2 getRecommendedRenderSize() const = 0;
 
@@ -234,8 +226,6 @@ protected:
     gpu::ContextPointer _gpuContext;
 
     MovingAverage<float, 10> _movingAveragePresent;
-
-    float _renderResolutionScale { 1.0f };
 
 private:
     QMutex _presentMutex;

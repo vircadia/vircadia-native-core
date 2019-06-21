@@ -3743,11 +3743,6 @@ void Application::resizeGL() {
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
     }
 
-    auto renderResolutionScale = getRenderResolutionScale();
-    if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
-        displayPlugin->setRenderResolutionScale(renderResolutionScale);
-    }
-
     // FIXME the aspect ratio for stereo displays is incorrect based on this.
     float aspectRatio = displayPlugin->getRecommendedAspectRatio();
     _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), aspectRatio,
@@ -8541,7 +8536,7 @@ void Application::shareSnapshot(const QString& path, const QUrl& href) {
 }
 
 float Application::getRenderResolutionScale() const {
-    return 1.0f;
+    return RenderScriptingInterface::getInstance()->getViewportResolutionScale();
 }
 
 void Application::notifyPacketVersionMismatch() {
