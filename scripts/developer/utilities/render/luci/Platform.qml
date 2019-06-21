@@ -23,46 +23,31 @@ Column {
         id: computer
         label: "Computer"
         isUnfold: true
-
-        Component.onCompleted: {    
-            computer.populateFromObjectProps(JSON.parse(PlatformInfo.getComputer()))
-        }
+        rootObject:JSON.parse(PlatformInfo.getComputer())
     }
     Prop.PropGroup {
         id: cpu
         label: "CPU"
         isUnfold: true
-
-        Component.onCompleted: {    
-            cpu.populateFromObjectProps(JSON.parse(PlatformInfo.getCPU(0)))
-        }
+        rootObject:JSON.parse(PlatformInfo.getPlatform()).cpus
     }
     Prop.PropGroup {
         id: memory
         label: "Memory"
         isUnfold: true
-
-        Component.onCompleted: {    
-            memory.populateFromObjectProps(JSON.parse(PlatformInfo.getMemory()))
-        }
+        rootObject:JSON.parse(PlatformInfo.getMemory())
     }
     Prop.PropGroup {
         id: gpu
         label: "GPU"
         isUnfold: true
-
-        Component.onCompleted: {    
-            gpu.populateFromObjectProps(JSON.parse(PlatformInfo.getGPU(0)))
-        }
+        rootObject:JSON.parse(PlatformInfo.getPlatform()).gpus
     }
     Prop.PropGroup {
         id: display
         label: "Display"
         isUnfold: true
-
-        Component.onCompleted: {    
-            display.populateFromObjectProps(JSON.parse(PlatformInfo.getDisplay(0)))
-        }
+        rootObject:JSON.parse(PlatformInfo.getPlatform()).displays
     }
 }
 
