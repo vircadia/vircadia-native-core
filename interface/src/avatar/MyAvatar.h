@@ -1835,6 +1835,10 @@ public:
      */
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
+    int getOverrideJointCount() const;
+    bool getFlowActive() const;
+    bool getNetworkGraphActive() const;
+
 public slots:
 
    /**jsdoc
