@@ -27,11 +27,12 @@ json getGPU(int index);
 
 int getNumDisplays();
 json getDisplay(int index);
-    
-int getNumMemories();
-json getMemory(int index);
+
+json getMemory();
 
 json getComputer();
+
+json getAll();
 
 }  // namespace platform
 

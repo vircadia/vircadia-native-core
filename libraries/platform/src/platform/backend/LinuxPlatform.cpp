@@ -13,36 +13,37 @@
 #include <string>
 #include <CPUIdent.h>
 #include <GPUIdent.h>
+#include <QSysInfo>
 
 using namespace platform;
 
-void LinuxInstance::enumerateCpu() {
+void LinuxInstance::enumerateCpus() {
     json cpu = {};
 
     cpu[keys::cpu::vendor] = CPUIdent::Vendor();
     cpu[keys::cpu::model] = CPUIdent::Brand();
     cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
 
-    _cpu.push_back(cpu);
+    _cpus.push_back(cpu);
 }
 
-void LinuxInstance::enumerateGpu() {
+void LinuxInstance::enumerateGpus() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
-    gpu[keys::gpu::vendor] = ident->getName().toUtf8().constData();
     gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
+    gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
     gpu[keys::gpu::videoMemory] = ident->getMemory();
     gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
 
-    _gpu.push_back(gpu);
-    _display = ident->getOutput();
+    _gpus.push_back(gpu);
+    _displays = ident->getOutput();
 }
 
 void LinuxInstance::enumerateMemory() {
     json ram = {};
-    ram[keys::memTotal]=0;
+    ram[keys::memory::memTotal]=0;
 
-    _memory.push_back(ram);
+    _memory = ram;
 }
 
 void LinuxInstance::enumerateComputer(){
@@ -50,5 +51,9 @@ void LinuxInstance::enumerateComputer(){
     _computer[keys::computer::OS] = keys::computer::OS_LINUX;
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";
+
+    auto sysInfo = QSysInfo();
+
+    _computer[keys::computer::OSVersion] = sysInfo.kernelVersion().toStdString();
 }
 

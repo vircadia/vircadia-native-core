@@ -15,11 +15,11 @@ namespace platform {
     class MACOSInstance : public Instance {
 
     public:
-        void enumerateCpu() override;
-        void enumerateMemory() override;
-        void enumerateGpu() override;
+        void enumerateCpus() override;
+        void enumerateGpus() override;
         void enumerateDisplays() override;
-        void enumerateComputer () override;
+        void enumerateMemory() override;
+        void enumerateComputer() override;
     };
 
 }  // namespace platform

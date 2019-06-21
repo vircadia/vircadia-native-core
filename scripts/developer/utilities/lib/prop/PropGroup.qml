@@ -79,12 +79,21 @@ PropFolderPanel {
                             })
                         } break;
                         case 'object': {
-                            var component = Qt.createComponent("PropItem.qml");
+                           /* var component = Qt.createComponent("PropItem.qml");
                             component.createObject(propItemsContainer, {
                                 "label": proItem.property,
                                 "object": proItem.object,
                                 "property": proItem.property,
-                             })
+                             })*/
+                            var component = Qt.createComponent("PropGroup.qml");
+                            component.createObject(propItemsContainer, {
+                                "label": proItem.property,
+                                "object": proItem.object,
+                               // "jobPath": root.jobPath + '.' + job.objectName,
+                               // "showProps": root.showProps,
+                               // "showSubs": root.showSubs,
+                               // "indentDepth": root.indentDepth + 1,
+                            })
                         } break;
                         case 'printLabel': {
                             var component = Qt.createComponent("PropItem.qml");
@@ -117,8 +126,30 @@ PropFolderPanel {
             o["object"] = object
             o["property"] = props[p];
             // o["readOnly"] = true;
+        
+        /*
             o["type"] = "string";
-            propsModel.push(o)
+
+            propsModel.push(o)*/
+
+            var thePropThing = object[props[p]];
+            if ((thePropThing !== undefined) && (thePropThing !== null)) {
+                var theType = typeof(thePropThing)
+                switch(theType) {
+                    case 'object': {
+                        o["type"] = "object";
+                        propsModel.push(o)  
+                    } 
+                    default: {
+                        o["type"] = "string";
+                        propsModel.push(o)
+                    } break;
+                }
+            
+            } else {
+                o["type"] = "string";
+                propsModel.push(o)
+            }
         }
         root.updatePropItems(root.propItemsPanel, propsModel);
     }

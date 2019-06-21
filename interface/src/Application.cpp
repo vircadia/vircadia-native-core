@@ -8539,23 +8539,7 @@ void Application::shareSnapshot(const QString& path, const QUrl& href) {
 }
 
 float Application::getRenderResolutionScale() const {
-    auto menu = Menu::getInstance();
-    if (!menu) {
-        return 1.0f;
-    }
-    if (menu->isOptionChecked(MenuOption::RenderResolutionOne)) {
-        return 1.0f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
-        return 0.666f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionHalf)) {
-        return 0.5f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionThird)) {
-        return 0.333f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
-        return 0.25f;
-    } else {
-        return 1.0f;
-    }
+    return 1.0f;
 }
 
 void Application::notifyPacketVersionMismatch() {
