@@ -112,7 +112,7 @@ void setupPreferences() {
             RenderScriptingInterface::getInstance()->setViewportResolutionScale(value);
         };
 
-        auto scaleSlider = new SliderPreference(GRAPHICS_QUALITY, "Viewport Resolution Scale", getter, setter);
+        auto scaleSlider = new SliderPreference(GRAPHICS_QUALITY, "Resolution Scale", getter, setter);
         scaleSlider->setMin(0.25f);
         scaleSlider->setMax(1.0f);
         scaleSlider->setStep(0.02f);
