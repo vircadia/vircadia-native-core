@@ -1,3 +1,0 @@
-sibling = {
-    lib: "nested/sibling",
-};
