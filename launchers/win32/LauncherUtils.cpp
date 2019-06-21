@@ -184,6 +184,17 @@ LauncherUtils::ResponseError LauncherUtils::makeHTTPCall(const CString& callerNa
     BOOL haveContentLength = WinHttpQueryHeaders(hrequest, WINHTTP_QUERY_CONTENT_LENGTH, NULL,
         &szContentLength, &bufferBytes, &dwHeaderIndex);
 
+    DWORD statusCode;
+    DWORD statusCodeSize = sizeof(statusCode);
+    WinHttpQueryHeaders(hrequest,
+        WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+        NULL,
+        &statusCode, &statusCodeSize, WINHTTP_NO_HEADER_INDEX);
+
+    CString msg;
+    msg.Format(_T("Status code response (%s%s): %lu"), mainUrl, dirUrl, statusCode);
+    theApp._manager.addToLog(msg);
+
     DWORD dwContentLength;
     if (haveContentLength) {
         dwContentLength = _wtoi(szContentLength);
@@ -226,18 +237,26 @@ BOOL LauncherUtils::getFont(const CString& fontName, int fontSize, bool isBold, 
 }
 
 uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string& path, std::vector<std::string>& files) {
-    mz_zip_archive zip_archive;
-    memset(&zip_archive, 0, sizeof(zip_archive));
-
-    auto status = mz_zip_reader_init_file(&zip_archive, zipFile.c_str(), 0);
-
     {
         CString msg;
         msg.Format(_T("Reading zip file %s, extracting to %s"), CString(zipFile.c_str()), CString(path.c_str()));
         theApp._manager.addToLog(msg);
     }
 
-    if (!status) return 0;
+    mz_zip_archive zip_archive;
+    memset(&zip_archive, 0, sizeof(zip_archive));
+
+    auto status = mz_zip_reader_init_file(&zip_archive, zipFile.c_str(), 0);
+
+    if (!status) {
+        auto zip_error = mz_zip_get_last_error(&zip_archive);
+        auto zip_error_msg = mz_zip_get_error_string(zip_error);
+        CString msg;
+        msg.Format(_T("Failed to initialize miniz: %d %s"), zip_error, CString(zip_error_msg));
+        theApp._manager.addToLog(msg);
+        return 0;
+    }
+
     int fileCount = (int)mz_zip_reader_get_num_files(&zip_archive);
     if (fileCount == 0) {
         theApp._manager.addToLog(_T("Zip archive has a file count of 0"));
