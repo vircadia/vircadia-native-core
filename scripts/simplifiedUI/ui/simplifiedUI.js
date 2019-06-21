@@ -385,7 +385,7 @@ function loadSimplifiedTopBar() {
 
 
 var pausedScriptList = [];
-var SCRIPT_NAME_WHITELIST = ["simplifiedUI.js", "statusIndicator.js"];
+var SCRIPT_NAME_WHITELIST = ["simplifiedUI.js", "defaultScripts.js", "controllerScripts.js"];
 function pauseCurrentScripts() {
     var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
     
