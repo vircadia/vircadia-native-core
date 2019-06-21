@@ -53,6 +53,9 @@ static const glm::vec3 INITIAL_EQUIPPABLE_INDICATOR_OFFSET { glm::vec3(0.0f) };
  *     pens, etc. and <code>false</code> for things meant to decorate the hand.
  * @property {boolean} triggerable=false - If <code>true</code> then the entity will receive calls to trigger
  *     {@link Controller|Controller entity methods}.
+ * @property {boolean} grabDelegateToParent=true - If <code>true</code> and the entity is grabbed, the grab will be transferred 
+ *     to its parent entity if there is one; if <code>false</code>, a child entity can be grabbed and moved relative to its 
+ *     parent.
  * @property {boolean} equippable=true - If <code>true</code> then the entity can be equipped.
  * @property {Vec3} equippableLeftPosition=0,0,0 - Positional offset from the left hand, when equipped.
  * @property {Quat} equippableLeftRotation=0,0,0,1 - Rotational offset from the left hand, when equipped.
