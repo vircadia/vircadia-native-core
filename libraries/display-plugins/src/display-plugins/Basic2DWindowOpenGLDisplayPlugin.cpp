@@ -109,11 +109,25 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
+gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getRenderTexturePipeline() {
+#if defined(Q_OS_ANDROID)
+    return _linearToSRGBPipeline;
+#else
+
+#ifndef USE_GLES
+    return _SRGBToLinearPipeline;
+#else
+    return _drawTexturePipeline;
+#endif
+
+#endif
+}
+
 gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline() {
 #if defined(Q_OS_ANDROID)
-        return _linearToSRGBPipeline;
+    return _linearToSRGBPipeline;
 #else
-        return _SRGBToLinearPipeline;
+    return _drawTexturePipeline;
 #endif
 }
 

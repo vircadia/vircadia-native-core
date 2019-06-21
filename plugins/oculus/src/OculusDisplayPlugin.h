@@ -24,6 +24,8 @@ public:
 
     virtual QJsonObject getHardwareStats() const;
 
+    virtual gpu::PipelinePointer getCompositeScenePipeline() override;
+
 protected:
     QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }
 
@@ -33,8 +35,6 @@ protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     void cycleDebugOutput() override;
-
-    virtual gpu::PipelinePointer getCompositeScenePipeline() override;
 
 private:
     static const char* NAME;
