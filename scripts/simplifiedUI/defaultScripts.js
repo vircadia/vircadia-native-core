@@ -11,12 +11,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
-
 
 var DEFAULT_SCRIPTS_SEPARATE = [
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/controllers/controllerScripts.js",
-    DEFAULT_SCRIPTS_PATH_PREFIX + "ui/simplifiedUI.js"
+    "system/controllers/controllerScripts.js",
+    "ui/simplifiedUI.js"
 ];
 function loadSeparateDefaults() {
     for (var i in DEFAULT_SCRIPTS_SEPARATE) {
@@ -26,9 +24,9 @@ function loadSeparateDefaults() {
 
 
 var DEFAULT_SCRIPTS_COMBINED = [
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/request-service.js",
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/progress.js",
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/away.js"
+    "system/request-service.js",
+    "system/progress.js",
+    "system/away.js"
 ];
 function runDefaultsTogether() {
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
