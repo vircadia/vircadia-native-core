@@ -109,6 +109,36 @@ public:
  * <p>Note: For Interface scripts, the entities available to scripts are those that Interface has displayed and so knows 
  * about.</p>
  *
+ * <h3>Entity Methods</h3>
+ *
+ * <p>Some of the API's signals correspond to entity methods that are called if, if present, in the entity being interacted 
+ * with. The client or server entity script must expose them as a property. However, unlike {@link Entities.callEntityMethod}, 
+ * server entity scripts do not need to list them in an <code>remotelyCallable</code> property. The entity methods are called 
+ * with parameters per their corresponding signal.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Method Name</th><th>Corresponding Signal</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>clickDownOnEntity</code></td><td>{@link Entities.clickDownOnEntity}</td></tr>
+ *     <tr><td><code>clickReleaseOnEntity</code></td><td>{@link Entities.clickReleaseOnEntity}</td></tr>
+ *     <tr><td><code>collisionWithEntity</code></td><td>{@link Entities.collisionWithEntity}</td></tr>
+ *     <tr><td><code>enterEntity</code></td><td>{@link Entities.enterEntity}</td></tr>
+ *     <tr><td><code>holdingClickOnEntity</code></td><td>{@link Entities.holdingClickOnEntity}</td></tr>
+ *     <tr><td><code>hoverEnterEntity</code></td><td>{@link Entities.hoverEnterEntity}</td></tr>
+ *     <tr><td><code>hoverLeaveEntity</code></td><td>{@link Entities.hoverLeaveEntity}</td></tr>
+ *     <tr><td><code>hoverOverEntity</code></td><td>{@link Entities.hoverOverEntity}</td></tr>
+ *     <tr><td><code>leaveEntity</code></td><td>{@link Entities.leaveEntity}</td></tr>
+ *     <tr><td><code>mouseDoublePressOnEntity</code></td><td>{@link Entities.mouseDoublePressOnEntity}</td></tr>
+ *     <tr><td><code>mouseMoveOnEntity</code></td><td>{@link Entities.mouseMoveOnEntity}</td></tr>
+ *     <tr><td><code>mouseMoveEvent</code></td><td><span class="important">Deprecated: This is a synonym for 
+ *       <code>mouseMoveOnEntity</code>.</span></td></tr>
+ *     <tr><td><code>mousePressOnEntity</code></td><td>{@link Entities.mousePressOnEntity}</td></tr>
+ *     <tr><td><code>mouseReleaseOnEntity</code></td><td>{@link Entities.mouseReleaseOnEntity}</td></tr>
+ *   </tbody>
+ * </table>
+ * <p>See {@link Entities.clickDownOnEntity} for an example.</p>
+ *
  * @namespace Entities
  *
  * @hifi-interface
@@ -2080,7 +2110,7 @@ signals:
     /**jsdoc
      * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered
      * for a collision with an avatar.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.collisionWithEntity
      * @param {Uuid} idA - The ID of one entity in the collision. For an entity script, this is the ID of the entity containing 
      *     the script.
@@ -2193,7 +2223,7 @@ signals:
     /**jsdoc
      * Triggered when a mouse button is clicked while the mouse cursor is on an entity, or a controller trigger is fully 
      * pressed while its laser is on an entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.mousePressOnEntity
      * @param {Uuid} entityID - The ID of the entity that was pressed on.
      * @param {PointerEvent} event - Details of the event.
@@ -2218,7 +2248,7 @@ signals:
 
     /**jsdoc
      * Repeatedly triggered while the mouse cursor or controller laser moves on an entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.mouseMoveOnEntity
      * @param {Uuid} entityID - The ID of the entity that was moved on.
      * @param {PointerEvent} event - Details of the event.
@@ -2229,7 +2259,7 @@ signals:
     /**jsdoc
      * Triggered when a mouse button is released after clicking on an entity or the controller trigger is partly or fully 
      * released after pressing on an entity, even if the mouse pointer or controller laser has moved off the entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.mouseReleaseOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally pressed.
      * @param {PointerEvent} event - Details of the event.
@@ -2256,18 +2286,41 @@ signals:
 
     /**jsdoc
      * Triggered when a mouse button is clicked while the mouse cursor is on an entity. Note: Not triggered by controllers.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.clickDownOnEntity
      * @param {Uuid} entityID - The ID of the entity that was clicked on.
      * @param {PointerEvent} event - Details of the event.
      * @returns {Signal}
+     * @example <caption>Compare clickDownOnEntity signal and entity script method.</caption>
+     * var entityScript = (function () {
+     *     // Method is called for only this entity.
+     *     this.clickDownOnEntity = function (entityID, event) {
+     *         print("Entity : Clicked sphere ; " + event.type);
+     *     };
+     * });
+     * 
+     * var sphereID = Entities.addEntity({
+     *     type: "Sphere",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
+     *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * Entities.clickDownOnEntity.connect(function (entityID, event) {
+     *     // Signal is triggered for all entities.
+     *     if (entityID === sphereID) {
+     *         print("Interface : Clicked sphere ; " + event.type);
+     *     } else {
+     *         print("Interface : Clicked another entity ; " + event.type);
+     *     }
+     * });
      */
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     /**jsdoc
      * Repeatedly triggered while a mouse button continues to be held after clicking an entity, even if the mouse cursor has 
      * moved off the entity. Note: Not triggered by controllers.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.holdingClickOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally clicked.
      * @param {PointerEvent} event - Details of the event.
@@ -2278,8 +2331,7 @@ signals:
     /**jsdoc
      * Triggered when a mouse button is released after clicking on an entity, even if the mouse cursor has moved off the 
      * entity. Note: Not triggered by controllers.
-     * <p>See also, {@link Script.addEventHandler}.</p>
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.clickReleaseOnEntity
      * @param {Uuid} entityID - The ID of the entity that was originally clicked.
      * @param {PointerEvent} event - Details of the event.
@@ -2289,7 +2341,7 @@ signals:
 
     /**jsdoc
      * Triggered when the mouse cursor or controller laser starts hovering on an entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.hoverEnterEntity
      * @param {Uuid} entityID - The ID of the entity that is being hovered.
      * @param {PointerEvent} event - Details of the event.
@@ -2299,7 +2351,7 @@ signals:
 
     /**jsdoc
      * Repeatedly triggered when the mouse cursor or controller laser moves while hovering over an entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.hoverOverEntity
      * @param {Uuid} entityID - The ID of the entity that is being hovered.
      * @param {PointerEvent} event - Details of the event.
@@ -2309,7 +2361,7 @@ signals:
 
     /**jsdoc
      * Triggered when the mouse cursor or controller laser stops hovering over an entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.hoverLeaveEntity
      * @param {Uuid} entityID - The ID of the entity that was being hovered.
      * @param {PointerEvent} event - Details of the event.
@@ -2319,59 +2371,17 @@ signals:
 
 
     /**jsdoc
-     * Triggered when an avatar enters an entity if the entity has a function connected to this event. If used in an entity 
-     * script then the function is called only for enter events on that entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * Triggered when an avatar enters an entity, but only if the entity has an entity method exposed for this event.
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.enterEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar entered.
      * @returns {Signal}
-     * @example <caption>Change the color of entities when an avatar enters or leaves.</caption>
-     * // Change the color of entities when an avatar enters or leaves.
-     * var entityScript = (function () {
-     *     this.enterEntity = function (entityID) {
-     *         print("Entity : Enter entity: " + entityID); // Only this entity.
-     *         Entities.editEntity(entityID, {
-     *             color: { red: 255, green: 64, blue: 64 }
-     *         });
-     *     };
-     *     this.leaveEntity = function (entityID) {
-     *         print("Entity : Leave entity: " + entityID); // Only this entity.
-     *         Entities.editEntity(entityID, {
-     *             color: { red: 128, green: 128, blue: 128 }
-     *         });
-     *     };
-     * });
-     * 
-     * function addSphere(deltaPosition) {
-     *     Entities.addEntity({
-     *         type: "Sphere",
-     *         position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, deltaPosition)),
-     *         dimensions: { x: 3, y: 3, z: 3 },
-     *         color: { red: 128, green: 128, blue: 128 },
-     *         collisionless: true,  // So that avatar can walk through entity.
-     *         script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
-     *         lifetime: 300  // Delete after 5 minutes.
-     *     });
-     * }
-     * 
-     * // Create two spheres that change color whan an avatar enters.
-     * addSphere({ x: -2, y: 0, z: -5 });
-     * addSphere({ x: 2, y: 0, z: -5 });
-     * 
-     * Entities.enterEntity.connect(function (entityID) {
-     *     print("Interface : Enter entity : " + entityID); // Both entities.
-     * });
-     * 
-     * Entities.leaveEntity.connect(function (entityID) {
-     *     print("Interface : Enter entity : " + entityID); // Both entities.
-     * });
-     */
+    */
     void enterEntity(const EntityItemID& entityItemID);
 
     /**jsdoc
-     * Triggered when an avatar leaves an entity if the entity has a function connected to this event. If used in an entity 
-     * script then the function is called only for leave events on that entity.
-     * <p>See also, {@link Script.addEventHandler}.</p>
+     * Triggered when an avatar leaves an entity, but only if the entity has an entity method exposed for this event.
+     * <p>See also, {@link Entities|Entity Methods} and {@link Script.addEventHandler}.</p>
      * @function Entities.leaveEntity
      * @param {Uuid} entityID - The ID of the entity that the avatar left.
      * @returns {Signal}
