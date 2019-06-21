@@ -114,15 +114,16 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} model="hifi_pbr" - Different material models support different properties and rendering modes.
  *     Supported models are: <code>"hifi_pbr"</code>.
  * @property {string} name="" - A name for the material. Supported by all material models.
- * @property {Color|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A {@link Color} value
- *     is treated as sRGB. A {@link RGBS} value can be either RGB or sRGB. 
+ * @property {ColorFloat|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A 
+ *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &mdash; 
+ *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {number|string} opacity=1.0 - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {boolean|string} unlit=false - If <code>true</code>, the material is not lit, otherwise it is. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {Color|RGBS|string} albedo - The albedo color. A {@link Color} value is treated as sRGB. A {@link RGBS} value can
- *     be either RGB or sRGB. 
+ * @property {ColorFloat|RGBS|string} albedo - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have 
+ *     component values in the range <code>0.0</code> &mdash; <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {number|string} roughness - The roughness, range <code>0.0</code> &ndash; <code>1.0</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
