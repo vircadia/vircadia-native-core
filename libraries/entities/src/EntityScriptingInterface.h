@@ -501,37 +501,141 @@ public slots:
     Q_INVOKABLE QSizeF textSize(const QUuid& id, const QString& text);
 
     /**jsdoc
-     * Calls a method in a client entity script from a client script or client entity script, or calls a method in a server
-     * entity script from a server entity script. The entity script method must be exposed as a property in the target client 
+     * Calls a method in a client entity script from an Interface, avatar, or client entity script, or calls a method in a 
+     * server entity script from a server entity script. The entity script method must be exposed as a property in the target 
      * entity script. Additionally, if calling a server entity script, the server entity script must include the method's name 
      * in an exposed property called <code>remotelyCallable</code> that is an array of method names that can be called.
      * @function Entities.callEntityMethod
      * @param {Uuid} entityID - The ID of the entity to call the method in.
-     * @param {string} method - The name of the method to call.
-     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
+     * @param {string} method - The name of the method to call. The method is called with the entity ID as the first parameter 
+     *     and the <code>parameters</code> value as the second parameter.
+     * @param {string[]} [parameters=[]] - The additional parameters to call the specified method with.
+     * @example <caption>Call a method in a client entity script from an Interface script.</caption>
+     * // Client entity script.
+     * var entityScript = (function () {
+     *     this.entityMethod = function (id, params) {
+     *         print("Method at entity : " + id + " ; " + params[0] + ", " + params[1]);
+     *     };
+     * });
+     * 
+     * // Entity that hosts the client entity script.
+     * var entityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     script: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * // Interface script call to the client entity script.
+     * Script.setTimeout(function () {
+     *     Entities.callEntityMethod(entityID, "entityMethod", ["hello", 12]);
+     * }, 1000); // Wait for the entity to be created.
      */
     Q_INVOKABLE void callEntityMethod(const QUuid& entityID, const QString& method, const QStringList& params = QStringList());
 
     /**jsdoc
-     * Calls a method in a server entity script from a client script or client entity script. The entity script method must be
-     * exposed as a property in the target server entity script. Additionally, the target server entity script must include the 
-     * method's name in an exposed property called <code>remotelyCallable</code> that is an array of method names that can be 
-     * called.
+     * Calls a method in a server entity script from an Interface, avatar, or client entity script. The server entity script 
+     * method must be exposed as a property in the target server entity script. Additionally, the server entity script must 
+     * include the method's name in an exposed property called <code>remotelyCallable</code> that is an array of method names 
+     * that can be called.
      * @function Entities.callEntityServerMethod
      * @param {Uuid} entityID - The ID of the entity to call the method in.
-     * @param {string} method - The name of the method to call.
-     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
+     * @param {string} method - The name of the method to call. The method is called with the entity ID as the first parameter 
+     *     and the <code>parameters</code> value as the second parameter.
+     * @param {string[]} [parameters=[]] - The additional parameters to call the specified method with.
+     * @example <caption>Call a method in a server entity script from an Interface script.</caption>
+     * // Server entity script.
+     * var entityScript = (function () {
+     *     this.entityMethod = function (id, params) {
+     *         print("Method at entity : " + id + " ; " + params[0] + ", " + params[1]); // In server log.
+     *     };
+     *     this.remotelyCallable = [
+     *         "entityMethod"
+     *     ];
+     * });
+     * 
+     * // Entity that hosts the server entity script.
+     * var entityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     serverScripts: "(" + entityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * // Interface script call to the server entity script.
+     * Script.setTimeout(function () {
+     *     Entities.callEntityServerMethod(entityID, "entityMethod", ["hello", 12]);
+     * }, 1000); // Wait for the entity to be created.
      */
     Q_INVOKABLE void callEntityServerMethod(const QUuid& entityID, const QString& method, const QStringList& params = QStringList());
 
     /**jsdoc
      * Calls a method in a specific user's client entity script from a server entity script. The entity script method must be
-     * exposed as a property in the target client entity script.
+     * exposed as a property in the target client entity script. Additionally, the client entity script must 
+     * include the method's name in an exposed property called <code>remotelyCallable</code> that is an array of method names 
+     * that can be called.
      * @function Entities.callEntityClientMethod
      * @param {Uuid} clientSessionID - The session ID of the user to call the method in.
      * @param {Uuid} entityID - The ID of the entity to call the method in.
-     * @param {string} method - The name of the method to call.
-     * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
+     * @param {string} method - The name of the method to call. The method is called with the entity ID as the first parameter 
+     *     and the <code>parameters</code> value as the second parameter.
+     * @param {string[]} [parameters=[]] - The additional parameters to call the specified method with.
+     * @example <caption>Call a method in a client entity script from a server entity script.</caption>
+     * // Client entity script.
+     * var clientEntityScript = (function () {
+     *     this.entityMethod = function (id, params) {
+     *         print("Method at client entity : " + id + " ; " + params[0] + ", " + params[1]);
+     *     };
+     *     this.remotelyCallable = [
+     *         "entityMethod"
+     *     ];
+     * });
+     * 
+     * // Server entity script.
+     * var serverEntityScript = (function () {
+     *     var clientSessionID,
+     *         clientEntityID;
+     * 
+     *     function callClientMethod() {
+     *         // Server entity script call to client entity script.
+     *         Entities.callEntityClientMethod(clientSessionID, clientEntityID, "entityMethod", ["hello", 12]);
+     *     }
+     * 
+     *     // Obtain client entity details then call client entity method.
+     *     this.entityMethod = function (id, params) {
+     *         clientSessionID = params[0];
+     *         clientEntityID = params[1];
+     *         callClientMethod();
+     *     };
+     *     this.remotelyCallable = [
+     *         "entityMethod"
+     *     ];
+     * });
+     * 
+     * // Entity that hosts the client entity script.
+     * var clientEntityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -1, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     script: "(" + clientEntityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * // Entity that hosts the server entity script.
+     * var serverEntityID = Entities.addEntity({
+     *     type: "Box",
+     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 1, y: 0, z: -5 })),
+     *     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+     *     serverScripts: "(" + serverEntityScript + ")",  // Could host the script on a Web server instead.
+     *     lifetime: 300  // Delete after 5 minutes.
+     * });
+     * 
+     * // Interface script call to the server entity script.
+     * Script.setTimeout(function () {
+     *     Entities.callEntityServerMethod(serverEntityID, "entityMethod", [MyAvatar.sessionUUID, clientEntityID]);
+     * }, 1000); // Wait for the entities to be created.
      */
     Q_INVOKABLE void callEntityClientMethod(const QUuid& clientSessionID, const QUuid& entityID, const QString& method,
         const QStringList& params = QStringList());
