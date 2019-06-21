@@ -375,11 +375,13 @@ public slots:
      * var properties = Entities.getEntityProperties(entityID, ["color"]);
      * print("Entity color: " + JSON.stringify(properties.color));
      *
-     * Entities.editEntity(entityID, {
-     *     color: { red: 255, green: 0, blue: 0 }
-     * });
-     * properties = Entities.getEntityProperties(entityID, ["color"]);
-     * print("Entity color: " + JSON.stringify(properties.color));
+     * Script.setTimeout(function () { // Wait for entity to finish creation before editing.
+     *     Entities.editEntity(entityID, {
+     *         color: { red: 255, green: 0, blue: 0 }
+     *     });
+     *     properties = Entities.getEntityProperties(entityID, ["color"]);
+     *     print("Entity color: " + JSON.stringify(properties.color));
+     * }, 50);
      */
     Q_INVOKABLE QUuid editEntity(const QUuid& entityID, const EntityItemProperties& properties);
 
@@ -1140,7 +1142,9 @@ public slots:
      * });
      *
      * // Add a third point to create a "V".
-     * Entities.appendPoint(entity, { x: 1, y: 1, z: 0 });
+     * Script.setTimeout(function () { // Wait for entity to finish creation before editing.
+     *     Entities.appendPoint(entity, { x: 1, y: 1, z: 0 });
+     * }, 50);
      */
     Q_INVOKABLE bool appendPoint(const QUuid& entityID, const glm::vec3& point);
 
@@ -1576,13 +1580,15 @@ public slots:
      * var root = createEntity("Root", position, Uuid.NULL);
      * var child = createEntity("Child", Vec3.sum(position, { x: 0, y: -1, z: 0 }), root);
      *
-     * Entities.editEntity(root, {
-     *     parentID: MyAvatar.sessionUUID,
-     *     parentJointIndex: MyAvatar.getJointIndex("RightHand")
-     * });
-     *
-     * var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, MyAvatar.getJointIndex("RightHand"));
-     * print("Children of hand: " + JSON.stringify(children));  // Only the root entity.
+     * Script.setTimeout(function () { // Wait for entity to finish creation before editing.
+     *     Entities.editEntity(root, {
+     *         parentID: MyAvatar.sessionUUID,
+     *         parentJointIndex: MyAvatar.getJointIndex("RightHand")
+     *     });
+     * 
+     *     var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, MyAvatar.getJointIndex("RightHand"));
+     *     print("Children of hand: " + JSON.stringify(children));  // Only the root entity.
+     * }, 50);
      */
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
