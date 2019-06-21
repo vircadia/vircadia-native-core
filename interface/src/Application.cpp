@@ -2935,8 +2935,10 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
+    // HACK: re-expose mic and camera to prevent crash on domain-change in chromium's media::FakeAudioInputStream::ReadAudioFromSource()
     // Bug 21993: disable microphone and camera input
-    chromiumFlags << "--use-fake-device-for-media-stream";
+    //chromiumFlags << "--use-fake-device-for-media-stream";
+
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };

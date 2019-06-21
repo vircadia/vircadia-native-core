@@ -35,9 +35,8 @@ public:
     using Size = uint64_t;
 
     struct TextureSet {
-        Size textureSize;
         // The number of surfaces with this size
-        size_t clientCount{ 0 };
+        size_t clientCount { 0 };
         ValueList returnedTextures;
     };
 
@@ -66,7 +65,7 @@ private:
     std::unordered_map<uint32_t, QSize> _textureSizes;
     Mutex _mutex;
     std::list<Value> _returnedTextures;
-    size_t _totalTextureUsage{ 0 };
+    size_t _totalTextureUsage { 0 };
 };
 
 }}}  // namespace hifi::qml::impl

@@ -23,7 +23,7 @@ class QOpenGLContext;
 class QThread;
 class QOpenGLDebugMessage;
 
-#if defined(Q_OS_WIN) && defined(USE_GLES)
+#if defined(Q_OS_WIN) && (defined(USE_GLES) || defined(USE_KHR_ROBUSTNESS))
 //#if defined(Q_OS_WIN)
 #define GL_CUSTOM_CONTEXT
 #endif
