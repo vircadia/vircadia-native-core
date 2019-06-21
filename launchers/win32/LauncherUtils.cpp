@@ -16,6 +16,7 @@
 
 #pragma comment(lib, "winhttp")
 
+#include "LauncherApp.h"
 #include "LauncherUtils.h"
 
 CString LauncherUtils::urlEncodeString(const CString& url) {
@@ -230,14 +231,24 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
 
     auto status = mz_zip_reader_init_file(&zip_archive, zipFile.c_str(), 0);
 
+    {
+        CString msg;
+        msg.Format(_T("Reading zip file %s, extracting to %s"), CString(zipFile.c_str()), CString(path.c_str()));
+        theApp._manager.addToLog(msg);
+    }
+
     if (!status) return 0;
     int fileCount = (int)mz_zip_reader_get_num_files(&zip_archive);
     if (fileCount == 0) {
+        theApp._manager.addToLog(_T("Zip archive has a file count of 0"));
+
         mz_zip_reader_end(&zip_archive);
         return 0;
     }
     mz_zip_archive_file_stat file_stat;
     if (!mz_zip_reader_file_stat(&zip_archive, 0, &file_stat)) {
+        theApp._manager.addToLog(_T("Zip archive cannot be stat'd"));
+
         mz_zip_reader_end(&zip_archive);
         return 0;
     }
@@ -261,6 +272,12 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
             totalSize += (uint64_t)file_stat.m_uncomp_size;
             files.emplace_back(destFile);
         }
+    }
+
+    {
+        CString msg;
+        msg.Format(_T("Done unzipping archive, total size: %llu"), totalSize);
+        theApp._manager.addToLog(msg);
     }
 
     // Close the archive, freeing any resources it was using

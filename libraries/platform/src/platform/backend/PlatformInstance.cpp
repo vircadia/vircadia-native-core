@@ -121,7 +121,7 @@ const char* Instance::findGPUVendorInDescription(const std::string& description)
         return keys::gpu::vendor_Intel;
     }
     // AMD gpu
-    else if (description.find(keys::gpu::vendor_AMD) != std::string::npos) {
+    else if ((description.find(keys::gpu::vendor_AMD) != std::string::npos) || (description.find("Radeon") != std::string::npos)) {
         return keys::gpu::vendor_AMD;
     }
     // NVIDIA gpu
