@@ -144,6 +144,10 @@ QtObject {
                 readonly property color hover: "#FFFFFF"
                 readonly property color focus: "#FFFFFF"
             }
+            readonly property QtObject scrollBar: QtObject {
+                readonly property color background: "#474747"
+                readonly property color contentItem: "#0198CB"
+            }
         }
 
         readonly property color darkSeparator: "#595959"
@@ -218,6 +222,10 @@ QtObject {
             }
             readonly property QtObject textField: QtObject {
                 readonly property int editPencilPadding: 6
+            }
+            readonly property QtObject scrollBar: QtObject {
+                readonly property int backgroundWidth: 9
+                readonly property int contentItemWidth: 7
             }
         }
     }

@@ -78,7 +78,6 @@ SharedObject::SharedObject() {
     QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &SharedObject::onAboutToQuit);
 }
 
-
 SharedObject::~SharedObject() {
     // After destroy returns, the rendering thread should be gone
     destroy();
@@ -173,7 +172,6 @@ void SharedObject::setRootItem(QQuickItem* rootItem) {
     QObject::connect(_renderControl, &QQuickRenderControl::renderRequested, this, &SharedObject::requestRender);
     QObject::connect(_renderControl, &QQuickRenderControl::sceneChanged, this, &SharedObject::requestRenderSync);
 #endif
-
 }
 
 void SharedObject::destroy() {
@@ -210,7 +208,7 @@ void SharedObject::destroy() {
     }
     // Block until the rendering thread has stopped
     // FIXME this is undesirable because this is blocking the main thread,
-    // but I haven't found a reliable way to do this only at application 
+    // but I haven't found a reliable way to do this only at application
     // shutdown
     if (_renderThread) {
         _renderThread->wait();
@@ -220,9 +218,7 @@ void SharedObject::destroy() {
 #endif
 }
 
-
 #define SINGLE_QML_ENGINE 0
-
 
 #if SINGLE_QML_ENGINE
 static QQmlEngine* globalEngine{ nullptr };
@@ -344,6 +340,11 @@ void SharedObject::setSize(const QSize& size) {
 #endif
 }
 
+void SharedObject::setMaxFps(uint8_t maxFps) {
+    QMutexLocker locker(&_mutex);
+    _maxFps = maxFps;
+}
+
 bool SharedObject::preRender(bool sceneGraphSync) {
 #ifndef DISABLE_QML
     QMutexLocker lock(&_mutex);
@@ -370,9 +371,9 @@ bool SharedObject::preRender(bool sceneGraphSync) {
     return true;
 }
 
-void SharedObject::shutdownRendering(OffscreenGLCanvas& canvas, const QSize& size) {
+void SharedObject::shutdownRendering(const QSize& size) {
     QMutexLocker locker(&_mutex);
-    if (size != QSize(0, 0)) {
+    if (size != QSize()) {
         getTextureCache().releaseSize(size);
         if (_latestTextureAndFence.first) {
             getTextureCache().releaseTexture(_latestTextureAndFence);
@@ -380,19 +381,17 @@ void SharedObject::shutdownRendering(OffscreenGLCanvas& canvas, const QSize& siz
     }
 #ifndef DISABLE_QML
     _renderControl->invalidate();
-    canvas.doneCurrent();
 #endif
     wake();
 }
 
-bool SharedObject::isQuit() {
+bool SharedObject::isQuit() const {
     QMutexLocker locker(&_mutex);
     return _quit;
 }
 
 void SharedObject::requestRender() {
-    // Don't queue multiple renders
-    if (_renderRequested) {
+    if (_quit) {
         return;
     }
     _renderRequested = true;
@@ -402,18 +401,13 @@ void SharedObject::requestRenderSync() {
     if (_quit) {
         return;
     }
-
-    {
-        QMutexLocker lock(&_mutex);
-        _syncRequested = true;
-    }
-
-    requestRender();
+    _renderRequested = true;
+    _syncRequested = true;
 }
 
 bool SharedObject::fetchTexture(TextureAndFence& textureAndFence) {
     QMutexLocker locker(&_mutex);
-    if (0 == _latestTextureAndFence.first) {
+    if (!_latestTextureAndFence.first) {
         return false;
     }
     textureAndFence = { 0, 0 };
@@ -421,8 +415,7 @@ bool SharedObject::fetchTexture(TextureAndFence& textureAndFence) {
     return true;
 }
 
-void hifi::qml::impl::SharedObject::addToDeletionList(QObject * object)
-{
+void SharedObject::addToDeletionList(QObject* object) {
     _deletionList.append(QPointer<QObject>(object));
 }
 
@@ -469,11 +462,9 @@ void SharedObject::onRender() {
         return;
     }
 
-    QMutexLocker lock(&_mutex);
     if (_syncRequested) {
-        lock.unlock();
         _renderControl->polishItems();
-        lock.relock();
+        QMutexLocker lock(&_mutex);
         QCoreApplication::postEvent(_renderObject, new OffscreenEvent(OffscreenEvent::RenderSync));
         // sync and render request, main and render threads must be synchronized
         wait();
@@ -494,13 +485,11 @@ void SharedObject::onTimer() {
     {
         QMutexLocker locker(&_mutex);
         // Don't queue more than one frame at a time
-        if (0 != _latestTextureAndFence.first) {
+        if (_latestTextureAndFence.first) {
             return;
         }
-    }
 
-    {
-        if (_maxFps == 0) {
+        if (!_maxFps) {
             return;
         }
         auto minRenderInterval = USECS_PER_SECOND / _maxFps;

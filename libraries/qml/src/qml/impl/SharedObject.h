@@ -16,7 +16,6 @@
 
 #include "TextureCache.h"
 
-
 class QWindow;
 class QTimer;
 class QQuickWindow;
@@ -24,7 +23,6 @@ class QQuickItem;
 class QOpenGLContext;
 class QQmlEngine;
 class QQmlContext;
-class OffscreenGLCanvas;
 
 namespace hifi { namespace qml {
 
@@ -51,11 +49,11 @@ public:
     void create(OffscreenSurface* surface);
     void setRootItem(QQuickItem* rootItem);
     void destroy();
-    bool isQuit();
+    bool isQuit() const;
 
     QSize getSize() const;
     void setSize(const QSize& size);
-    void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
+    void setMaxFps(uint8_t maxFps);
 
     QQuickWindow* getWindow() { return _quickWindow; }
     QQuickItem* getRootItem() { return _rootItem; }
@@ -72,7 +70,7 @@ private:
     bool event(QEvent* e) override;
 
     bool preRender(bool sceneGraphSync);
-    void shutdownRendering(OffscreenGLCanvas& canvas, const QSize& size);
+    void shutdownRendering(const QSize& size);
     // Called by the render event handler, from the render thread
     void initializeRenderControl(QOpenGLContext* context);
     void releaseTextureAndFence();
@@ -94,31 +92,30 @@ private:
     QList<QPointer<QObject>> _deletionList;
 
     // Texture management
-    TextureAndFence _latestTextureAndFence{ 0, 0 };
-    QQuickItem* _item{ nullptr };
-    QQuickItem* _rootItem{ nullptr };
-    QQuickWindow* _quickWindow{ nullptr };
-    QQmlContext* _qmlContext{ nullptr };
+    TextureAndFence _latestTextureAndFence { 0, 0 };
+    QQuickItem* _rootItem { nullptr };
+    QQuickWindow* _quickWindow { nullptr };
+    QQmlContext* _qmlContext { nullptr };
     mutable QMutex _mutex;
     QWaitCondition _cond;
 
 #ifndef DISABLE_QML
-    QWindow* _proxyWindow{ nullptr };
-    RenderControl* _renderControl{ nullptr };
-    RenderEventHandler* _renderObject{ nullptr };
+    QWindow* _proxyWindow { nullptr };
+    RenderControl* _renderControl { nullptr };
+    RenderEventHandler* _renderObject { nullptr };
 
-    QTimer* _renderTimer{ nullptr };
-    QThread* _renderThread{ nullptr };
+    QTimer* _renderTimer { nullptr };
+    QThread* _renderThread { nullptr };
 #endif
 
-    uint64_t _lastRenderTime{ 0 };
-    QSize _size{ 100, 100 };
-    uint8_t _maxFps{ 60 };
+    uint64_t _lastRenderTime { 0 };
+    QSize _size { 100, 100 };
+    uint8_t _maxFps { 60 };
 
-    bool _renderRequested{ false };
-    bool _syncRequested{ false };
-    bool _quit{ false };
-    bool _paused{ false };
+    bool _renderRequested { false };
+    bool _syncRequested { false };
+    bool _quit { false };
+    bool _paused { false };
 };
 
 }  // namespace impl
