@@ -1,8 +1,21 @@
 #import "LatestBuildRequest.h"
 #import "Launcher.h"
 #import "Settings.h"
+#import "Interface.h"
 
 @implementation LatestBuildRequest
+
+- (NSInteger) getCurrentVersion {
+    NSString* interfaceAppPath = [[Launcher.sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
+    NSError * error = nil;
+    Interface * interface = [[Interface alloc] initWith:interfaceAppPath];
+    NSInteger currentVersion = [interface getVersion:&error];
+    if (currentVersion == 0 && error != nil) {
+        NSLog(@"can't get version from interface, falling back to settings: %@", error);
+        currentVersion = [Settings.sharedSettings latestBuildVersion];
+    }
+    return currentVersion;
+}
 
 - (void) requestLatestBuildInfo {
     NSMutableURLRequest *request = [NSMutableURLRequest new];
@@ -45,8 +58,7 @@
         BOOL appDirectoryExist = [fileManager fileExistsAtPath:[[sharedLauncher getAppPath] stringByAppendingString:@"interface.app"]];
         
         dispatch_async(dispatch_get_main_queue(), ^{
-            Settings* settings = [Settings sharedSettings];
-            NSInteger currentVersion = [settings latestBuildVersion];
+            NSInteger currentVersion = [self getCurrentVersion];
             NSLog(@"Latest Build Request -> does build directory exist: %@", appDirectoryExist ? @"TRUE" : @"FALSE");
             NSLog(@"Latest Build Request -> current version: %ld", currentVersion);
             NSLog(@"Latest Build Request -> latest version: %ld", buildNumber.integerValue);
@@ -105,11 +117,10 @@
     NSDictionary* macInstallerObject = [installers objectForKey:@"mac"];
     NSString* macInstallerUrl = [macInstallerObject valueForKey:@"zip_url"];
     
-    BOOL appDirectoryExist = [fileManager fileExistsAtPath:[[sharedLauncher getAppPath] stringByAppendingString:@"interface.app"]];
-    
-    Settings* settings = [Settings sharedSettings];
-    NSInteger currentVersion = [settings latestBuildVersion];
-    BOOL latestVersionAvailable = (currentVersion != buildNumber.integerValue);
+    NSString* interfaceAppPath = [[sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
+    BOOL appDirectoryExist = [fileManager fileExistsAtPath:interfaceAppPath];
+
+    BOOL latestVersionAvailable = ([self getCurrentVersion] != buildNumber.integerValue);
     [[Settings sharedSettings] buildVersion:buildNumber.integerValue];
     
     BOOL shouldDownloadInterface = (latestVersionAvailable || !appDirectoryExist);

@@ -27,6 +27,8 @@ set(src_files
   src/LatestBuildRequest.m
   src/OrganizationRequest.m
   src/OrganizationRequest.h
+  src/Interface.h
+  src/Interface.m
   src/ErrorViewController.h
   src/ErrorViewController.m
   src/Settings.h
