@@ -123,23 +123,6 @@ gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getRenderTexturePipeline(
 #endif
 }
 
-gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline() {
-#if defined(Q_OS_ANDROID)
-    return _linearToSRGBPipeline;
-#else
-    return _drawTexturePipeline;
-#endif
-}
-
-gpu::Element Basic2DWindowOpenGLDisplayPlugin::getCompositeFBColorSpace() {
-#if defined(Q_OS_ANDROID)
-    return gpu::Element::COLOR_SRGBA_32;
-#else
-    return gpu::Element::COLOR_RGBA_32;
-#endif
-}
-
-
 void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
 #if defined(Q_OS_ANDROID)
     auto& virtualPadManager = VirtualPad::Manager::instance();

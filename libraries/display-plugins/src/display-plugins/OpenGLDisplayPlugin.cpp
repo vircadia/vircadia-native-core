@@ -905,7 +905,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", getCompositeFBColorSpace(), renderSize.x, renderSize.y));
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
 }
 
@@ -968,9 +968,3 @@ gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
     return _drawTexturePipeline;
 }
 
-// Added this to allow desktop composite framebuffer to be RGBA while mobile is SRGBA, so that tone mapping looks right on both platforms
-// Overridden by Basic2DWindowDisplayPlugin to achieve this
-// FIXME: Eventually it would be ideal to have both framebuffers be of the same type
-gpu::Element OpenGLDisplayPlugin::getCompositeFBColorSpace() {
-    return gpu::Element::COLOR_RGBA_32;
-}

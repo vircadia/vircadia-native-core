@@ -163,7 +163,6 @@ protected:
 
     virtual gpu::PipelinePointer getRenderTexturePipeline();
     virtual gpu::PipelinePointer getCompositeScenePipeline();
-    virtual gpu::Element getCompositeFBColorSpace();
 
     struct CursorData {
         QImage image;
