@@ -103,7 +103,7 @@ bool ObjectDynamic::updateArguments(QVariantMap arguments) {
  * @property {string} tag="" - A string that a script can use for its own purposes.
  * @property {number} ttl=0 - How long the action should exist, in seconds, before it is automatically deleted. A value of 
  *     <code>0</code> means that the action should not be deleted.
- * @property {boolean} isMine=true - Is <code>true</code> if you created the action during your current Interface session, 
+ * @property {boolean} isMine=true - Is <code>true</code> if the action was created during the current client session, 
  *     <code>false</code> otherwise. <em>Read-only.</em>
  * @property {boolean} ::no-motion-state - Is present when the entity hasn't been registered with the physics engine yet (e.g., 
  *     if the action hasn't been properly configured), otherwise <code>undefined</code>. <em>Read-only.</em>

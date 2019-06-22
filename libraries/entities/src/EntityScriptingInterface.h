@@ -111,10 +111,10 @@ public:
  *
  * <h3>Entity Methods</h3>
  *
- * <p>Some of the API's signals correspond to entity methods that are called if, if present, in the entity being interacted 
- * with. The client or server entity script must expose them as a property. However, unlike {@link Entities.callEntityMethod}, 
- * server entity scripts do not need to list them in an <code>remotelyCallable</code> property. The entity methods are called 
- * with parameters per their corresponding signal.</p>
+ * <p>Some of the API's signals correspond to entity methods that are called, if present, in the entity being interacted with. 
+ * The client or server entity script must expose them as a property. However, unlike {@link Entities.callEntityMethod}, server 
+ * entity scripts do not need to list them in an <code>remotelyCallable</code> property. The entity methods are called with 
+ * parameters per their corresponding signal.</p>
  * <table>
  *   <thead>
  *     <tr><th>Method Name</th><th>Corresponding Signal</th></tr>
@@ -295,7 +295,8 @@ public slots:
      *       same domain coordinates unless parented to the client's avatar.</td></tr>
      *     <tr><td><code>"local"</code></td><td>Local entities are ephemeral &mdash; they aren't stored anywhere &mdash; and 
      *       are visible only to the client. They follow the client to each domain visited, displaying at the same domain 
-     *       coordinates unless parented to the client's avatar. Additionally, local entities are collisionless.</td></tr>
+     *       coordinates unless parented to the client's avatar. Additionally, local entities are always 
+     *       collisionless.</td></tr>
      *   </tbody>
      * </table>
      * @typedef {string} Entities.EntityHostType
@@ -405,7 +406,7 @@ public slots:
      * var properties = Entities.getEntityProperties(entityID, ["color"]);
      * print("Entity color: " + JSON.stringify(properties.color));
      *
-     * Script.setTimeout(function () { // Wait for entity to finish creation before editing.
+     * Script.setTimeout(function () { // Wait for the entity to be created before editing.
      *     Entities.editEntity(entityID, {
      *         color: { red: 255, green: 0, blue: 0 }
      *     });
@@ -969,7 +970,7 @@ public slots:
      *     <code>position</code> coordinates are rounded to the nearest integer to get the voxel coordinate. The minimum axes 
      *     corner voxel is <code>{ x: 0, y: 0, z: 0 }</code>.
      * @param {number} value - If <code>value % 256 == 0</code> then voxel is cleared, otherwise the voxel is set.
-     * @example <caption>Create a cube PolyVox entity and clear the minimum axes corner voxel.</caption>
+     * @example <caption>Create a cube PolyVox entity and clear the minimum axes' corner voxel.</caption>
      * var entity = Entities.addEntity({
      *     type: "PolyVox",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 })),
@@ -1122,6 +1123,8 @@ public slots:
      * @returns {boolean} <code>true</code> if the entity was updated, otherwise <code>false</code>. The property may fail to 
      *     be updated if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line} entity, 
      *     one of the points is outside the entity's dimensions, or the number of points is greater than the maximum allowed.
+     * @deprecated This function is deprecated and will be removed. Use {@link Entities.EntityProperties-PolyLine|PolyLine}
+     *     entities instead.
      * @example <caption>Change the shape of a Line entity.</caption>
      * // Draw a horizontal line between two points.
      * var entity = Entities.addEntity({
@@ -1154,8 +1157,10 @@ public slots:
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-Line|Line} entity.
      * @param {Vec3} point - The point to add to the line. The coordinates are relative to the entity's position.
      * @returns {boolean} <code>true</code> if the point was added to the line, otherwise <code>false</code>. The point may 
-     *     fail to be added if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line} entity, the 
-     *     point is outside the entity's dimensions, or the maximum number of points has been reached.
+     *     fail to be added if the entity does not exist, the entity is not a {@link Entities.EntityProperties-Line|Line}
+     *     entity, the point is outside the entity's dimensions, or the maximum number of points has been reached.
+     * @deprecated This function is deprecated and will be removed. Use {@link Entities.EntityProperties-PolyLine|PolyLine} 
+     *     entities instead.
      * @example <caption>Append a point to a Line entity.</caption>
      * // Draw a line between two points.
      * var entity = Entities.addEntity({
@@ -1172,9 +1177,9 @@ public slots:
      * });
      *
      * // Add a third point to create a "V".
-     * Script.setTimeout(function () { // Wait for entity to finish creation before editing.
+     * Script.setTimeout(function () {
      *     Entities.appendPoint(entity, { x: 1, y: 1, z: 0 });
-     * }, 50);
+     * }, 50); // Wait for the entity to be created.
      */
     Q_INVOKABLE bool appendPoint(const QUuid& entityID, const glm::vec3& point);
 
@@ -1610,7 +1615,7 @@ public slots:
      * var root = createEntity("Root", position, Uuid.NULL);
      * var child = createEntity("Child", Vec3.sum(position, { x: 0, y: -1, z: 0 }), root);
      *
-     * Script.setTimeout(function () { // Wait for entity to finish creation before editing.
+     * Script.setTimeout(function () { // Wait for the entity to be created before editing.
      *     Entities.editEntity(root, {
      *         parentID: MyAvatar.sessionUUID,
      *         parentJointIndex: MyAvatar.getJointIndex("RightHand")
@@ -2416,7 +2421,7 @@ signals:
     void addingEntity(const EntityItemID& entityID);
 
     /**jsdoc
-     * Triggered when an "wearable" entity is deleted, for example when removing a "wearable" from your avatar.
+     * Triggered when a "wearable" entity is deleted, for example when removing a "wearable" from your avatar.
      * @function Entities.deletingWearable
      * @param {Uuid} entityID - The ID of the "wearable" entity deleted.
      * @returns {Signal}
@@ -2428,7 +2433,7 @@ signals:
     void deletingWearable(const EntityItemID& entityID);
 
     /**jsdoc
-     * Triggered when an "wearable" entity is added to Interface's local in-memory tree of entities it knows about, for example 
+     * Triggered when a "wearable" entity is added to Interface's local in-memory tree of entities it knows about, for example 
      * when adding a "wearable" to your avatar.
      * @function Entities.addingWearable
      * @param {Uuid} entityID - The ID of the "wearable" entity added.

@@ -656,10 +656,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.RenderLayer} renderLayer="world" - Which layer the entity renders in.
  * @property {Entities.PrimitiveMode} primitiveMode="solid" - How the entity's geometry is rendered.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} and {@link RayPick} ignore the entity, 
- *     <code>false</code> if they don't ignore it.
+ *     <code>false</code> if they don't.
  *
- * @property {Vec3} position=0,0,0 - The position of the entity.
- * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
+ * @property {Vec3} position=0,0,0 - The position of the entity in world coordinates.
+ * @property {Quat} rotation=0,0,0,1 - The orientation of the entity in world coordinates.
  * @property {Vec3} registrationPoint=0.5,0.5,0.5 - The point in the entity that is set to the entity's position and is rotated 
  *      about, range {@link Vec3(0)|Vec3.ZERO} &ndash; {@link Vec3(0)|Vec3.ONE}. A value of {@link Vec3(0)|Vec3.ZERO} is the 
  *      entity's minimum x, y, z corner; a value of {@link Vec3(0)|Vec3.ONE} is the entity's maximum x, y, z corner.
@@ -670,13 +670,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Vec3(0)|Vec3.ONE}. <em>Read-only.</em>
  *
  * @property {Vec3} velocity=0,0,0 - The linear velocity of the entity in m/s with respect to world coordinates.
- * @property {number} damping=0.39347 - How much to slow down the linear velocity of an entity over time, range 
+ * @property {number} damping=0.39347 - How much the linear velocity of an entity slows down over time, range 
  *     <code>0.0</code> &ndash; <code>1.0</code>. A higher damping value slows down the entity more quickly. The default value 
  *     is for an exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to <code>1/e = 0.368</code> 
  *     of its initial value.
  * @property {Vec3} angularVelocity=0,0,0 - The angular velocity of the entity in rad/s with respect to its axes, about its
  *     registration point.
- * @property {number} angularDamping=0.39347 - How much to slow down the angular velocity of an entity over time, range 
+ * @property {number} angularDamping=0.39347 - How much the angular velocity of an entity slows down over time, range 
  *     <code>0.0</code> &ndash; <code>1.0</code>. A higher damping value slows down the entity more quickly. The default value 
  *     is for an exponential decay timescale of 2.0s, where it takes 2.0s for the movement to slow to <code>1/e = 0.368</code> 
  *     of its initial value.
@@ -694,7 +694,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>velocity</code> in order to kick off physics simulation.<p>
  * @property {number} restitution=0.5 - The "bounciness" of an entity when it collides, range <code>0.0</code> &ndash; 
  *     <code>0.99</code>. The higher the value, the more bouncy.
- * @property {number} friction=0.5 - How much to slow down an entity when it's moving against another, range <code>0.0</code> 
+ * @property {number} friction=0.5 - How much an entity slows down when it's moving against another, range <code>0.0</code> 
  *     &ndash; <code>10.0</code>. The higher the value, the more quickly it slows down. Examples: <code>0.1</code> for ice, 
  *     <code>0.9</code> for sandpaper.
  * @property {number} density=1000 - The density of the entity in kg/m<sup>3</sup>, range <code>100</code> for balsa wood 
@@ -744,7 +744,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} localVelocity=0,0,0 - The velocity of the entity relative to its parent if the entity is parented, 
  *     otherwise the same value as <code>velocity</code>.
  * @property {Vec3} localAngularVelocity=0,0,0 - The angular velocity of the entity relative to its parent if the entity is 
- *     parented, otherwise the same value as <code>position</code>.
+ *     parented, otherwise the same value as <code>angularVelocity</code>.
  * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is an
  *     avatar entity so that it scales with the avatar, this value remains the original dimensions value while the 
  *     avatar scale changes.
@@ -1197,24 +1197,24 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     rejected.
  * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
  *     neighboring PolyVox entities are joined.
- * @property {string} xTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local x-axis. JPG or
- *     PNG format. If no texture is specified the surfaces display white.
- * @property {string} yTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local y-axis. JPG or 
- *     PNG format. If no texture is specified the surfaces display white.
- * @property {string} zTextureURL="" - URL of the texture to map to surfaces perpendicular to the entity's local z-axis. JPG or 
- *     PNG format. If no texture is specified the surfaces display white.
- * @property {Uuid} xNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local x-axis direction, 
- *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} yNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local y-axis direction, 
- *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} zNNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's -ve local z-axis direction, 
- *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} xPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local x-axis direction, 
- *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} yPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local y-axis direction, 
- *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
- * @property {Uuid} zPNeighborID=Uuid.NULL - ID of the neighboring PolyVox entity in the entity's +ve local z-axis direction, 
- *     if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {string} xTextureURL="" - The URL of the texture to map to surfaces perpendicular to the entity's local x-axis. 
+ *     JPG or PNG format. If no texture is specified the surfaces display white.
+ * @property {string} yTextureURL="" - The URL of the texture to map to surfaces perpendicular to the entity's local y-axis. 
+ *     JPG or PNG format. If no texture is specified the surfaces display white.
+ * @property {string} zTextureURL="" - The URL of the texture to map to surfaces perpendicular to the entity's local z-axis. 
+ *     JPG or PNG format. If no texture is specified the surfaces display white.
+ * @property {Uuid} xNNeighborID=Uuid.NULL - The ID of the neighboring PolyVox entity in the entity's -ve local x-axis 
+ *     direction, if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yNNeighborID=Uuid.NULL - The ID of the neighboring PolyVox entity in the entity's -ve local y-axis 
+ *     direction, if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zNNeighborID=Uuid.NULL - The ID of the neighboring PolyVox entity in the entity's -ve local z-axis 
+ *     direction, if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} xPNeighborID=Uuid.NULL - The ID of the neighboring PolyVox entity in the entity's +ve local x-axis 
+ *     direction, if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} yPNeighborID=Uuid.NULL - The ID of the neighboring PolyVox entity in the entity's +ve local y-axis 
+ *     direction, if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
+ * @property {Uuid} zPNeighborID=Uuid.NULL - The ID of the neighboring PolyVox entity in the entity's +ve local z-axis 
+ *     direction, if you want them joined. Set to {@link Uuid(0)|Uuid.NULL} if there is none or you don't want to join them.
  * @example <caption>Create a textured PolyVox sphere.</caption>
  * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -8 }));
  * var texture = "http://public.highfidelity.com/cozza13/tuscany/Concrete2.jpg";
@@ -1440,7 +1440,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
  *     <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @example <caption>Create a image entity.</caption>
+ * @example <caption>Create an image entity.</caption>
  * var image = Entities.addEntity({
  *     type: "Image",
  *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
