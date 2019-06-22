@@ -74,41 +74,6 @@ private:
     friend class RenderDeferredCleanup;
 };
 
-class PreparePrimaryFramebufferConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(float resolutionScale  WRITE setResolutionScale READ getResolutionScale)
-public:
-    float getResolutionScale() const { return resolutionScale; }
-    void setResolutionScale(float scale) {
-        resolutionScale = std::max(0.1f, std::min(2.0f, scale));
-    }
-
-signals:
-    void dirty();
-
-protected:
-    float resolutionScale{ 1.0f };
-};
-
-class PreparePrimaryFramebuffer {
-public:
-
-    using Output = gpu::FramebufferPointer;
-    using Config = PreparePrimaryFramebufferConfig;
-    using JobModel = render::Job::ModelO<PreparePrimaryFramebuffer, Output, Config>;
-
-    PreparePrimaryFramebuffer(float resolutionScale = 1.0f) : _resolutionScale{resolutionScale} {}
-    void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, Output& primaryFramebuffer);
-
-    gpu::FramebufferPointer _primaryFramebuffer;
-    float _resolutionScale{ 1.0f };
-
-private:
-
-    static gpu::FramebufferPointer createFramebuffer(const char* name, const glm::uvec2& size);
-};
-
 class PrepareDeferred {
 public:
     // Inputs: primaryFramebuffer and lightingModel
