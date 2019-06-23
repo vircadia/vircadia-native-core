@@ -1735,6 +1735,7 @@ Blender::Blender(ModelPointer model, HFMModel::ConstPointer hfmModel, int blendN
 void Blender::run() {
     DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
     int numBlendshapeOffsets = 0;  // number of offsets required for all meshes.
+    int maxBlendshapeOffsets = 0;  // number of offsets in the largest mesh.
     int numMeshes = 0;  // number of meshes in this model.
     for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
         numMeshes++;
@@ -1743,15 +1744,18 @@ void Blender::run() {
         }
         int numVertsInMesh = meshIter->vertices.size();
         numBlendshapeOffsets += numVertsInMesh;
+        maxBlendshapeOffsets = std::max(maxBlendshapeOffsets, numVertsInMesh);
     }
 
-    // all elements are default constructed to zero offsets.
-    QVector<BlendshapeOffset> packedBlendshapeOffsets(numBlendshapeOffsets);
-    QVector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets(numBlendshapeOffsets);
-
-    // allocate the required size
+    // allocate the required sizes
     QVector<int> blendedMeshSizes;
     blendedMeshSizes.reserve(numMeshes);
+
+    QVector<BlendshapeOffset> packedBlendshapeOffsets;
+    packedBlendshapeOffsets.reserve(numBlendshapeOffsets);
+
+    QVector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets;
+    unpackedBlendshapeOffsets.reserve(maxBlendshapeOffsets);    // reuse for all meshes
 
     int offset = 0;
     for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
@@ -1761,6 +1765,9 @@ void Blender::run() {
         }
         int numVertsInMesh = meshIter->vertices.size();
         blendedMeshSizes.push_back(numVertsInMesh);
+
+        // initialize offsets to zero
+        memset(unpackedBlendshapeOffsets.data(), 0, numVertsInMesh * sizeof(BlendshapeOffsetUnpacked));
 
         // for each blendshape in this mesh, accumulate the offsets into unpackedBlendshapeOffsets.
         const float NORMAL_COEFFICIENT_SCALE = 0.01f;
@@ -1776,7 +1783,7 @@ void Blender::run() {
             for (int j = 0; j < blendshape.indices.size(); ++j) {
                 int index = blendshape.indices.at(j);
 
-                auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[offset + index];
+                auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
                 currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
                 currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
                 if (j < blendshape.tangents.size()) {
@@ -1784,20 +1791,19 @@ void Blender::run() {
                 }
             }
         }
-        offset += numVertsInMesh;
-    }
 
-    // convert unpackedBlendshapeOffsets into packedBlendshapeOffsets for the gpu.
-    // FIXME it feels like we could be more effectively using SIMD here
-    {
+        // convert unpackedBlendshapeOffsets into packedBlendshapeOffsets for the gpu.
         auto unpacked = unpackedBlendshapeOffsets.data();
-        auto packed = packedBlendshapeOffsets.data();
-        for (int i = 0; i < unpackedBlendshapeOffsets.size(); ++i) {
+        auto packed = packedBlendshapeOffsets.data() + offset;
+        for (int i = 0; i < numVertsInMesh; ++i) {
             packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
             ++unpacked;
             ++packed;
         }
+
+        offset += numVertsInMesh;
     }
+    Q_ASSERT(offset == numBlendshapeOffsets);
 
     // post the result to the ModelBlender, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
