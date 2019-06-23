@@ -1708,12 +1708,20 @@ static void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uve
     );
 }
 
-static void packBlendshapeOffsets(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
+static void packBlendshapeOffsets_ref(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
     for (int i = 0; i < size; ++i) {
         packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
         ++unpacked;
         ++packed;
     }
+}
+
+void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int size);
+
+static void packBlendshapeOffsets(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
+    static_assert(sizeof(BlendshapeOffsetUnpacked) == 9 * sizeof(float), "struct BlendshapeOffsetUnpacked size doesn't match.");
+    static_assert(sizeof(BlendshapeOffsetPacked) == 4 * sizeof(uint32_t), "struct BlendshapeOffsetPacked size doesn't match.");
+    packBlendshapeOffsets_AVX2((float(*)[9])unpacked, (uint32_t(*)[4])packed, size);
 }
 
 class Blender : public QRunnable {
