@@ -1716,13 +1716,28 @@ static void packBlendshapeOffsets_ref(BlendshapeOffsetUnpacked* unpacked, Blends
     }
 }
 
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+//
+// Runtime CPU dispatch
+//
+#include "CPUDetect.h"
+
 void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int size);
 
 static void packBlendshapeOffsets(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
-    static_assert(sizeof(BlendshapeOffsetUnpacked) == 9 * sizeof(float), "struct BlendshapeOffsetUnpacked size doesn't match.");
-    static_assert(sizeof(BlendshapeOffsetPacked) == 4 * sizeof(uint32_t), "struct BlendshapeOffsetPacked size doesn't match.");
-    packBlendshapeOffsets_AVX2((float(*)[9])unpacked, (uint32_t(*)[4])packed, size);
+    static bool _cpuSupportsAVX2 = cpuSupportsAVX2();
+    if (_cpuSupportsAVX2) {
+        static_assert(sizeof(BlendshapeOffsetUnpacked) == 9 * sizeof(float), "struct BlendshapeOffsetUnpacked size doesn't match.");
+        static_assert(sizeof(BlendshapeOffsetPacked) == 4 * sizeof(uint32_t), "struct BlendshapeOffsetPacked size doesn't match.");
+        packBlendshapeOffsets_AVX2((float(*)[9])unpacked, (uint32_t(*)[4])packed, size);
+    } else {
+        packBlendshapeOffsets_ref(unpacked, packed, size);
+    }
 }
+
+#else   // portable reference code
+static auto& packBlendshapeOffsets = packBlendshapeOffsets_ref;
+#endif
 
 class Blender : public QRunnable {
 public:
