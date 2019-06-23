@@ -1691,10 +1691,7 @@ public:
     }
 };
 
-
-using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked);
-
-void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
+static void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
     float len = glm::compMax(glm::abs(unpacked.positionOffset));
     glm::vec3 normalizedPos(unpacked.positionOffset);
     if (len > 0.0f) {
@@ -1709,6 +1706,14 @@ void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& pac
         glm_packSnorm3x10_1x2(glm::vec4(unpacked.normalOffset, 0.0f)),
         glm_packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffset, 0.0f))
     );
+}
+
+static void packBlendshapeOffsets(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
+    for (int i = 0; i < size; ++i) {
+        packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
+        ++unpacked;
+        ++packed;
+    }
 }
 
 class Blender : public QRunnable {
@@ -1795,11 +1800,7 @@ void Blender::run() {
         // convert unpackedBlendshapeOffsets into packedBlendshapeOffsets for the gpu.
         auto unpacked = unpackedBlendshapeOffsets.data();
         auto packed = packedBlendshapeOffsets.data() + offset;
-        for (int i = 0; i < numVertsInMesh; ++i) {
-            packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
-            ++unpacked;
-            ++packed;
-        }
+        packBlendshapeOffsets(unpacked, packed, numVertsInMesh);
 
         offset += numVertsInMesh;
     }
