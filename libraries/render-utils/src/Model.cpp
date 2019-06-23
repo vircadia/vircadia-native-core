@@ -1738,6 +1738,9 @@ void Blender::run() {
     int numMeshes = 0;  // number of meshes in this model.
     for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
         numMeshes++;
+        if (meshIter->blendshapes.isEmpty()) {
+            continue;
+        }
         int numVertsInMesh = meshIter->vertices.size();
         numBlendshapeOffsets += numVertsInMesh;
     }
