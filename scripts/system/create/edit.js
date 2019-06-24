@@ -24,16 +24,16 @@ var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
 var CONTROLLER_MAPPING_NAME = "com.highfidelity.editMode";
 
 Script.include([
-    "libraries/stringHelpers.js",
-    "libraries/dataViewHelpers.js",
-    "libraries/progressDialog.js",
-    "libraries/entitySelectionTool.js",
-    "libraries/ToolTip.js",
-    "libraries/entityCameraTool.js",
-    "libraries/gridTool.js",
-    "libraries/entityList.js",
-    "libraries/utils.js",
-    "libraries/entityIconOverlayManager.js"
+    "../libraries/stringHelpers.js",
+    "../libraries/dataViewHelpers.js",
+    "../libraries/progressDialog.js",
+    "../libraries/ToolTip.js",
+    "../libraries/entityCameraTool.js",
+    "../libraries/utils.js",
+    "../libraries/entityIconOverlayManager.js",
+    "../libraries/gridTool/gridTool.js",
+    "entityList/entityList.js",
+    "entitySelectionTool/entitySelectionTool.js"
 ]);
 
 var CreateWindow = Script.require('./modules/createWindow.js');
@@ -45,7 +45,7 @@ var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
 var createToolsWindow = new CreateWindow(
-    Script.resolvePath("create/EditTools.qml"),
+    Script.resolvePath("./qml/EditTools.qml"),
     'Create Tools',
     'com.highfidelity.create.createToolsWindow',
     function () {
@@ -174,7 +174,7 @@ var IMPORTING_SVO_OVERLAY_HEIGHT = 30;
 var IMPORTING_SVO_OVERLAY_MARGIN = 5;
 var IMPORTING_SVO_OVERLAY_LEFT_MARGIN = 34;
 var importingSVOImageOverlay = Overlays.addOverlay("image", {
-    imageURL: Script.resolvePath("assets") + "/images/hourglass.svg",
+    imageURL: Script.resolvePath("../assets/images/hourglass.svg"),
     width: 20,
     height: 20,
     alpha: 1.0,
@@ -812,7 +812,7 @@ var toolBar = (function () {
         tablet.screenChanged.connect(function (type, url) {
             var isGoingToHomescreenOnDesktop = (!shouldUseEditTabletApp() &&
                 (url === 'hifi/tablet/TabletHome.qml' || url === ''));
-            if (isActive && (type !== "QML" || url !== Script.resolvePath("create/Edit.qml")) && !isGoingToHomescreenOnDesktop) {
+            if (isActive && (type !== "QML" || url !== Script.resolvePath("./qml/Edit.qml")) && !isGoingToHomescreenOnDesktop) {
                 that.setActive(false);
             }
         });
