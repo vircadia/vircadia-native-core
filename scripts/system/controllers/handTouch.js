@@ -17,7 +17,8 @@
 (function () {
 
     var LEAP_MOTION_NAME = "LeapMotion";
-    var handTouchEnabled = true;
+    // Hand touch is disabled due to twitchy finger bug when walking near walls or tables. see BUGZ-154.
+    var handTouchEnabled = false;
     var leapMotionEnabled = Controller.getRunningInputDeviceNames().indexOf(LEAP_MOTION_NAME) >= 0;
     var MSECONDS_AFTER_LOAD = 2000;
     var updateFingerWithIndex = 0;

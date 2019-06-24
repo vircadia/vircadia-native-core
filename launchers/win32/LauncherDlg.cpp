@@ -213,6 +213,9 @@ BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
     CString lowerOrgName = orgname;
     lowerOrgName.MakeLower();
     LauncherUtils::hMac256(lowerOrgName, LAUNCHER_HMAC_SECRET, hash);
+    CString msg;
+    msg.Format(_T("Calculated hash: \"%s\" => \"%s\""), lowerOrgName, hash);
+    theApp._manager.addToLog(msg);
     return theApp._manager.readOrganizationJSON(hash) == LauncherUtils::ResponseError::NoError;
 }
 
