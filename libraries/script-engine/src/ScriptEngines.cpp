@@ -114,7 +114,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 
             QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
-            if (!defaultScriptsLoc.isParentOf(url)) {
+            if (!defaultScriptsLoc.isParentOf(url) && defaultScriptsLoc != url) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path"
                                         << "-- outside of standard libraries: "
                                         << url.path()
