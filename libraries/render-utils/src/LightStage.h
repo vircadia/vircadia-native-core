@@ -112,7 +112,7 @@ public:
 
         graphics::LightPointer _light;
         float _maxDistance{ 0.0f };
-        float _biasInput;
+        float _biasInput{ 0.23f };
         Cascades _cascades;
 
         UniformBufferView _schemaBuffer = nullptr;

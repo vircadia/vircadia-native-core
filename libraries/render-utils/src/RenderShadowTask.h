@@ -75,6 +75,9 @@ public:
     CullFunctor _cullFunctor;
 };
 
+const float DEFAULT_BIAS_INPUT = 0.23f;
+const float DEFAULT_MAX_DISTANCE = 40.0f;
+
 class RenderShadowSetupConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float constantBias0 MEMBER constantBias0 NOTIFY dirty)
@@ -89,8 +92,8 @@ class RenderShadowSetupConfig : public render::Job::Config {
         Q_PROPERTY(float globalMaxDistance MEMBER globalMaxDistance NOTIFY dirty)
 
 public:
-    float biasInput{ 0.23f };
-    float globalMaxDistance{ 40 };
+    float biasInput{ DEFAULT_BIAS_INPUT };
+    float globalMaxDistance{ DEFAULT_MAX_DISTANCE };
 
     float constantBias0{ 0.15f };
     float constantBias1{ 0.15f };
@@ -116,9 +119,9 @@ public:
     void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
-    float _biasInput;
-    float _globalMaxDistance;
-    int resolution{ 1024 };
+    float _biasInput{ DEFAULT_BIAS_INPUT };
+    float _globalMaxDistance{ DEFAULT_MAX_DISTANCE };
+    int resolution{ DEFAULT_RESOLUTION };
     QVector<float> cacasdeDistances = QVector<float>(8);  // 4 max then 4 min distances
 
 private:
@@ -128,6 +131,8 @@ private:
         float _constant;
         float _slope;
     } _bias[SHADOW_CASCADE_MAX_COUNT];
+
+    const int DEFAULT_RESOLUTION = 1024;
 
     LightStage::ShadowFrame::Object _globalShadowObject;
     LightStage::ShadowFramePointer _shadowFrameCache;
