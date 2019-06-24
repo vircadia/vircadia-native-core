@@ -136,7 +136,8 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
             << "with hardware address" << nodeConnection.hardwareAddress
-            << "and machine fingerprint" << nodeConnection.machineFingerprint;
+            << "and machine fingerprint" << nodeConnection.machineFingerprint
+            << "sysinfo" << nodeConnection.SystemInfo;
     }
 }
 
