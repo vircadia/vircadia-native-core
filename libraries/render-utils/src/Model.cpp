@@ -1720,7 +1720,7 @@ static void packBlendshapeOffsets_ref(BlendshapeOffsetUnpacked* unpacked, Blends
 //
 // Runtime CPU dispatch
 //
-#include "CPUDetect.h"
+#include <CPUDetect.h>
 
 void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int size);
 
