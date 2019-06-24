@@ -397,14 +397,19 @@ void ScriptEngine::executeOnScriptThread(std::function<void()> function, const Q
 }
 
 void ScriptEngine::waitTillDoneRunning() {
+    // Engine should be stopped already, but be defensive
+    stop();
+    
     auto workerThread = thread();
-
+    
+    if (workerThread == QThread::currentThread()) {
+        qCWarning(scriptengine) << "ScriptEngine::waitTillDoneRunning called, but the script is on the same thread:" << getFilename();
+        return;
+    }
+    
     if (_isThreaded && workerThread) {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
-
-        // Engine should be stopped already, but be defensive
-        stop();
 
         auto startedWaiting = usecTimestampNow();
         while (workerThread->isRunning()) {

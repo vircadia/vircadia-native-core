@@ -70,7 +70,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
-    if (_color != entity->getColor()) {
+    if (_color != toGlm(entity->getColor())) {
         return true;
     }
     if (_alpha != entity->getAlpha()) {
@@ -130,12 +130,12 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         }
     });
 
-    glm::u8vec3 color = entity->getColor();
+    glm::vec3 color = toGlm(entity->getColor());
     float alpha = entity->getAlpha();
     if (_color != color || _alpha != alpha) {
         _color = color;
         _alpha = alpha;
-        _material->setAlbedo(toGlm(_color));
+        _material->setAlbedo(color);
         _material->setOpacity(_alpha);
 
         auto materials = _materials.find("0");
