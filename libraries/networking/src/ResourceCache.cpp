@@ -346,7 +346,7 @@ void ResourceCache::setRequestLimit(uint32_t limit) {
 QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra, size_t extraHash) {
     QSharedPointer<Resource> resource;
     {
-        QReadLocker locker(&_resourcesLock);
+        QWriteLocker locker(&_resourcesLock);
         auto& resourcesWithExtraHash = _resources[url];
         auto resourcesWithExtraHashIter = resourcesWithExtraHash.find(extraHash);
         if (resourcesWithExtraHashIter != resourcesWithExtraHash.end()) {

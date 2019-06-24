@@ -19,8 +19,6 @@ Flickable {
     id: root
     contentWidth: parent.width
     contentHeight: audioColumnLayout.height
-    topMargin: 24
-    bottomMargin: 24
     clip: true
 
     function changePeakValuesEnabled(enabled) {
@@ -33,7 +31,7 @@ Flickable {
         AudioScriptingInterface.devices.input.peakValuesEnabled = visible;
         if (visible) {
             root.contentX = 0;
-            root.contentY = -root.topMargin;
+            root.contentY = 0;
             AudioScriptingInterface.devices.input.peakValuesEnabledChanged.connect(changePeakValuesEnabled);
         } else {
             AudioScriptingInterface.devices.input.peakValuesEnabledChanged.disconnect(changePeakValuesEnabled);
@@ -45,19 +43,38 @@ Flickable {
         id: simplifiedUI
     }
 
+
+    Image {
+        id: accent
+        source: "../images/accent2.svg"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: 83
+        height: 156
+        transform: Scale {
+            xScale: -1
+            origin.x: accent.width / 2
+            origin.y: accent.height / 2
+        }
+    }
+
+
     ColumnLayout {
         id: audioColumnLayout
         anchors.left: parent.left
+        anchors.leftMargin: 26
         anchors.right: parent.right
+        anchors.rightMargin: 26
         anchors.top: parent.top
         spacing: simplifiedUI.margins.settings.spacingBetweenSettings
         
         ColumnLayout {
             id: volumeControlsContainer
             Layout.preferredWidth: parent.width
+            Layout.topMargin: 24
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: volumeControlsTitle
                 text: "Volume Controls"
                 Layout.preferredWidth: parent.width
@@ -154,7 +171,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: micControlsTitle
                 text: "Default Mute Controls"
                 Layout.maximumWidth: parent.width
@@ -196,7 +213,7 @@ Flickable {
             Layout.preferredWidth: parent.width
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: inputDeviceTitle
                 text: "Which input device?"
                 Layout.maximumWidth: parent.width
@@ -289,9 +306,10 @@ Flickable {
         ColumnLayout {
             id: outputDeviceContainer
             Layout.preferredWidth: parent.width
+            Layout.bottomMargin: 24
             spacing: 0
 
-            HifiStylesUit.GraphikRegular {
+            HifiStylesUit.GraphikSemiBold {
                 id: outputDeviceTitle
                 text: "Which output device?"
                 Layout.maximumWidth: parent.width

@@ -5,6 +5,9 @@ import TabletScriptingInterface 1.0
 Item {
     id: tabletButton
 
+    // NOTE: These properties form part of the "TabletButtonProxy.ButtonProperties" type.
+    // Keep the type's JSDoc up to date with any changes.
+
     property color defaultCaptionColor: "#ffffff"
     property color captionColor: defaultCaptionColor
 
@@ -18,15 +21,15 @@ Item {
     property string activeText: tabletButton.text
     property string activeHoverText: tabletButton.activeText
     property bool isActive: false
-    property bool inDebugMode: false
+    property bool inDebugMode: false  // tablet only
     property bool isEntered: false
     property double sortOrder: 100
     property int stableOrder: 0
-    property var tabletRoot;
-    property var flickable: null
-    property var gridView: null
+    property var tabletRoot;  // tablet only
+    property var flickable: null  // tablet only
+    property var gridView: null  // tablet only
 
-    property int buttonIndex: -1
+    property int buttonIndex: -1  // tablet only
 
     width: 129
     height: 129

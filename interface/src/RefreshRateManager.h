@@ -65,6 +65,9 @@ public:
     int getActiveRefreshRate() const { return _activeRefreshRate; }
     void updateRefreshRateController() const;
 
+    // query the refresh rate target at the specified combination
+    int queryRefreshRateTarget(RefreshRateProfile profile, RefreshRateRegime regime, UXMode uxMode) const;
+
     void resetInactiveTimer();
     void toggleInactive();
 

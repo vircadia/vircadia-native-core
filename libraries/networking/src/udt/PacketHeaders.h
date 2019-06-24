@@ -345,7 +345,9 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasMACAddress,
     HasMachineFingerprint,
     AlwaysHasMachineFingerprint,
-    HasTimestamp
+    HasTimestamp,
+    HasReason,
+    HasSystemInfo
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
@@ -365,7 +367,8 @@ enum class DomainListVersion : PacketVersion {
     GetUsernameFromUUIDSupport,
     GetMachineFingerprintFromUUIDSupport,
     AuthenticationOptional,
-    HasTimestamp
+    HasTimestamp,
+    HasConnectReason
 };
 
 enum class AudioVersion : PacketVersion {

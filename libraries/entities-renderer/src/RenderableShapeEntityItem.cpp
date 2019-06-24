@@ -56,7 +56,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
 }
 
 bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_color != entity->getColor()) {
+    if (_color != toGlm(entity->getColor())) {
         return true;
     }
     if (_alpha != entity->getAlpha()) {
@@ -119,17 +119,17 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
 
     withWriteLock([&] {
         bool materialChanged = false;
-        glm::u8vec3 color = entity->getColor();
+        glm::vec3 color = toGlm(entity->getColor());
         if (_color != color) {
             _color = color;
-            _material->setAlbedo(toGlm(_color));
+            _material->setAlbedo(color);
             materialChanged = true;
         }
 
         float alpha = entity->getAlpha();
         if (_alpha != alpha) {
             _alpha = alpha;
-            _material->setOpacity(_alpha);
+            _material->setOpacity(alpha);
             materialChanged = true;
         }
 

@@ -14,16 +14,26 @@
     NSURLSession* session = [NSURLSession sharedSession];
     NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         
+        
+        NSLog(@"Latest Build Request error: %@", error);
+        NSLog(@"Latest Build Request Data: %@", data);
+         NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
+        NSLog(@"Latest Build Request Response: %ld", [ne statusCode]);
         Launcher* sharedLauncher = [Launcher sharedLauncher];
-        NSLog(@"credentials request finished");
         NSMutableData* webData = [NSMutableData data];
         [webData appendData:data];
         NSString* jsonString = [[NSString alloc] initWithBytes: [webData mutableBytes] length:[data length] encoding:NSUTF8StringEncoding];
         NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-        id json = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:nil];
+        NSLog(@"Latest Build Request -> json string: %@", jsonString);
+        NSError *jsonError = nil;
+        id json = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&jsonError];
+        
+        if (jsonError) {
+            NSLog(@"Latest Build request: Failed to convert Json to data");
+        }
         
         NSFileManager* fileManager = [NSFileManager defaultManager];
-        NSArray      *values = [json valueForKey:@"results"];
+        NSArray *values = [json valueForKey:@"results"];
         NSDictionary *value  = [values objectAtIndex:0];
         
         
@@ -37,10 +47,15 @@
         dispatch_async(dispatch_get_main_queue(), ^{
             Settings* settings = [Settings sharedSettings];
             NSInteger currentVersion = [settings latestBuildVersion];
+            NSLog(@"Latest Build Request -> does build directory exist: %@", appDirectoryExist ? @"TRUE" : @"FALSE");
+            NSLog(@"Latest Build Request -> current version: %ld", currentVersion);
+            NSLog(@"Latest Build Request -> latest version: %ld", buildNumber.integerValue);
+            NSLog(@"Latest Build Request -> mac url: %@", macInstallerUrl);
             BOOL latestVersionAvailable = (currentVersion != buildNumber.integerValue);
             [[Settings sharedSettings] buildVersion:buildNumber.integerValue];
         
             BOOL shouldDownloadInterface = (latestVersionAvailable || !appDirectoryExist);
+            NSLog(@"Latest Build Request -> SHOULD DOWNLOAD: %@", shouldDownloadInterface ? @"TRUE" : @"FALSE");
             [sharedLauncher shouldDownloadLatestBuild:shouldDownloadInterface :macInstallerUrl];
         });
     }];

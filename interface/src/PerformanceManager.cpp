@@ -13,6 +13,7 @@
 #include <platform/Profiler.h>
 
 #include "scripting/RenderScriptingInterface.h"
+#include "LODManager.h"
 
 PerformanceManager::PerformanceManager()
 {
@@ -62,23 +63,37 @@ PerformanceManager::PerformancePreset PerformanceManager::getPerformancePreset()
 
 void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformancePreset preset) {
 
+    // Ugly case that prevent us to run deferred everywhere...
+    bool isDeferredCapable = platform::Profiler::isRenderMethodDeferredCapable();
+
     switch (preset) {
         case PerformancePreset::HIGH:
-            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
+            RenderScriptingInterface::getInstance()->setRenderMethod( ( isDeferredCapable ?
+                RenderScriptingInterface::RenderMethod::DEFERRED : 
+                RenderScriptingInterface::RenderMethod::FORWARD ) );
+
             RenderScriptingInterface::getInstance()->setShadowsEnabled(true);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::REALTIME);
 
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(0.5f);
+
         break;
         case PerformancePreset::MID:
-            RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::DEFERRED);
+            RenderScriptingInterface::getInstance()->setRenderMethod((isDeferredCapable ?
+                RenderScriptingInterface::RenderMethod::DEFERRED :
+                RenderScriptingInterface::RenderMethod::FORWARD));
+
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::INTERACTIVE);
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(0.5f);
 
         break;
         case PerformancePreset::LOW:
             RenderScriptingInterface::getInstance()->setRenderMethod(RenderScriptingInterface::RenderMethod::FORWARD);
             RenderScriptingInterface::getInstance()->setShadowsEnabled(false);
             qApp->getRefreshRateManager().setRefreshRateProfile(RefreshRateManager::RefreshRateProfile::ECO);
+
+            DependencyManager::get<LODManager>()->setWorldDetailQuality(0.75f);
 
         break;
         case PerformancePreset::UNKNOWN:

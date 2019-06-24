@@ -416,6 +416,8 @@ void Stats::updateStats(bool force) {
     gpuContext->getFrameStats(gpuFrameStats);
 
     STAT_UPDATE(drawcalls, gpuFrameStats._DSNumDrawcalls);
+    STAT_UPDATE(lodTargetFramerate, DependencyManager::get<LODManager>()->getLODTargetFPS());
+    STAT_UPDATE(lodAngle, DependencyManager::get<LODManager>()->getLODAngleDeg());
 
 
     // Incoming packets

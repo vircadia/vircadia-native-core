@@ -951,6 +951,19 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
 
+    QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
+    if (!setBookmarkValue.isEmpty()) {
+        // Bookmarks are expected to be in a name=url form.
+        // An `=` character in the name or url is unsupported.
+        auto parts = setBookmarkValue.split("=");
+        if (parts.length() != 2) {
+            qWarning() << "Malformed setBookmark argument: " << setBookmarkValue;
+        } else {
+            qDebug() << "Setting bookmark" << parts[0] << "to" << parts[1];
+            DependencyManager::get<LocationBookmarks>()->insert(parts[0], parts[1]);
+        }
+    }
+
     return previousSessionCrashed;
 }
 
@@ -2698,6 +2711,7 @@ void Application::cleanupBeforeQuit() {
     }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    getEntities()->clear();
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
@@ -2764,7 +2778,6 @@ void Application::cleanupBeforeQuit() {
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
@@ -2924,8 +2937,10 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
+    // HACK: re-expose mic and camera to prevent crash on domain-change in chromium's media::FakeAudioInputStream::ReadAudioFromSource()
     // Bug 21993: disable microphone and camera input
-    chromiumFlags << "--use-fake-device-for-media-stream";
+    //chromiumFlags << "--use-fake-device-for-media-stream";
+
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };
@@ -5614,7 +5629,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         scriptEngines->reloadLocalFiles();
 
         // if the --scripts command-line argument was used.
-        if (!_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
+        if (_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
             scriptEngines->loadDefaultScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {

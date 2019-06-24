@@ -1416,6 +1416,10 @@ void MyAvatar::setEnableDebugDrawAnimPose(bool isEnabled) {
     }
 }
 
+void MyAvatar::setDebugDrawAnimPoseName(QString poseName) {
+    _debugDrawAnimPoseName.set(poseName);
+}
+
 void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
     if (isEnabled) {
         const glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
@@ -2488,12 +2492,12 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             QVariantMap avatarEntityData;
             avatarEntityData["id"] = entityID;
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-            QScriptValue scriptProperties;
             {
                 std::lock_guard<std::mutex> guard(_scriptEngineLock);
+                QScriptValue scriptProperties;
                 scriptProperties = EntityItemPropertiesToScriptValue(_scriptEngine, entityProperties);
+                avatarEntityData["properties"] = scriptProperties.toVariant();
             }
-            avatarEntityData["properties"] = scriptProperties.toVariant();
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
     }
@@ -3086,15 +3090,26 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         }
 
         if (_enableDebugDrawAnimPose && animSkeleton) {
-            // build absolute AnimPoseVec from rig
+
             AnimPoseVec absPoses;
             const Rig& rig = _skeletonModel->getRig();
-            absPoses.reserve(rig.getJointStateCount());
-            for (int i = 0; i < rig.getJointStateCount(); i++) {
-                absPoses.push_back(AnimPose(rig.getJointTransform(i)));
+            const glm::vec4 CYAN(0.1f, 0.6f, 0.6f, 1.0f);
+
+            QString name = _debugDrawAnimPoseName.get();
+            if (name.isEmpty()) {
+                // build absolute AnimPoseVec from rig transforms. i.e. the same that are used for rendering.
+                absPoses.reserve(rig.getJointStateCount());
+                for (int i = 0; i < rig.getJointStateCount(); i++) {
+                    absPoses.push_back(AnimPose(rig.getJointTransform(i)));
+                }
+                AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, CYAN);
+            } else {
+                AnimNode::ConstPointer node = rig.findAnimNodeByName(name);
+                if (node) {
+                    rig.buildAbsoluteRigPoses(node->getPoses(), absPoses);
+                    AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, CYAN);
+                }
             }
-            glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
-            AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, cyan);
         }
     }
 
@@ -6083,6 +6098,30 @@ QVariantList MyAvatar::getCollidingFlowJoints() {
         }
     }
     return result;
+}
+
+int MyAvatar::getOverrideJointCount() const {
+    if (_skeletonModel) {
+        return _skeletonModel->getRig().getOverrideJointCount();
+    } else {
+        return 0;
+    }
+}
+
+bool MyAvatar::getFlowActive() const {
+    if (_skeletonModel) {
+        return _skeletonModel->getRig().getFlowActive();
+    } else {
+        return false;
+    }
+}
+
+bool MyAvatar::getNetworkGraphActive() const {
+    if (_skeletonModel) {
+        return _skeletonModel->getRig().getNetworkGraphActive();
+    } else {
+        return false;
+    }
 }
 
 void MyAvatar::initFlowFromFST() {

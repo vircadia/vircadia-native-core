@@ -368,6 +368,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     }
 
     if (type == SHAPE_TYPE_COMPOUND) {
+        if (!_compoundShapeResource || !_compoundShapeResource->isLoaded()) {
+            return;
+        }
+
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded

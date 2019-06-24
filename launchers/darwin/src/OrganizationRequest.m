@@ -4,15 +4,15 @@
 #import "Launcher.h"
 
 
-static NSString* const organizationURL = @"https://s3.amazonaws.com/hifi-public/huffman/organizations/";
+static NSString* const organizationURL = @"https://orgs.highfidelity.com/organizations/";
 
 @implementation OrganizationRequest
 
 - (void) confirmOrganization:(NSString*)aOrganization :(NSString*)aUsername {
     self.username = aUsername;
-    
+    NSString* trimmedOrgString = [aOrganization stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     const char *cKey  = LAUNCHER_HMAC_SECRET;
-    const char *cData = [[aOrganization lowercaseString] cStringUsingEncoding:NSASCIIStringEncoding];
+    const char *cData = [[trimmedOrgString lowercaseString] cStringUsingEncoding:NSASCIIStringEncoding];
     unsigned char cHMAC[CC_SHA256_DIGEST_LENGTH];
     CCHmac(kCCHmacAlgSHA256, cKey, strlen(cKey), cData, strlen(cData), cHMAC);
     NSData *HMACData = [NSData dataWithBytes:cHMAC length:sizeof(cHMAC)];

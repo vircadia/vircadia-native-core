@@ -2025,6 +2025,9 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     if (params.isTalking) {
         if (_talkIdleInterpTime < 1.0f) {
             _talkIdleInterpTime += dt / TOTAL_EASE_IN_TIME;
+            if (_talkIdleInterpTime > 1.0f) {
+                _talkIdleInterpTime = 1.0f;
+            }
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
             _animVars.set("idleOverlayAlpha", easeOutInValue);
         } else {
@@ -2033,6 +2036,9 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     } else {
         if (_talkIdleInterpTime < 1.0f) {
             _talkIdleInterpTime += dt / TOTAL_EASE_OUT_TIME;
+            if (_talkIdleInterpTime > 1.0f) {
+                _talkIdleInterpTime = 1.0f;
+            }
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
             float talkAlpha = 1.0f - easeOutInValue;
             _animVars.set("idleOverlayAlpha", talkAlpha);
@@ -2232,6 +2238,14 @@ void Rig::initAnimGraph(const QUrl& url) {
     }
 }
 
+AnimNode::ConstPointer Rig::findAnimNodeByName(const QString& name) const {
+    if (_animNode) {
+        return _animNode->findByName(name);
+    } else {
+        return nullptr;
+    }
+}
+
 bool Rig::getModelRegistrationPoint(glm::vec3& modelRegistrationPointOut) const {
     if (_animSkeleton && _rootJointIndex >= 0) {
         modelRegistrationPointOut = _geometryOffset * -_animSkeleton->getAbsoluteDefaultPose(_rootJointIndex).trans();
@@ -2258,7 +2272,7 @@ void Rig::applyOverridePoses() {
     }
 }
 
-void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) {
+void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut) const {
     DETAILED_PERFORMANCE_TIMER("buildAbsolute");
     if (!_animSkeleton) {
         return;
@@ -2277,6 +2291,24 @@ void Rig::buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& a
             absolutePosesOut[i] = absolutePosesOut[parentIndex] * relativePoses[i];
         }
     }
+}
+
+int Rig::getOverrideJointCount() const {
+    int count = 0;
+    for (size_t i = 0; i < _internalPoseSet._overrideFlags.size(); i++) {
+        if (_internalPoseSet._overrideFlags[i]) {
+            count++;
+        }
+    }
+    return count;
+}
+
+bool Rig::getFlowActive() const {
+    return _internalFlow.getActive();
+}
+
+bool Rig::getNetworkGraphActive() const {
+    return _sendNetworkNode;
 }
 
 glm::mat4 Rig::getJointTransform(int jointIndex) const {

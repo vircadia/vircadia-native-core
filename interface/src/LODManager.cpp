@@ -351,7 +351,18 @@ float LODManager::getHMDLODTargetFPS() const {
 }
 
 float LODManager::getLODTargetFPS() const {
-    auto refreshRateFPS = qApp->getRefreshRateManager().getActiveRefreshRate();
+
+    // Use the current refresh rate as the recommended rate target used to cap the LOD manager control value.
+    // When focused, Use the Focus Inactive as the targget LOD to void abrupt changes from the lod controller.
+    auto& refreshRateManager = qApp->getRefreshRateManager();
+    auto refreshRateRegime = refreshRateManager.getRefreshRateRegime();
+    auto refreshRateProfile = refreshRateManager.getRefreshRateProfile();
+    auto refreshRateUXMode = refreshRateManager.getUXMode();
+    auto refreshRateFPS = refreshRateManager.getActiveRefreshRate();
+    if (refreshRateRegime == RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE) {
+        refreshRateFPS = refreshRateManager.queryRefreshRateTarget(refreshRateProfile, RefreshRateManager::RefreshRateRegime::FOCUS_INACTIVE, refreshRateUXMode);
+    }
+
     auto lodTargetFPS = getDesktopLODTargetFPS();
     if (qApp->isHMDMode()) {
         lodTargetFPS = getHMDLODTargetFPS();

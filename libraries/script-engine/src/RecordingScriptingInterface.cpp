@@ -93,7 +93,7 @@ void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue
 
     // when clip load fails, call the callback with the URL and failure boolean
     connect(clipLoader.data(), &recording::NetworkClipLoader::failed, callback.engine(), [this, weakClipLoader, url, callback](QNetworkReply::NetworkError error) mutable {
-        qCDebug(scriptengine) << "Failed to load recording from" << url;
+        qCDebug(scriptengine) << "Failed to load recording from\"" << url << '"';
 
         if (callback.isFunction()) {
             QScriptValueList args { false, url };

@@ -86,19 +86,20 @@ protected:
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small
+    // protected by _packetsQueueLock
     std::unordered_map<QUuid, PacketOrPacketList> _pendingEditPackets;
 
     // These are packets that are waiting to be processed because we don't yet know if there are servers
     int _maxPendingMessages;
     bool _releaseQueuedMessagesPending;
     QMutex _pendingPacketsLock;
-    QMutex _packetsQueueLock; // don't let different threads release the queue while another thread is writing to it
+    QMutex _packetsQueueLock{ QMutex::Recursive }; // don't let different threads release the queue while another thread is writing to it
     std::list<EditMessagePair> _preServerEdits; // these will get packed into other larger packets
     std::list<std::unique_ptr<NLPacket>> _preServerSingleMessagePackets; // these will go out as is
 
     QMutex _releaseQueuedPacketMutex;
 
-    // TODO: add locks for this and _pendingEditPackets
+    // protected by _packetsQueueLock
     std::unordered_map<QUuid, SentPacketHistory> _sentPacketHistories;
     std::unordered_map<QUuid, quint16> _outgoingSequenceNumbers;
 };

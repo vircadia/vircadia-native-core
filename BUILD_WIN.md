@@ -33,7 +33,7 @@ If you do not wish to use the Python installation bundled with Visual Studio, yo
 
 Download and install the latest version of CMake 3.9.
 
-Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.9 Version page](https://cmake.org/files/v3.9/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
+Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.14 Version page](https://cmake.org/files/v3.14/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 
 ### Step 3. Create VCPKG environment variable
 In the next step, you will use CMake to build High Fidelity. By default, the CMake process builds dependency files in Windows' `%TEMP%` directory, which is periodically cleared by the operating system. To prevent you from having to re-build the dependencies in the event that Windows clears that directory, we recommend that you create a `HIFI_VCPKG_BASE` environment variable linked to a directory somewhere on your machine. That directory will contain all dependency files until you manually remove them.

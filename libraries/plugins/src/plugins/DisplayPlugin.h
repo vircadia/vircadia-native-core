@@ -213,13 +213,12 @@ public:
     void waitForPresent();
     float getAveragePresentTime() { return _movingAveragePresent.average / (float)USECS_PER_MSEC; }  // in msec
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
-
     static const QString& MENU_PATH();
 
     // for updating plugin-related commands. Mimics the input plugin.
     virtual void pluginUpdate() = 0;
 
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() { return nullptr; }
     virtual StencilMaskMode getStencilMaskMode() const { return StencilMaskMode::NONE; }
     using StencilMaskMeshOperator = std::function<void(gpu::Batch&)>;
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() { return nullptr; }
@@ -233,8 +232,6 @@ protected:
     void incrementPresentCount();
 
     gpu::ContextPointer _gpuContext;
-
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)>() };
 
     MovingAverage<float, 10> _movingAveragePresent;
 
