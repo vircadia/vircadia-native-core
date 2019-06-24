@@ -80,6 +80,7 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source,
                                        QOpenGLFramebufferObject* target,
                                        GLsync* fenceSync) override;
@@ -100,7 +101,6 @@ protected:
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
     virtual void compositeScene();
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
     virtual void compositeExtra(){};
 
