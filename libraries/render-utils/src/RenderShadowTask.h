@@ -50,7 +50,6 @@ signals:
 
 class RenderShadowTask {
 public:
-
     // There is one AABox per shadow cascade
     using CascadeBoxes = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
     using Input = render::VaryingSet2<LightStage::FramePointer, LightingModelPointer>;
@@ -74,7 +73,6 @@ public:
     };
 
     CullFunctor _cullFunctor;
-
 };
 
 class RenderShadowSetupConfig : public render::Job::Config {
@@ -88,10 +86,11 @@ class RenderShadowSetupConfig : public render::Job::Config {
         Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
         Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
         Q_PROPERTY(float biasInput MEMBER biasInput NOTIFY dirty)
+        Q_PROPERTY(float globalMaxDistance MEMBER globalMaxDistance NOTIFY dirty)
 
 public:
-
-    float biasInput { 0.3f };
+    float biasInput{ 0.23f };
+    float globalMaxDistance{ 40 };
 
     float constantBias0{ 0.15f };
     float constantBias1{ 0.15f };
@@ -116,14 +115,13 @@ public:
     RenderShadowSetup();
     void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
-    
+
     float _biasInput;
-    float prevBiasInput { _biasInput };
-    int resolution { 1024 };
-    QVector<float> cacasdeDepths = QVector<float>(4);
+    float _globalMaxDistance;
+    int resolution{ 1024 };
+    QVector<float> cacasdeDistances = QVector<float>(8);  // 4 max then 4 min distances
 
 private:
-
     ViewFrustumPointer _cameraFrustum;
     ViewFrustumPointer _coarseShadowFrustum;
     struct {
