@@ -72,7 +72,7 @@
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0CN-kS-xZ5">
                     <rect key="frame" x="66" y="68" width="266" height="17"/>
                     <autoresizingMask key="autoresizingMask"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="By Signing in, you agree to the High Fidelity" id="zSf-YA-osu">
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="By signing in, you agree to the High Fidelity" id="zSf-YA-osu">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
