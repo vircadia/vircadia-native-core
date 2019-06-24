@@ -426,7 +426,7 @@ void NodeList::sendDomainServerCheckIn() {
             QByteArray systemInfo(desc.dump().c_str());
             QByteArray compressedSystemInfo = qCompress(systemInfo);
 
-            if(compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
+            if (compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
                 // Highly unlikely, as not even unreasonable machines will
                 // overflow the max size, but prevent MTU overflow anyway.
                 // We could do something sophisticated like clearing specific

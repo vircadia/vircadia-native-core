@@ -39,7 +39,7 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
         // and the operating system type
         QByteArray compressedSystemInfo;
         dataStream >> compressedSystemInfo;
-        if(!compressedSystemInfo.isEmpty()) {
+        if (!compressedSystemInfo.isEmpty()) {
             newHeader.SystemInfo = qUncompress(compressedSystemInfo);
         }
 
