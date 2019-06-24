@@ -23,24 +23,14 @@
 
     NSLog(@"calling interface at %@", self->pathTo);
 
-    if (@available(macOS 10.13, *)) {
-        NSError *error = nil;
-        if (![interface launchAndReturnError:&error]) {
-            *outError = [NSError errorWithDomain:@"interface"
-                                            code:-1
-                                        userInfo:@{NSUnderlyingErrorKey: error}];
-            return 0;
-        }
-    } else {
-        NSError *error = nil;
-        [interface launch];
-        [interface waitUntilExit];
-        if (0 != [interface terminationStatus]) {
-            *outError = [NSError errorWithDomain:@"interface"
-                                            code:-1
-                                        userInfo:@{NSUnderlyingErrorKey: error}];
-            return 0;
-        }
+    NSError *error = nil;
+    [interface launch];
+    [interface waitUntilExit];
+    if (0 != [interface terminationStatus]) {
+        *outError = [NSError errorWithDomain:@"interface"
+                                        code:-1
+                                    userInfo:@{NSUnderlyingErrorKey: error}];
+        return 0;
     }
 
     NSFileHandle * fh = [standardOut fileHandleForReading];
