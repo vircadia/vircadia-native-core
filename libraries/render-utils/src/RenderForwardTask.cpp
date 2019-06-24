@@ -52,11 +52,8 @@ extern void initForwardPipelines(ShapePlumber& plumber);
 void RenderForwardTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
     auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
-    auto upsamplePrimaryBufferConfig = config.getConfig<UpsampleToBlitFramebuffer>("PrimaryBufferUpscale");
     assert(preparePrimaryBufferConfig);
-    assert(upsamplePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
-    upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -172,10 +169,6 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
-
-    // Disable blit because we do tonemapping and compositing directly to the blit FBO
-    // Blit!
-    // task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
 gpu::FramebufferPointer PreparePrimaryFramebufferMSAA::createFramebuffer(const char* name, const glm::uvec2& frameSize, int numSamples) {

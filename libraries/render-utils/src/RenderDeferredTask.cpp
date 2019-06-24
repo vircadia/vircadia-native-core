@@ -97,11 +97,8 @@ RenderDeferredTask::RenderDeferredTask()
 void RenderDeferredTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
     auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
-    auto upsamplePrimaryBufferConfig = config.getConfig<Upsample>("PrimaryBufferUpscale");
     assert(preparePrimaryBufferConfig);
-    assert(upsamplePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
-    upsamplePrimaryBufferConfig->setProperty("factor", 1.0f / config.resolutionScale);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -254,15 +251,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     }
 
     // Upscale to finale resolution
-    //const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", toneMappedBuffer);
     const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
-
-    // Blit!
-  //  task.addJob<Blit>("Blit", primaryFramebuffer);
 }
 
 RenderDeferredTaskDebug::RenderDeferredTaskDebug() {
