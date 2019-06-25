@@ -405,8 +405,8 @@ Rectangle {
         id: settingsButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
-        anchors.rightMargin: 2
-        width: 48
+        anchors.rightMargin: 3
+        width: 36
         height: width
 
         Image {
