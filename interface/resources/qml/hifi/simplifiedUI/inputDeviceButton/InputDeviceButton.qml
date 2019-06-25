@@ -115,7 +115,7 @@ Rectangle {
             Image {
                 id: image
                 visible: false
-                source: (pushToTalk) ? (pushingToTalk ? pushToTalkIcon : pushToTalkMutedIcon) : muted ? mutedIcon :
+                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.fill: parent
             }
@@ -170,7 +170,7 @@ Rectangle {
             Image {
                 id: maskImage
                 visible: false
-                source: (pushToTalk) ? (pushingToTalk ? pushToTalkIcon : pushToTalkMutedIcon) : muted ? mutedIcon :
+                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.top: parent.top
                 anchors.left: parent.left
