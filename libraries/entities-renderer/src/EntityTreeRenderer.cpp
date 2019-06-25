@@ -207,7 +207,7 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
 
             if (entityItem && !entityItem->getScript().isEmpty()) {
                 if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
-                    if (entityItem->contains(_avatarPosition)) {
+                    if (_currentEntitiesInside.contains(entityID)) {
                         _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                     }
                     _entitiesScriptEngine->unloadEntityScript(entityID, true);
@@ -222,6 +222,7 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
 
     auto sessionUUID = getTree()->getMyAvatarSessionUUID();
     std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
+    std::unordered_set<EntityRendererPointer> savedRenderables;
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
@@ -232,11 +233,12 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
                 fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
+                savedRenderables.insert(entry.second);
             }
         }
     }
 
-    _renderablesToUpdate = savedEntities;
+    _renderablesToUpdate = savedRenderables;
     _entitiesInScene = savedEntities;
 
     if (_layeredZones.clearDomainAndNonOwnedZones(sessionUUID)) {
@@ -389,13 +391,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
     PerformanceTimer pt("change");
     std::unordered_set<EntityItemID> changedEntities;
     _changedEntitiesGuard.withWriteLock([&] {
-#if 0
-        // FIXME Weird build failure in latest VC update that fails to compile when using std::swap
         changedEntities.swap(_changedEntities);
-#else
-        changedEntities.insert(_changedEntities.begin(), _changedEntities.end());
-        _changedEntities.clear();
-#endif
     });
 
     {
@@ -404,7 +400,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
             auto renderable = renderableForEntityId(entityId);
             if (renderable) {
                 // only add valid renderables _renderablesToUpdate
-                _renderablesToUpdate.insert({ entityId, renderable });
+                _renderablesToUpdate.insert(renderable);
             }
         }
     }
@@ -414,8 +410,7 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         // we expect to update all renderables within available time budget
         PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
         uint64_t updateStart = usecTimestampNow();
-        for (const auto& entry : _renderablesToUpdate) {
-            const auto& renderable = entry.second;
+        for (const auto& renderable : _renderablesToUpdate) {
             assert(renderable); // only valid renderables are added to _renderablesToUpdate
             renderable->updateInScene(scene, transaction);
         }
@@ -424,8 +419,8 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
 
         // compute average per-renderable update cost
         float cost = (float)(usecTimestampNow() - updateStart) / (float)(numRenderables);
-        const float blend = 0.1f;
-        _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+        const float BLEND = 0.1f;
+        _avgRenderableUpdateCost = (1.0f - BLEND) * _avgRenderableUpdateCost + BLEND * cost;
     } else {
         // we expect the cost to updating all renderables to exceed available time budget
         // so we first sort by priority and update in order until out of time
@@ -450,43 +445,40 @@ void EntityTreeRenderer::updateChangedEntities(const render::ScenePointer& scene
         PrioritySortUtil::PriorityQueue<SortableRenderer> sortedRenderables(views);
         sortedRenderables.reserve(_renderablesToUpdate.size());
         {
-            PROFILE_RANGE_EX(simulation_physics, "SortRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
-            std::unordered_map<EntityItemID, EntityRendererPointer>::iterator itr = _renderablesToUpdate.begin();
-            while (itr != _renderablesToUpdate.end()) {
-                assert(itr->second); // only valid renderables are added to _renderablesToUpdate
-                sortedRenderables.push(SortableRenderer(itr->second));
-                ++itr;
+            PROFILE_RANGE_EX(simulation_physics, "BuildSortedRenderables", 0xffff00ff, (uint64_t)_renderablesToUpdate.size());
+            for (const auto& renderable : _renderablesToUpdate) {
+                assert(renderable); // only valid renderables are added to _renderablesToUpdate
+                sortedRenderables.push(SortableRenderer(renderable));
             }
         }
         {
-            PROFILE_RANGE_EX(simulation_physics, "UpdateRenderables", 0xffff00ff, sortedRenderables.size());
+            PROFILE_RANGE_EX(simulation_physics, "SortAndUpdateRenderables", 0xffff00ff, sortedRenderables.size());
 
             // compute remaining time budget
+            const auto& sortedRenderablesVector = sortedRenderables.getSortedVector();
             uint64_t updateStart = usecTimestampNow();
-            uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
             uint64_t sortCost = updateStart - sortStart;
+            uint64_t timeBudget = MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET;
             if (sortCost < MAX_UPDATE_RENDERABLES_TIME_BUDGET - MIN_SORTED_UPDATE_RENDERABLES_TIME_BUDGET) {
                 timeBudget = MAX_UPDATE_RENDERABLES_TIME_BUDGET - sortCost;
             }
             uint64_t expiry = updateStart + timeBudget;
 
             // process the sorted renderables
-            size_t numSorted = sortedRenderables.size();
-            const auto& sortedRenderablesVector = sortedRenderables.getSortedVector();
             for (const auto& sortedRenderable : sortedRenderablesVector) {
                 if (usecTimestampNow() > expiry) {
                     break;
                 }
                 const auto& renderable = sortedRenderable.getRenderer();
                 renderable->updateInScene(scene, transaction);
-                _renderablesToUpdate.erase(renderable->getEntity()->getID());
+                _renderablesToUpdate.erase(renderable);
             }
 
             // compute average per-renderable update cost
-            size_t numUpdated = numSorted - sortedRenderables.size() + 1; // add one to avoid divide by zero
+            size_t numUpdated = sortedRenderables.size() - _renderablesToUpdate.size() + 1; // add one to avoid divide by zero
             float cost = (float)(usecTimestampNow() - updateStart) / (float)(numUpdated);
-            const float blend = 0.1f;
-            _avgRenderableUpdateCost = (1.0f - blend) * _avgRenderableUpdateCost + blend * cost;
+            const float BLEND = 0.1f;
+            _avgRenderableUpdateCost = (1.0f - BLEND) * _avgRenderableUpdateCost + BLEND * cost;
         }
     }
 }
@@ -990,7 +982,6 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     // If it's in a pending queue, remove it
-    _renderablesToUpdate.erase(entityID);
     _entitiesToAdd.erase(entityID);
 
     auto itr = _entitiesInScene.find(entityID);
@@ -1000,7 +991,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     }
 
     if (_tree && !_shuttingDown && _entitiesScriptEngine && !itr->second->getEntity()->getScript().isEmpty()) {
-        if (itr->second->getEntity()->contains(_avatarPosition)) {
+        if (_currentEntitiesInside.contains(entityID)) {
             _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
         }
         _entitiesScriptEngine->unloadEntityScript(entityID, true);
@@ -1013,6 +1004,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     }
 
     auto renderable = itr->second;
+    _renderablesToUpdate.erase(renderable);
     _entitiesInScene.erase(itr);
 
     if (!renderable) {
@@ -1047,7 +1039,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
         QString scriptUrl = entity->getScript();
         if ((shouldLoad && unloadFirst) || scriptUrl.isEmpty()) {
             if (_entitiesScriptEngine) {
-                if (entity->contains(_avatarPosition)) {
+                if (_currentEntitiesInside.contains(entityID)) {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                 }
                 _entitiesScriptEngine->unloadEntityScript(entityID);

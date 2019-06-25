@@ -347,7 +347,8 @@ enum class DomainConnectRequestVersion : PacketVersion {
     AlwaysHasMachineFingerprint,
     HasTimestamp,
     HasReason,
-    HasSystemInfo
+    HasSystemInfo,
+    HasCompressedSystemInfo
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {

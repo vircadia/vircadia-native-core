@@ -32,6 +32,6 @@
 	<key>CFBundleName</key>
 	<string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
 	<key>CFBundleDisplayName</key>
-	<string>CFBundleName</string>
+	<string>${MACOSX_BUNDLE_BUNDLE_NAME}</string>
 </dict>
 </plist>
