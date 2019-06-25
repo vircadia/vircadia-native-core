@@ -275,7 +275,7 @@ void CLauncherDlg::drawLogo(CHwndRenderTarget* pRenderTarget) {
     CD2DBitmap m_pBitmamLogo(pRenderTarget, IDB_PNG2, _T("PNG"));
     auto size = pRenderTarget->GetSize();
     int logoWidth = 231;
-    int logoHeight = 181;
+    int logoHeight = 173;
     float logoPosX = 0.5f * (size.width - logoWidth);
     float logoPosY = 0.95f * (size.height - logoHeight);
     CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
