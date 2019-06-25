@@ -14,10 +14,9 @@
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
-#include <RenderShadowTask.h>
 #include <plugins/PluginUtils.h>
 #include <display-plugins/CompositorHelper.h>
-
+#include "scripting/RenderScriptingInterface.h"
 #include "Application.h"
 #include "DialogsManager.h"
 #include "LODManager.h"
@@ -102,6 +101,22 @@ void setupPreferences() {
 
         preference->setItems(refreshRateProfiles);
         preferences->addPreference(preference);
+    }
+    {
+        // Expose the Viewport Resolution Scale
+        auto getter = []()->float {
+            return RenderScriptingInterface::getInstance()->getViewportResolutionScale();
+        };
+
+        auto setter = [](float value) {
+            RenderScriptingInterface::getInstance()->setViewportResolutionScale(value);
+        };
+
+        auto scaleSlider = new SliderPreference(GRAPHICS_QUALITY, "Resolution Scale", getter, setter);
+        scaleSlider->setMin(0.25f);
+        scaleSlider->setMax(1.0f);
+        scaleSlider->setStep(0.02f);
+        preferences->addPreference(scaleSlider);
     }
 
     // UI
