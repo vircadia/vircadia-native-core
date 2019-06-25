@@ -159,6 +159,10 @@ void RenderScriptingInterface::setViewportResolutionScale(float scale) {
 }
 
 void RenderScriptingInterface::forceViewportResolutionScale(float scale) {
+    // just not negative values or zero
+    if (scale <= 0.f) {
+        return;
+    }
     _renderSettingLock.withWriteLock([&] {
         _viewportResolutionScale = (scale);
         _viewportResolutionScaleSetting.set(scale);
