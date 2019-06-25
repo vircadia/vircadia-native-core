@@ -63,7 +63,7 @@ class PolyVoxEntityItem : public EntityItem {
     virtual int getOnCount() const { return 0; }
 
     /**jsdoc
-     * <p>A <code>PolyVoxSurfaceStyle</code> may be one of the following:</p>
+     * <p>The surface of a {@link Entities.EntityProperties-PolyVox|PolyVox} entity may be one of the following styles:</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Type</th><th>Description</th></tr>

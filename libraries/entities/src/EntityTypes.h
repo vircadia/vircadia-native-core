@@ -42,7 +42,10 @@ public:
      *     <tr><th>Value</th><th>Description</th><th>Properties</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>"Box"</code></td><td>A rectangular prism. This is a synonym of <code>"Shape"</code> for the case 
+     *     <tr><td><code>"Shape"</code></td><td>A basic entity such as a cube.
+     *       See also, the <code>"Box"</code> and <code>"Sphere"</code> entity types.</td>
+     *       <td>{@link Entities.EntityProperties-Shape|EntityProperties-Shape}</td></tr>
+     *     <tr><td><code>"Box"</code></td><td>A rectangular prism. This is a synonym of <code>"Shape"</code> for the case
      *       where the entity's <code>shape</code> property value is <code>"Cube"</code>.<br />
      *       If an entity is created with its <code>type</code> 
      *       set to <code>"Box"</code> it will always be created with a <code>shape</code> property value of 
@@ -56,16 +59,13 @@ public:
      *       <code>"Sphere"</code>. If an entity of type <code>Box</code> or <code>Shape</code> has its <code>shape</code> set
      *       to <code>"Sphere"</code> then its <code>type</code> will be reported as <code>"Sphere"</code>.
      *       <td>{@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}</td></tr>
-     *     <tr><td><code>"Shape"</code></td><td>A basic entity such as a cube.
-     *       See also, the <code>"Box"</code> and <code>"Sphere"</code> entity types.</td>
-     *       <td>{@link Entities.EntityProperties-Shape|EntityProperties-Shape}</td></tr>
-     *     <tr><td><code>"Model"</code></td><td>A mesh model from an FBX or OBJ file.</td>
+     *     <tr><td><code>"Model"</code></td><td>A mesh model from a glTf, FBX, or OBJ file.</td>
      *       <td>{@link Entities.EntityProperties-Model|EntityProperties-Model}</td></tr>
      *     <tr><td><code>"Text"</code></td><td>A pane of text oriented in space.</td>
      *       <td>{@link Entities.EntityProperties-Text|EntityProperties-Text}</td></tr>
      *     <tr><td><code>"Image"</code></td><td>An image oriented in space.</td>
      *       <td>{@link Entities.EntityProperties-Image|EntityProperties-Image}</td></tr>
-     *     <tr><td><code>"Web"</code></td><td>A browsable Web page.</td>
+     *     <tr><td><code>"Web"</code></td><td>A browsable web page.</td>
      *       <td>{@link Entities.EntityProperties-Web|EntityProperties-Web}</td></tr>
      *     <tr><td><code>"ParticleEffect"</code></td><td>A particle system that can be used to simulate things such as fire, 
      *       smoke, snow, magic spells, etc.</td>
@@ -78,7 +78,7 @@ public:
      *       <td>{@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}</td></tr>
      *     <tr><td><code>"Grid"</code></td><td>A grid of lines in a plane.</td>
      *       <td>{@link Entities.EntityProperties-Grid|EntityProperties-Grid}</td></tr>
-     *     <tr><td><code>"Gizmo"</code></td><td>An entity with various UI-related properties.</td>
+     *     <tr><td><code>"Gizmo"</code></td><td>A gizmo intended for UI.</td>
      *       <td>{@link Entities.EntityProperties-Gizmo|EntityProperties-Gizmo}</td></tr>
      *     <tr><td><code>"Light"</code></td><td>A local lighting effect.</td>
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>

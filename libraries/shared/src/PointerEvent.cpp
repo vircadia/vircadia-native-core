@@ -66,7 +66,7 @@ void PointerEvent::setButton(Button button) {
 }
 
 /**jsdoc
- * A PointerEvent defines a 2D or 3D mouse or similar pointer event.
+ * A 2D or 3D mouse or similar pointer event.
  * @typedef {object} PointerEvent
  * @property {string} type - The type of event: <code>"Press"</code>, <code>"DoublePress"</code>, <code>"Release"</code>, or
  *     <code>"Move"</code>.
