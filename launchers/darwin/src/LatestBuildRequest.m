@@ -17,7 +17,7 @@
             currentVersion = [Settings.sharedSettings latestBuildVersion];
         }
     } @catch (NSException *exception) {
-        NSLog(@"an exception was thrown");
+        NSLog(@"an exception was thrown: %@", exception);
         currentVersion = [Settings.sharedSettings latestBuildVersion];
     }
     return currentVersion;
