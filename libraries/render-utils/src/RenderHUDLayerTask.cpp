@@ -17,7 +17,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext, const gpu::Fra
     assert(renderContext->args->_context);
 
     // We do not want to render HUD elements in secondary camera
-    if (renderContext->args->_renderMode == RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) {
+    if (nsightActive() || renderContext->args->_renderMode == RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE) {
         return;
     }
 
