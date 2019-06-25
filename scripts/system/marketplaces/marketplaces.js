@@ -17,7 +17,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 
 (function () { // BEGIN LOCAL_SCOPE
 var AppUi = Script.require('appUi');
-Script.include("/~/system/libraries/gridTool/gridTool.js");
+Script.include("/~/system/libraries/gridTool.js");
 Script.include("/~/system/libraries/connectionUtils.js");
 Script.include("/~/system/libraries/accountUtils.js");
 

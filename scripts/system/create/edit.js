@@ -31,7 +31,7 @@ Script.include([
     "../libraries/entityCameraTool.js",
     "../libraries/utils.js",
     "../libraries/entityIconOverlayManager.js",
-    "../libraries/gridTool/gridTool.js",
+    "../libraries/gridTool.js",
     "entityList/entityList.js",
     "entitySelectionTool/entitySelectionTool.js"
 ]);

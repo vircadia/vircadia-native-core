@@ -263,7 +263,7 @@ TabBar {
         property Component visualItem: Component {
             WebView {
                 id: gridControlsWebView
-                url: Qt.resolvedURL("../../libraries/gridTool/html/gridControls.html")
+                url: Qt.resolvedURL("../../html/gridControls.html")
                 enabled: true
                 blurOnCtrlShift: false
             }
