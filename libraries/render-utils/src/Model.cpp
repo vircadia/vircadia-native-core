@@ -1777,7 +1777,7 @@ void Blender::run() {
 
     // allocate the required sizes
     QVector<int> blendedMeshSizes;
-    blendedMeshSizes.resize(numMeshes);
+    blendedMeshSizes.reserve(numMeshes);
 
     QVector<BlendshapeOffset> packedBlendshapeOffsets;
     packedBlendshapeOffsets.resize(numBlendshapeOffsets);
