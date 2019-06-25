@@ -37,6 +37,7 @@ static CString GRAPHIK_REGULAR = _T("Graphik-Regular");
 static CString GRAPHIK_SEMIBOLD = _T("Graphik-Semibold");
 
 static CString TROUBLE_URL = _T("https://www.highfidelity.com/hq-support");
+static CString TERMS_URL = _T("https://www.highfidelity.com/termsofservice");
 
 
 CLauncherDlg::CLauncherDlg(CWnd* pParent)
@@ -54,6 +55,7 @@ void CLauncherDlg::DoDataExchange(CDataExchange* pDX)
 {
     DDX_Control(pDX, IDC_BUTTON_NEXT, m_btnNext);
     DDX_Control(pDX, IDC_TROUBLE_LINK, m_trouble_link);
+    DDX_Control(pDX, IDC_TERMS_LINK, m_terms_link);
     DDX_Control(pDX, IDC_ORGNAME, m_orgname);
     DDX_Control(pDX, IDC_USERNAME, m_username);
     DDX_Control(pDX, IDC_PASSWORD, m_password);
@@ -69,6 +71,7 @@ BEGIN_MESSAGE_MAP(CLauncherDlg, CDialog)
     ON_EN_SETFOCUS(IDC_PASSWORD, &CLauncherDlg::OnPassEditChangeFocus)
     ON_BN_CLICKED(IDC_BUTTON_NEXT, &CLauncherDlg::OnNextClicked)
     ON_BN_CLICKED(IDC_TROUBLE_LINK, &CLauncherDlg::OnTroubleClicked)
+    ON_BN_CLICKED(IDC_TERMS_LINK, &CLauncherDlg::OnTermsClicked)
     ON_WM_CTLCOLOR()
     ON_WM_DRAWITEM()
     ON_WM_SETCURSOR()
@@ -103,7 +106,6 @@ BOOL CLauncherDlg::OnInitDialog() {
     m_password_banner = (CStatic *)GetDlgItem(IDC_PASSWORD_BANNER);
 
     m_terms = (CStatic *)GetDlgItem(IDC_TERMS);
-    m_terms2 = (CStatic *)GetDlgItem(IDC_TERMS2);
     m_trouble = (CStatic *)GetDlgItem(IDC_TROUBLE);
 
     m_voxel = (CStatic *)GetDlgItem(IDC_VOXEL);
@@ -221,6 +223,10 @@ BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
 
 afx_msg void CLauncherDlg::OnTroubleClicked() {
     LauncherUtils::executeOnForeground(TROUBLE_URL, _T(""));
+}
+
+afx_msg void CLauncherDlg::OnTermsClicked() {
+    LauncherUtils::executeOnForeground(TERMS_URL, _T(""));
 }
 
 afx_msg void CLauncherDlg::OnNextClicked() {
@@ -362,9 +368,9 @@ void CLauncherDlg::prepareChoose() {
     m_action_label->SetWindowTextW(_T("Choose a display name"));
     m_message_label->SetWindowTextW(_T("This is the name that your teammates will see."));
     m_terms->ShowWindow(SW_SHOW);
-    m_terms2->ShowWindow(SW_SHOW);
+    m_terms_link.ShowWindow(SW_SHOW);
     m_terms->SetWindowTextW(_T("By signing in, you agree to the High Fidelity"));
-    m_terms2->SetWindowTextW(_T("Terms of Service"));
+    m_terms_link.SetWindowTextW(_T("Terms of Service"));
     CRect rec;
     m_btnNext.GetWindowRect(&rec);
     ScreenToClient(&rec);
@@ -380,7 +386,7 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
     m_trouble->ShowWindow(SW_HIDE);
     m_trouble_link.ShowWindow(SW_HIDE);
     m_terms->ShowWindow(SW_HIDE);
-    m_terms2->ShowWindow(SW_HIDE);
+    m_terms_link.ShowWindow(SW_HIDE);
     m_orgname_banner->ShowWindow(SW_HIDE);
     m_username_banner->ShowWindow(SW_HIDE);
     m_password_banner->ShowWindow(SW_HIDE);
@@ -465,7 +471,7 @@ BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
     case IDC_TERMS:
         formatOut.size = TERMS_FONT_SIZE;
         break;
-    case IDC_TERMS2:
+    case IDC_TERMS_LINK:
         formatOut.size = TERMS_FONT_SIZE;
         formatOut.isBold = true;
         break;
@@ -542,6 +548,14 @@ void CLauncherDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
             dc.SelectObject(buttonFont);
         }
         dc.DrawText(_T("Having Trouble"), CRect(rect.left, rect.top, rect.right, rect.bottom), DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    } else if (nIDCtl == IDC_TERMS_LINK) {
+        dc.FillSolidRect(rect, COLOR_BLACK);
+        dc.SetTextColor(COLOR_LIGHT_GREY);
+        CFont buttonFont;
+        if (LauncherUtils::getFont(GRAPHIK_SEMIBOLD, TERMS_FONT_SIZE, true, buttonFont)) {
+            dc.SelectObject(buttonFont);
+        }
+        dc.DrawText(_T("Terms of Service"), CRect(rect.left, rect.top, rect.right, rect.bottom), DT_LEFT | DT_TOP | DT_SINGLELINE);
     }
 
 }
