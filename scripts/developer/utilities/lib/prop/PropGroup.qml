@@ -127,7 +127,7 @@ PropFolderPanel {
 
         if (Array.isArray(object)) {
             if (object.length <= 1) {
-            object = object[0];
+                object = object[0];
             }
         }
 
