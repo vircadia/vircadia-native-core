@@ -6,12 +6,18 @@
 @implementation LatestBuildRequest
 
 - (NSInteger) getCurrentVersion {
-    NSString* interfaceAppPath = [[Launcher.sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
-    NSError * error = nil;
-    Interface * interface = [[Interface alloc] initWith:interfaceAppPath];
-    NSInteger currentVersion = [interface getVersion:&error];
-    if (currentVersion == 0 && error != nil) {
-        NSLog(@"can't get version from interface, falling back to settings: %@", error);
+    NSInteger currentVersion;
+    @try {
+        NSString* interfaceAppPath = [[Launcher.sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
+        NSError * error = nil;
+        Interface * interface = [[Interface alloc] initWith:interfaceAppPath];
+        currentVersion = [interface getVersion:&error];
+        if (currentVersion == 0 && error != nil) {
+            NSLog(@"can't get version from interface, falling back to settings: %@", error);
+            currentVersion = [Settings.sharedSettings latestBuildVersion];
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"an exception was thrown");
         currentVersion = [Settings.sharedSettings latestBuildVersion];
     }
     return currentVersion;
@@ -58,6 +64,7 @@
         BOOL appDirectoryExist = [fileManager fileExistsAtPath:[[sharedLauncher getAppPath] stringByAppendingString:@"interface.app"]];
         
         dispatch_async(dispatch_get_main_queue(), ^{
+            
             NSInteger currentVersion = [self getCurrentVersion];
             NSLog(@"Latest Build Request -> does build directory exist: %@", appDirectoryExist ? @"TRUE" : @"FALSE");
             NSLog(@"Latest Build Request -> current version: %ld", currentVersion);
