@@ -72,13 +72,13 @@ protected:
     HICON m_hIcon;
     CButton m_btnNext;
     CButton m_trouble_link;
+    CButton m_terms_link;
     
     CStatic* m_message_label;
     CStatic* m_action_label;
     CStatic* m_message2_label;
     CStatic* m_action2_label;
     CStatic* m_terms;
-    CStatic* m_terms2;
     CStatic* m_trouble;
     CStatic* m_voxel;
 
@@ -111,6 +111,7 @@ protected:
     afx_msg HCURSOR OnQueryDragIcon();
     afx_msg void OnNextClicked();
     afx_msg void OnTroubleClicked();
+    afx_msg void OnTermsClicked();
     afx_msg void OnOrgEditChangeFocus();
     afx_msg void OnUserEditChangeFocus();
     afx_msg void OnPassEditChangeFocus();
