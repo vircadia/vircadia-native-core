@@ -1777,13 +1777,13 @@ void Blender::run() {
 
     // allocate the required sizes
     QVector<int> blendedMeshSizes;
-    blendedMeshSizes.reserve(numMeshes);
+    blendedMeshSizes.resize(numMeshes);
 
     QVector<BlendshapeOffset> packedBlendshapeOffsets;
-    packedBlendshapeOffsets.reserve(numBlendshapeOffsets);
+    packedBlendshapeOffsets.resize(numBlendshapeOffsets);
 
     QVector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets;
-    unpackedBlendshapeOffsets.reserve(maxBlendshapeOffsets);    // reuse for all meshes
+    unpackedBlendshapeOffsets.resize(maxBlendshapeOffsets);    // reuse for all meshes
 
     int offset = 0;
     for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
