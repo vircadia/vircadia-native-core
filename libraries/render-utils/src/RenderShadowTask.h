@@ -119,6 +119,7 @@ public:
     void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
+    const int DEFAULT_RESOLUTION = 1024;
     float _biasInput{ DEFAULT_BIAS_INPUT };
     float _globalMaxDistance{ DEFAULT_MAX_DISTANCE };
     int resolution{ DEFAULT_RESOLUTION };
@@ -131,8 +132,6 @@ private:
         float _constant;
         float _slope;
     } _bias[SHADOW_CASCADE_MAX_COUNT];
-
-    const int DEFAULT_RESOLUTION = 1024;
 
     LightStage::ShadowFrame::Object _globalShadowObject;
     LightStage::ShadowFramePointer _shadowFrameCache;
