@@ -5915,7 +5915,7 @@ void Application::resetPhysicsReadyInformation() {
     _gpuTextureMemSizeStabilityCount = 0;
     _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
-    _octreeProcessor.startEntitySequence();
+    _octreeProcessor.startSafeLanding();
 }
 
 

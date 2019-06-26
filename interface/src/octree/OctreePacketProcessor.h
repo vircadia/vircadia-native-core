@@ -25,7 +25,7 @@ public:
     OctreePacketProcessor();
     ~OctreePacketProcessor();
 
-    void startEntitySequence();
+    void startSafeLanding();
     bool isLoadSequenceComplete() const { return _safeLanding->isLoadSequenceComplete(); }
     float domainLoadingProgress() const { return _safeLanding->loadingProgressPercentage(); }
 

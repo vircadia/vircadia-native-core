@@ -26,7 +26,6 @@ class EntityItemID;
 class SafeLanding : public QObject {
 public:
     void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
-    void stopEntitySequence();
     void setCompletionSequenceNumbers(int first, int last);  // 'last' exclusive.
     void noteReceivedsequenceNumber(int sequenceNumber);
     bool isLoadSequenceComplete();
@@ -41,6 +40,7 @@ private:
     bool isEntityPhysicsReady(const EntityItemPointer& entity);
     void debugDumpSequenceIDs() const;
     bool isEntityLoadingComplete();
+    void stopTracking();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;

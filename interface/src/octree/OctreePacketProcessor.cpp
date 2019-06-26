@@ -133,6 +133,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     }
 }
 
-void OctreePacketProcessor::startEntitySequence() {
+void OctreePacketProcessor::startSafeLanding() {
     _safeLanding->startEntitySequence(qApp->getEntities());
 }
