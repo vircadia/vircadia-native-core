@@ -163,7 +163,7 @@ Rectangle {
 
         Item {
             width: parent.width
-            height: parent.height-parent.height*level
+            height: parent.height - parent.height * level
             anchors.top: parent.top
             anchors.left: parent.left
             clip:true
