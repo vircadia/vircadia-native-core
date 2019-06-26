@@ -24,9 +24,6 @@ public:
 
     virtual QJsonObject getHardwareStats() const;
 
-    virtual gpu::PipelinePointer getRenderTexturePipeline() override;
-    virtual gpu::PipelinePointer getCompositeScenePipeline() override;
-
 protected:
     QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }
 
