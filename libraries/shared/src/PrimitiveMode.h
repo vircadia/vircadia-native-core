@@ -12,17 +12,17 @@
 #include "QString"
 
 /**jsdoc
- * <p>How the geometry of the entity is rendered.</p>
+ * <p>How the geometry of an entity is rendered.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>solid</code></td><td>The entity will be drawn as a solid shape.</td></tr>
- *     <tr><td><code>lines</code></td><td>The entity will be drawn as wireframe.</td></tr>
+ *     <tr><td><code>"solid"</code></td><td>The entity is drawn as a solid shape.</td></tr>
+ *     <tr><td><code>"lines"</code></td><td>The entity is drawn as wireframe.</td></tr>
  *   </tbody>
  * </table>
- * @typedef {string} PrimitiveMode
+ * @typedef {string} Entities.PrimitiveMode
  */
 
 enum class PrimitiveMode {

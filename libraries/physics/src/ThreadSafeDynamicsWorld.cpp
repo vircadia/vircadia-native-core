@@ -181,7 +181,7 @@ void ThreadSafeDynamicsWorld::drawConnectedSpheres(btIDebugDraw* drawer, btScala
     btVector3 xAxis = direction.cross(btVector3(0.0f, 1.0f, 0.0f));
     xAxis = xAxis.length() < EPSILON ? btVector3(1.0f, 0.0f, 0.0f) : xAxis.normalize();
     btVector3 zAxis = xAxis.cross(btVector3(0.0f, 1.0f, 0.0f));
-    zAxis = (direction.normalize().getY() < EPSILON) ? btVector3(0.0f, 1.0f, 0.0f) : zAxis.normalize();
+    zAxis = (direction.length2() < EPSILON || direction.normalize().getY() < EPSILON) ? btVector3(0.0f, 1.0f, 0.0f) : zAxis.normalize();
     float fullCircle = 2.0f * PI;
     for (float i = 0; i < fullCircle; i += stepRadians) {
         float x1 = btSin(btScalar(i)) * radius1;

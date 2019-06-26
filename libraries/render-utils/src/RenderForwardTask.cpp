@@ -19,6 +19,7 @@
 #include <gpu/Texture.h>
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
+#include <render/ResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -32,6 +33,7 @@
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
+#include "RenderHUDLayerTask.h"
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -46,6 +48,13 @@ namespace gr {
 using namespace render;
 
 extern void initForwardPipelines(ShapePlumber& plumber);
+
+void RenderForwardTask::configure(const Config& config) {
+    // Propagate resolution scale to sub jobs who need it
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
+    assert(preparePrimaryBufferConfig);
+    preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
+}
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     task.addJob<SetRenderMethod>("SetRenderMethodTask", render::Args::FORWARD);
@@ -87,16 +96,19 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // First job, alter faded
     fadeEffect->build(task, opaques);
 
-    // Prepare objects shared by several jobs
-    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
 
     // GPU jobs: Start preparing the main framebuffer
-    const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
 
-    task.addJob<PrepareForward>("PrepareForward", lightFrame);
+    // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
+    const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
+
+    // Prepare Forward Framebuffer pass 
+    const auto prepareForwardInputs = PrepareForward::Inputs(scaledPrimaryFramebuffer, lightFrame).asVarying();
+    task.addJob<PrepareForward>("PrepareForward", prepareForwardInputs);
 
     // draw a stencil mask in hidden regions of the framebuffer.
-    task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
+    task.addJob<PrepareStencil>("PrepareStencil", scaledPrimaryFramebuffer);
 
     // Draw opaques forward
     const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
@@ -128,94 +140,103 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
-    // Just resolve the msaa
-    const auto resolveInputs =
-        ResolveFramebuffer::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
-    //auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
-
 #if defined(Q_OS_ANDROID)
+
+    // Just resolve the msaa
+    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+
+     const auto toneMappedBuffer = resolvedFramebuffer;
 #else
+    const auto newResolvedFramebuffer = task.addJob<NewOrDefaultFramebuffer>("MakeResolvingFramebuffer");
+
+
+    // Just resolve the msaa
+    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
+    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
+    const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+
 #endif
 
-    // Layered Overlays
-    // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD", resolvedFramebuffer);
+    // Upscale to finale resolution
+    const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
-    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
-    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
-    task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
-    task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
-
-    // Disable blit because we do tonemapping and compositing directly to the blit FBO
-    // Blit!
-    // task.addJob<Blit>("Blit", framebuffer);
+    // HUD Layer
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
+    task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
-void PrepareFramebuffer::configure(const Config& config) {
+gpu::FramebufferPointer PreparePrimaryFramebufferMSAA::createFramebuffer(const char* name, const glm::uvec2& frameSize, int numSamples) {
+    gpu::FramebufferPointer framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
+
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+  
+    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+    auto colorTexture =
+        gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
+    framebuffer->setRenderBuffer(0, colorTexture);
+
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);  // Depth24_Stencil8 texel format
+    auto depthTexture =
+        gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
+    framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
+
+    return framebuffer;
+}
+
+void PreparePrimaryFramebufferMSAA::configure(const Config& config) {
+    _resolutionScale = config.getResolutionScale();
     _numSamples = config.getNumSamples();
 }
 
-void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
+void PreparePrimaryFramebufferMSAA::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
     glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
+    glm::uvec2 scaledFrameSize(glm::vec2(frameSize) * _resolutionScale);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
-    if (_framebuffer && (_framebuffer->getSize() != frameSize || _framebuffer->getNumSamples() != _numSamples)) {
-        _framebuffer.reset();
+    if (!_framebuffer || (_framebuffer->getSize() != scaledFrameSize) || (_framebuffer->getNumSamples() != _numSamples)) {
+        _framebuffer = createFramebuffer("forward", scaledFrameSize, _numSamples);
     }
-
-    if (!_framebuffer) {
-        _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("forward"));
-
-        int numSamples = _numSamples;
-
-        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-        auto colorTexture =
-            gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
-        _framebuffer->setRenderBuffer(0, colorTexture);
-
-        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);  // Depth24_Stencil8 texel format
-        auto depthTexture =
-           gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
-        _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
-    }
-
-    auto args = renderContext->args;
-    gpu::doInBatch("PrepareFramebuffer::run", args->_context, [&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setFramebuffer(_framebuffer);
-        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 0), 1.0, 0, true);
-    });
 
     framebuffer = _framebuffer;
+
+    // Set viewport for the rest of the scaled passes
+    renderContext->args->_viewport.z = scaledFrameSize.x;
+    renderContext->args->_viewport.w = scaledFrameSize.y;
 }
 
 void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     RenderArgs* args = renderContext->args;
 
+    auto primaryFramebuffer = inputs.get0();
+    auto lightStageFrame = inputs.get1();
+
     gpu::doInBatch("RenderForward::Draw::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+
+        batch.enableStereo(false);
+        batch.setViewportTransform(args->_viewport);
+        batch.setStateScissorRect(args->_viewport);
+
+        batch.setFramebuffer(primaryFramebuffer);
+        batch.clearFramebuffer(gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_DEPTH |
+            gpu::Framebuffer::BUFFER_STENCIL,
+            vec4(vec3(0), 0), 1.0, 0, true);
 
         graphics::LightPointer keySunLight;
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
-            keySunLight = lightStage->getCurrentKeyLight(*inputs);
+            keySunLight = lightStage->getCurrentKeyLight(*lightStageFrame);
         }
 
         graphics::LightPointer keyAmbiLight;
         if (lightStage) {
-            keyAmbiLight = lightStage->getCurrentAmbientLight(*inputs);
+            keyAmbiLight = lightStage->getCurrentAmbientLight(*lightStageFrame);
         }
 
         if (keySunLight) {

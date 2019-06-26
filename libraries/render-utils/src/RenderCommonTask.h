@@ -13,6 +13,8 @@
 #include "LightStage.h"
 #include "LightingModel.h"
 
+
+
 class BeginGPURangeTimer {
 public:
     using JobModel = render::Job::ModelO<BeginGPURangeTimer, gpu::RangeTimerPointer>;
@@ -75,16 +77,6 @@ protected:
     bool _opaquePass { true };
 };
 
-class CompositeHUD {
-public:
-    // IF specified the input Framebuffer is actively set by the batch of this job before calling the HUDOperator.
-    // If not, the current Framebuffer is left unchanged.
-    //using Inputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelI<CompositeHUD, gpu::FramebufferPointer>;
-
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs);
-};
-
 class Blit {
 public:
     using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
@@ -92,6 +84,16 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class NewOrDefaultFramebuffer {
+public:
+    using Input = glm::uvec2;
+    using Output = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelIO<NewOrDefaultFramebuffer, Input, Output>;
+
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
+};
 
 class ResolveFramebuffer {
 public:
@@ -101,18 +103,6 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
 };
-
-class ResolveNewFramebuffer {
-public:
-    using Inputs = gpu::FramebufferPointer;
-    using Outputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelIO<ResolveNewFramebuffer, Inputs, Outputs>;
-
-    void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
-private:
-    gpu::FramebufferPointer _outputFramebuffer;
-};
-
 
 class ExtractFrustums {
 public:

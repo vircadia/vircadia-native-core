@@ -1,0 +1,93 @@
+﻿<!--
+//  entityList.html
+//
+//  Created by Ryan Huffman on 19 Nov 2014
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+<html>
+    <head>
+        <title>Entity List</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <link rel="stylesheet" type="text/css" href="css/edit-style.css">
+        <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <script type="text/javascript" src="js/jquery-2.1.4.min.js"></script>
+        <script type="text/javascript" src="js/eventBridgeLoader.js"></script>
+        <script type="text/javascript" src="js/spinButtons.js"></script>
+        <script type="text/javascript" src="js/listView.js"></script>
+        <script type="text/javascript" src="js/entityListContextMenu.js"></script>
+        <script type="text/javascript" src="js/utils.js"></script>
+        <script type="text/javascript" src="js/includes.js"></script>
+        <script type="text/javascript" src="js/entityList.js"></script>
+    </head>
+    <body onload='loaded();' id="entity-list-body">
+        <div id="entity-list-header">
+            <input type="button" class="glyph" id="refresh" value="F" />
+            <div>
+                <input type="button" id="locked" class="glyph" value="&#xe006;" />
+                <input type="button" id="visible" class="glyph" value="&#xe007;" />
+            </div>
+            <input type="button" id="pal" class="glyph" value="&#xe00c;" />
+            <button id="toggle-space-mode" class="hifi-edit-button space-mode-local">Local</button>
+            <input type="button" class="red glyph" id="delete" value="{" />
+        </div>
+        <div id="entity-list">
+            <div id="filter-area">
+                <div id="filter-type-multiselect" class="multiselect">
+                    <div id="filter-type-multiselect-box" class="multiselect-box">
+                        <select>
+                            <option id="filter-type-text">All Types</option>
+                        </select>
+                        <div class="over-select"></div>
+                    </div>
+                    <div id="filter-type-options" class="multiselect-options">
+                        <!-- type options with checkbox, icon, and label are added at runtime in entityList -->
+                        <div id="filter-type-options-buttons">
+                            <input type="button" id="filter-type-select-all" value="Select All"/>
+                            <input type="button" id="filter-type-clear-all" value="Clear All"/>
+                        </div>
+                    </div>
+                </div>
+                <div id="filter-search-and-icon">
+                    <span class="icon-input"><input type="search" class="search" id="filter-search" placeholder="Search" /><span>Y</span></span>
+                </div>
+                <input type="button" id="filter-in-view" class="glyph" value="&#xe007;" />
+                <div id="filter-radius-and-unit" class="number">
+                    <label for="radius">Search radius <span class="unit">m</span></label>
+                    <input type="text" id="filter-radius" maxlength="9" value="100" />
+                </div>
+            </div>
+            <div id="entity-table-scroll">
+                <table id="entity-table">
+                    <!-- rows and columns are added at runtime in entityList / listView -->
+                    <thead id="entity-table-header"/>
+                    <tbody class="list" id="entity-table-body"/>
+                </table>
+                <div id="entity-table-columns-multiselect" class="multiselect">
+                    <div id="entity-table-columns-multiselect-box" class="multiselect-box">
+                        <select>
+                            <option id="entity-table-columns-toggle"></option>
+                        </select>
+                        <div class="over-select"></div>
+                    </div>
+                    <div id="entity-table-columns-options" class="multiselect-options">
+                        <!-- column options are added at runtime in entityList -->
+                    </div>
+                </div>
+                <div id="no-entities">
+                    There are no entities to display. Please check your filters or create an entity to begin.
+                </div>
+            </div>
+        </div>
+        <div id="entity-list-footer">
+            <div>
+                <input type="button" id="export" value="Export Selection" />
+                <div id="footer-text">
+                    <b><span id="selected-entities-count">0</span> of <span id="visible-entities-count">0</span></b> selected
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

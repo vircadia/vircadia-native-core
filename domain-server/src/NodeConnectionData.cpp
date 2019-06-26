@@ -37,7 +37,11 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
         dataStream >> newHeader.machineFingerprint;
 
         // and the operating system type
-        dataStream >> newHeader.SystemInfo;
+        QByteArray compressedSystemInfo;
+        dataStream >> compressedSystemInfo;
+        if (!compressedSystemInfo.isEmpty()) {
+            newHeader.SystemInfo = qUncompress(compressedSystemInfo);
+        }
 
         dataStream >> newHeader.connectReason;
 

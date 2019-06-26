@@ -375,6 +375,9 @@ AudioClient::AudioClient() :
 }
 
 AudioClient::~AudioClient() {
+
+    stop();
+
     if (_codec && _encoder) {
         _codec->releaseEncoder(_encoder);
         _encoder = nullptr;

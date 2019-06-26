@@ -41,35 +41,33 @@ static const glm::vec3 INITIAL_EQUIPPABLE_INDICATOR_OFFSET { glm::vec3(0.0f) };
 
 
 /**jsdoc
- * Grab is defined by the following properties.
+ * Grabbing behavior is defined by the following properties:
+ *
  * @typedef {object} Entities.Grab
- *
- * @property {boolean} grabbable=true - If <code>true</code> the entity can be grabbed.
- * @property {boolean} grabKinematic=true - If <code>true</code> the entity is updated in a kinematic manner.
- *     If <code>false</code> it will be grabbed using a tractor action.  A kinematic grab will make the item appear more
- *     tightly held, but will cause it to behave poorly when interacting with dynamic entities.
- * @property {boolean} grabFollowsController=true - If <code>true</code> the entity will follow the motions of the
- *     hand-controller even if the avatar's hand can't get to the implied position.  This should be <code>true</code>
- *     for tools, pens, etc and false for things meant to decorate the hand.
- *
- * @property {boolean} triggerable=false - If <code>true</code> the entity will receive calls to trigger
+ * @property {boolean} grabbable=true - If <code>true</code> then the entity can be grabbed.
+ * @property {boolean} grabKinematic=true - If <code>true</code> then the entity will be updated in a kinematic manner when 
+ *     grabbed; if <code>false</code> it will be grabbed using a tractor action. A kinematic grab will make the item appear 
+ *     more tightly held but will cause it to behave poorly when interacting with dynamic entities.
+ * @property {boolean} grabFollowsController=true - If <code>true</code> then the entity will follow the motions of the hand 
+ *     controller even if the avatar's hand can't get to the implied position. This should be set <code>true</code> for tools, 
+ *     pens, etc. and <code>false</code> for things meant to decorate the hand.
+ * @property {boolean} triggerable=false - If <code>true</code> then the entity will receive calls to trigger
  *     {@link Controller|Controller entity methods}.
- *
- * @property {boolean} equippable=true - If <code>true</code> the entity can be equipped.
+ * @property {boolean} grabDelegateToParent=true - If <code>true</code> and the entity is grabbed, the grab will be transferred 
+ *     to its parent entity if there is one; if <code>false</code>, a child entity can be grabbed and moved relative to its 
+ *     parent.
+ * @property {boolean} equippable=true - If <code>true</code> then the entity can be equipped.
  * @property {Vec3} equippableLeftPosition=0,0,0 - Positional offset from the left hand, when equipped.
  * @property {Quat} equippableLeftRotation=0,0,0,1 - Rotational offset from the left hand, when equipped.
  * @property {Vec3} equippableRightPosition=0,0,0 - Positional offset from the right hand, when equipped.
  * @property {Quat} equippableRightRotation=0,0,0,1 - Rotational offset from the right hand, when equipped.
- *
  * @property {string} equippableIndicatorURL="" - If non-empty, this model will be used to indicate that an
  *     entity is equippable, rather than the default.
- * @property {Vec3} equippableIndicatorScale=1,1,1 - If equippableIndicatorURL is non-empty, this controls the
+ * @property {Vec3} equippableIndicatorScale=1,1,1 - If <code>equippableIndicatorURL</code> is non-empty, this controls the
        scale of the displayed indicator.
- * @property {Vec3} equippableIndicatorOffset=0,0,0 - If equippableIndicatorURL is non-empty, this controls the
+ * @property {Vec3} equippableIndicatorOffset=0,0,0 - If <code>equippableIndicatorURL</code> is non-empty, this controls the
        relative offset of the displayed object from the equippable entity.
  */
-
-
 class GrabPropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers

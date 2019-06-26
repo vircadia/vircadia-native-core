@@ -62,7 +62,7 @@ public:
 
     PresentThread() {
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
-            shutdown();
+            shutdown(); 
         });
         setObjectName("Present");
 
@@ -82,11 +82,10 @@ public:
 
             Lock lock(_mutex);
             _shutdown = true;
-            _condition.wait(lock, [&] { return !_shutdown;  });
+            _condition.wait(lock, [&] { return !_shutdown; });
             qCDebug(displayPlugins) << "Present thread shutdown";
         }
     }
-
 
     void setNewDisplayPlugin(OpenGLDisplayPlugin* plugin) {
         Lock lock(_mutex);
@@ -103,7 +102,6 @@ public:
         _context->doneCurrent();
         _context->moveToThread(this);
     }
-
 
     virtual void run() override {
         PROFILE_SET_THREAD_NAME("Present Thread");
@@ -130,7 +128,6 @@ public:
                     // Release the main thread to do it's action
                     _condition.notify_one();
                 }
-
 
                 {
                     // Main thread does it's thing while we wait on the lock to release
@@ -201,7 +198,7 @@ public:
 #if defined(Q_OS_MAC)
             _context->doneCurrent();
 #endif
-            
+
             _refreshRateController->sleepThreadIfNeeded(this, currentPlugin->isHmd());
         }
 
@@ -235,7 +232,6 @@ public:
         _condition.notify_one();
     }
 
-
 private:
     void makeCurrent();
     void doneCurrent();
@@ -244,7 +240,6 @@ private:
     Mutex _mutex;
     // Used to allow the main thread to perform context operations
     Condition _condition;
-
 
     QThread* _targetOperationThread { nullptr };
     bool _pendingOtherThreadOperation { false };
@@ -302,7 +297,6 @@ bool OpenGLDisplayPlugin::activate() {
         return false;
     }
 
-
     // This should not return until the new context has been customized
     // and the old context (if any) has been uncustomized
     presentThread->setNewDisplayPlugin(this);
@@ -334,7 +328,7 @@ void OpenGLDisplayPlugin::deactivate() {
 
     _container->showDisplayPluginsTools(false);
     if (!_container->currentDisplayActions().isEmpty()) {
-        foreach(auto itemInfo, _container->currentDisplayActions()) {
+        foreach (auto itemInfo, _container->currentDisplayActions()) {
             _container->removeMenuItem(itemInfo.first, itemInfo.second);
         }
         _container->currentDisplayActions().clear();
@@ -368,7 +362,6 @@ void OpenGLDisplayPlugin::customizeContext() {
                 image = image.convertToFormat(QImage::Format_ARGB32);
             }
             if ((image.width() > 0) && (image.height() > 0)) {
-
                 cursorData.texture = gpu::Texture::createStrict(
                     gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                     image.width(), image.height(),
@@ -384,7 +377,7 @@ void OpenGLDisplayPlugin::customizeContext() {
         }
     }
 
-    if (!_drawTexturePipeline) {
+    if (!_linearToSRGBPipeline) {
         gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
         blendState->setDepthTest(gpu::State::DepthTest(false));
         blendState->setBlendFunction(true,
@@ -397,17 +390,17 @@ void OpenGLDisplayPlugin::customizeContext() {
         scissorState->setDepthTest(gpu::State::DepthTest(false));
         scissorState->setScissorEnable(true);
 
-            _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
+        _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
 
-            _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
+        _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
 
-            _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
+        _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
 
-            _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
+        _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
 
-            _mirrorHUDPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), blendState);
+        _mirrorHUDPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), blendState);
 
-            _cursorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTransformedTexture), blendState);
+        _cursorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTransformedTexture), blendState);
     }
 
     updateCompositeFramebuffer();
@@ -418,9 +411,9 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _drawTexturePipeline.reset();
     _linearToSRGBPipeline.reset();
     _SRGBToLinearPipeline.reset();
+    _cursorPipeline.reset();
     _hudPipeline.reset();
     _mirrorHUDPipeline.reset();
-    _cursorPipeline.reset();
     _compositeFramebuffer.reset();
 
     withPresentThreadLock([&] {
@@ -432,7 +425,6 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
         }
     });
 }
-
 
 // Pressing Alt (and Meta) key alone activates the menubar because its style inherits the
 // SHMenuBarAltKeyNavigation from QWindowsStyle. This makes it impossible for a scripts to
@@ -514,11 +506,18 @@ void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
     });
 }
 
-void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor) {
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch,
+                                            const gpu::TexturePointer& texture,
+                                            const glm::ivec4& viewport,
+                                            const glm::ivec4& scissor) {
     renderFromTexture(batch, texture, viewport, scissor, nullptr);
 }
 
-void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& copyFbo /*=gpu::FramebufferPointer()*/) {
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch,
+                                            const gpu::TexturePointer& texture,
+                                            const glm::ivec4& viewport,
+                                            const glm::ivec4& scissor,
+                                            const gpu::FramebufferPointer& copyFbo /*=gpu::FramebufferPointer()*/) {
     auto fbo = gpu::FramebufferPointer();
     batch.enableStereo(false);
     batch.resetViewTransform();
@@ -528,13 +527,13 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
 
-    batch.setPipeline(_drawTexturePipeline);
-    
+    batch.setPipeline(getRenderTexturePipeline());
+
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
         gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
         gpu::Vec4i sourceRect(scissor.x, scissor.y, scissor.x + scissor.z, scissor.y + scissor.w);
-        float aspectRatio = (float)scissor.w / (float) scissor.z; // height/width
+        float aspectRatio = (float)scissor.w / (float)scissor.z;  // height/width
         // scale width first
         int xOffset = 0;
         int yOffset = 0;
@@ -593,9 +592,10 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGL
         hudEyeViewports[eye] = eyeViewport(eye);
     });
     return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (hudPipeline && hudTexture) {
+        auto pipeline = mirror ? hudMirrorPipeline : hudPipeline;
+        if (pipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
+            batch.setPipeline(pipeline);
             batch.setResourceTexture(0, hudTexture);
             if (hudStereo) {
                 for_each_eye([&](Eye eye) {
@@ -634,11 +634,6 @@ void OpenGLDisplayPlugin::compositePointer() {
     });
 }
 
-// Overridden by Basic2DWindowDisplayPlugin and OculusDisplayPlugin
-gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
-    return _drawTexturePipeline;
-}
-
 void OpenGLDisplayPlugin::compositeScene() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -661,17 +656,6 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeScene();
     }
 
-#ifdef HIFI_ENABLE_NSIGHT_DEBUG
-    if (false) // do not draw the HUD if running nsight debug
-#endif
-    {
-        PROFILE_RANGE_EX(render_detail, "handleHUDBatch", 0xff0077ff, (uint64_t)presentCount())
-        auto hudOperator = getHUDOperator();
-        withPresentThreadLock([&] {
-            _hudOperator = hudOperator;
-        });
-    }
-
     {
         PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
@@ -692,7 +676,7 @@ void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
         // Note: _displayTexture must currently be the same size as the display.
         uvec2 dims = _displayTexture ? uvec2(_displayTexture->getDimensions()) : getSurfacePixels();
-        auto viewport = ivec4(uvec2(0),  dims);
+        auto viewport = ivec4(uvec2(0), dims);
         renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
      });
     swapBuffers();
@@ -775,7 +759,7 @@ float OpenGLDisplayPlugin::presentRate() const {
     return _presentRate.rate();
 }
 
-std::function<void(int)>  OpenGLDisplayPlugin::getRefreshRateOperator() {
+std::function<void(int)> OpenGLDisplayPlugin::getRefreshRateOperator() {
     return [](int targetRefreshRate) {
         auto refreshRateController = DependencyManager::get<PresentThread>()->getRefreshRateController();
         refreshRateController->setRefreshRateLimitPeriod(targetRefreshRate);
@@ -790,7 +774,6 @@ void OpenGLDisplayPlugin::resetPresentRate() {
 float OpenGLDisplayPlugin::renderRate() const {
     return _renderRate.rate();
 }
-
 
 void OpenGLDisplayPlugin::swapBuffers() {
     static auto context = _container->getPrimaryWidget()->context();
@@ -919,17 +902,10 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }
 
-// Added this to allow desktop composite framebuffer to be RGBA while mobile is SRGBA
-// Overridden by Basic2DWindowDisplayPlugin
-// FIXME: Eventually it would be ideal to have both framebuffers be of the same type
-gpu::Element OpenGLDisplayPlugin::getCompositeFBColorSpace() {
-    return gpu::Element::COLOR_RGBA_32;
-}
-
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", getCompositeFBColorSpace(), renderSize.x, renderSize.y));
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
 }
 
@@ -960,14 +936,13 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-
         // maintain aspect ratio, filling the width first if possible.  If that makes the height too
         // much, fill height instead. TODO: only do this when texture changes
         GLint newX = 0;
         GLint newY = 0;
         float aspectRatio = (float)texHeight / (float)texWidth;
         GLint newWidth = target->width();
-        GLint newHeight = std::round(aspectRatio * (float) target->width());
+        GLint newHeight = std::round(aspectRatio * (float)target->width());
         if (newHeight > target->height()) {
             newHeight = target->height();
             newWidth = std::round((float)target->height() / aspectRatio);
@@ -976,12 +951,20 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
             newY = (target->height() - newHeight) / 2;
         }
 
-        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         // don't delete the textures!
         glDeleteFramebuffers(2, fbo);
         *fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     });
 #endif
+}
+
+gpu::PipelinePointer OpenGLDisplayPlugin::getRenderTexturePipeline() {
+    return _drawTexturePipeline;
+}
+
+gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
+    return _drawTexturePipeline;
 }
 
