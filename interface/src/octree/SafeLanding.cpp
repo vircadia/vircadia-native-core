@@ -34,15 +34,15 @@ bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const
 }
 
 void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
-
     if (!entityTreeRenderer.isNull()) {
         auto entityTree = entityTreeRenderer->getTree();
-        if (entityTree) {
+        if (entityTree && !_trackingEntities) {
             Locker lock(_lock);
             _entityTreeRenderer = entityTreeRenderer;
             _trackedEntities.clear();
             _trackingEntities = true;
             _maxTrackedEntityCount = 0;
+
             connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
                 &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity, Qt::DirectConnection);
             connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
@@ -69,25 +69,20 @@ void SafeLanding::stopEntitySequence() {
 }
 
 void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
-    if (_trackingEntities) {
+    if (_trackingEntities && _entityTreeRenderer) {
         Locker lock(_lock);
+        auto entityTree = _entityTreeRenderer->getTree();
+        if (entityTree) {
+            EntityItemPointer entity = entityTree->findEntityByID(entityID);
+            if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
+                _trackedEntities.emplace(entityID, entity);
 
-        if (_entityTreeRenderer.isNull() || _entityTreeRenderer->getTree() == nullptr) {
-            return;
-        }
-
-        EntityItemPointer entity = _entityTreeRenderer->getTree()->findEntityByID(entityID);
-
-        if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
-
-            _trackedEntities.emplace(entityID, entity);
-            int trackedEntityCount = (int)_trackedEntities.size();
-
-            if (trackedEntityCount > _maxTrackedEntityCount) {
-                _maxTrackedEntityCount = trackedEntityCount;
-                _trackedEntityStabilityCount = 0;
+                int trackedEntityCount = (int)_trackedEntities.size();
+                if (trackedEntityCount > _maxTrackedEntityCount) {
+                    _maxTrackedEntityCount = trackedEntityCount;
+                    _trackedEntityStabilityCount = 0;
+                }
             }
-            //qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
         }
     }
 }
@@ -114,11 +109,20 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 
 bool SafeLanding::isLoadSequenceComplete() {
     if ((isEntityLoadingComplete() && isSequenceNumbersComplete()) || qApp->failedToConnectToEntityServer()) {
+        _trackingEntities = false;
+
         Locker lock(_lock);
+        if (_entityTreeRenderer) {
+            auto entityTree = _entityTreeRenderer->getTree();
+            disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
+            disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
+            _entityTreeRenderer.reset();
+        }
+
         _initialStart = INVALID_SEQUENCE;
         _initialEnd = INVALID_SEQUENCE;
-        _entityTreeRenderer.clear();
-        _trackingEntities = false; // Don't track anything else that comes in.
         EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
     }
 
@@ -187,9 +191,9 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
 
 bool SafeLanding::isEntityLoadingComplete() {
     Locker lock(_lock);
-
-
-    auto entityTree = qApp->getEntities();
+    if (!_entityTreeRenderer) {
+        return true;
+    }
     auto entityMapIter = _trackedEntities.begin();
 
     bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
@@ -200,9 +204,9 @@ bool SafeLanding::isEntityLoadingComplete() {
         bool isVisuallyReady = true;
 
         if (enableInterstitial) {
-            auto entityRenderable = entityTree->renderableForEntityId(entityMapIter->first);
+            auto entityRenderable = _entityTreeRenderer->renderableForEntityId(entityMapIter->first);
             if (!entityRenderable) {
-                entityTree->addingEntity(entityMapIter->first);
+                _entityTreeRenderer->addingEntity(entityMapIter->first);
             }
 
             isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
@@ -222,7 +226,6 @@ bool SafeLanding::isEntityLoadingComplete() {
     if (enableInterstitial) {
         _trackedEntityStabilityCount++;
     }
-
 
     return _trackedEntities.empty();
 }
