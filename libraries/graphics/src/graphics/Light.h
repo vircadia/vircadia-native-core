@@ -203,7 +203,7 @@ protected:
 
     float _shadowsMaxDistance{ 40.0f };
     float _shadowsBiasScale{ 1.0f };
-    float _biasInput{ 0.23f }; // roughly gives default constant and slope values
+    float _biasInput{ 0.5f }; // 0.23f will roughly give the default constant and slope values
     bool _castShadows{ false };
 
     void updateLightRadius();

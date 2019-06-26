@@ -75,7 +75,7 @@ public:
     CullFunctor _cullFunctor;
 };
 
-const float DEFAULT_BIAS_INPUT = 0.23f;
+const float DEFAULT_BIAS_INPUT = 0.5f;
 const float DEFAULT_MAX_DISTANCE = 40.0f;
 
 class RenderShadowSetupConfig : public render::Job::Config {
@@ -119,12 +119,6 @@ public:
     void configure(const Config& configuration);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
-    const int DEFAULT_RESOLUTION = 1024;
-    float _biasInput{ DEFAULT_BIAS_INPUT };
-    float _globalMaxDistance{ DEFAULT_MAX_DISTANCE };
-    int resolution{ DEFAULT_RESOLUTION };
-    QVector<float> cacasdeDistances = QVector<float>(8);  // 4 max then 4 min distances
-
 private:
     ViewFrustumPointer _cameraFrustum;
     ViewFrustumPointer _coarseShadowFrustum;
@@ -136,9 +130,29 @@ private:
     LightStage::ShadowFrame::Object _globalShadowObject;
     LightStage::ShadowFramePointer _shadowFrameCache;
 
+    const int DEFAULT_RESOLUTION = 1024;
+    float _biasInput{ DEFAULT_BIAS_INPUT };
+    float _globalMaxDistance{ DEFAULT_MAX_DISTANCE };
+    int resolution{ DEFAULT_RESOLUTION };
+
+    // initialize with values from RenderShadowSetupConfig 
+    float constant0{ 0.15f };
+    float constant1{ 0.15f };
+    float constant2{ 0.175f };
+    float constant3{ 0.2f };
+    float slope0{ 0.4f };
+    float slope1{ 0.45f };
+    float slope2{ 0.65f };
+    float slope3{ 0.7f };
+    bool changeInDefaultConfigValues{ false }; 
+    bool distanceTriggeredByConfig{ false };
+    bool biasTriggeredByConfig{ false };
+    std::vector<float> cacasdeDistances = std::vector<float>(8);  // 4 max then 4 min distances
+
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);
     void setBiasInput(float input) { _biasInput = input; }
+    void calculateBiases();
 };
 
 class RenderShadowCascadeSetup {

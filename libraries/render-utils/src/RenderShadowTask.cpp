@@ -317,55 +317,94 @@ RenderShadowSetup::RenderShadowSetup() :
 }
 
 void RenderShadowSetup::configure(const Config& configuration) {
+    distanceTriggeredByConfig = _globalMaxDistance != configuration.globalMaxDistance;
+    biasTriggeredByConfig = _biasInput != configuration.biasInput;
 
-    // change shadow map based on distinct constant and slope values
-    float constant0 = configuration.constantBias0;
-    float constant1 = configuration.constantBias1;
-    float constant2 = configuration.constantBias2;
-    float constant3 = configuration.constantBias3;
-    float slope0 = configuration.slopeBias0;
-    float slope1 = configuration.slopeBias1;
-    float slope2 = configuration.slopeBias2;
-    float slope3 = configuration.slopeBias3;
+    // go back to using the config's default bias values if a change to any of those is triggered
+    if (constant0 != configuration.constantBias0 || slope0 != configuration.slopeBias0 ||
+        constant1 != configuration.constantBias1 || slope1 != configuration.slopeBias1 ||
+        constant2 != configuration.constantBias2 || slope2 != configuration.slopeBias2 || 
+        constant3 != configuration.constantBias3 || slope3 != configuration.slopeBias3) {
+        constant0 = configuration.constantBias0;
+        slope0 = configuration.slopeBias0;
+        constant1 = configuration.constantBias1;
+        slope1 = configuration.slopeBias1;
+        constant2 = configuration.constantBias2;
+        slope2 = configuration.slopeBias2;
+        constant3 = configuration.constantBias3;
+        slope3 = configuration.slopeBias3;
+        changeInDefaultConfigValues = true;
+        distanceTriggeredByConfig = false;
+        biasTriggeredByConfig = false;
 
-    // based on external bias input
-    if (_biasInput != configuration.biasInput || _globalMaxDistance != configuration.globalMaxDistance) {
-        _biasInput = configuration.biasInput;
-        _globalMaxDistance = configuration.globalMaxDistance;
+        setConstantBias(0, constant0);
+        setSlopeBias(0, slope0);
 
-        // the bias is relative to resolution
-        // to remain consistant with the constant and slope bias values, the biasInput
-        // value is in the 0.0 - 1.0 range but needs to be scaled up for further calculations
-        int resolutionScale = DEFAULT_RESOLUTION / resolution;
-        _biasInput *= (100.0f / resolutionScale);
-        float scaleFactor = 1.0f;
-      
-        scaleFactor = _biasInput * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[5], 0.0001f, FLT_MAX)) / (float)resolution;  
-        constant0 = cacasdeDistances[1] * scaleFactor;
-        constant1 = cacasdeDistances[1] * scaleFactor;
-        slope0 = cacasdeDistances[1] * scaleFactor * 2.5f;
-        slope1 = cacasdeDistances[1] * scaleFactor * 2.75f;
+        #if SHADOW_CASCADE_MAX_COUNT > 1
+            setConstantBias(1, constant1);
+            setConstantBias(2, constant2);
+            setConstantBias(3, constant3);
 
-        scaleFactor = _biasInput * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[6], 0.0001f, FLT_MAX)) / (float)resolution;
-        constant2 = cacasdeDistances[2] * scaleFactor;
-        slope2 = cacasdeDistances[2] * scaleFactor * 3.75f;
-
-        scaleFactor = _biasInput * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[7], 0.0001f, FLT_MAX)) / (float)resolution;
-        constant3 = cacasdeDistances[3] * scaleFactor;
-        slope3 = cacasdeDistances[3] * scaleFactor * 3.75f;
+            setSlopeBias(1, slope1);
+            setSlopeBias(2, slope2);
+            setSlopeBias(3, slope3);
+        #endif
     }
+        
+    // modify bias using single input and work in calculateBias()
+    if (distanceTriggeredByConfig) {
+        changeInDefaultConfigValues = false;
+        _globalMaxDistance = configuration.globalMaxDistance;
+        calculateBiases();
+    }
+    if (biasTriggeredByConfig) {
+        changeInDefaultConfigValues = false;
+        _biasInput = configuration.biasInput;
+        calculateBiases();
+    }
+}
 
-    setConstantBias(0, constant0);
-    setSlopeBias(0, slope0);
+void RenderShadowSetup::calculateBiases() {
+    // slope scaling values derived from ratio between original constantBias and slopeBias pairs
+    float SCALE_SLOPE_0 = 2.7f;
+    float SCALE_SLOPE_1 = 3.0f;
+    float SCALE_SLOPE_2 = 3.7f;
+    float SCALE_SLOPE_3 = 3.5f;
+    float CONVERT_BIAS = 100.0f;
+
+    // the bias is relative to resolution
+    // to remain consistent with the constant and slope bias values, the biasInput
+    // value is in the 0.0 - 1.0 range but needs to be scaled up for further calculations
+    float inverseResolution = 1.0f / (float)resolution;
+    int resolutionScale = DEFAULT_RESOLUTION * inverseResolution;
+    float convertedBias = _biasInput * (CONVERT_BIAS / resolutionScale);
+    float scaleFactor = 1.0f;
+
+    scaleFactor = convertedBias * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[5], 0.0001f, FLT_MAX)) * inverseResolution;
+    float localConstant0 = cacasdeDistances[1] * scaleFactor;
+    float localConstant1 = cacasdeDistances[1] * scaleFactor;
+    float localSlope0 = cacasdeDistances[1] * scaleFactor * SCALE_SLOPE_0;
+    float localSlope1 = cacasdeDistances[1] * scaleFactor * SCALE_SLOPE_1;
+
+    scaleFactor = convertedBias * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[6], 0.0001f, FLT_MAX)) * inverseResolution;
+    float localConstant2 = cacasdeDistances[2] * scaleFactor;
+    float localSlope2 = cacasdeDistances[2] * scaleFactor * SCALE_SLOPE_2;
+
+    scaleFactor = convertedBias * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[7], 0.0001f, FLT_MAX)) * inverseResolution;
+    float localConstant3 = cacasdeDistances[3] * scaleFactor;
+    float localSlope3 = cacasdeDistances[3] * scaleFactor * SCALE_SLOPE_3;
+
+    setConstantBias(0, localConstant0);
+    setSlopeBias(0, localSlope0);
 
 #if SHADOW_CASCADE_MAX_COUNT > 1
-    setConstantBias(1, constant1);
-    setConstantBias(2, constant2);
-    setConstantBias(3, constant3);
+    setConstantBias(1, localConstant1);
+    setConstantBias(2, localConstant2);
+    setConstantBias(3, localConstant3);
 
-    setSlopeBias(1, slope1);
-    setSlopeBias(2, slope2);
-    setSlopeBias(3, slope3);
+    setSlopeBias(1, localSlope1);
+    setSlopeBias(2, localSlope2);
+    setSlopeBias(3, localSlope3);
 #endif
 }
 
@@ -393,7 +432,6 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     output.edit3() = _shadowFrameCache;
 
     const auto currentKeyLight = lightStage->getCurrentKeyLight(lightFrame);
-    setBiasInput(currentKeyLight->getBiasInput());
     if (!lightingModel->isShadowEnabled() || !currentKeyLight || !currentKeyLight->getCastShadows()) {
         renderContext->taskFlow.abortTask();
         return;
@@ -414,18 +452,32 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     resolution = _globalShadowObject->MAP_SIZE;
     _globalShadowObject->setLight(currentKeyLight);
     _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+    // if the max distance isn't altered externally, grab the value from the light
+    if (!distanceTriggeredByConfig && !biasTriggeredByConfig) {
+        _globalMaxDistance = currentKeyLight->getShadowsMaxDistance();
+    }
     _globalShadowObject->setMaxDistance(_globalMaxDistance);
-
+  
     auto& firstCascade = _globalShadowObject->getCascade(0);
     auto& firstCascadeFrustum = firstCascade.getFrustum();
     unsigned int cascadeIndex;
+
+    for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+        cacasdeDistances[cascadeIndex] = _globalShadowObject->getCascade(cascadeIndex).getMaxDistance();
+        cacasdeDistances[cascadeIndex + 4] = _globalShadowObject->getCascade(cascadeIndex).getMinDistance();
+    }
+
+    if (!biasTriggeredByConfig && !distanceTriggeredByConfig && !changeInDefaultConfigValues) {
+        setBiasInput(currentKeyLight->getBiasInput());
+        calculateBiases();
+    }
 
     // Adjust each cascade frustum
     const auto biasScale = currentKeyLight->getShadowsBiasScale();
     for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& bias = _bias[cascadeIndex];
-        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
-                                                       SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
+        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(), 
+                                                       SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR, 
                                                        bias._constant, bias._slope * biasScale);
     }
 
@@ -443,9 +495,6 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     auto near = firstCascadeFrustum->getNearClip();
     auto far = firstCascadeFrustum->getFarClip();
 
-    cacasdeDistances[0] = _globalShadowObject->getCascade(0).getMaxDistance();
-    cacasdeDistances[4] = _globalShadowObject->getCascade(0).getMinDistance();
-    
     for (cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& cascadeFrustum = _globalShadowObject->getCascade(cascadeIndex).getFrustum();
 
@@ -464,9 +513,6 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         top = glm::max(top, cascadeTop);
         near = glm::min(near, cascadeNear);
         far = glm::max(far, cascadeFar);
-
-        cacasdeDistances[cascadeIndex] = _globalShadowObject->getCascade(cascadeIndex).getMaxDistance();
-        cacasdeDistances[cascadeIndex + 4] = _globalShadowObject->getCascade(cascadeIndex).getMinDistance();
     }
 
     _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());

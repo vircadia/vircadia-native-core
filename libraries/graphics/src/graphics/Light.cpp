@@ -89,7 +89,7 @@ float Light::getShadowsBiasScale() const {
     return _shadowsBiasScale;
 }
 
-void Light::setBiasInput(const float bias) {
+void Light::setBiasInput(float bias) {
     _biasInput = bias;
 }
 
