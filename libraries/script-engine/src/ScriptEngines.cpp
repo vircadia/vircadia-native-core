@@ -461,7 +461,8 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),
             Q_ARG(bool, activateMainWindow),
-            Q_ARG(bool, reload));
+            Q_ARG(bool, reload),
+            Q_ARG(bool, quitWhenFinished));
         return result;
     }
     QUrl scriptUrl;
