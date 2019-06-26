@@ -20,6 +20,7 @@ struct ToneMappingParams {
     ivec4 _toneCurve_s0_s1_s2;
 };
 
+const float GAMMA_22 = 2.2;
 const float INV_GAMMA_22 = 1.0 / 2.2;
 const int ToneCurveNone = 0;
 const int ToneCurveGamma22 = 1;
@@ -55,9 +56,17 @@ void main(void) {
     } else if (toneCurve == ToneCurveReinhard) {
         tonedColor = srcColor/(1.0 + srcColor);
         tonedColor = pow(tonedColor, vec3(INV_GAMMA_22));
-    } else if (toneCurve == ToneCurveGamma22) {
-        tonedColor = pow(srcColor, vec3(INV_GAMMA_22));
-    } // else None toned = src
+    } else if (toneCurve == ToneCurveNone) {
+        // For debugging purposes, we may want to see what the colors look like before the automatic OpenGL 
+        // conversion mentioned above, so we undo it here
+        tonedColor = pow(srcColor, vec3(GAMMA_22));
+    } else {
+        // toneCurve == ToneCurveGamma22
+        // We use glEnable(GL_FRAMEBUFFER_SRGB), which automatically converts textures from RGB to SRGB
+        // when writing from an RGB framebuffer to an SRGB framebuffer (note that it doesn't do anything
+        // when writing from an SRGB framebuffer to an RGB framebuffer).
+        // Since the conversion happens automatically, we don't need to do anything in this shader
+    }
 
     outFragColor = vec4(tonedColor, 1.0);
 }

@@ -642,7 +642,7 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
-        batch.setPipeline(getCompositeScenePipeline());
+        batch.setPipeline(_drawTexturePipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
@@ -961,10 +961,6 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
 }
 
 gpu::PipelinePointer OpenGLDisplayPlugin::getRenderTexturePipeline() {
-    return _drawTexturePipeline;
-}
-
-gpu::PipelinePointer OpenGLDisplayPlugin::getCompositeScenePipeline() {
     return _drawTexturePipeline;
 }
 

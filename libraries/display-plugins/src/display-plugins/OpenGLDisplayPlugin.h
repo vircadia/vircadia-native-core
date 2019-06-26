@@ -162,7 +162,6 @@ protected:
     float _compositeHUDAlpha{ 1.0f };
 
     virtual gpu::PipelinePointer getRenderTexturePipeline();
-    virtual gpu::PipelinePointer getCompositeScenePipeline();
 
     struct CursorData {
         QImage image;
