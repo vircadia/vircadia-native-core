@@ -6186,8 +6186,6 @@ void Application::update(float deltaTime) {
             bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
             if (gpuTextureMemSizeStable() || !enableInterstitial) {
-                // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
-                _lastPhysicsCheckTime = now;
                 _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
                 _lastQueriedViews.clear();  // Force new view.
 

@@ -786,8 +786,6 @@ private:
     qint64 _gpuTextureMemSizeStabilityCount { 0 };
     qint64 _gpuTextureMemSizeAtLastCheck { 0 };
 
-    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
-
     bool _keyboardDeviceHasFocus { true };
 
     ConnectionMonitor _connectionMonitor;
