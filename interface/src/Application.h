@@ -512,7 +512,7 @@ private slots:
 
     void loadSettings();
     void saveSettings() const;
-    void setFailedToConnectToEntityServer() { _failedToConnectToEntityServer = true; }
+    void setFailedToConnectToEntityServer();
 
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);

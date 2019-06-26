@@ -2498,6 +2498,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     pauseUntilLoginDetermined();
 }
 
+void Application::setFailedToConnectToEntityServer() {
+    _failedToConnectToEntityServer = true;
+}
+
 void Application::updateVerboseLogging() {
     auto menu = Menu::getInstance();
     if (!menu) {
