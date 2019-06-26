@@ -184,7 +184,6 @@ Rectangle {
                 source: maskImage
                 color: "#b2b2b2"
             }
-            
         }
     }
 }
