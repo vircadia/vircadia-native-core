@@ -956,7 +956,7 @@ void AccountManager::saveLoginStatus(bool isLoggedIn) {
             QProcess launcher;
             launcher.setProgram(launcherPath);
             launcher.startDetached();
-            qApp->quit();
+            QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
         }
     }
 }
