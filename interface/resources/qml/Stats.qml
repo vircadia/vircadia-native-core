@@ -340,10 +340,10 @@ Item {
                         text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
                     }                    
                     StatText {
-                        text: "GPU (Per pixel): " + root.gpuFrameTimePerPixel.toFixed(5) + " ns/pp"
+                        text: "GPU (Per pixel): " + root.gpuFrameTimePerPixel.toFixed(1) + " ns/pp"
                     }                    
                     StatText {
-                        text: "GPU frame size: " + root.gpuFrameSize.x + " x " + root.gpuFrameSize.y
+                        text: "GPU frame size: " + root.gpuFrameSize.x.toFixed(0) + " x " + root.gpuFrameSize.y.toFixed(0)
                     }
                     StatText {
                         text: "LOD Target: " + root.lodTargetFramerate + " Hz Angle: " + root.lodAngle + " deg"

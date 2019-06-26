@@ -19,7 +19,8 @@ var HALF = 0.5;
 var CLEAR_ENTITY_EDIT_PROPS = true;
 var MILISECONDS_IN_SECOND = 1000;
 var SECONDS_IN_MINUTE = 60;
-var ALWAYS_ON_MAX_LIFETIME_IN_SECONDS = 20 * SECONDS_IN_MINUTE; // Delete after 20 minutes in case a nametag is hanging around in on mode 
+// Delete after 5 minutes in case a nametag is hanging around in on mode 
+var ALWAYS_ON_MAX_LIFETIME_IN_SECONDS = 5 * SECONDS_IN_MINUTE;
 
 // *************************************
 // START UTILTY
@@ -376,6 +377,11 @@ function maybeAddOrRemoveIntervalCheck() {
                 if (avatar && avatarNametagMode === "alwaysOn" && !(avatar in _this.avatars) && avatarDistance < MAX_RADIUS_IGNORE_METERS) {
                     add(avatar);
                     return;
+                }
+                if (avatar in _this.avatars) {
+                    var entity = _this.avatars[avatar].nametag;
+                    var age = entity.get("age");
+                    entity.edit('lifetime', age + ALWAYS_ON_MAX_LIFETIME_IN_SECONDS);
                 }
                 if (avatarDistance > MAX_RADIUS_IGNORE_METERS) {
                     maybeRemove(avatar);

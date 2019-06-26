@@ -72,10 +72,10 @@ bool NetworkMaterialResource::parseJSONColor(const QJsonValue& array, glm::vec3&
 }
 
 /**jsdoc
- * A material or set of materials such as may be used by a {@link Entities.EntityType|Material} entity.
- * @typedef {object} MaterialResource
+ * A material or set of materials used by a {@link Entities.EntityType|Material entity}.
+ * @typedef {object} Entities.MaterialResource
  * @property {number} materialVersion=1 - The version of the material. <em>Currently not used.</em>
- * @property {Material|Material[]} materials - The details of the material or materials.
+ * @property {Entities.Material|Entities.Material[]} materials - The details of the material or materials.
  */
 NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMaterials(const QJsonDocument& materialJSON, const QUrl& baseUrl) {
     ParsedMaterials toReturn;
@@ -111,61 +111,73 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
 }
 
 /**jsdoc
- * A material such as may be used by a {@link Entities.EntityType|Material} entity.
- * @typedef {object} Material
+ * A material used in a {@link Entities.MaterialResource|MaterialResource}.
+ * @typedef {object} Entities.Material
  * @property {string} model="hifi_pbr" - Different material models support different properties and rendering modes.
- *     Supported models are: "hifi_pbr", "hifi_shader_simple"
+ *     Supported models are: <code>"hifi_pbr"</code>, <code>"hifi_shader_simple"</code>.
  * @property {string} name="" - A name for the material. Supported by all material models.
- * @property {Color|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A {@link Color} value
- *     is treated as sRGB. A {@link RGBS} value can be either RGB or sRGB.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {number|string} opacity=1.0 - The opacity, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  Supported by all material models.
- * @property {boolean|string} unlit=false - If <code>true</code>, the material is not lit.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {Color|RGBS|string} albedo - The albedo color. A {@link Color} value is treated as sRGB. A {@link RGBS} value can
- *     be either RGB or sRGB.  Set to <code>"fallthrough"</code> to fallthrough to the material below.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  Supported by all material models.
- * @property {number|string} roughness - The roughness, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {number|string} metallic - The metallicness, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {number|string} scattering - The scattering, <code>0.0</code> &ndash; <code>1.0</code>.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {string} emissiveMap - URL of emissive texture image.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {string} albedoMap - URL of albedo texture image.  Set to <code>"fallthrough"</code> to fallthrough to
- *     the material below.  "hifi_pbr" model only.
- * @property {string} opacityMap - URL of opacity texture image. Set value the same as the <code>albedoMap</code> value for 
- *     transparency.  "hifi_pbr" model only.
- * @property {string} roughnessMap - URL of roughness texture image. Can use this or <code>glossMap</code>, but not both.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} glossMap - URL of gloss texture image. Can use this or <code>roughnessMap</code>, but not both.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} metallicMap - URL of metallic texture image. Can use this or <code>specularMap</code>, but not both.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} specularMap - URL of specular texture image. Can use this or <code>metallicMap</code>, but not both.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} normalMap - URL of normal texture image. Can use this or <code>bumpMap</code>, but not both.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} bumpMap - URL of bump texture image. Can use this or <code>normalMap</code>, but not both.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} occlusionMap - URL of occlusion texture image.  Set to <code>"fallthrough"</code> to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} scatteringMap - URL of scattering texture image. Only used if <code>normalMap</code> or 
- *     <code>bumpMap</code> is specified.  Set to <code>"fallthrough"</code> to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} lightMap - URL of light map texture image. <em>Currently not used.</em>.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} texCoordTransform0 - The transform to use for all of the maps besides occlusionMap and lightMap.  Currently unused.  Set to
- *     <code>"fallthrough"</code> to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} texCoordTransform1 - The transform to use for occlusionMap and lightMap.  Currently unused.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} lightmapParams - Parameters for controlling how lightMap is used.  Currently unused.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {string} materialParams - Parameters for controlling the material projection and repition.  Currently unused.  Set to <code>"fallthrough"</code>
- *     to fallthrough to the material below.  "hifi_pbr" model only.
- * @property {bool} defaultFallthrough=false - If <code>true</code>, all properties will fallthrough to the material below unless they are set.  If
- *     <code>false</code>, they will respect the individual properties' fallthrough state.  "hifi_pbr" model only.
- * @property {ProceduralData} procedural - The definition of a procedural shader material.  "hifi_shader_simple" model only.
+ * @property {ColorFloat|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A 
+ *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &mdash; 
+ *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {number|string} opacity=1.0 - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {boolean|string} unlit=false - If <code>true</code>, the material is not lit, otherwise it is. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. Supported by all material models.
+ * @property {ColorFloat|RGBS|string} albedo - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have 
+ *     component values in the range <code>0.0</code> &mdash; <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. Supported by all material models.
+ * @property {number|string} roughness - The roughness, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {number|string} metallic - The metallicness, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {number|string} scattering - The scattering, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} emissiveMap - The URL of the emissive texture image. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} albedoMap - The URL of the albedo texture image. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} opacityMap - The URL of the opacity texture image. Set the value the same as the <code>albedoMap</code> 
+ *     value for transparency. 
+ *     <code>"hifi_pbr"</code> model only.
+ * @property {string} roughnessMap - The URL of the roughness texture image. You can use this or <code>glossMap</code>, but not 
+ *     both. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} glossMap - The URL of the gloss texture image. You can use this or <code>roughnessMap</code>, but not 
+ *     both. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} metallicMap - The URL of the metallic texture image. You can use this or <code>specularMap</code>, but 
+ *     not both. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} specularMap - The URL of the specular texture image. You can use this or <code>metallicMap</code>, but 
+ *     not both. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} normalMap - The URL of the normal texture image. You can use this or <code>bumpMap</code>, but not both. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} bumpMap - The URL of the bump texture image. You can use this or <code>normalMap</code>, but not both. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} occlusionMap - The URL of the occlusion texture image. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} scatteringMap - The URL of the scattering texture image. Only used if <code>normalMap</code> or 
+ *     <code>bumpMap</code> is specified. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} lightMap - The URL of the light map texture image. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {Mat4|string} texCoordTransform0 - The transform to use for all of the maps apart from <code>occlusionMap</code> 
+ *     and <code>lightMap</code>. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {Mat4|string} texCoordTransform1 - The transform to use for <code>occlusionMap</code> and <code>lightMap</code>. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
+ * @property {string} lightmapParams - Parameters for controlling how lightMap is used. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only. 
+ *     <p><em>Currently not used.</em></p>
+ * @property {string} materialParams - Parameters for controlling the material projection and repetition. 
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only. 
+ *     <p><em>Currently not used.</em></p>
+ * @property {boolean} defaultFallthrough=false - If <code>true</code>, all properties fall through to the material below 
+ *     unless they are set. If <code>false</code>, they respect their individual fall-through setting. <code>"hifi_pbr"</code> 
+ *     model only.
+ * @property {ProceduralData} procedural - The definition of a procedural shader material.  <code>"hifi_shader_simple"</code> model only.
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
 std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl) {
@@ -396,7 +408,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                         material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::LIGHTMAP_PARAMS);
                     }
                 }
-                // TODO: implement lightmapParams
+                // TODO: implement lightmapParams and update JSDoc
             } else if (key == "materialParams") {
                 auto value = materialJSON.value(key);
                 if (value.isString()) {
@@ -405,7 +417,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                         material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::MATERIAL_PARAMS);
                     }
                 }
-                // TODO: implement materialParams
+                // TODO: implement materialParams and update JSDoc
             } else if (key == "defaultFallthrough") {
                 auto value = materialJSON.value(key);
                 if (value.isBool()) {

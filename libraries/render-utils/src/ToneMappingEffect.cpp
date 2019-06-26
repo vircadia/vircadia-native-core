@@ -47,14 +47,13 @@ void ToneMappingEffect::setToneCurve(ToneCurve curve) {
     }
 }
 
-void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& requestedDestinationFramebuffer) {
+void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, const gpu::FramebufferPointer& destinationFramebuffer) {
     if (!_blitLightBuffer) {
         init(args);
     }
-
-    auto destinationFramebuffer = requestedDestinationFramebuffer;
-    if (!destinationFramebuffer) {
-        destinationFramebuffer = args->_blitFramebuffer;
+    
+    if (!lightingBuffer || !destinationFramebuffer) {
+        return;
     }
 
     auto framebufferSize = glm::ivec2(lightingBuffer->getDimensions());
@@ -83,9 +82,15 @@ void ToneMappingDeferred::configure(const Config& config) {
     _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
 }
 
-void ToneMappingDeferred::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+void ToneMappingDeferred::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
 
-    auto lightingBuffer = inputs.get0()->getRenderBuffer(0);
-    auto destFbo = inputs.get1();
+    auto lightingBuffer = input.get0()->getRenderBuffer(0);
+    auto destFbo = input.get1();
+
+    if (!destFbo) {
+        destFbo = renderContext->args->_blitFramebuffer;
+    }
+
     _toneMappingEffect.render(renderContext->args, lightingBuffer, destFbo);
+    output = destFbo;
 }

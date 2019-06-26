@@ -168,12 +168,6 @@ namespace MenuOption {
     const QString RenderMaxTexture4096MB = "4096 MB";
     const QString RenderMaxTexture6144MB = "6144 MB";
     const QString RenderMaxTexture8192MB = "8192 MB";
-    const QString RenderResolution = "Scale Resolution";
-    const QString RenderResolutionOne = "1";
-    const QString RenderResolutionTwoThird = "2/3";
-    const QString RenderResolutionHalf = "1/2";
-    const QString RenderResolutionThird = "1/3";
-    const QString RenderResolutionQuarter = "1/4";
     const QString RenderSensorToWorldMatrix = "Show SensorToWorld Matrix";
     const QString RenderIKTargets = "Show IK Targets";
     const QString RenderIKConstraints = "Show IK Constraints";

@@ -17,39 +17,59 @@
 #include "AssembleLightingStageTask.h"
 #include "LightingModel.h"
 
+class RenderForwardTaskConfig : public render::Task::Config {
+    Q_OBJECT
+    Q_PROPERTY(float resolutionScale MEMBER resolutionScale NOTIFY dirty)
+public:
+    float resolutionScale{ 1.f };
+
+signals:
+    void dirty();
+};
+
 class RenderForwardTask {
 public:
     using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, LightingModelPointer, AssembleLightingStageTask::Output>;
-    using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
+    using Config = RenderForwardTaskConfig;
+    using JobModel = render::Task::ModelI<RenderForwardTask, Input, Config>;
 
     RenderForwardTask() {}
 
+    void configure(const Config& config);
     void build(JobModel& task, const render::Varying& input, render::Varying& output);
 };
 
 
-class PrepareFramebufferConfig : public render::Job::Config {
+class PreparePrimaryFramebufferMSAAConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples NOTIFY dirty)
+    Q_PROPERTY(float resolutionScale  WRITE setResolutionScale READ getResolutionScale)
+    Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples)
 public:
+    float getResolutionScale() const { return resolutionScale; }
+    void setResolutionScale(float scale) {
+        const float SCALE_RANGE_MIN = 0.1f;
+        const float SCALE_RANGE_MAX = 2.0f;
+        resolutionScale = std::max(SCALE_RANGE_MIN, std::min(SCALE_RANGE_MAX, scale));
+    }
+
     int getNumSamples() const { return numSamples; }
     void setNumSamples(int num) {
         numSamples = std::max(1, std::min(32, num));
-        emit dirty();
     }
 
 signals:
     void dirty();
 
 protected:
+    float resolutionScale{ 1.0f };
     int numSamples{ 4 };
 };
 
-class PrepareFramebuffer {
+class PreparePrimaryFramebufferMSAA {
 public:
-    using Inputs = gpu::FramebufferPointer;
-    using Config = PrepareFramebufferConfig;
-    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs, Config>;
+    using Output = gpu::FramebufferPointer;
+    using Config = PreparePrimaryFramebufferMSAAConfig;
+    using JobModel = render::Job::ModelO<PreparePrimaryFramebufferMSAA, Output, Config>;
 
     void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext,
@@ -57,12 +77,15 @@ public:
 
 private:
     gpu::FramebufferPointer _framebuffer;
+    float _resolutionScale{ 1.0f };
     int _numSamples;
+
+    static gpu::FramebufferPointer createFramebuffer(const char* name, const glm::uvec2& frameSize, int numSamples);
 };
 
 class PrepareForward {
 public:
-    using Inputs = LightStage::FramePointer;
+    using Inputs = render::VaryingSet2 <gpu::FramebufferPointer, LightStage::FramePointer>;
     using JobModel = render::Job::ModelI<PrepareForward, Inputs>;
 
     void run(const render::RenderContextPointer& renderContext,

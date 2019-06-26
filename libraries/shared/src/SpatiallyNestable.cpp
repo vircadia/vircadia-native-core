@@ -1348,7 +1348,20 @@ SpatiallyNestablePointer SpatiallyNestable::findByID(QUuid id, bool& success) {
     return parentWP.lock();
 }
 
-
+/**jsdoc
+ * <p>An in-world item may be one of the following types:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"entity"</code></td><td>The item is an entity.</td></tr>
+ *     <tr><td><code>"avatar"</code></td><td>The item is an avatar.</td></tr>
+ *     <tr><td><code>"unknown"</code></td><td>The item cannot be found.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Entities.NestableType
+ */
 QString SpatiallyNestable::nestableTypeToString(NestableType nestableType) {
     switch(nestableType) {
         case NestableType::Entity:

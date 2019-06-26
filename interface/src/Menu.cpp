@@ -383,28 +383,6 @@ Menu::Menu() {
     // Developer > Render > OpenVR threaded submit
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::OpenVrThreadedSubmit, 0, true);
 
-    // Developer > Render > Resolution
-    MenuWrapper* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
-    QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
-    resolutionGroup->setExclusive(true);
-
-#if defined(Q_OS_MAC)
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, false));
-#else
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, true));
-#endif
-
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionTwoThird, 0, false));
-
- #if defined(Q_OS_MAC)
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionHalf, 0, true));
-#else
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionHalf, 0, false));
-#endif
-
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
-
     //const QString  = "Automatic Texture Memory";
     //const QString  = "64 MB";
     //const QString  = "256 MB";
