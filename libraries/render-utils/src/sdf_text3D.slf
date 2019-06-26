@@ -80,10 +80,6 @@ void main() {
             alpha);
     <@endif@>
 <@else@>
-    if (alpha <= 0.0) {
-        discard;
-    }
-
     packDeferredFragment(
         normalize(_normalWS),
         alpha,
