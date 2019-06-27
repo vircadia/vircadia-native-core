@@ -24,7 +24,7 @@
 #endif
 
 #ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
 #include <Mmsystem.h>
 #include <mmdeviceapi.h>
@@ -302,6 +302,13 @@ AudioClient::AudioClient() :
     _isHeadsetPluggedIn(false),
 #endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+
+#if defined(WEBRTC_ENABLED)
+    qDebug() << "QQQQ calling AudioProcessingBuilder";
+    _apm = webrtc::AudioProcessingBuilder().Create();
+    qDebug() << "QQQQ done calling AudioProcessingBuilder";
+#endif
+
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
 

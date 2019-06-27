@@ -29,6 +29,7 @@
 #include <AbstractAudioInterface.h>
 #include <AudioEffectOptions.h>
 #include <AudioStreamStats.h>
+#include <shared/WebRTC.h>
 
 #include <DependencyManager.h>
 #include <HifiSockAddr.h>
@@ -475,6 +476,10 @@ private:
     QTimer* _checkPeakValuesTimer { nullptr };
 
     bool _isRecording { false };
+
+#if WEBRTC_ENABLED
+    webrtc::AudioProcessing* _apm;
+#endif
 };
 
 
