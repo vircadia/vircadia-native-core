@@ -377,7 +377,7 @@ void Stats::updateStats(bool force) {
     auto displayPlugin = qApp->getActiveDisplayPlugin();
     if (displayPlugin) {
         QVector2D dims(displayPlugin->getRecommendedRenderSize().x, displayPlugin->getRecommendedRenderSize().y);
-        dims *= displayPlugin->getRenderResolutionScale();
+        dims *= qApp->getRenderResolutionScale();
         STAT_UPDATE(gpuFrameSize, dims);
         STAT_UPDATE(gpuFrameTimePerPixel, (float)(gpuContext->getFrameTimerGPUAverage()*1000000.0 / double(dims.x()*dims.y())));
     }

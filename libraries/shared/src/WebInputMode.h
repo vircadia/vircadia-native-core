@@ -12,14 +12,14 @@
 #include "QString"
 
 /**jsdoc
- * <p>Controls how the web surface processed PointerEvents</p>
+ * <p>Specifies how a web surface processes events.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>touch</code></td><td>Events are processed as touch events.</td></tr>
- *     <tr><td><code>mouse</code></td><td>Events are processed as mouse events.</td></tr>
+ *     <tr><td><code>"touch"</code></td><td>Events are processed as touch events.</td></tr>
+ *     <tr><td><code>"mouse"</code></td><td>Events are processed as mouse events.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {string} WebInputMode

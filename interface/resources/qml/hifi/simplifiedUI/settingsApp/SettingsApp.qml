@@ -91,7 +91,20 @@ Rectangle {
         Component {
             id: highlightBar
             Rectangle {
+                width: tabListView.currentItem.width
+                height: tabListView.currentItem.height
                 color: simplifiedUI.colors.darkBackground
+                x: tabListView.currentItem.x
+                Behavior on x {
+                    SmoothedAnimation {
+                        duration: 250
+                    }
+                }
+                Behavior on width {
+                    SmoothedAnimation {
+                        duration: 250
+                    }
+                }
             }
         }
 
@@ -104,6 +117,7 @@ Rectangle {
             orientation: ListView.Horizontal
             model: tabListModel
             highlight: highlightBar
+            highlightFollowsCurrentItem: false
             interactive: contentItem.width > width
             delegate: Item {
                 visible: model.tabTitle !== "Dev" || (model.tabTitle === "Dev" && root.developerModeEnabled)

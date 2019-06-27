@@ -28,7 +28,7 @@ class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
 /**jsdoc
- * Ambient light is defined by the following properties.
+ * Ambient light is defined by the following properties:
  * @typedef {object} Entities.AmbientLight
  * @property {number} ambientIntensity=0.5 - The intensity of the light.
  * @property {string} ambientURL="" - A cube map image that defines the color of the light coming from each direction. If 

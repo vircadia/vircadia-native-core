@@ -6100,6 +6100,30 @@ QVariantList MyAvatar::getCollidingFlowJoints() {
     return result;
 }
 
+int MyAvatar::getOverrideJointCount() const {
+    if (_skeletonModel) {
+        return _skeletonModel->getRig().getOverrideJointCount();
+    } else {
+        return 0;
+    }
+}
+
+bool MyAvatar::getFlowActive() const {
+    if (_skeletonModel) {
+        return _skeletonModel->getRig().getFlowActive();
+    } else {
+        return false;
+    }
+}
+
+bool MyAvatar::getNetworkGraphActive() const {
+    if (_skeletonModel) {
+        return _skeletonModel->getRig().getNetworkGraphActive();
+    } else {
+        return false;
+    }
+}
+
 void MyAvatar::initFlowFromFST() {
     if (_skeletonModel->isLoaded()) {
         auto &flowData = _skeletonModel->getHFMModel().flowData;

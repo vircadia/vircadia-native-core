@@ -267,7 +267,7 @@ class MyAvatar : public Avatar {
      * @property {number} analogPlusWalkSpeed - The walk speed of your avatar for the "AnalogPlus" control scheme.
      *     <p><strong>Warning:</strong> Setting this value also sets the value of <code>analogPlusSprintSpeed</code> to twice 
      *     the value.</p>
-     * @property {number} analogPlusSprintSpeed - The sprint speed of your avatar for the "AnalogPlus" control scheme.
+     * @property {number} analogPlusSprintSpeed - The sprint (run) speed of your avatar for the "AnalogPlus" control scheme.
      * @property {MyAvatar.SitStandModelType} userRecenterModel - Controls avatar leaning and recentering behavior.
      * @property {number} isInSittingState - <code>true</code> if your avatar is sitting (avatar leaning is disabled, 
      *     recenntering is enabled), <code>false</code> if it is standing (avatar leaning is enabled, and avatar recenters if it 
@@ -1835,6 +1835,10 @@ public:
      */
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
+    int getOverrideJointCount() const;
+    bool getFlowActive() const;
+    bool getNetworkGraphActive() const;
+
 public slots:
 
    /**jsdoc
@@ -2198,33 +2202,35 @@ signals:
     void audioListenerModeChanged();
 
     /**jsdoc
-     * Notifies when the analogPlusWalkSpeed value is changed.
+     * Triggered when the walk speed set for the "AnalogPlus" control scheme changes.
      * @function MyAvatar.analogPlusWalkSpeedChanged
-     * @param {float} value - the new avatar walk speed
+     * @param {number} speed - The new walk speed set for the "AnalogPlus" control scheme.
      * @returns {Signal} 
      */
     void analogPlusWalkSpeedChanged(float value);
 
     /**jsdoc
-     * Notifies when the analogPlusSprintSpeed value is changed.
+     * Triggered when the sprint (run) speed set for the "AnalogPlus" control scheme changes.
      * @function MyAvatar.analogPlusSprintSpeedChanged
-     * @param {float} value - the new avatar sprint speed
+     * @param {number} speed - The new sprint speed set for the "AnalogPlus" control scheme.
      * @returns {Signal} 
      */
     void analogPlusSprintSpeedChanged(float value);
 
     /**jsdoc
-     * Notifies when the sprintSpeed value is changed.
+     * Triggered when the sprint (run) speed set for the current control scheme (see 
+     * {@link MyAvatar.getControlScheme|getControlScheme}) changes.
      * @function MyAvatar.sprintSpeedChanged
-     * @param {float} value - the new avatar sprint speed
+     * @param {number} speed -The new sprint speed set for the current control scheme.
      * @returns {Signal} 
      */
     void sprintSpeedChanged(float value);
 
     /**jsdoc
-     * Notifies when the walkBackwardSpeed value is changed.
+     * Triggered when the walk backward speed set for the current control scheme (see 
+     * {@link MyAvatar.getControlScheme|getControlScheme}) changes.
      * @function MyAvatar.walkBackwardSpeedChanged
-     * @param {float} value - the new avatar walk backward speed
+     * @param {number} speed - The new walk backward speed set for the current control scheme.
      * @returns {Signal} 
      */
     void walkBackwardSpeedChanged(float value);

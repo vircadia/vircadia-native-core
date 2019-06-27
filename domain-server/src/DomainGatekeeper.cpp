@@ -127,7 +127,8 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
             << "and machine fingerprint" << nodeConnection.machineFingerprint 
             << "user" << username 
             << "reason" << QString(nodeConnection.connectReason ? "SilentDomainDisconnect" : "Connect")
-            << "previous connection uptime" << nodeConnection.previousConnectionUpTime/USECS_PER_MSEC << "msec";
+            << "previous connection uptime" << nodeConnection.previousConnectionUpTime/USECS_PER_MSEC << "msec"
+            << "sysinfo" << nodeConnection.SystemInfo;
 
         // signal that we just connected a node so the DomainServer can get it a list
         // and broadcast its presence right away
@@ -135,7 +136,8 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
     } else {
         qDebug() << "Refusing connection from node at" << message->getSenderSockAddr()
             << "with hardware address" << nodeConnection.hardwareAddress
-            << "and machine fingerprint" << nodeConnection.machineFingerprint;
+            << "and machine fingerprint" << nodeConnection.machineFingerprint
+            << "sysinfo" << nodeConnection.SystemInfo;
     }
 }
 

@@ -23,7 +23,7 @@
 #define IDC_USERNAME_BANNER             1019
 #define IDC_PASSWORD_BANNER             1020
 #define IDC_TERMS                       1021
-#define IDC_TERMS2                      1022
+#define IDC_TERMS_LINK                  1022
 #define IDC_TROUBLE                     1023
 #define IDC_VOXEL                       1024
 #define IDC_TROUBLE_LINK                1027

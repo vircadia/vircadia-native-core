@@ -2712,6 +2712,7 @@ void Application::cleanupBeforeQuit() {
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
+    QThreadPool::globalInstance()->waitForDone();
 
     DependencyManager::destroy<RecordingScriptingInterface>();
 
@@ -2775,7 +2776,6 @@ void Application::cleanupBeforeQuit() {
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
@@ -2935,8 +2935,10 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
+    // HACK: re-expose mic and camera to prevent crash on domain-change in chromium's media::FakeAudioInputStream::ReadAudioFromSource()
     // Bug 21993: disable microphone and camera input
-    chromiumFlags << "--use-fake-device-for-media-stream";
+    //chromiumFlags << "--use-fake-device-for-media-stream";
+
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };
@@ -3739,18 +3741,6 @@ void Application::resizeGL() {
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
-    }
-
-    auto renderResolutionScale = getRenderResolutionScale();
-    if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
-        auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
-        assert(renderConfig);
-        auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
-        // mainView can be null if we're rendering in forward mode
-        if (mainView) {
-            mainView->setProperty("resolutionScale", renderResolutionScale);
-        }
-        displayPlugin->setRenderResolutionScale(renderResolutionScale);
     }
 
     // FIXME the aspect ratio for stereo displays is incorrect based on this.
@@ -8546,23 +8536,7 @@ void Application::shareSnapshot(const QString& path, const QUrl& href) {
 }
 
 float Application::getRenderResolutionScale() const {
-    auto menu = Menu::getInstance();
-    if (!menu) {
-        return 1.0f;
-    }
-    if (menu->isOptionChecked(MenuOption::RenderResolutionOne)) {
-        return 1.0f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
-        return 0.666f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionHalf)) {
-        return 0.5f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionThird)) {
-        return 0.333f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
-        return 0.25f;
-    } else {
-        return 1.0f;
-    }
+    return RenderScriptingInterface::getInstance()->getViewportResolutionScale();
 }
 
 void Application::notifyPacketVersionMismatch() {

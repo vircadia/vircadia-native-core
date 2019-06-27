@@ -26,6 +26,8 @@
 #include <ThreadHelpers.h>
 #include <LogHandler.h>
 #include <UUID.h>
+#include <platform/Platform.h>
+#include <platform/PlatformKeys.h>
 
 #include "AccountManager.h"
 #include "AddressManager.h"
@@ -42,6 +44,7 @@
 using namespace std::chrono;
 
 const int KEEPALIVE_PING_INTERVAL_MS = 1000;
+const int MAX_SYSTEM_INFO_SIZE = 1000;
 
 NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
@@ -417,6 +420,21 @@ void NodeList::sendDomainServerCheckIn() {
             // now add the machine fingerprint
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
+
+            auto desc = platform::getAll();
+
+            QByteArray systemInfo(desc.dump().c_str());
+            QByteArray compressedSystemInfo = qCompress(systemInfo);
+
+            if (compressedSystemInfo.size() > MAX_SYSTEM_INFO_SIZE) {
+                // Highly unlikely, as not even unreasonable machines will
+                // overflow the max size, but prevent MTU overflow anyway.
+                // We could do something sophisticated like clearing specific
+                // values if they're too big, but we'll save that for later.
+                compressedSystemInfo.clear();
+            }
+
+            packetStream << compressedSystemInfo;
 
             packetStream << _connectReason;
 

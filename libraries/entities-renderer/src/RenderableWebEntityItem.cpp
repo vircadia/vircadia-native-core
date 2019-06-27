@@ -7,6 +7,7 @@
 //
 
 #include "RenderableWebEntityItem.h"
+#include <atomic>
 
 #include <QtCore/QTimer>
 #include <QtGui/QOpenGLContext>
@@ -46,7 +47,7 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 static uint8_t YOUTUBE_MAX_FPS = 30;
 
 // Don't allow more than 20 concurrent web views
-static uint32_t _currentWebCount { 0 };
+static std::atomic<uint32_t> _currentWebCount(0);
 static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 
 static QTouchDevice _touchDevice;
@@ -356,16 +357,15 @@ void WebEntityRenderer::buildWebSurface(const EntityItemPointer& entity, const Q
 
 void WebEntityRenderer::destroyWebSurface() {
     QSharedPointer<OffscreenQmlSurface> webSurface;
-    ContentType contentType = ContentType::NoContent;
     withWriteLock([&] {
         webSurface.swap(_webSurface);
-        _contentType = contentType;
-    });
+        _contentType = ContentType::NoContent;
 
-    if (webSurface) {
-        --_currentWebCount;
-        WebEntityRenderer::releaseWebSurface(webSurface, _cachedWebSurface, _connections);
-    }
+        if (webSurface) {
+            --_currentWebCount;
+            WebEntityRenderer::releaseWebSurface(webSurface, _cachedWebSurface, _connections);
+        }
+    });
 }
 
 glm::vec2 WebEntityRenderer::getWindowSize(const TypedEntityPointer& entity) const {
