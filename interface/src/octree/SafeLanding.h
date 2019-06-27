@@ -28,6 +28,7 @@ public:
     void startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
     void updateTracking();
     void stopTracking();
+    bool isTracking() const { return _trackingEntities; }
     bool trackingIsComplete() const;
 
     void finishSequence(int first, int last);  // 'last' exclusive.

@@ -28,6 +28,7 @@ public:
     void startSafeLanding();
     void updateSafeLanding();
     void stopSafeLanding();
+    bool safeLandingIsActive() const;
     bool safeLandingIsComplete() const;
 
     float domainLoadingProgress() const { return _safeLanding->loadingProgressPercentage(); }

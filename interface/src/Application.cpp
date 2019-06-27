@@ -6201,7 +6201,9 @@ void Application::update(float deltaTime) {
         if (isServerlessMode()) {
             tryToEnablePhysics();
         } else if (_failedToConnectToEntityServer) {
-            _octreeProcessor.stopSafeLanding();
+            if (_octreeProcessor.safeLandingIsActive()) {
+                _octreeProcessor.stopSafeLanding();
+            }
         } else {
             _octreeProcessor.updateSafeLanding();
             if (_octreeProcessor.safeLandingIsComplete()) {
@@ -7154,13 +7156,17 @@ void Application::resettingDomain() {
     clearDomainOctreeDetails(false);
 }
 
-void Application::nodeAdded(SharedNodePointer node) const {
+void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
-        if (!_failedToConnectToEntityServer) {
+        if (_failedToConnectToEntityServer && !_entityServerConnectionTimer.isActive()) {
+            _failedToConnectToEntityServer = false;
+            _octreeProcessor.stopSafeLanding();
+            _octreeProcessor.startSafeLanding();
+        } else if (_entityServerConnectionTimer.isActive()) {
             _entityServerConnectionTimer.stop();
-            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
-            _entityServerConnectionTimer.start();
         }
+        _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
+        _entityServerConnectionTimer.start();
     }
 }
 
@@ -7170,7 +7176,6 @@ void Application::nodeActivated(SharedNodePointer node) {
 
 #if !defined(DISABLE_QML)
         auto offscreenUi = getOffscreenUI();
-
         if (offscreenUi) {
             auto nodeList = DependencyManager::get<NodeList>();
 

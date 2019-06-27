@@ -527,7 +527,7 @@ private slots:
 
     void domainURLChanged(QUrl domainURL);
     void updateWindowTitle() const;
-    void nodeAdded(SharedNodePointer node) const;
+    void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);

@@ -100,50 +100,53 @@ void SafeLanding::updateTracking() {
     if (!_trackingEntities || !_entityTreeRenderer) {
         return;
     }
-    Locker lock(_lock);
 
-    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-
-    auto entityMapIter = _trackedEntities.begin();
-    while (entityMapIter != _trackedEntities.end()) {
-        auto entity = entityMapIter->second;
-        bool isVisuallyReady = true;
+    {
+        Locker lock(_lock);
+        bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+        auto entityMapIter = _trackedEntities.begin();
+        while (entityMapIter != _trackedEntities.end()) {
+            auto entity = entityMapIter->second;
+            bool isVisuallyReady = true;
+            if (enableInterstitial) {
+                auto entityRenderable = _entityTreeRenderer->renderableForEntityId(entityMapIter->first);
+                if (!entityRenderable) {
+                    _entityTreeRenderer->addingEntity(entityMapIter->first);
+                }
+                isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
+            }
+            if (isEntityPhysicsReady(entity) && isVisuallyReady) {
+                entityMapIter = _trackedEntities.erase(entityMapIter);
+            } else {
+                if (!isVisuallyReady) {
+                    entity->requestRenderUpdate();
+                }
+                entityMapIter++;
+            }
+        }
         if (enableInterstitial) {
-            auto entityRenderable = _entityTreeRenderer->renderableForEntityId(entityMapIter->first);
-            if (!entityRenderable) {
-                _entityTreeRenderer->addingEntity(entityMapIter->first);
-            }
-
-            isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
+            _trackedEntityStabilityCount++;
         }
-        if (isEntityPhysicsReady(entity) && isVisuallyReady) {
-            entityMapIter = _trackedEntities.erase(entityMapIter);
-        } else {
-            if (!isVisuallyReady) {
-                entity->requestRenderUpdate();
-            }
-            entityMapIter++;
-        }
-    }
-
-    if (enableInterstitial) {
-        _trackedEntityStabilityCount++;
     }
 
     if (_trackedEntities.empty()) {
         // no more tracked entities --> check sequenceNumbers
         if (_initialStart != INVALID_SEQUENCE) {
-            Locker lock(_lock);
-            int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
-                _initialEnd + SEQUENCE_MODULO - _initialStart;
-            auto startIter = _sequenceNumbers.find(_initialStart);
-            auto endIter = _sequenceNumbers.find(_initialEnd - 1);
+            bool shouldStop = false;
+            {
+                Locker lock(_lock);
+                int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
+                    _initialEnd + SEQUENCE_MODULO - _initialStart;
+                auto startIter = _sequenceNumbers.find(_initialStart);
+                auto endIter = _sequenceNumbers.find(_initialEnd - 1);
 
-            bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
-            if (sequenceSize == 0 ||
+                bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
+                shouldStop = (sequenceSize == 0 ||
                     (startIter != _sequenceNumbers.end() &&
                      endIter != _sequenceNumbers.end() &&
-                     ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers))) {
+                     ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers)));
+            }
+            if (shouldStop) {
                 stopTracking();
             }
         }
