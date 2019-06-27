@@ -366,7 +366,7 @@ void RenderShadowSetup::configure(const Config& configuration) {
 
 void RenderShadowSetup::calculateBiases() {
     // slope scaling values derived from ratio between original constantBias and slopeBias pairs
-    const std::array<float, 4> SLOPE_SCALES = { 2.7f, 3.0f, 3.7f, 3.5f };
+    const std::array<float, 4> SLOPE_SCALES = {{ 2.7f, 3.0f, 3.7f, 3.5f }};
     const float CONVERT_BIAS = 100.0f;
     const float MIN_SCALE_DIVISOR = 0.5f;
 
