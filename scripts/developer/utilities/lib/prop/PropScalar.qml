@@ -20,17 +20,22 @@ PropItem {
     property bool integral: false
     property var numDigits: 2
 
-    property alias valueVar : sliderControl.value
+
     property alias min: sliderControl.minimumValue
     property alias max: sliderControl.maximumValue
 
     property bool showValue: true  
     
-    signal valueChanged(real value)
-
     Component.onCompleted: {
-        valueVar = root.valueVarGetter();
-    }     
+    }  
+
+    property var sourceValueVar: root.valueVarGetter()
+
+    function applyValueVarFromWidgets(value) {
+        if (!root.readOnly) { 
+           root.valueVarSetter(value)
+        }
+    }
 
     PropLabel {
         id: valueLabel
@@ -42,7 +47,7 @@ PropItem {
         horizontalAlignment: global.valueTextAlign
         height: global.slimHeight
         
-        text: root.valueVarGetter().toFixed(root.integral ? 0 : root.numDigits)
+        text: root.sourceValueVar.toFixed(root.integral ? 0 : root.numDigits)
 
         background: Rectangle {
             color: global.color
@@ -59,8 +64,8 @@ PropItem {
         anchors.left: valueLabel.right
         anchors.right: root.right
         anchors.verticalCenter: root.verticalCenter
-
-        onValueChanged: { if (!root.readOnly) { root.valueVarSetter(value)}  }
+        value: root.sourceValueVar
+        onValueChanged: { applyValueVarFromWidgets(value) }
     }
 
     

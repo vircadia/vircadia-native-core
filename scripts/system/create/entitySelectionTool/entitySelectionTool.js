@@ -21,9 +21,9 @@ const SPACE_WORLD = "world";
 const HIGHLIGHT_LIST_NAME = "editHandleHighlightList";
 
 Script.include([
-    "./controllers.js",
-    "./controllerDispatcherUtils.js",
-    "./utils.js"
+    "../../libraries/controllers.js",
+    "../../libraries/controllerDispatcherUtils.js",
+    "../../libraries/utils.js"
 ]);
 
 

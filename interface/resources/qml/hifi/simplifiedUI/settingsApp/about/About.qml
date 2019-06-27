@@ -122,12 +122,22 @@ Flickable {
             }
 
             HifiStylesUit.GraphikRegular {
-                text: "<b>CPU:</b> " + PlatformInfo.getCPUBrand()
+                text: "<b>CPU:</b>"
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
                 wrapMode: Text.Wrap
+                
+                Component.onCompleted: {
+                    var cpu = JSON.parse(PlatformInfo.getCPU(0));
+                    var cpuModel = cpu.model;
+                    if (cpuModel.length === 0) {
+                        cpuModel = "Unknown";
+                    }
+
+                    text = "<b>CPU:</b> " + cpuModel;
+                }
             }
 
             HifiStylesUit.GraphikRegular {
@@ -158,12 +168,22 @@ Flickable {
             }
 
             HifiStylesUit.GraphikRegular {
-                text: "<b>GPU:</b> " + PlatformInfo.getGraphicsCardType()
+                text: "<b>GPU:</b> "
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
                 wrapMode: Text.Wrap
+                
+                Component.onCompleted: {
+                    var gpu = JSON.parse(PlatformInfo.getGPU(0));
+                    var gpuModel = gpu.model;
+                    if (gpuModel.length === 0) {
+                        gpuModel = "Unknown";
+                    }
+
+                    text = "<b>GPU:</b> " + gpuModel;
+                }
             }
 
             HifiStylesUit.GraphikRegular {
@@ -180,9 +200,11 @@ Flickable {
                 width: 200
                 height: 32
                 text: "Copy to Clipboard"
+                temporaryText: "Copied!"
 
                 onClicked: {
                     Window.copyToClipboard(root.buildPlatformInfoTextToCopy());
+                    showTemporaryText();
                 }
             }
         }
@@ -206,12 +228,29 @@ Flickable {
         textToCopy += "Computer Vendor/Model: " + computerVendor + "/" + computerModel + "\n";
         textToCopy += "Profiled Platform Tier: " + PlatformInfo.getTierProfiled() + "\n";
         textToCopy += "OS Type: " + PlatformInfo.getOperatingSystemType() + "\n";
-        textToCopy += "CPU: " + PlatformInfo.getCPUBrand() + "\n";
+
+        var cpu = JSON.parse(PlatformInfo.getCPU(0));
+        var cpuModel = cpu.model;
+        if (cpuModel.length === 0) {
+            cpuModel = "Unknown";
+        }
+
+        textToCopy += "CPU: " + cpuModel + "\n";
         textToCopy += "# CPUs: " + PlatformInfo.getNumCPUs() + "\n";
         textToCopy += "# CPU Cores: " + PlatformInfo.getNumLogicalCores() + "\n";
         textToCopy += "RAM: " + PlatformInfo.getTotalSystemMemoryMB() + " MB\n";
-        textToCopy += "GPU: " + PlatformInfo.getGraphicsCardType() + "\n";
-        textToCopy += "VR Hand Controllers: " + (PlatformInfo.hasRiftControllers() ? "Rift" : (PlatformInfo.hasViveControllers() ? "Vive" : "None"));
+        
+        var gpu = JSON.parse(PlatformInfo.getGPU(0));
+        var gpuModel = gpu.model;
+        if (gpuModel.length === 0) {
+            gpuModel = "Unknown";
+        }
+
+        textToCopy += "GPU: " + gpuModel + "\n";
+        textToCopy += "VR Hand Controllers: " + (PlatformInfo.hasRiftControllers() ? "Rift" : (PlatformInfo.hasViveControllers() ? "Vive" : "None")) + "\n";
+        
+        textToCopy += "\n**All Platform Info**\n";
+        textToCopy += JSON.stringify(JSON.parse(PlatformInfo.getPlatform()), null, 4);
 
         return textToCopy;
     }

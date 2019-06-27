@@ -18,7 +18,7 @@ When you run the lightLoader.js script, several scripts will be loaded:
 - visiblePanel.js (the transparent panel)
 - closeButton.js (for closing the ui)
 - ../libraries/lightOverlayManager.js (shows 2d overlays for lights in the world)
-- ../libraries/entitySelectionTool.js (visualizes volume of the lights)
+- ../../scripts/system/create/entitySelectionTool/entitySelectionTool.js (visualizes volume of the lights)
 
 Current sliders are (top to bottom):
 red

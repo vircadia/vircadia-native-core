@@ -16,6 +16,9 @@ import TabletScriptingInterface 1.0
 
 Original.Button {
     id: root
+    // The two properties below are used when calling showTemporaryText()
+    property string originalText: ""
+    property string temporaryText: ""
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -102,5 +105,32 @@ Original.Button {
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignHCenter
         text: root.text
+    }
+
+    Timer {
+        id: showTemporaryTextTimer
+        interval: 1500
+        repeat: false
+        running: false
+
+        onTriggered: {
+            buttonText.text = root.originalText;
+            root.originalText = "";
+        }
+    }
+
+    function showTemporaryText() {
+        if (root.temporaryText === "") {
+            return;
+        }
+
+        if (showTemporaryTextTimer.running) {
+            showTemporaryTextTimer.restart();
+            return;
+        }
+
+        root.originalText = buttonText.text;
+        buttonText.text = root.temporaryText;
+        showTemporaryTextTimer.start();
     }
 }

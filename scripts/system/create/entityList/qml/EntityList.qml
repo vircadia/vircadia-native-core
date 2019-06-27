@@ -1,6 +1,6 @@
 WebView {
     id: entityListToolWebView
-    url: Paths.defaultScripts + "/system/html/entityList.html"
+    url: QT.resolvedURL("../html/entityList.html")
     enabled: true
     blurOnCtrlShift: false
 }

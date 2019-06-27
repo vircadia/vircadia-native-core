@@ -37,8 +37,7 @@ public:
 
     virtual void pluginUpdate() override {};
 
-    virtual gpu::PipelinePointer getCompositeScenePipeline() override;
-    virtual gpu::Element getCompositeFBColorSpace() override;
+    virtual gpu::PipelinePointer getRenderTexturePipeline() override;
 
 protected:
     mutable bool _isThrottled = false;

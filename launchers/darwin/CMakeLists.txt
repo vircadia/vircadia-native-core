@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
+set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
 project(HQLauncher)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 set(src_files
@@ -26,6 +27,8 @@ set(src_files
   src/LatestBuildRequest.m
   src/OrganizationRequest.m
   src/OrganizationRequest.h
+  src/Interface.h
+  src/Interface.m
   src/ErrorViewController.h
   src/ErrorViewController.m
   src/Settings.h
@@ -67,7 +70,7 @@ add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
   MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
-if (LAUNCHER_HMAC_SECRET STREQUAL "")
+if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
     message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
 endif()
 
