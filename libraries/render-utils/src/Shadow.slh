@@ -63,7 +63,7 @@ ShadowSampleOffsets evalShadowFilterOffsets(vec4 position) {
     coords.y += (index & 2) >> 1;
 #endif
 
-    // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
+    // Offset for efficient PCF, see https://developer.nvidia.com/gpugems/GPUGems/gpugems_ch11.html
     ivec2 offset = coords & ivec2(1,1);
     offset.y = (offset.x+offset.y) & 1;
 
