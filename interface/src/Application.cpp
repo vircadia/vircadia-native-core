@@ -6165,13 +6165,30 @@ void Application::updateSecondaryCameraViewFrustum() {
 
 static bool domainLoadingInProgress = false;
 
+void Application::tryToEnablePhysics() {
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
+    if (gpuTextureMemSizeStable() || !enableInterstitial) {
+        _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+        _lastQueriedViews.clear();  // Force new view.
+
+        // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+        // We keep physics disabled until we've received a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+        if (getMyAvatar()->isReadyForPhysics()) {
+            _physicsEnabled = true;
+            setIsInterstitialMode(false);
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        }
+    }
+}
+
 void Application::update(float deltaTime) {
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_graphicsEngine._renderFrameCount + 1);
 
     if (_aboutToQuit) {
         return;
     }
-
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
@@ -6182,21 +6199,13 @@ void Application::update(float deltaTime) {
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
         quint64 now = usecTimestampNow();
-        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
-            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-
-            if (gpuTextureMemSizeStable() || !enableInterstitial) {
-                _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
-                _lastQueriedViews.clear();  // Force new view.
-
-                // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
-                // We keep physics disabled until we've received a full scene and everything near the avatar in that
-                // scene is ready to compute its collision shape.
-                if (getMyAvatar()->isReadyForPhysics()) {
-                    _physicsEnabled = true;
-                    setIsInterstitialMode(false);
-                    getMyAvatar()->updateMotionBehaviorFromMenu();
-                }
+        if (isServerlessMode()) {
+            tryToEnablePhysics();
+        } else if (_failedToConnectToEntityServer) {
+            _octreeProcessor.stopSafeLanding();
+        } else {
+            if (_octreeProcessor.isLoadSequenceComplete()) {
+                tryToEnablePhysics();
             }
         }
     } else if (domainLoadingInProgress) {

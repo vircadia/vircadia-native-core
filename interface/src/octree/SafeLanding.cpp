@@ -33,7 +33,7 @@ bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const
     return lessThanWraparound<OCTREE_PACKET_SEQUENCE>(a, b);
 }
 
-void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
+void SafeLanding::startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
     if (!entityTreeRenderer.isNull()) {
         auto entityTree = entityTreeRenderer->getTree();
         if (entityTree && !_trackingEntities) {
@@ -81,7 +81,7 @@ void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
     _trackedEntities.erase(entityID);
 }
 
-void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
+void SafeLanding::finishSequence(int first, int last) {
     Locker lock(_lock);
     if (_initialStart == INVALID_SEQUENCE) {
         _initialStart = first;
@@ -89,7 +89,7 @@ void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
     }
 }
 
-void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
+void SafeLanding::updateSequence(int sequenceNumber) {
     if (_trackingEntities) {
         Locker lock(_lock);
         _sequenceNumbers.insert(sequenceNumber);
@@ -97,7 +97,7 @@ void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
 }
 
 bool SafeLanding::isLoadSequenceComplete() {
-    if ((isEntityLoadingComplete() && isSequenceNumbersComplete()) || qApp->failedToConnectToEntityServer()) {
+    if (isEntityLoadingComplete() && isSequenceNumbersComplete()) {
         stopTracking();
     }
     return !_trackingEntities;

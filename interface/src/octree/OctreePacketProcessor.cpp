@@ -115,7 +115,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
                 auto renderer = qApp->getEntities();
                 if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
-                    _safeLanding->noteReceivedsequenceNumber(renderer->getLastOctreeMessageSequence());
+                    _safeLanding->updateSequence(renderer->getLastOctreeMessageSequence());
                 }
             }
         } break;
@@ -124,7 +124,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             // Read sequence #
             OCTREE_PACKET_SEQUENCE completionNumber;
             message->readPrimitive(&completionNumber);
-            _safeLanding->setCompletionSequenceNumbers(0, completionNumber);
+            _safeLanding->finishSequence(0, completionNumber);
         } break;
 
         default: {
@@ -134,5 +134,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 }
 
 void OctreePacketProcessor::startSafeLanding() {
-    _safeLanding->startEntitySequence(qApp->getEntities());
+    _safeLanding->startTracking(qApp->getEntities());
+}
+
+void OctreePacketProcessor::stopSafeLanding() {
+    _safeLanding->stopTracking();
 }

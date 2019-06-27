@@ -564,6 +564,7 @@ private:
     void cleanupBeforeQuit();
 
     void idle();
+    void tryToEnablePhysics();
     void update(float deltaTime);
 
     // Various helper functions called during update()
