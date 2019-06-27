@@ -51,11 +51,11 @@ void main(void) {
     int toneCurve = getToneCurve();
     vec3 tonedColor = srcColor;
     if (toneCurve == ToneCurveFilmic) {
-        vec3 x = max(vec3(0.0), srcColor-0.004);
+        vec3 rgbColor = pow(srcColor, vec3(GAMMA_22));
+        vec3 x = max(vec3(0.0), rgbColor-0.004);
         tonedColor = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
     } else if (toneCurve == ToneCurveReinhard) {
         tonedColor = srcColor/(1.0 + srcColor);
-        tonedColor = pow(tonedColor, vec3(INV_GAMMA_22));
     } 
     else if (toneCurve == ToneCurveGamma22) {
         // We use glEnable(GL_FRAMEBUFFER_SRGB), which automatically converts textures from RGB to SRGB
