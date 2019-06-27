@@ -111,9 +111,11 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
         case PacketType::EntityData: {
             if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
                 auto renderer = qApp->getEntities();
-                if (renderer && _safeLanding) {
+                if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
-                    _safeLanding->addToSequence(renderer->getLastOctreeMessageSequence());
+                    if (_safeLanding && _safeLanding->isTracking()) {
+                        _safeLanding->addToSequence(renderer->getLastOctreeMessageSequence());
+                    }
                 }
             }
         } break;
