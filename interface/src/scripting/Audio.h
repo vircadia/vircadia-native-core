@@ -94,6 +94,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool pushToTalkDesktop READ getPTTDesktop WRITE setPTTDesktop NOTIFY pushToTalkDesktopChanged)
     Q_PROPERTY(bool pushToTalkHMD READ getPTTHMD WRITE setPTTHMD NOTIFY pushToTalkHMDChanged)
     Q_PROPERTY(bool pushingToTalk READ getPushingToTalk WRITE setPushingToTalk NOTIFY pushingToTalkChanged)
+    Q_PROPERTY(float pushingToTalkOutputGainDesktop READ getPushingToTalkOutputGainDesktop
+        WRITE setPushingToTalkOutputGainDesktop NOTIFY pushingToTalkOutputGainDesktopChanged)
     Q_PROPERTY(float avatarGain READ getAvatarGain WRITE setAvatarGain NOTIFY avatarGainChanged)
     Q_PROPERTY(float localInjectorGain READ getLocalInjectorGain WRITE setLocalInjectorGain NOTIFY localInjectorGainChanged)
     Q_PROPERTY(float serverInjectorGain READ getInjectorGain WRITE setInjectorGain NOTIFY serverInjectorGainChanged)
@@ -290,6 +292,22 @@ public:
      */
     Q_INVOKABLE bool getRecording();
 
+    /**jsdoc
+     * Sets the output volume gain that will be used when the user is holding the Push to Talk key.
+     * Should be negative.
+     * @function Audio.setPushingToTalkOutputGainDesktop
+     * @param {number} gain - Output volume gain (dB) while using PTT.
+     */
+    Q_INVOKABLE void setPushingToTalkOutputGainDesktop(float gain);
+
+    /**jsdoc
+     * Gets the output volume gain that is used when the user is holding the Push to Talk key.
+     * Should be negative.
+     * @function Audio.getPushingToTalkOutputGainDesktop
+     * @returns {number} gain - Output volume gain (dB) while using PTT.
+     */
+    Q_INVOKABLE float getPushingToTalkOutputGainDesktop();
+
 signals:
 
     /**jsdoc
@@ -452,6 +470,14 @@ signals:
      */
     void systemInjectorGainChanged(float gain);
 
+    /**jsdoc
+     * Triggered when the push to talk gain changes.
+     * @function Audio.pushingToTalkOutputGainDesktopChanged
+     * @param {float} gain - The new output gain value.
+     * @returns {Signal}
+     */
+    void pushingToTalkOutputGainDesktopChanged(float gain);
+
 public slots:
 
     /**jsdoc
@@ -478,8 +504,9 @@ private:
     bool _settingsLoaded { false };
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
-    float _localInjectorGain { 0.0f };  // in dB
-    float _systemInjectorGain { 0.0f }; // in dB
+    float _localInjectorGain { 0.0f };      // in dB
+    float _systemInjectorGain { 0.0f };     // in dB
+    float _pttOutputGainDesktop { -20.0f };   // in dB
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _enableWarnWhenMuted { true };

@@ -366,7 +366,14 @@ void Audio::onContextChanged() {
 void Audio::handlePushedToTalk(bool enabled) {
     if (getPTT()) {
         if (enabled) {
-            DependencyManager::get<AudioClient>()->setOutputGain(0.1f); // duck the output by 20dB
+            if (!qApp->isHMDMode()) {
+                float gain = resultWithReadLock<float>([&] { return _pttOutputGainDesktop; });
+                // convert dB to amplitude
+                gain = fastExp2f(gain / 6.02059991f);
+                // quantize and limit to match NodeList::setInjectorGain()
+                gain = unpackFloatGainFromByte(packFloatGainToByte(gain));
+                DependencyManager::get<AudioClient>()->setOutputGain(gain);  // duck the output by N dB
+            }
             setMuted(false);
         } else {
             DependencyManager::get<AudioClient>()->setOutputGain(1.0f);
@@ -498,4 +505,30 @@ float Audio::getSystemInjectorGain() {
     return resultWithReadLock<float>([&] {
         return _systemInjectorGain;
     });
+}
+
+void Audio::setPushingToTalkOutputGainDesktop(float gain) {
+    if (gain > 0.0f) {
+        qDebug() << "Denying attempt to set Pushing to Talk Output Gain above 0dB. Attempted value:" << gain;
+        return;
+    }
+
+    bool changed = false;
+    if (getPushingToTalkOutputGainDesktop() != gain) {
+        changed = true;
+    }
+
+    withWriteLock([&] {
+        if (_pttOutputGainDesktop != gain) {
+            _pttOutputGainDesktop = gain;
+        }
+    });
+
+    if (changed) {
+        emit pushingToTalkOutputGainDesktopChanged(gain);
+    }
+}
+
+float Audio::getPushingToTalkOutputGainDesktop() {
+    return resultWithReadLock<float>([&] { return _pttOutputGainDesktop; });
 }
