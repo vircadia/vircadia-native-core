@@ -26,8 +26,10 @@ public:
     ~OctreePacketProcessor();
 
     void startSafeLanding();
+    void updateSafeLanding();
     void stopSafeLanding();
-    bool isLoadSequenceComplete() const { return _safeLanding->isLoadSequenceComplete(); }
+    bool safeLandingIsComplete() const;
+
     float domainLoadingProgress() const { return _safeLanding->loadingProgressPercentage(); }
 
 signals:

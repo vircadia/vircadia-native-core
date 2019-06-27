@@ -6198,13 +6198,13 @@ void Application::update(float deltaTime) {
 
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
-        quint64 now = usecTimestampNow();
         if (isServerlessMode()) {
             tryToEnablePhysics();
         } else if (_failedToConnectToEntityServer) {
             _octreeProcessor.stopSafeLanding();
         } else {
-            if (_octreeProcessor.isLoadSequenceComplete()) {
+            _octreeProcessor.updateSafeLanding();
+            if (_octreeProcessor.safeLandingIsComplete()) {
                 tryToEnablePhysics();
             }
         }
