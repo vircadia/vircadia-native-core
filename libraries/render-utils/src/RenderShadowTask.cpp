@@ -366,11 +366,9 @@ void RenderShadowSetup::configure(const Config& configuration) {
 
 void RenderShadowSetup::calculateBiases() {
     // slope scaling values derived from ratio between original constantBias and slopeBias pairs
-    float SCALE_SLOPE_0 = 2.7f;
-    float SCALE_SLOPE_1 = 3.0f;
-    float SCALE_SLOPE_2 = 3.7f;
-    float SCALE_SLOPE_3 = 3.5f;
-    float CONVERT_BIAS = 100.0f;
+    const std::vector<float> SLOPE_SCALES = {2.7f, 3.0f, 3.7f, 3.5f};
+    const float CONVERT_BIAS = 100.0f;
+    const float MIN_SCALE_DIVISOR = 0.5f;
 
     // the bias is relative to resolution
     // to remain consistent with the constant and slope bias values, the biasInput
@@ -378,44 +376,24 @@ void RenderShadowSetup::calculateBiases() {
     float inverseResolution = 1.0f / (float)resolution;
     int resolutionScale = DEFAULT_RESOLUTION * inverseResolution;
     float convertedBias = _biasInput * (CONVERT_BIAS / resolutionScale);
+    std::vector<float> localConstants = std::vector<float>(4);
+    std::vector<float> localSlopes = std::vector<float>(4);
     float scaleFactor = 1.0f;
 
-    scaleFactor = convertedBias * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[5], 0.0001f, FLT_MAX)) * inverseResolution;
-    float localConstant0 = cacasdeDistances[1] * scaleFactor;
-    float localConstant1 = cacasdeDistances[1] * scaleFactor;
-    float localSlope0 = cacasdeDistances[1] * scaleFactor * SCALE_SLOPE_0;
-    float localSlope1 = cacasdeDistances[1] * scaleFactor * SCALE_SLOPE_1;
-
-    scaleFactor = convertedBias * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[6], 0.0001f, FLT_MAX)) * inverseResolution;
-    float localConstant2 = cacasdeDistances[2] * scaleFactor;
-    float localSlope2 = cacasdeDistances[2] * scaleFactor * SCALE_SLOPE_2;
-
-    scaleFactor = convertedBias * (cacasdeDistances[0] / glm::clamp(cacasdeDistances[7], 0.0001f, FLT_MAX)) * inverseResolution;
-    float localConstant3 = cacasdeDistances[3] * scaleFactor;
-    float localSlope3 = cacasdeDistances[3] * scaleFactor * SCALE_SLOPE_3;
-
-    setConstantBias(0, localConstant0);
-    setSlopeBias(0, localSlope0);
-
-#if SHADOW_CASCADE_MAX_COUNT > 1
-    setConstantBias(1, localConstant1);
-    setConstantBias(2, localConstant2);
-    setConstantBias(3, localConstant3);
-
-    setSlopeBias(1, localSlope1);
-    setSlopeBias(2, localSlope2);
-    setSlopeBias(3, localSlope3);
-#endif
+    for (int i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+        scaleFactor = convertedBias * (cacasdeDistances[0] / glm::max(MIN_SCALE_DIVISOR, cacasdeDistances[i + 4])) * inverseResolution;
+        localConstants[i] = cacasdeDistances[i] * scaleFactor;
+        localSlopes[i] = cacasdeDistances[i] * scaleFactor * SLOPE_SCALES[i];
+        setConstantBias(i, localConstants[i]);
+        setSlopeBias(i, localSlopes[i]);
+    }
 }
 
-// clamp constant and slope at 1 to prevent peter panning 
 void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {
-    value = glm::clamp(value, 0.0f, 1.0f);
     _bias[cascadeIndex]._constant = value * value * value * 0.004f;
 }
 
 void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
-    value = glm::clamp(value, 0.0f, 1.0f);
     _bias[cascadeIndex]._slope = value * value * value * 0.001f;
 }
 
