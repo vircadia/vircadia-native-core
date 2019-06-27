@@ -905,19 +905,19 @@
                                                                                         "id": "idle",
                                                                                         "type": "overlay",
                                                                                         "data": {
-																						    "alpha": 1.0,
+                                                                                            "alpha": 1.0,
                                                                                             "alphaVar": "idleOverlayAlpha",
                                                                                             "boneSet": "upperBody"
                                                                                         },
                                                                                         "children": [
-																						    {
-																							    "id": "idleTalk",
+                                                                                            {
+                                                                                                "id": "idleTalk",
                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                 "data": {
                                                                                                     "currentState": "talk",
-																									"triggerRandomSwitch": "idleTalkSwitch",
-																									"randomSwitchTimeMin": 7.0,
-																									"randomSwitchTimeMax": 12.0,
+                                                                                                    "triggerRandomSwitch": "idleTalkSwitch",
+                                                                                                    "randomSwitchTimeMin": 7.0,
+                                                                                                    "randomSwitchTimeMax": 12.0,
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "talk",
@@ -1063,21 +1063,21 @@
                                                                                                         "children": []
                                                                                                     }
                                                                                                 ]
-																							},
+                                                                                            },
                                                                                             {
                                                                                                 "id": "idleStand",
                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                 "data": {
                                                                                                     "currentState": "masterIdle",
-																									"triggerTimeMin": 10.0,
-																									"triggerTimeMax": 50.0,
-																									"transitionVar": "timeToFidget",
+                                                                                                    "triggerTimeMin": 10.0,
+                                                                                                    "triggerTimeMax": 50.0,
+                                                                                                    "transitionVar": "timeToFidget",
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "masterIdle",
                                                                                                             "interpTarget": 21,
                                                                                                             "interpDuration": 20,
-																											"priority": 1.0,
+                                                                                                            "priority": 1.0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                                 { "var": "timeToFidget", "randomSwitchState": "fidget" }
@@ -1087,16 +1087,16 @@
                                                                                                             "id": "fidget",
                                                                                                             "interpTarget": 21,
                                                                                                             "interpDuration": 20,
-																											"priority": -1.0,
+                                                                                                            "priority": -1.0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                                 { "var": "idle_once_slownodOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "idle_once_headtiltOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "idle_once_shiftheelpivotOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "idleWS_allOnDone", "randomSwitchState": "masterIdle" },
-																												{ "var": "idle_once_lookaroundOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_lookaroundOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "idle_once_neckstretchOnDone", "randomSwitchState": "masterIdle" },
-																												{ "var": "idle_once_lookleftrightOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_lookleftrightOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "idle_once_fidgetOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "alt2ToMasterIdleOnDone", "randomSwitchState": "masterIdle" }
@@ -1769,7 +1769,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 21.0,
+                                                                                                    "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1854,7 +1854,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 21.0,
+                                                                                                    "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
                                                                                                     "mirrorFlag": true
@@ -1944,7 +1944,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 21.0,
+                                                                                                    "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1956,7 +1956,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left_fast.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 17.0,
+                                                                                                    "endFrame": 16.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1994,7 +1994,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 21.0,
+                                                                                                    "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
                                                                                                     "mirrorFlag": true
@@ -2007,7 +2007,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left_fast.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 17.0,
+                                                                                                    "endFrame": 16.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
                                                                                                     "mirrorFlag": true
