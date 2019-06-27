@@ -106,11 +106,11 @@ private slots:
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
     void handleStateChanged(QAbstractSocket::SocketState socketState);
+    void handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress);
 
 private:
     void setSystemBufferSizes();
     Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreation = false);
-    bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);

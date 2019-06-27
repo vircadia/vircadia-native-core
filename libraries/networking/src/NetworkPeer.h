@@ -94,7 +94,7 @@ public slots:
 signals:
     void pingTimerTimeout();
     void socketActivated(const HifiSockAddr& sockAddr);
-    void socketUpdated();
+    void socketUpdated(HifiSockAddr previousAddress, HifiSockAddr currentAddress);
 
 protected:
     void setActiveSocket(HifiSockAddr* discoveredSocket);

@@ -538,6 +538,11 @@ void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     }
 }
 
+void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress) {
+    Lock connectionsLock(_connectionsHashMutex);
+
+}
+
 #if (PR_BUILD || DEV_BUILD)
 
 void Socket::sendFakedHandshakeRequest(const HifiSockAddr& sockAddr) {
