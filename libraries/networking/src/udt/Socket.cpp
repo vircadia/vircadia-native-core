@@ -539,15 +539,29 @@ void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
 }
 
 void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress) {
-    Lock connectionsLock(_connectionsHashMutex);
-    _connectionsHash.erase(currentAddress);
+    {
+        Lock connectionsLock(_connectionsHashMutex);
+        _connectionsHash.erase(currentAddress);
 
-    const auto connectionIter = _connectionsHash.find(currentAddress);
-    if (connectionIter != _connectionsHash.end()) {
-        auto connection = std::move(connectionIter->second);
-        _connectionsHash.erase(connectionIter);
-        connection->setDestinationAddress(currentAddress);
-        _connectionsHash[currentAddress] = std::move(connection);
+        const auto connectionIter = _connectionsHash.find(previousAddress);
+        if (connectionIter != _connectionsHash.end()) {
+            auto connection = std::move(connectionIter->second);
+            _connectionsHash.erase(connectionIter);
+            connection->setDestinationAddress(currentAddress);
+            _connectionsHash[currentAddress] = std::move(connection);
+        }
+    }
+
+    {
+        Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
+        _unreliableSequenceNumbers.erase(currentAddress);
+
+        const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
+        if (sequenceNumbersIter != _unreliableSequenceNumbers.end()) {
+            auto sequenceNumbers = sequenceNumbersIter->second;
+            _unreliableSequenceNumbers.erase(sequenceNumbersIter);
+            _unreliableSequenceNumbers[currentAddress] = sequenceNumbers;
+        }
     }
 }
 
