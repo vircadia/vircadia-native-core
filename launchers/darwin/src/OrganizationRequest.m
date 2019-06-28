@@ -36,59 +36,12 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
 
     NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
     NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request];
-    /* NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
-        NSInteger statusCode = [ne statusCode];
-        NSLog(@"Organization Response status code: %ld", [ne statusCode]);
-
-        if (!error) {
-            if (statusCode == 200) {
-                NSError *jsonError;
-                NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&jsonError];
-                if (jsonError) {
-                    NSLog(@"Failed to parse Organzation json -> error: %@", jsonError);
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        Launcher* sharedLauncher = [Launcher sharedLauncher];
-                        [sharedLauncher displayErrorPage];
-                    });
-                    return;
-                }
-                NSLog(@"getting org done");
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    Launcher* sharedLauncher = [Launcher sharedLauncher];
-                    [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :[json valueForKey:@"scripts_url"]];
-                    [sharedLauncher setLoginErrorState: NONE];
-                    [sharedLauncher organizationRequestFinished:TRUE];
-                });
-            } else if (statusCode == 403 || statusCode == 404) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    Launcher* sharedLauncher = [Launcher sharedLauncher];
-                    [sharedLauncher setLoginErrorState: ORGANIZATION];
-                    [sharedLauncher organizationRequestFinished:FALSE];
-                });
-            } else {
-                NSLog(@ "Organization Response error: -> %@", error);
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    Launcher* sharedLauncher = [Launcher sharedLauncher];
-                    [sharedLauncher displayErrorPage];
-                });
-            }
-        } else {
-             dispatch_async(dispatch_get_main_queue(), ^{
-                Launcher* sharedLauncher = [Launcher sharedLauncher];
-                [sharedLauncher displayErrorPage];
-             });
-        }
-        }];*/
-
     [dataTask resume];
 }
 
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response
  completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
-    NSLog(@"----------------> ");
-
     self.receivedData = nil;
     self.receivedData = [[NSMutableData alloc] init];
     [self.receivedData setLength:0];
@@ -103,33 +56,33 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
    didReceiveData:(NSData *)data {
 
     [self.receivedData appendData:data];
-    NSLog(@"did recieve data");
+    NSLog(@"Organization: did recieve data");
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
-    NSLog(@"did complete with error");
+    Launcher* sharedLauncher = [Launcher sharedLauncher];
     if (error) {
-        // Handle error
-    }
-    else {
-        Launcher* sharedLauncher = [Launcher sharedLauncher];
+        NSLog(@"Organization: Request completed with an error -> error: %@", error);
+        [sharedLauncher displayErrorPage];
+    } else {
         if (self.statusCode == 200) {
-            NSError *jsonError;
+            NSError *jsonError = nil;
             NSDictionary *json = [NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&jsonError];
             if (jsonError) {
                 NSLog(@"Failed to parse Organzation json -> error: %@", jsonError);
                 [sharedLauncher displayErrorPage];
                 return;
             }
-            NSLog(@"getting org done");
+            NSLog(@"Organization: getting org file successful");
             [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :[json valueForKey:@"scripts_url"]];
             [sharedLauncher setLoginErrorState: NONE];
             [sharedLauncher organizationRequestFinished:TRUE];
         } else if (self.statusCode == 403 || self.statusCode == 404) {
+            NSLog(@"Organization: failed to get org file");
             [sharedLauncher setLoginErrorState: ORGANIZATION];
             [sharedLauncher organizationRequestFinished:FALSE];
         } else {
-            NSLog(@ "Organization Response error: -> %@", error);
+            NSLog(@ "Organization: Response error -> statusCode: %ld", self.statusCode);
             [sharedLauncher displayErrorPage];
         }
     }

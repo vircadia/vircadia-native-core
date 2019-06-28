@@ -29,7 +29,7 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location {
     NSLog(@"Did finish downloading to url");
-    NSError *error;
+    NSError *error = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
     NSString* finalFilePath = [[[Launcher sharedLauncher] getAppPath] stringByAppendingPathComponent:destinationFileName];
@@ -41,12 +41,22 @@
     [fileManager moveItemAtURL:location toURL:destinationURL error:&error];
 
     Launcher* sharedLauncher = [Launcher sharedLauncher];
+
+    if (error) {
+        NSLog(@"Download Interface: failed to move file to destination -> error: %@", error);
+        [sharedLauncher displayErrorPage];
+        return;
+    }
     [sharedLauncher setDownloadFilename:destinationFileName];
     NSString* appPath = [sharedLauncher getAppPath];
     NSString* downloadFileName = [sharedLauncher getDownloadFilename];
 
     NSLog(@"extract interface zip");
-    [sharedLauncher extractZipFileAtDestination:appPath :[appPath stringByAppendingString:downloadFileName]];
+    BOOL success = [sharedLauncher extractZipFileAtDestination:appPath :[appPath stringByAppendingString:downloadFileName]];
+    if (!success) {
+        [sharedLauncher displayErrorPage];
+        return;
+    }
     NSLog(@"finished extracting interface zip");
 
     NSLog(@"starting xattr");
@@ -65,8 +75,8 @@
 }
 
 -(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
-    NSLog(@"completed; error: %@", error);
     if (error) {
+        NSLog(@"DownloadInterface: did complete with error -> error: %@", error);
         [[Launcher sharedLauncher] displayErrorPage];
     }
 }

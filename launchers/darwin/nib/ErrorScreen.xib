@@ -36,7 +36,7 @@
                     </textFieldCell>
                 </textField>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FkC-xi-3UI">
-                    <rect key="frame" x="156" y="105" width="192" height="17"/>
+                    <rect key="frame" x="156" y="103" width="202" height="19"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="We seem to have a problem." id="bX3-v1-LLM">
                         <font key="font" metaFont="system" size="15"/>
@@ -45,7 +45,7 @@
                     </textFieldCell>
                 </textField>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tV0-Su-eLX">
-                    <rect key="frame" x="156" y="80" width="192" height="17"/>
+                    <rect key="frame" x="156" y="78" width="192" height="19"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Please restart Launcher" id="aBw-o2-xZE">
                         <font key="font" metaFont="system" size="15"/>
