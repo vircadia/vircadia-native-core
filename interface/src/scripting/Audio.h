@@ -66,10 +66,12 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} pushToTalkHMD - <code>true</code> if HMD push-to-talk is enabled, otherwise <code>false</code>.
      * @property {boolean} pushingToTalk - <code>true</code> if the user is currently pushing-to-talk, otherwise 
      *     <code>false</code>.
-     * @property {float} avatarGain - The gain (relative volume) that avatars' voices are played at. This gain is used at the server.
-     * @property {float} localInjectorGain - The gain (relative volume) that local injectors (local environment sounds) are played at.
-     * @property {float} serverInjectorGain - The gain (relative volume) that server injectors (server environment sounds) are played at. This gain is used at the server.
-     * @property {float} systemInjectorGain - The gain (relative volume) that system sounds are played at.
+     * @property {number} avatarGain - The gain (relative volume) that avatars' voices are played at. This gain is used at the server.
+     * @property {number} localInjectorGain - The gain (relative volume) that local injectors (local environment sounds) are played at.
+     * @property {number} serverInjectorGain - The gain (relative volume) that server injectors (server environment sounds) are played at. This gain is used at the server.
+     * @property {number} systemInjectorGain - The gain (relative volume) that system sounds are played at.
+     * @property {number} pushingToTalkOutputGainDesktop - The gain (relative volume) that all sounds are played at when the user is holding
+     *     the push-to-talk key in Desktop mode.
      *
      * @comment The following properties are from AudioScriptingInterface.h.
      * @property {boolean} isStereoInput - <code>true</code> if the input audio is being used in stereo, otherwise
@@ -199,14 +201,14 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.setAvatarGain
-     * @param {number} gain - Avatar gain (dB) at the server.
+     * @param {number} gain - The avatar gain (dB) at the server.
      */
     Q_INVOKABLE void setAvatarGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.getAvatarGain
-     * @returns {number} Avatar gain (dB) at the server.
+     * @returns {number} The avatar gain (dB) at the server.
      * @example <caption>Report current audio gain settings.</caption>
      * // 0 value = normal volume; -ve value = quieter; +ve value = louder.
      * print("Avatar gain: " + Audio.getAvatarGain());
@@ -219,42 +221,42 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.setInjectorGain
-     * @param {number} gain - Injector gain (dB) at the server.
+     * @param {number} gain - The injector gain (dB) at the server.
      */
     Q_INVOKABLE void setInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.getInjectorGain
-     * @returns {number} Injector gain (dB) at the server.
+     * @returns {number} The injector gain (dB) at the server.
      */
     Q_INVOKABLE float getInjectorGain();
 
     /**jsdoc
      * Sets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.setLocalInjectorGain
-     * @param {number} gain - Injector gain (dB) in the client.
+     * @param {number} gain - The injector gain (dB) in the client.
      */
     Q_INVOKABLE void setLocalInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.getLocalInjectorGain
-     * @returns {number} Injector gain (dB) in the client.
+     * @returns {number} The injector gain (dB) in the client.
      */
     Q_INVOKABLE float getLocalInjectorGain();
 
     /**jsdoc
      * Sets the gain (relative volume) that system sounds are played at.
      * @function Audio.setSystemInjectorGain
-     * @param {number} gain - Injector gain (dB) in the client.
+     * @param {number} gain - The injector gain (dB) in the client.
      */
     Q_INVOKABLE void setSystemInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that system sounds are played at.
      * @function Audio.getSystemInjectorGain
-     * @returns {number} Injector gain (dB) in the client.
+     * @returns {number} The injector gain (dB) in the client.
     */
     Q_INVOKABLE float getSystemInjectorGain();
 
@@ -296,7 +298,7 @@ public:
      * Sets the output volume gain that will be used when the user is holding the Push to Talk key.
      * Should be negative.
      * @function Audio.setPushingToTalkOutputGainDesktop
-     * @param {number} gain - Output volume gain (dB) while using PTT.
+     * @param {number} gain - The output volume gain (dB) while using PTT.
      */
     Q_INVOKABLE void setPushingToTalkOutputGainDesktop(float gain);
 
@@ -304,7 +306,7 @@ public:
      * Gets the output volume gain that is used when the user is holding the Push to Talk key.
      * Should be negative.
      * @function Audio.getPushingToTalkOutputGainDesktop
-     * @returns {number} gain - Output volume gain (dB) while using PTT.
+     * @returns {number} gain - The output volume gain (dB) while using PTT.
      */
     Q_INVOKABLE float getPushingToTalkOutputGainDesktop();
 
@@ -441,7 +443,7 @@ signals:
     /**jsdoc
      * Triggered when the avatar gain changes.
      * @function Audio.avatarGainChanged
-     * @param {float} gain - The new avatar gain value.
+     * @param {number} gain - The new avatar gain value.
      * @returns {Signal}
      */
     void avatarGainChanged(float gain);
@@ -449,7 +451,7 @@ signals:
     /**jsdoc
      * Triggered when the local injector gain changes.
      * @function Audio.localInjectorGainChanged
-     * @param {float} gain - The new local injector gain value.
+     * @param {number} gain - The new local injector gain value.
      * @returns {Signal}
      */
     void localInjectorGainChanged(float gain);
@@ -465,7 +467,7 @@ signals:
     /**jsdoc
      * Triggered when the system injector gain changes.
      * @function Audio.systemInjectorGainChanged
-     * @param {float} gain - The new system injector gain value.
+     * @param {number} gain - The new system injector gain value.
      * @returns {Signal}
      */
     void systemInjectorGainChanged(float gain);
@@ -473,7 +475,7 @@ signals:
     /**jsdoc
      * Triggered when the push to talk gain changes.
      * @function Audio.pushingToTalkOutputGainDesktopChanged
-     * @param {float} gain - The new output gain value.
+     * @param {number} gain - The new output gain value.
      * @returns {Signal}
      */
     void pushingToTalkOutputGainDesktopChanged(float gain);

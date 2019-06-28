@@ -370,8 +370,6 @@ void Audio::handlePushedToTalk(bool enabled) {
                 float gain = resultWithReadLock<float>([&] { return _pttOutputGainDesktop; });
                 // convert dB to amplitude
                 gain = fastExp2f(gain / 6.02059991f);
-                // quantize and limit to match NodeList::setInjectorGain()
-                gain = unpackFloatGainFromByte(packFloatGainToByte(gain));
                 DependencyManager::get<AudioClient>()->setOutputGain(gain);  // duck the output by N dB
             }
             setMuted(false);
