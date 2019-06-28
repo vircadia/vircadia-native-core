@@ -26,7 +26,7 @@
     [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     [request setHTTPBody:postData];
 
-    NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
+    NSURLSession* session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
     NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request];
 
     [dataTask resume];
@@ -60,12 +60,13 @@
     } else {
         if (self.statusCode == 200) {
             NSString* jsonString = [[NSString alloc] initWithBytes: [self.receivedData mutableBytes] length:[self.receivedData length] encoding:NSUTF8StringEncoding];
-            NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+            NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
             NSError* jsonError = nil;
             id json = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&jsonError];
 
             if (jsonError) {
                 NSLog(@"Credentials: Failed to parse json -> error: %@", jsonError);
+                NSLog(@"Credentials: JSON string from data: %@", jsonString);
                 [sharedLauncher displayErrorPage];
                 return;
             }

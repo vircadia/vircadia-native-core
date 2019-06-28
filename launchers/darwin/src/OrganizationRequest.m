@@ -73,10 +73,18 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
                 [sharedLauncher displayErrorPage];
                 return;
             }
-            NSLog(@"Organization: getting org file successful");
-            [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :[json valueForKey:@"scripts_url"]];
-            [sharedLauncher setLoginErrorState: NONE];
-            [sharedLauncher organizationRequestFinished:TRUE];
+            NSString* domainURL = [json valueForKey:@"domain"];
+            NSString* contentSetURL = [json valueForKey:@"content_set_url"];
+
+            if (domainURL != nil && contentSetURL != nil) {
+                NSLog(@"Organization: getting org file successful");
+                [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :nil];
+                [sharedLauncher setLoginErrorState: NONE];
+                [sharedLauncher organizationRequestFinished:TRUE];
+            } else {
+                NSLog(@"Organization: Either domainURL: %@ or contentSetURL: %@ json entries are invalid", domainURL, contentSetURL);
+                [sharedLauncher displayErrorPage];
+            }
         } else if (self.statusCode == 403 || self.statusCode == 404) {
             NSLog(@"Organization: failed to get org file");
             [sharedLauncher setLoginErrorState: ORGANIZATION];
