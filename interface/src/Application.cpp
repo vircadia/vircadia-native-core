@@ -2498,6 +2498,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     pauseUntilLoginDetermined();
 }
 
+void Application::setFailedToConnectToEntityServer() {
+    _failedToConnectToEntityServer = true;
+}
+
 void Application::updateVerboseLogging() {
     auto menu = Menu::getInstance();
     if (!menu) {
@@ -5912,7 +5916,7 @@ void Application::resetPhysicsReadyInformation() {
     _gpuTextureMemSizeStabilityCount = 0;
     _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
-    _octreeProcessor.startEntitySequence();
+    _octreeProcessor.startSafeLanding();
 }
 
 
@@ -6162,13 +6166,30 @@ void Application::updateSecondaryCameraViewFrustum() {
 
 static bool domainLoadingInProgress = false;
 
+void Application::tryToEnablePhysics() {
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
+    if (gpuTextureMemSizeStable() || !enableInterstitial) {
+        _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+        _lastQueriedViews.clear();  // Force new view.
+
+        // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+        // We keep physics disabled until we've received a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+        if (getMyAvatar()->isReadyForPhysics()) {
+            _physicsEnabled = true;
+            setIsInterstitialMode(false);
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        }
+    }
+}
+
 void Application::update(float deltaTime) {
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_graphicsEngine._renderFrameCount + 1);
 
     if (_aboutToQuit) {
         return;
     }
-
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
@@ -6178,24 +6199,16 @@ void Application::update(float deltaTime) {
 
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
-        quint64 now = usecTimestampNow();
-        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
-            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-
-            if (gpuTextureMemSizeStable() || !enableInterstitial) {
-                // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
-                _lastPhysicsCheckTime = now;
-                _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
-                _lastQueriedViews.clear();  // Force new view.
-
-                // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
-                // We keep physics disabled until we've received a full scene and everything near the avatar in that
-                // scene is ready to compute its collision shape.
-                if (getMyAvatar()->isReadyForPhysics()) {
-                    _physicsEnabled = true;
-                    setIsInterstitialMode(false);
-                    getMyAvatar()->updateMotionBehaviorFromMenu();
-                }
+        if (isServerlessMode()) {
+            tryToEnablePhysics();
+        } else if (_failedToConnectToEntityServer) {
+            if (_octreeProcessor.safeLandingIsActive()) {
+                _octreeProcessor.stopSafeLanding();
+            }
+        } else {
+            _octreeProcessor.updateSafeLanding();
+            if (_octreeProcessor.safeLandingIsComplete()) {
+                tryToEnablePhysics();
             }
         }
     } else if (domainLoadingInProgress) {
@@ -7144,13 +7157,17 @@ void Application::resettingDomain() {
     clearDomainOctreeDetails(false);
 }
 
-void Application::nodeAdded(SharedNodePointer node) const {
+void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
-        if (!_failedToConnectToEntityServer) {
+        if (_failedToConnectToEntityServer && !_entityServerConnectionTimer.isActive()) {
+            _failedToConnectToEntityServer = false;
+            _octreeProcessor.stopSafeLanding();
+            _octreeProcessor.startSafeLanding();
+        } else if (_entityServerConnectionTimer.isActive()) {
             _entityServerConnectionTimer.stop();
-            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
-            _entityServerConnectionTimer.start();
         }
+        _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
+        _entityServerConnectionTimer.start();
     }
 }
 
@@ -7160,7 +7177,6 @@ void Application::nodeActivated(SharedNodePointer node) {
 
 #if !defined(DISABLE_QML)
         auto offscreenUi = getOffscreenUI();
-
         if (offscreenUi) {
             auto nodeList = DependencyManager::get<NodeList>();
 

@@ -63,7 +63,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             // construct a new packet from the piggybacked one
             auto buffer = std::unique_ptr<char[]>(new char[piggybackBytes]);
             memcpy(buffer.get(), message->getRawMessage() + statsMessageLength, piggybackBytes);
-            
             auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggybackBytes, message->getSenderSockAddr());
             message = QSharedPointer<ReceivedMessage>::create(*newPacket);
         } else {
@@ -80,7 +79,6 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 
         const QUuid& senderUUID = sendingNode->getUUID();
         if (!versionDebugSuppressMap.contains(senderUUID, packetType)) {
-            
             qDebug() << "Was stats packet? " << wasStatsPacket;
             qDebug() << "OctreePacketProcessor - piggyback packet version mismatch on" << packetType << "- Sender"
                 << senderUUID << "sent" << (int) message->getVersion() << "but"
@@ -115,7 +113,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
                 auto renderer = qApp->getEntities();
                 if (renderer) {
                     renderer->processDatagram(*message, sendingNode);
-                    _safeLanding->noteReceivedsequenceNumber(renderer->getLastOctreeMessageSequence());
+                    if (_safeLanding && _safeLanding->isTracking()) {
+                        _safeLanding->addToSequence(renderer->getLastOctreeMessageSequence());
+                    }
                 }
             }
         } break;
@@ -124,7 +124,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
             // Read sequence #
             OCTREE_PACKET_SEQUENCE completionNumber;
             message->readPrimitive(&completionNumber);
-            _safeLanding->setCompletionSequenceNumbers(0, completionNumber);
+            if (_safeLanding) {
+                _safeLanding->finishSequence(0, completionNumber);
+            }
         } break;
 
         default: {
@@ -133,6 +135,31 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     }
 }
 
-void OctreePacketProcessor::startEntitySequence() {
-    _safeLanding->startEntitySequence(qApp->getEntities());
+void OctreePacketProcessor::startSafeLanding() {
+    if (_safeLanding) {
+        _safeLanding->startTracking(qApp->getEntities());
+    }
+}
+
+void OctreePacketProcessor::updateSafeLanding() {
+    if (_safeLanding) {
+        _safeLanding->updateTracking();
+    }
+}
+
+void OctreePacketProcessor::stopSafeLanding() {
+    if (_safeLanding) {
+        _safeLanding->stopTracking();
+    }
+}
+
+bool OctreePacketProcessor::safeLandingIsActive() const {
+    return _safeLanding && _safeLanding->isTracking();
+}
+
+bool OctreePacketProcessor::safeLandingIsComplete() const {
+    if (_safeLanding) {
+        return _safeLanding->trackingIsComplete();
+    }
+    return false;
 }
