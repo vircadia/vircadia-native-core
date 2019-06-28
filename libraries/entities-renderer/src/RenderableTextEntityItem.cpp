@@ -54,6 +54,10 @@ Item::Bound TextEntityRenderer::getBound() {
     return bound;
 }
 
+ItemKey TextEntityRenderer::getKey() {
+    return ItemKey::Builder(Parent::getKey()).withMetaCullGroup();
+}
+
 ShapeKey TextEntityRenderer::getShapeKey() {
     auto builder = render::ShapeKey::Builder();
     if (isTransparent()) {
@@ -63,6 +67,15 @@ ShapeKey TextEntityRenderer::getShapeKey() {
         builder.withWireframe();
     }
     return builder.build();
+}
+
+uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
+    auto parentSubs = Parent::metaFetchMetaSubItems(subItems);
+    if (Item::isValidID(_textRenderID)) {
+        subItems.emplace_back(_textRenderID);
+        return parentSubs + 1;
+    }
+    return parentSubs;
 }
 
 bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
@@ -249,14 +262,12 @@ ItemKey entities::TextPayload::getKey() const {
         auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
         ItemKey::Builder key;
         // Similar to EntityRenderer::getKey()
-        // FIXME: should be withSubMetaCulled and not meta, but there's a bug in the layer rendering that won't render it in that case
-        // (the TextEntityRenderer should also be withMetaCullGroup)
         if (textRenderable->isTextTransparent()) {
-            key = ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
+            key = ItemKey::Builder::transparentShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
         } else if (textRenderable->_canCastShadow) {
-            key = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(textRenderable->getTagMask()).withShadowCaster().withLayer(textRenderable->getHifiRenderLayer());
+            key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withShadowCaster().withLayer(textRenderable->getHifiRenderLayer());
         } else {
-            key = ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
+            key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
         }
 
         if (!textRenderable->_visible) {

@@ -34,6 +34,8 @@ protected:
     bool isTextTransparent() const;
     Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
+    ItemKey getKey() override;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
 
     void onAddToSceneTyped(const TypedEntityPointer& entity) override;
     void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
