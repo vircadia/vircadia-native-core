@@ -17,7 +17,6 @@
             console.log("TEST B");
             Window.openWebBrowser();
         }
-
         else if (event.text.toUpperCase() === "N" && event.isControl) {
             Users.toggleIgnoreRadius();
         }
