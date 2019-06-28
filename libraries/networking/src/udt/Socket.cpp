@@ -545,10 +545,10 @@ void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAdd
 
         const auto connectionIter = _connectionsHash.find(previousAddress);
         if (connectionIter != _connectionsHash.end()) {
-            auto connection = std::move(connectionIter->second);
+            auto connection = move(connectionIter->second);
             _connectionsHash.erase(connectionIter);
             connection->setDestinationAddress(currentAddress);
-            _connectionsHash[currentAddress] = std::move(connection);
+            _connectionsHash[currentAddress] = move(connection);
         }
     }
 
