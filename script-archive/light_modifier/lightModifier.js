@@ -33,8 +33,8 @@ var PARENT_SCRIPT_URL = Script.resolvePath('lightParent.js?' + Math.random(0 - 1
 
 if (SHOW_OVERLAYS === true) {
 
-    Script.include('../libraries/gridTool.js');
-    Script.include('../libraries/entitySelectionTool.js?' + Math.random(0 - 100));
+    Script.include('../../scripts/system/libraries/gridTool.js');
+    Script.include('../../scripts/system/create/entitySelectionTool/entitySelectionTool.js?' + Math.random(0 - 100));
     Script.include('../libraries/lightOverlayManager.js');
 
     var grid = Grid();

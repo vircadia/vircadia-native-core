@@ -14,12 +14,6 @@ TabBar {
     padding: 0
     spacing: 0
 
-    readonly property QtObject tabIndex: QtObject {
-        readonly property int create: 0
-        readonly property int properties: 1
-        readonly property int grid: 2
-    }
-
     readonly property HifiConstants hifi: HifiConstants {}
 
     EditTabButton {
@@ -78,110 +72,110 @@ TabBar {
 
 
                         NewEntityButton {
-                            icon: "create-icons/94-model-01.svg"
+                            icon: "icons/94-model-01.svg"
                             text: "MODEL"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newModelButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/21-cube-01.svg"
+                            icon: "icons/21-cube-01.svg"
                             text: "SHAPE"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newShapeButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/24-light-01.svg"
+                            icon: "icons/24-light-01.svg"
                             text: "LIGHT"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newLightButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/20-text-01.svg"
+                            icon: "icons/20-text-01.svg"
                             text: "TEXT"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newTextButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/image.svg"
+                            icon: "icons/image.svg"
                             text: "IMAGE"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newImageButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/25-web-1-01.svg"
+                            icon: "icons/25-web-1-01.svg"
                             text: "WEB"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newWebButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/23-zone-01.svg"
+                            icon: "icons/23-zone-01.svg"
                             text: "ZONE"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newZoneButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/90-particles-01.svg"
+                            icon: "icons/90-particles-01.svg"
                             text: "PARTICLE"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newParticleButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
 
                         NewEntityButton {
-                            icon: "create-icons/126-material-01.svg"
+                            icon: "icons/126-material-01.svg"
                             text: "MATERIAL"
                             onClicked: {
                                 editRoot.sendToScript({
                                     method: "newEntityButtonClicked",
                                     params: { buttonName: "newMaterialButton" }
                                 });
-                                editTabView.currentIndex = tabIndex.properties
+                                editTabView.currentIndex = 2
                             }
                         }
                     }
@@ -229,6 +223,22 @@ TabBar {
     }
 
     EditTabButton {
+        title: "LIST"
+        active: true
+        enabled: true
+        property string originalUrl: ""
+
+        property Component visualItem: Component {
+            WebView {
+                id: entityListToolWebView
+                url: Qt.resolvedUrl("../entityList/html/entityList.html")
+                enabled: true
+                blurOnCtrlShift: false
+            }
+        }
+    }
+
+    EditTabButton {
         title: "PROPERTIES"
         active: true
         enabled: true
@@ -237,7 +247,7 @@ TabBar {
         property Component visualItem: Component {
             WebView {
                 id: entityPropertiesWebView
-                url: Paths.defaultScripts + "/system/html/entityProperties.html"
+                url: Qt.resolvedURL("../entityProperties/html/entityProperties.html")
                 enabled: true
                 blurOnCtrlShift: false
             }
@@ -253,7 +263,7 @@ TabBar {
         property Component visualItem: Component {
             WebView {
                 id: gridControlsWebView
-                url: Paths.defaultScripts + "/system/html/gridControls.html"
+                url: Qt.resolvedURL("../../html/gridControls.html")
                 enabled: true
                 blurOnCtrlShift: false
             }
@@ -266,14 +276,14 @@ TabBar {
                 selectTab(message.params.id);
                 break;
             default:
-                console.warn('EditToolsTabView.qml: Unrecognized message');
+                console.warn('EditTabView.qml: Unrecognized message');
         }
     }
 
     // Changes the current tab based on tab index or title as input
     function selectTab(id) {
         if (typeof id === 'number') {
-            if (id >= tabIndex.create && id <= tabIndex.grid) {
+            if (id >= 0 && id <= 4) {
                 editTabView.currentIndex = id;
             } else {
                 console.warn('Attempt to switch to invalid tab:', id);
@@ -281,13 +291,16 @@ TabBar {
         } else if (typeof id === 'string'){
             switch (id.toLowerCase()) {
                 case 'create':
-                    editTabView.currentIndex = tabIndex.create;
+                    editTabView.currentIndex = 0;
+                    break;
+                case 'list':
+                    editTabView.currentIndex = 1;
                     break;
                 case 'properties':
-                    editTabView.currentIndex = tabIndex.properties;
+                    editTabView.currentIndex = 2;
                     break;
                 case 'grid':
-                    editTabView.currentIndex = tabIndex.grid;
+                    editTabView.currentIndex = 3;
                     break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);

@@ -174,6 +174,10 @@ float HmdDisplayPlugin::getLeftCenterPixel() const {
     return leftCenterPixel;
 }
 
+gpu::PipelinePointer HmdDisplayPlugin::getRenderTexturePipeline() {
+    return _SRGBToLinearPipeline;
+}
+
 void HmdDisplayPlugin::internalPresent() {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 

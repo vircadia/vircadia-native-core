@@ -2712,6 +2712,7 @@ void Application::cleanupBeforeQuit() {
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
+    QThreadPool::globalInstance()->waitForDone();
 
     DependencyManager::destroy<RecordingScriptingInterface>();
 
