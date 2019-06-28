@@ -59,8 +59,8 @@ private:
 /**jsdoc
  * The result of a {@link Entities.findRayIntersection|findRayIntersection} search using a {@link PickRay}.
  * @typedef {object} Entities.RayToEntityIntersectionResult
- * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected an entity, otherwise 
- *     <code>false</code>.
+ * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected an entity, <code>false</code> if it 
+ *     didn't.
  * @property {boolean} accurate - Is always <code>true</code>.
  * @property {Uuid} entityID - The ID if the entity intersected, if any, otherwise <code>null</code>.
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
@@ -131,8 +131,8 @@ public:
  *     <tr><td><code>leaveEntity</code></td><td>{@link Entities.leaveEntity}</td></tr>
  *     <tr><td><code>mouseDoublePressOnEntity</code></td><td>{@link Entities.mouseDoublePressOnEntity}</td></tr>
  *     <tr><td><code>mouseMoveOnEntity</code></td><td>{@link Entities.mouseMoveOnEntity}</td></tr>
- *     <tr><td><code>mouseMoveEvent</code></td><td><span class="important">Deprecated: This is a synonym for 
- *       <code>mouseMoveOnEntity</code>.</span></td></tr>
+ *     <tr><td><code>mouseMoveEvent</code></td><td><span class="important">Deprecated: Use <code>mouseMoveOnEntity</code> 
+ *       instead.</span></td></tr>
  *     <tr><td><code>mousePressOnEntity</code></td><td>{@link Entities.mousePressOnEntity}</td></tr>
  *     <tr><td><code>mouseReleaseOnEntity</code></td><td>{@link Entities.mouseReleaseOnEntity}</td></tr>
  *   </tbody>
@@ -148,8 +148,8 @@ public:
  * @hifi-assignment-client
  *
  * @property {Uuid} keyboardFocusEntity -  The {@link Entities.EntityProperties-Web|Web} entity that has keyboard focus. If no 
- *     Web entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
- *     clear keyboard focus.
+ *     Web entity has keyboard focus, returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to clear 
+ *     keyboard focus.
  */
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
@@ -191,8 +191,8 @@ public:
      *     objects (e.g., the <code>"keyLight"</code> property), use the property and subproperty names in dot notation (e.g., 
      *     <code>"keyLight.color"</code>).
      * @returns {Entities.EntityProperties[]} The specified properties of each entity for each entity that can be found. If 
-     *     none of the entities can be found then an empty array. If no properties are specified, then all properties are 
-     *     returned.
+     *     none of the entities can be found, then an empty array is returned. If no properties are specified, then all 
+     *     properties are returned.
      * @example <caption>Retrieve the names of the nearby entities</caption>
      * var SEARCH_RADIUS = 50; // meters
      * var entityIDs = Entities.findEntities(MyAvatar.position, SEARCH_RADIUS);
@@ -353,9 +353,10 @@ public slots:
                                      bool collisionless, bool grabbable, const glm::vec3& position, const glm::vec3& gravity);
 
     /**jsdoc
-     * Creates a clone of an entity. The clone has a modified <code>name</code> property, other properties set per the original
-     * entity's clone-related {@link Entities.EntityProperties|properties} (e.g., <code>cloneLifetime</code>), and 
-     * clone-related properties set to defaults.
+     * Creates a clone of an entity. The clone has the same properties as the original except that: it has a modified
+     * <code>name</code> property, clone-related properties are set per the original entity's clone-related
+     * {@link Entities.EntityProperties|properties} (e.g., <code>cloneLifetime</code>), and its clone-related properties are 
+     * set to their defaults.
      * <p>Domain entities must have their <code>cloneable</code> property value be <code>true</code> in order to be cloned. A 
      * domain entity can be cloned by a client that doesn't have rez permissions in the domain.</p>
      * <p>Avatar entities must have their <code>cloneable</code> and <code>cloneAvatarEntity</code> property values be 
@@ -507,7 +508,7 @@ public slots:
     Q_INVOKABLE QObject* getEntityObject(const QUuid& id);
 
     /**jsdoc
-     * Checks whether an entities's assets have been loaded. For example, for an <code>Model</code> entity the result indicates
+     * Checks whether an entity's assets have been loaded. For example, for an <code>Model</code> entity the result indicates
      * whether its textures have been loaded.
      * @function Entities.isLoaded
      * @param {Uuid} id - The ID of the entity to check.
@@ -747,7 +748,8 @@ public slots:
      * @param {string} entityName - The name of the entity to search for.
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @param {boolean} [caseSensitive=false] - If <code>true</code> then the search is case-sensitive.
+     * @param {boolean} [caseSensitive=false] - <code>true</code> if the search is case-sensitive, <code>false</code> if it is 
+     *     case-insensitive.
      * @returns {Uuid[]} An array of entity IDs that have the specified name and intersect the search sphere. The array is 
      *     empty if no entities could be found.
      * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
@@ -767,12 +769,14 @@ public slots:
      * @param {boolean} [precisionPicking=false] - <code>true</code> to pick against precise meshes, <code>false</code> to pick 
      *     against coarse meshes. If <code>true</code> and the intersected entity is a <code>Model</code> entity, the result's 
      *     <code>extraInfo</code> property includes more information than it otherwise would.
-     * @param {Uuid[]} [entitiesToInclude=[]] - If not empty then the search is restricted to these entities.
+     * @param {Uuid[]} [entitiesToInclude=[]] - If not empty, then the search is restricted to these entities.
      * @param {Uuid[]} [entitiesToDiscard=[]] - Entities to ignore during the search.
-     * @param {boolean} [visibleOnly=false] - If <code>true</code> then only entities that are 
-     *     <code>{@link Entities.EntityProperties|visible}</code> are searched.
-     * @param {boolean} [collideableOnly=false] - If <code>true</code> then only entities that are not 
-     *     <code>{@link Entities.EntityProperties|collisionless}</code> are searched.
+     * @param {boolean} [visibleOnly=false] - <code>true</code> if only entities that are 
+     *     <code>{@link Entities.EntityProperties|visible}</code> are searched for, <code>false</code> if their visibility 
+     *     doesn't matter.
+     * @param {boolean} [collideableOnly=false] - <code>true</code> if only entities that are not 
+     *     <code>{@link Entities.EntityProperties|collisionless}</code> are searched, <code>false</code> if their 
+     *     collideability doesn't matter.
      * @returns {Entities.RayToEntityIntersectionResult} The result of the search for the first intersected entity.
      * @example <caption>Find the entity directly in front of your avatar.</caption>
      * var pickRay = {
@@ -856,7 +860,7 @@ public slots:
 
     /**jsdoc
      * Sets whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Light|Light} entities. By 
-     * default, Light entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
+     * default, Light entities are not intersected. The setting lasts for the Interface session. Ray picks are performed using 
      * {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.setLightsArePickable
      * @param {boolean} value - <code>true</code> to make ray picks intersect the bounding box of 
@@ -867,7 +871,7 @@ public slots:
 
     /**jsdoc
      * Gets whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Light|Light} entities. Ray 
-     * picks are done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
+     * picks are performed using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.getLightsArePickable
      * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of 
      *     {@link Entities.EntityProperties-Light|Light} entities, otherwise <code>false</code>.
@@ -877,7 +881,7 @@ public slots:
 
     /**jsdoc
      * Sets whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Zone|Zone} entities. By 
-     * default, Zone entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
+     * default, Zone entities are not intersected. The setting lasts for the Interface session. Ray picks are performed using 
      * {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.setZonesArePickable
      * @param {boolean} value - <code>true</code> to make ray picks intersect the bounding box of 
@@ -888,7 +892,7 @@ public slots:
 
     /**jsdoc
      * Gets whether or not ray picks intersect the bounding box of {@link Entities.EntityProperties-Zone|Zone} entities. Ray 
-     * picks are done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
+     * picks are performed using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.getZonesArePickable
      * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of 
      *      {@link Entities.EntityProperties-Zone|Zone} entities, otherwise <code>false</code>.
@@ -1068,7 +1072,7 @@ public slots:
      * the dimensions of each voxel.
      * @function Entities.worldCoordsToVoxelCoords
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
-     * @param {Vec3} worldCoords - The world coordinates. May be outside the entity's bounding box.
+     * @param {Vec3} worldCoords - The world coordinates. The value may be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
      *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be 
      *     fractional and outside the entity's bounding box.
@@ -1083,7 +1087,7 @@ public slots:
      * <code>Vec3.ONE</code> being the dimensions of each voxel.
      * @function Entities.voxelCoordsToLocalCoords
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
-     * @param {Vec3} voxelCoords - The voxel coordinates. May be fractional and outside the entity's bounding box.
+     * @param {Vec3} voxelCoords - The voxel coordinates. The value may be fractional and outside the entity's bounding box.
      * @returns {Vec3} The local coordinates of the <code>voxelCoords</code> if the <code>entityID</code> is a 
      *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}.
      * @example <caption>Get the world dimensions of a voxel in a PolyVox entity.</caption>
@@ -1107,7 +1111,7 @@ public slots:
      * <code>Vec3.ONE</code> being the dimensions of each voxel.
      * @function Entities.localCoordsToVoxelCoords
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityProperties-PolyVox|PolyVox} entity.
-     * @param {Vec3} localCoords - The local coordinates. May be outside the entity's bounding box.
+     * @param {Vec3} localCoords - The local coordinates. The value may be outside the entity's bounding box.
      * @returns {Vec3} The voxel coordinates of the <code>worldCoords</code> if the <code>entityID</code> is a 
      *     {@link Entities.EntityProperties-PolyVox|PolyVox} entity, otherwise {@link Vec3(0)|Vec3.ZERO}. The value may be 
      *     fractional and outside the entity's bounding box.
@@ -2105,7 +2109,7 @@ public slots:
      * @function Entities.getPropertyInfo
      * @param {string} propertyName - The name of the property to get the information for.
      * @returns {Entities.EntityPropertyInfo} The information about the property if it can be found, otherwise an empty object.
-     * @example <caption>Report property info. for some properties.</caption>
+     * @example <caption>Report property information for some properties.</caption>
      * print("alpha: " + JSON.stringify(Entities.getPropertyInfo("alpha")));
      * print("script: " + JSON.stringify(Entities.getPropertyInfo("script")));
      */
@@ -2209,7 +2213,7 @@ signals:
     /**jsdoc
      * Triggered when your ability to make changes to the asset server's assets changes.
      * @function Entities.canWriteAssetsChanged
-     * @param {boolean} canWriteAssets - <code>true</code> if the script can change the <code>?</code> property of an entity,
+     * @param {boolean} canWriteAssets - <code>true</code> if the script can change the asset server's assets,
      *     <code>false</code> if it can't.
      * @returns {Signal}
      */
