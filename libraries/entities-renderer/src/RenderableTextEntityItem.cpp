@@ -350,7 +350,6 @@ void entities::TextPayload::render(RenderArgs* args) {
     modelTransform.setRotation(EntityItem::getBillboardRotation(modelTransform.getTranslation(), modelTransform.getRotation(), billboardMode, args->getViewFrustum().getPosition()));
 
     float scale = lineHeight / textRenderer->getFontSize();
-    const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
     modelTransform.postTranslate(glm::vec3(-0.5, 0.5, 1.0f + EPSILON / dimensions.z));
     modelTransform.setScale(scale);
     batch.setModelTransform(modelTransform);
