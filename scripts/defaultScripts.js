@@ -33,7 +33,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/tablet-ui/tabletUI.js",
     "system/emote.js",
     "system/miniTablet.js",
-    "system/audioMuteOverlay.js"
+    "system/audioMuteOverlay.js",
+    "system/keyboardShortcuts/keyboardShortcuts.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
