@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-@interface CredentialsRequest : NSObject <NSURLConnectionDelegate> {
+@interface CredentialsRequest : NSObject {
 }
 
 @property (nonatomic, retain) NSMutableData* webData;
