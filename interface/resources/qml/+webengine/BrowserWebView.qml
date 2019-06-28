@@ -29,16 +29,6 @@ WebView {
 
     userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
 
-    onFeaturePermissionRequested: {
-        if (feature == 2) { // QWebEnginePage::MediaAudioCapture
-            grantFeaturePermission(securityOrigin, feature, true);
-        } else {
-            permissionsBar.securityOrigin = securityOrigin;
-            permissionsBar.feature = feature;
-            parentRoot.showPermissionsBar();
-        }
-    }
-
     onLoadingChanged: {
         if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
             addressBar.text = loadRequest.url
