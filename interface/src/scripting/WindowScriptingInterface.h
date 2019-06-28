@@ -609,7 +609,7 @@ public slots:
     void setActiveDisplayPlugin(int index);
 
     /**jsdoc
-     * Opens `Browser.qml` in a pop-up window.
+     * Opens a web browser in a pop-up window.
      * @function Window.openWebBrowser
      */
     void openWebBrowser();

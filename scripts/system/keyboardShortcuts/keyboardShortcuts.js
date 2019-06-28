@@ -14,7 +14,6 @@
 (function () { // BEGIN LOCAL_SCOPE
     function keyPressEvent(event) {
         if (event.text.toUpperCase() === "B" && event.isControl) {
-            console.log("TEST B");
             Window.openWebBrowser();
         } else if (event.text.toUpperCase() === "N" && event.isControl) {
             Users.toggleIgnoreRadius();
