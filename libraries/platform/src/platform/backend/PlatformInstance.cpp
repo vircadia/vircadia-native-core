@@ -8,6 +8,7 @@
 
 
 #include "PlatformInstance.h"
+#include <QNetworkInterface>
 
 #include "../PlatformKeys.h"
 #include "../Profiler.h"
@@ -20,11 +21,23 @@ bool Instance::enumeratePlatform() {
     enumerateCpus();
     enumerateGpus();
     enumerateDisplays();
+    enumerateNics();
 
     // And profile the platform and put the tier in "computer"
     _computer[keys::computer::profileTier] = Profiler::TierNames[Profiler::profilePlatform()];
 
     return true;
+}
+void Instance::enumerateNics() {
+    QNetworkInterface interface;
+    foreach(interface, interface.allInterfaces()) {
+        if (interface.flags().testFlag(QNetworkInterface::IsRunning) && !interface.hardwareAddress().isEmpty()) {
+            json nic = {};
+            nic[keys::nic::mac] = interface.hardwareAddress().toUtf8().constData();
+            nic[keys::nic::name] = interface.humanReadableName().toUtf8().constData();
+            _nics.push_back(nic);
+        }
+    }
 }
 
 json Instance::getCPU(int index) {
@@ -140,6 +153,7 @@ json Instance::getAll() {
     all[keys::CPUS] = _cpus;
     all[keys::GPUS] = _gpus;
     all[keys::DISPLAYS] = _displays;
+    all[keys::NICS] = _nics;
 
     return all;
 }

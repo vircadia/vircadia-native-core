@@ -37,6 +37,7 @@ public:
     void virtual enumerateCpus()=0;
     void virtual enumerateGpus()=0;
     void virtual enumerateDisplays() {}
+    void virtual enumerateNics();
     void virtual enumerateMemory() = 0;
     void virtual enumerateComputer()=0;
     
@@ -51,6 +52,7 @@ protected:
     std::vector<json>  _cpus;
     std::vector<json>  _gpus;
     std::vector<json>  _displays;
+    std::vector<json>  _nics;
     json  _memory;
     json  _computer;
 };

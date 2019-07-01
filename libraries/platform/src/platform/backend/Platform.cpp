@@ -32,6 +32,10 @@ namespace platform { namespace keys {
         const char*  videoMemory = "videoMemory";
         const char*  driver = "driver";
     }
+    namespace nic {
+        const char* mac = "mac";
+        const char* name = "name";
+    }
     namespace display {
         const char*  description = "description";
         const char*  name = "deviceName";
@@ -63,6 +67,7 @@ namespace platform { namespace keys {
     const char*  CPUS = "cpus";
     const char*  GPUS = "gpus";
     const char*  DISPLAYS = "displays";
+    const char*  NICS = "nics";
     const char*  MEMORY = "memory";
     const char*  COMPUTER = "computer";
 }}
