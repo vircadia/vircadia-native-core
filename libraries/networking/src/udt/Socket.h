@@ -99,14 +99,14 @@ signals:
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
     void clearConnections();
-    
+    void handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress);
+
 private slots:
     void readPendingDatagrams();
     void checkForReadyReadBackup();
 
     void handleSocketError(QAbstractSocket::SocketError socketError);
     void handleStateChanged(QAbstractSocket::SocketState socketState);
-    void handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress);
 
 private:
     void setSystemBufferSizes();
