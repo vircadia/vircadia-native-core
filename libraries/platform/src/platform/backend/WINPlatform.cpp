@@ -74,6 +74,7 @@ void WINInstance::enumerateNics() {
     // Start with the default from QT, getting the result into _nics:
     Instance::enumerateNics();
 
+#ifdef Q_OS_WIN
     // We can usually do better than the QNetworkInterface::humanReadableName() by
     // matching up Iphlpapi.lib IP_ADAPTER_INFO by mac id.
     ULONG buflen = sizeof(IP_ADAPTER_INFO);
@@ -91,7 +92,7 @@ void WINInstance::enumerateNics() {
             // ...convert the json to a string without the colons...
             QString qtmac = nic[keys::nic::mac].get<std::string>().c_str();
             QString qtraw = qtmac.remove(QChar(':'), Qt::CaseInsensitive).toLower();
-            // ... and find the matching on in pAdapter:
+            // ... and find the matching one in pAdapter:
             for (IP_ADAPTER_INFO *pAdapter = pAdapterInfo; pAdapter; pAdapter = pAdapter->Next) {
                 QByteArray wmac = QByteArray((const char *)(pAdapter->Address), pAdapter->AddressLength);
                 QString wraw = wmac.toHex();
@@ -103,5 +104,8 @@ void WINInstance::enumerateNics() {
         }
     }
 
-    if (pAdapterInfo) free(pAdapterInfo);
+    if (pAdapterInfo) {
+        free(pAdapterInfo);
+    }
+#endif
 }
