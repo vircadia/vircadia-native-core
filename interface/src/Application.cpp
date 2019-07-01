@@ -6937,8 +6937,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
         bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
         ConicalViewFrustum sphericalView;
-        sphericalView.set(_viewFrustum);
-        sphericalView.setSimpleRadius(INITIAL_QUERY_RADIUS);
+        AABox box = getMyAvatar()->getGlobalBoundingBox();
+        float radius = glm::max(INITIAL_QUERY_RADIUS, 0.5f * glm::length(box.getDimensions()));
+        sphericalView.setPositionAndSimpleRadius(box.calcCenter(), radius);
 
         if (interstitialModeEnabled) {
             ConicalViewFrustum farView;
