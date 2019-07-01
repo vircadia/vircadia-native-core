@@ -222,33 +222,6 @@ Flickable {
                         }
                     }
                 }
-
-                SimplifiedControls.Slider {
-                    id: muteOutputSlider
-                    enabled: AudioScriptingInterface.pushToTalkDesktop && attenuateOutputSwitch.checked
-                    Layout.preferredWidth: parent.width
-                    Layout.preferredHeight: 18
-                    labelText: "Amount to reduce"
-                    from: 0.0
-                    to: 60.0
-                    defaultValue: 20.0
-                    stepSize: 5.0
-                    value: -1 * AudioScriptingInterface.pushingToTalkOutputGainDesktop
-                    live: true
-                    function updatePushingToTalkOutputGainDesktop(newValue) {
-                        if (AudioScriptingInterface.pushingToTalkOutputGainDesktop !== newValue) {
-                            AudioScriptingInterface.pushingToTalkOutputGainDesktop = newValue;
-                        }
-                    }
-                    onValueChanged: {
-                        updatePushingToTalkOutputGainDesktop(-1 * value);
-                    }
-                    onPressedChanged: {
-                        if (!pressed) {
-                            updatePushingToTalkOutputGainDesktop(-1 * value);
-                        }
-                    }
-                }
             }
         }
 
