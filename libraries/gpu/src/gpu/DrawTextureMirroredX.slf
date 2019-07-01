@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  DrawTextureMirroredX.frag
+//  DrawTextureSRGBToLinearMirroredX.frag
 //
 //  Draw texture 0 fetched at (1.0 - texcoord.x, texcoord.y)
 //
@@ -13,6 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include gpu/Color.slh@>
 
 LAYOUT(binding=0) uniform sampler2D colorMap;
 
@@ -20,5 +21,5 @@ layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 outFragColor;
 
 void main(void) {
-    outFragColor = texture(colorMap, vec2(1.0 - varTexCoord0.x, varTexCoord0.y));
+    outFragColor =  vec4(texture(colorMap, vec2(1.0 - varTexCoord0.x, varTexCoord0.y)).xyz, 1.0);
 }

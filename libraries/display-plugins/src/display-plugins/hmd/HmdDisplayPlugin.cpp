@@ -175,7 +175,7 @@ float HmdDisplayPlugin::getLeftCenterPixel() const {
 }
 
 gpu::PipelinePointer HmdDisplayPlugin::getRenderTexturePipeline() {
-    return _SRGBToLinearPipeline;
+    return _drawTexturePipeline;
 }
 
 void HmdDisplayPlugin::internalPresent() {
@@ -417,7 +417,7 @@ void HmdDisplayPlugin::HUDRenderer::build() {
     pipeline = gpu::Pipeline::create(program, state);
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::HUDRenderer::render() {
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::HUDRenderer::render() {
     auto hudPipeline = pipeline;
     auto hudFormat = format;
     auto hudVertices = vertices;
@@ -425,7 +425,7 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
     auto hudUniformBuffer = uniformsBuffer;
     auto hudUniforms = uniforms;
     auto hudIndexCount = indexCount;
-    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
         if (hudPipeline && hudTexture) {
             batch.setPipeline(hudPipeline);
 
@@ -440,9 +440,6 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
 
             auto compositorHelper = DependencyManager::get<CompositorHelper>();
             glm::mat4 modelTransform = compositorHelper->getUiTransform();
-            if (mirror) {
-                modelTransform = glm::scale(modelTransform, glm::vec3(-1, 1, 1));
-            }
             batch.setModelTransform(modelTransform);
             batch.setResourceTexture(0, hudTexture);
 
@@ -475,7 +472,7 @@ void HmdDisplayPlugin::compositePointer() {
     });
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::getHUDOperator() {
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::getHUDOperator() {
     return _hudRenderer.render();
 }
 

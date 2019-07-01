@@ -392,13 +392,11 @@ void OpenGLDisplayPlugin::customizeContext() {
 
         _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
 
-        _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaLinearToSRGB), scissorState);
+        _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureLinearToSRGB), scissorState);
 
-        _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureGammaSRGBToLinear), scissorState);
+        _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureSRGBToLinear), scissorState);
 
-        _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), blendState);
-
-        _mirrorHUDPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), blendState);
+        _hudPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureSRGBToLinear), blendState);
 
         _cursorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTransformedTexture), blendState);
     }
@@ -413,7 +411,6 @@ void OpenGLDisplayPlugin::uncustomizeContext() {
     _SRGBToLinearPipeline.reset();
     _cursorPipeline.reset();
     _hudPipeline.reset();
-    _mirrorHUDPipeline.reset();
     _compositeFramebuffer.reset();
 
     withPresentThreadLock([&] {
@@ -582,17 +579,16 @@ void OpenGLDisplayPlugin::updateFrameData() {
     });
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin::getHUDOperator() {
     auto hudPipeline = _hudPipeline;
-    auto hudMirrorPipeline = _mirrorHUDPipeline;
     auto hudStereo = isStereo();
     auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
     std::array<glm::ivec4, 2> hudEyeViewports;
     for_each_eye([&](Eye eye) {
         hudEyeViewports[eye] = eyeViewport(eye);
     });
-    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        auto pipeline = mirror ? hudMirrorPipeline : hudPipeline;
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
+        auto pipeline = hudPipeline;
         if (pipeline && hudTexture) {
             batch.enableStereo(false);
             batch.setPipeline(pipeline);

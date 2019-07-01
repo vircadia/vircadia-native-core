@@ -80,7 +80,7 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source,
                                        QOpenGLFramebufferObject* target,
                                        GLsync* fenceSync) override;

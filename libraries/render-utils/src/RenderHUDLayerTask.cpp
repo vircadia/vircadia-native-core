@@ -34,7 +34,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext, const gpu::Fra
             batch.setFramebuffer(inputs);
         }
         if (renderContext->args->_hudOperator) {
-            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
+            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture);
         }
     });
 #endif
