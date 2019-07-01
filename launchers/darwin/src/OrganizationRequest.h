@@ -1,6 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
-@interface OrganizationRequest : NSObject <NSURLConnectionDelegate> {
+@interface OrganizationRequest : NSObject <NSURLSessionDelegate, NSURLSessionTaskDelegate> {
 }
 
 @property (nonatomic, retain) NSMutableData* webData;
