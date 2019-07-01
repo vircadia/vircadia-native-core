@@ -609,8 +609,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
 /**jsdoc
  * Different entity types have different properties: some common to all entities (listed in the table) and some specific to 
- * each {@link Entities.EntityType|EntityType} (linked to below). The properties are accessed as an object of property names 
- * and values.
+ * each {@link Entities.EntityType|EntityType} (linked to below).
  *
  * @typedef {object} Entities.EntityProperties
  * @property {Uuid} id - The ID of the entity. <em>Read-only.</em>
@@ -644,16 +643,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Uuid} lastEditedBy - The session ID of the avatar or agent that most recently created or edited the entity.
  *     <em>Read-only.</em>
  *
- * @property {boolean} locked=false - Whether or not the entity can be edited or deleted. If <code>true</code> then the 
- *     entity's properties other than <code>locked</code> cannot be changed, and the entity cannot be deleted.
- * @property {boolean} visible=true - Whether or not the entity is rendered. If <code>true</code> then the entity is rendered.
- * @property {boolean} canCastShadow=true - Whether or not the entity can cast a shadow. Currently applicable only to 
- *     {@link Entities.EntityProperties-Model|Model} and {@link Entities.EntityProperties-Shape|Shape} entities. Shadows are 
- *     cast if inside a {@link Entities.EntityProperties-Zone|Zone} entity with <code>castShadows</code> enabled in its 
- *     <code>keyLight</code> property.
+ * @property {boolean} locked=false - <code>true</code> if properties other than <code>locked</code> cannot be changed and the 
+ *     entity cannot be deleted, <code>false</code> if all properties can be changed and the entity can be deleted.
+ * @property {boolean} visible=true - <code>true</code> if the entity is rendered, <code>false</code> if it isn't.
+ * @property {boolean} canCastShadow=true - <code>true</code> if the entity can cast a shadow, <code>false</code> if it can't. 
+ *     Currently applicable only to {@link Entities.EntityProperties-Model|Model} and 
+ *     {@link Entities.EntityProperties-Shape|Shape} entities. Shadows are cast if inside a 
+ *     {@link Entities.EntityProperties-Zone|Zone} entity with <code>castShadows</code> enabled in its <code>keyLight</code> 
+ *     property.
  * @property {boolean} isVisibleInSecondaryCamera=true - <code>true</code> if the entity is rendered in the secondary camera, 
  *     <code>false</code> if it isn't.
- * @property {Entities.RenderLayer} renderLayer="world" - Which layer the entity renders in.
+ * @property {Entities.RenderLayer} renderLayer="world" - The layer that the entity renders in.
  * @property {Entities.PrimitiveMode} primitiveMode="solid" - How the entity's geometry is rendered.
  * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} and {@link RayPick} ignore the entity, 
  *     <code>false</code> if they don't.
@@ -697,20 +697,20 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} friction=0.5 - How much an entity slows down when it's moving against another, range <code>0.0</code> 
  *     &ndash; <code>10.0</code>. The higher the value, the more quickly it slows down. Examples: <code>0.1</code> for ice, 
  *     <code>0.9</code> for sandpaper.
- * @property {number} density=1000 - The density of the entity in kg/m<sup>3</sup>, range <code>100</code> for balsa wood 
- *     &ndash; <code>10000</code> for silver. The density is used in conjunction with the entity's bounding box volume to work 
- *     out its mass in the application of physics.
+ * @property {number} density=1000 - The density of the entity in kg/m<sup>3</sup>, range <code>100</code> &ndash; 
+ *     <code>10000</code>. Examples: <code>100</code> for balsa wood, <code>10000</code> for silver. The density is used in 
+ *     conjunction with the entity's bounding box volume to work out its mass in the application of physics.
  *
- * @property {boolean} collisionless=false - Whether or not the entity should collide with items per its 
- *     <code>collisionMask</code> property. If <code>true</code> then the entity does not collide. 
+ * @property {boolean} collisionless=false - <code>true</code> if the entity shouldn't collide, <code>false</code> if it 
+ *     collides with items per its <code>collisionMask</code> property.
  * @property {boolean} ignoreForCollisions - Synonym for <code>collisionless</code>.
  * @property {CollisionMask} collisionMask=31 - What types of items the entity should collide with.
  * @property {string} collidesWith="static,dynamic,kinematic,myAvatar,otherAvatar," - Synonym for <code>collisionMask</code>,
  *     in text format.
  * @property {string} collisionSoundURL="" - The sound that's played when the entity experiences a collision. Valid file 
  *     formats are per {@link SoundObject}.
- * @property {boolean} dynamic=false - Whether or not the entity should be affected by collisions. If <code>true</code> then 
- *     the entity's movement is affected by collisions. 
+ * @property {boolean} dynamic=false - <code>true</code> if the entity's movement is affected by collisions, <code>false</code> 
+ *     if it isn't. 
  * @property {boolean} collisionsWillMove - A synonym for <code>dynamic</code>.
  *
  * @property {string} href="" - A "hifi://" metaverse address that a user is teleported to when they click on the entity.
@@ -732,8 +732,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     button beside the "script URL" field in properties tab of the Create app works.
  * @property {string} serverScripts="" - The URL of the server entity script, if any, that is attached to the entity.
  *
- * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that the entity is parented to. 
- *     {@link Uuid(0)|Uuid.NULL} if the entity is not parented.
+ * @property {Uuid} parentID=Uuid.NULL - The ID of the entity or avatar that the entity is parented to. A value of 
+ *     {@link Uuid(0)|Uuid.NULL} is used if the entity is not parented.
  * @property {number} parentJointIndex=65535 - The joint of the entity or avatar that the entity is parented to. Use 
  *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a joint.
  * @property {Vec3} localPosition=0,0,0 - The position of the entity relative to its parent if the entity is parented, 
@@ -759,19 +759,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} actionData="" - Base-64 encoded compressed dump of the actions associated with the entity. This property
  *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it, e.g., 
  *     {@link Entities.addAction}. The size of this property increases with the number of actions. Because this property value 
- *     has to fit within a High Fidelity datagram packet there is a limit to the number of actions that an entity can have, and
+ *     has to fit within a High Fidelity datagram packet, there is a limit to the number of actions that an entity can have;
  *     edits which would result in overflow are rejected. <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
  *
- * @property {boolean} cloneable=false - If <code>true</code> then the domain or avatar entity can be cloned via 
- *     {@link Entities.cloneEntity}.
+ * @property {boolean} cloneable=false - <code>true</code> if the domain or avatar entity can be cloned via 
+ *     {@link Entities.cloneEntity}, <code>false</code> if it can't be.
  * @property {number} cloneLifetime=300 - The entity lifetime for clones created from this entity.
  * @property {number} cloneLimit=0 - The total number of clones of this entity that can exist in the domain at any given time.
- * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
- *     <code>dynamic</code> property set to <code>true</code>.
- * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
- *     avatar entities.
+ * @property {boolean} cloneDynamic=false - <code>true</code> if clones created from this entity will have their 
+ *     <code>dynamic</code> property set to <code>true</code>, <code>false</code> if they won't.
+ * @property {boolean} cloneAvatarEntity=false - <code>true</code> if clones created from this entity will be created as 
+ *     avatar entities, <code>false</code> if they won't be.
  * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
  *
  * @property {Entities.Grab} grab - The entity's grab-related properties.
@@ -833,8 +833,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Color} color=255,255,255 - The color of the light emitted.
  * @property {number} intensity=1 - The brightness of the light.
  * @property {number} falloffRadius=0.1 - The distance from the light's center at which intensity is reduced by 25%.
- * @property {boolean} isSpotlight=false - If <code>true</code> then the light is directional, emitting along the entity's
- *     local negative z-axis; otherwise, the light is a point light which emanates in all directions.
+ * @property {boolean} isSpotlight=false - <code>true</code> if the light is directional, emitting along the entity's
+ *     local negative z-axis; <code>false</code> if the light is a point light which emanates in all directions.
  * @property {number} exponent=0 - Affects the softness of the spotlight beam: the higher the value the softer the beam.
  * @property {number} cutoff=1.57 - Affects the size of the spotlight beam: the higher the value the larger the beam.
  * @example <caption>Create a spotlight pointing at the ground.</caption>
@@ -855,7 +855,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 /**jsdoc
  * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more
  * points. It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
- * <p class=important>Deprecated: Use PolyLines instead.</p>
+ * <p class=important>Deprecated: Use {@link Entities.EntityProperties-PolyLine|PolyLine} entities instead.</p>
  *
  * @typedef {object} Entities.EntityProperties-Line
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Must be sufficient to contain all the
@@ -904,7 +904,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>0</code>.
  * @property {string} parentMaterialName="0" - Selects the mesh part or parts within the parent to which to apply the material.
  *     If in the format <code>"mat::string"</code>, all mesh parts with material name <code>"string"</code> are replaced.
- *     If <code>"all"</code> then all mesh parts are replaced. 
+ *     If <code>"all"</code>, then all mesh parts are replaced. 
  *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh part index to modify.  
  *     <p>If the string represents an array (starts with <code>"["</code> and ends with <code>"]"</code>), the string is split 
  *     at each <code>","</code> and each element parsed as either a number or a string if it starts with <code>"mat::"</code>. 
@@ -919,8 +919,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
  * @property {number} materialMappingRot=0 - How much to rotate the material within the parent's UV-space, in degrees.
- * @property {boolean} materialRepeat=true - If <code>true</code>, the material repeats. If <code>false</code>, fragments 
- *     outside of texCoord 0 &ndash; 1 will be discarded. Works in both <code>"uv"</code> and </code>"projected"</code> modes.
+ * @property {boolean} materialRepeat=true - <code>true</code> if the material repeats, <code>false</code> if it doesn't. If 
+ *     <code>false</code>, fragments outside of texCoord 0 &ndash; 1 will be discarded. Works in both <code>"uv"</code> and 
+ *     </code>"projected"</code> modes.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -980,7 +981,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative to 
  *     each joint's parent.
  *     <p>Joint rotations can be set by {@link Entities.setLocalJointRotation|setLocalJointRotation} and similar functions, or 
- *     by setting the value of this property. If you set a joint rotation using this property you also need to set the 
+ *     by setting the value of this property. If you set a joint rotation using this property, you also need to set the 
  *     corresponding <code>jointRotationsSet</code> value to <code>true</code>.</p>
  * @property {boolean[]} jointRotationsSet=[]] - <code>true</code> values for joints that have had rotations applied, 
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
@@ -994,10 +995,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean[]} jointTranslationsSet=[]] - <code>true</code> values for joints that have had translations applied, 
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
  *     {@link Entities.getJointIndex|getJointIndex}.
- * @property {boolean} relayParentJoints=false - If <code>true</code> and the entity is parented to an avatar, then the 
- *     avatar's joint rotations are applied to the entity's joints.
- * @property {boolean} groupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
- *     If <code>false</code>, separate mesh parts will be LOD culled individually.
+ * @property {boolean} relayParentJoints=false - <code>true</code> if when the entity is parented to an avatar, the avatar's 
+ *     joint rotations are applied to the entity's joints; <code>false</code> if a parent avatar's joint rotations are not 
+ *     applied to the entity's joints.
+ * @property {boolean} groupCulled=false - <code>true</code> if the mesh parts of the model are LOD culled as a group, 
+ *     <code>false</code> if separate mesh parts are LOD culled individually.
  *
  * @example <caption>Rez a Vive tracker puck.</caption>
  * var entity = Entities.addEntity({
@@ -1033,8 +1035,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     &ndash; <code>{x: 0, y: -8.8, z: 0}</code>.
  * @property {Vec3} dimensions - The dimensions of the particle effect, i.e., a bounding box containing all the particles
  *     during their lifetimes, assuming that <code>emitterShouldTrail == false</code>. <em>Read-only.</em>
- * @property {boolean} emitterShouldTrail=false - If <code>true</code> then particles are "left behind" as the emitter moves,
- *     otherwise they stay within the entity's dimensions.
+ * @property {boolean} emitterShouldTrail=false - <code>true</code> if particles are "left behind" as the emitter moves,
+ *     <code>false</code> if they stay within the entity's dimensions.
  *
  * @property {Quat} emitOrientation=-0.707,0,0,0.707 - The orientation of particle emission relative to the entity's axes. By
  *     default, particles emit along the entity's local z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> 
@@ -1105,8 +1107,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>2 * Math.PI</code> radians. For example, if <code>particleSpin == Math.PI</code> and 
  *     <code>spinSpread == Math.PI / 2</code>, each particle will have a rotation in the range <code>Math.PI / 2</code> &ndash; 
  *     <code>3 * Math.PI / 2</code>.
- * @property {boolean} rotateWithEntity=false - <code>true</code> to make the particles' rotations relative to the entity's 
- *     instantaneous rotation, <code>false</code> to make them relative to world coordinates. If <code>true</code> with 
+ * @property {boolean} rotateWithEntity=false - <code>true</code> if the particles' rotations are relative to the entity's 
+ *     instantaneous rotation, <code>false</code> if they're relative to world coordinates. If <code>true</code> with 
  *     <code>particleSpin == 0</code>, the particles keep oriented per the entity's orientation.
  *
  * @example <caption>Create a ball of green smoke.</caption>
@@ -1141,17 +1143,19 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number[]} strokeWidths=[]] - The widths, in m, of the line at the <code>linePoints</code>. Must be specified in 
  *     order for the entity to render.
  * @property {Vec3[]} strokeColors=[]] - The base colors of each point, with values in the range <code>0.0,0.0,0.0</code> 
- *     &mdash; <code>1.0,1.0,1.0</code>. These colors are multiplied with the color of the texture. If there are more line 
+ *     &ndash; <code>1.0,1.0,1.0</code>. These colors are multiplied with the color of the texture. If there are more line 
  *     points than stroke colors, the <code>color</code> property value is used for the remaining points.
- *     <p><strong>Warning:</strong> The ordinate values are in the range <code>0.0</code> &mdash; <code>1.0</code>.</p>
+ *     <p><strong>Warning:</strong> The ordinate values are in the range <code>0.0</code> &ndash; <code>1.0</code>.</p>
  * @property {Color} color=255,255,255 - Used as the color for each point if <code>strokeColors</code> doesn't have a value for 
  *     the point.
  * @property {string} textures="" - The URL of a JPG or PNG texture to use for the lines. If you want transparency, use PNG
  *     format.
- * @property {boolean} isUVModeStretch=true - If <code>true</code>, the texture is stretched to fill the whole line, otherwise 
- *     the texture repeats along the line.
- * @property {boolean} glow=false - If <code>true</code>, the opacity of the strokes drops off away from the line center.
- * @property {boolean} faceCamera=false - If <code>true</code>, each line segment rotates to face the camera.
+ * @property {boolean} isUVModeStretch=true - <code>true</code> if the texture is stretched to fill the whole line, 
+ *     <code>false</code> if the texture repeats along the line.
+ * @property {boolean} glow=false - <code>true</code> if the opacity of the strokes drops off away from the line center, 
+ *     <code>false</code> if it doesn't.
+ * @property {boolean} faceCamera=false - <code>true</code> if each line segment rotates to face the camera, <code>false</code> 
+ *     if they don't.
  * @example <caption>Draw a textured "V".</caption>
  * var entity = Entities.addEntity({
  *     type: "PolyLine",
@@ -1192,9 +1196,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the PolyVox data. This property is typically not used in scripts directly; rather, functions that manipulate a PolyVox 
  *     entity update it.<br />
  *     The size of this property increases with the size and complexity of the PolyVox entity, with the size depending on how 
- *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet 
- *     there is a limit to the size and complexity of a PolyVox entity, and edits which would result in an overflow are 
- *     rejected.
+ *     the particular entity's voxels compress. Because this property value has to fit within a High Fidelity datagram packet, 
+ *     there is a limit to the size and complexity of a PolyVox entity; edits which would result in an overflow are rejected.
  * @property {Entities.PolyVoxSurfaceStyle} voxelSurfaceStyle=2 - The style of rendering the voxels' surface and how 
  *     neighboring PolyVox entities are joined.
  * @property {string} xTextureURL="" - The URL of the texture to map to surfaces perpendicular to the entity's local x-axis. 
@@ -1282,12 +1285,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
- * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, otherwise
- *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
- *     <code>"none"</code>.
+ * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code> 
+ *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {boolean} isFacingAvatar - <code>true</code> if <code>billboardMode</code> is <code>"full"</code>, otherwise
- *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
+ * @property {boolean} isFacingAvatar - <code>true</code> if <code>billboardMode</code> is <code>"full"</code>, 
+ *     <code>false</code> if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
  *     <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @example <caption>Create a text entity.</caption>
@@ -1312,17 +1314,18 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
  * @property {string} sourceUrl="" - The URL of the web page to display. This value does not change as you or others navigate
  *     on the Web entity.
- * @property {Color} color=255,255,255 - The color of the web surface.
+ * @property {Color} color=255,255,255 - The color of the web surface. This color tints the web page displayed: the pixel 
+ *     colors on the web page are multiplied by the property color. For example, a value of 
+ *     <code>{ red: 255, green: 0, blue: 0 }</code> lets only the red channel of pixels' colors through.
  * @property {number} alpha=1 - The opacity of the web surface.
  * @property {Entities.Pulse} pulse - Color and alpha pulse.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
- * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, otherwise
- *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
- *     <code>"none"</code>.
+ * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code> 
+ *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {boolean} isFacingAvatar - <code>true</code> if <code>billboardMode</code> is <code>"full"</code>, otherwise
- *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
+ * @property {boolean} isFacingAvatar - <code>true</code> if <code>billboardMode</code> is <code>"full"</code>, 
+ *     <code>false</code> if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
  *     <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
@@ -1331,8 +1334,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the web page.
  * @property {number} maxFPS=10 - The maximum update rate for the web content, in frames/second.
  * @property {WebInputMode} inputMode="touch" - The user input mode to use.
- * @property {boolean} showKeyboardFocusHighlight=true - <code>true</code> to highlight the entity when it has keyboard focus, 
- *     <code>false</code> to not display the highlight.
+ * @property {boolean} showKeyboardFocusHighlight=true - <code>true</code> if the entity is highlighted when it has keyboard 
+ *     focus, <code>false</code> if it isn't.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1380,12 +1383,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.ComponentMode} bloomMode="inherit" - Configures the bloom in the zone.
  * @property {Entities.Bloom} bloom - The bloom properties of the zone.
  *
- * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise, they cannot.
- *     Only works for domain entities.
- * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
- *     collide with content in the zone; otherwise, visitors will always collide with content in the zone. Only works for domain 
- *     entities.
- 
+ * @property {boolean} flyingAllowed=true - <code>true</code> if visitors can fly in the zone; <code>false</code> if they 
+ *     cannot. Only works for domain entities.
+ * @property {boolean} ghostingAllowed=true - <code>true</code> if visitors with avatar collisions turned off will not 
+ *     collide with content in the zone; <code>false</code> if visitors will always collide with content in the zone. Only 
+ *     works for domain entities.
+ *
  * @property {string} filterURL="" - The URL of a JavaScript file that filters changes to properties of entities within the 
  *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
  *     certain properties:
@@ -1421,7 +1424,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-Image
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
  * @property {string} imageURL="" - The URL of the image to use.
- * @property {boolean} emissive=false - <code>true</code> fi the the image should be emissive (unlit), <code>false</code> if it 
+ * @property {boolean} emissive=false - <code>true</code> if the image should be emissive (unlit), <code>false</code> if it 
  *     shouldn't.
  * @property {boolean} keepAspectRatio=true - <code>true</code> if the image should maintain its aspect ratio, 
  *     <code>false</code> if it shouldn't.
@@ -1432,12 +1435,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.Pulse} pulse - Color and alpha pulse.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
- * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, otherwise
- *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
- *     <code>"none"</code>.
+ * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code> 
+ *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {boolean} isFacingAvatar - <code>true</code> if <code>billboardMode</code> is <code>"full"</code>, otherwise
- *     <code>false</code>. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
+ * @property {boolean} isFacingAvatar - <code>true</code> if <code>billboardMode</code> is <code>"full"</code>, 
+ *     <code>false</code> if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to
  *     <code>"none"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @example <caption>Create an image entity.</caption>
@@ -1461,8 +1463,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} alpha=1 - The opacity of the grid.
  * @property {Entities.Pulse} pulse - Color and alpha pulse.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {boolean} followCamera=true - If <code>true</code>, the grid is always visible even as the camera moves to another
- *     position.
+ * @property {boolean} followCamera=true - <code>true</code> if the grid is always visible even as the camera moves to another
+ *     position, <code>false</code> if it doesn't follow the camrmea.
  * @property {number} majorGridEvery=5 - Integer number of <code>minorGridEvery</code> intervals at which to draw a thick grid
  *     line. Minimum value = <code>1</code>.
  * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value =
@@ -1895,7 +1897,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
          * @property {number} verticesCount - The number of vertices in the entity.
          * @property {number} texturesCount  - The number of textures in the entity.
          * @property {number} texturesSize - The total size of the textures in the entity, in bytes.
-         * @property {boolean} hasTransparent - Is <code>true</code> if any of the textures has transparency.
+         * @property {boolean} hasTransparent - <code>true</code> if any of the textures has transparency, <code>false</code> 
+         *     if none of them do.
          * @property {number} drawCalls - The number of draw calls required to render the entity.
          */
         // currently only supported by models

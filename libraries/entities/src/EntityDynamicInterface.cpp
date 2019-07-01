@@ -109,7 +109,7 @@ variables.  These argument variables are used by the code which is run when bull
  *       are disabled during the hold.</td>
  *       <td>{@link Entities.ActionArguments-Hold}</td></tr>
  *     <tr><td><code>"offset"</code></td><td>Object action</td>
- *       <td>Moves an entity so that it is a set distance away from a target point.</td>
+ *       <td>Moves an entity so that it is a defined distance away from a target point.</td>
  *       <td>{@link Entities.ActionArguments-Offset}</td></tr>
  *     <tr><td><code>"tractor"</code></td><td>Object action</td>
  *       <td>Moves and rotates an entity to a target position and orientation, optionally relative to another entity.</td>

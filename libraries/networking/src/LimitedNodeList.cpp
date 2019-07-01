@@ -1088,11 +1088,13 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
     if (parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
 
         if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
-            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-
-            qCDebug(networking, "New public socket received from STUN server is %s:%hu",
+            qCDebug(networking, "New public socket received from STUN server is %s:%hu (was %s:%hu)",
+                    newPublicAddress.toString().toStdString().c_str(),
+                    newPublicPort,
                     _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                     _publicSockAddr.getPort());
+
+            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
             if (!_hasCompletedInitialSTUN) {
                 // if we're here we have definitely completed our initial STUN sequence

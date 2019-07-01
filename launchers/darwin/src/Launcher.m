@@ -51,11 +51,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                                                            selector:@selector(didTerminateApp:)
                                                                name:NSWorkspaceDidTerminateApplicationNotification
                                                              object:nil];
-    
+
     SplashScreen* splashScreen = [[SplashScreen alloc] initWithNibName:@"SplashScreen" bundle:nil];
     [self.window setContentViewController: splashScreen];
     [self closeInterfaceIfRunning];
-    
+
     if (!self.waitingForInterfaceToTerminate) {
         [self checkLoginStatus];
     }
@@ -65,12 +65,12 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 {
     NSString* filePath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0]
                           stringByAppendingString:@"/Launcher/"];
-    
+
     if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
         NSError * error = nil;
         [[NSFileManager defaultManager] createDirectoryAtPath:filePath withIntermediateDirectories:TRUE attributes:nil error:&error];
     }
-    
+
     return filePath;
 }
 
@@ -79,19 +79,26 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
 }
 
-- (void) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
+- (BOOL) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
 {
     NSTask* task = [[NSTask alloc] init];
     task.launchPath = @"/usr/bin/unzip";
     task.arguments = @[@"-o", @"-d", destination, file];
-    
+
     [task launch];
     [task waitUntilExit];
-    
+
     if (DELETE_ZIP_FILES) {
         NSFileManager* fileManager = [NSFileManager defaultManager];
         [fileManager removeItemAtPath:file error:NULL];
     }
+
+    if ([task terminationStatus] != 0) {
+        NSLog(@"Extracting file failed -> termination status: %d", [task terminationStatus]);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 - (void) displayErrorPage
@@ -175,7 +182,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     self.domainURL = aDomainURL;
     self.domainContentUrl = aDomainContentUrl;
     self.domainScriptsUrl = aDomainScriptsUrl;
-    
+
     [[Settings sharedSettings] setDomainUrl:aDomainURL];
 }
 
@@ -326,14 +333,14 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void) launchInterface
 {
     NSString* launcherPath = [[self getLauncherPath] stringByAppendingString:@"HQ Launcher"];
-    
+
     [[Settings sharedSettings] setLauncherPath:launcherPath];
     [[Settings sharedSettings] save];
     NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     NSURL *url = [NSURL fileURLWithPath:[workspace fullPathForApplication:[[self getAppPath] stringByAppendingString:@"interface.app/Contents/MacOS/interface"]]];
 
     NSError *error = nil;
-    
+
     NSString* contentPath = [[self getDownloadPathForContentAndScripts] stringByAppendingString:@"content"];
     NSString* displayName = [ self displayName];
     NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUI/"];
@@ -361,7 +368,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                             @"--no-launcher", nil];
     }
     [workspace launchApplicationAtURL:url options:NSWorkspaceLaunchNewInstance configuration:[NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:&error];
-    
+
     [NSApp terminate:self];
 }
 

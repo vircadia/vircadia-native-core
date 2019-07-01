@@ -538,6 +538,33 @@ void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     }
 }
 
+void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress) {
+    {
+        Lock connectionsLock(_connectionsHashMutex);
+        _connectionsHash.erase(currentAddress);
+
+        const auto connectionIter = _connectionsHash.find(previousAddress);
+        if (connectionIter != _connectionsHash.end()) {
+            auto connection = move(connectionIter->second);
+            _connectionsHash.erase(connectionIter);
+            connection->setDestinationAddress(currentAddress);
+            _connectionsHash[currentAddress] = move(connection);
+        }
+    }
+
+    {
+        Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
+        _unreliableSequenceNumbers.erase(currentAddress);
+
+        const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
+        if (sequenceNumbersIter != _unreliableSequenceNumbers.end()) {
+            auto sequenceNumbers = sequenceNumbersIter->second;
+            _unreliableSequenceNumbers.erase(sequenceNumbersIter);
+            _unreliableSequenceNumbers[currentAddress] = sequenceNumbers;
+        }
+    }
+}
+
 #if (PR_BUILD || DEV_BUILD)
 
 void Socket::sendFakedHandshakeRequest(const HifiSockAddr& sockAddr) {

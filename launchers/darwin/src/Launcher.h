@@ -66,7 +66,7 @@ typedef enum LoginErrorTypes
 - (void) interfaceFinishedDownloading;
 - (NSString*) getDownloadPathForContentAndScripts;
 - (void) launchInterface;
-- (void) extractZipFileAtDestination:(NSString*) destination :(NSString*) file;
+- (BOOL) extractZipFileAtDestination:(NSString*) destination :(NSString*) file;
 - (BOOL) isWaitingForInterfaceToTerminate;
 - (void) setDownloadFilename:(NSString*) aFilename;
 - (void) setDownloadContextFilename:(NSString*) aFilename;
