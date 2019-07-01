@@ -508,7 +508,7 @@ private:
     float _inputLevel { 0.0f };
     float _localInjectorGain { 0.0f };      // in dB
     float _systemInjectorGain { 0.0f };     // in dB
-    float _pttOutputGainDesktop { -20.0f };   // in dB
+    float _pttOutputGainDesktop { 0.0f };   // in dB
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _enableWarnWhenMuted { true };
