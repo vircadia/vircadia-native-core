@@ -78,12 +78,12 @@ void WINInstance::enumerateNics() {
     // We can usually do better than the QNetworkInterface::humanReadableName() by
     // matching up Iphlpapi.lib IP_ADAPTER_INFO by mac id.
     ULONG buflen = sizeof(IP_ADAPTER_INFO);
-    IP_ADAPTER_INFO *pAdapterInfo = (IP_ADAPTER_INFO *)malloc(buflen);
+    IP_ADAPTER_INFO* pAdapterInfo = (IP_ADAPTER_INFO*) malloc(buflen);
 
     // Size the buffer:
     if (GetAdaptersInfo(pAdapterInfo, &buflen) == ERROR_BUFFER_OVERFLOW) {
         free(pAdapterInfo);
-        pAdapterInfo = (IP_ADAPTER_INFO *)malloc(buflen);
+        pAdapterInfo = (IP_ADAPTER_INFO *) malloc(buflen);
     }
 
     // Now get the data...
@@ -93,8 +93,8 @@ void WINInstance::enumerateNics() {
             QString qtmac = nic[keys::nic::mac].get<std::string>().c_str();
             QString qtraw = qtmac.remove(QChar(':'), Qt::CaseInsensitive).toLower();
             // ... and find the matching one in pAdapter:
-            for (IP_ADAPTER_INFO *pAdapter = pAdapterInfo; pAdapter; pAdapter = pAdapter->Next) {
-                QByteArray wmac = QByteArray((const char *)(pAdapter->Address), pAdapter->AddressLength);
+            for (IP_ADAPTER_INFO* pAdapter = pAdapterInfo; pAdapter; pAdapter = pAdapter->Next) {
+                QByteArray wmac = QByteArray((const char*) (pAdapter->Address), pAdapter->AddressLength);
                 QString wraw = wmac.toHex();
                 if (qtraw == wraw) {
                     nic[keys::nic::name] = pAdapter->Description;

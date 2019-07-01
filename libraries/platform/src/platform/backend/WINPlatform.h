@@ -19,7 +19,7 @@ namespace platform {
         void enumerateGpus() override;
         void enumerateMemory() override;
         void enumerateComputer () override;
-        void enumerateNics();
+        void enumerateNics() override;
     };
 }  // namespace platform
 
