@@ -51,8 +51,6 @@ public:
     std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
     virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::PAINT; }
 
-    virtual gpu::PipelinePointer getRenderTexturePipeline() override;
-
 signals:
     void hmdMountedChanged();
     void hmdVisibleChanged(bool visible);
