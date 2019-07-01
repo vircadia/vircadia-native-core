@@ -25,11 +25,14 @@ class EntityItemID;
 
 class SafeLanding : public QObject {
 public:
-    void startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
-    void stopEntitySequence();
-    void setCompletionSequenceNumbers(int first, int last);  // 'last' exclusive.
-    void noteReceivedsequenceNumber(int sequenceNumber);
-    bool isLoadSequenceComplete();
+    void startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
+    void updateTracking();
+    void stopTracking();
+    bool isTracking() const { return _trackingEntities; }
+    bool trackingIsComplete() const;
+
+    void finishSequence(int first, int last);  // 'last' exclusive.
+    void addToSequence(int sequenceNumber);
     float loadingProgressPercentage();
 
 private slots:
@@ -37,10 +40,8 @@ private slots:
     void deleteTrackedEntity(const EntityItemID& entityID);
 
 private:
-    bool isSequenceNumbersComplete();
     bool isEntityPhysicsReady(const EntityItemPointer& entity);
     void debugDumpSequenceIDs() const;
-    bool isEntityLoadingComplete();
 
     std::mutex _lock;
     using Locker = std::lock_guard<std::mutex>;

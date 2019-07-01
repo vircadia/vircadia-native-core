@@ -638,3 +638,13 @@ void WindowScriptingInterface::setActiveDisplayPlugin(int index) {
     auto name = PluginManager::getInstance()->getDisplayPlugins().at(index)->getName();
     qApp->setActiveDisplayPlugin(name);
 }
+
+void WindowScriptingInterface::openWebBrowser() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "openWebBrowser", Qt::QueuedConnection);
+        return;
+    }
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->load("Browser.qml");
+}

@@ -182,6 +182,7 @@ Flickable {
 
             ColumnLayout {
                 id: micControlsSwitchGroup
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
 
                 SimplifiedControls.Switch {
@@ -203,6 +204,49 @@ Flickable {
                     checked: AudioScriptingInterface.pushToTalkDesktop
                     onClicked: {
                         AudioScriptingInterface.pushToTalkDesktop = !AudioScriptingInterface.pushToTalkDesktop;
+                    }
+                }
+
+                SimplifiedControls.Switch {
+                    id: attenuateOutputSwitch
+                    enabled: AudioScriptingInterface.pushToTalkDesktop
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
+                    labelTextOn: "Reduce volume of other sounds while I'm pushing-to-talk"
+                    checked: AudioScriptingInterface.pushingToTalkOutputGainDesktop !== 0.0
+                    onClicked: {
+                        if (AudioScriptingInterface.pushingToTalkOutputGainDesktop === 0.0) {
+                            AudioScriptingInterface.pushingToTalkOutputGainDesktop = -20.0;
+                        } else {
+                            AudioScriptingInterface.pushingToTalkOutputGainDesktop = 0.0;
+                        }
+                    }
+                }
+
+                SimplifiedControls.Slider {
+                    id: muteOutputSlider
+                    enabled: AudioScriptingInterface.pushToTalkDesktop && attenuateOutputSwitch.checked
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: 18
+                    labelText: "Amount to reduce"
+                    from: 0.0
+                    to: 60.0
+                    defaultValue: 20.0
+                    stepSize: 5.0
+                    value: -1 * AudioScriptingInterface.pushingToTalkOutputGainDesktop
+                    live: true
+                    function updatePushingToTalkOutputGainDesktop(newValue) {
+                        if (AudioScriptingInterface.pushingToTalkOutputGainDesktop !== newValue) {
+                            AudioScriptingInterface.pushingToTalkOutputGainDesktop = newValue;
+                        }
+                    }
+                    onValueChanged: {
+                        updatePushingToTalkOutputGainDesktop(-1 * value);
+                    }
+                    onPressedChanged: {
+                        if (!pressed) {
+                            updatePushingToTalkOutputGainDesktop(-1 * value);
+                        }
                     }
                 }
             }

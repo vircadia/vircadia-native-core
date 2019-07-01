@@ -77,7 +77,7 @@ public:
  * @hifi-avatar
  *
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Entities.EntityTypes|Web} entity that has keyboard focus.
- *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
+ *     If no entity has keyboard focus, returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
  *     clear keyboard focus.
  */
 

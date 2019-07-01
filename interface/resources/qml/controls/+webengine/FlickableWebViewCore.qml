@@ -141,7 +141,7 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
+            grantFeaturePermission(securityOrigin, feature, false);
         }
 
         //disable popup

@@ -117,5 +117,15 @@ InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& 
             Q_ARG(QVariantMap, properties));
         return interactiveWindow;
     }
-    return new InteractiveWindow(sourceUrl, properties);;
+
+
+    // The offscreen surface already validates against non-local QML sources, but we also need to ensure that 
+    // if we create top level QML, like dock widgets or other types of QQuickView containing desktop windows 
+    // that the source URL is permitted
+    const auto& urlValidator = OffscreenQmlSurface::getUrlValidator();
+    if (!urlValidator(sourceUrl)) {
+        return nullptr;
+    }
+
+    return new InteractiveWindow(sourceUrl, properties);
 }

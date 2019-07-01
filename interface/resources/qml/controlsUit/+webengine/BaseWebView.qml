@@ -35,4 +35,8 @@ WebEngineView {
     }
 
     WebSpinner { }
+
+    onFeaturePermissionRequested: {
+        grantFeaturePermission(securityOrigin, feature, false);
+    }
 }
