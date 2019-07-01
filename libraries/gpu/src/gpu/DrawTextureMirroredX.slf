@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  DrawTextureSRGBToLinearMirroredX.frag
+//  DrawTextureMirroredX.frag
 //
 //  Draw texture 0 fetched at (1.0 - texcoord.x, texcoord.y)
 //

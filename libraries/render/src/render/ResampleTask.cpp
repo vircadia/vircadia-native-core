@@ -16,6 +16,7 @@
 #include <shaders/Shaders.h>
 
 using namespace render;
+using namespace shader::gpu::program;
 
 gpu::PipelinePointer HalfDownsample::_pipeline;
 
@@ -137,6 +138,7 @@ void Upsample::run(const RenderContextPointer& renderContext, const gpu::Framebu
 }
 
 gpu::PipelinePointer UpsampleToBlitFramebuffer::_pipeline;
+gpu::PipelinePointer UpsampleToBlitFramebuffer::_mirrorPipeline;
 
 void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer) {
     assert(renderContext->args);
@@ -148,13 +150,16 @@ void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, c
 
     if (resampledFrameBuffer != sourceFramebuffer) {
         if (!_pipeline) {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTransformUnitQuadTextureOpaque);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false, false));
-            _pipeline = gpu::Pipeline::create(program, state);
+
+            _pipeline = gpu::Pipeline::create(gpu::Shader::createProgram(drawTransformUnitQuadTextureOpaque), state);
+            _mirrorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureMirroredX), state);
         }
         const auto bufferSize = resampledFrameBuffer->getSize();
         glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
+
+        gpu::PipelinePointer pipeline = args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline;
 
         gpu::doInBatch("Upsample::run", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
@@ -164,7 +169,7 @@ void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, c
             batch.setViewportTransform(viewport);
             batch.setProjectionTransform(glm::mat4());
             batch.resetViewTransform();
-            batch.setPipeline(_pipeline);
+            batch.setPipeline(pipeline);
 
             batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
             batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));
