@@ -84,7 +84,7 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
+            grantFeaturePermission(securityOrigin, feature, false);
         }
 
         onLoadingChanged: {
