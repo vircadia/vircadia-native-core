@@ -6,6 +6,7 @@
 
 - (void) downloadInterface:(NSString*) downloadUrl
 {
+    self.progressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
@@ -21,6 +22,14 @@
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
     NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
 
+    self.progressPercentage = (100.0 * prog);
+    [[Launcher sharedLauncher] updateProgressIndicator];
+
+}
+
+- (double) getProgressPercentage
+{
+    return self.progressPercentage;
 }
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didResumeAtOffset:(int64_t)fileOffset expectedTotalBytes:(int64_t)expectedTotalBytes {

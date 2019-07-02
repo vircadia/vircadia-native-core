@@ -46,7 +46,10 @@ typedef enum LoginErrorTypes
 @property (nonatomic) BOOL waitingForInterfaceToTerminate;
 @property (nonatomic, assign, readwrite) ProcessState processState;
 @property (nonatomic, assign, readwrite) LoginError loginError;
+@property (nonatomic, assign) NSProgressIndicator* progressIndicator;
 
+- (NSProgressIndicator*) getProgressView;
+- (void) setProgressView:(NSProgressIndicator*) aProgressIndicator;
 - (void) displayNameEntered:(NSString*)aDisplayName;
 - (void) credentialsEntered:(NSString*)aOrginization :(NSString*)aUsername :(NSString*)aPassword;
 - (void) credentialsAccepted:(BOOL) aCredentialsAccepted;
@@ -78,6 +81,7 @@ typedef enum LoginErrorTypes
 - (NSString*) getDownloadFilename;
 - (BOOL) isLoadedIn;
 - (NSString*) getAppPath;
+- (void) updateProgressIndicator;
 
 + (id) sharedLauncher;
 @end

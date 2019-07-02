@@ -3,8 +3,14 @@
 
 @implementation DownloadDomainContent
 
+- (double) getProgressPercentage
+{
+    return self.progressPercentage;
+}
+
 - (void) downloadDomainContent:(NSString *)domainContentUrl
 {
+    self.progressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:domainContentUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
@@ -18,6 +24,9 @@
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
     NSLog(@"domain content downloaded %d%%", (int)(100.0*prog));
+
+    self.progressPercentage = (100.0 * prog);
+    [[Launcher sharedLauncher] updateProgressIndicator];
 
 }
 

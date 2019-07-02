@@ -8,6 +8,7 @@
 @property (nonatomic, assign) IBOutlet NSImageView* voxelImage;
 @property (nonatomic, assign) IBOutlet NSTextField* boldStatus;
 @property (nonatomic, assign) IBOutlet NSTextField* smallStatus;
+@property (nonatomic, assign) IBOutlet NSProgressIndicator* progressView;
 @end
 
 @implementation ProcessScreen
@@ -20,6 +21,7 @@
             [self.smallStatus setStringValue:@"Set up may take several minutes."];
             break;
         case RUNNING_INTERFACE_AFTER_DOWNLOAD:
+            [self.progressView setHidden: YES];
             [self.boldStatus setStringValue:@"Your new HQ is all setup"];
             [self.smallStatus setStringValue:@"Thanks for being patient."];
             break;
@@ -28,6 +30,7 @@
             [self.smallStatus setStringValue:@"We're getting the latest and greatest for you, one sec."];
             break;
         case RUNNING_INTERFACE_AFTER_UPDATE:
+            [self.progressView setHidden: YES];
             [self.boldStatus setStringValue:@"You're good to go!"];
             [self.smallStatus setStringValue:@"Thanks for being patient."];
             break;
@@ -37,10 +40,13 @@
     [self.background setImage: [NSImage imageNamed:hifiBackgroundFilename]];
     [self.smallLogo setImage: [NSImage imageNamed:hifiSmallLogoFilename]];
     [self.voxelImage setImage: [NSImage imageNamed:hifiVoxelFilename]];
-
+    //[sharedLauncher setProgressIndicator: self.progressView];
+    //sharedLauncher.progressIndicator = self.progressView;
+    if (self.progressView != nil) {
+        NSLog(@"Progress view: %@", self.progressView);
+        [sharedLauncher setProgressView: self.progressView];
+    }
     self.imageRotation = 0;
-    //[self.voxelImage setFrameCenterRotation:90];
-    
     [NSTimer scheduledTimerWithTimeInterval:0.016
                                          target:self
                                        selector:@selector(rotateView:)

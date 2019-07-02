@@ -17,6 +17,7 @@
 
 static BOOL const DELETE_ZIP_FILES = TRUE;
 @implementation Launcher
+
 + (id) sharedLauncher {
     static Launcher* sharedLauncher = nil;
     static dispatch_once_t onceToken;
@@ -40,6 +41,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         self.waitingForCredentialReponse = FALSE;
         self.waitingForInterfaceToTerminate = FALSE;
         self.userToken = nil;
+        self.progressIndicator = nil;
         self.processState = DOWNLOADING_INTERFACE;
     }
     return self;
@@ -79,6 +81,18 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
 }
 
+- (void) updateProgressIndicator
+{
+    NSProgressIndicator* progressIndicator = [self getProgressView];
+    //double oldValue = progressIndicator.doubleValue;
+    double contentPercentage = [self.downloadDomainContent getProgressPercentage];
+    double interfacePercentage = [self.downloadInterface getProgressPercentage];
+    //double currentTotalPercentage = (contentPercentage * 0.5) + (interfacePercentage * 0.5);
+
+    //[progressIndicator incrementBy: (currentTotalPercentage - oldValue)];
+    progressIndicator.doubleValue = (contentPercentage * 0.4) + (interfacePercentage * 0.4);
+}
+
 - (BOOL) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
 {
     NSTask* task = [[NSTask alloc] init];
@@ -99,6 +113,18 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     }
 
     return TRUE;
+}
+
+-(void) setProgressView:(NSProgressIndicator*) aProgressIndicator
+{
+    NSLog(@"Setting progressIndicator %@", aProgressIndicator);
+    self.progressIndicator = aProgressIndicator;
+}
+
+-(NSProgressIndicator*) getProgressView
+{
+    NSLog(@"Getting progressIndicator %@", self.progressIndicator);
+    return self.progressIndicator;
 }
 
 - (void) displayErrorPage
