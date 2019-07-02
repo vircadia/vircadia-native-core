@@ -297,7 +297,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 
 
 /**jsdoc
- * The properties or a collision pick.
+ * The properties of a collision pick.
  *
  * @typedef {object} Picks.CollisionPickProperties
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should
