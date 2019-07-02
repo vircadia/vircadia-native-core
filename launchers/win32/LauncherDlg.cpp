@@ -208,7 +208,6 @@ void CLauncherDlg::startProcess() {
             break;
         }
         if (error != LauncherUtils::DeleteDirError::NoErrorDeleting) {
-            theApp._manager.saveErrorLog();
             theApp._manager.setFailed(true);
         }
     });
