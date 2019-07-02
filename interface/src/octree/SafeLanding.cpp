@@ -91,9 +91,7 @@ void SafeLanding::finishSequence(int first, int last) {
 
 void SafeLanding::addToSequence(int sequenceNumber) {
     Locker lock(_lock);
-    if (_trackingEntities) {
-        _sequenceNumbers.insert(sequenceNumber);
-    }
+    _sequenceNumbers.insert(sequenceNumber);
 }
 
 void SafeLanding::updateTracking() {
