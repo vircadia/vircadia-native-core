@@ -92,6 +92,7 @@ const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
+
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
 
