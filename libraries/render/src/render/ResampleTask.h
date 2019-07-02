@@ -80,6 +80,7 @@ namespace render {
     protected:
 
         static gpu::PipelinePointer _pipeline;
+        static gpu::PipelinePointer _mirrorPipeline;
     };
 }
 
