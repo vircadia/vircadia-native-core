@@ -43,19 +43,18 @@ public:
 
     void setDrawDialog(DrawStep step, BOOL isUpdate = FALSE);
 
-
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
     enum { IDD = IDD_LAUNCHER_DIALOG };
 #endif
 
-    protected:
+// Implementation
+protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
     void startProcess();
     void setCustomDialog();
 
-// Implementation
-protected:
+    void setVerticalElement(CWnd* element, int verticalOffset, int heightOffset = 0, bool fromMainWindowBottom = true);
 
     BOOL getHQInfo(const CString& orgname);
     DrawStep _drawStep { DrawStep::DrawLogo };
@@ -100,7 +99,6 @@ protected:
     void prepareLogin(DrawStep step);
     void prepareProcess(DrawStep step);
     void prepareChoose();
-    void prepareError();
 
     void redrawBanner(const CEdit& edit, CStatic* banner);
 

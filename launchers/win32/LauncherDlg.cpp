@@ -207,6 +207,10 @@ void CLauncherDlg::startProcess() {
         default:
             break;
         }
+        if (error != LauncherUtils::DeleteDirError::NoErrorDeleting) {
+            theApp._manager.saveErrorLog();
+            theApp._manager.setFailed(true);
+        }
     });
 }
 
@@ -230,7 +234,15 @@ afx_msg void CLauncherDlg::OnTermsClicked() {
 }
 
 afx_msg void CLauncherDlg::OnNextClicked() {
-    if (_drawStep != DrawStep::DrawChoose) {
+    if (_drawStep == DrawStep::DrawChoose) {
+        CString displayName;
+        m_username.GetWindowTextW(displayName);
+        theApp._manager.setDisplayName(displayName);
+        theApp._manager.addToLog(_T("Setting display name: " + displayName));
+        startProcess();
+    } else if (_drawStep == DrawStep::DrawError) {
+        theApp._manager.restartLauncher();
+    } else {
         CString token;
         CString username, password, orgname;
         m_orgname.GetWindowTextW(orgname);
@@ -261,12 +273,6 @@ afx_msg void CLauncherDlg::OnNextClicked() {
                 setDrawDialog(DrawStep::DrawLoginErrorOrg);
             }
         }
-    } else {
-        CString displayName;
-        m_username.GetWindowTextW(displayName);
-        theApp._manager.setDisplayName(displayName);
-        theApp._manager.addToLog(_T("Setting display name: " + displayName));
-        startProcess();
     }
 }
 
@@ -318,7 +324,6 @@ void CLauncherDlg::drawVoxel(CHwndRenderTarget* pRenderTarget) {
     pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 }
 
-
 void CLauncherDlg::showWindows(std::vector<CStatic*> windows, bool show) {
     for (auto window : windows) {
         window->ShowWindow(show ? SW_SHOW : SW_HIDE);
@@ -342,7 +347,7 @@ void CLauncherDlg::prepareLogin(DrawStep step) {
     m_password.ShowWindow(SW_SHOW);
     CString actionText = step == DrawStep::DrawLoginLogin ? _T("Please log in") : _T("Uh-oh, we have a problem");
     CString messageText = step == DrawStep::DrawLoginLogin ? _T("Be sure you've uploaded your Avatar before signing in.") :
-        step == DrawStep::DrawLoginErrorCred ? _T("There is a problem with your credentials\n please try again.") : _T("There is a problem with your Organization name\n please try again.");
+        step == DrawStep::DrawLoginErrorCred ? _T("There is a problem with your credentials.\n Please try again.") : _T("There is a problem with your Organization name.\n Please try again.");
     m_action_label->SetWindowTextW(actionText);
     m_message_label->SetWindowTextW(messageText);
     m_action_label->ShowWindow(SW_SHOW);
@@ -353,7 +358,6 @@ void CLauncherDlg::prepareLogin(DrawStep step) {
     m_trouble_link.ShowWindow(SW_SHOW);
     
 }
-
 
 void CLauncherDlg::prepareChoose() {
     m_orgname.ShowWindow(SW_HIDE);
@@ -371,14 +375,7 @@ void CLauncherDlg::prepareChoose() {
     m_terms_link.ShowWindow(SW_SHOW);
     m_terms->SetWindowTextW(_T("By signing in, you agree to the High Fidelity"));
     m_terms_link.SetWindowTextW(_T("Terms of Service"));
-    CRect rec;
-    m_btnNext.GetWindowRect(&rec);
-    ScreenToClient(&rec);
-    if (rec.top > 281) {
-        rec.bottom -= 35;
-        rec.top -= 35;
-        m_btnNext.MoveWindow(rec, FALSE);
-    }
+    setVerticalElement(&m_btnNext, -35, 0, false);
     m_btnNext.ShowWindow(SW_SHOW);
 }
 
@@ -401,6 +398,7 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
     m_voxel->ShowWindow(SW_SHOW);
     CString actionText = _T("");
     CString messageText = _T("");
+    
     switch (step) {
     case DrawStep::DrawProcessSetup:
         actionText = _T("We're building your virtual HQ");
@@ -422,14 +420,20 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
         actionText = _T("Uninstalling...");
         messageText = _T("It'll take one sec.");
         break;
+    case DrawStep::DrawError:
+        actionText = _T("Uh oh.");
+        messageText = _T("We seem to have a problem.\nPlease restart HQ.");
+        setVerticalElement(m_message2_label, 0, 5, false);
+        setVerticalElement(&m_btnNext, 10);
+        m_btnNext.ShowWindow(SW_SHOW);
+        break;
+    default:
+        break;
     }
     m_action2_label->SetWindowTextW(actionText);
     m_message2_label->SetWindowTextW(messageText);
     m_action2_label->ShowWindow(SW_SHOW);
     m_message2_label->ShowWindow(SW_SHOW);
-}
-
-void CLauncherDlg::prepareError() {
 }
 
 BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
@@ -523,6 +527,8 @@ void CLauncherDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
             btnName += _drawStep == DrawStep::DrawLoginLogin ? _T("NEXT") : _T("LOG IN");
             int xpan = -20;
             defrect = CRect(rect.left - xpan, rect.top, rect.right + xpan, rect.bottom);
+        } else if (_drawStep == DrawStep::DrawError) {
+            btnName += _T("RESTART");
         } else {
             btnName += _T("TRY AGAIN");
         }
@@ -594,49 +600,86 @@ BOOL CLauncherDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
     const int CONSOLE_MAX_SHUTDOWN_TRY_COUNT = 10;
     const int CONSOLE_DELTATIME_BETWEEN_TRYS = 10;
-    if (_drawStep == DrawStep::DrawProcessSetup || 
-        _drawStep == DrawStep::DrawProcessUpdate || 
-        _drawStep == DrawStep::DrawProcessUninstall) {
-        // Refresh
-        setDrawDialog(_drawStep, true);
+    if (theApp._manager.hasFailed() && _drawStep != DrawStep::DrawError) {
+        theApp._manager.saveErrorLog();
+        prepareProcess(DrawStep::DrawError);
+        setDrawDialog(DrawStep::DrawError, false);
     }
-    if (_showSplash) {
-        if (_splashStep == 0){
-            if (theApp._manager.needsUninstall()) {
-                theApp._manager.addToLog(_T("Waiting to uninstall"));
-                setDrawDialog(DrawStep::DrawProcessUninstall);
-            } else {
-                theApp._manager.addToLog(_T("Start splash screen"));
-                setDrawDialog(DrawStep::DrawLogo);
+    if (_drawStep != DrawStep::DrawError) {
+        if (_drawStep == DrawStep::DrawProcessSetup ||
+            _drawStep == DrawStep::DrawProcessUpdate ||
+            _drawStep == DrawStep::DrawProcessUninstall) {
+            // Refresh
+            setDrawDialog(_drawStep, true);
+        }
+        if (_showSplash) {
+            if (_splashStep == 0) {
+                if (theApp._manager.needsUninstall()) {
+                    theApp._manager.addToLog(_T("Waiting to uninstall"));
+                    setDrawDialog(DrawStep::DrawProcessUninstall);
+                }
+                else {
+                    theApp._manager.addToLog(_T("Start splash screen"));
+                    setDrawDialog(DrawStep::DrawLogo);
+                }
             }
-        } else if (_splashStep > 100) {
-            _showSplash = false;
-            if (theApp._manager.shouldShutDown()) {
-                if (_applicationWND != NULL) {
-                    ::SetForegroundWindow(_applicationWND);
-                    ::SetActiveWindow(_applicationWND);
+            else if (_splashStep > 100) {
+                _showSplash = false;
+                if (theApp._manager.shouldShutDown()) {
+                    if (_applicationWND != NULL) {
+                        ::SetForegroundWindow(_applicationWND);
+                        ::SetActiveWindow(_applicationWND);
+                    }
+                    if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
+                        exit(0);
+                    }
                 }
-                if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
-                    exit(0);
+                else if (theApp._manager.needsUpdate()) {
+                    startProcess();
                 }
-            } else if (theApp._manager.needsUpdate()) {
-                startProcess();
-            } else if (theApp._manager.needsUninstall()) {
-                theApp._manager.uninstallApplication();
+                else if (theApp._manager.needsUninstall()) {
+                    if (theApp._manager.uninstallApplication()) {
+                        theApp._manager.addToLog(_T("HQ uninstalled successfully."));
+                        exit(0);
+                    }
+                    else {
+                        theApp._manager.addToLog(_T("HQ failed to uninstall."));
+                        theApp._manager.setFailed(true);
+                    }
+                }
+                else {
+                    theApp._manager.addToLog(_T("Starting login"));
+                    setDrawDialog(DrawStep::DrawLoginLogin);
+                }
+            }
+            _splashStep++;
+        } else if (theApp._manager.shouldShutDown()) {
+            if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
                 exit(0);
-            } else {
-                theApp._manager.addToLog(_T("Starting login"));
-                setDrawDialog(DrawStep::DrawLoginLogin);
             }
         }
-        _splashStep++;
-    } else if (theApp._manager.shouldShutDown()) {
-        if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
-            exit(0);
+        if (theApp._manager.shouldLaunch()) {
+            _applicationWND = theApp._manager.launchApplication();
         }
     }
-    if (theApp._manager.shouldLaunch()) {
-        _applicationWND = theApp._manager.launchApplication();
+}
+
+void CLauncherDlg::setVerticalElement(CWnd* element, int verticalOffset, int heightOffset, bool fromMainWindowBottom) {
+    CRect elementRec;
+    CRect windowRec;
+    if (element != NULL) {
+        element->GetWindowRect(&elementRec);
+        ScreenToClient(&elementRec);
+        int offset = verticalOffset;
+        if (fromMainWindowBottom) {
+            GetWindowRect(&windowRec);
+            ScreenToClient(&windowRec);
+            int currentDistance = windowRec.bottom - elementRec.bottom;
+            offset = currentDistance - verticalOffset;
+        }
+        elementRec.bottom = elementRec.bottom + offset + heightOffset;
+        elementRec.top = elementRec.top + offset;
+        element->MoveWindow(elementRec, FALSE);
     }
 }
 
@@ -671,6 +714,7 @@ void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
         m_pRenderTarget->EndDraw();
         RedrawWindow();
         break;
+    case DrawStep::DrawError:
     case DrawStep::DrawProcessFinishHq:
     case DrawStep::DrawProcessFinishUpdate:
     case DrawStep::DrawProcessUpdate:
