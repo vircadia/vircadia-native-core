@@ -98,6 +98,7 @@ PropFolderPanel {
                                 "label": itemLabel,
                                 "rootObject":itemRootObject,
                                 "indentDepth": itemDepth,
+                                "isUnfold": true,
                             })
                         } break;
                         case 'printLabel': {
