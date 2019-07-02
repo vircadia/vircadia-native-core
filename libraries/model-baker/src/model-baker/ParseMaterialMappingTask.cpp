@@ -61,7 +61,7 @@ void processMaterialMapping(MaterialMapping& materialMapping, const QJsonObject&
         } else if (mappingJSON.isString()) {
             auto mappingValue = mappingJSON.toString();
             materialMapping.push_back(std::pair<std::string, NetworkMaterialResourcePointer>(mapping.toStdString(),
-                                                                MaterialCache::instance().getMaterial(url.resolved(mappingValue))));
+                DependencyManager::get<MaterialCache>()->getMaterial(url.resolved(mappingValue))));
         }
     }
 }

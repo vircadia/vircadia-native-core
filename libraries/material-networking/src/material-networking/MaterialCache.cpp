@@ -441,11 +441,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
     return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, material);
 }
 
-MaterialCache& MaterialCache::instance() {
-    static MaterialCache _instance;
-    return _instance;
-}
-
 NetworkMaterialResourcePointer MaterialCache::getMaterial(const QUrl& url) {
     return ResourceCache::getResource(url).staticCast<NetworkMaterialResource>();
 }

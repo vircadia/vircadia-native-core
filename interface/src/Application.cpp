@@ -104,6 +104,7 @@
 #include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
 #include <material-networking/TextureCacheScriptingInterface.h>
+#include <material-networking/MaterialCache.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -877,6 +878,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
     DependencyManager::set<TextureCache>();
+    DependencyManager::set<MaterialCache>();
     DependencyManager::set<TextureCacheScriptingInterface>();
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
@@ -2852,6 +2854,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCacheScriptingInterface>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
+    DependencyManager::destroy<MaterialCache>();
     DependencyManager::destroy<TextureCacheScriptingInterface>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<ModelCacheScriptingInterface>();
@@ -2887,6 +2890,16 @@ Application::~Application() {
 
     // Can't log to file past this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
+
+#ifdef Q_OS_MAC
+    // Clear the event queue before application is totally destructed.
+    // This will drain the messasge queue of pending "deleteLaters" queued up
+    // during shutdown of the script engines.
+    // We do this here because there is a possiblty that [NSApplication terminate:]
+    // will be called during processEvents which will invoke all static destructors.
+    // We want to postpone this utill the last possible moment.
+    QCoreApplication::processEvents();
+#endif
 }
 
 void Application::initializeGL() {
@@ -5960,7 +5973,7 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<ResourceCacheSharedItems>()->clear();
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
-    MaterialCache::instance().refreshAll();
+    DependencyManager::get<MaterialCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();
     ShaderCache::instance().refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
@@ -7146,7 +7159,7 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
-    MaterialCache::instance().clearUnusedResources();
+    DependencyManager::get<MaterialCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
