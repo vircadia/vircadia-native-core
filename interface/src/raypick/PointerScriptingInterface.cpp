@@ -54,7 +54,8 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  * The properties of a stylus pointer. These include the properties from the underlying stylus pick that the pointer uses.
  * @typedef {object} Pointers.StylusPointerProperties
  * @property {Pointers.StylusPointerModel} [model] - Override some or all of the default stylus model properties.
- * @property {boolean} [hover=false] - If <code>true</code>, the pointer generates {@link Entities} hover events.
+ * @property {boolean} [hover=false] - <code>true</code> if the pointer generates {@link Entities} hover events, 
+ *     <code>false</code> if it doesn't.
  * @see {@link Picks.StylusPickProperties} for additional properties from the underlying stylus pick.
  */
 /**jsdoc

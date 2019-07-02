@@ -53,7 +53,7 @@ public:
      */
 
     /**jsdoc
-     * Creates a new ray, parabola, or stylus pointer. The pointers can have a wide range of behaviors depending on the 
+     * Creates a new ray, parabola, or stylus pointer. The pointer can have a wide range of behaviors depending on the 
      * properties specified. For example, a ray pointer may be a static ray pointer, a mouse ray pointer, or joint ray 
      * pointer.
      * <p><strong>Warning:</strong> Pointers created using this method currently always intersect at least visible and 
@@ -306,11 +306,11 @@ public:
 
 
     /**jsdoc
-     * Gets the most recent pick result from a pointer. A pointer continues to be updated ready to return a result, as long as 
+     * Gets the most recent intersection of a pointer. A pointer continues to be updated ready to return a result, as long as  
      * it is enabled, regardless of the render state.
      * @function Pointers.getPrevPickResult
      * @param {number} id - The ID of the pointer.
-     * @returns {RayPickResult|ParabolaPickResult|StylusPickResult} The most recent intersection result.
+     * @returns {RayPickResult|ParabolaPickResult|StylusPickResult} The most recent intersection of the pointer.
      */
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid) const;
 
@@ -399,7 +399,7 @@ public:
      * Gets information about a pointer.
      * @function Pointers.getPointerProperties
      * @param {number} id - The ID of the pointer.
-     * @returns {Pointers.RayPointerProperties|Pointers.ParabolaPointerProperties|{}} The <code>renderStates</code> and 
+     * @returns {Pointers.RayPointerProperties|Pointers.ParabolaPointerProperties|object} The <code>renderStates</code> and 
      *     <code>defaultRenderStates</code> for ray and parabola pointers, <code>{}</code> for stylus pointers.
      * @example <caption>Report the properties of a parabola pointer.</caption>
      * var intersectEnd = {
