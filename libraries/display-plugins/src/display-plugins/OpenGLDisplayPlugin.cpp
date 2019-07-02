@@ -588,10 +588,9 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&)> OpenGLDisplayPlugin
         hudEyeViewports[eye] = eyeViewport(eye);
     });
     return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
-        auto pipeline = hudPipeline;
-        if (pipeline && hudTexture) {
+        if (hudPipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(pipeline);
+            batch.setPipeline(hudPipeline);
             batch.setResourceTexture(0, hudTexture);
             if (hudStereo) {
                 for_each_eye([&](Eye eye) {

@@ -159,8 +159,6 @@ void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, c
         const auto bufferSize = resampledFrameBuffer->getSize();
         glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
-        gpu::PipelinePointer pipeline = args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline;
-
         gpu::doInBatch("Upsample::run", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
 
@@ -169,7 +167,7 @@ void UpsampleToBlitFramebuffer::run(const RenderContextPointer& renderContext, c
             batch.setViewportTransform(viewport);
             batch.setProjectionTransform(glm::mat4());
             batch.resetViewTransform();
-            batch.setPipeline(pipeline);
+            batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
 
             batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
             batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));

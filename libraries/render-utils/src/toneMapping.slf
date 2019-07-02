@@ -51,19 +51,16 @@ void main(void) {
     int toneCurve = getToneCurve();
     vec3 tonedColor = srcColor;
     if (toneCurve == ToneCurveFilmic) {
-        vec3 rgbColor = pow(srcColor, vec3(GAMMA_22));
-        vec3 x = max(vec3(0.0), rgbColor-0.004);
-        tonedColor = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
+        vec3 x = max(vec3(0.0), srcColor-0.004);
+        tonedColor = pow((x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06), vec3(GAMMA_22));
     } else if (toneCurve == ToneCurveReinhard) {
         tonedColor = srcColor/(1.0 + srcColor);
-    } 
-    else if (toneCurve == ToneCurveGamma22) {
+    } else if (toneCurve == ToneCurveGamma22) {
         // We use glEnable(GL_FRAMEBUFFER_SRGB), which automatically converts textures from RGB to SRGB
         // when writing from an RGB framebuffer to an SRGB framebuffer (note that it doesn't do anything
         // when writing from an SRGB framebuffer to an RGB framebuffer).
         // Since the conversion happens automatically, we don't need to do anything in this shader
-    } 
-    else {
+    } else {
         // toneCurve == ToneCurveNone
         // For debugging purposes, we may want to see what the colors look like before the automatic OpenGL 
         // conversion mentioned above, so we undo it here
