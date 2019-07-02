@@ -26,6 +26,7 @@ class TextEntityRenderer : public TypedEntityRenderer<TextEntityItem> {
     using Pointer = std::shared_ptr<TextEntityRenderer>;
 public:
     TextEntityRenderer(const EntityItemPointer& entity);
+    ~TextEntityRenderer();
 
     QSizeF textSize(const QString& text) const;
 
@@ -35,7 +36,7 @@ protected:
     Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
     ItemKey getKey() override;
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
 
     void onAddToSceneTyped(const TypedEntityPointer& entity) override;
     void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
@@ -56,6 +57,7 @@ private:
     float _textAlpha;
     glm::vec3 _backgroundColor;
     float _backgroundAlpha;
+    bool _unlit;
 
     float _leftMargin;
     float _rightMargin;
@@ -64,6 +66,8 @@ private:
 
     BillboardMode _billboardMode;
     glm::vec3 _dimensions;
+
+    int _geometryID { 0 };
 
     std::shared_ptr<TextPayload> _textPayload;
     render::ItemID _textRenderID;

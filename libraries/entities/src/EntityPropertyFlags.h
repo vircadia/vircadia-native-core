@@ -241,6 +241,7 @@ enum EntityPropertyList {
     PROP_RIGHT_MARGIN = PROP_DERIVED_7,
     PROP_TOP_MARGIN = PROP_DERIVED_8,
     PROP_BOTTOM_MARGIN = PROP_DERIVED_9,
+    PROP_UNLIT = PROP_DERIVED_10,
 
     // Zone
     // Keylight

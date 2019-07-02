@@ -722,42 +722,12 @@ gpu::ShaderPointer GeometryCache::_forwardUnlitShader;
 gpu::ShaderPointer GeometryCache::_forwardSimpleFadeShader;
 gpu::ShaderPointer GeometryCache::_forwardUnlitFadeShader;
 
-render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
-render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
-render::ShapePipelinePointer GeometryCache::_forwardSimpleOpaquePipeline;
-render::ShapePipelinePointer GeometryCache::_forwardSimpleTransparentPipeline;
-render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
-render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
-render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
-
-uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
-
-render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
-    initializeShapePipelines();
-
-    if (key.isWireframe()) {
-        return _simpleWirePipeline;
-    }
-
-    if (key.isFaded()) {
-        if (key.isTranslucent()) {
-            return _simpleTransparentFadePipeline;
-        } else {
-            return _simpleOpaqueFadePipeline;
-        }
-    } else {
-        if (key.isTranslucent()) {
-            return _simpleTransparentPipeline;
-        } else {
-            return _simpleOpaquePipeline;
-        }
-    }
-}
+std::map<std::tuple<bool, bool, bool>, render::ShapePipelinePointer> GeometryCache::_shapePipelines;
 
 GeometryCache::GeometryCache() :
 _nextID(0) {
     // Let's register its special shapePipeline factory:
-    registerShapePipeline();
+    initializeShapePipelines();
     buildShapes();
 }
 
@@ -799,16 +769,14 @@ void GeometryCache::releaseID(int id) {
 }
 
 void GeometryCache::initializeShapePipelines() {
-    if (!_simpleOpaquePipeline) {
-        _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
-        _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
-        _forwardSimpleOpaquePipeline = getShapePipeline(false, false, true, false, false, true);
-        _forwardSimpleTransparentPipeline = getShapePipeline(false, true, true, false, false, true);
-
-        // FIXME: these need forward pipelines
-        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
-        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
-        _simpleWirePipeline = getShapePipeline(false, false, true, true);
+    if (_shapePipelines.empty()) {
+        const int NUM_PIPELINES = 8;
+        for (int i = 0; i < NUM_PIPELINES; ++i) {
+            bool transparent = i & 1;
+            bool unlit = i & 2;
+            bool forward = i & 4;
+            _shapePipelines[std::make_tuple(transparent, unlit, forward)] = getShapePipeline(false, transparent, true, unlit, false, forward);
+        }
     }
 }
 
@@ -1027,7 +995,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
+    const glm::vec3 NORMAL(0.0f, -1.0f, 0.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
     int compactColor = 0;
@@ -1105,7 +1073,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
+    const glm::vec3 NORMAL(0.0f, -1.0f, 0.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
     for (auto i = 0; i < pointCount; i++) {
@@ -1193,7 +1161,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
+    const glm::vec3 NORMAL(0.0f, -1.0f, 0.0f);
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points[i];
         glm::vec2 texCoord = texCoords[i];
@@ -2281,8 +2249,7 @@ void renderInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color
 
         if (isWire) {
             DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
-        }
-        else {
+        } else {
             DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
         }
     });
