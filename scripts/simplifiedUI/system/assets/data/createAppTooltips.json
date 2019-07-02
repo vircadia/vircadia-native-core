@@ -74,6 +74,12 @@
     "keyLight.castShadows": {
         "tooltip": "If enabled, shadows are cast. The entity or avatar casting the shadow must also have Cast Shadows enabled."
     },
+    "keyLight.shadowBias": {
+        "tooltip": "The bias of the shadows cast by the light.  Use this to fine-tune your shadows to your scene to prevent shadow acne and peter panning."
+    },
+    "keyLight.shadowMaxDistance": {
+        "tooltip": "The max distance from your view at which shadows will be computed."
+    },
     "skyboxMode": {
         "tooltip": "Configures the skybox in the zone. The skybox is a cube map image."
     },
@@ -135,7 +141,7 @@
         "tooltip": "The radius of bloom. The higher the value, the larger the bloom."
     },
     "avatarPriority": {
-        "tooltip":  "Alter Avatars' update priorities."
+        "tooltip": "Alter Avatars' update priorities."
     },
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
