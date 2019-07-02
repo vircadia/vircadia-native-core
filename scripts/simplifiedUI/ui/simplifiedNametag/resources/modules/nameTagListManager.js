@@ -344,7 +344,6 @@ function makeNameTag(uuid) {
     }, REDRAW_TIMEOUT_AMOUNT_MS);
 }
 
-console.log("\n\nV2\n\n");
 // Check to see if the display named changed or if the distance is big enough to need a redraw.
 var MAX_RADIUS_IGNORE_METERS = 22;
 var MAX_ON_MODE_DISTANCE = 35;
