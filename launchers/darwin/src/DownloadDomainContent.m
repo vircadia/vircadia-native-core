@@ -5,12 +5,13 @@
 
 - (double) getProgressPercentage
 {
-    return self.progressPercentage;
+    return (self.progressPercentage * .90) + (self.taskProgressPercentage * .10);
 }
 
 - (void) downloadDomainContent:(NSString *)domainContentUrl
 {
     self.progressPercentage = 0.0;
+    self.taskProgressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:domainContentUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
@@ -36,6 +37,11 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location {
     NSLog(@"Did finish downloading to url");
+    NSTimer* timer = [NSTimer scheduledTimerWithTimeInterval: 0.1
+                                                      target: self
+                                                    selector: @selector(updatePercentage:)
+                                                    userInfo:nil
+                                                     repeats: YES];
     NSError *error = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
@@ -56,6 +62,7 @@
 
     if (error) {
         NSLog(@"DownlodDomainContent: failed to move file to destintation -> error: %@", error);
+        [timer invalidate];
         [sharedLauncher displayErrorPage];
         return;
     }
@@ -64,18 +71,27 @@
     BOOL extractionSuccessful = [sharedLauncher extractZipFileAtDestination:[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:@"content"] :[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:[sharedLauncher getDownloadContentFilename]]];
 
     if (!extractionSuccessful) {
+        [timer invalidate];
         [sharedLauncher displayErrorPage];
         return;
     }
     NSLog(@"finished extracting content file");
+    [timer invalidate];
+    self.taskProgressPercentage = 100.0;
+    [sharedLauncher updateProgressIndicator];
     [sharedLauncher domainContentDownloadFinished];
 }
 
--(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     NSLog(@"completed; error: %@", error);
     if (error) {
         [[Launcher sharedLauncher] displayErrorPage];
     }
+}
+
+- (void) updatePercentage:(NSTimer*) timer {
+    self.taskProgressPercentage += 3.0;
+    [[Launcher sharedLauncher] updateProgressIndicator];
 }
 
 @end

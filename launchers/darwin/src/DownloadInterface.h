@@ -4,8 +4,9 @@
 }
 @property (nonatomic, assign) NSString* finalFilePath;
 @property (nonatomic, assign) double progressPercentage;
+@property (nonatomic, assign) double taskProgressPercentage;
 
 - (void) downloadInterface:(NSString*) downloadUrl;
 
-- (double) getProgressPercentage;
+- (double) getProgressPercentage; 
 @end

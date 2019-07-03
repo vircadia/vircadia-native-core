@@ -84,13 +84,20 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void) updateProgressIndicator
 {
     NSProgressIndicator* progressIndicator = [self getProgressView];
-    //double oldValue = progressIndicator.doubleValue;
+    double oldValue = progressIndicator.doubleValue;
     double contentPercentage = [self.downloadDomainContent getProgressPercentage];
     double interfacePercentage = [self.downloadInterface getProgressPercentage];
-    //double currentTotalPercentage = (contentPercentage * 0.5) + (interfacePercentage * 0.5);
+    double currentTotalPercentage = (contentPercentage * 0.5) + (interfacePercentage * 0.5);
 
     //[progressIndicator incrementBy: (currentTotalPercentage - oldValue)];
-    progressIndicator.doubleValue = (contentPercentage * 0.4) + (interfacePercentage * 0.4);
+    progressIndicator.doubleValue = [self lerp:oldValue :currentTotalPercentage :0.7];
+}
+
+- (double) lerp:(double) pointA :(double) pointB :(double) interp
+{
+    double lerpValue = pointA + interp * (pointB - pointA);
+    NSLog(@"----> lerp value: %f", lerpValue);
+    return lerpValue;
 }
 
 - (BOOL) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
