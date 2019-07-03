@@ -201,6 +201,7 @@ void OtherAvatar::computeShapeLOD() {
         break;
     case workload::Region::UNKNOWN:
     case workload::Region::INVALID:
+    case workload::Region::R4:
     case workload::Region::R3:
     default:
         newLOD = BodyLOD::Sphere;

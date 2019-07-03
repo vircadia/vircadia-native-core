@@ -21,6 +21,7 @@ public:
         R1 = 0,
         R2,
         R3,
+        R4,
         UNKNOWN,
         INVALID,
     };

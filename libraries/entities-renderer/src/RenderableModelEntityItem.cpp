@@ -282,27 +282,26 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
+    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
 }
 
-bool RenderableModelEntityItem::computeShapeFailedToLoad() {
-    if (!_compoundShapeResource) {
+bool RenderableModelEntityItem::unableToLoadCollisionShape() {
+    if (!_collisionGeometryResource) {
         fetchCollisionGeometryResource();
     }
-
-    return (_compoundShapeResource && _compoundShapeResource->isFailed());
+    return (_collisionGeometryResource && _collisionGeometryResource->isFailed());
 }
 
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     auto shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
-        if (!_compoundShapeResource && !getCollisionShapeURL().isEmpty()) {
+        if (!_collisionGeometryResource && !getCollisionShapeURL().isEmpty()) {
             fetchCollisionGeometryResource();
         }
-    } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
+    } else if (_collisionGeometryResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
-        _compoundShapeResource.reset();
+        _collisionGeometryResource.reset();
     }
 }
 
@@ -333,11 +332,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
         }
 
         if (model->isLoaded()) {
-            if (!shapeURL.isEmpty() && !_compoundShapeResource) {
+            if (!shapeURL.isEmpty() && !_collisionGeometryResource) {
                 const_cast<RenderableModelEntityItem*>(this)->fetchCollisionGeometryResource();
             }
 
-            if (_compoundShapeResource && _compoundShapeResource->isLoaded()) {
+            if (_collisionGeometryResource && _collisionGeometryResource->isLoaded()) {
                 // we have both URLs AND both geometries AND they are both fully loaded.
                 if (_needsInitialSimulation) {
                     // the _model's offset will be wrong until _needsInitialSimulation is false
@@ -368,7 +367,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     }
 
     if (type == SHAPE_TYPE_COMPOUND) {
-        if (!_compoundShapeResource || !_compoundShapeResource->isLoaded()) {
+        if (!_collisionGeometryResource || !_collisionGeometryResource->isLoaded()) {
             return;
         }
 
@@ -376,8 +375,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         // should never fall in here when collision model not fully loaded
         // TODO: assert that all geometries exist and are loaded
-        //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
-        const HFMModel& collisionGeometry = _compoundShapeResource->getHFMModel();
+        //assert(_model && _model->isLoaded() && _collisionGeometryResource && _collisionGeometryResource->isLoaded());
+        const HFMModel& collisionGeometry = _collisionGeometryResource->getHFMModel();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
@@ -499,7 +498,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         std::vector<std::shared_ptr<const graphics::Mesh>> meshes;
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-            auto& hfmMeshes = _compoundShapeResource->getHFMModel().meshes;
+            auto& hfmMeshes = _collisionGeometryResource->getHFMModel().meshes;
             meshes.reserve(hfmMeshes.size());
             for (auto& hfmMesh : hfmMeshes) {
                 meshes.push_back(hfmMesh._mesh);
@@ -727,10 +726,10 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
-    if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
+    if (EntityItem::contains(point) && model && _collisionGeometryResource && _collisionGeometryResource->isLoaded()) {
         glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
         glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
-        return _compoundShapeResource->getHFMModel().convexHullContains(hfmPoint);
+        return _collisionGeometryResource->getHFMModel().convexHullContains(hfmPoint);
     }
 
     return false;
@@ -958,6 +957,10 @@ QStringList RenderableModelEntityItem::getJointNames() const {
         }
     }
     return result;
+}
+
+QString RenderableModelEntityItem::getCollisionShapeURL() const {
+    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
 }
 
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {

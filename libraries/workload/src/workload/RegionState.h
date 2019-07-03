@@ -54,7 +54,7 @@ namespace workload {
         using JobModel = workload::Job::ModelI<RegionState, Inputs, Config>;
 
         RegionState() {
-            _state.resize(Region::UNKNOWN);
+            _state.resize(Region::R3 + 1);
         }
 
         void configure(const Config& config);

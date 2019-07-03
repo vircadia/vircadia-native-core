@@ -79,7 +79,7 @@ public:
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
-    bool computeShapeFailedToLoad();
+    bool unableToLoadCollisionShape();
 
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
@@ -113,6 +113,9 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    // Returns the URL used for the collision shape
+    QString getCollisionShapeURL() const;
+
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
@@ -120,7 +123,7 @@ private:
     bool readyToAnimate() const;
     void fetchCollisionGeometryResource();
 
-    GeometryResource::Pointer _compoundShapeResource;
+    GeometryResource::Pointer _collisionGeometryResource;
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
     bool _jointMapCompleted { false };
