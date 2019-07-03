@@ -25,6 +25,8 @@
 #include <CoreFoundation/CoreFoundation.h>
 #include <ApplicationServices/ApplicationServices.h>
 #include <QSysInfo>
+
+#include <OpenGL/OpenGL.h>
 #endif
 
 using namespace platform;
@@ -39,7 +41,6 @@ void MACOSInstance::enumerateCpus() {
     _cpus.push_back(cpu);
 }
 
-#include <OpenGL/OpenGL.h>
 
 void MACOSInstance::enumerateGpus() {
 #ifdef Q_OS_MAC
