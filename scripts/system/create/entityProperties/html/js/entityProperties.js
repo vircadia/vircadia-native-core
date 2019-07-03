@@ -216,6 +216,11 @@ const GROUPS = [
                 decimals: 2,
                 propertyID: "leftMargin",
             },
+            {
+                label: "Unlit",
+                type: "bool",
+                propertyID: "unlit",
+            },
         ]
     },
     {

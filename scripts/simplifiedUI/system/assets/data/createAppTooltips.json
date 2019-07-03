@@ -39,6 +39,10 @@
     "leftMargin": {
         "tooltip": "The left margin, in meters."
     },
+    "unlit": {
+        "tooltip": "If enabled, the entity will not be lit by the keylight or local lights.",
+        "jsPropertyName": "unlit"
+    },
     "zoneShapeType": {
         "tooltip": "The shape of the volume in which the zone's lighting effects and avatar permissions have effect.",
         "jsPropertyName": "shapeType"

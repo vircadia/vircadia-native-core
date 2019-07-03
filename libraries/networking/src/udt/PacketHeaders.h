@@ -271,6 +271,7 @@ enum class EntityVersion : PacketVersion {
     ParticleShapeType,
     ParticleShapeTypeDeadlockFix,
     PrivateUserData,
+    TextUnlit,
     ShadowBiasAndDistance,
 
     // Add new versions above here

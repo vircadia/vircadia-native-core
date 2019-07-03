@@ -344,24 +344,19 @@ function makeNameTag(uuid) {
     }, REDRAW_TIMEOUT_AMOUNT_MS);
 }
 
-
 // Check to see if the display named changed or if the distance is big enough to need a redraw.
 var MAX_RADIUS_IGNORE_METERS = 22;
 var MAX_ON_MODE_DISTANCE = 35;
-var CHECK_AVATAR = true;
-var MIN_DISTANCE_FOR_REDRAW_METERS = 0.1;
 function maybeRedraw(uuid) {
     var avatar = _this.avatars[uuid];
     getAvatarData(uuid);
 
     getDistance(uuid);
-    var distanceDelta = Math.abs(avatar.currentDistance - avatar.previousDistance);
-
     var name = getCorrectName(uuid);
 
     if (avatar.previousName !== name) {
         updateName(uuid, name);
-    } else if (distanceDelta > MIN_DISTANCE_FOR_REDRAW_METERS) {
+    } else {
         redraw(uuid);
     }
 }

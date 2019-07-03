@@ -45,14 +45,14 @@ var bar = Overlays.addOverlay("text", {
 
 // Takes an energy value between 0 and 1 and sets energy bar width appropriately
 function setEnergy(energy) {
-    energy = clamp(energy, 0, 1);
+    energy = hifiClamp(energy, 0, 1);
     var barWidth = totalWidth * energy;
     var color = energy <= lowEnergyThreshold ? lowEnergyColor: energyColor;
     Overlays.editOverlay(bar, { width: barWidth, backgroundColor: color});
 }
 
 function update() {
-    currentEnergy = clamp(MyAvatar.energy, 0, 1);
+    currentEnergy = hifiClamp(MyAvatar.energy, 0, 1);
     setEnergy(currentEnergy);
 }
 
