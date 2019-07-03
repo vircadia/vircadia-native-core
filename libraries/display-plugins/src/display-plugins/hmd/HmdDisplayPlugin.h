@@ -48,10 +48,8 @@ public:
 
     void pluginUpdate() override {};
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
     virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::PAINT; }
-
-    virtual gpu::PipelinePointer getRenderTexturePipeline() override;
 
 signals:
     void hmdMountedChanged();
@@ -125,6 +123,6 @@ private:
         static const int VERTEX_STRIDE { sizeof(Vertex) };
 
         void build();
-        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> render();
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&)> render();
     } _hudRenderer;
 };

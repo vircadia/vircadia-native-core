@@ -10,9 +10,9 @@
 /* global getControllerWorldLocation, Tablet, WebTablet:true, HMD, Settings, Script,
    Vec3, Quat, MyAvatar, Entities, Overlays, Camera, Messages, Xform, clamp, Controller, Mat4, resizeTablet */
 
-Script.include(Script.resolvePath("../libraries/utils.js"));
-Script.include(Script.resolvePath("../libraries/controllers.js"));
-Script.include(Script.resolvePath("../libraries/Xform.js"));
+Script.include(Script.resolvePath("utils.js"));
+Script.include(Script.resolvePath("controllers.js"));
+Script.include(Script.resolvePath("Xform.js"));
 
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var X_AXIS = {x: 1, y: 0, z: 0};
@@ -380,8 +380,8 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
     var TABLET_TEXEL_PADDING = {x: 60, y: 90};
     var X_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((this.getTabletTextureResolution().x / 2) + TABLET_TEXEL_PADDING.x);
     var Y_CLAMP = (DESKTOP_TABLET_SCALE / 100) * ((this.getTabletTextureResolution().y / 2) + TABLET_TEXEL_PADDING.y);
-    windowPos.x = clamp(windowPos.x, X_CLAMP, Window.innerWidth - X_CLAMP);
-    windowPos.y = clamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
+    windowPos.x = hifiClamp(windowPos.x, X_CLAMP, Window.innerWidth - X_CLAMP);
+    windowPos.y = hifiClamp(windowPos.y, Y_CLAMP, Window.innerHeight - Y_CLAMP);
 
     var fov = (Settings.getValue('fieldOfView') || DEFAULT_VERTICAL_FIELD_OF_VIEW) * (Math.PI / 180);
 

@@ -144,9 +144,9 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Just resolve the msaa
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
-     const auto toneMappedBuffer = resolvedFramebuffer;
+    const auto toneMappedBuffer = resolvedFramebuffer;
 #else
     const auto newResolvedFramebuffer = task.addJob<NewOrDefaultFramebuffer>("MakeResolvingFramebuffer");
 

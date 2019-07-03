@@ -128,52 +128,11 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     gpu::doInBatch("Blit", renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
-        if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            if (renderArgs->isStereo()) {
-                gpu::Vec4i srcRectLeft;
-                srcRectLeft.z = width / 2;
-                srcRectLeft.w = height;
+        gpu::Vec4i rect;
+        rect.z = width;
+        rect.w = height;
 
-                gpu::Vec4i srcRectRight;
-                srcRectRight.x = width / 2;
-                srcRectRight.z = width;
-                srcRectRight.w = height;
-
-                gpu::Vec4i destRectLeft;
-                destRectLeft.x = srcRectLeft.z;
-                destRectLeft.z = srcRectLeft.x;
-                destRectLeft.y = srcRectLeft.y;
-                destRectLeft.w = srcRectLeft.w;
-
-                gpu::Vec4i destRectRight;
-                destRectRight.x = srcRectRight.z;
-                destRectRight.z = srcRectRight.x;
-                destRectRight.y = srcRectRight.y;
-                destRectRight.w = srcRectRight.w;
-
-                // Blit left to right and right to left in stereo
-                batch.blit(primaryFbo, srcRectRight, blitFbo, destRectLeft);
-                batch.blit(primaryFbo, srcRectLeft, blitFbo, destRectRight);
-            } else {
-                gpu::Vec4i srcRect;
-                srcRect.z = width;
-                srcRect.w = height;
-
-                gpu::Vec4i destRect;
-                destRect.x = width;
-                destRect.y = 0;
-                destRect.z = 0;
-                destRect.w = height;
-
-                batch.blit(primaryFbo, srcRect, blitFbo, destRect);
-            }
-        } else {
-            gpu::Vec4i rect;
-            rect.z = width;
-            rect.w = height;
-
-            batch.blit(primaryFbo, rect, blitFbo, rect);
-        }
+        batch.blit(primaryFbo, rect, blitFbo, rect);
     });
 }
 

@@ -754,6 +754,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
         emit nodeSocketUpdated(weakPtr);
     });
+    connect(newNodePointer.data(), &NetworkPeer::socketUpdated, &_nodeSocket, &udt::Socket::handleRemoteAddressChange);
 
     return newNodePointer;
 }
