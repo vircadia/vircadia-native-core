@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  sdf_text3D_transparent.frag
+//  sdf_text3D_forward.frag
 //  fragment shader
 //
 //  Created by Bradley Austin Davis on 2015-02-04
@@ -53,5 +53,5 @@ void main() {
         DEFAULT_FRESNEL,
         DEFAULT_METALLIC,
         DEFAULT_ROUGHNESS),
-        1.0);
+        alpha);
 }

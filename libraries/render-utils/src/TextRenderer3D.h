@@ -39,7 +39,7 @@ public:
     float getFontSize() const; // Pixel size
     
     void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
-              const glm::vec2& bounds, bool forward);
+              const glm::vec2& bounds, bool unlit, bool forward);
 
 private:
     TextRenderer3D(const char* family, float pointSize, int weight = -1, bool italic = false,
