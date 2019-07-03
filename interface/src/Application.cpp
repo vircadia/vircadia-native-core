@@ -5109,7 +5109,7 @@ void Application::idle() {
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (offscreenUi && offscreenUi->getWindow()) {
         auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
-        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+        if (_keyboardDeviceHasFocus && (activeFocusItem != NULL && activeFocusItem != offscreenUi->getRootItem())) {
             _keyboardMouseDevice->pluginFocusOutEvent();
             _keyboardDeviceHasFocus = false;
             synthesizeKeyReleasEvents();
