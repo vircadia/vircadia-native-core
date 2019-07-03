@@ -319,7 +319,7 @@ const GROUPS = [
                 label: "Shadow Max Distance",
                 type: "number-draggable",
                 min: 0,
-                max: 500,
+                max: 250,
                 step: 0.1,
                 decimals: 2,
                 propertyID: "keyLight.shadowMaxDistance",

@@ -117,17 +117,17 @@ Rectangle {
             max: 1.0
             min: 0.0
             height: 38
-            width:250
+            width: 250
         }
         ConfigSlider {
             label: qsTr("Shadow Max Distance")
             integral: false
             config: shadowConfig
-            property: "globalMaxDistance"
-            max: 100.0
-            min: 1.0
+            property: "maxDistance"
+            max: 250.0
+            min: 0.0
             height: 38
-            width:250
+            width: 250
         }
         Repeater {
             model: [
@@ -156,17 +156,17 @@ Rectangle {
                     integral: false
                     config: shadowConfig
                     property: "constantBias"+modelData
-                    max: 1.0
+                    max: 3.0
                     min: 0.0
                     height: 38
-                    width:250
+                    width: 250
                 }
                 ConfigSlider {
                     label: qsTr("Slope bias")
                     integral: false
                     config: shadowConfig
                     property: "slopeBias"+modelData
-                    max: 1.0
+                    max: 3.0
                     min: 0.0
                     height: 38
                     width: 250

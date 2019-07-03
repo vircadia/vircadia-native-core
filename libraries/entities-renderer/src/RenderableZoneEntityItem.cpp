@@ -317,7 +317,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     sunLight->setIntensity(_keyLightProperties.getIntensity());
     sunLight->setDirection(_lastRotation * _keyLightProperties.getDirection());
     sunLight->setCastShadows(_keyLightProperties.getCastShadows());
-    sunLight->setShadowsBiasScale(_keyLightProperties.getShadowBias());
+    sunLight->setShadowBias(_keyLightProperties.getShadowBias());
     sunLight->setShadowsMaxDistance(_keyLightProperties.getShadowMaxDistance());
 }
 
