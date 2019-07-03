@@ -185,7 +185,7 @@ ItemKey EntityRenderer::getKey() {
     }
 }
 
-uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
+uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     if (Item::isValidID(_renderItemID)) {
         subItems.emplace_back(_renderItemID);
         return 1;

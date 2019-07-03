@@ -56,6 +56,7 @@ public:
     BOOL initLog();
     BOOL addToLog(const CString& line);
     void closeLog();
+    void saveErrorLog();
     BOOL getAndCreatePaths(PathType type, CString& outPath);
     BOOL getInstalledVersion(const CString& path, CString& version);
     BOOL isApplicationInstalled(CString& version, CString& domain,
@@ -73,6 +74,7 @@ public:
     HWND launchApplication();
     BOOL uninstallApplication();
     BOOL installLauncher();
+    BOOL restartLauncher();
 
     //  getters
     const CString& getContentURL() const { return _contentURL; }
@@ -84,6 +86,8 @@ public:
     BOOL needsUninstall() { return _shouldUninstall; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() { return _loggedIn; }
+    bool hasFailed() { return _hasFailed; }
+    void setFailed(bool hasFailed) { _hasFailed = hasFailed; }
     const CString& getLatestInterfaceURL() const { return _latestApplicationURL; }
     void uninstall() { _shouldUninstall = true; };
 
@@ -106,6 +110,7 @@ private:
     CString _applicationZipPath;
     CString _contentZipPath;
     bool _loggedIn{ false };
+    bool _hasFailed{ false };
     BOOL _shouldUpdate{ FALSE };
     BOOL _shouldUninstall{ FALSE };
     BOOL _shouldShutdown{ FALSE };

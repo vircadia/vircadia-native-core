@@ -48,13 +48,13 @@ void main(void) {
     const float ALPHA_THRESHOLD = 0.999;
     if (texel.a < ALPHA_THRESHOLD) {
        packDeferredFragmentTranslucent(
-            normalize(_normalWS),
+            normalize(_normalWS) * (2.0 * float(gl_FrontFacing) - 1.0),
             texel.a,
             texel.rgb + fadeEmissive,
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(
-            normalize(_normalWS),
+            normalize(_normalWS) * (2.0 * float(gl_FrontFacing) - 1.0),
             1.0,
             texel.rgb + fadeEmissive);
     }
