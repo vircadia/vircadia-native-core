@@ -4161,6 +4161,19 @@ bool Application::event(QEvent* event) {
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
+        case QEvent::FocusIn:
+        { //testing to see if we can set focus when focus is not set to root window. 
+            auto offscreenUi = getOffscreenUI();
+            auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
+            
+            if (activeFocusItem == NULL) {
+                offscreenUi->getRootItem()->setEnabled(true);
+                offscreenUi->getRootItem()->setFocus(true, Qt::FocusReason::ActiveWindowFocusReason);
+            }
+           
+            return true; 
+        }
+
         case QEvent::TouchBegin:
             touchBeginEvent(static_cast<QTouchEvent*>(event));
             event->accept();
