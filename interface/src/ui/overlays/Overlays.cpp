@@ -1333,60 +1333,99 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * <p>An overlay may be one of the following types:</p>
  * <table>
  *   <thead>
- *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
+ *     <tr><th>Value</th><th>2D/3D</th><th>Description</th><th>Properties</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
- *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
- *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
- *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> overlay to create a cube.</td></tr>
- *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> overlay to create a sphere.</td></tr>
- *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
- *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
- *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
- *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
- *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
- *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
- *     <tr><td><code>line3d</code></td><td>3D</td><td>A line.</td></tr>
- *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
- *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
+ *     <tr><td><code>"image"</code></td><td>2D</td>
+ *       <td>An image.</td>
+ *       <td>{@link Overlays.OverlayProperties-Image|OverlayProperties-Image}</td></tr>
+ *     <tr><td><code>"rectangle"</code></td><td>2D</td>
+ *       <td>A rectangle.</td>
+ *       <td>{@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}</td></tr>
+ *     <tr><td><code>"text"</code></td><td>2D</td>
+ *       <td>Some text.</td>
+ *       <td>{@link Overlays.OverlayProperties-Text|OverlayProperties-Text}</td></tr>
+ *     <tr><td><code>"cube"</code></td><td>3D</td>
+ *       <td>A cube. A <code>"shape"</code> overlay can also be used to create a cube.<br/>
+ *       <span class="important">Deprecated.</span>
+ *       </td>
+ *       <td>{@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube}</td></tr>
+ *     <tr><td><code>"sphere"</code></td><td>3D</td>
+ *       <td>A sphere. A <code>"shape"</code> overlay can also be used to create a sphere.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere}</td></tr>
+ *     <tr><td><code>"rectangle3d"</code></td><td>3D</td>
+ *       <td>A rectangle.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D}</td></tr>
+ *     <tr><td><code>"shape"</code></td><td>3D</td>
+ *       <td>A geometric shape, such as a cube, sphere, or cylinder.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape}</td></tr>
+ *     <tr><td><code>"model"</code></td><td>3D</td>
+ *       <td>A model.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Model|OverlayProperties-Model}</td></tr>
+ *     <tr><td><code>"text3d"</code></td><td>3D</td>
+ *       <td>Some text.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}</td></tr>
+ *     <tr><td><code>"image3d"</code></td><td>3D</td>
+ *       <td>An image. Synonym: <code>"billboard"</code>.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D}</td></tr>
+ *     <tr><td><code>"web3d"</code></td><td>3D</td>
+ *       <td>Web content.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Web3D|OverlayProperties-Web3D}</td></tr>
+ *     <tr><td><code>"line3d"</code></td><td>3D</td>
+ *       <td>A line.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Line3D|OverlayProperties-Line3D}</td></tr>
+ *     <tr><td><code>"grid"</code></td><td>3D</td>
+ *       <td>A grid of lines in a plane.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid}</td></tr>
+ *     <tr><td><code>"circle3d"</code></td><td>3D</td>
+ *       <td>A circle.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Circle3D|OverlayProperties-Circle3D}</td></tr>
  *   </tbody>
  * </table>
  * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
- * rendered at a position and orientation in-world, but are deprecated (use local entities instead).<p>
- * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
+ * rendered at a position and orientation in-world.<p>
+ * <p class="important">3D overlays are deprecated: Use local {@link Entities} for these instead.</p>
  * @typedef {string} Overlays.OverlayType
  */
 
 /**jsdoc
- * Different overlay types have different properties: some common to all overlays (listed below) and some specific to each
- * {@link Overlays.OverlayType|OverlayType} (linked to below). The properties are accessed as an object of property names and
- * values.  3D Overlays are local entities, internally, so they also support the corresponding entity properties.
- *
+ * Different overlay types have different properties: some common to all overlays (listed in the table) and some specific to 
+ * each {@link Overlays.OverlayType|OverlayType} (linked to below).
+ * <p>3D overlays are local entities, internally, so they also support the corresponding entity properties.</p>
  * @typedef {object} Overlays.OverlayProperties
  * @property {Uuid} id - The ID of the overlay. <em>Read-only.</em>
- * @property {Overlays.OverlayType} type - The overlay type. <em>Read-only.</em>
- * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ * @property {Overlays.OverlayType} type - The overlay's type. <em>Read-only.</em>
+ * @property {boolean} visible=true - <code>true</code> if the overlay is rendered, <code>false</code> if it isn't.
  *
- * @see The different entity types have additional properties as follows:
  * @see {@link Overlays.OverlayProperties-Image|OverlayProperties-Image}
- * @see {@link Overlays.OverlayProperties-Text|OverlayProperties-Text}
  * @see {@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}
- * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube}
- * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere}
- * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D}
- * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape}
- * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model}
- * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}
- * @see {@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D}
- * @see {@link Overlays.OverlayProperties-Web|OverlayProperties-Web}
- * @see {@link Overlays.OverlayProperties-Line|OverlayProperties-Line}
- * @see {@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid}
- * @see {@link Overlays.OverlayProperties-Circle|OverlayProperties-Circle}
+ * @see {@link Overlays.OverlayProperties-Text|OverlayProperties-Text}
+ * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Web3D|OverlayProperties-Web3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Line3D|OverlayProperties-Line3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Circle3D|OverlayProperties-Circle3D} <span class="important">Deprecated.</span>
  */
 
 /**jsdoc
- * The <code>"Image"</code> {@link Overlays.OverlayType|OverlayType} is a 2D image.
+ * The <code>"image"</code> {@link Overlays.OverlayType|OverlayType} is for 2D images.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * @typedef {object} Overlays.OverlayProperties-Image
  * @property {Rect} bounds - The position and size of the image display area, in pixels. <em>Write-only.</em>
  * @property {number} x - Integer left, x-coordinate value of the image display area = <code>bounds.x</code>.
@@ -1405,7 +1444,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Text"</code> {@link Overlays.OverlayType|OverlayType} is for 2D text.
+ * The <code>"text"</code> {@link Overlays.OverlayType|OverlayType} is for 2D text.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * @typedef {object} Overlays.OverlayProperties-Text
  * @property {Rect} bounds - The position and size of the rectangle, in pixels. <em>Write-only.</em>
  * @property {number} x - Integer left, x-coordinate value = <code>bounds.x</code>. <em>Write-only.</em>
@@ -1430,7 +1470,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Rectangle"</code> {@link Overlays.OverlayType|OverlayType} is for 2D rectangles.
+ * The <code>"rectangle"</code> {@link Overlays.OverlayType|OverlayType} is for 2D rectangles.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
  * @typedef {object} Overlays.OverlayProperties-Rectangle
  * @property {Rect} bounds - The position and size of the rectangle, in pixels. <em>Write-only.</em>
  * @property {number} x - Integer left, x-coordinate value = <code>bounds.x</code>. <em>Write-only.</em>
@@ -1449,7 +1490,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Cube"</code> {@link Overlays.OverlayType|OverlayType} is for 3D cubes.
+ * The <code>"cube"</code> {@link Overlays.OverlayType|OverlayType} is for 3D cubes.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Cube
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1488,7 +1531,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Sphere"</code> {@link Overlays.OverlayType|OverlayType} is for 3D spheres.
+ * The <code>"sphere"</code> {@link Overlays.OverlayType|OverlayType} is for 3D spheres.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Sphere
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1527,7 +1572,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Rectangle3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D rectangles.
+ * The <code>"rectangle3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D rectangles.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Rectangle3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1566,7 +1613,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * <p>A <code>shape</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical shapes:</p>
+ * <p>A <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical shapes:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Dimensions</th><th>Description</th></tr>
@@ -1593,7 +1640,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Shape"</code> {@link Overlays.OverlayType|OverlayType} is for 3D shapes.
+ * The <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} is for 3D shapes.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Shape
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1633,7 +1682,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Model"</code> {@link Overlays.OverlayType|OverlayType} is for 3D models.
+ * The <code>"model"</code> {@link Overlays.OverlayType|OverlayType} is for 3D models.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Model
  * @property {string} name - The name of the overlay.
  *
@@ -1677,7 +1728,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Text3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D text.
+ * The <code>"text3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D text.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Text3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1725,7 +1778,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Image3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D images.
+ * The <code>"image3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D images.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Image3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1769,8 +1824,10 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Web"</code> {@link Overlays.OverlayType|OverlayType} is for 3D web surfaces.
- * @typedef {object} Overlays.OverlayProperties-Web
+ * The <code>"web3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D web surfaces.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
+ * @typedef {object} Overlays.OverlayProperties-Web3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
@@ -1813,8 +1870,10 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Line"</code> {@link Overlays.OverlayType|OverlayType} is for 3D lines.
- * @typedef {object} Overlays.OverlayProperties-Line
+ * The <code>"line3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D lines.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
+ * @typedef {object} Overlays.OverlayProperties-Line3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
@@ -1851,7 +1910,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Grid"</code> {@link Overlays.OverlayType|OverlayType} is for 3D grid.
+ * The <code>"grid"</code> {@link Overlays.OverlayType|OverlayType} is for 3D grids.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Grid
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
@@ -1891,8 +1952,10 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Circle"</code> {@link Overlays.OverlayType|OverlayType} is for 3D circle.
- * @typedef {object} Overlays.OverlayProperties-Circle
+ * The <code>"circle3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D circles.
+ * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
+ * @typedef {object} Overlays.OverlayProperties-Circle3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.

@@ -68,8 +68,11 @@ public:
 };
 
 /**jsdoc
- * (Note: 3D Overlays are deprecated.  Use local entities instead.)  The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
- * yourself and that aren't persisted to the domain. They are used for UI.
+ * The <code>Overlays</code> API provides facilities to create and interact with overlays. These are 2D and 3D objects visible 
+ * only to yourself and that aren't persisted to the domain. They are used for UI.
+ *
+ * <p class="important">3D overlays are deprecated: Use local {@link Entities} for these instead.</p>
+ *
  * @namespace Overlays
  *
  * @hifi-interface
@@ -216,12 +219,12 @@ public slots:
     QString getOverlayType(const QUuid& id);
 
     /**jsdoc
-     * Get the overlay script object. In particular, this is useful for accessing the event bridge for a <code>web3d</code> 
+     * Get the overlay script object. In particular, this is useful for accessing the event bridge for a <code>"web3d"</code>
      * overlay.
      * @function Overlays.getOverlayObject
      * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
      * @returns {object} The script object for the overlay if found.
-     * @example <caption>Receive "hello" messages from a <code>web3d</code> overlay.</caption>
+     * @example <caption>Receive "hello" messages from a <code>"web3d"</code> overlay.</caption>
      * // HTML file: name "web3d.html".
      * <!DOCTYPE html>
      * <html>
