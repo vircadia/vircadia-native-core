@@ -147,7 +147,12 @@ macro(AUTOSCRIBE_SHADER)
     MATH(EXPR SHADER_COUNT "${SHADER_COUNT}+1")
 endmacro()
 
+# This function takes in the list of defines, which would look like:
+# (normalmap;translucent:f)/shadow;deformed:v
+# and handles parentheses and slashes, producing the semicolon-separated final list of all combinations, which in that case will look like:
+# normalmap;translucent:f;normalmap_translucent:f;shadow;normalmap_deformed:v;translucent:f_deformed:v;normalmap_translucent:f_deformed:v;shadow_deformed:v
 function(GENERATE_DEFINES_LIST_HELPER INPUT_LIST RETURN_LIST)
+    # This while loop handles parentheses, looking for matching ( and ) and then calling GENERATE_DEFINES_LIST_HELPER recursively on the text in between
     string(LENGTH "${INPUT_LIST}" STR_LENGTH)
     set(OPEN_INDEX -1)
     set(STR_INDEX 0)
@@ -183,6 +188,7 @@ function(GENERATE_DEFINES_LIST_HELPER INPUT_LIST RETURN_LIST)
         MATH(EXPR STR_INDEX "${STR_INDEX}+1")
     endwhile()
 
+    # Here we handle the base case, the recursive case, and slashes
     list(LENGTH INPUT_LIST NUM_DEFINES)
     if (NUM_DEFINES EQUAL 1)
         string(REPLACE "/" ";" INPUT_LIST "${INPUT_LIST}")
@@ -301,6 +307,9 @@ macro(AUTOSCRIBE_SHADER_LIB)
             foreach(DEFINES ${DEFINES_LIST})
                 set(ORIG_DEFINES "${DEFINES}")
 
+                # Below here we handle :v and :f. The program name includes both, but the vertex and fragment names
+                # remove the elements with :f and :v respectively, and only have to call AUTOSCRIBE_SHADER if they don't have those
+                # (because the shaders without them will have already been generated)
                 string(REPLACE ":v" "" VERTEX_DEFINES "${ORIG_DEFINES}")
                 string(FIND "${ORIG_DEFINES}" ":f" HAS_FRAGMENT)
                 if (HAS_FRAGMENT EQUAL -1)

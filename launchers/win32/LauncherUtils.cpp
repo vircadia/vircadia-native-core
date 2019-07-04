@@ -37,7 +37,19 @@ CString LauncherUtils::urlEncodeString(const CString& url) {
     return stringOut;
 }
 
-BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
+BOOL LauncherUtils::shutdownProcess(DWORD dwProcessId, UINT uExitCode) {
+    DWORD dwDesiredAccess = PROCESS_TERMINATE;
+    BOOL  bInheritHandle = FALSE;
+    HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
+    if (hProcess == NULL) {
+        return FALSE;
+    }
+    BOOL result = TerminateProcess(hProcess, uExitCode);
+    CloseHandle(hProcess);
+    return result;
+}
+
+BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName, int& processID) {
     bool exists = false;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
@@ -48,6 +60,7 @@ BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
         while (Process32Next(snapshot, &entry)) {
             if (!_wcsicmp(entry.szExeFile, processName)) {
                 exists = true;
+                processID = entry.th32ProcessID;
                 break;
             }
         }

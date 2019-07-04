@@ -15,13 +15,10 @@
 #include "LauncherManager.h"
 
 
-LauncherManager::LauncherManager()
-{
+LauncherManager::LauncherManager() {
 }
 
-
-LauncherManager::~LauncherManager()
-{
+LauncherManager::~LauncherManager() {
 }
 
 void LauncherManager::init() {
@@ -113,8 +110,11 @@ BOOL LauncherManager::installLauncher() {
             // The installer is not running on the desired location and has to be installed
             // Kill of running before self-copy
             addToLog(_T("Installing Launcher."));
-            if (LauncherUtils::IsProcessRunning(LAUNCHER_EXE_FILENAME)) {
-                ShellExecute(NULL, NULL, L"taskkill", L"/F /T /IM " + LAUNCHER_EXE_FILENAME, NULL, SW_HIDE);
+            int launcherPID = -1;
+            if (LauncherUtils::IsProcessRunning(LAUNCHER_EXE_FILENAME, launcherPID)) {
+                if (!LauncherUtils::shutdownProcess(launcherPID, 0)) {
+                    addToLog(_T("Error shutting down the Launcher"));
+                }
             }
             CopyFile(appPath, instalationPath, FALSE);
         }
@@ -308,7 +308,8 @@ LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, C
     }
     Json::Value config;
     configFile >> config;
-    if (config["version"].isString() && config["domain"].isString() &&
+    if (config["version"].isString() && 
+        config["domain"].isString() &&
         config["content"].isString()) {
         loggedIn = config["loggedIn"].asBool();
         version = config["version"].asCString();
