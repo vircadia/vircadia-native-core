@@ -73,7 +73,8 @@ public:
     static std::string cStringToStd(CString cstring);
     static BOOL getFont(const CString& fontName, int fontSize, bool isBold, CFont& fontOut);
     static BOOL launchApplication(LPCWSTR lpApplicationName, LPTSTR cmdArgs = _T(""));
-    static BOOL IsProcessRunning(const wchar_t *processName);
+    static BOOL IsProcessRunning(const wchar_t *processName, int& processID);
+    static BOOL shutdownProcess(DWORD dwProcessId, UINT uExitCode);
     static BOOL insertRegistryKey(const std::string& regPath, const std::string& name, const std::string& value);
     static BOOL insertRegistryKey(const std::string& regPath, const std::string& name, DWORD value);
     static BOOL deleteFileOrDirectory(const CString& dirPath, bool noRecycleBin = true);
