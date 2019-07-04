@@ -20,6 +20,8 @@
 #include "EntityItem.h"
 #include "EntityDynamicInterface.h"
 
+#include "EntityTreeRenderer.h"
+
 class EntityTreeRenderer;
 class EntityItemID;
 
@@ -64,8 +66,8 @@ private:
 
     std::set<int, SequenceLessThan> _sequenceNumbers;
 
-    static float ElevatedPriority(const EntityItem& entityItem);
-    static float StandardPriority(const EntityItem&) { return 0.0f; }
+    static CalculateEntityLoadingPriority entityLoadingOperatorElevateCollidables;
+    CalculateEntityLoadingPriority _prevEntityLoadingPriorityOperator { nullptr };
 
     static const int SEQUENCE_MODULO;
 };

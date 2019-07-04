@@ -108,8 +108,8 @@ void WorldBoxRenderData::renderWorldBox(RenderArgs* args, gpu::Batch& batch) {
         glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY,
         geometryIds[17]);
 
-
-    geometryCache->renderWireCubeInstance(args, batch, GREY4);
+    auto pipeline = geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == render::Args::RenderMethod::FORWARD);
+    geometryCache->renderWireCubeInstance(args, batch, GREY4, pipeline);
 
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
@@ -117,22 +117,22 @@ void WorldBoxRenderData::renderWorldBox(RenderArgs* args, gpu::Batch& batch) {
 
     transform = Transform().setScale(MARKER_RADIUS);
     batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(args, batch, RED);
+    geometryCache->renderSolidSphereInstance(args, batch, RED, pipeline);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f)).setScale(MARKER_RADIUS);
     batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(args, batch, RED);
+    geometryCache->renderSolidSphereInstance(args, batch, RED, pipeline);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f)).setScale(MARKER_RADIUS);
     batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(args, batch, GREEN);
+    geometryCache->renderSolidSphereInstance(args, batch, GREEN, pipeline);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
     batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(args, batch, BLUE);
+    geometryCache->renderSolidSphereInstance(args, batch, BLUE, pipeline);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
     batch.setModelTransform(transform);
-    geometryCache->renderSolidSphereInstance(args, batch, GREY);
+    geometryCache->renderSolidSphereInstance(args, batch, GREY, pipeline);
 }
 

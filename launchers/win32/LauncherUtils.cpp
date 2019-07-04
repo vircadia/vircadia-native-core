@@ -37,7 +37,19 @@ CString LauncherUtils::urlEncodeString(const CString& url) {
     return stringOut;
 }
 
-BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
+BOOL LauncherUtils::shutdownProcess(DWORD dwProcessId, UINT uExitCode) {
+    DWORD dwDesiredAccess = PROCESS_TERMINATE;
+    BOOL  bInheritHandle = FALSE;
+    HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
+    if (hProcess == NULL) {
+        return FALSE;
+    }
+    BOOL result = TerminateProcess(hProcess, uExitCode);
+    CloseHandle(hProcess);
+    return result;
+}
+
+BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName, int& processID) {
     bool exists = false;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
@@ -48,6 +60,7 @@ BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
         while (Process32Next(snapshot, &entry)) {
             if (!_wcsicmp(entry.szExeFile, processName)) {
                 exists = true;
+                processID = entry.th32ProcessID;
                 break;
             }
         }
@@ -258,38 +271,54 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
     }
 
     int fileCount = (int)mz_zip_reader_get_num_files(&zip_archive);
-    if (fileCount == 0) {
-        theApp._manager.addToLog(_T("Zip archive has a file count of 0"));
+    {
+        CString msg;
+        msg.Format(_T("Zip archive has a file count of %d"), fileCount);
+        theApp._manager.addToLog(msg);
+    }
 
+    if (fileCount == 0) {
         mz_zip_reader_end(&zip_archive);
         return 0;
     }
     mz_zip_archive_file_stat file_stat;
     if (!mz_zip_reader_file_stat(&zip_archive, 0, &file_stat)) {
         theApp._manager.addToLog(_T("Zip archive cannot be stat'd"));
-
         mz_zip_reader_end(&zip_archive);
         return 0;
     }
     // Get root folder
     CString lastDir = _T("");
     uint64_t totalSize = 0;
+    bool _shouldFail = false;
     for (int i = 0; i < fileCount; i++) {
         if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) continue;
         std::string filename = file_stat.m_filename;
         std::replace(filename.begin(), filename.end(), '/', '\\');
         CString fullFilename = CString(path.c_str()) + "\\" + CString(filename.c_str());
         if (mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-            if (SHCreateDirectoryEx(NULL, fullFilename, NULL) || ERROR_ALREADY_EXISTS == GetLastError()) {
-                break;
-            } else {
-                continue;
+            int error = SHCreateDirectoryEx(NULL, fullFilename, NULL);
+            if (error == ERROR_BAD_PATHNAME ||
+                error == ERROR_FILENAME_EXCED_RANGE ||
+                error == ERROR_PATH_NOT_FOUND ||
+                error == ERROR_CANCELLED) {
+                CString msg;
+                msg.Format(_T("Unzipping error: %d creating folder: %s"), error, fullFilename);
+                theApp._manager.addToLog(msg);
+                mz_zip_reader_end(&zip_archive);
+                return 0;
             }
+            continue;
         }
         CT2A destFile(fullFilename);
         if (mz_zip_reader_extract_to_file(&zip_archive, i, destFile, 0)) {
             totalSize += (uint64_t)file_stat.m_uncomp_size;
             files.emplace_back(destFile);
+        } else {
+            CString msg;
+            msg.Format(_T("Error unzipping the file: %s"), fullFilename);
+            theApp._manager.addToLog(msg);
+            _shouldFail = true;
         }
     }
 
@@ -421,11 +450,10 @@ DWORD WINAPI LauncherUtils::unzipThread(LPVOID lpParameter) {
     return 0;
 }
 
-DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter)
-{
+DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter) {
     DownloadThreadData& data = *((DownloadThreadData*)lpParameter);
     auto hr = URLDownloadToFile(0, data._url, data._file, 0, NULL);
-    data.callback(data._type);
+    data.callback(data._type, hr != S_OK);
     return 0;
 }
 
@@ -457,7 +485,7 @@ BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, cons
     return FALSE;
 }
 
-BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int)> callback) {
+BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int, bool)> callback) {
     DWORD myThreadID;
     DownloadThreadData* downloadThreadData = new DownloadThreadData();
     downloadThreadData->_type = type;

@@ -154,7 +154,7 @@ protected:
 
     void setKey(bool didVisualGeometryRequestSucceed);
     virtual ItemKey getKey() override;
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
 
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual bool needsRenderUpdate() const override;

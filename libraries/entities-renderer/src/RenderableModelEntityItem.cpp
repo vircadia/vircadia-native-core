@@ -1073,7 +1073,7 @@ ItemKey ModelEntityRenderer::getKey() {
     return _itemKey;
 }
 
-uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
+uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     if (_model) {
         auto metaSubItems = _model->fetchRenderItemIDs();
         subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
@@ -1519,7 +1519,8 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getModelTransform()); // we want to include the scale as well
-    DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->renderWireCubeInstance(args, batch, greenColor, geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == Args::RenderMethod::FORWARD));
 
 #if WANT_EXTRA_DEBUGGING
     ModelPointer model;

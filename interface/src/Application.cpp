@@ -1345,9 +1345,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
-    connect(this, &Application::activeDisplayPluginChanged, this, [](){
+    connect(this, &Application::activeDisplayPluginChanged, this, [=](){
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
         auto displayPlugin = qApp->getActiveDisplayPlugin();
+
+        if (displayPlugin->isHmd()) {
+            if (_preferredCursor.get() == Cursor::Manager::getIconName(Cursor::Icon::RETICLE)) {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::RETICLE));
+            }
+            else {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::ARROW));
+            }
+        }
+        else {
+            setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+        }
+
         setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
