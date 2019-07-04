@@ -140,8 +140,8 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  * @property {boolean} [faceAvatar=false] - <code>true</code> if the overlay rendered at the end of the ray rotates about the 
  *     world y-axis to always face the avatar; <code>false</code> if it maintains its world orientation.
  * @property {boolean} [centerEndY=true] - <code>true</code> if the overlay rendered at the end of the ray is centered on 
- *     the ray end; <code>false</code> if the overlay is rendered adjacent to the surface if <code>followNormal</code> is 
- *     <code>true</code> or on top of the ray end if if <code>followNormal</code> is <code>false</code>.
+ *     the ray end; <code>false</code> if the overlay is positioned against the surface if <code>followNormal</code> is 
+ *     <code>true</code>, or above the ray end if <code>followNormal</code> is <code>false</code>.
 * @property {boolean} [lockEnd=false] - <code>true</code> if the end of the ray is locked to the center of the object at 
  *     which the ray is pointing; <code>false</code> if the end of the ray is at the intersected surface.
  * @property {boolean} [distanceScaleEnd=false] - <code>true</code> if the dimensions of the overlay at the end of the ray 
@@ -331,8 +331,8 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
  * @property {boolean} [faceAvatar=false] - <code>true</code> if the overlay rendered at the end of the ray rotates about the
  *     world y-axis to always face the avatar; <code>false</code> if it maintains its world orientation.
  * @property {boolean} [centerEndY=true] - <code>true</code> if the overlay rendered at the end of the ray is centered on
- *     the ray end; <code>false</code> if the overlay is rendered adjacent to the surface if <code>followNormal</code> is
- *     <code>true</code> or on top of the ray end if if <code>followNormal</code> is <code>false</code>.
+ *     the ray end; <code>false</code> if the overlay is positioned against the surface if <code>followNormal</code> is
+ *     <code>true</code>, or above the ray end if <code>followNormal</code> is <code>false</code>.
 * @property {boolean} [lockEnd=false] - <code>true</code> if the end of the ray is locked to the center of the object at
  *     which the ray is pointing; <code>false</code> if the end of the ray is at the intersected surface.
  * @property {boolean} [distanceScaleEnd=false] - <code>true</code> if the dimensions of the overlay at the end of the ray
