@@ -39,10 +39,10 @@ namespace platform { namespace keys{
     namespace display {
         extern const char*  description;
         extern const char*  name;
-        extern const char*  coordsLeft;
-        extern const char*  coordsRight;
-        extern const char*  coordsTop;
-        extern const char*  coordsBottom;
+        extern const char*  boundsLeft;
+        extern const char*  boundsRight;
+        extern const char*  boundsTop;
+        extern const char*  boundsBottom;
         extern const char*  gpu;
     }
     namespace memory {

@@ -19,8 +19,7 @@ bool Instance::enumeratePlatform() {
     enumerateComputer();
     enumerateMemory();
     enumerateCpus();
-    enumerateGpus();
-    enumerateDisplays();
+    enumerateGpusAndDisplays();
     enumerateNics();
 
     // And profile the platform and put the tier in "computer"
@@ -102,10 +101,10 @@ json Instance::listAllKeys() {
 
         keys::display::description,
         keys::display::name,
-        keys::display::coordsLeft,
-        keys::display::coordsRight,
-        keys::display::coordsTop,
-        keys::display::coordsBottom,
+        keys::display::boundsLeft,
+        keys::display::boundsRight,
+        keys::display::boundsTop,
+        keys::display::boundsBottom,
         keys::display::gpu,
 
         keys::memory::memTotal,

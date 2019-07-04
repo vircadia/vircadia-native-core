@@ -86,20 +86,30 @@ PropFolderPanel {
                             var itemLabel = proItem.property;
                             var itemDepth = root.indentDepth + 1;
                             if (Array.isArray(itemRootObject)) {
-                                if (objectItem.length > 1) {
-                                    itemLabel = itemLabel + " " + objectItem.length
+                                itemLabel = proItem.property + "[] / " + itemRootObject.length
+                                if (itemRootObject.length == 0) {
+                                    var component = Qt.createComponent("PropItem.qml");
+                                    component.createObject(propItemsContainer, {
+                                        "label": itemLabel
+                                    })
                                 } else {
-                                    itemLabel = itemLabel + " " + objectItem.length
-                                    itemRootObject = itemRootObject[0];
+                                    var component = Qt.createComponent("PropGroup.qml");
+                                    component.createObject(propItemsContainer, {
+                                        "label": itemLabel,
+                                        "rootObject":itemRootObject,
+                                        "indentDepth": itemDepth,
+                                        "isUnfold": true,
+                                    })
                                 }
+                            } else {
+                                var component = Qt.createComponent("PropGroup.qml");
+                                component.createObject(propItemsContainer, {
+                                    "label": itemLabel,
+                                    "rootObject":itemRootObject,
+                                    "indentDepth": itemDepth,
+                                    "isUnfold": true,
+                                })
                             }
-                            var component = Qt.createComponent("PropGroup.qml");
-                            component.createObject(propItemsContainer, {
-                                "label": itemLabel,
-                                "rootObject":itemRootObject,
-                                "indentDepth": itemDepth,
-                                "isUnfold": true,
-                            })
                         } break;
                         case 'printLabel': {
                             var component = Qt.createComponent("PropItem.qml");
@@ -125,12 +135,6 @@ PropFolderPanel {
 
     function populateFromObjectProps(object) {
         var propsModel = []
-
-        if (Array.isArray(object)) {
-            if (object.length <= 1) {
-                object = object[0];
-            }
-        }
 
         var props = Object.keys(object);
         for (var p in props) {

@@ -11,23 +11,31 @@
 
 #include <thread>
 #include <string>
+
 #include <CPUIdent.h>
-#include <GPUIdent.h>
+
+#include <QtCore/QtGlobal>
 
 #ifdef Q_OS_WIN
+#include <sstream>
+#include <qstring>
+#include <qsysinfo>
 #include <Windows.h>
 #include <iphlpapi.h>
 #include <stdio.h>
 #include <QSysInfo>
 #include <dxgi1_3.h>
 #pragma comment(lib, "dxgi.lib")
+#include <shellscalingapi.h>
+#pragma comment(lib, "Shcore.lib")
+
 #endif
 
 using namespace platform;
 
 void WINInstance::enumerateCpus() {
     json cpu = {};
-    
+
     cpu[keys::cpu::vendor] = CPUIdent::Vendor();
     cpu[keys::cpu::model] = CPUIdent::Brand();
     cpu[keys::cpu::numCores] = std::thread::hardware_concurrency();
@@ -35,19 +43,20 @@ void WINInstance::enumerateCpus() {
     _cpus.push_back(cpu);
 }
 
-void WINInstance::enumerateGpus() {
+void WINInstance::enumerateGpusAndDisplays() {
 #ifdef Q_OS_WIN
-    struct ConvertLargeIntegerToQString {
-        QString convert(const LARGE_INTEGER& version) {
-            QString value;
-            value.append(QString::number(uint32_t(((version.HighPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
-            value.append(".");
-            value.append(QString::number(uint32_t((version.HighPart) & 0x0000FFFF)));
-            value.append(".");
-            value.append(QString::number(uint32_t(((version.LowPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
-            value.append(".");
-            value.append(QString::number(uint32_t((version.LowPart) & 0x0000FFFF)));
-            return value;
+    struct ConvertLargeIntegerToString {
+        std::string convert(const LARGE_INTEGER& version) {
+            std::ostringstream value;
+            value << uint32_t(((version.HighPart & 0xFFFF0000) >> 16) & 0x0000FFFF);
+            value << ".";
+            value << uint32_t((version.HighPart) & 0x0000FFFF);
+            value << ".";
+            value << uint32_t(((version.LowPart & 0xFFFF0000) >> 16) & 0x0000FFFF);
+            value << ".";
+            value << uint32_t((version.LowPart) & 0x0000FFFF);
+           
+            return value.str();
         }
     } convertDriverVersionToString;
 
@@ -58,7 +67,6 @@ void WINInstance::enumerateGpus() {
     IDXGIFactory1* pFactory = nullptr;
     hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&pFactory));
     if (hr != S_OK || pFactory == nullptr) {
-//        qCDebug(shared) << "Unable to create DXGI";
         return;
     }
 
@@ -85,8 +93,7 @@ void WINInstance::enumerateGpus() {
             gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
             const SIZE_T BYTES_PER_MEGABYTE = 1024 * 1024;
             gpu[keys::gpu::videoMemory] = (uint32_t)(adapterDesc.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
-            gpu[keys::gpu::driver] = convertDriverVersionToString.convert(version).toStdString();
-
+            gpu[keys::gpu::driver] = convertDriverVersionToString.convert(version);
 
             std::vector<int> displayIndices;
 
@@ -98,12 +105,22 @@ void WINInstance::enumerateGpus() {
                 DXGI_OUTPUT_DESC outputDesc;
                 pOutput->GetDesc(&outputDesc);
 
-                // Grab the Monitor desc
-                // MONITOR_DESC
+                // Grab the dpi info for the monitor
+                UINT dpiX{ 0 };
+                UINT dpiY{ 0 };
+                GetDpiForMonitor(outputDesc.Monitor, MDT_RAW_DPI, &dpiX, &dpiY);
+                UINT dpiXScaled{ 0 };
+                UINT dpiYScaled{ 0 };
+                GetDpiForMonitor(outputDesc.Monitor, MDT_EFFECTIVE_DPI, &dpiXScaled, &dpiYScaled);
+
+                // CUrrent display mode
+                DEVMODEW devMode;
+                devMode.dmSize = sizeof(DEVMODEW);
+                EnumDisplaySettingsW(outputDesc.DeviceName, ENUM_CURRENT_SETTINGS, &devMode);
 
                 json display = {};
 
-                // Desiplay name
+                // Display name
                 std::wstring wDeviceName(outputDesc.DeviceName);
                 std::string deviceName(wDeviceName.begin(), wDeviceName.end());
                 display[keys::display::name] = deviceName;
@@ -111,14 +128,29 @@ void WINInstance::enumerateGpus() {
 
                 // Rect region of the desktop in desktop units
                 display["desktopRect"] = (outputDesc.AttachedToDesktop ? true : false);
-                display[keys::display::coordsLeft] = outputDesc.DesktopCoordinates.left;
-                display[keys::display::coordsRight] = outputDesc.DesktopCoordinates.right;
-                display[keys::display::coordsBottom] = outputDesc.DesktopCoordinates.bottom;
-                display[keys::display::coordsTop] = outputDesc.DesktopCoordinates.top;
+                display[keys::display::boundsLeft] = outputDesc.DesktopCoordinates.left;
+                display[keys::display::boundsRight] = outputDesc.DesktopCoordinates.right;
+                display[keys::display::boundsBottom] = outputDesc.DesktopCoordinates.bottom;
+                display[keys::display::boundsTop] = outputDesc.DesktopCoordinates.top;
+
+                // DPI
+                display["ppiX"] = dpiX;
+                display["ppiY"] = dpiY;
+                display["physicalWidth"] = devMode.dmPelsWidth / (float) dpiX;
+                display["physicalHeight"] = devMode.dmPelsHeight / (float) dpiY;
+                display["modeWidth"] = devMode.dmPelsWidth;
+                display["modeHeight"] = devMode.dmPelsHeight;
+
+                //Average the ppiX and Y scaled vs the the true ppi
+                display["ppi"] = 0.5f * (dpiX + dpiY);
+                display["desktopPPIScale"] = 0.5f * (dpiX / (float) dpiXScaled + dpiY / (float)dpiYScaled);
+
+                // refreshrate
+                display["frequency"] = devMode.dmDisplayFrequency;
 
                 // Add the display index to the list of displays of the gpu
                 displayIndices.push_back(_displays.size());
-                
+
                 // And set the gpu index to the display description
                 display[keys::display::gpu] = _gpus.size();
 
@@ -136,22 +168,11 @@ void WINInstance::enumerateGpus() {
     }
     pFactory->Release();
 #endif
-
-    GPUIdent* ident = GPUIdent::getInstance();
-   
-    json gpu = {};
-    gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
-    gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
-    gpu[keys::gpu::videoMemory] = ident->getMemory();
-    gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
-
-    _gpus.push_back(gpu);
-  //  _displays = ident->getOutput();
 }
 
 void WINInstance::enumerateMemory() {
     json ram = {};
-    
+
 #ifdef Q_OS_WIN
     MEMORYSTATUSEX statex;
     statex.dwLength = sizeof(statex);
@@ -162,11 +183,11 @@ void WINInstance::enumerateMemory() {
     _memory = ram;
 }
 
-void WINInstance::enumerateComputer(){
+void WINInstance::enumerateComputer() {
     _computer[keys::computer::OS] = keys::computer::OS_WINDOWS;
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";
-    
+
     auto sysInfo = QSysInfo();
 
     _computer[keys::computer::OSVersion] = sysInfo.kernelVersion().toStdString();
@@ -180,23 +201,23 @@ void WINInstance::enumerateNics() {
     // We can usually do better than the QNetworkInterface::humanReadableName() by
     // matching up Iphlpapi.lib IP_ADAPTER_INFO by mac id.
     ULONG buflen = sizeof(IP_ADAPTER_INFO);
-    IP_ADAPTER_INFO* pAdapterInfo = (IP_ADAPTER_INFO*) malloc(buflen);
+    IP_ADAPTER_INFO* pAdapterInfo = (IP_ADAPTER_INFO*)malloc(buflen);
 
     // Size the buffer:
     if (GetAdaptersInfo(pAdapterInfo, &buflen) == ERROR_BUFFER_OVERFLOW) {
         free(pAdapterInfo);
-        pAdapterInfo = (IP_ADAPTER_INFO *) malloc(buflen);
+        pAdapterInfo = (IP_ADAPTER_INFO*)malloc(buflen);
     }
 
     // Now get the data...
     if (GetAdaptersInfo(pAdapterInfo, &buflen) == NO_ERROR) {
-        for (json& nic : _nics) { // ... loop through the nics from above...
+        for (json& nic : _nics) {  // ... loop through the nics from above...
             // ...convert the json to a string without the colons...
             QString qtmac = nic[keys::nic::mac].get<std::string>().c_str();
             QString qtraw = qtmac.remove(QChar(':'), Qt::CaseInsensitive).toLower();
             // ... and find the matching one in pAdapter:
             for (IP_ADAPTER_INFO* pAdapter = pAdapterInfo; pAdapter; pAdapter = pAdapter->Next) {
-                QByteArray wmac = QByteArray((const char*) (pAdapter->Address), pAdapter->AddressLength);
+                QByteArray wmac = QByteArray((const char*)(pAdapter->Address), pAdapter->AddressLength);
                 QString wraw = wmac.toHex();
                 if (qtraw == wraw) {
                     nic[keys::nic::name] = pAdapter->Description;

@@ -35,8 +35,7 @@ public:
     json getAll();
 
     void virtual enumerateCpus()=0;
-    void virtual enumerateGpus()=0;
-    void virtual enumerateDisplays() {}
+    void virtual enumerateGpusAndDisplays()=0;
     void virtual enumerateNics();
     void virtual enumerateMemory() = 0;
     void virtual enumerateComputer()=0;

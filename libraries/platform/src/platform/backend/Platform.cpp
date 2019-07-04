@@ -40,10 +40,10 @@ namespace platform { namespace keys {
     namespace display {
         const char*  description = "description";
         const char*  name = "deviceName";
-        const char*  coordsLeft = "coordinatesleft";
-        const char*  coordsRight = "coordinatesright";
-        const char*  coordsTop = "coordinatestop";
-        const char*  coordsBottom = "coordinatesbottom";
+        const char*  boundsLeft = "boundsLeft";
+        const char*  boundsRight = "boundsRight";
+        const char*  boundsTop = "boundsTop";
+        const char*  boundsBottom = "boundsBottom";
         const char*  gpu = "gpu";
     }
     namespace memory {

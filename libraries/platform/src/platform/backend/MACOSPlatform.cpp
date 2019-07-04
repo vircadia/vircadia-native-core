@@ -12,7 +12,8 @@
 #include <thread>
 #include <string>
 #include <CPUIdent.h>
-#include <GPUIdent.h>
+
+#include <QtCore/QtGlobal>
 
 #ifdef Q_OS_MAC
 #include <unistd.h>
@@ -42,7 +43,7 @@ void MACOSInstance::enumerateCpus() {
 }
 
 
-void MACOSInstance::enumerateGpus() {
+void MACOSInstance::enumerateGpusAndDisplays() {
 #ifdef Q_OS_MAC
     // Collect Renderer info as exposed by the CGL layers
     GLuint cglDisplayMask = -1; // Iterate over all of them.
@@ -191,9 +192,6 @@ void MACOSInstance::enumerateGpus() {
     }
 #endif
 
-}
-
-void MACOSInstance::enumerateDisplays() {
 #ifdef Q_OS_MAC
     uint32_t numDisplays = 0;
     CGError error = CGGetOnlineDisplayList(0, nullptr, &numDisplays);
@@ -240,10 +238,10 @@ void MACOSInstance::enumerateDisplays() {
         
         display["ppi"] = sqrt(displayModeHeight * displayModeHeight + displayModeWidth * displayModeWidth) / displaySizeDiagonalInches;
         
-        display["coordLeft"] = displayBounds.origin.x;
-        display["coordRight"] = displayBounds.origin.x + displayBounds.size.width;
-        display["coordTop"] = displayBounds.origin.y;
-        display["coordBottom"] = displayBounds.origin.y + displayBounds.size.height;
+        display[keys::display::boundsLeft] = displayBounds.origin.x;
+        display[keys::display::boundsRight] = displayBounds.origin.x + displayBounds.size.width;
+        display[keys::display::boundsTop] = displayBounds.origin.y;
+        display[keys::display::boundsBottom] = displayBounds.origin.y + displayBounds.size.height;
         
         display["isMaster"] = displayMaster;
 
@@ -289,11 +287,11 @@ void MACOSInstance::enumerateComputer(){
     _computer[keys::computer::model]=std::string(model);
 
     free(model);
-    
-#endif
 
     auto sysInfo = QSysInfo();
 
     _computer[keys::computer::OSVersion] = sysInfo.kernelVersion().toStdString();
+#endif
+
 }
 
