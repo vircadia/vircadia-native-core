@@ -98,6 +98,7 @@ json Instance::listAllKeys() {
         keys::gpu::model,
         keys::gpu::videoMemory,
         keys::gpu::driver,
+        keys::gpu::displays,
 
         keys::display::description,
         keys::display::name,
@@ -105,6 +106,7 @@ json Instance::listAllKeys() {
         keys::display::coordsRight,
         keys::display::coordsTop,
         keys::display::coordsBottom,
+        keys::display::gpu,
 
         keys::memory::memTotal,
 

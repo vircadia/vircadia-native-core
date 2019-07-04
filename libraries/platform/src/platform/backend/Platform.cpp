@@ -31,6 +31,7 @@ namespace platform { namespace keys {
         const char*  model = "model";
         const char*  videoMemory = "videoMemory";
         const char*  driver = "driver";
+        const char*  displays = "displays";
     }
     namespace nic {
         const char* mac = "mac";
@@ -43,6 +44,7 @@ namespace platform { namespace keys {
         const char*  coordsRight = "coordinatesright";
         const char*  coordsTop = "coordinatestop";
         const char*  coordsBottom = "coordinatesbottom";
+        const char*  gpu = "gpu";
     }
     namespace memory {
         const char*  memTotal = "memTotal";

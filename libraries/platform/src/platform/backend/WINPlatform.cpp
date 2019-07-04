@@ -19,6 +19,8 @@
 #include <iphlpapi.h>
 #include <stdio.h>
 #include <QSysInfo>
+#include <dxgi1_3.h>
+#pragma comment(lib, "dxgi.lib")
 #endif
 
 using namespace platform;
@@ -34,6 +36,106 @@ void WINInstance::enumerateCpus() {
 }
 
 void WINInstance::enumerateGpus() {
+#ifdef Q_OS_WIN
+    struct ConvertLargeIntegerToQString {
+        QString convert(const LARGE_INTEGER& version) {
+            QString value;
+            value.append(QString::number(uint32_t(((version.HighPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t((version.HighPart) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t(((version.LowPart & 0xFFFF0000) >> 16) & 0x0000FFFF)));
+            value.append(".");
+            value.append(QString::number(uint32_t((version.LowPart) & 0x0000FFFF)));
+            return value;
+        }
+    } convertDriverVersionToString;
+
+    // Create the DXGI factory
+    // Let s get into DXGI land:
+    HRESULT hr = S_OK;
+
+    IDXGIFactory1* pFactory = nullptr;
+    hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**)(&pFactory));
+    if (hr != S_OK || pFactory == nullptr) {
+//        qCDebug(shared) << "Unable to create DXGI";
+        return;
+    }
+
+    std::vector<int> validAdapterList;
+    using AdapterEntry = std::pair<std::pair<DXGI_ADAPTER_DESC1, LARGE_INTEGER>, std::vector<DXGI_OUTPUT_DESC>>;
+    std::vector<AdapterEntry> adapterToOutputs;
+    // Enumerate adapters and outputs
+    {
+        UINT adapterNum = 0;
+        IDXGIAdapter1* pAdapter = nullptr;
+        while (pFactory->EnumAdapters1(adapterNum, &pAdapter) != DXGI_ERROR_NOT_FOUND) {
+            // Found an adapter, get descriptor
+            DXGI_ADAPTER_DESC1 adapterDesc;
+            pAdapter->GetDesc1(&adapterDesc);
+
+            LARGE_INTEGER version;
+            hr = pAdapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version);
+
+            std::wstring wDescription(adapterDesc.Description);
+            std::string description(wDescription.begin(), wDescription.end());
+
+            json gpu = {};
+            gpu[keys::gpu::model] = description;
+            gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
+            const SIZE_T BYTES_PER_MEGABYTE = 1024 * 1024;
+            gpu[keys::gpu::videoMemory] = (uint32_t)(adapterDesc.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+            gpu[keys::gpu::driver] = convertDriverVersionToString.convert(version).toStdString();
+
+
+            std::vector<int> displayIndices;
+
+            UINT outputNum = 0;
+            IDXGIOutput* pOutput;
+            bool hasOutputConnectedToDesktop = false;
+            while (pAdapter->EnumOutputs(outputNum, &pOutput) != DXGI_ERROR_NOT_FOUND) {
+                // FOund an output attached to the adapter, get descriptor
+                DXGI_OUTPUT_DESC outputDesc;
+                pOutput->GetDesc(&outputDesc);
+
+                // Grab the Monitor desc
+                // MONITOR_DESC
+
+                json display = {};
+
+                // Desiplay name
+                std::wstring wDeviceName(outputDesc.DeviceName);
+                std::string deviceName(wDeviceName.begin(), wDeviceName.end());
+                display[keys::display::name] = deviceName;
+                display[keys::display::description] = "";
+
+                // Rect region of the desktop in desktop units
+                display["desktopRect"] = (outputDesc.AttachedToDesktop ? true : false);
+                display[keys::display::coordsLeft] = outputDesc.DesktopCoordinates.left;
+                display[keys::display::coordsRight] = outputDesc.DesktopCoordinates.right;
+                display[keys::display::coordsBottom] = outputDesc.DesktopCoordinates.bottom;
+                display[keys::display::coordsTop] = outputDesc.DesktopCoordinates.top;
+
+                // Add the display index to the list of displays of the gpu
+                displayIndices.push_back(_displays.size());
+                
+                // And set the gpu index to the display description
+                display[keys::display::gpu] = _gpus.size();
+
+                // One more display desc
+                _displays.push_back(display);
+                pOutput->Release();
+                outputNum++;
+            }
+            gpu[keys::gpu::displays] = displayIndices;
+
+            _gpus.push_back(gpu);
+            pAdapter->Release();
+            adapterNum++;
+        }
+    }
+    pFactory->Release();
+#endif
 
     GPUIdent* ident = GPUIdent::getInstance();
    
@@ -44,7 +146,7 @@ void WINInstance::enumerateGpus() {
     gpu[keys::gpu::driver] = ident->getDriver().toUtf8().constData();
 
     _gpus.push_back(gpu);
-    _displays = ident->getOutput();
+  //  _displays = ident->getOutput();
 }
 
 void WINInstance::enumerateMemory() {

@@ -30,6 +30,7 @@ namespace platform { namespace keys{
         extern const char*  model;
         extern const char*  videoMemory;
         extern const char*  driver;
+        extern const char*  displays;
     }
     namespace nic {
         extern const char* mac;
@@ -42,6 +43,7 @@ namespace platform { namespace keys{
         extern const char*  coordsRight;
         extern const char*  coordsTop;
         extern const char*  coordsBottom;
+        extern const char*  gpu;
     }
     namespace memory {
         extern const char*  memTotal;
