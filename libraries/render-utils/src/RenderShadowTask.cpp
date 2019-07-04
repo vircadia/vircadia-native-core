@@ -405,8 +405,8 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
 
     calculateBiases(biasInput > 0.0f ? biasInput : currentKeyLight->getShadowBias());
 
-    std::array<float, SHADOW_CASCADE_MAX_COUNT> constantBiases = { constantBias0, constantBias1, constantBias2, constantBias3 };
-    std::array<float, SHADOW_CASCADE_MAX_COUNT> slopeBiases = { slopeBias0, slopeBias1, slopeBias2, slopeBias3 };
+    std::array<float, SHADOW_CASCADE_MAX_COUNT> constantBiases = {{ constantBias0, constantBias1, constantBias2, constantBias3 }};
+    std::array<float, SHADOW_CASCADE_MAX_COUNT> slopeBiases = {{ slopeBias0, slopeBias1, slopeBias2, slopeBias3 }};
     for (unsigned int cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         float constantBias = constantBiases[cascadeIndex];
         if (constantBias > 0.0f) {
