@@ -385,7 +385,7 @@ function loadSimplifiedTopBar() {
 
 
 var pausedScriptList = [];
-var SCRIPT_NAME_WHITELIST = ["simplifiedUI.js", "statusIndicator.js"];
+var SCRIPT_NAME_WHITELIST = ["simplifiedUI.js", "defaultScripts.js", "controllerScripts.js"];
 function pauseCurrentScripts() {
     var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
     
@@ -415,7 +415,7 @@ function getInputDeviceMutedOverlayTopY() {
 var inputDeviceMutedOverlay = false;
 var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_X_PX = 353;
 var INPUT_DEVICE_MUTED_OVERLAY_DEFAULT_Y_PX = 95;
-var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20;
+var INPUT_DEVICE_MUTED_MARGIN_BOTTOM_PX = 20 + TOP_BAR_HEIGHT_PX;
 function updateInputDeviceMutedOverlay(isMuted) {
     if (isMuted) {
         var props = {
@@ -457,9 +457,18 @@ function onGeometryChanged(rect) {
     }
 }
 
-function ensureFirstPersonCameraInHMD(isHMDMode) {
+function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
+    }
+}
+
+function onToolbarVisibleChanged(isVisible, toolbarName) {
+    if (isVisible && toolbarName == TOOLBAR_NAME && !Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false)) {
+        var toolbar = Toolbars.getToolbar(toolbarName);
+        if (toolbar) {
+            toolbar.writeProperty("visible", false);
+        }
     }
 }
 
@@ -490,7 +499,9 @@ function startup() {
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
-            toolbar.writeProperty("visible", false);
+            if (toolbar) {
+                toolbar.writeProperty("visible", false);
+            }
         }
     }
 
@@ -505,11 +516,12 @@ function startup() {
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
-    HMD.displayModeChanged.connect(ensureFirstPersonCameraInHMD);
+    HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.serverInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.systemInjectorGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
+    Toolbars.toolbarVisibleChanged.connect(onToolbarVisibleChanged);
 
     oldShowAudioTools = AvatarInputs.showAudioTools;
     AvatarInputs.showAudioTools = false;
@@ -535,7 +547,9 @@ function shutdown() {
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
-            toolbar.writeProperty("visible", true);
+            if (toolbar) {
+                toolbar.writeProperty("visible", true);
+            }
         }
     }
     
@@ -559,11 +573,12 @@ function shutdown() {
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
-    HMD.displayModeChanged.disconnect(ensureFirstPersonCameraInHMD);
+    HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.localInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.serverInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
     Audio.systemInjectorGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
+    Toolbars.toolbarVisibleChanged.disconnect(onToolbarVisibleChanged);
 
     AvatarInputs.showAudioTools = oldShowAudioTools;
     AvatarInputs.showBubbleTools = oldShowBubbleTools;

@@ -124,20 +124,20 @@ namespace render {
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
         gpu::Batch* _batch = nullptr;
 
-        uint32_t _globalShapeKey{ 0 };
-        uint32_t _itemShapeKey{ 0 };
-        bool _enableTexturing{ true };
-        bool _enableBlendshape{ true };
-        bool _enableSkinning{ true };
+        uint32_t _globalShapeKey { 0 };
+        uint32_t _itemShapeKey { 0 };
+        bool _enableTexturing { true };
+        bool _enableBlendshape { true };
+        bool _enableSkinning { true };
 
-        bool _enableFade{ false };
+        bool _enableFade { false };
 
         RenderDetails _details;
         render::ScenePointer _scene;
         int8_t _cameraMode { -1 };
 
-        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator;
-        gpu::TexturePointer _hudTexture;
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&)> _hudOperator { nullptr };
+        gpu::TexturePointer _hudTexture { nullptr };
 
         bool _takingSnapshot { false };
         StencilMaskMode _stencilMaskMode { StencilMaskMode::NONE };

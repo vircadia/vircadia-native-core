@@ -20,7 +20,7 @@
 // CLauncherApp
 
 BEGIN_MESSAGE_MAP(CLauncherApp, CWinApp)
-	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
+    ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
 CLauncherApp::CLauncherApp(){}
@@ -32,60 +32,72 @@ CLauncherApp theApp;
 // CLauncherApp initialization
 
 BOOL CLauncherApp::InitInstance() {
-	// don't launch if already running
-	CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
-	if (GetLastError() == ERROR_ALREADY_EXISTS) {
-		return FALSE;
-	}
-	int iNumOfArgs;
-	LPWSTR* pArgs = CommandLineToArgvW(GetCommandLine(), &iNumOfArgs);
-	if (iNumOfArgs > 1 && CString(pArgs[1]).Compare(_T("--uninstall")) == 0) {
-		_manager.uninstall();
-	} else {
-		_manager.init();
-	}	
-	if (!_manager.installLauncher()) {
-		return FALSE;
-	}
-	installFont(IDR_FONT_REGULAR);
-	installFont(IDR_FONT_BOLD);
-	CWinApp::InitInstance();
+    int iNumOfArgs;
+    LPWSTR* pArgs = CommandLineToArgvW(GetCommandLine(), &iNumOfArgs);
+    bool isUninstalling = false;
+    bool isRestarting = false;
+    if (iNumOfArgs > 1) {
+        if (CString(pArgs[1]).Compare(_T("--uninstall")) == 0) {
+            isUninstalling = true;
+        } else if (CString(pArgs[1]).Compare(_T("--restart")) == 0) {
+            isRestarting = true;
+        }
+    }
+    if (!isRestarting) {
+        // don't launch if already running
+        CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            return FALSE;
+        }
+    }
 
-	SetRegistryKey(_T("HQ High Fidelity"));
+    if (isUninstalling) {
+        _manager.uninstall();
+    } else {
+        _manager.init();
+    }   
+    if (!_manager.hasFailed() && !_manager.installLauncher()) {
+        return FALSE;
+    }
+    installFont(IDR_FONT_REGULAR);
+    installFont(IDR_FONT_BOLD);
+    CWinApp::InitInstance();
 
-	CLauncherDlg dlg;
-	m_pMainWnd = &dlg;
-	INT_PTR nResponse = dlg.DoModal();		
+    SetRegistryKey(_T("HQ High Fidelity"));
+
+    CLauncherDlg dlg;
+    m_pMainWnd = &dlg;
+    INT_PTR nResponse = dlg.DoModal();      
 
 #if !defined(_AFXDLL) && !defined(_AFX_NO_MFC_CONTROLS_IN_DIALOGS)
-	ControlBarCleanUp();
+    ControlBarCleanUp();
 #endif
-	
-	// Since the dialog has been closed, return FALSE so that we exit the
-	//  application, rather than start the application's message pump.
-	return FALSE;
+    
+    // Since the dialog has been closed, return FALSE so that we exit the
+    //  application, rather than start the application's message pump.
+    return FALSE;
 }
 
 
 
 BOOL CLauncherApp::installFont(int fontID) {
-	HINSTANCE hResInstance = AfxGetResourceHandle();
-	HRSRC res = FindResource(hResInstance,
-		MAKEINTRESOURCE(fontID), L"BINARY");
-	if (res) {
-		HGLOBAL mem = LoadResource(hResInstance, res);
-		void *data = LockResource(mem);
-		DWORD len = (DWORD)SizeofResource(hResInstance, res);
+    HINSTANCE hResInstance = AfxGetResourceHandle();
+    HRSRC res = FindResource(hResInstance,
+        MAKEINTRESOURCE(fontID), L"BINARY");
+    if (res) {
+        HGLOBAL mem = LoadResource(hResInstance, res);
+        void *data = LockResource(mem);
+        DWORD len = (DWORD)SizeofResource(hResInstance, res);
 
-		DWORD nFonts;
-		auto m_fonthandle = AddFontMemResourceEx(
-			data,       	// font resource
-			len,       	// number of bytes in font resource 
-			NULL,          	// Reserved. Must be 0.
-			&nFonts      	// number of fonts installed
-		);
+        DWORD nFonts;
+        auto m_fonthandle = AddFontMemResourceEx(
+            data,           // font resource
+            len,        // number of bytes in font resource 
+            NULL,           // Reserved. Must be 0.
+            &nFonts         // number of fonts installed
+        );
 
-		return (m_fonthandle != 0);
-	}
-	return FALSE;
+        return (m_fonthandle != 0);
+    }
+    return FALSE;
 }

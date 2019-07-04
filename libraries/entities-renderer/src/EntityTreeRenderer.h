@@ -69,6 +69,7 @@ public:
     virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
 
     // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
+    static CalculateEntityLoadingPriority getEntityLoadingPriorityOperator() { return _calculateEntityLoadingPriorityFunc; }
     static float getEntityLoadingPriority(const EntityItem& item) { return _calculateEntityLoadingPriorityFunc(item); }
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
@@ -246,7 +247,7 @@ private:
     ReadWriteLockable _changedEntitiesGuard;
     std::unordered_set<EntityItemID> _changedEntities;
 
-    std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
+    std::unordered_set<EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
 

@@ -35,6 +35,17 @@ NodeConnectionData NodeConnectionData::fromDataStream(QDataStream& dataStream, c
 
         // now the machine fingerprint
         dataStream >> newHeader.machineFingerprint;
+
+        // and the operating system type
+        QByteArray compressedSystemInfo;
+        dataStream >> compressedSystemInfo;
+        if (!compressedSystemInfo.isEmpty()) {
+            newHeader.SystemInfo = qUncompress(compressedSystemInfo);
+        }
+
+        dataStream >> newHeader.connectReason;
+
+        dataStream >> newHeader.previousConnectionUpTime;
     }
 
     dataStream >> newHeader.lastPingTimestamp;

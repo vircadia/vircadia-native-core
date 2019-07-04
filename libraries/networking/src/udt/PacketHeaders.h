@@ -271,6 +271,7 @@ enum class EntityVersion : PacketVersion {
     ParticleShapeType,
     ParticleShapeTypeDeadlockFix,
     PrivateUserData,
+    TextUnlit,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
@@ -345,7 +346,10 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasMACAddress,
     HasMachineFingerprint,
     AlwaysHasMachineFingerprint,
-    HasTimestamp
+    HasTimestamp,
+    HasReason,
+    HasSystemInfo,
+    HasCompressedSystemInfo
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
@@ -365,7 +369,8 @@ enum class DomainListVersion : PacketVersion {
     GetUsernameFromUUIDSupport,
     GetMachineFingerprintFromUUIDSupport,
     AuthenticationOptional,
-    HasTimestamp
+    HasTimestamp,
+    HasConnectReason
 };
 
 enum class AudioVersion : PacketVersion {

@@ -104,6 +104,7 @@
 #include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
 #include <material-networking/TextureCacheScriptingInterface.h>
+#include <material-networking/MaterialCache.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -877,6 +878,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AudioScope>();
     DependencyManager::set<DeferredLightingEffect>();
     DependencyManager::set<TextureCache>();
+    DependencyManager::set<MaterialCache>();
     DependencyManager::set<TextureCacheScriptingInterface>();
     DependencyManager::set<FramebufferCache>();
     DependencyManager::set<AnimationCache>();
@@ -949,6 +951,19 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+
+    QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
+    if (!setBookmarkValue.isEmpty()) {
+        // Bookmarks are expected to be in a name=url form.
+        // An `=` character in the name or url is unsupported.
+        auto parts = setBookmarkValue.split("=");
+        if (parts.length() != 2) {
+            qWarning() << "Malformed setBookmark argument: " << setBookmarkValue;
+        } else {
+            qDebug() << "Setting bookmark" << parts[0] << "to" << parts[1];
+            DependencyManager::get<LocationBookmarks>()->insert(parts[0], parts[1]);
+        }
+    }
 
     return previousSessionCrashed;
 }
@@ -1330,9 +1345,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
-    connect(this, &Application::activeDisplayPluginChanged, this, [](){
+    connect(this, &Application::activeDisplayPluginChanged, this, [=](){
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
         auto displayPlugin = qApp->getActiveDisplayPlugin();
+
+        if (displayPlugin->isHmd()) {
+            if (_preferredCursor.get() == Cursor::Manager::getIconName(Cursor::Icon::RETICLE)) {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::RETICLE));
+            }
+            else {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::ARROW));
+            }
+        }
+        else {
+            setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+        }
+
         setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
@@ -1362,6 +1390,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Save avatar location immediately after a teleport.
     connect(myAvatar.get(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
+
+    connect(myAvatar.get(), &MyAvatar::positionGoneTo, this, [this] {
+        if (!_physicsEnabled) {
+            // when we arrive somewhere without physics enabled --> startSafeLanding
+            _octreeProcessor.startSafeLanding();
+        }
+    }, Qt::QueuedConnection);
 
     connect(myAvatar.get(), &MyAvatar::skeletonModelURLChanged, [](){
         QUrl avatarURL = qApp->getMyAvatar()->getSkeletonModelURL();
@@ -2485,6 +2520,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     pauseUntilLoginDetermined();
 }
 
+void Application::setFailedToConnectToEntityServer() {
+    _failedToConnectToEntityServer = true;
+}
+
 void Application::updateVerboseLogging() {
     auto menu = Menu::getInstance();
     if (!menu) {
@@ -2695,9 +2734,11 @@ void Application::cleanupBeforeQuit() {
     }
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
+    getEntities()->clear();
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
+    QThreadPool::globalInstance()->waitForDone();
 
     DependencyManager::destroy<RecordingScriptingInterface>();
 
@@ -2761,7 +2802,6 @@ void Application::cleanupBeforeQuit() {
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "stop");
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
@@ -2827,6 +2867,7 @@ Application::~Application() {
     DependencyManager::destroy<AnimationCacheScriptingInterface>();
     DependencyManager::destroy<AnimationCache>();
     DependencyManager::destroy<FramebufferCache>();
+    DependencyManager::destroy<MaterialCache>();
     DependencyManager::destroy<TextureCacheScriptingInterface>();
     DependencyManager::destroy<TextureCache>();
     DependencyManager::destroy<ModelCacheScriptingInterface>();
@@ -2862,6 +2903,16 @@ Application::~Application() {
 
     // Can't log to file past this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
+
+#ifdef Q_OS_MAC
+    // Clear the event queue before application is totally destructed.
+    // This will drain the messasge queue of pending "deleteLaters" queued up
+    // during shutdown of the script engines.
+    // We do this here because there is a possiblty that [NSApplication terminate:]
+    // will be called during processEvents which will invoke all static destructors.
+    // We want to postpone this utill the last possible moment.
+    QCoreApplication::processEvents();
+#endif
 }
 
 void Application::initializeGL() {
@@ -2921,8 +2972,10 @@ void Application::initializeGL() {
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
+    // HACK: re-expose mic and camera to prevent crash on domain-change in chromium's media::FakeAudioInputStream::ReadAudioFromSource()
     // Bug 21993: disable microphone and camera input
-    chromiumFlags << "--use-fake-device-for-media-stream";
+    //chromiumFlags << "--use-fake-device-for-media-stream";
+
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };
@@ -3065,7 +3118,22 @@ void Application::showLoginScreen() {
 #endif
 }
 
+static const QUrl AUTHORIZED_EXTERNAL_QML_SOURCE { "https://content.highfidelity.com/Experiences/Releases" };
+
 void Application::initializeUi() {
+
+    // Allow remote QML content from trusted sources ONLY
+    {
+        auto defaultUrlValidator = OffscreenQmlSurface::getUrlValidator();
+        auto newValidator = [=](const QUrl& url)->bool {
+            if (AUTHORIZED_EXTERNAL_QML_SOURCE.isParentOf(url)) {
+                return true;
+            }
+            return defaultUrlValidator(url);
+        };
+        OffscreenQmlSurface::setUrlValidator(newValidator);
+    }
+
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
@@ -3725,18 +3793,6 @@ void Application::resizeGL() {
     if (_renderResolution != renderSize) {
         _renderResolution = renderSize;
         DependencyManager::get<FramebufferCache>()->setFrameBufferSize(fromGlm(renderSize));
-    }
-
-    auto renderResolutionScale = getRenderResolutionScale();
-    if (displayPlugin->getRenderResolutionScale() != renderResolutionScale) {
-        auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
-        assert(renderConfig);
-        auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
-        // mainView can be null if we're rendering in forward mode
-        if (mainView) {
-            mainView->setProperty("resolutionScale", renderResolutionScale);
-        }
-        displayPlugin->setRenderResolutionScale(renderResolutionScale);
     }
 
     // FIXME the aspect ratio for stereo displays is incorrect based on this.
@@ -5611,7 +5667,7 @@ void Application::resumeAfterLoginDialogActionTaken() {
         scriptEngines->reloadLocalFiles();
 
         // if the --scripts command-line argument was used.
-        if (!_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
+        if (_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
             scriptEngines->loadDefaultScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {
@@ -5908,9 +5964,7 @@ void Application::resetPhysicsReadyInformation() {
     _gpuTextureMemSizeStabilityCount = 0;
     _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
-    _octreeProcessor.startEntitySequence();
 }
-
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
@@ -5932,7 +5986,7 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<ResourceCacheSharedItems>()->clear();
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<SoundCache>()->refreshAll();
-    MaterialCache::instance().refreshAll();
+    DependencyManager::get<MaterialCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();
     ShaderCache::instance().refreshAll();
     DependencyManager::get<TextureCache>()->refreshAll();
@@ -6158,13 +6212,30 @@ void Application::updateSecondaryCameraViewFrustum() {
 
 static bool domainLoadingInProgress = false;
 
+void Application::tryToEnablePhysics() {
+    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+
+    if (gpuTextureMemSizeStable() || !enableInterstitial) {
+        _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
+        _lastQueriedViews.clear();  // Force new view.
+
+        // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
+        // We keep physics disabled until we've received a full scene and everything near the avatar in that
+        // scene is ready to compute its collision shape.
+        if (getMyAvatar()->isReadyForPhysics()) {
+            _physicsEnabled = true;
+            setIsInterstitialMode(false);
+            getMyAvatar()->updateMotionBehaviorFromMenu();
+        }
+    }
+}
+
 void Application::update(float deltaTime) {
     PROFILE_RANGE_EX(app, __FUNCTION__, 0xffff0000, (uint64_t)_graphicsEngine._renderFrameCount + 1);
 
     if (_aboutToQuit) {
         return;
     }
-
 
     if (!_physicsEnabled) {
         if (!domainLoadingInProgress) {
@@ -6174,24 +6245,16 @@ void Application::update(float deltaTime) {
 
         // we haven't yet enabled physics.  we wait until we think we have all the collision information
         // for nearby entities before starting bullet up.
-        quint64 now = usecTimestampNow();
-        if (isServerlessMode() || _octreeProcessor.isLoadSequenceComplete()) {
-            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-
-            if (gpuTextureMemSizeStable() || !enableInterstitial) {
-                // we've received a new full-scene octree stats packet, or it's been long enough to try again anyway
-                _lastPhysicsCheckTime = now;
-                _fullSceneCounterAtLastPhysicsCheck = _fullSceneReceivedCounter;
-                _lastQueriedViews.clear();  // Force new view.
-
-                // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
-                // We keep physics disabled until we've received a full scene and everything near the avatar in that
-                // scene is ready to compute its collision shape.
-                if (getMyAvatar()->isReadyForPhysics()) {
-                    _physicsEnabled = true;
-                    setIsInterstitialMode(false);
-                    getMyAvatar()->updateMotionBehaviorFromMenu();
-                }
+        if (isServerlessMode()) {
+            tryToEnablePhysics();
+        } else if (_failedToConnectToEntityServer) {
+            if (_octreeProcessor.safeLandingIsActive()) {
+                _octreeProcessor.stopSafeLanding();
+            }
+        } else {
+            _octreeProcessor.updateSafeLanding();
+            if (_octreeProcessor.safeLandingIsComplete()) {
+                tryToEnablePhysics();
             }
         }
     } else if (domainLoadingInProgress) {
@@ -6900,7 +6963,9 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
         bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
         ConicalViewFrustum sphericalView;
-        sphericalView.setSimpleRadius(INITIAL_QUERY_RADIUS);
+        AABox box = getMyAvatar()->getGlobalBoundingBox();
+        float radius = glm::max(INITIAL_QUERY_RADIUS, 0.5f * glm::length(box.getDimensions()));
+        sphericalView.setPositionAndSimpleRadius(box.calcCenter(), radius);
 
         if (interstitialModeEnabled) {
             ConicalViewFrustum farView;
@@ -7107,7 +7172,7 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
-    MaterialCache::instance().clearUnusedResources();
+    DependencyManager::get<MaterialCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
@@ -7140,13 +7205,17 @@ void Application::resettingDomain() {
     clearDomainOctreeDetails(false);
 }
 
-void Application::nodeAdded(SharedNodePointer node) const {
+void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
-        if (!_failedToConnectToEntityServer) {
+        if (_failedToConnectToEntityServer && !_entityServerConnectionTimer.isActive()) {
+            _failedToConnectToEntityServer = false;
+            _octreeProcessor.stopSafeLanding();
+            _octreeProcessor.startSafeLanding();
+        } else if (_entityServerConnectionTimer.isActive()) {
             _entityServerConnectionTimer.stop();
-            _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
-            _entityServerConnectionTimer.start();
         }
+        _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
+        _entityServerConnectionTimer.start();
     }
 }
 
@@ -7156,7 +7225,6 @@ void Application::nodeActivated(SharedNodePointer node) {
 
 #if !defined(DISABLE_QML)
         auto offscreenUi = getOffscreenUI();
-
         if (offscreenUi) {
             auto nodeList = DependencyManager::get<NodeList>();
 
@@ -8532,23 +8600,7 @@ void Application::shareSnapshot(const QString& path, const QUrl& href) {
 }
 
 float Application::getRenderResolutionScale() const {
-    auto menu = Menu::getInstance();
-    if (!menu) {
-        return 1.0f;
-    }
-    if (menu->isOptionChecked(MenuOption::RenderResolutionOne)) {
-        return 1.0f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
-        return 0.666f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionHalf)) {
-        return 0.5f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionThird)) {
-        return 0.333f;
-    } else if (menu->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
-        return 0.25f;
-    } else {
-        return 1.0f;
-    }
+    return RenderScriptingInterface::getInstance()->getViewportResolutionScale();
 }
 
 void Application::notifyPacketVersionMismatch() {

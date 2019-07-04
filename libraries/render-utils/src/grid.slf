@@ -41,10 +41,11 @@ void main(void) {
     }
 
 <@if not HIFI_USE_FORWARD@>
+    vec3 NORMAL = vec3(1.0, 0.0, 0.0);
     <@if not HIFI_USE_TRANSLUCENT@>
-        packDeferredFragmentUnlit(vec3(1.0, 0.0, 0.0), 1.0, varColor.rgb);
+        packDeferredFragmentUnlit(NORMAL, 1.0, varColor.rgb);
     <@else@>
-        packDeferredFragmentTranslucent(vec3(1.0, 0.0, 0.0), varColor.a, varColor.rgb, DEFAULT_ROUGHNESS);
+        packDeferredFragmentTranslucent(NORMAL, varColor.a, varColor.rgb, DEFAULT_ROUGHNESS);
     <@endif@>
 <@else@>
     _fragColor0 = varColor;

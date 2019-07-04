@@ -59,13 +59,13 @@ void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
         
         bool wasOldSocketNull = _publicSocket.isNull();
 
-        auto temp = _publicSocket.objectName();
+        auto previousSocket = _publicSocket;
         _publicSocket = publicSocket;
-        _publicSocket.setObjectName(temp);
+        _publicSocket.setObjectName(previousSocket.objectName());
         
         if (!wasOldSocketNull) {
-            qCDebug(networking) << "Public socket change for node" << *this;
-            emit socketUpdated();
+            qCDebug(networking) << "Public socket change for node" << *this << "; previously" << previousSocket;
+            emit socketUpdated(previousSocket, _publicSocket);
         }
     }
 }
@@ -79,13 +79,13 @@ void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
         
         bool wasOldSocketNull = _localSocket.isNull();
         
-        auto temp = _localSocket.objectName();
+        auto previousSocket = _localSocket;
         _localSocket = localSocket;
-        _localSocket.setObjectName(temp);
+        _localSocket.setObjectName(previousSocket.objectName());
 
         if (!wasOldSocketNull) {
-            qCDebug(networking) << "Local socket change for node" << *this;
-            emit socketUpdated();
+            qCDebug(networking) << "Local socket change for node" << *this << "; previously" << previousSocket;
+            emit socketUpdated(previousSocket, _localSocket);
         }
     }
 }
@@ -99,13 +99,13 @@ void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
         
         bool wasOldSocketNull = _symmetricSocket.isNull();
         
-        auto temp = _symmetricSocket.objectName();
+        auto previousSocket = _symmetricSocket;
         _symmetricSocket = symmetricSocket;
-        _symmetricSocket.setObjectName(temp);
+        _symmetricSocket.setObjectName(previousSocket.objectName());
         
         if (!wasOldSocketNull) {
-            qCDebug(networking) << "Symmetric socket change for node" << *this;
-            emit socketUpdated();
+            qCDebug(networking) << "Symmetric socket change for node" << *this << "; previously" << previousSocket;
+            emit socketUpdated(previousSocket, _symmetricSocket);
         }
     }
 }

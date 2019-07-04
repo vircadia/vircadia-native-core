@@ -1,0 +1,511 @@
+<!--
+//  users.html
+//
+//  Created by Faye Li on 18 Jan 2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+-->
+<html>
+    <head>
+        <title>Users Online</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://fonts.googleapis.com/css?family=Raleway:300,400,600,700"" rel="stylesheet">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <style>
+            body {
+                margin: 0;
+                width: 100%;
+                font-family: 'Raleway', sans-serif;
+                color: white;
+                background: linear-gradient(#2b2b2b, #0f212e);
+            }
+
+            .top-bar {
+                height: 90px;
+                background: linear-gradient(#2b2b2b, #1e1e1e);
+                font-weight: bold;
+                padding-left: 30px;
+                padding-right: 30px;
+                display: flex;
+                align-items: center;
+                position: fixed;
+                width: 480px;
+                top: 0;
+                z-index: 1;
+                justify-content: space-between;
+            }
+
+            #refresh-button {
+                width: 24px;
+                height: 24px;
+            }
+
+            .main {
+                padding: 30px;
+                margin-top: 90px;
+            }
+
+            #user-info-div {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding-bottom: 40px;
+            }
+
+            #visibility-toggle {
+                font-family: 'Raleway';
+                font-weight: bold;
+                font-size: 13px;
+                text-transform: uppercase;
+                vertical-align: top;
+                height: 28px;
+                min-width: 120px;
+                padding: 0px 18px;
+                margin-right: 0px;
+                border-radius: 5px;
+                border: none;
+                color: #121212;
+                background-color: #afafaf;
+                background: linear-gradient(#fff 20%, #afafaf 100%);
+                cursor: pointer;
+            }
+
+            #visibility-toggle:enabled:hover {
+                background: linear-gradient(#fff, #fff);
+                border: none;
+            }
+
+            #visibility-toggle:active {
+                background: linear-gradient(#afafaf, #afafaf);
+            }
+
+            #visibility-toggle span {
+                padding-left: 10px;
+            }
+
+            .tabs {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .tabs li {
+                display: inline-block;
+                padding: 10px 15px;
+            }
+
+            .tabs li.current {
+                background: rgba(255,255,255,0.15);
+            }
+
+            .tab-content {
+                display: none;
+            }
+
+            .tab-content.current {
+                display: inherit;
+                background: rgba(255,255,255,0.15);
+            }
+
+            .tab-content ul {
+                list-style: none;
+                padding: 15px 0px 15px 15px;
+                margin: 0;
+            }
+
+            .tab-content ul li {
+                padding: 2px 0px;
+            }
+
+            input[type=button] {
+                font-family: 'Raleway';
+                font-weight: bold;
+                font-size: 13px;
+                text-transform: uppercase;
+                vertical-align: top;
+                height: 28px;
+                min-width: 120px;
+                padding: 0px 18px;
+                margin-right: 6px;
+                border-radius: 5px;
+                border: none;
+                color: #fff;
+                background-color: #000;
+                background: linear-gradient(#343434 20%, #000 100%);
+                cursor: pointer;
+            }
+
+            input[type=button].red {
+                color: #fff;
+                background-color: #94132e;
+                background: linear-gradient(#d42043 20%, #94132e 100%);
+            }
+            input[type=button].blue {
+                color: #fff;
+                background-color: #1080b8;
+                background: linear-gradient(#00b4ef 20%, #1080b8 100%);
+            }
+            input[type=button].white {
+                color: #121212;
+                background-color: #afafaf;
+                background: linear-gradient(#fff 20%, #afafaf 100%);
+            }
+
+            input[type=button]:enabled:hover {
+                background: linear-gradient(#000, #000);
+                border: none;
+            }
+            input[type=button].red:enabled:hover {
+                background: linear-gradient(#d42043, #d42043);
+                border: none;
+            }
+            input[type=button].blue:enabled:hover {
+                background: linear-gradient(#00b4ef, #00b4ef);
+                border: none;
+            }
+            input[type=button].white:enabled:hover {
+                background: linear-gradient(#fff, #fff);
+                border: none;
+            }
+
+            input[type=button]:active {
+                background: linear-gradient(#343434, #343434);
+            }
+            input[type=button].red:active {
+                background: linear-gradient(#94132e, #94132e);
+            }
+            input[type=button].blue:active {
+                background: linear-gradient(#1080b8, #1080b8);
+            }
+            input[type=button].white:active {
+                background: linear-gradient(#afafaf, #afafaf);
+            }
+
+            input[type=button]:disabled {
+                color: #252525;
+                background: linear-gradient(#575757 20%, #252525 100%);
+            }
+
+            input[type=button][pressed=pressed] {
+                color: #00b4ef;
+            }
+
+            #friends-button {
+                margin: 0px 0px 15px 10px;
+            }
+
+            /*Vertically Center Modal*/
+            .modal {
+              color: black;
+              text-align: center;
+              padding: 0!important;
+            }
+
+            .modal:before {
+              content: '';
+              display: inline-block;
+              height: 100%;
+              vertical-align: middle;
+              margin-right: -4px;
+            }
+
+            .modal-dialog {
+              display: inline-block;
+              text-align: left;
+              vertical-align: middle;
+            }
+
+            .dropdown-menu {
+                width: 350px;
+                border: 0;
+                display: block;
+                float: none;
+                position: inherit;
+            }
+
+            .dropdown-menu li {
+                color: #333;
+                padding: 10px;
+            }
+
+            .dropdown-menu .divider {
+                padding: 0px;
+            }
+
+            .dropdown-menu li.current {
+                background: #dcdcdc;
+            }
+
+            .dropdown-menu li h5 {
+                font-weight: bold;
+            }
+
+            .dropdown-menu li p {
+                font-size: 14px;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div class="top-bar">
+            <div>Users Online</div>
+            <img id="refresh-button" onclick="pollUsers()" src="https://hifi-content.s3.amazonaws.com/faye/tablet-dev/refresh-icon.svg"></img>
+        </div>
+        <div class="main">
+            <div id="user-info-div">
+                <h4></h4>
+                <button id="visibility-toggle" data-toggle="modal" data-target="#myModal2" aria-haspopup="true" aria-expanded="false">
+                    Online
+                    <span class="glyphicon glyphicon-menu-down"></span>
+                </button>
+            </div>
+            <ul class="tabs">
+                <li tab-id="tab-1" class="current">Everyone (0)</li>
+                <li tab-id="tab-2">Friends (0)</li>
+            </ul>
+            <div id="tab-1" class="tab-content current">
+                <ul></ul>
+            </div>
+            <div id="tab-2" class="tab-content">
+                <ul></ul>
+                <input type="button" class="blue" id="friends-button" value="Add/Remove Friends">
+            </div>
+        </div>
+
+        <!-- Modal for jump to-->
+        <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Jump to username @ Placename</h4>
+              </div>
+              <div class="modal-body">
+                This will teleport you to a new location and possibly another domain. Are you sure?
+              </div>
+              <div class="modal-footer">
+                <input type="button" data-dismiss="modal" value="Cancel">
+                <input type="button" data-dismiss="modal" id="jump-to-confirm-button" value="OK">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal for visibility-->
+        <div class="modal fade" id="myModal2" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="myModalLabel">Change your visibility setting</h4>
+              </div>
+              <div class="modal-body">
+                <ul class="dropdown-menu" aria-labelledby="visibility-toggle">
+                    <li class="visibility-option" data-visibility="all">
+                        <h5>Online</h5>
+                        <p>You will be shown online to everyone else. Anybody will be able to find you from the users online list and jump to your current location.</p>
+                    </li>
+                    <li role="separator" class="divider"></li>
+                    <li class="visibility-option" data-visibility="friends">
+                        <h5>Available to Friends Only</h5>
+                        <p>You will be shown online only to users you have added as friends. Other users may still interact with you in the same domain, but they won't be able to find you from the users online list.</p>
+                    </li>
+                    <li role="separator" class="divider"></li>
+                    <li class="visibility-option" data-visibility="none">
+                        <h5>Appear Offline</h5>
+                        <p>No one will be able to find you from the users online list. However, this does not prevent other users in the same domain from interacting with you. For a complete "Do not disturb" mode, you may want to go to your own private domain and set allow entering to no one.</p>
+                    </li>
+                </ul>
+              </div>
+              <div class="modal-footer">
+                <input type="button" data-dismiss="modal" value="OK">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+        <script>
+            var METAVERSE_API_URL = "https://metaverse.highfidelity.com/api/v1/users?status=online";
+            var FRIENDS_FILTER = "&filter=friends";
+            var myUsername = null;
+            var myVisibility = null;
+
+            function displayUsers(data, element) {
+                element.empty();
+                for (var i = 0; i < data.users.length; i++) {
+                    // Display users who aren't in a domain differently
+                    if (typeof data.users[i].location.root === "undefined" || typeof data.users[i].location.root.name === "undefined") {
+                        console.log(data.users[i].username + "is online but not in a domain");
+                        $("#dev-div").append("<p>" + data.users[i].username + "is online but not in a domain</p>");
+                        $("<li></li>", {
+                            "data-toggle": "modal",
+                            "data-target": "#myModal",
+                            "data-username": data.users[i].username,
+                            "data-placename": "",
+                            text: data.users[i].username
+                        }).appendTo(element);
+                    } else {
+                        $("#dev-div").append("<li>" + data.users[i].username + " @ " + data.users[i].location.root.name + "</li>");
+                        console.log(data.users[i].username + " @ " + data.users[i].location.root.name);
+                        // Create a list item and put user info in data-* attributes, also make it trigger the jump to confirmation modal
+                        $("<li></li>", {
+                            "data-toggle": "modal",
+                            "data-target": "#myModal",
+                            "data-username": data.users[i].username,
+                            "data-placename": data.users[i].location.root.name,
+                            text: data.users[i].username + " @ " + data.users[i].location.root.name
+                        }).appendTo(element);
+                    }
+                }
+            }
+
+            function isOtherUsers(user) {
+                return user.username != myUsername;
+            }
+
+            function processData(data, type) {
+                // Filter out yourself from the users list
+                data.users = data.users.filter(isOtherUsers);
+
+                // Sort array alphabetically by username
+                data.users.sort(function(a, b) { 
+                    var nameA = a.username.toLowerCase();
+                    var nameB = b.username.toLowerCase();
+                    if (nameA < nameB) {
+                        return -1;
+                    }
+                    if (nameA > nameB) {
+                        return 1;
+                    }
+                    return 0;
+                });
+                
+                var num = data.users.length;
+                if (type === "everyone") {
+                    $(".tabs li:nth-child(1)").text("Everyone (" + num + ")");
+                    displayUsers(data, $("#tab-1 ul"));
+                } else if (type === "friends") {
+                    $(".tabs li:nth-child(2)").text("Friends (" + num + ")");
+                    displayUsers(data, $("#tab-2 ul"));
+                }
+            }
+
+            function pollUsers() {
+                $("#dev-div").append("<p>polling users..</p>");
+                $.ajax({
+                    url: METAVERSE_API_URL,
+                    success: function(response) {
+                        console.log(response);
+                        $("#dev-div").append("<p>polling everyone sucess</p>");
+                        processData(response.data, "everyone");
+                    }
+                });
+                $.ajax({
+                    url: METAVERSE_API_URL + FRIENDS_FILTER,
+                    success: function(response) {
+                        console.log(response);
+                        $("#dev-div").append("<p>polling friends sucess</p>");
+                        processData(response.data, "friends");
+                    }
+                });
+            }
+
+            function onScriptEventReceived(event) {
+                $("#dev-div").append("<p>Received a script event, its type is " + typeof event + "</p>");
+                if (typeof event === "string") {
+                    // Parse the string into an object
+                    event = JSON.parse(event);
+                }
+                if (event.type === "user-info") {
+                    myUsername = event.data.username;
+                    myVisibility = event.data.visibility;
+                    $("#user-info-div h4").text(myUsername);
+                    var buttonText = "Online";
+                    if (myVisibility === "none") {
+                        buttonText = "Appear Offline";
+                    } else if (myVisibility === "friends") {
+                        buttonText = "Available To Friends Only";
+                    }
+                    $("#visibility-toggle").html(buttonText + "<span class='glyphicon glyphicon-menu-down'></span>")
+                }
+            }
+
+            $(document).ready(function() {
+                $("#dev-div").append("<p>ready</p>");
+                // Auto-load user lists when page loads
+                pollUsers();
+                
+                // Click listener for tabs
+                $(".tabs li").click(function() {
+                    var tabID = $(this).attr("tab-id");
+                    $(".tab-content").removeClass("current");
+                    $("#" + tabID).addClass("current");
+                    $(".tabs li").removeClass("current");
+                    $(this).addClass("current");
+                });
+
+                // Jump to user: Fill confirmation modal with data of the selected user
+                $("#myModal").on("show.bs.modal", function (event) {
+                    // Get the element that triggered the modal
+                    var li = $(event.relatedTarget); 
+                    // Extract info from data-* attributes
+                    var username = li.data("username");
+                    var placename = li.data("placename");
+                    // Write info to the modal
+                    var modal = $(this);
+                    if (placename === "") {
+                        modal.find(".modal-title").text("Jump to " + username);
+                    } else {
+                        modal.find(".modal-title").text("Jump to " + username + " @ " + placename);
+                    }
+                    $("#jump-to-confirm-button").data("username", username);
+                })
+
+                $("#jump-to-confirm-button").click(function() {
+                    var jumpToObject = {
+                        "type": "jump-to",
+                        "data": {
+                            "username": $(this).data("username")
+                        }
+                    }
+                    EventBridge.emitWebEvent(JSON.stringify(jumpToObject));
+                });
+
+                // Click listener for toggling who can see me
+                $(".visibility-option").click(function() {
+                    $(".visibility-option").removeClass("current");
+                    $(this).addClass("current");
+                    myVisibility = $(this).data("visibility");
+                    var newButtonText = $(this).find("h5").text();
+                    $("#visibility-toggle").html(newButtonText + "<span class='glyphicon glyphicon-menu-down'></span>");
+                    var visibilityObject = {
+                        "type": "toggle-visibility",
+                        "data": {
+                            "visibility": myVisibility
+                        }
+                    }
+                    EventBridge.emitWebEvent(JSON.stringify(visibilityObject));
+                });
+
+                // Listen for events from hifi
+                EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+                
+                // Send a ready event to hifi
+                var eventObject = {"type": "ready"};
+                EventBridge.emitWebEvent(JSON.stringify(eventObject));
+
+                // Click listener for add/remove friends button
+                $("#friends-button").click(function() {
+                    // Send a manage friends event to hifi
+                    eventObject = {"type": "manage-friends"};
+                    EventBridge.emitWebEvent(JSON.stringify(eventObject));
+                });
+            });
+        </script>
+    </body>
+</html>

@@ -314,6 +314,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_RIGHT_MARGIN, RightMargin, rightMargin, float, TextEntityItem::DEFAULT_MARGIN);
     DEFINE_PROPERTY_REF(PROP_TOP_MARGIN, TopMargin, topMargin, float, TextEntityItem::DEFAULT_MARGIN);
     DEFINE_PROPERTY_REF(PROP_BOTTOM_MARGIN, BottomMargin, bottomMargin, float, TextEntityItem::DEFAULT_MARGIN);
+    DEFINE_PROPERTY_REF(PROP_UNLIT, Unlit, unlit, bool, false);
 
     // Zone
     DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);

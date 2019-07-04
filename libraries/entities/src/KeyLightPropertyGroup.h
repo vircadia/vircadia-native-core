@@ -28,13 +28,14 @@ class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
 /**jsdoc
- * A key light is defined by the following properties.
+ * A key light is defined by the following properties:
  * @typedef {object} Entities.KeyLight
  * @property {Color} color=255,255,255 - The color of the light.
  * @property {number} intensity=1 - The intensity of the light.
  * @property {Vec3} direction=0,-1,0 - The direction the light is shining.
- * @property {boolean} castShadows=false - If <code>true</code> then shadows are cast. Shadows are cast by avatars, plus 
- *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities that have their 
+ * @property {boolean} castShadows=false - <code>true</code> if shadows are cast, <code>false</code> if they aren't. Shadows 
+ *     are cast by avatars, plus {@link Entities.EntityProperties-Model|Model} and 
+ *     {@link Entities.EntityProperties-Shape|Shape} entities that have their 
  *     <code>{@link Entities.EntityProperties|canCastShadow}</code> property set to <code>true</code>.
  */
 class KeyLightPropertyGroup : public PropertyGroup {

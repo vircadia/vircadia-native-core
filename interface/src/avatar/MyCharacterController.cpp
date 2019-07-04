@@ -398,13 +398,11 @@ DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(in
 }
 
 void MyCharacterController::clearDetailedMotionStates() {
+    // we don't actually clear the MotionStates here
+    // instead we twiddle some flags as a signal of what to do later
     _pendingFlags |= PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION; 
     // We make sure we don't add them again
     _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
-}
-
-void MyCharacterController::resetDetailedMotionStates() {
-    _detailedMotionStates.clear();
 }
 
 void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
@@ -416,6 +414,8 @@ void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& 
         for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
             transaction.objectsToRemove.push_back(_detailedMotionStates[i]);
         }
+        // NOTE: the DetailedMotionStates are deleted after being added to PhysicsEngine::Transaction::_objectsToRemove
+        // See AvatarManager::handleProcessedPhysicsTransaction()
         _detailedMotionStates.clear();
     }
     if (_pendingFlags & PENDING_FLAG_ADD_DETAILED_TO_SIMULATION) {

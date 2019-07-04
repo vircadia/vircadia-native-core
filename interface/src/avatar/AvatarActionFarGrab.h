@@ -19,13 +19,15 @@
  * The <code>"far-grab"</code> {@link Entities.ActionType|ActionType} moves and rotates an entity to a target position and 
  * orientation, optionally relative to another entity. Collisions between the entity and the user's avatar are disabled during 
  * the far-grab.
- * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:
  *
  * @typedef {object} Entities.ActionArguments-FarGrab
+ * @property {Uuid} otherID=null - If an entity ID, the <code>targetPosition</code> and <code>targetRotation</code> are
+ *     relative to the entity's position and rotation.
+ * @property {Uuid} otherJointIndex=null - If a joint index in the <code>otherID</code> entity, the <code>targetPosition</code>
+ *     and <code>targetRotation</code> are relative to the entity joint's position and rotation.
  * @property {Vec3} targetPosition=0,0,0 - The target position.
  * @property {Quat} targetRotation=0,0,0,1 - The target rotation.
- * @property {Uuid} otherID=null - If an entity ID, the <code>targetPosition</code> and <code>targetRotation</code> are 
- *     relative to this entity's position and rotation.
  * @property {number} linearTimeScale=3.4e+38 - Controls how long it takes for the entity's position to catch up with the
  *     target position. The value is the time for the action to catch up to 1/e = 0.368 of the target value, where the action 
  *     is applied using an exponential decay.
@@ -33,6 +35,7 @@
  *     target orientation. The value is the time for the action to catch up to 1/e = 0.368 of the target value, where the 
  *     action is applied using an exponential decay.
  */
+// The properties are per ObjectActionTractor.
 class AvatarActionFarGrab : public ObjectActionTractor {
 public:
     AvatarActionFarGrab(const QUuid& id, EntityItemPointer ownerEntity);

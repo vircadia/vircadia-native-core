@@ -15,9 +15,7 @@
 
 static std::mutex fontMutex;
 
-gpu::PipelinePointer Font::_deferredPipeline;
-gpu::PipelinePointer Font::_forwardPipeline;
-gpu::PipelinePointer Font::_transparentPipeline;
+std::map<std::tuple<bool, bool, bool>, gpu::PipelinePointer> Font::_pipelines;
 gpu::Stream::FormatPointer Font::_format;
 
 struct TextureVertex {
@@ -221,31 +219,28 @@ void Font::read(QIODevice& in) {
 }
 
 void Font::setupGPU() {
-    if (!_deferredPipeline) {
-        // Setup render pipeline
-        {
-            {
-                auto state = std::make_shared<gpu::State>();
-                state->setCullMode(gpu::State::CULL_BACK);
-                state->setDepthTest(true, true, gpu::LESS_EQUAL);
-                state->setBlendFunction(false,
-                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-                PrepareStencil::testMaskDrawShape(*state);
-                _deferredPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D), state);
-                _forwardPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_forward), state);
-            }
+    if (_pipelines.empty()) {
+        using namespace shader::render_utils::program;
 
-            {
-                auto state = std::make_shared<gpu::State>();
-                state->setCullMode(gpu::State::CULL_BACK);
-                state->setDepthTest(true, true, gpu::LESS_EQUAL);
-                state->setBlendFunction(true,
-                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        static const std::vector<std::tuple<bool, bool, bool, uint32_t>> keys = {
+            std::make_tuple(false, false, false, sdf_text3D), std::make_tuple(true, false, false, sdf_text3D_translucent),
+            std::make_tuple(false, true, false, sdf_text3D_unlit), std::make_tuple(true, true, false, sdf_text3D_translucent_unlit),
+            std::make_tuple(false, false, true, sdf_text3D_forward), std::make_tuple(true, false, true, sdf_text3D_forward/*sdf_text3D_translucent_forward*/),
+            std::make_tuple(false, true, true, sdf_text3D_translucent_unlit/*sdf_text3D_unlit_forward*/), std::make_tuple(true, true, true, sdf_text3D_translucent_unlit/*sdf_text3D_translucent_unlit_forward*/)
+        };
+        for (auto& key : keys) {
+            auto state = std::make_shared<gpu::State>();
+            state->setCullMode(gpu::State::CULL_BACK);
+            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            state->setBlendFunction(std::get<0>(key),
+                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+            if (std::get<0>(key)) {
                 PrepareStencil::testMask(*state);
-                _transparentPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_translucent), state);
+            } else {
+                PrepareStencil::testMaskDrawShape(*state);
             }
+            _pipelines[std::make_tuple(std::get<0>(key), std::get<1>(key), std::get<2>(key))] = gpu::Pipeline::create(gpu::Shader::createProgram(std::get<3>(key)), state);
         }
 
         // Sanity checks
@@ -349,7 +344,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool forward) {
+                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool unlit, bool forward) {
     if (str == "") {
         return;
     }
@@ -376,7 +371,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
     }
     // need the gamma corrected color here
 
-    batch.setPipeline(color.a < 1.0f ? _transparentPipeline : (forward ? _forwardPipeline : _deferredPipeline));
+    batch.setPipeline(_pipelines[std::make_tuple(color.a < 1.0f, unlit, forward)]);
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);

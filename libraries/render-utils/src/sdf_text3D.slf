@@ -49,45 +49,58 @@ void main() {
     if (alpha <= 0.0) {
         discard;
     }
+<@endif@>
 
-    TransformCamera cam = getTransformCamera();
-    vec3 fragPosition = _positionES.xyz;
-
-    <@if HIFI_USE_FORWARD@>
-        _fragColor0 = vec4(evalSkyboxGlobalColor(
-            cam._viewInverse,
-            1.0,
-            DEFAULT_OCCLUSION,
-            fragPosition,
-            normalize(_normalWS),
-            _color.rgb,
-            DEFAULT_FRESNEL,
-            DEFAULT_METALLIC,
-            DEFAULT_ROUGHNESS),
-            alpha);
+<@if HIFI_USE_UNLIT@>
+    <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
+        _fragColor0 = vec4(_color.rgb * isUnlitEnabled(), alpha);
     <@else@>
-        _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
-            cam._viewInverse,
-            1.0,
-            DEFAULT_OCCLUSION,
-            fragPosition,
+        packDeferredFragmentUnlit(
             normalize(_normalWS),
-            _color.rgb,
-            DEFAULT_FRESNEL,
-            DEFAULT_METALLIC,
-            DEFAULT_EMISSIVE,
-            DEFAULT_ROUGHNESS, alpha),
-            alpha);
+            alpha,
+            _color.rgb);
     <@endif@>
 <@else@>
-    packDeferredFragment(
-        normalize(_normalWS),
-        alpha,
-        _color.rgb,
-        DEFAULT_ROUGHNESS,
-        DEFAULT_METALLIC,
-        DEFAULT_EMISSIVE,
-        DEFAULT_OCCLUSION,
-        DEFAULT_SCATTERING);
+    <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
+        TransformCamera cam = getTransformCamera();
+        vec3 fragPosition = _positionES.xyz;
+
+        <@if HIFI_USE_FORWARD@>
+            _fragColor0 = vec4(evalSkyboxGlobalColor(
+                cam._viewInverse,
+                1.0,
+                DEFAULT_OCCLUSION,
+                fragPosition,
+                normalize(_normalWS),
+                _color.rgb,
+                DEFAULT_FRESNEL,
+                DEFAULT_METALLIC,
+                DEFAULT_ROUGHNESS),
+                alpha);
+        <@else@>
+            _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+                cam._viewInverse,
+                1.0,
+                DEFAULT_OCCLUSION,
+                fragPosition,
+                normalize(_normalWS),
+                _color.rgb,
+                DEFAULT_FRESNEL,
+                DEFAULT_METALLIC,
+                DEFAULT_EMISSIVE,
+                DEFAULT_ROUGHNESS, alpha),
+                alpha);
+        <@endif@>
+    <@else@>
+        packDeferredFragment(
+            normalize(_normalWS),
+            alpha,
+            _color.rgb,
+            DEFAULT_ROUGHNESS,
+            DEFAULT_METALLIC,
+            DEFAULT_EMISSIVE,
+            DEFAULT_OCCLUSION,
+            DEFAULT_SCATTERING);
+    <@endif@>
 <@endif@>
 }

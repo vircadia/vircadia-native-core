@@ -1,4 +1,4 @@
-﻿//
+//
 //  Created by Bradley Austin Davis on 2016/02/15
 //  Copyright 2016 High Fidelity, Inc.
 //
@@ -402,25 +402,18 @@ void HmdDisplayPlugin::HUDRenderer::build() {
     format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
     uniformsBuffer = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
-    updatePipeline();
+
+    auto program = gpu::Shader::createProgram(shader::render_utils::program::hmd_ui);
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
+    state->setBlendFunction(true,
+                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+    pipeline = gpu::Pipeline::create(program, state);
 }
 
-void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
-    if (!pipeline) {
-        auto program = gpu::Shader::createProgram(shader::render_utils::program::hmd_ui);
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(gpu::State::DepthTest(true, true, gpu::LESS_EQUAL));
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-        pipeline = gpu::Pipeline::create(program, state);
-    }
-}
-
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::HUDRenderer::render(HmdDisplayPlugin& plugin) {
-    updatePipeline();
-
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::HUDRenderer::render() {
     auto hudPipeline = pipeline;
     auto hudFormat = format;
     auto hudVertices = vertices;
@@ -428,7 +421,7 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
     auto hudUniformBuffer = uniformsBuffer;
     auto hudUniforms = uniforms;
     auto hudIndexCount = indexCount;
-    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture) {
         if (hudPipeline && hudTexture) {
             batch.setPipeline(hudPipeline);
 
@@ -443,9 +436,6 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
 
             auto compositorHelper = DependencyManager::get<CompositorHelper>();
             glm::mat4 modelTransform = compositorHelper->getUiTransform();
-            if (mirror) {
-                modelTransform = glm::scale(modelTransform, glm::vec3(-1, 1, 1));
-            }
             batch.setModelTransform(modelTransform);
             batch.setResourceTexture(0, hudTexture);
 
@@ -478,8 +468,8 @@ void HmdDisplayPlugin::compositePointer() {
     });
 }
 
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::getHUDOperator() {
-    return _hudRenderer.render(*this);
+std::function<void(gpu::Batch&, const gpu::TexturePointer&)> HmdDisplayPlugin::getHUDOperator() {
+    return _hudRenderer.render();
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {

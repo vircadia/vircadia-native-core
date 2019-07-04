@@ -47,6 +47,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     GLint rendererInfoCount;
     CGLError err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &rendererInfoCount);
     GLint j, numRenderers = 0, deviceVRAM, bestVRAM = 0;
+    int bestGPUid = 0;
     err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &numRenderers);
     if (0 == err) {
         // Iterate over all of them and use the figure for the one with the most VRAM,
@@ -55,6 +56,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         for (j = 0; j < numRenderers; j++) {
             CGLDescribeRenderer(rendererInfo, j, kCGLRPVideoMemoryMegabytes, &deviceVRAM);
             if (deviceVRAM > bestVRAM) {
+                bestGPUid = j;
                 bestVRAM = deviceVRAM;
                 _isValid = true;
             }
@@ -77,6 +79,8 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     
     for (int i = 0; i < parts.size(); ++i) {
         if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
+            _name=parts[i];
+        } else if (i == bestGPUid) {
             _name=parts[i];
         }
     }
@@ -278,12 +282,13 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     if (!validAdapterList.empty()) {
         for (auto outy = adapterToOutputs.begin(); outy != adapterToOutputs.end(); ++outy) {
 
-			AdapterEntry entry = *outy;
+            AdapterEntry entry = *outy;
             for (auto test = entry.second.begin(); test != entry.second.end(); ++test) {
-            
+                std::wstring wDeviceName(test->DeviceName);
+                std::string deviceName(wDeviceName.begin(), wDeviceName.end());
+
                 nlohmann::json output = {};
-                output["description"] = entry.first.first.Description;
-                output["deviceName"]= test->DeviceName;
+                output["model"] = deviceName;
                 output["coordinatesleft"] = test->DesktopCoordinates.left;
                 output["coordinatesright"] = test->DesktopCoordinates.right;
                 output["coordinatestop"] = test->DesktopCoordinates.top;

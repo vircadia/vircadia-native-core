@@ -18,7 +18,7 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 void main(void) {
     const float depth = 1.0;
-    const vec4 UNIT_QUAD[4] = vec4[4](
+    const mat4 UNIT_QUAD = mat4(
         vec4(-1.0, -1.0, depth, 1.0),
         vec4(1.0, -1.0, depth, 1.0),
         vec4(-1.0, 1.0, depth, 1.0),

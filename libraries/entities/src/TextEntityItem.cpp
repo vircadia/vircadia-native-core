@@ -64,6 +64,7 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rightMargin, getRightMargin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(topMargin, getTopMargin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(bottomMargin, getBottomMargin);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(unlit, getUnlit);
     return properties;
 }
 
@@ -87,6 +88,7 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rightMargin, setRightMargin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(topMargin, setTopMargin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(bottomMargin, setBottomMargin);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(unlit, setUnlit);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -129,7 +131,8 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, float, setRightMargin);
     READ_ENTITY_PROPERTY(PROP_TOP_MARGIN, float, setTopMargin);
     READ_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, float, setBottomMargin);
-    
+    READ_ENTITY_PROPERTY(PROP_UNLIT, bool, setUnlit);
+
     return bytesRead;
 }
 
@@ -149,6 +152,7 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_RIGHT_MARGIN;
     requestedProperties += PROP_TOP_MARGIN;
     requestedProperties += PROP_BOTTOM_MARGIN;
+    requestedProperties += PROP_UNLIT;
 
     return requestedProperties;
 }
@@ -179,6 +183,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, getRightMargin());
     APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, getTopMargin());
     APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, getBottomMargin());
+    APPEND_ENTITY_PROPERTY(PROP_UNLIT, getUnlit());
 }
 
 glm::vec3 TextEntityItem::getRaycastDimensions() const {
@@ -379,6 +384,18 @@ void TextEntityItem::setBottomMargin(float value) {
 float TextEntityItem::getBottomMargin() const {
     return resultWithReadLock<float>([&] {
         return _bottomMargin;
+    });
+}
+
+void TextEntityItem::setUnlit(bool value) {
+    withWriteLock([&] {
+        _unlit = value;
+    });
+}
+
+bool TextEntityItem::getUnlit() const {
+    return resultWithReadLock<bool>([&] {
+        return _unlit;
     });
 }
 

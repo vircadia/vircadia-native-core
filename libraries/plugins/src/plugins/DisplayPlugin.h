@@ -147,14 +147,6 @@ public:
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
     virtual void captureFrame(const std::string& outputName) const { }
 
-    virtual float getRenderResolutionScale() const {
-        return _renderResolutionScale;
-    }
-
-    void setRenderResolutionScale(float renderResolutionScale) {
-        _renderResolutionScale = renderResolutionScale;
-    }
-
     // The size of the rendering target (may be larger than the device size due to distortion)
     virtual glm::uvec2 getRecommendedRenderSize() const = 0;
 
@@ -213,13 +205,12 @@ public:
     void waitForPresent();
     float getAveragePresentTime() { return _movingAveragePresent.average / (float)USECS_PER_MSEC; }  // in msec
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
-
     static const QString& MENU_PATH();
 
     // for updating plugin-related commands. Mimics the input plugin.
     virtual void pluginUpdate() = 0;
 
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() { return nullptr; }
     virtual StencilMaskMode getStencilMaskMode() const { return StencilMaskMode::NONE; }
     using StencilMaskMeshOperator = std::function<void(gpu::Batch&)>;
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() { return nullptr; }
@@ -234,11 +225,7 @@ protected:
 
     gpu::ContextPointer _gpuContext;
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> _hudOperator { std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)>() };
-
     MovingAverage<float, 10> _movingAveragePresent;
-
-    float _renderResolutionScale { 1.0f };
 
 private:
     QMutex _presentMutex;

@@ -512,7 +512,7 @@ private slots:
 
     void loadSettings();
     void saveSettings() const;
-    void setFailedToConnectToEntityServer() { _failedToConnectToEntityServer = true; }
+    void setFailedToConnectToEntityServer();
 
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
@@ -527,7 +527,7 @@ private slots:
 
     void domainURLChanged(QUrl domainURL);
     void updateWindowTitle() const;
-    void nodeAdded(SharedNodePointer node) const;
+    void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
@@ -564,6 +564,7 @@ private:
     void cleanupBeforeQuit();
 
     void idle();
+    void tryToEnablePhysics();
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -785,8 +786,6 @@ private:
 
     qint64 _gpuTextureMemSizeStabilityCount { 0 };
     qint64 _gpuTextureMemSizeAtLastCheck { 0 };
-
-    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
 
     bool _keyboardDeviceHasFocus { true };
 

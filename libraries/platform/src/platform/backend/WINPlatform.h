@@ -15,10 +15,11 @@ namespace platform {
     class WINInstance : public Instance {
     
     public:
-        void enumerateCpu() override;
+        void enumerateCpus() override;
+        void enumerateGpus() override;
         void enumerateMemory() override;
-        void enumerateGpu() override;
         void enumerateComputer () override;
+        void enumerateNics() override;
     };
 }  // namespace platform
 

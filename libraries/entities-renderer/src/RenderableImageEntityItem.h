@@ -47,8 +47,6 @@ private:
     PulsePropertyGroup _pulseProperties;
     BillboardMode _billboardMode;
 
-    glm::vec3 _dimensions;
-
     int _geometryId { 0 };
 };
 

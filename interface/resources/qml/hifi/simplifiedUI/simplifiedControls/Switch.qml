@@ -54,6 +54,7 @@ Item {
                 innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.disabled;
                 return;
             }
+
             if (originalSwitch.checked) {
                 if (originalSwitch.hovered) {
                     innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.hover;
@@ -67,6 +68,10 @@ Item {
                     innerSwitchHandle.color = simplifiedUI.colors.controls.simplifiedSwitch.handle.off;
                 }
             }
+        }
+
+        onEnabledChanged: {
+            originalSwitch.changeColor();
         }
 
         onCheckedChanged: {
@@ -88,7 +93,8 @@ Item {
         background: Rectangle {
             id: switchBackground
             anchors.verticalCenter: parent.verticalCenter
-            color: originalSwitch.checked ? simplifiedUI.colors.controls.simplifiedSwitch.background.on : simplifiedUI.colors.controls.simplifiedSwitch.background.off
+            color: originalSwitch.enabled ? (originalSwitch.checked ? simplifiedUI.colors.controls.simplifiedSwitch.background.on :
+                simplifiedUI.colors.controls.simplifiedSwitch.background.off) : simplifiedUI.colors.controls.simplifiedSwitch.background.disabled
             width: originalSwitch.width
             height: simplifiedUI.sizes.controls.simplifiedSwitch.switchBackgroundHeight
             radius: height/2
@@ -113,7 +119,7 @@ Item {
                 height: width
                 radius: width/2
                 color: "transparent"
-                border.width: simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleBorderSize
+                border.width: originalSwitch.enabled ? simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleBorderSize : 0
                 border.color: simplifiedUI.colors.controls.simplifiedSwitch.handle.activeBorder
             }
 
@@ -124,7 +130,7 @@ Item {
                 height: width
                 radius: width/2
                 color: simplifiedUI.colors.controls.simplifiedSwitch.handle.off
-                border.width: originalSwitch.pressed || originalSwitch.checked ? simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleBorderSize : 0
+                border.width: (originalSwitch.pressed || originalSwitch.checked) && originalSwitch.enabled ? simplifiedUI.sizes.controls.simplifiedSwitch.switchHandleBorderSize : 0
                 border.color: originalSwitch.pressed ? simplifiedUI.colors.controls.simplifiedSwitch.handle.activeBorder : simplifiedUI.colors.controls.simplifiedSwitch.handle.checkedBorder
 
                 Component.onCompleted: {
@@ -145,7 +151,7 @@ Item {
             id: labelOff
             text: ""
             size: simplifiedUI.sizes.controls.simplifiedSwitch.labelTextSize
-            color: originalSwitch.checked ? simplifiedUI.colors.controls.simplifiedSwitch.text.off : simplifiedUI.colors.controls.simplifiedSwitch.text.on
+            color: originalSwitch.checked && !originalSwitch.enabled ? simplifiedUI.colors.controls.simplifiedSwitch.text.off : simplifiedUI.colors.controls.simplifiedSwitch.text.on
             anchors.top: parent.top
             anchors.topMargin: -2 // Necessary for text alignment
             anchors.bottom: parent.bottom
@@ -193,7 +199,7 @@ Item {
             id: labelOn
             text: ""
             size: simplifiedUI.sizes.controls.simplifiedSwitch.labelTextSize
-            color: originalSwitch.checked ? simplifiedUI.colors.controls.simplifiedSwitch.text.on : simplifiedUI.colors.controls.simplifiedSwitch.text.off
+            color: originalSwitch.checked && originalSwitch.enabled ? simplifiedUI.colors.controls.simplifiedSwitch.text.on : simplifiedUI.colors.controls.simplifiedSwitch.text.off
             anchors.top: parent.top
             anchors.topMargin: -2 // Necessary for text alignment
             anchors.left: parent.left

@@ -89,6 +89,14 @@ float Light::getShadowsBiasScale() const {
     return _shadowsBiasScale;
 }
 
+void Light::setBiasInput(float bias) {
+    _biasInput = bias;
+}
+
+float Light::getBiasInput() const {
+    return _biasInput;
+}
+
 void Light::setColor(const Color& color) {
     _lightSchemaBuffer.edit().irradiance.color = color;
     updateLightRadius();

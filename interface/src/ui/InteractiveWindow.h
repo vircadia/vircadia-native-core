@@ -287,6 +287,9 @@ protected slots:
      */
     void qmlToScript(const QVariant& message);
 
+    void forwardKeyPressEvent(int key, int modifiers);
+    void forwardKeyReleaseEvent(int key, int modifiers);
+
 private:
     QPointer<QObject> _qmlWindow;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };

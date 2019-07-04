@@ -309,20 +309,28 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
     SetOfEntities::iterator entityItr = _entitiesToAddToPhysics.begin();
     while (entityItr != _entitiesToAddToPhysics.end()) {
         EntityItemPointer entity = (*entityItr);
-        assert(!entity->getPhysicsInfo());
         if (entity->isDead()) {
             prepareEntityForDelete(entity);
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
-        } else if (!entity->shouldBePhysical()) {
-            // this entity should no longer be on _entitiesToAddToPhysics
+            continue;
+        }
+        if (entity->getPhysicsInfo()) {
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
+            continue;
+        }
+        if (!entity->shouldBePhysical()) {
+            // this entity should no longer be on _entitiesToAddToPhysics
             if (entity->isMovingRelativeToParent()) {
                 SetOfEntities::iterator itr = _simpleKinematicEntities.find(entity);
                 if (itr == _simpleKinematicEntities.end()) {
                     _simpleKinematicEntities.insert(entity);
                 }
             }
-        } else if (entity->isReadyToComputeShape()) {
+            entityItr = _entitiesToAddToPhysics.erase(entityItr);
+            continue;
+        }
+
+        if (entity->isReadyToComputeShape()) {
             ShapeRequest shapeRequest(entity);
             ShapeRequests::iterator  requestItr = _shapeRequests.find(shapeRequest);
             if (requestItr == _shapeRequests.end()) {
@@ -332,18 +340,7 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
                 uint32_t requestCount = ObjectMotionState::getShapeManager()->getWorkRequestCount();
                 btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
                 if (shape) {
-                    EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-                    if (!motionState) {
-                        buildMotionState(shape, entity);
-                    } else {
-                        // Is it possible to fall in here?
-                        // entity shouldn't be on _entitiesToAddToPhysics list if it already has a motionState.
-                        // but just in case...
-                        motionState->setShape(shape);
-                        motionState->setRegion(_space->getRegion(entity->getSpaceIndex()));
-                        _physicalObjects.insert(motionState);
-                        _incomingChanges.insert(motionState);
-                    }
+                    buildMotionState(shape, entity);
                 } else if (requestCount != ObjectMotionState::getShapeManager()->getWorkRequestCount()) {
                     // shape doesn't exist but a new worker has been spawned to build it --> add to shapeRequests and wait
                     shapeRequest.shapeHash = shapeInfo.getHash();
@@ -354,6 +351,7 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
             }
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
         } else {
+            // skip for later
             ++entityItr;
         }
     }

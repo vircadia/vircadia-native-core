@@ -248,18 +248,19 @@ bool ObjectConstraintHinge::updateArguments(QVariantMap arguments) {
 /**jsdoc
  * The <code>"hinge"</code> {@link Entities.ActionType|ActionType} lets an entity pivot about an axis or connects two entities
  * with a hinge joint.
- * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:
  *
  * @typedef {object} Entities.ActionArguments-Hinge
+ * @property {Uuid} otherEntityID=null - The ID of the other entity that is connected to the joint, if any. If none is
+ *     specified then the first entity simply pivots about its specified <code>axis</code>.
  * @property {Vec3} pivot=0,0,0 - The local offset of the joint relative to the entity's position.
  * @property {Vec3} axis=1,0,0 - The axis of the entity that it pivots about. Must be a non-zero vector.
- * @property {Uuid} otherEntityID=null - The ID of the other entity that is connected to the joint, if any. If none is 
- *     specified then the first entity simply pivots about its specified <code>axis</code>.
  * @property {Vec3} otherPivot=0,0,0 - The local offset of the joint relative to the other entity's position.
  * @property {Vec3} otherAxis=1,0,0 - The axis of the other entity that it pivots about. Must be a non-zero vector.
- * @property {number} low=-6.283 - The most negative angle that the hinge can take, in radians.
- * @property {number} high=6.283 - The most positive angle that the hinge can take, in radians.
- * @property {number} angle=0 - The current angle of the hinge. <em>Read-only.</em>
+ * @property {number} low=-2*Math.PI - The most negative angle that the hinge can take, in radians.
+ * @property {number} high=2*Math.PI - The most positive angle that the hinge can take, in radians.
+ * @property {number} angle=0 - The current angle of the hinge, in radians, range <code>-Math.PI</code> &ndash; 
+ *     <code>Math.PI</code>. <em>Read-only.</em>
  */
 QVariantMap ObjectConstraintHinge::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();

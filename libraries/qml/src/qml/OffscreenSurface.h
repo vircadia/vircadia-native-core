@@ -40,6 +40,7 @@ class SharedObject;
 
 using QmlContextCallback = ::std::function<void(QQmlContext*)>;
 using QmlContextObjectCallback = ::std::function<void(QQmlContext*, QQuickItem*)>;
+using QmlUrlValidator = std::function<bool(const QUrl&)>;
 
 class OffscreenSurface : public QObject {
     Q_OBJECT
@@ -47,10 +48,13 @@ class OffscreenSurface : public QObject {
 public:
     static const QmlContextObjectCallback DEFAULT_CONTEXT_OBJECT_CALLBACK;
     static const QmlContextCallback DEFAULT_CONTEXT_CALLBACK;
-
+    static QmlUrlValidator validator;
     using TextureAndFence = std::pair<uint32_t, void*>;
     using MouseTranslator = std::function<QPoint(const QPointF&)>;
 
+
+    static const QmlUrlValidator& getUrlValidator() { return validator; }
+    static void setUrlValidator(const QmlUrlValidator& newValidator) { validator = newValidator; }
     static void setSharedContext(QOpenGLContext* context);
 
     OffscreenSurface();

@@ -15,6 +15,31 @@ NSString* hifiBackgroundFilename = @"hifi_window";
                                                           forObject:self];
     fieldEditor.insertionPointColor = insertionPointColor;
 }
+
+- (BOOL) performKeyEquivalent:(NSEvent *)event
+{
+    if ([event type] == NSEventTypeKeyDown) {
+        if ([event modifierFlags] & NSEventModifierFlagCommand) {
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"v"]) {
+                [NSApp sendAction:(NSSelectorFromString(@"paste:")) to:nil from:self];
+                return TRUE;
+            }
+            
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"c"]) {
+                [NSApp sendAction:(NSSelectorFromString(@"copy:")) to:nil from:self];
+                return TRUE;
+            }
+            
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"a"]) {
+                [NSApp sendAction:(NSSelectorFromString(@"selectAll:")) to:nil from:self];
+                return TRUE;
+            }
+        }
+    }
+    
+    return [super performKeyEquivalent:event];
+}
+
 - (void) mouseDown:(NSEvent *)event
 {
     NSColor *insertionPointColor = [NSColor whiteColor];
@@ -62,6 +87,30 @@ NSString* hifiBackgroundFilename = @"hifi_window";
                                                           forObject:self];
     fieldEditor.insertionPointColor = insertionPointColor;
     return status;
+}
+
+- (BOOL) performKeyEquivalent:(NSEvent *)event
+{
+    if ([event type] == NSEventTypeKeyDown) {
+        if ([event modifierFlags] & NSEventModifierFlagCommand) {
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"v"]) {
+                [NSApp sendAction:(NSSelectorFromString(@"paste:")) to:nil from:self];
+                return TRUE;
+            }
+            
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"c"]) {
+                [NSApp sendAction:(NSSelectorFromString(@"copy:")) to:nil from:self];
+                return TRUE;
+            }
+            
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"a"]) {
+                [NSApp sendAction:(NSSelectorFromString(@"selectAll:")) to:nil from:self];
+                return TRUE;
+            }
+        }
+    }
+    
+    return [super performKeyEquivalent:event];
 }
 @end
 

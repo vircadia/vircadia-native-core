@@ -224,7 +224,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     if (_type == Type::ENTITY_CLIENT || _type == Type::ENTITY_SERVER) {
         QObject::connect(this, &ScriptEngine::update, this, [this]() {
             // process pending entity script content
-            if (!_contentAvailableQueue.empty()) {
+            if (!_contentAvailableQueue.empty() && !(_isFinished || _isStopping)) {
                 EntityScriptContentAvailableMap pending;
                 std::swap(_contentAvailableQueue, pending);
                 for (auto& pair : pending) {
@@ -343,7 +343,7 @@ void ScriptEngine::runDebuggable() {
         // we check for 'now' in the past in case people set their clock back
         if (_lastUpdate < now) {
             float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
-            if (!_isFinished) {
+            if (!(_isFinished || _isStopping)) {
                 emit update(deltaTime);
             }
         }
@@ -397,15 +397,41 @@ void ScriptEngine::executeOnScriptThread(std::function<void()> function, const Q
 }
 
 void ScriptEngine::waitTillDoneRunning() {
+    // Engine should be stopped already, but be defensive
+    stop();
+    
     auto workerThread = thread();
-
+    
+    if (workerThread == QThread::currentThread()) {
+        qCWarning(scriptengine) << "ScriptEngine::waitTillDoneRunning called, but the script is on the same thread:" << getFilename();
+        return;
+    }
+    
     if (_isThreaded && workerThread) {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
-        // Engine should be stopped already, but be defensive
-        stop();
+#ifdef Q_OS_MAC
+        // On mac, don't call QCoreApplication::processEvents() here. This is to prevent
+        // [NSApplication terminate:] from prematurely destroying the static destructors
+        // while we are waiting for the scripts to shutdown. We will pump the message
+        // queue later in the Application destructor.
+        if (workerThread->isRunning()) {
+            workerThread->quit();
 
+            if (isEvaluating()) {
+                qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
+                abortEvaluation();
+            }
+
+            // Wait for the scripting thread to stop running, as
+            // flooding it with aborts/exceptions will persist it longer
+            static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MSECS_PER_SECOND;
+            if (!workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
+                workerThread->terminate();
+            }
+        }
+#else
         auto startedWaiting = usecTimestampNow();
         while (workerThread->isRunning()) {
             // If the final evaluation takes too long, then tell the script engine to stop running
@@ -443,6 +469,7 @@ void ScriptEngine::waitTillDoneRunning() {
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
         }
+#endif
 
         scriptInfoMessage("Script Engine has stopped:" + getFilename());
     }
@@ -2200,6 +2227,7 @@ void ScriptEngine::loadEntityScript(const EntityItemID& entityID, const QString&
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
+// The JSDoc is for the callEntityScriptMethod() call in this method.
 // since all of these operations can be asynch we will always do the actual work in the response handler
 // for the download
 void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success , const QString& status) {
@@ -2384,8 +2412,10 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
  * <p>Note: Can only be connected to via <code>this.unoad = function () { ... }</code> in the entity script.</p>
  * <table><tr><th>Available in:</th><td>Client Entity Scripts</td><td>Server Entity Scripts</td></tr></table>
  * @function Entities.unload
+ * @param {Uuid} entityID - The ID of the entity that the script is running in.
  * @returns {Signal}
  */
+// The JSDoc is for the callEntityScriptMethod() call in this method.
 void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldRemoveFromMap) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING

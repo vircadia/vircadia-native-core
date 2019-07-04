@@ -18,6 +18,16 @@ import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same c
 
 Rectangle {
     id: root
+    focus: true
+    
+    signal keyPressEvent(int key, int modifiers)
+    Keys.onPressed: {
+        keyPressEvent(event.key, event.modifiers);
+    }
+    signal keyReleaseEvent(int key, int modifiers)
+    Keys.onReleased: {
+        keyReleaseEvent(event.key, event.modifiers);
+    }
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -37,6 +47,12 @@ Rectangle {
 
         onSkeletonModelURLChanged: {
             root.updatePreviewUrl();
+
+            if ((MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) &&
+                topBarInventoryModel.count > 0) {
+                Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
+                MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+            }
         }
     }
 
@@ -83,6 +99,13 @@ Rectangle {
                 topBarInventoryModel.getNextPage();
             } else {
                 inventoryFullyReceived = true;
+
+                // If we have an avatar in our inventory AND we haven't already auto-selected an avatar...
+                if ((!Settings.getValue("simplifiedUI/alreadyAutoSelectedAvatar", false) ||
+                    MyAvatar.skeletonModelURL.indexOf("defaultAvatar") > -1 || MyAvatar.skeletonModelURL.indexOf("fst") === -1) && topBarInventoryModel.count > 0) {
+                    Settings.setValue("simplifiedUI/alreadyAutoSelectedAvatar", true);
+                    MyAvatar.skeletonModelURL = topBarInventoryModel.get(0).download_url;
+                }
             }
         }
     }
@@ -118,7 +141,7 @@ Rectangle {
         id: avatarButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
-        anchors.leftMargin: 16
+        anchors.leftMargin: 2
         width: 48
         height: width
 
@@ -187,7 +210,7 @@ Rectangle {
         id: inputDeviceButton
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: avatarButtonContainer.right
-        anchors.leftMargin: 6
+        anchors.leftMargin: 2
         width: 32
         height: width
     }
@@ -197,7 +220,7 @@ Rectangle {
         id: outputDeviceButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: inputDeviceButton.right
-        anchors.leftMargin: 2
+        anchors.leftMargin: 7
         width: 32
         height: width
 
@@ -209,9 +232,8 @@ Rectangle {
                 AudioScriptingInterface.systemInjectorGain === simplifiedUI.numericConstants.mutedValue
             source: outputDeviceButton.outputMuted ? "./images/outputDeviceMuted.svg" : "./images/outputDeviceLoud.svg"
             anchors.centerIn: parent
-            width: 20
-            height: 20
-            fillMode: Image.PreserveAspectFit
+            width: outputDeviceButton.outputMuted ? 25 : 26
+            height: 22
             visible: false
         }
 
@@ -260,7 +282,7 @@ Rectangle {
             id: statusButton
             property string currentStatus
             anchors.centerIn: parent
-            width: 15
+            width: 22
             height: width
             radius: width/2
             visible: false
@@ -279,6 +301,21 @@ Rectangle {
             } else {
                 "#7e8c81"
             }
+        }
+
+        Image {
+            id: statusIcon
+            source: statusButton.currentStatus === "available" ? "images/statusPresent.svg" : "images/statusAway.svg"
+            anchors.centerIn: parent
+            width: statusButton.currentStatus === "busy" ? 13 : 14
+            height: statusButton.currentStatus === "busy" ? 2 : 10
+        }
+
+        ColorOverlay {
+            anchors.fill: statusIcon
+            opacity: statusButton.currentStatus ? (statusButtonMouseArea.containsMouse ? 1.0 : 0.7) : 0.7
+            source: statusIcon
+            color: "#ffffff"
         }
 
         MouseArea {
@@ -306,8 +343,8 @@ Rectangle {
         id: hmdButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: settingsButtonContainer.left
-        anchors.rightMargin: 14
-        width: 32
+        anchors.rightMargin: 8
+        width: 48
         height: width
         visible: false
 
@@ -315,9 +352,8 @@ Rectangle {
             id: displayModeImage
             source: HMD.active ? "./images/desktopMode.svg" : "./images/vrMode.svg"
             anchors.centerIn: parent
-            width: 29
-            height: 16
-            fillMode: Image.PreserveAspectFit
+            width: HMD.active ? 25 : 43
+            height: 22
             visible: false
         }
 
@@ -376,17 +412,16 @@ Rectangle {
         id: settingsButtonContainer
         anchors.verticalCenter: parent.verticalCenter
         anchors.right: parent.right
-        anchors.rightMargin: 16
-        width: 32
+        anchors.rightMargin: 3
+        width: 36
         height: width
 
         Image {
             id: settingsButtonImage
             source: "./images/settings.svg"
             anchors.centerIn: parent
-            width: 20
-            height: 20
-            fillMode: Image.PreserveAspectFit
+            width: 22
+            height: 22
             visible: false
         }
 
@@ -455,5 +490,5 @@ Rectangle {
                 break;
         }
     }
-    signal sendToScript(var message);
+    signal sendToScript(var message)
 }

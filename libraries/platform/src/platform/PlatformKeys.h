@@ -9,6 +9,9 @@
 #define hifi_platform_PlatformKeys_h
 
 namespace platform { namespace keys{
+    // "UNKNOWN"
+    extern const char*  UNKNOWN;
+
     namespace cpu {
         extern const char*  vendor;
         extern const char*  vendor_Intel;
@@ -28,6 +31,10 @@ namespace platform { namespace keys{
         extern const char*  videoMemory;
         extern const char*  driver;
     }
+    namespace nic {
+        extern const char* mac;
+        extern const char* name;
+    }
     namespace display {
         extern const char*  description;
         extern const char*  name;
@@ -36,14 +43,17 @@ namespace platform { namespace keys{
         extern const char*  coordsTop;
         extern const char*  coordsBottom;
     }
+    namespace memory {
         extern const char*  memTotal;
-
+    }
     namespace computer {
         extern const char*  OS;
         extern const char*  OS_WINDOWS;
         extern const char*  OS_MACOS;
         extern const char*  OS_LINUX;
         extern const char*  OS_ANDROID;
+
+        extern const char*  OSVersion;
 
         extern const char*  vendor;
         extern const char*  vendor_Apple;
@@ -52,6 +62,15 @@ namespace platform { namespace keys{
 
         extern const char*  profileTier;
     }
- } } // namespace plaform::keys
+
+    // Keys for categories used in json returned by getAll()
+    extern const char*  CPUS;
+    extern const char*  GPUS;
+    extern const char*  DISPLAYS;
+    extern const char*  NICS;
+    extern const char*  MEMORY;
+    extern const char*  COMPUTER;
+
+} } // namespace plaform::keys
 
 #endif

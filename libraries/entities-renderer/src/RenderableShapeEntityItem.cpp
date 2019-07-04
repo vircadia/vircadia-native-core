@@ -67,7 +67,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
-    if (_color != entity->getColor()) {
+    if (_color != toGlm(entity->getColor())) {
         return true;
     }
     if (_alpha != entity->getAlpha()) {
@@ -127,12 +127,12 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         }
     });
 
-    glm::u8vec3 color = entity->getColor();
+    glm::vec3 color = toGlm(entity->getColor());
     float alpha = entity->getAlpha();
     if (_color != color || _alpha != alpha) {
         _color = color;
         _alpha = alpha;
-        _material->setAlbedo(toGlm(_color));
+        _material->setAlbedo(color);
         _material->setOpacity(_alpha);
 
         auto materials = _materials.find("0");
@@ -280,12 +280,8 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     } else if (!useMaterialPipeline(materials)) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        render::ShapePipelinePointer pipeline;
-        if (renderLayer == RenderLayer::WORLD && args->_renderMethod != Args::RenderMethod::FORWARD) {
-            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-        } else {
-            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
-        }
+        render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(outColor.a < 1.0f, false,
+            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {

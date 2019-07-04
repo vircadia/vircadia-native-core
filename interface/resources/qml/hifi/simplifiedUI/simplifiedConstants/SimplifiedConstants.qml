@@ -72,10 +72,14 @@ QtObject {
                         readonly property color border: "#00B4EF"
                     }
                 }
+                readonly property QtObject text: QtObject {
+                    readonly property color enabled: "#FFFFFF"
+                    readonly property color disabled: "#8F8F8F"
+                }
             }
             readonly property QtObject simplifiedSwitch: QtObject {
                 readonly property QtObject background: QtObject {
-                    readonly property color disabled: "#616161"
+                    readonly property color disabled: "#2B2B2B"
                     readonly property color off: "#616161"
                     readonly property color hover: "#616161"
                     readonly property color pressed: "#616161"
@@ -144,6 +148,10 @@ QtObject {
                 readonly property color hover: "#FFFFFF"
                 readonly property color focus: "#FFFFFF"
             }
+            readonly property QtObject scrollBar: QtObject {
+                readonly property color background: "#474747"
+                readonly property color contentItem: "#0198CB"
+            }
         }
 
         readonly property color darkSeparator: "#595959"
@@ -183,7 +191,7 @@ QtObject {
 
         readonly property QtObject settings: QtObject {
             property int subtitleTopMargin: 2
-            property int settingsGroupTopMargin: 24
+            property int settingsGroupTopMargin: 14
             property int spacingBetweenSettings: 48
             property int spacingBetweenRadiobuttons: 14
         }
@@ -218,6 +226,10 @@ QtObject {
             }
             readonly property QtObject textField: QtObject {
                 readonly property int editPencilPadding: 6
+            }
+            readonly property QtObject scrollBar: QtObject {
+                readonly property int backgroundWidth: 9
+                readonly property int contentItemWidth: 7
             }
         }
     }

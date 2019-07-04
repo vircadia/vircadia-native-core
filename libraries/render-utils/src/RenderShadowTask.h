@@ -50,7 +50,6 @@ signals:
 
 class RenderShadowTask {
 public:
-
     // There is one AABox per shadow cascade
     using CascadeBoxes = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
     using Input = render::VaryingSet2<LightStage::FramePointer, LightingModelPointer>;
@@ -74,8 +73,10 @@ public:
     };
 
     CullFunctor _cullFunctor;
-
 };
+
+const float DEFAULT_BIAS_INPUT = 0.5f;
+const float DEFAULT_MAX_DISTANCE = 40.0f;
 
 class RenderShadowSetupConfig : public render::Job::Config {
     Q_OBJECT
@@ -87,7 +88,12 @@ class RenderShadowSetupConfig : public render::Job::Config {
         Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
         Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
         Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
+        Q_PROPERTY(float biasInput MEMBER biasInput NOTIFY dirty)
+        Q_PROPERTY(float globalMaxDistance MEMBER globalMaxDistance NOTIFY dirty)
+
 public:
+    float biasInput{ DEFAULT_BIAS_INPUT };
+    float globalMaxDistance{ DEFAULT_MAX_DISTANCE };
 
     float constantBias0{ 0.15f };
     float constantBias1{ 0.15f };
@@ -114,7 +120,6 @@ public:
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 private:
-
     ViewFrustumPointer _cameraFrustum;
     ViewFrustumPointer _coarseShadowFrustum;
     struct {
@@ -125,8 +130,29 @@ private:
     LightStage::ShadowFrame::Object _globalShadowObject;
     LightStage::ShadowFramePointer _shadowFrameCache;
 
+    const int DEFAULT_RESOLUTION = 1024;
+    float _biasInput{ DEFAULT_BIAS_INPUT };
+    float _globalMaxDistance{ DEFAULT_MAX_DISTANCE };
+    int resolution{ DEFAULT_RESOLUTION };
+
+    // initialize with values from RenderShadowSetupConfig 
+    float constant0{ 0.15f };
+    float constant1{ 0.15f };
+    float constant2{ 0.175f };
+    float constant3{ 0.2f };
+    float slope0{ 0.4f };
+    float slope1{ 0.45f };
+    float slope2{ 0.65f };
+    float slope3{ 0.7f };
+    bool changeInDefaultConfigValues{ false }; 
+    bool distanceTriggeredByConfig{ false };
+    bool biasTriggeredByConfig{ false };
+    std::array<float, 8> cacasdeDistances;  // 4 max then 4 min distances
+
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);
+    void setBiasInput(float input) { _biasInput = input; }
+    void calculateBiases();
 };
 
 class RenderShadowCascadeSetup {

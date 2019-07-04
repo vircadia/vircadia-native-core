@@ -108,6 +108,13 @@ public:
     };
 
     Q_ENUM(ConnectionStep);
+
+    enum ConnectReason : quint32 {
+        Connect = 0,
+        SilentDomainDisconnect
+    };
+    Q_ENUM(ConnectReason);
+
     QUuid getSessionUUID() const;
     void setSessionUUID(const QUuid& sessionUUID);
     Node::LocalID getSessionLocalID() const;
@@ -328,6 +335,8 @@ public:
     float getInboundKbps() const { return _inboundKbps; }
     float getOutboundKbps() const { return _outboundKbps; }
 
+    void setDropOutgoingNodeTraffic(bool squelchOutgoingNodeTraffic) { _dropOutgoingNodeTraffic = squelchOutgoingNodeTraffic; }
+
     const std::set<NodeType_t> SOLO_NODE_TYPES = {
         NodeType::AvatarMixer,
         NodeType::AudioMixer,
@@ -461,6 +470,9 @@ protected:
     }
 
     std::unordered_map<QUuid, ConnectionID> _connectionIDs;
+    quint64 _nodeConnectTimestamp{ 0 };
+    quint64 _nodeDisconnectTimestamp{ 0 };
+    ConnectReason _connectReason { Connect };
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
@@ -483,6 +495,11 @@ private:
     int _outboundPPS { 0 };
     float _inboundKbps { 0.0f };
     float _outboundKbps { 0.0f };
+
+    bool _dropOutgoingNodeTraffic { false };
+
+    quint64 _sendErrorStatsTime { (quint64)0 };
+    static const quint64 ERROR_STATS_PERIOD_US { 1 * USECS_PER_SECOND };
 };
 
 #endif // hifi_LimitedNodeList_h

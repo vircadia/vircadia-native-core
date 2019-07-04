@@ -98,6 +98,8 @@ public:
         return result;
     }
 
+    const AnimPoseVec& getPoses() const { return getPosesInternal(); }
+
 protected:
 
     virtual void setCurrentFrameInternal(float frame) {}

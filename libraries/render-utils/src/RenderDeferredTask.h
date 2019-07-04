@@ -149,4 +149,42 @@ public:
 private:
 };
 
+
+class PreparePrimaryFramebufferConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(float resolutionScale  WRITE setResolutionScale READ getResolutionScale)
+public:
+    float getResolutionScale() const { return resolutionScale; }
+    void setResolutionScale(float scale) {
+        const float SCALE_RANGE_MIN = 0.1f;
+        const float SCALE_RANGE_MAX = 2.0f;
+        resolutionScale = std::max(SCALE_RANGE_MIN, std::min(SCALE_RANGE_MAX, scale));
+    }
+
+signals:
+    void dirty();
+
+protected:
+    float resolutionScale{ 1.0f };
+};
+
+class PreparePrimaryFramebuffer {
+public:
+
+    using Output = gpu::FramebufferPointer;
+    using Config = PreparePrimaryFramebufferConfig;
+    using JobModel = render::Job::ModelO<PreparePrimaryFramebuffer, Output, Config>;
+
+    PreparePrimaryFramebuffer(float resolutionScale = 1.0f) : _resolutionScale{ resolutionScale } {}
+    void configure(const Config& config);
+    void run(const render::RenderContextPointer& renderContext, Output& primaryFramebuffer);
+
+    gpu::FramebufferPointer _primaryFramebuffer;
+    float _resolutionScale{ 1.0f };
+
+private:
+
+    static gpu::FramebufferPointer createFramebuffer(const char* name, const glm::uvec2& size);
+};
+
 #endif  // hifi_RenderDeferredTask_h

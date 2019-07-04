@@ -31,4 +31,9 @@
 {
     [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://www.highfidelity.com/hq-support"]];
 }
+
+- (IBAction)termsOfService:(id)sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"https://www.highfidelity.com/termsofservice"]];
+}
 @end

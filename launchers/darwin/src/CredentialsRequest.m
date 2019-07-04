@@ -2,13 +2,19 @@
 #import "Launcher.h"
 #import "Settings.h"
 
+@interface CredentialsRequest ()
+@property (nonatomic, assign) NSMutableData* receivedData;
+@property (nonatomic, assign) NSInteger statusCode;
+@end
+
 @implementation CredentialsRequest
 
 - (void) confirmCredentials:(NSString*)username :(NSString*)password {
 
     NSLog(@"web request started");
+    NSString* trimmedUsername = [username stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     NSString *post = [NSString stringWithFormat:@"grant_type=password&username=%@&password=%@&scope=owner",
-        [username stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]],
+        [trimmedUsername stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]],
         [password stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet alphanumericCharacterSet]]];
     NSData *postData = [post dataUsingEncoding:NSUTF8StringEncoding];
     NSString *postLength = [NSString stringWithFormat:@"%ld", (unsigned long)[postData length]];
@@ -20,77 +26,70 @@
     [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     [request setHTTPBody:postData];
 
-    NSURLSession* session = [NSURLSession sharedSession];
-    NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        
-        NSLog(@"credentials request finished");
-        NSMutableData* webData = [NSMutableData data];
-        [webData appendData:data];
-        NSString* jsonString = [[NSString alloc] initWithBytes: [webData mutableBytes] length:[data length] encoding:NSUTF8StringEncoding];
-        NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-        id json = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:nil];
-        
-        Launcher* sharedLauncher = [Launcher sharedLauncher];
-        if (json[@"error"] != nil) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [[Settings sharedSettings] login:FALSE];
-                [sharedLauncher setLoginErrorState: CREDENTIALS];
-                [sharedLauncher credentialsAccepted:FALSE];
-            });
-        } else {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [[Settings sharedSettings] login:TRUE];
-                [sharedLauncher setTokenString:jsonString];
-                [sharedLauncher credentialsAccepted:TRUE];
-            });
-        }
-        
-        NSLog(@"credentials: connectionDidFinished completed");
-        
-    }];
-    
+    NSURLSession* session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
+    NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request];
+
     [dataTask resume];
 }
 
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    [self.webData appendData:data];
-    NSLog(@"credentials connection received data");
-}
 
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
-    NSLog(@"credentials connection received response");
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
+    self.receivedData = nil;
+    self.receivedData = [[NSMutableData alloc] init];
+    [self.receivedData setLength:0];
     NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
-    if([ne statusCode] == 200) {
-        NSLog(@"connection state is 200 - all okay");
-    } else {
-        NSLog(@"connection state is NOT 200");
-        [[Launcher sharedLauncher] displayErrorPage];
-    }
+    self.statusCode = [ne statusCode];
+    NSLog(@"Credentials Response status code: %ld", self.statusCode);
+    completionHandler(NSURLSessionResponseAllow);
 }
 
--(void) connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    NSLog(@"Conn Err: %@", [error localizedDescription]);
-    [[Launcher sharedLauncher] displayErrorPage];
+
+-(void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+   didReceiveData:(NSData *)data {
+
+    [self.receivedData appendData:data];
+    NSLog(@"Credentials: did recieve data");
 }
 
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    NSLog(@"credentials request finished");
-    NSString* jsonString = [[NSString alloc] initWithBytes: [self.webData mutableBytes] length:[self.webData length] encoding:NSUTF8StringEncoding];
-    NSData *data = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-    id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-    
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     Launcher* sharedLauncher = [Launcher sharedLauncher];
-    if (json[@"error"] != nil) {
-        [[Settings sharedSettings] login:FALSE];
-        [sharedLauncher setLoginErrorState: CREDENTIALS];
-        [sharedLauncher credentialsAccepted:FALSE];
+    if (error) {
+        NSLog(@"Credentials: Request completed with an error -> error: %@", error);
+        [sharedLauncher displayErrorPage];
     } else {
-        [[Settings sharedSettings] login:TRUE];
-        [sharedLauncher setTokenString:jsonString];
-        [sharedLauncher credentialsAccepted:TRUE];
-    }
-    
-    NSLog(@"credentials: connectionDidFinished completed");
-}
+        if (self.statusCode == 200) {
+            NSString* jsonString = [[NSString alloc] initWithBytes: [self.receivedData mutableBytes] length:[self.receivedData length] encoding:NSUTF8StringEncoding];
+            NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+            NSError* jsonError = nil;
+            id json = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&jsonError];
 
+            if (jsonError) {
+                NSLog(@"Credentials: Failed to parse json -> error: %@", jsonError);
+                NSLog(@"Credentials: JSON string from data: %@", jsonString);
+                [sharedLauncher displayErrorPage];
+                return;
+            }
+
+            if (json[@"error"] != nil) {
+                NSLog(@"Credentials: Login failed -> error: %@", json[@"error"]);
+                [[Settings sharedSettings] login:FALSE];
+                [sharedLauncher setLoginErrorState: CREDENTIALS];
+                [sharedLauncher credentialsAccepted:FALSE];
+            } else {
+                NSLog(@"Credentials: Login succeeded");
+                [[Settings sharedSettings] login:TRUE];
+                [sharedLauncher setTokenString:jsonString];
+                [sharedLauncher credentialsAccepted:TRUE];
+            }
+        } else if (self.statusCode == 403 || self.statusCode == 404 || self.statusCode == 401) {
+            NSLog(@"Credentials: Log failed with statusCode: %ld", self.statusCode);
+            [[Settings sharedSettings] login:FALSE];
+            [sharedLauncher setLoginErrorState: CREDENTIALS];
+            [sharedLauncher credentialsAccepted:FALSE];
+        } else {
+            [sharedLauncher displayErrorPage];
+        }
+    }
+}
 @end

@@ -1,1 +1,1 @@
-DEFINES translucent forward
+DEFINES (translucent unlit:f)/forward

@@ -8,6 +8,7 @@
 
 
 #include "PlatformInstance.h"
+#include <QNetworkInterface>
 
 #include "../PlatformKeys.h"
 #include "../Profiler.h"
@@ -16,66 +17,66 @@ using namespace platform;
 
 bool Instance::enumeratePlatform() {
     enumerateComputer();
-    enumerateCpu();
-    enumerateGpu();
     enumerateMemory();
+    enumerateCpus();
+    enumerateGpus();
+    enumerateDisplays();
+    enumerateNics();
 
     // And profile the platform and put the tier in "computer"
     _computer[keys::computer::profileTier] = Profiler::TierNames[Profiler::profilePlatform()];
 
     return true;
 }
-
-json Instance::getCPU(int index) {
-    assert(index <(int) _cpu.size());
-    if (index >= (int)_cpu.size())
-        return json();
-
-    return _cpu.at(index);
+void Instance::enumerateNics() {
+    QNetworkInterface interface;
+    foreach(interface, interface.allInterfaces()) {
+        if (interface.flags().testFlag(QNetworkInterface::IsRunning) && !interface.hardwareAddress().isEmpty()) {
+            json nic = {};
+            nic[keys::nic::mac] = interface.hardwareAddress().toUtf8().constData();
+            nic[keys::nic::name] = interface.humanReadableName().toUtf8().constData();
+            _nics.push_back(nic);
+        }
+    }
 }
 
-//These are ripe for template.. will work on that next
-json Instance::getMemory(int index) {
-    assert(index <(int) _memory.size());
-    if(index >= (int)_memory.size())
+json Instance::getCPU(int index) {
+    assert(index <(int) _cpus.size());
+    if (index >= (int)_cpus.size())
         return json();
 
-    return _memory.at(index);
+    return _cpus.at(index);
 }
 
 json Instance::getGPU(int index) {
-    assert(index <(int) _gpu.size());
+    assert(index <(int) _gpus.size());
 
-    if (index >=(int) _gpu.size())
+    if (index >=(int) _gpus.size())
         return json();
     
-    return _gpu.at(index);
+    return _gpus.at(index);
 }
 
 json Instance::getDisplay(int index) {
-    assert(index <(int) _display.size());
+    assert(index <(int) _displays.size());
     
-    if (index >=(int) _display.size())
+    if (index >=(int) _displays.size())
         return json();
 
-    return _display.at(index);
+    return _displays.at(index);
 }
 
 Instance::~Instance() {
-    if (_cpu.size() > 0) {
-        _cpu.clear();
+    if (_cpus.size() > 0) {
+        _cpus.clear();
     }
 
-    if (_memory.size() > 0) {
-        _memory.clear();
+    if (_gpus.size() > 0) {
+        _gpus.clear();
     }
 
-    if (_gpu.size() > 0) {
-        _gpu.clear();
-    }
-
-    if (_display.size() > 0) {
-        _display.clear();
+    if (_displays.size() > 0) {
+        _displays.clear();
     }
 }
 
@@ -105,17 +106,54 @@ json Instance::listAllKeys() {
         keys::display::coordsTop,
         keys::display::coordsBottom,
 
-        keys::memTotal,
+        keys::memory::memTotal,
 
         keys::computer::OS,
         keys::computer::OS_WINDOWS,
         keys::computer::OS_MACOS,
         keys::computer::OS_LINUX,
         keys::computer::OS_ANDROID,
+        keys::computer::OSVersion,
         keys::computer::vendor,
         keys::computer::vendor_Apple,
         keys::computer::model,
-        keys::computer::profileTier
+        keys::computer::profileTier,
+
+        keys::CPUS,
+        keys::GPUS,
+        keys::DISPLAYS,
+        keys::MEMORY,
+        keys::COMPUTER,
     }});
     return allKeys;
+}
+
+const char* Instance::findGPUVendorInDescription(const std::string& description) {
+    // intel integrated graphics
+    if (description.find(keys::gpu::vendor_Intel) != std::string::npos) {
+        return keys::gpu::vendor_Intel;
+    }
+    // AMD gpu
+    else if ((description.find(keys::gpu::vendor_AMD) != std::string::npos) || (description.find("Radeon") != std::string::npos)) {
+        return keys::gpu::vendor_AMD;
+    }
+    // NVIDIA gpu
+    else if (description.find(keys::gpu::vendor_NVIDIA) != std::string::npos) {
+        return keys::gpu::vendor_NVIDIA;
+    } else {
+        return keys::UNKNOWN;
+    }
+}
+
+json Instance::getAll() {
+    json all = {};
+
+    all[keys::COMPUTER] = _computer;
+    all[keys::MEMORY] = _memory;
+    all[keys::CPUS] = _cpus;
+    all[keys::GPUS] = _gpus;
+    all[keys::DISPLAYS] = _displays;
+    all[keys::NICS] = _nics;
+
+    return all;
 }

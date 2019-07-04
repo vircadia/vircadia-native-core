@@ -17,6 +17,8 @@ PropFolderPanel {
     Global { id: global }
     id: root
     
+    property var rootObject: {}
+
     property alias propItemsPanel: root.panelFrameContent
     
     // Prop Group is designed to author an array of ProItems, they are defined with an array of the tuplets describing each individual item:
@@ -79,12 +81,24 @@ PropFolderPanel {
                             })
                         } break;
                         case 'object': {
-                            var component = Qt.createComponent("PropItem.qml");
+                            console.log('Item is an object, create PropGroup: ' + JSON.stringify(proItem.object[proItem.property]));
+                            var itemRootObject = proItem.object[proItem.property];
+                            var itemLabel = proItem.property;
+                            var itemDepth = root.indentDepth + 1;
+                            if (Array.isArray(itemRootObject)) {
+                                if (objectItem.length > 1) {
+                                    itemLabel = itemLabel + " " + objectItem.length
+                                } else {
+                                    itemLabel = itemLabel + " " + objectItem.length
+                                    itemRootObject = itemRootObject[0];
+                                }
+                            }
+                            var component = Qt.createComponent("PropGroup.qml");
                             component.createObject(propItemsContainer, {
-                                "label": proItem.property,
-                                "object": proItem.object,
-                                "property": proItem.property,
-                             })
+                                "label": itemLabel,
+                                "rootObject":itemRootObject,
+                                "indentDepth": itemDepth,
+                            })
                         } break;
                         case 'printLabel': {
                             var component = Qt.createComponent("PropItem.qml");
@@ -110,19 +124,46 @@ PropFolderPanel {
 
     function populateFromObjectProps(object) {
         var propsModel = []
-        var props = Object.keys(object);
 
+        if (Array.isArray(object)) {
+            if (object.length <= 1) {
+                object = object[0];
+            }
+        }
+
+        var props = Object.keys(object);
         for (var p in props) {
             var o = {};
             o["object"] = object
             o["property"] = props[p];
             // o["readOnly"] = true;
-            o["type"] = "string";
-            propsModel.push(o)
+        
+            var thePropThing = object[props[p]];
+            if ((thePropThing !== undefined) && (thePropThing !== null)) {
+                var theType = typeof(thePropThing)
+                switch(theType) {
+                    case 'object': {
+                        o["type"] = "object";
+                        propsModel.push(o)  
+                    } break;
+                    default: {
+                        o["type"] = "string";
+                        propsModel.push(o)
+                    } break;
+                }
+            
+            } else {
+                o["type"] = "string";
+                propsModel.push(o)
+            }
         }
+
         root.updatePropItems(root.propItemsPanel, propsModel);
     }
 
     Component.onCompleted: {
+        if (root.rootObject !== null) {
+            populateFromObjectProps(root.rootObject)
+        }
     }
 }
