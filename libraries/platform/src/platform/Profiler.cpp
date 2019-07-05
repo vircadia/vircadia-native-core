@@ -32,9 +32,9 @@ Profiler::Tier Profiler::profilePlatform() {
         return platformTier;
     }
 
-    // Not filtered yet, let s try to make sense of the cpu and gpu info
-    auto cpuInfo = platform::getCPU(0);
-    auto gpuInfo = platform::getGPU(0);
+    // Not filtered yet, let s try to make sense of the  master cpu and master gpu info
+    auto cpuInfo = platform::getCPU(platform::getMasterCPU());
+    auto gpuInfo = platform::getGPU(platform::getMasterGPU());
     if (filterOnProcessors(computerInfo, cpuInfo, gpuInfo, platformTier)) {
         return platformTier;
     }
@@ -133,10 +133,12 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
 // YES on macos EXCEPT for macbookair with gpu intel iris or intel HD 6000
 bool Profiler::isRenderMethodDeferredCapable() {
 #if defined(Q_OS_MAC)
+    // Deferred works correctly on every supported macos platform at the moment, let s enable it 
+/*
     auto computer = platform::getComputer();
     const auto computerModel = (computer.count(keys::computer::model) ? computer[keys::computer::model].get<std::string>() : "");
 
-    auto gpuInfo = platform::getGPU(0);
+    auto gpuInfo = platform::getGPU(getMasterGPU());
     const auto gpuModel = (gpuInfo.count(keys::gpu::model) ? gpuInfo[keys::gpu::model].get<std::string>() : "");
     
     
@@ -154,7 +156,7 @@ bool Profiler::isRenderMethodDeferredCapable() {
     if ((gpuModel.find("Intel ") != std::string::npos)) {
         return false;
     }
-
+*/
     return true;
 #elif defined(Q_OS_ANDROID)
     return false;

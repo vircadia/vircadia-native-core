@@ -20,6 +20,7 @@ namespace platform { namespace keys{
         extern const char*  model;
         extern const char*  clockSpeed;
         extern const char*  numCores;
+        extern const char*  isMaster;
     }
     namespace gpu {
         extern const char*  vendor;
@@ -31,6 +32,7 @@ namespace platform { namespace keys{
         extern const char*  videoMemory;
         extern const char*  driver;
         extern const char*  displays;
+        extern const char*  isMaster;
     }
     namespace nic {
         extern const char* mac;

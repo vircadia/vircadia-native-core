@@ -21,7 +21,8 @@ namespace platform { namespace keys {
         const char*  model = "model";
         const char*  clockSpeed = "clockSpeed";
         const char*  numCores = "numCores";
-    }
+        const char*  isMaster = "isMaster";
+        }
     namespace gpu {
         const char*  vendor = "vendor";
         const char*  vendor_NVIDIA = "NVIDIA";
@@ -32,6 +33,7 @@ namespace platform { namespace keys {
         const char*  videoMemory = "videoMemory";
         const char*  driver = "driver";
         const char*  displays = "displays";
+        const char*  isMaster = "isMaster";
     }
     namespace nic {
         const char* mac = "mac";
@@ -127,6 +129,10 @@ json platform::getCPU(int index) {
     return _instance->getCPU(index);
 }
 
+int platform::getMasterCPU() {
+    return _instance->getMasterCPU();
+}
+
 int platform::getNumGPUs() {
     return _instance->getNumGPUs();
 }
@@ -135,12 +141,20 @@ json platform::getGPU(int index) {
     return _instance->getGPU(index);
 }
 
+int platform::getMasterGPU() {
+    return _instance->getMasterGPU();
+}
+
 int platform::getNumDisplays() {
     return _instance->getNumDisplays();
 }
 
 json platform::getDisplay(int index) {
     return _instance->getDisplay(index);
+}
+
+int platform::getMasterDisplay() {
+    return _instance->getMasterDisplay();
 }
 
 json platform::getMemory() {

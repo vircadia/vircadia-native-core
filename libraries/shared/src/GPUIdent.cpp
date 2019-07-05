@@ -289,7 +289,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
 
                 nlohmann::json output = {};
                 output["model"] = deviceName;
-                output["coordinatesleft"] = test->DesktopCoordinates.left;
+                output["coordsinatesleft"] = test->DesktopCoordinates.left;
                 output["coordinatesright"] = test->DesktopCoordinates.right;
                 output["coordinatestop"] = test->DesktopCoordinates.top;
                 output["coordinatesbottom"] = test->DesktopCoordinates.bottom;
