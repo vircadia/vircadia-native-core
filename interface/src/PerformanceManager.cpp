@@ -70,12 +70,15 @@ void PerformanceManager::applyPerformancePreset(PerformanceManager::PerformanceP
     auto masterDisplay = platform::getDisplay(platform::getMasterDisplay());
     
     // eval recommanded PPI and Scale
-    float ppi{96};
     float recommandedPpiScale = 1.0f;
     const float RECOMMANDED_PPI[] = { 200.0f, 120.f, 160.f, 250.f};
     if (!masterDisplay.empty() && masterDisplay.count(platform::keys::display::ppi)) {
-        ppi = masterDisplay[platform::keys::display::ppi];
-        recommandedPpiScale = std::min(1.0f, RECOMMANDED_PPI[preset] / (float) ppi);
+        float ppi = masterDisplay[platform::keys::display::ppi];
+        // only scale if the actual ppi is higher than the recommended ppi
+        if (ppi > RECOMMANDED_PPI[preset]) {
+            // make sure the scale is no less than a quarter
+            recommandedPpiScale = std::max(0.25f, RECOMMANDED_PPI[preset] / (float) ppi);
+        }
     }
 
     switch (preset) {
