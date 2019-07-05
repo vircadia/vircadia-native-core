@@ -127,27 +127,30 @@ void WINInstance::enumerateGpusAndDisplays() {
                 display[keys::display::description] = "";
 
                 // Rect region of the desktop in desktop units
-                display["desktopRect"] = (outputDesc.AttachedToDesktop ? true : false);
+                //display["desktopRect"] = (outputDesc.AttachedToDesktop ? true : false);
                 display[keys::display::boundsLeft] = outputDesc.DesktopCoordinates.left;
                 display[keys::display::boundsRight] = outputDesc.DesktopCoordinates.right;
                 display[keys::display::boundsBottom] = outputDesc.DesktopCoordinates.bottom;
                 display[keys::display::boundsTop] = outputDesc.DesktopCoordinates.top;
 
-                // DPI
-                display["ppiX"] = dpiX;
-                display["ppiY"] = dpiY;
-                display["physicalWidth"] = devMode.dmPelsWidth / (float) dpiX;
-                display["physicalHeight"] = devMode.dmPelsHeight / (float) dpiY;
-                display["modeWidth"] = devMode.dmPelsWidth;
-                display["modeHeight"] = devMode.dmPelsHeight;
+                // PPI & resolution
+                display[keys::display::ppiHorizontal] = dpiX;
+                display[keys::display::ppiVertical] = dpiY;
+                display[keys::display::physicalWidth] = devMode.dmPelsWidth / (float) dpiX;
+                display[keys::display::physicalHeight] = devMode.dmPelsHeight / (float) dpiY;
+                display[keys::display::modeWidth] = devMode.dmPelsWidth;
+                display[keys::display::modeHeight] = devMode.dmPelsHeight;
 
-                //Average the ppiX and Y scaled vs the the true ppi
-                display["ppi"] = 0.5f * (dpiX + dpiY);
-                display["desktopPPIScale"] = 0.5f * (dpiX / (float) dpiXScaled + dpiY / (float)dpiYScaled);
-
+                //Average the ppiH and V for the simple ppi
+                display[keys::display::ppi] = std::round(0.5f * (dpiX + dpiY));
+                display[keys::display::desktopPpi] = std::round(0.5f * (dpiXScaled + dpiYScaled));
+                
                 // refreshrate
-                display["frequency"] = devMode.dmDisplayFrequency;
-
+                display[keys::display::modeRefreshrate] = devMode.dmDisplayFrequency;;
+                
+                // Master display ?
+                display[keys::display::isMaster] = true;
+                
                 // Add the display index to the list of displays of the gpu
                 displayIndices.push_back(_displays.size());
 
@@ -188,10 +191,12 @@ void WINInstance::enumerateComputer() {
     _computer[keys::computer::vendor] = "";
     _computer[keys::computer::model] = "";
 
+#ifdef Q_OS_WIN
     auto sysInfo = QSysInfo();
-
     _computer[keys::computer::OSVersion] = sysInfo.kernelVersion().toStdString();
+#endif
 }
+
 
 void WINInstance::enumerateNics() {
     // Start with the default from QT, getting the result into _nics:
