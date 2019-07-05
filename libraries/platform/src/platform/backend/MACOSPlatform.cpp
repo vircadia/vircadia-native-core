@@ -113,7 +113,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             display[keys::display::modeRefreshrate] = displayRefreshrate;
             
             // Master display ?
-            display[keys::display::isMaster] = displayMaster;
+            display[keys::display::isMaster] = (displayMaster ? true : false);
             
             // Macos specific
             display["macos_unit"] = displayUnit;
