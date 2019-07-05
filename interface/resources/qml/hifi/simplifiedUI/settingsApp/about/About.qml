@@ -25,6 +25,14 @@ Flickable {
         if (visible) {
             root.contentX = 0;
             root.contentY = 0;
+
+            // When the user clicks the About tab, refresh the audio I/O model so that
+            // the delegate Component.onCompleted handlers fire, which will update
+            // the text that appears in the About screen.
+            audioOutputDevices.model = undefined;
+            audioOutputDevices.model = AudioScriptingInterface.devices.output;
+            audioInputDevices.model = undefined;
+            audioInputDevices.model = AudioScriptingInterface.devices.input;
         }
     }
 
@@ -207,7 +215,6 @@ Flickable {
                 Layout.preferredWidth: parent.width
                 Layout.preferredHeight: contentItem.height
                 interactive: false
-                model: AudioScriptingInterface.devices.input
                 delegate: Item {
                     Component.onCompleted: {
                         if (HMD.active && selectedHMD) {
@@ -241,7 +248,6 @@ Flickable {
                 Layout.preferredWidth: parent.width
                 Layout.preferredHeight: contentItem.height
                 interactive: false
-                model: AudioScriptingInterface.devices.output
                 delegate: Item {
                     Component.onCompleted: {
                         if (HMD.active && selectedHMD) {
