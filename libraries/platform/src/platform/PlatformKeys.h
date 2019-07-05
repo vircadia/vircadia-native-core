@@ -44,15 +44,13 @@ namespace platform { namespace keys{
         extern const char*  boundsTop;
         extern const char*  boundsBottom;
         extern const char*  gpu;
-        extern const char*  ppiHorizontal;
-        extern const char*  ppiVertical;
         extern const char*  ppi;
+        extern const char*  ppiDesktop;
         extern const char*  physicalWidth;
         extern const char*  physicalHeight;
         extern const char*  modeRefreshrate;
         extern const char*  modeWidth;
         extern const char*  modeHeight;
-        extern const char*  desktopPpi;
         extern const char*  isMaster;
     }
     namespace memory {

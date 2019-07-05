@@ -81,90 +81,108 @@ void WINInstance::enumerateGpusAndDisplays() {
             // Found an adapter, get descriptor
             DXGI_ADAPTER_DESC1 adapterDesc;
             pAdapter->GetDesc1(&adapterDesc);
+            
+            // Only describe gpu if it is a hardware adapter
+            if (!(adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+ 
+                LARGE_INTEGER version;
+                hr = pAdapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version);
 
-            LARGE_INTEGER version;
-            hr = pAdapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &version);
+                std::wstring wDescription(adapterDesc.Description);
+                std::string description(wDescription.begin(), wDescription.end());
 
-            std::wstring wDescription(adapterDesc.Description);
-            std::string description(wDescription.begin(), wDescription.end());
+                json gpu = {};
+                gpu[keys::gpu::model] = description;
+                gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
+                const SIZE_T BYTES_PER_MEGABYTE = 1024 * 1024;
+                gpu[keys::gpu::videoMemory] = (uint32_t)(adapterDesc.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
+                gpu[keys::gpu::driver] = convertDriverVersionToString.convert(version);
 
-            json gpu = {};
-            gpu[keys::gpu::model] = description;
-            gpu[keys::gpu::vendor] = findGPUVendorInDescription(gpu[keys::gpu::model].get<std::string>());
-            const SIZE_T BYTES_PER_MEGABYTE = 1024 * 1024;
-            gpu[keys::gpu::videoMemory] = (uint32_t)(adapterDesc.DedicatedVideoMemory / BYTES_PER_MEGABYTE);
-            gpu[keys::gpu::driver] = convertDriverVersionToString.convert(version);
+                std::vector<int> displayIndices;
 
-            std::vector<int> displayIndices;
+                UINT outputNum = 0;
+                IDXGIOutput* pOutput;
+                bool hasOutputConnectedToDesktop = false;
+                while (pAdapter->EnumOutputs(outputNum, &pOutput) != DXGI_ERROR_NOT_FOUND) {
+                    // FOund an output attached to the adapter, get descriptor
+                    DXGI_OUTPUT_DESC outputDesc;
+                    pOutput->GetDesc(&outputDesc);
+                    pOutput->Release();
+                    outputNum++;
 
-            UINT outputNum = 0;
-            IDXGIOutput* pOutput;
-            bool hasOutputConnectedToDesktop = false;
-            while (pAdapter->EnumOutputs(outputNum, &pOutput) != DXGI_ERROR_NOT_FOUND) {
-                // FOund an output attached to the adapter, get descriptor
-                DXGI_OUTPUT_DESC outputDesc;
-                pOutput->GetDesc(&outputDesc);
+                    // Grab the monitor info
+                    MONITORINFO monitorInfo;
+                    monitorInfo.cbSize = sizeof(MONITORINFO);
+                    GetMonitorInfo(outputDesc.Monitor, &monitorInfo);
 
-                // Grab the dpi info for the monitor
-                UINT dpiX{ 0 };
-                UINT dpiY{ 0 };
-                GetDpiForMonitor(outputDesc.Monitor, MDT_RAW_DPI, &dpiX, &dpiY);
-                UINT dpiXScaled{ 0 };
-                UINT dpiYScaled{ 0 };
-                GetDpiForMonitor(outputDesc.Monitor, MDT_EFFECTIVE_DPI, &dpiXScaled, &dpiYScaled);
+                    // Grab the dpi info for the monitor
+                    UINT dpiX{ 0 };
+                    UINT dpiY{ 0 };
+                    GetDpiForMonitor(outputDesc.Monitor, MDT_RAW_DPI, &dpiX, &dpiY);
+                    UINT dpiXScaled{ 0 };
+                    UINT dpiYScaled{ 0 };
+                    GetDpiForMonitor(outputDesc.Monitor, MDT_EFFECTIVE_DPI, &dpiXScaled, &dpiYScaled);
 
-                // CUrrent display mode
-                DEVMODEW devMode;
-                devMode.dmSize = sizeof(DEVMODEW);
-                EnumDisplaySettingsW(outputDesc.DeviceName, ENUM_CURRENT_SETTINGS, &devMode);
+                    // CUrrent display mode
+                    DEVMODEW devMode;
+                    devMode.dmSize = sizeof(DEVMODEW);
+                    EnumDisplaySettingsW(outputDesc.DeviceName, ENUM_CURRENT_SETTINGS, &devMode);
 
-                json display = {};
+                    json display = {};
 
-                // Display name
-                std::wstring wDeviceName(outputDesc.DeviceName);
-                std::string deviceName(wDeviceName.begin(), wDeviceName.end());
-                display[keys::display::name] = deviceName;
-                display[keys::display::description] = "";
+                    // Display name
+                    std::wstring wDeviceName(outputDesc.DeviceName);
+                    std::string deviceName(wDeviceName.begin(), wDeviceName.end());
+                    display[keys::display::name] = deviceName;
+                    display[keys::display::description] = "";
 
-                // Rect region of the desktop in desktop units
-                //display["desktopRect"] = (outputDesc.AttachedToDesktop ? true : false);
-                display[keys::display::boundsLeft] = outputDesc.DesktopCoordinates.left;
-                display[keys::display::boundsRight] = outputDesc.DesktopCoordinates.right;
-                display[keys::display::boundsBottom] = outputDesc.DesktopCoordinates.bottom;
-                display[keys::display::boundsTop] = outputDesc.DesktopCoordinates.top;
+                    // Rect region of the desktop in desktop units
+                    //display["desktopRect"] = (outputDesc.AttachedToDesktop ? true : false);
+                    display[keys::display::boundsLeft] = outputDesc.DesktopCoordinates.left;
+                    display[keys::display::boundsRight] = outputDesc.DesktopCoordinates.right;
+                    display[keys::display::boundsBottom] = outputDesc.DesktopCoordinates.bottom;
+                    display[keys::display::boundsTop] = outputDesc.DesktopCoordinates.top;
 
-                // PPI & resolution
-                display[keys::display::ppiHorizontal] = dpiX;
-                display[keys::display::ppiVertical] = dpiY;
-                display[keys::display::physicalWidth] = devMode.dmPelsWidth / (float) dpiX;
-                display[keys::display::physicalHeight] = devMode.dmPelsHeight / (float) dpiY;
-                display[keys::display::modeWidth] = devMode.dmPelsWidth;
-                display[keys::display::modeHeight] = devMode.dmPelsHeight;
+                    // PPI & resolution
+                    display[keys::display::physicalWidth] = devMode.dmPelsWidth / (float) dpiX;
+                    display[keys::display::physicalHeight] = devMode.dmPelsHeight / (float) dpiY;
+                    display[keys::display::modeWidth] = devMode.dmPelsWidth;
+                    display[keys::display::modeHeight] = devMode.dmPelsHeight;
 
-                //Average the ppiH and V for the simple ppi
-                display[keys::display::ppi] = std::round(0.5f * (dpiX + dpiY));
-                display[keys::display::desktopPpi] = std::round(0.5f * (dpiXScaled + dpiYScaled));
+                    //Average the ppiH and V for the simple ppi
+                    display[keys::display::ppi] = std::round(0.5f * (dpiX + dpiY));
+                    display[keys::display::ppiDesktop] = std::round(0.5f * (dpiXScaled + dpiYScaled));
                 
-                // refreshrate
-                display[keys::display::modeRefreshrate] = devMode.dmDisplayFrequency;;
+                    // refreshrate
+                    display[keys::display::modeRefreshrate] = devMode.dmDisplayFrequency;;
                 
-                // Master display ?
-                display[keys::display::isMaster] = true;
-                
-                // Add the display index to the list of displays of the gpu
-                displayIndices.push_back(_displays.size());
+                    // Master display ?
+                    display[keys::display::isMaster] = (bool) (monitorInfo.dwFlags & MONITORINFOF_PRIMARY);
+ 
+                    // Add the display index to the list of displays of the gpu
+                    displayIndices.push_back((int) _displays.size());
 
-                // And set the gpu index to the display description
-                display[keys::display::gpu] = _gpus.size();
+                    // And set the gpu index to the display description
+                    display[keys::display::gpu] = (int) _gpus.size();
 
-                // One more display desc
-                _displays.push_back(display);
-                pOutput->Release();
-                outputNum++;
+                    // WIN specific
+                    display["win_workLeft"] = monitorInfo.rcWork.left;
+                    display["win_workRight"] = monitorInfo.rcWork.right;
+                    display["win_workTop"] = monitorInfo.rcWork.top;
+                    display["win_workBottom"] = monitorInfo.rcWork.bottom;
+                    display["win_monLeft"] = monitorInfo.rcMonitor.left;
+                    display["win_monRight"] = monitorInfo.rcMonitor.right;
+                    display["win_monTop"] = monitorInfo.rcMonitor.top;
+                    display["win_monBottom"] = monitorInfo.rcMonitor.bottom;
+
+                    // One more display desc
+                    _displays.push_back(display);
+                }
+                gpu[keys::gpu::displays] = displayIndices;
+
+                _gpus.push_back(gpu);
             }
-            gpu[keys::gpu::displays] = displayIndices;
 
-            _gpus.push_back(gpu);
             pAdapter->Release();
             adapterNum++;
         }

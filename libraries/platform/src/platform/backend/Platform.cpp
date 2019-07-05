@@ -45,15 +45,13 @@ namespace platform { namespace keys {
         const char*  boundsTop = "boundsTop";
         const char*  boundsBottom = "boundsBottom";
         const char*  gpu = "gpu";
-        const char*  ppiHorizontal = "ppiHorizontal";
-        const char*  ppiVertical = "ppiHorizontal";
         const char*  ppi = "ppi";
+        const char*  ppiDesktop = "ppiDesktop";
         const char*  physicalWidth = "physicalWidth";
         const char*  physicalHeight = "physicalHeight";
         const char*  modeRefreshrate = "modeRefreshrate";
         const char*  modeWidth = "modeWidth";
         const char*  modeHeight = "modeHeight";
-        const char*  desktopPpi = "desktopPpi";
         const char*  isMaster = "isMaster";
     }
     namespace memory {

@@ -100,8 +100,6 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             display[keys::display::boundsBottom] = displayBounds.origin.y + displayBounds.size.height;
             
             // PPI & resolution
-            display[keys::display::ppiHorizontal] = ppiH;
-            display[keys::display::ppiVertical] = ppiV;
             display[keys::display::physicalWidth] = displaySizeWidthInches;
             display[keys::display::physicalHeight] = displaySizeHeightInches;
             display[keys::display::modeWidth] = displayModeWidth;
@@ -109,7 +107,7 @@ void MACOSInstance::enumerateGpusAndDisplays() {
             
             //Average the ppiH and V for the simple ppi
             display[keys::display::ppi] = std::round(0.5f * (ppiH + ppiV));
-            display[keys::display::desktopPpi] = std::round(0.5f * (ppiHScaled + ppiVScaled));
+            display[keys::display::ppiDesktop] = std::round(0.5f * (ppiHScaled + ppiVScaled));
             
             // refreshrate
             display[keys::display::modeRefreshrate] = displayRefreshrate;
