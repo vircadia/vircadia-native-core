@@ -54,7 +54,7 @@ void Instance::updateMasterIndices() {
     // Go through the displays list
     {
         _masterDisplay = NOT_FOUND;
-        for (int i = 0; i < _displays.size(); ++i) {
+        for (int i = 0; i < (int) _displays.size(); ++i) {
             const auto& display = _displays[i];
             if (display.count(keys::display::isMaster)) {
                 if (display[keys::display::isMaster].get<bool>()) {
