@@ -49,13 +49,36 @@ BOOL LauncherUtils::shutdownProcess(DWORD dwProcessId, UINT uExitCode) {
     return result;
 }
 
-BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName, int& processID) {
+BOOL CALLBACK LauncherUtils::isWindowOpenedCallback(HWND hWnd, LPARAM lparam) {
+    ProcessData* processData = reinterpret_cast<ProcessData*>(lparam);
+    if (processData) {
+        DWORD idptr;
+        GetWindowThreadProcessId(hWnd, &idptr);
+        if (idptr && (int)(idptr) == processData->processID) {
+            processData->isOpened = IsWindowVisible(hWnd);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+BOOL LauncherUtils::isProcessWindowOpened(const wchar_t *processName) {
+    ProcessData processData;
+    BOOL result = isProcessRunning(processName, processData.processID);
+    if (result) {
+        EnumWindows(LauncherUtils::isWindowOpenedCallback, reinterpret_cast<LPARAM>(&processData));
+        return processData.isOpened;
+    }
+    return result;
+}
+
+BOOL LauncherUtils::isProcessRunning(const wchar_t *processName, int& processID) {
     bool exists = false;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
 
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
+    
     if (Process32First(snapshot, &entry)) {
         while (Process32Next(snapshot, &entry)) {
             if (!_wcsicmp(entry.szExeFile, processName)) {
@@ -69,7 +92,7 @@ BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName, int& processID)
     return exists;
 }
 
-HRESULT LauncherUtils::CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs) {
+HRESULT LauncherUtils::createLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs) {
     IShellLink* psl;
 
     // Get a pointer to the IShellLink interface. It is assumed that CoInitialize

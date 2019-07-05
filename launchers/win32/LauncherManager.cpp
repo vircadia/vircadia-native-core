@@ -111,7 +111,7 @@ BOOL LauncherManager::installLauncher() {
             // Kill of running before self-copy
             addToLog(_T("Installing Launcher."));
             int launcherPID = -1;
-            if (LauncherUtils::IsProcessRunning(LAUNCHER_EXE_FILENAME, launcherPID)) {
+            if (LauncherUtils::isProcessRunning(LAUNCHER_EXE_FILENAME, launcherPID)) {
                 if (!LauncherUtils::shutdownProcess(launcherPID, 0)) {
                     addToLog(_T("Error shutting down the Launcher"));
                 }
@@ -151,7 +151,7 @@ BOOL LauncherManager::createShortcuts() {
     CString installDir;
     getAndCreatePaths(PathType::Launcher_Directory, installDir);
     CString installPath = installDir + LAUNCHER_EXE_FILENAME;
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(desktopLnkPath), _T("CLick to Setup and Launch HQ."))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(desktopLnkPath), _T("CLick to Setup and Launch HQ."))) {
         return FALSE;
     }
     CString startLinkPath;
@@ -159,13 +159,13 @@ BOOL LauncherManager::createShortcuts() {
     CString appStartLinkPath = startLinkPath + _T("HQ Launcher.lnk");
     CString uniStartLinkPath = startLinkPath + _T("Uninstall HQ.lnk");
     CString uniLinkPath = installDir + _T("Uninstall HQ.lnk");
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(appStartLinkPath), _T("CLick to Setup and Launch HQ."))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(appStartLinkPath), _T("CLick to Setup and Launch HQ."))) {
         return FALSE;
     }
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(uniStartLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(uniStartLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
         return FALSE;
     }
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(uniLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(uniLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
         return FALSE;
     }
     return TRUE;

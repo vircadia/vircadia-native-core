@@ -629,8 +629,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                         ::SetForegroundWindow(_applicationWND);
                         ::SetActiveWindow(_applicationWND);
                     }
-                    int interfacePID = -1;
-                    if (LauncherUtils::IsProcessRunning(L"interface.exe", interfacePID)) {
+                    if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
                         exit(0);
                     }
                 }
@@ -654,8 +653,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             }
             _splashStep++;
         } else if (theApp._manager.shouldShutDown()) {
-            int interfacePID = -1;
-            if (LauncherUtils::IsProcessRunning(L"interface.exe", interfacePID)) {
+            if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
                 exit(0);
             }
         }
