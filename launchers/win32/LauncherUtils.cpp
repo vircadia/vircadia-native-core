@@ -480,16 +480,10 @@ DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter) {
     return 0;
 }
 
-DWORD WINAPI LauncherUtils::deleteDirectoriesThread(LPVOID lpParameter) {
+DWORD WINAPI LauncherUtils::deleteDirectoryThread(LPVOID lpParameter) {
     DeleteThreadData& data = *((DeleteThreadData*)lpParameter);
-    DeleteDirError error = DeleteDirError::NoErrorDeleting;
-    if (!LauncherUtils::deleteFileOrDirectory(data._applicationDir)) {
-        error = DeleteDirError::ErrorDeletingApplicationDir;
-    }
-    if (!LauncherUtils::deleteFileOrDirectory(data._downloadsDir)) {
-        error = error == NoError ? DeleteDirError::ErrorDeletingDownloadsDir : DeleteDirError::ErrorDeletingBothDirs;
-    }
-    data.callback(error);
+    BOOL success = LauncherUtils::deleteFileOrDirectory(data._dirPath);
+    data.callback(!success);
     return 0;
 }
 
@@ -523,15 +517,12 @@ BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CSt
     return FALSE;
 }
 
-BOOL LauncherUtils::deleteDirectoriesOnThread(const CString& applicationDir,
-                                              const CString& downloadsDir,
-                                              std::function<void(int)> callback) {
+BOOL LauncherUtils::deleteDirectoryOnThread(const CString& dirPath, std::function<void(bool)> callback) {
     DWORD myThreadID;
     DeleteThreadData* deleteThreadData = new DeleteThreadData();
-    deleteThreadData->_applicationDir = applicationDir;
-    deleteThreadData->_downloadsDir = downloadsDir;
+    deleteThreadData->_dirPath = dirPath;
     deleteThreadData->setCallback(callback);
-    HANDLE myHandle = CreateThread(0, 0, deleteDirectoriesThread, deleteThreadData, 0, &myThreadID);
+    HANDLE myHandle = CreateThread(0, 0, deleteDirectoryThread, deleteThreadData, 0, &myThreadID);
     if (myHandle) {
         CloseHandle(myHandle);
         return TRUE;

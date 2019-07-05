@@ -174,19 +174,11 @@ void CLauncherDlg::startProcess() {
         theApp._manager.addToLog(_T("Starting Process Setup"));
         setDrawDialog(DrawStep::DrawProcessSetup);
     }
-    theApp._manager.addToLog(_T("Deleting directories before install"));
-
-    CString installDir;
-    theApp._manager.getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installDir);
+    theApp._manager.addToLog(_T("Deleting download directory"));
     CString downloadDir;
     theApp._manager.getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDir);
-
-    LauncherUtils::deleteDirectoriesOnThread(installDir, downloadDir, [&](int error) {
-        LauncherUtils::DeleteDirError deleteError = (LauncherUtils::DeleteDirError)error;
-        switch(error) { 
-        case LauncherUtils::DeleteDirError::NoErrorDeleting:
-            theApp._manager.addToLog(_T("Install directory deleted."));
-            theApp._manager.addToLog(_T("Downloads directory deleted."));
+    LauncherUtils::deleteDirectoryOnThread(downloadDir, [&](bool error) {
+        if (!error) {
             if (!theApp._manager.isLoggedIn()) {
                 theApp._manager.addToLog(_T("Downloading Content"));
                 theApp._manager.downloadContent();
@@ -194,23 +186,12 @@ void CLauncherDlg::startProcess() {
                 theApp._manager.addToLog(_T("Downloading App"));
                 theApp._manager.downloadApplication();
             }
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingBothDirs:
-            theApp._manager.addToLog(_T("Error deleting directories."));
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingApplicationDir:
-            theApp._manager.addToLog(_T("Error deleting application directory."));
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingDownloadsDir:
-            theApp._manager.addToLog(_T("Error deleting downloads directory."));
-            break;
-        default:
-            break;
-        }
-        if (error != LauncherUtils::DeleteDirError::NoErrorDeleting) {
+        } else {
+            theApp._manager.addToLog(_T("Error deleting download directory."));
             theApp._manager.setFailed(true);
         }
     });
+
 }
 
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
