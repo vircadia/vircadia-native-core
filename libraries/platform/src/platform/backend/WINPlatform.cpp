@@ -123,10 +123,13 @@ void WINInstance::enumerateGpusAndDisplays() {
                     UINT dpiYScaled{ 0 };
                     GetDpiForMonitor(outputDesc.Monitor, MDT_EFFECTIVE_DPI, &dpiXScaled, &dpiYScaled);
 
-                    // CUrrent display mode
+                    // Current display mode
                     DEVMODEW devMode;
                     devMode.dmSize = sizeof(DEVMODEW);
                     EnumDisplaySettingsW(outputDesc.DeviceName, ENUM_CURRENT_SETTINGS, &devMode);
+
+                    auto physicalWidth = devMode.dmPelsWidth / (float)dpiX;
+                    auto physicalHeight = devMode.dmPelsHeight / (float)dpiY;
 
                     json display = {};
 
@@ -144,8 +147,8 @@ void WINInstance::enumerateGpusAndDisplays() {
                     display[keys::display::boundsTop] = outputDesc.DesktopCoordinates.top;
 
                     // PPI & resolution
-                    display[keys::display::physicalWidth] = devMode.dmPelsWidth / (float) dpiX;
-                    display[keys::display::physicalHeight] = devMode.dmPelsHeight / (float) dpiY;
+                    display[keys::display::physicalWidth] = physicalWidth;
+                    display[keys::display::physicalHeight] = physicalHeight;
                     display[keys::display::modeWidth] = devMode.dmPelsWidth;
                     display[keys::display::modeHeight] = devMode.dmPelsHeight;
 
@@ -166,14 +169,7 @@ void WINInstance::enumerateGpusAndDisplays() {
                     display[keys::display::gpu] = (int) _gpus.size();
 
                     // WIN specific
-                    display["win_workLeft"] = monitorInfo.rcWork.left;
-                    display["win_workRight"] = monitorInfo.rcWork.right;
-                    display["win_workTop"] = monitorInfo.rcWork.top;
-                    display["win_workBottom"] = monitorInfo.rcWork.bottom;
-                    display["win_monLeft"] = monitorInfo.rcMonitor.left;
-                    display["win_monRight"] = monitorInfo.rcMonitor.right;
-                    display["win_monTop"] = monitorInfo.rcMonitor.top;
-                    display["win_monBottom"] = monitorInfo.rcMonitor.bottom;
+                    
 
                     // One more display desc
                     _displays.push_back(display);
