@@ -34,6 +34,7 @@ typedef enum LoginErrorTypes
 @property (nonatomic, retain) NSString* domainURL;
 @property (nonatomic, retain) NSString* domainContentUrl;
 @property (nonatomic, retain) NSString* domainScriptsUrl;
+@property (nonatomic, retain) NSString* interfaceDownloadUrl;
 @property (nonatomic, retain) DownloadInterface* downloadInterface;
 @property (nonatomic, retain) CredentialsRequest* credentialsRequest;
 @property (nonatomic, retain) DownloadDomainContent* downloadDomainContent;
@@ -44,9 +45,13 @@ typedef enum LoginErrorTypes
 @property (nonatomic) BOOL waitingForCredentialReponse;
 @property (nonatomic) BOOL gotCredentialResponse;
 @property (nonatomic) BOOL waitingForInterfaceToTerminate;
+@property (nonatomic) BOOL shouldDownloadInterface;
+@property (nonatomic) BOOL latestBuildRequestFinished;
+@property (nonatomic, assign) NSTimer* updateProgressIndicatorTimer;
 @property (nonatomic, assign, readwrite) ProcessState processState;
 @property (nonatomic, assign, readwrite) LoginError loginError;
 @property (nonatomic, assign) NSProgressIndicator* progressIndicator;
+@property (nonatomic) double progressTarget;
 
 - (NSProgressIndicator*) getProgressView;
 - (void) setProgressView:(NSProgressIndicator*) aProgressIndicator;
@@ -79,9 +84,13 @@ typedef enum LoginErrorTypes
 - (NSString*) getDownloadContentFilename;
 - (NSString*) getDownloadScriptsFilename;
 - (NSString*) getDownloadFilename;
+- (void) startUpdateProgressIndicatorTimer;
+- (void) endUpdateProgressIndicatorTimer;
 - (BOOL) isLoadedIn;
 - (NSString*) getAppPath;
 - (void) updateProgressIndicator;
+- (void) setShouldDownloadInterface:(BOOL) shouldDownlaod;
+- (BOOL) getShouldDownloadInterface;
 
 + (id) sharedLauncher;
 @end

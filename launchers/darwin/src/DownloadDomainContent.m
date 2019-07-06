@@ -5,7 +5,7 @@
 
 - (double) getProgressPercentage
 {
-    return (self.progressPercentage * .90) + (self.taskProgressPercentage * .10);
+    return (self.progressPercentage * 0.50) + (self.taskProgressPercentage * 0.50);
 }
 
 - (void) downloadDomainContent:(NSString *)domainContentUrl
@@ -24,9 +24,9 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
-    NSLog(@"domain content downloaded %d%%", (int)(100.0*prog));
+    NSLog(@"domain content downloaded %f", (100.0*prog));
 
-    self.progressPercentage = (100.0 * prog);
+    self.progressPercentage = (int)(100.0 * prog);
     [[Launcher sharedLauncher] updateProgressIndicator];
 
 }
@@ -90,7 +90,7 @@
 }
 
 - (void) updatePercentage:(NSTimer*) timer {
-    self.taskProgressPercentage += 3.0;
+    self.taskProgressPercentage += 4.0;
     [[Launcher sharedLauncher] updateProgressIndicator];
 }
 

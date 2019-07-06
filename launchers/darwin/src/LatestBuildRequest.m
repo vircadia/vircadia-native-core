@@ -6,7 +6,7 @@
 @implementation LatestBuildRequest
 
 - (NSInteger) getCurrentVersion {
-    NSInteger currentVersion;
+    /*NSInteger currentVersion;
     @try {
         NSString* interfaceAppPath = [[Launcher.sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
         NSError * error = nil;
@@ -19,8 +19,8 @@
     } @catch (NSException *exception) {
         NSLog(@"an exception was thrown: %@", exception);
         currentVersion = [Settings.sharedSettings latestBuildVersion];
-    }
-    return currentVersion;
+        }*/
+    return [Settings.sharedSettings latestBuildVersion];//currentVersion;
 }
 
 - (void) requestLatestBuildInfo {
