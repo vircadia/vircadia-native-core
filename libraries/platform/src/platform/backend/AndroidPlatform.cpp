@@ -10,6 +10,7 @@
 #include "../PlatformKeys.h"
 #include <GPUIdent.h>
 #include <QSysInfo>
+#include <QtCore/QtGlobal>
 
 using namespace platform;
 
@@ -23,7 +24,7 @@ void AndroidInstance::enumerateCpus() {
     _cpus.push_back(cpu);
 }
 
-void AndroidInstance::enumerateGpus() {
+void AndroidInstance::enumerateGpusAndDisplays() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
     gpu[keys::gpu::model] = ident->getName().toUtf8().constData();
