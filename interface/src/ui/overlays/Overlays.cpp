@@ -1336,12 +1336,12 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <tr><th>Value</th><th>2D/3D</th><th>Description</th><th>Properties</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>"image"</code></td><td>2D</td>
- *       <td>An image.</td>
- *       <td>{@link Overlays.OverlayProperties-Image|OverlayProperties-Image}</td></tr>
  *     <tr><td><code>"rectangle"</code></td><td>2D</td>
  *       <td>A rectangle.</td>
  *       <td>{@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}</td></tr>
+ *     <tr><td><code>"image"</code></td><td>2D</td>
+ *       <td>An image.</td>
+ *       <td>{@link Overlays.OverlayProperties-Image|OverlayProperties-Image}</td></tr>
  *     <tr><td><code>"text"</code></td><td>2D</td>
  *       <td>Some text.</td>
  *       <td>{@link Overlays.OverlayProperties-Text|OverlayProperties-Text}</td></tr>
@@ -1354,10 +1354,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *       <td>A sphere. A <code>"shape"</code> overlay can also be used to create a sphere.<br/>
  *       <span class="important">Deprecated.</span></td>
  *       <td>{@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere}</td></tr>
- *     <tr><td><code>"rectangle3d"</code></td><td>3D</td>
- *       <td>A rectangle.<br/>
- *       <span class="important">Deprecated.</span></td>
- *       <td>{@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D}</td></tr>
  *     <tr><td><code>"shape"</code></td><td>3D</td>
  *       <td>A geometric shape, such as a cube, sphere, or cylinder.<br/>
  *       <span class="important">Deprecated.</span></td>
@@ -1366,14 +1362,18 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *       <td>A model.<br/>
  *       <span class="important">Deprecated.</span></td>
  *       <td>{@link Overlays.OverlayProperties-Model|OverlayProperties-Model}</td></tr>
- *     <tr><td><code>"text3d"</code></td><td>3D</td>
- *       <td>Some text.<br/>
- *       <span class="important">Deprecated.</span></td>
- *       <td>{@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}</td></tr>
  *     <tr><td><code>"image3d"</code></td><td>3D</td>
  *       <td>An image. Synonym: <code>"billboard"</code>.<br/>
  *       <span class="important">Deprecated.</span></td>
  *       <td>{@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D}</td></tr>
+ *     <tr><td><code>"rectangle3d"</code></td><td>3D</td>
+ *       <td>A rectangle.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D}</td></tr>
+ *     <tr><td><code>"text3d"</code></td><td>3D</td>
+ *       <td>Some text.<br/>
+ *       <span class="important">Deprecated.</span></td>
+ *       <td>{@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}</td></tr>
  *     <tr><td><code>"web3d"</code></td><td>3D</td>
  *       <td>Web content.<br/>
  *       <span class="important">Deprecated.</span></td>
@@ -1401,22 +1401,22 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
 /**jsdoc
  * Different overlay types have different properties: some common to all overlays (listed in the table) and some specific to 
  * each {@link Overlays.OverlayType|OverlayType} (linked to below).
- * <p>3D overlays are local entities, internally, so they also support the corresponding entity properties.</p>
+ * <p>3D overlays are local entities, internally, so they also support the relevant entity's properties.</p>
  * @typedef {object} Overlays.OverlayProperties
  * @property {Uuid} id - The ID of the overlay. <em>Read-only.</em>
  * @property {Overlays.OverlayType} type - The overlay's type. <em>Read-only.</em>
  * @property {boolean} visible=true - <code>true</code> if the overlay is rendered, <code>false</code> if it isn't.
  *
- * @see {@link Overlays.OverlayProperties-Image|OverlayProperties-Image}
  * @see {@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}
+ * @see {@link Overlays.OverlayProperties-Image|OverlayProperties-Image}
  * @see {@link Overlays.OverlayProperties-Text|OverlayProperties-Text}
  * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model} <span class="important">Deprecated.</span>
- * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D} <span class="important">Deprecated.</span>
+ * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Web3D|OverlayProperties-Web3D} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Line3D|OverlayProperties-Line3D} <span class="important">Deprecated.</span>
  * @see {@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid} <span class="important">Deprecated.</span>
@@ -1430,16 +1430,16 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Rect} bounds - The position and size of the image display area, in pixels. <em>Write-only.</em>
  * @property {number} x - Integer left, x-coordinate value of the image display area = <code>bounds.x</code>.
  *     <em>Write-only.</em>
- *  @property {number} y - Integer top, y-coordinate value of the image display area = <code>bounds.y</code>.
+ * @property {number} y - Integer top, y-coordinate value of the image display area = <code>bounds.y</code>.
  *     <em>Write-only.</em>
  * @property {number} width - Integer width of the image display area = <code>bounds.width</code>. <em>Write-only.</em>
- *  @property {number} height - Integer height of the image display area = <code>bounds.height</code>. <em>Write-only.</em>
+ * @property {number} height - Integer height of the image display area = <code>bounds.height</code>. <em>Write-only.</em>
  * @property {string} imageURL - The URL of the image file to display. The image is scaled to fit to the <code>bounds</code>.
  *     <em>Write-only.</em>
- *  @property {Vec2} subImage=0,0 - Integer coordinates of the top left pixel to start using image content from.
+ * @property {Rect} subImage - The portion of the image to use. If not specified, the whole image is used.
  *     <em>Write-only.</em>
  * @property {Color} color=0,0,0 - The color to apply over the top of the image to colorize it. <em>Write-only.</em>
- *  @property {number} alpha=0.0 - The opacity of the color applied over the top of the image, <code>0.0</code> -
+ * @property {number} alpha=0.0 - The opacity of the color applied over the top of the image, <code>0.0</code> &ndash;
  *     <code>1.0</code>. <em>Write-only.</em>
  */
 
@@ -1452,21 +1452,21 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} y - Integer top, y-coordinate value = <code>bounds.y</code>. <em>Write-only.</em>
  * @property {number} width - Integer width of the rectangle = <code>bounds.width</code>. <em>Write-only.</em>
  * @property {number} height - Integer height of the rectangle = <code>bounds.height</code>. <em>Write-only.</em>
- *
- * @property {number} margin=0 - Sets the <code>leftMargin</code> and <code>topMargin</code> values, in pixels.
+ * @property {number} margin=0 - The <code>leftMargin</code> and <code>topMargin</code> values, in pixels.
  *     <em>Write-only.</em>
  * @property {number} leftMargin=0 - The left margin's size, in pixels. This value is also used for the right margin.
  *     <em>Write-only.</em>
  * @property {number} topMargin=0 - The top margin's size, in pixels. This value is also used for the bottom margin.
  *     <em>Write-only.</em>
- * @property {string} text="" - The text to display. Text does not automatically wrap; use <code>\n</code> for a line break. Text
- *     is clipped to the <code>bounds</code>. <em>Write-only.</em>
+ * @property {string} text="" - The text to display. Text does not automatically wrap; use <code>"\n"</code> for a line break. 
+ *     Text is clipped to the <code>bounds</code>. <em>Write-only.</em>
  * @property {number} font.size=18 - The size of the text, in pixels. <em>Write-only.</em>
  * @property {number} lineHeight=18 - The height of a line of text, in pixels. <em>Write-only.</em>
  * @property {Color} color=255,255,255 - The color of the text. Synonym: <code>textColor</code>. <em>Write-only.</em>
- * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
+ * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>. <em>Write-only.</em>
  * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle. <em>Write-only.</em>
- * @property {number} backgroundAlpha=0.7 - The opacity of the background rectangle. <em>Write-only.</em>
+ * @property {number} backgroundAlpha=0.7 - The opacity of the background rectangle, <code>0.0</code> &ndash; <code>1.0</code>. 
+ *     <em>Write-only.</em>
  */
 
 /**jsdoc
@@ -1478,25 +1478,25 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} y - Integer top, y-coordinate value = <code>bounds.y</code>. <em>Write-only.</em>
  * @property {number} width - Integer width of the rectangle = <code>bounds.width</code>. <em>Write-only.</em>
  * @property {number} height - Integer height of the rectangle = <code>bounds.height</code>. <em>Write-only.</em>
- *
+ * @property {number} radius=0 - Integer corner radius, in pixels. <em>Write-only.</em>
  * @property {Color} color=0,0,0 - The color of the overlay. <em>Write-only.</em>
- * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
+ * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>. <em>Write-only.</em>
  * @property {number} borderWidth=1 - Integer width of the border, in pixels. The border is drawn within the rectangle's bounds.
  *     It is not drawn unless either <code>borderColor</code> or <code>borderAlpha</code> are specified. <em>Write-only.</em>
- * @property {number} radius=0 - Integer corner radius, in pixels. <em>Write-only.</em>
  * @property {Color} borderColor=0,0,0 - The color of the border. <em>Write-only.</em>
- * @property {number} borderAlpha=1.0 - The opacity of the border, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} borderAlpha=1.0 - The opacity of the border, <code>0.0</code> &ndash; <code>1.0</code>.
  *     <em>Write-only.</em>
  */
 
 /**jsdoc
  * The <code>"cube"</code> {@link Overlays.OverlayType|OverlayType} is for 3D cubes.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Box|Box} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Cube
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1518,26 +1518,33 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
+ *     rendered as a wire frame. 
+ *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code> 
+ *     if they don't. 
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind 
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the 
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be. 
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
- *
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is 
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather 
+ *     than a joint. 
  */
 
 /**jsdoc
  * The <code>"sphere"</code> {@link Overlays.OverlayType|OverlayType} is for 3D spheres.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Sphere|Sphere} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Sphere
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1559,26 +1566,34 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
+ *     rendered as a wire frame. 
+ *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
- *
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  */
 
 /**jsdoc
  * The <code>"rectangle3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D rectangles.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Shape|Shape} entity, with the <code>shape</code> 
+ * property value being <code>"Quad"</code>.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Rectangle3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1600,20 +1615,27 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
+ *     rendered as a wire frame. 
+ *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
- *
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is 
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather 
+ *     than a joint. 
  */
 
 /**jsdoc
- * <p>A <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical shapes:</p>
+ * <p>A <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical 
+ * shapes:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Dimensions</th><th>Description</th></tr>
@@ -1626,7 +1648,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <tr><td><code>"Dodecahedron"</code></td><td>3D</td><td></td></tr>
  *     <tr><td><code>"Hexagon"</code></td><td>3D</td><td>A hexagonal prism.</td></tr>
  *     <tr><td><code>"Icosahedron"</code></td><td>3D</td><td></td></tr>
- *     <tr><td><code>"Line"</code></td><td>1D</td><td>A line oriented in 3D.</td></tr>
  *     <tr><td><code>"Octagon"</code></td><td>3D</td><td>An octagonal prism.</td></tr>
  *     <tr><td><code>"Octahedron"</code></td><td>3D</td><td></td></tr>
  *     <tr><td><code>"Quad"</code></td><td>2D</td><td>A square oriented in 3D.</tr>
@@ -1642,11 +1663,12 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
 /**jsdoc
  * The <code>"shape"</code> {@link Overlays.OverlayType|OverlayType} is for 3D shapes.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Shape|Shape} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Shape
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1668,15 +1690,22 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
+ *     rendered as a wire frame. 
+ *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  *
  * @property {Overlays.Shape} shape=Hexagon - The geometrical shape of the overlay.
  */
@@ -1684,6 +1713,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
 /**jsdoc
  * The <code>"model"</code> {@link Overlays.OverlayType|OverlayType} is for 3D models.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Model|Model} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Model
  * @property {string} name - The name of the overlay.
@@ -1697,44 +1727,39 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  *
  * @property {string} url - The URL of the FBX or OBJ model used for the overlay.
  * @property {number} loadPriority=0.0 - The priority for loading and displaying the overlay. Overlays with higher values load
- *     first. <CURRENTLY NOT USED>
- * @property {object.<name, url>} textures - Maps the named textures in the model to the JPG or PNG images in the urls.
- * @property {string[]} jointNames - The names of the joints - if any - in the model. <em>Read-only.</em>
- * @property {Quat[]} jointRotations - The relative rotations of the model's joints.
- * @property {Vec3[]} jointTranslations - The relative translations of the model's joints.
- * @property {Quat[]} jointOrientations - The absolute orientations of the model's joints, in world coordinates. <em>Read-only.</em>
- * @property {Vec3[]} jointPositions - The absolute positions of the model's joints, in world coordinates. <em>Read-only.</em>
- * @property {string} animationSettings.url="" - The URL of an FBX file containing an animation to play.
- * @property {number} animationSettings.fps=0 - The frame rate (frames/sec) to play the animation at.
- * @property {number} animationSettings.firstFrame=0 - The frame to start playing at.
- * @property {number} animationSettings.lastFrame=0 - The frame to finish playing at.
- * @property {number} animationSettings.currentFrame=0 - The current frame being played.
- * @property {boolean} animationSettings.running=false - Whether or not the animation is playing.
- * @property {boolean} animationSettings.loop=false - Whether or not the animation should repeat in a loop.
- * @property {boolean} animationSettings.hold=false - Whether or not when the animation finishes, the rotations and
- *     translations of the last frame played should be maintained.
- * @property {boolean} animationSettings.allowTranslation=false - Whether or not translations contained in the animation should
- *     be played.
+ *     first. <em>Currently not used.</em>
+ * @property {Object.<string, string>|string} textures - Texture name, URL pairs used when rendering the model in place of the 
+ *     model's original textures, per the {@link Entities.EntityProperties-Model} property of the same name.
+ *     <p>The value can be an object or a JSON string when setting the value; it is a JSON string when getting the value.</p>
+ * @property {Entities.AnimationProperties} animationSettings - An animation to play on the model.
  */
 
 /**jsdoc
  * The <code>"text3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D text.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Text|Text} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Text3D
  * @property {string} name - The name of the overlay.
- * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {Color} color=255,255,255 - The color of the overlay text. Synonym: <code>textColor</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay text, <code>0.0</code> &ndash; <code>1.0</code>.
+ *     <p><em>Currently not used; use <code>textAlpha</code> instead.</em></p>
+ *     <CURRENTLY BROKEN>
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1756,35 +1781,29 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
- *
- * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
- *     parallel to the user's avatar's "up" direction.
- * @property {string} text="" - The text to display.Text does not automatically wrap; use <code>\n</code> for a line break.
- * @property {number} textAlpha=1 - The text alpha value.
- * @property {Color} backgroundColor=0,0,0 - The background color.
- * @property {number} backgroundAlpha=0.7 - The background alpha value.
- * @property {number} lineHeight=1 - The height of a line of text in meters.
- * @property {number} leftMargin=0.1 - The left margin, in meters.
- * @property {number} topMargin=0.1 - The top margin, in meters.
- * @property {number} rightMargin=0.1 - The right margin, in meters.
- * @property {number} bottomMargin=0.1 - The bottom margin, in meters.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  */
 
 /**jsdoc
  * The <code>"image3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D images.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Image|Image} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Image3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1806,31 +1825,31 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  *
- * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
- *     parallel to the user's avatar's "up" direction.
- * @property {string} url - The URL of the PNG or JPG image to display.
- * @property {Rect} subImage - The portion of the image to display. Defaults to the full image.
- * @property {boolean} emissive - If <code>true</code>, the overlay is displayed at full brightness, otherwise it is rendered
- *     with scene lighting.
- * @property {bool} keepAspectRatio=true - overlays will maintain the aspect ratio when the subImage is applied.
+ * @property {string} url - The URL of the image to display.
  */
 
 /**jsdoc
  * The <code>"web3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D web surfaces.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Web|Web} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Web3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1852,31 +1871,31 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  *
- * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
- *     parallel to the user's avatar's "up" direction.
- * @property {string} url - The URL of the Web page to display.
- * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
- * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
- * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
- * @property {string} inputMode=Touch - The user input mode to use - either <code>"Touch"</code> or <code>"Mouse"</code>.
+ * @property {string} url - The URL of the web page to display.
  */
 
 /**jsdoc
  * The <code>"line3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D lines.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-PolyLine|PolyLine} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Line3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  *
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
  *     <code>start</code>.
@@ -1886,37 +1905,61 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  *
  * @property {Uuid} endParentID=null - The avatar, entity, or overlay that the end point of the line is parented to.
+ *     <p><em>Currently doesn't work.</em></p>
+ *     <CURRENTLY BROKEN>
  * @property {number} endParentJointIndex=65535 - Integer value specifying the skeleton joint that the end point of the line is
- *     attached to if <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint". <CURRENTLY BROKEN>
+ *     attached to if <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint". 
+ *     <p><em>Currently doesn't work.</em></p>
+ *     <CURRENTLY BROKEN>
+
  * @property {Vec3} start - The start point of the line. Synonyms: <code>startPoint</code> and <code>p1</code>.
+ *     <p><em>If <code>parentID<code> is set, use <code>localStart</code> to set the local position of the start point.</em></p>
+ *     <CURRENTLY BROKEN>
  * @property {Vec3} end - The end point of the line. Synonyms: <code>endPoint</code> and <code>p2</code>.
+ *     <p><em>If <code>parentID<code> is set, use <code>localEnd</code> to set the local position of the end point.</em></p>
+ *     <CURRENTLY BROKEN>
+
  * @property {Vec3} localStart - The local position of the overlay relative to its parent if the overlay has a
- *     <code>parentID</code> set, otherwise the same value as <code>start</code>. Synonym: <code>localPosition</code>.
+ *     <code>parentID</code> set, otherwise the same value as <code>start</code>.
+ *     <CURRENTLY BROKEN>
  * @property {Vec3} localEnd - The local position of the overlay relative to its parent if the overlay has a
- *     <code>endParentID</code> set, otherwise the same value as <code>end</code>. <CURRENTLY BROKEN>
+ *     <code>endParentID</code> set, otherwise the same value as <code>end</code>.
+ *     <CURRENTLY BROKEN>
+
  * @property {number} length - The length of the line, in meters. This can be set after creating a line with start and end
- *     points. <CURRENTLY BROKEN>
+ *     points.
+ *     <p><em>Currently doesn't work.</em></p>
+ *     <CURRENTLY BROKEN>
+
  * @property {number} glow=0 - If <code>glow > 0</code>, the line is rendered with a glow.
  * @property {number} lineWidth=0.02 - Width of the line, in meters.
+ *     <p><em>You can set this property's value but currently cannot retrieve its value. Use the <code>strokeWidths</code> 
+ *     property to retrieve its value instead.</p>
  */
 
 /**jsdoc
  * The <code>"grid"</code> {@link Overlays.OverlayType|OverlayType} is for 3D grids.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Grid|Grid} entity.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Grid
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1938,27 +1981,28 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
- *
- * @property {boolean} followCamera=true - If <code>true</code>, the grid is always visible even as the camera moves to another position.
- * @property {number} majorGridEvery=5 - Integer number of <code>minorGridEvery</code> intervals at which to draw a thick grid line. Minimum value = <code>1</code>.
- * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value = <code>0.001</code>.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  */
 
 /**jsdoc
  * The <code>"circle3d"</code> {@link Overlays.OverlayType|OverlayType} is for 3D circles.
  * It has properties in addition to the common {@link Overlays.OverlayProperties|OverlayProperties}.
+ * It additionally has properties per the {@link Entities.EntityProperties-Gizmo|Gizmo} entity, with the 
+ * <code>gizmoType</code> property value being <code>"ring"</code>.
  * <p class="important">Deprecated: Use local {@link Entities} instead.</p>
  * @typedef {object} Overlays.OverlayProperties-Circle3D
  * @property {string} name - The name of the overlay.
- * @property {Color} color=255,255,255 - The color of the overlay.
- * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
  * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
  * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
  * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
@@ -1975,62 +2019,75 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
  *     <code>start</code>.
  * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ *     <em>Read-only.</em>
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ * @property {boolean} isSolid=false - <code>true</code> if the overlay is rendered as a solid, <code>false</code> if it is 
+ *     rendered as a wire frame. 
+ *     Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
- * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
- * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
- * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
- * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {boolean} ignorePickIntersection=false - <code>true</code> if {@link Picks} ignore the overlay, <code>false</code>
+ *     if they don't.
+ *     Synonym: <code>ignoreRayIntersection</code>.
+ * @property {boolean} drawInFront=false - <code>true</code> if the overlay is rendered on top of the world layer but behind
+ *     the HUD surface.
+ * @property {boolean} drawHUDLayer=false - <code>true</code> if the overlay is rendered in front of everything, including the
+ *     HUD surface.
+ * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
- * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
- *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     than a joint.
  *
- * @property {number} startAt = 0 - The counter - clockwise angle from the overlay's x-axis that drawing starts at in degrees.
- * @property {number} endAt = 360 - The counter - clockwise angle from the overlay's x-axis that drawing ends at in degrees.
- * @property {number} outerRadius = 1 - The outer radius of the overlay in meters. Synonym: <code>radius</code>.
- * @property {number} innerRadius = 0 - The inner radius of the overlay in meters.
- * @property {Color} color = 255, 255, 255 - The color of the overlay. Setting this value also sets the values of
- *     <code>innerStartColor</code>, <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
+ * @property {number} startAt=0 - The counter-clockwise angle from the overlay's x-axis that drawing starts at, in degrees.
+ * @property {number} endAt=360 - The counter-clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
+ * @property {number} outerRadius=1 - The outer radius of the overlay in meters. Synonym: <code>radius</code>.
+ * @property {number} innerRadius=0 - The inner radius of the overlay in meters.
+ * @property {Color} color - Sets the color of the overlay. Setting this value sets the values of <code>innerStartColor</code>, 
+ *     <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
+ *     <em>Write-only.</em>
  * @property {Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
- *     <em>Write - only.</em>
+ *     <em>Write-only.</em>
  * @property {Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
- *     <em>Write - only.</em>
+ *     <em>Write-only.</em>
  * @property {Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
- *     <em>Write - only.</em>
+ *     <em>Write-only.</em>
  * @property {Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
- *     <em>Write - only.</em>
- * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
- * @property {Color} innerEndColor - The color at the inner end point of the overlay.
- * @property {Color} outerStartColor - The color at the outer start point of the overlay.
- * @property {Color} outerEndColor - The color at the outer end point of the overlay.
- * @property {number} alpha = 0.5 - The opacity of the overlay, <code>0.0</code> -<code>1.0</code>. Setting this value also sets
- *     the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and
- *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>; <em>write - only</em>.
+ *     <em>Write-only.</em>
+ * @property {Color} innerStartcolor=255,255,255 - The color at the inner start point of the overlay.
+ * @property {Color} innerEndColor=255,255,255 - The color at the inner end point of the overlay.
+ * @property {Color} outerStartColor=255,255,255 - The color at the outer start point of the overlay.
+ * @property {Color} outerEndColor=255,255,255 - The color at the outer end point of the overlay.
+ * @property {number} alpha - Sets the opacity of the overlay, <code>0.0</code> &ndash; <code>1.0</code>. Setting this value 
+ *     sets the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and
+ *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>.
  * @property {number} startAlpha - Sets the values of <code>innerStartAlpha</code> and <code>outerStartAlpha</code>.
- *     <em>Write - only.</em>
+ *     <em>Write-only.</em>
  * @property {number} endAlpha - Sets the values of <code>innerEndAlpha</code> and <code>outerEndAlpha</code>.
- *     <em>Write - only.</em>
+ *     <em>Write-only.</em>
  * @property {number} innerAlpha - Sets the values of <code>innerStartAlpha</code> and <code>innerEndAlpha</code>.
- *     <em>Write - only.</em>
+ *     <em>Write-only.</em>
  * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha</code> and <code>outerEndAlpha</code>.
- *     <em>Write - only.</em>
- * @property {number} innerStartAlpha = 0 - The alpha at the inner start point of the overlay.
- * @property {number} innerEndAlpha = 0 - The alpha at the inner end point of the overlay.
- * @property {number} outerStartAlpha = 0 - The alpha at the outer start point of the overlay.
- * @property {number} outerEndAlpha = 0 - The alpha at the outer end point of the overlay.
+ *     <em>Write-only.</em>
+ * @property {number} innerStartAlpha=0.7 - The opacity at the inner start point of the overlay, <code>0.0</code> &ndash; 
+ *     <code>1.0</code>.
+ * @property {number} innerEndAlpha=0.7 - The opacity at the inner end point of the overlay, <code>0.0</code> &ndash; 
+ *     <code>1.0</code>.
+ * @property {number} outerStartAlpha=0.7 - The opacity at the outer start point of the overlay, <code>0.0</code> &ndash; 
+ *     <code>1.0</code>.
+ * @property {number} outerEndAlpha=0.7 - The opacity at the outer end point of the overlay, <code>0.0</code> &ndash; 
+ *     <code>1.0</code>.
  *
- * @property {boolean} hasTickMarks = false - If <code>true</code>, tick marks are drawn.
- * @property {number} majorTickMarksAngle = 0 - The angle between major tick marks, in degrees.
- * @property {number} minorTickMarksAngle = 0 - The angle between minor tick marks, in degrees.
- * @property {number} majorTickMarksLength = 0 - The length of the major tick marks, in meters. A positive value draws tick marks
+ * @property {boolean} hasTickMarks=false - <code>true</code> if tick marks are drawn, <code>false</code> if they aren't.
+ * @property {number} majorTickMarksAngle=0 - The angle between major tick marks, in degrees.
+ * @property {number} minorTickMarksAngle=0 - The angle between minor tick marks, in degrees.
+ * @property {number} majorTickMarksLength=0 - The length of the major tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {number} minorTickMarksLength = 0 - The length of the minor tick marks, in meters. A positive value draws tick marks
+ * @property {number} minorTickMarksLength=0 - The length of the minor tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {Color} majorTickMarksColor = 0, 0, 0 - The color of the major tick marks.
- * @property {Color} minorTickMarksColor = 0, 0, 0 - The color of the minor tick marks.
+ * @property {Color} majorTickMarksColor=0,0,0 - The color of the major tick marks.
+ * @property {Color} minorTickMarksColor=0,0,0 - The color of the minor tick marks.
  */
