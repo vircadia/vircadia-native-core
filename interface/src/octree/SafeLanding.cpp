@@ -122,6 +122,9 @@ void SafeLanding::updateTracking() {
             if (isEntityPhysicsReady(entity) && isVisuallyReady) {
                 entityMapIter = _trackedEntities.erase(entityMapIter);
             } else {
+                if (!isVisuallyReady) {
+                    entity->requestRenderUpdate();
+                }
                 entityMapIter++;
             }
         }
