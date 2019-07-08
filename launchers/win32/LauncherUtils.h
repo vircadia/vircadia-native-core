@@ -66,6 +66,11 @@ public:
         void setCallback(std::function<void(int)> fn) { callback = std::bind(fn, std::placeholders::_1); }
     };
 
+    struct ProcessData {
+        int processID = -1;
+        BOOL isOpened = FALSE;
+    };
+
     static BOOL parseJSON(const CString& jsonTxt, Json::Value& jsonObject);
     static ResponseError makeHTTPCall(const CString& callerName, const CString& mainUrl,
         const CString& dirUrl, const CString& contentType,
@@ -73,11 +78,14 @@ public:
     static std::string cStringToStd(CString cstring);
     static BOOL getFont(const CString& fontName, int fontSize, bool isBold, CFont& fontOut);
     static BOOL launchApplication(LPCWSTR lpApplicationName, LPTSTR cmdArgs = _T(""));
-    static BOOL IsProcessRunning(const wchar_t *processName);
+    static BOOL CALLBACK isWindowOpenedCallback(HWND hWnd, LPARAM lparam);
+    static BOOL isProcessRunning(const wchar_t *processName, int& processID);
+    static BOOL isProcessWindowOpened(const wchar_t *processName);
+    static BOOL shutdownProcess(DWORD dwProcessId, UINT uExitCode);
     static BOOL insertRegistryKey(const std::string& regPath, const std::string& name, const std::string& value);
     static BOOL insertRegistryKey(const std::string& regPath, const std::string& name, DWORD value);
     static BOOL deleteFileOrDirectory(const CString& dirPath, bool noRecycleBin = true);
-    static HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs = _T(""));
+    static HRESULT createLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs = _T(""));
     static BOOL hMac256(const CString& message, const char* key, CString& hashOut);
     static uint64_t extractZip(const std::string& zipFile, const std::string& path, std::vector<std::string>& files);
     static BOOL deleteRegistryKey(const CString& registryPath);

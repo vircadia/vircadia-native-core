@@ -247,7 +247,7 @@ TabBar {
         property Component visualItem: Component {
             WebView {
                 id: entityPropertiesWebView
-                url: Qt.resolvedURL("../entityProperties/html/entityProperties.html")
+                url: Qt.resolvedUrl("../entityProperties/html/entityProperties.html")
                 enabled: true
                 blurOnCtrlShift: false
             }
@@ -263,7 +263,7 @@ TabBar {
         property Component visualItem: Component {
             WebView {
                 id: gridControlsWebView
-                url: Qt.resolvedURL("../../html/gridControls.html")
+                url: Qt.resolvedUrl("../../html/gridControls.html")
                 enabled: true
                 blurOnCtrlShift: false
             }

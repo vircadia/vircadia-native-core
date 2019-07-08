@@ -94,8 +94,8 @@ public slots:
      * @returns {string} The graphics card type.
      * @deprecated This function is deprecated and will be removed.
      *             use getNumGPUs() to know the number of GPUs in the hardware, at least one is expected
-     *             use getGPU(0)["vendor"] to get the brand of the vendor
-     *             use getGPU(0)["model"] to get the model name of the gpu
+     *             use getGPU(getMasterGPU())["vendor"] to get the brand of the vendor
+     *             use getGPU(getMasterGPU())["model"] to get the model name of the gpu
      */
     QString getGraphicsCardType();
 
@@ -136,6 +136,13 @@ public slots:
     int getNumCPUs();
 
     /**jsdoc
+    * Get the index of the master CPU.
+    * @function PlatformInfo.getMasterCPU
+    * @returns {number} The index of the master CPU detected on the hardware platform.
+    */
+    int getMasterCPU();
+
+    /**jsdoc
     * Get the description of the CPU at the index parameter
     * expected fields are:
     *  - cpuVendor...
@@ -153,6 +160,13 @@ public slots:
     int getNumGPUs();
 
     /**jsdoc
+    * Get the index of the master GPU.
+    * @function PlatformInfo.getMasterGPU
+    * @returns {number} The index of the master GPU detected on the hardware platform.
+    */
+    int getMasterGPU();
+
+    /**jsdoc
      * Get the description of the GPU at the index parameter
      * expected fields are:
      *  - vendor, model...
@@ -168,6 +182,13 @@ public slots:
     * @returns {number} The number of Displays detected on the hardware platform.
     */
     int getNumDisplays();
+
+    /**jsdoc
+    * Get the index of the master Display.
+    * @function PlatformInfo.getMasterDisplay
+    * @returns {number} The index of the master Display detected on the hardware platform.
+    */
+    int getMasterDisplay();
 
     /**jsdoc
     * Get the description of the Display at the index parameter
