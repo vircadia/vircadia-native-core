@@ -15,6 +15,7 @@
 
 // START CONFIG OPTIONS
 var DOCKED_QML_SUPPORTED = true;
+var SHOW_PROTOTYPE_EMOTE_APP = false;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -101,6 +102,12 @@ var AVATAR_APP_HEIGHT_PX = 615;
 var avatarAppWindow = false;
 var POPOUT_SAFE_MARGIN_X = 30;
 var POPOUT_SAFE_MARGIN_Y = 30;
+var AVATAR_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00001000 | // Qt::WindowTitleHint
+    0x00002000 | // Qt::WindowSystemMenuHint
+    0x08000000 | // Qt::WindowCloseButtonHint
+    0x00008000 | // Qt::WindowMaximizeButtonHint
+    0x00004000; // Qt::WindowMinimizeButtonHint
 function toggleAvatarApp() {
     if (avatarAppWindow) {
         avatarAppWindow.close();
@@ -121,7 +128,8 @@ function toggleAvatarApp() {
         position: {
             x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - AVATAR_APP_WIDTH_PX / 2),
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - AVATAR_APP_HEIGHT_PX / 2)
-        }
+        },
+        flags: AVATAR_APP_WINDOW_FLAGS
     });
 
     avatarAppWindow.fromQml.connect(onMessageFromAvatarApp);
@@ -166,6 +174,12 @@ var SETTINGS_APP_WINDOW_TITLE = "Settings";
 var SETTINGS_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var SETTINGS_APP_WIDTH_PX = 480;
 var SETTINGS_APP_HEIGHT_PX = 615;
+var SETTINGS_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00001000 | // Qt::WindowTitleHint
+    0x00002000 | // Qt::WindowSystemMenuHint
+    0x08000000 | // Qt::WindowCloseButtonHint
+    0x00008000 | // Qt::WindowMaximizeButtonHint
+    0x00004000; // Qt::WindowMinimizeButtonHint
 var settingsAppWindow = false;
 function toggleSettingsApp() {
     if (settingsAppWindow) {
@@ -187,11 +201,79 @@ function toggleSettingsApp() {
         position: {
             x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - SETTINGS_APP_WIDTH_PX / 2),
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - SETTINGS_APP_HEIGHT_PX / 2)
-        }
+        },
+        flags: SETTINGS_APP_WINDOW_FLAGS
     });
 
     settingsAppWindow.fromQml.connect(onMessageFromSettingsApp);
     settingsAppWindow.closed.connect(onSettingsAppClosed);
+}
+
+function updateEmoteAppBarPosition() {
+    if (!emoteAppBarWindow) {
+        return;
+    }
+
+    emoteAppBarWindow.position = {
+        x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
+        y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
+    };
+}
+
+
+var EMOTE_APP_BAR_MESSAGE_SOURCE = "EmoteAppBar.qml";
+function onMessageFromEmoteAppBar(message) {
+    if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+            
+        default:
+            console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
+
+function onEmoteAppBarClosed() {
+    if (emoteAppBarWindow) {
+        emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
+        emoteAppBarWindow.closed.disconnect(onEmoteAppClosed);
+    }
+    emoteAppBarWindow = false;
+}
+
+
+var EMOTE_APP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/emoteApp/bar/EmoteAppBar.qml";
+var EMOTE_APP_BAR_WINDOW_TITLE = "Emote";
+var EMOTE_APP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var EMOTE_APP_BAR_WIDTH_PX = 48;
+var EMOTE_APP_BAR_HEIGHT_PX = 48;
+var EMOTE_APP_BAR_LEFT_MARGIN = 48;
+var EMOTE_APP_BAR_BOTTOM_MARGIN = 48;
+var EMOTE_APP_BAR_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00000800 | // Qt::FramelessWindowHint
+    0x40000000 | // Qt::NoDropShadowWindowHint
+    0x00200000; // Qt::WindowDoesNotAcceptFocus
+var emoteAppBarWindow = false;
+function showEmoteAppBar() {
+    emoteAppBarWindow = Desktop.createWindow(EMOTE_APP_BAR_QML_PATH, {
+        title: EMOTE_APP_BAR_WINDOW_TITLE,
+        presentationMode: EMOTE_APP_BAR_PRESENTATION_MODE,
+        size: {
+            x: EMOTE_APP_BAR_WIDTH_PX,
+            y: EMOTE_APP_BAR_HEIGHT_PX
+        },
+        position: {
+            x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
+            y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
+        },
+        flags: EMOTE_APP_BAR_WINDOW_FLAGS
+    });
+
+    emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
+    emoteAppBarWindow.closed.connect(onEmoteAppBarClosed);
 }
 
 
@@ -455,6 +537,8 @@ function onGeometryChanged(rect) {
             "y": rect.y
         };
     }
+
+    updateEmoteAppBarPosition();
 }
 
 function onDisplayModeChanged(isHMDMode) {
@@ -547,6 +631,10 @@ function startup() {
     AvatarInputs.showAudioTools = false;
     oldShowBubbleTools = AvatarInputs.showBubbleTools;
     AvatarInputs.showBubbleTools = false;
+
+    if (SHOW_PROTOTYPE_EMOTE_APP) {
+        showEmoteAppBar();
+    }
 }
 
 
@@ -584,6 +672,10 @@ function shutdown() {
 
     if (settingsAppWindow) {
         settingsAppWindow.close();
+    }
+
+    if (emoteAppBarWindow) {
+        emoteAppBarWindow.close();
     }
 
     maybeDeleteInputDeviceMutedOverlay();

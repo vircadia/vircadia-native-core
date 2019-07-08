@@ -156,7 +156,7 @@ Windows.Window {
         if (Qt.platform.os !== "windows" && (flags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
-        nativeWindow.flags = nativeWindowFlags;
+        nativeWindow.flags = flags || nativeWindowFlags;
 
         nativeWindow.x = interactiveWindowPosition.x;
         nativeWindow.y = interactiveWindowPosition.y;
@@ -225,9 +225,38 @@ Windows.Window {
     // Handle message traffic from our loaded QML to the script that launched us
     signal sendToScript(var message);
 
+    function onRequestNewWidth(newWidth) {
+        interactiveWindowSize.width = newWidth;
+        updateInteractiveWindowSizeForMode();
+    }
+
+    function onRequestNewHeight(newWidth) {
+        interactiveWindowSize.width = newWidth;
+        updateInteractiveWindowSizeForMode();
+    }
+    
+    signal keyPressEvent(int key, int modifiers);
+    signal keyReleaseEvent(int key, int modifiers);
+
     onDynamicContentChanged: {
         if (dynamicContent && dynamicContent.sendToScript) {
             dynamicContent.sendToScript.connect(sendToScript);
+        }
+
+        if (dynamicContent && dynamicContent.requestNewWidth) {
+            dynamicContent.requestNewWidth.connect(onRequestNewWidth);
+        }
+
+        if (dynamicContent && dynamicContent.requestNewHeight) {
+            dynamicContent.requestNewHeight.connect(onRequestNewHeight);
+        }
+
+        if (dynamicContent && dynamicContent.keyPressEvent) {
+            dynamicContent.keyPressEvent.connect(keyPressEvent);
+        }
+
+        if (dynamicContent && dynamicContent.keyReleaseEvent) {
+            dynamicContent.keyReleaseEvent.connect(keyReleaseEvent);
         }
     }
 
