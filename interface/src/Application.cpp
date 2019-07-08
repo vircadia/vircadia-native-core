@@ -4162,15 +4162,9 @@ bool Application::event(QEvent* event) {
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
         case QEvent::FocusIn:
-        { //testing to see if we can set focus when focus is not set to root window. 
-            auto offscreenUi = getOffscreenUI();
-            auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
-            
-            if (activeFocusItem == NULL) {
-                offscreenUi->getRootItem()->setEnabled(true);
-                offscreenUi->getRootItem()->setFocus(true, Qt::FocusReason::ActiveWindowFocusReason);
-            }
-           
+        { //testing to see if we can set focus when focus is not set to root window.
+            _glWidget->activateWindow();
+            _glWidget->setFocus();
             return true; 
         }
 
@@ -8782,6 +8776,8 @@ bool Application::isThrottleRendering() const {
 
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
+
+    
 #if defined(Q_OS_WIN)
     // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
     // take user focus away from their current window. So also check whether the application is the user's current foreground
