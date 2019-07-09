@@ -959,10 +959,6 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
-QString RenderableModelEntityItem::getCollisionShapeURL() const {
-    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
-}
-
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
     auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
 

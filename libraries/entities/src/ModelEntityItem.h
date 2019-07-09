@@ -75,6 +75,9 @@ public:
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
 
+    // Returns the URL used for the collision shape
+    QString getCollisionShapeURL() const;
+
     // model related properties
     virtual void setModelURL(const QString& url);
     virtual void setCompoundShapeURL(const QString& url);

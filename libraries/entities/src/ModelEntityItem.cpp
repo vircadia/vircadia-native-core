@@ -590,6 +590,10 @@ QString ModelEntityItem::getCompoundShapeURL() const {
     return _compoundShapeURL.get();
 }
 
+QString ModelEntityItem::getCollisionShapeURL() const {
+    return getShapeType() == SHAPE_TYPE_COMPOUND ? getCompoundShapeURL() : getModelURL();
+}
+
 void ModelEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _color = value;

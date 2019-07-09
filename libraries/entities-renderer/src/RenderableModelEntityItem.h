@@ -113,9 +113,6 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    // Returns the URL used for the collision shape
-    QString getCollisionShapeURL() const;
-
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
