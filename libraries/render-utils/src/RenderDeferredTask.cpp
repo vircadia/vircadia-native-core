@@ -29,7 +29,6 @@
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
-#include <render/ResampleTask.h>
 
 #include "RenderHifi.h"
 #include "render-utils/ShaderConstants.h"
@@ -246,7 +245,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     { // Debug the bounds of the rendered items, still look at the zbuffer
         const auto extraDebugBuffers = RenderDeferredTaskDebug::ExtraBuffers(linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, ambientOcclusionUniforms, scatteringResource, velocityBuffer);
         const auto debugInputs = RenderDeferredTaskDebug::Input(fetchedItems, shadowTaskOutputs, lightingStageInputs, lightClusters, prepareDeferredOutputs, extraDebugBuffers,
-                 deferredFrameTransform, jitter, lightingModel).asVarying();
+            deferredFrameTransform, jitter, lightingModel).asVarying();
         task.addJob<RenderDeferredTaskDebug>("DebugRenderDeferredTask", debugInputs);
     }
 
@@ -412,7 +411,6 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
 
         const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
-
     }
 
 

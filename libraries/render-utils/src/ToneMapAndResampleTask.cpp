@@ -34,7 +34,7 @@ void ToneMapAndResample::init(RenderArgs* args) {
     gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
 
     // TODO why was this in the upsample task
-    //blitState->setDepthTest(gpu::State::DepthTest(false, false));
+    blitState->setDepthTest(gpu::State::DepthTest(false, false));
     blitState->setColorWriteMask(true, true, true, true);
 
     _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping), blitState));
@@ -63,13 +63,16 @@ gpu::FramebufferPointer ToneMapAndResample::getResampledFrameBuffer(const gpu::F
 
     auto resampledFramebufferSize = glm::uvec2(glm::vec2(sourceFramebuffer->getSize()) * _factor);
 
-    if (!_destinationFrameBuffer || resampledFramebufferSize != _destinationFrameBuffer->getSize()) {
-        _destinationFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ResampledOutput"));
+    _destinationFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ResampledOutput"));
 
-        auto sampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-        auto target = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), resampledFramebufferSize.x, resampledFramebufferSize.y, gpu::Texture::SINGLE_MIP, sampler);
-        _destinationFrameBuffer->setRenderBuffer(0, target);
-    }
+    auto sampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+    auto target = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), resampledFramebufferSize.x, resampledFramebufferSize.y, gpu::Texture::SINGLE_MIP, sampler);
+    _destinationFrameBuffer->setRenderBuffer(0, target);
+
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+    auto primaryDepthTexture = gpu::Texture::createRenderBuffer(depthFormat, resampledFramebufferSize.x, resampledFramebufferSize.y, gpu::Texture::SINGLE_MIP, sampler);
+    _destinationFrameBuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
+
     return _destinationFrameBuffer;
 }
 
@@ -84,9 +87,11 @@ void ToneMapAndResample::render(RenderArgs* args, const gpu::TexturePointer& lig
         return;
     }
 
-    //auto framebufferSize = glm::ivec2(lightingBuffer->getDimensions());
+    const auto destBufferSize = destinationFramebuffer->getSize();
 
-    auto framebufferSize = destinationFramebuffer->getSize();
+    auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
+
+    glm::ivec4 destViewport{ 0, 0, destBufferSize.x, destBufferSize.y };
 
     gpu::doInBatch("ToneMapAndResample::render", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -95,10 +100,10 @@ void ToneMapAndResample::render(RenderArgs* args, const gpu::TexturePointer& lig
         // FIXME: Generate the Luminosity map
         //batch.generateTextureMips(lightingBuffer);
 
-        batch.setViewportTransform(args->_viewport);
+        batch.setViewportTransform(destViewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(srcBufferSize, args->_viewport));
         batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
 
         batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
@@ -106,13 +111,10 @@ void ToneMapAndResample::render(RenderArgs* args, const gpu::TexturePointer& lig
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 
-    destinationFramebuffer = getResampledFrameBuffer(destinationFramebuffer);
+    //Set full final viewport
+    args->_viewport = destViewport;
 
-    const auto bufferSize = destinationFramebuffer->getSize();
-    glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
-
-     //Set full final viewport
-     args->_viewport = viewport;
+    // TODO access violation reading 0xFFFFFFFFFFFFFFFF
 }
 
 void ToneMapAndResample::configure(const Config& config) {

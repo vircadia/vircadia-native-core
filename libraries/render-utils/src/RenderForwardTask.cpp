@@ -19,7 +19,6 @@
 #include <gpu/Texture.h>
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
-#include <render/ResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -100,6 +99,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // GPU jobs: Start preparing the main framebuffer
     const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
+    qDebug() << "anna forward " << "scaled " << renderContext->args->_viewport.z << " x " << renderContext->args->_viewport.w;
+    
 
     // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
