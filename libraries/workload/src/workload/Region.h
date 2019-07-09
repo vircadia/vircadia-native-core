@@ -18,12 +18,12 @@ public:
     using Type = uint8_t;
 
     enum Name : uint8_t {
-        R1 = 0,
-        R2,
-        R3,
-        R4,
-        UNKNOWN,
-        INVALID,
+        R1 = 0,   // R1 = in physics simulation and client will bid for simulation ownership
+        R2,       // R2 = in physics simulation but client prefers to NOT have simulation ownership
+        R3,       // R3 = are NOT in physics simulation but yes kinematically animated when velocities are non-zero
+        R4,       // R4 = known to workload but outside R3, not in physics, not animated if moving
+        UNKNOWN,  // UNKNOWN = known to workload but unsorted
+        INVALID,  // INVALID = not known to workload
     };
 
     static const uint8_t NUM_CLASSIFICATIONS = 4;
