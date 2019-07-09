@@ -116,7 +116,11 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
-    connect(&_domainHandler, &DomainHandler::limitOfSilentDomainCheckInsReached, this, [this]() { _connectReason = LimitedNodeList::SilentDomainDisconnect; });
+    connect(&_domainHandler, &DomainHandler::limitOfSilentDomainCheckInsReached, this, [this]() {
+        if (_connectReason != Awake) {
+            _connectReason = SilentDomainDisconnect;
+        }
+    });
 
     // set our sockAddrBelongsToDomainOrNode method as the connection creation filter for the udt::Socket
     using std::placeholders::_1;
@@ -259,8 +263,7 @@ void NodeList::reset(QString reason, bool skipDomainHandlerReset) {
                                   Q_ARG(bool, skipDomainHandlerReset));
         return;
     }
-
-    LimitedNodeList::reset();
+    LimitedNodeList::reset(reason);
 
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
@@ -337,7 +340,8 @@ void NodeList::sendDomainServerCheckIn() {
 
         if (!domainIsConnected) {
             auto hostname = _domainHandler.getHostname();
-            qCDebug(networking_ice) << "Sending connect request to domain-server at" << hostname;
+            QMetaEnum metaEnum = QMetaEnum::fromType<LimitedNodeList::ConnectReason>();
+            qCDebug(networking_ice) << "Sending connect request ( REASON:" << QString(metaEnum.valueToKey(_connectReason)) << ") to domain-server at" << hostname;
 
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
