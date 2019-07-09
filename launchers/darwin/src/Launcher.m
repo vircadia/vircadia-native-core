@@ -279,7 +279,6 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         return;
     }
     [self interfaceFinishedDownloading];
-    //[self.latestBuildRequest requestLatestBuildInfo];
 }
 
 - (void) domainScriptsDownloadFinished
