@@ -84,7 +84,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
     DependencyManager::set<ResourceManager>();
-    DependencyManager::set<PluginManager>();
+    DependencyManager::set<PluginManager>()->instantiate();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -511,6 +511,7 @@ void Agent::executeScript() {
 
         DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
 
+        DependencyManager::get<ScriptEngines>()->runScriptInitializers(_scriptEngine);
         _scriptEngine->run();
 
         Frame::clearFrameHandler(AUDIO_FRAME_TYPE);

@@ -84,6 +84,11 @@ bool isDisabled(QJsonObject metaData) {
     return false;
 }
 
+int PluginManager::instantiate() {
+    auto loaders = getLoadedPlugins();
+    return std::count_if(loaders.begin(), loaders.end(), [](const auto& loader) { return (bool)loader->instance(); });
+}
+
  auto PluginManager::getLoadedPlugins() const -> const LoaderList& {
     static std::once_flag once;
     static LoaderList loadedPlugins;
@@ -139,7 +144,7 @@ bool isDisabled(QJsonObject metaData) {
                     qCDebug(plugins) << " " << qPrintable(loader->errorString());
                 }
             }
-        }
+        } else qWarning() << "pluginPath does not exit..." << pluginDir;
     });
     return loadedPlugins;
 }

@@ -122,13 +122,16 @@ public:
 class ScriptEngine : public BaseScriptEngine, public EntitiesScriptEngineProvider {
     Q_OBJECT
     Q_PROPERTY(QString context READ getContext)
+    Q_PROPERTY(QString type READ getTypeAsString)
+    Q_PROPERTY(QString fileName MEMBER _fileNameString CONSTANT)
 public:
 
     enum Context {
         CLIENT_SCRIPT,
         ENTITY_CLIENT_SCRIPT,
         ENTITY_SERVER_SCRIPT,
-        AGENT_SCRIPT
+        AGENT_SCRIPT,
+        EDIT_FILTER_SCRIPT
     };
 
     enum Type {
@@ -138,6 +141,7 @@ public:
         AGENT,
         AVATAR
     };
+    Q_ENUM(Type)
 
     static int processLevelMaxRetries;
     ScriptEngine(Context context, const QString& scriptContents = NO_SCRIPT, const QString& fileNameString = QString("about:ScriptEngine"));
@@ -274,6 +278,7 @@ public:
      * </ul>
      */
     Q_INVOKABLE QString getContext() const;
+    Q_INVOKABLE QString getTypeAsString() const;
 
     /**jsdoc
      * Checks whether the script is running as an Interface or avatar script.

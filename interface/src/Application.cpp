@@ -814,6 +814,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
 
     // Tell the plugin manager about our statically linked plugins
+    DependencyManager::set<ScriptInitializers>();
     DependencyManager::set<PluginManager>();
     auto pluginManager = PluginManager::getInstance();
     pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
@@ -863,7 +864,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 #endif
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
-    DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();

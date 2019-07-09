@@ -136,24 +136,6 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 
 QObject* scriptsModel();
 
-bool NativeScriptInitializers::registerNativeScriptInitializer(NativeScriptInitializer initializer) {
-    return registerScriptInitializer([initializer](ScriptEnginePointer engine) {
-        initializer(qobject_cast<QScriptEngine*>(engine.data()));
-    });
-}
-
-bool NativeScriptInitializers::registerScriptInitializer(ScriptInitializer initializer) {
-    if (auto scriptEngines = DependencyManager::get<ScriptEngines>().data()) {
-        scriptEngines->registerScriptInitializer(initializer);
-        return true;
-    }
-    return false;
-}
-
-void ScriptEngines::registerScriptInitializer(ScriptInitializer initializer) {
-    _scriptInitializers.push_back(initializer);
-}
-
 void ScriptEngines::addScriptEngine(ScriptEnginePointer engine) {
     if (!_isStopped) {
         QMutexLocker locker(&_allScriptsMutex);
@@ -559,12 +541,10 @@ void ScriptEngines::quitWhenFinished() {
 }
 
 int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
-    int ii=0;
-    for (auto initializer : _scriptInitializers) {
-        ii++;
-        initializer(scriptEngine);
-    }
-    return ii;
+    auto nativeCount = DependencyManager::get<ScriptInitializers>()->runScriptInitializers(scriptEngine.data());
+    return nativeCount + std::count_if(_scriptInitializers.begin(), _scriptInitializers.end(),
+        [scriptEngine](auto initializer){ initializer(scriptEngine); return true; }
+    );
 }
 
 void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {

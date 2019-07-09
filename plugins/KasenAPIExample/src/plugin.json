@@ -1,0 +1,21 @@
+{
+    "name":"Kasen JS API Example",
+    "version": 1,
+    "package": {
+        "author": "Revofire",
+        "homepage": "www.realities.dev",
+        "version": "0.0.0",
+        "engines": {
+          "hifi-interface": ">= 0.83.0",
+          "hifi-assignment-client": ">= 0.83.0"
+        },
+        "config": {
+            "client": true,
+            "entity_client": true,
+            "entity_server": true,
+            "edit_filter": true,
+            "agent": true,
+            "avatar": true
+        }
+    }
+}

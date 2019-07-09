@@ -38,6 +38,7 @@ public:
     void saveSettings();
     void setContainer(PluginContainer* container) { _container = container; }
 
+    int instantiate();
     void shutdown();
 
     // Application that have statically linked plugins can expose them to the plugin manager with these function

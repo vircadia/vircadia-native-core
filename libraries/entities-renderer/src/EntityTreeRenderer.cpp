@@ -29,7 +29,7 @@
 #include <PrioritySortUtil.h>
 #include <Rig.h>
 #include <SceneScriptingInterface.h>
-#include <ScriptEngine.h>
+#include <ScriptEngines.h>
 #include <EntitySimulation.h>
 #include <ZoneRenderer.h>
 #include <PhysicalEntitySimulation.h>
@@ -146,7 +146,7 @@ int EntityTreeRenderer::_entitiesScriptEngineCount = 0;
 void EntityTreeRenderer::resetEntitiesScriptEngine() {
     _entitiesScriptEngine = scriptEngineFactory(ScriptEngine::ENTITY_CLIENT_SCRIPT, NO_SCRIPT,
                                                 QString("about:Entities %1").arg(++_entitiesScriptEngineCount));
-    _scriptingServices->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+    DependencyManager::get<ScriptEngines>()->runScriptInitializers(_entitiesScriptEngine);
     _entitiesScriptEngine->runInThread();
     auto entitiesScriptEngineProvider = qSharedPointerCast<EntitiesScriptEngineProvider>(_entitiesScriptEngine);
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
