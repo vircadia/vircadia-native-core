@@ -72,6 +72,7 @@ struct LatestBuildInfo {
 - (BOOL) loginShouldSetErrorState;
 - (void) displayErrorPage;
 - (void) showLoginScreen;
+- (void) restart;
 - (NSString*) getLauncherPath;
 - (ProcessState) currentProccessState;
 - (void) setCurrentProcessState:(ProcessState) aProcessState;

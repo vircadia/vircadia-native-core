@@ -40,12 +40,10 @@
     [self.background setImage: [NSImage imageNamed:hifiBackgroundFilename]];
     [self.smallLogo setImage: [NSImage imageNamed:hifiSmallLogoFilename]];
     [self.voxelImage setImage: [NSImage imageNamed:hifiVoxelFilename]];
-    //[sharedLauncher setProgressIndicator: self.progressView];
-    //sharedLauncher.progressIndicator = self.progressView;
     if (self.progressView != nil) {
-        NSLog(@"Progress view: %@", self.progressView);
         [sharedLauncher setProgressView: self.progressView];
     }
+
     self.imageRotation = 0;
     [NSTimer scheduledTimerWithTimeInterval:0.016
                                          target:self

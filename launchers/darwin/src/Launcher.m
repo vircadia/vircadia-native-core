@@ -89,8 +89,6 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) updateProgressIndicator
 {
-    NSProgressIndicator* progressIndicator = [self getProgressView];
-    double oldValue = progressIndicator.doubleValue;
     double contentPercentage = [self.downloadDomainContent getProgressPercentage];
     double interfacePercentage = [self.downloadInterface getProgressPercentage];
     double currentTotalPercentage = self.progressTarget;
@@ -136,14 +134,20 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 -(void) setProgressView:(NSProgressIndicator*) aProgressIndicator
 {
-    NSLog(@"Setting progressIndicator %@", aProgressIndicator);
     self.progressIndicator = aProgressIndicator;
 }
 
 -(NSProgressIndicator*) getProgressView
 {
-    //NSLog(@"Getting progressIndicator %@", self.progressIndicator);
     return self.progressIndicator;
+}
+
+- (void) restart
+{
+    SplashScreen* splashScreen = [[SplashScreen alloc] initWithNibName:@"SplashScreen" bundle:nil];
+    [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: splashScreen];
+
+    [self checkLoginStatus];
 }
 
 - (void) displayErrorPage
@@ -154,7 +158,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) checkLoginStatus
 {
-    [NSTimer scheduledTimerWithTimeInterval:2.0
+    [NSTimer scheduledTimerWithTimeInterval:1.0
                                      target:self
                                    selector:@selector(onSplashScreenTimerFinished:)
                                    userInfo:nil

@@ -6,7 +6,7 @@
 @implementation LatestBuildRequest
 
 - (NSInteger) getCurrentVersion {
-    /*NSInteger currentVersion;
+    NSInteger currentVersion;
     @try {
         NSString* interfaceAppPath = [[Launcher.sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
         NSError * error = nil;
@@ -19,8 +19,8 @@
     } @catch (NSException *exception) {
         NSLog(@"an exception was thrown: %@", exception);
         currentVersion = [Settings.sharedSettings latestBuildVersion];
-        }*/
-    return [Settings.sharedSettings latestBuildVersion];//currentVersion;
+    }
+    return currentVersion;
 }
 
 - (void) requestLatestBuildInfo {
@@ -32,13 +32,18 @@
     // We're using an ephermeral session here to ensure the tags api response is never cached.
     NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
     NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-
-
         NSLog(@"Latest Build Request error: %@", error);
         NSLog(@"Latest Build Request Data: %@", data);
          NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
         NSLog(@"Latest Build Request Response: %ld", [ne statusCode]);
         Launcher* sharedLauncher = [Launcher sharedLauncher];
+
+        if ([ne statusCode] == 500) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [sharedLauncher displayErrorPage];
+            });
+            return;
+        }
         NSMutableData* webData = [NSMutableData data];
         [webData appendData:data];
         NSString* jsonString = [[NSString alloc] initWithBytes: [webData mutableBytes] length:[data length] encoding:NSUTF8StringEncoding];
