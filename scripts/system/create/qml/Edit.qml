@@ -34,7 +34,7 @@ StackView {
     }
 
     function pushSource(path) {
-        var item = Qt.createComponent(Qt.resolvedUrl("../../" + path));
+        var item = Qt.createComponent(path);
         editRoot.push(item, itemProperties,
                       StackView.Immediate);
         editRoot.currentItem.sendToScript.connect(editRoot.sendToScript);
