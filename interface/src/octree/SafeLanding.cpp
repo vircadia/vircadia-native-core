@@ -19,6 +19,11 @@
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 
+CalculateEntityLoadingPriority SafeLanding::entityLoadingOperatorElevateCollidables = [](const EntityItem& entityItem) {
+    const int COLLIDABLE_ENTITY_PRIORITY = 10.0f;
+    return entityItem.getCollisionless() * COLLIDABLE_ENTITY_PRIORITY;
+};
+
 namespace {
     template<typename T> bool lessThanWraparound(int a, int b) {
         constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
@@ -52,7 +57,8 @@ void SafeLanding::startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRen
             connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
                 &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
 
-            EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
+            _prevEntityLoadingPriorityOperator = EntityTreeRenderer::getEntityLoadingPriorityOperator();
+            EntityTreeRenderer::setEntityLoadingPriorityFunction(entityLoadingOperatorElevateCollidables);
         }
     }
 }
@@ -162,7 +168,7 @@ void SafeLanding::stopTracking() {
             &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
         _entityTreeRenderer.reset();
     }
-    EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
+    EntityTreeRenderer::setEntityLoadingPriorityFunction(_prevEntityLoadingPriorityOperator);
 }
 
 bool SafeLanding::trackingIsComplete() const {
@@ -203,10 +209,6 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
         }
     }
     return true;
-}
-
-float SafeLanding::ElevatedPriority(const EntityItem& entityItem) {
-    return entityItem.getCollisionless() ? 0.0f : 10.0f;
 }
 
 void SafeLanding::debugDumpSequenceIDs() const {

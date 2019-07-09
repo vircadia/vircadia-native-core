@@ -12,6 +12,9 @@
 #include <thread>
 #include <string>
 #include <CPUIdent.h>
+
+#include <QtCore/QtGlobal>
+
 #include <GPUIdent.h>
 #include <QSysInfo>
 
@@ -27,7 +30,7 @@ void LinuxInstance::enumerateCpus() {
     _cpus.push_back(cpu);
 }
 
-void LinuxInstance::enumerateGpus() {
+void LinuxInstance::enumerateGpusAndDisplays() {
     GPUIdent* ident = GPUIdent::getInstance();
     json gpu = {};
     gpu[keys::gpu::model] = ident->getName().toUtf8().constData();

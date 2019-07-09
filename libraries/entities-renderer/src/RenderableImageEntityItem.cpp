@@ -199,9 +199,8 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     float x = _keepAspectRatio ? fromImage.width() / (2.0f * maxSize) : 0.5f;
     float y = _keepAspectRatio ? fromImage.height() / (2.0f * maxSize) : 0.5f;
 
-    glm::vec2 texCoordBottomLeft((fromImage.x() + 0.5f) / imageWidth, -(fromImage.y() + 0.5f) / imageHeight);
-    glm::vec2 texCoordTopRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth,
-                                  -(fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
+    glm::vec2 texCoordBottomLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
+    glm::vec2 texCoordTopRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
 
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, glm::vec2(-x, -y), glm::vec2(x, y), texCoordBottomLeft, texCoordTopRight,

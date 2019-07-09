@@ -277,51 +277,60 @@ entities::TextPayload::~TextPayload() {
 }
 
 ItemKey entities::TextPayload::getKey() const {
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
-    if (renderable) {
-        auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
-        ItemKey::Builder key;
-        // Similar to EntityRenderer::getKey()
-        if (textRenderable->isTextTransparent()) {
-            key = ItemKey::Builder::transparentShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
-        } else if (textRenderable->_canCastShadow) {
-            key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withShadowCaster().withLayer(textRenderable->getHifiRenderLayer());
-        } else {
-            key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
-        }
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
+            ItemKey::Builder key;
+            // Similar to EntityRenderer::getKey()
+            if (textRenderable->isTextTransparent()) {
+                key = ItemKey::Builder::transparentShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
+            } else if (textRenderable->_canCastShadow) {
+                key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withShadowCaster().withLayer(textRenderable->getHifiRenderLayer());
+            } else {
+                key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
+            }
 
-        if (!textRenderable->_visible) {
-            key.withInvisible();
+            if (!textRenderable->_visible) {
+                key.withInvisible();
+            }
+            return key;
         }
-        return key;
     }
     return ItemKey::Builder::opaqueShape();
 }
 
 Item::Bound entities::TextPayload::getBound() const {
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
-    if (renderable) {
-        return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound();
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound();
+        }
     }
     return Item::Bound();
 }
 
 ShapeKey entities::TextPayload::getShapeKey() const {
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
-    if (renderable) {
-        auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
 
-        auto builder = render::ShapeKey::Builder().withOwnPipeline();
-        if (textRenderable->isTextTransparent()) {
-            builder.withTranslucent();
+            auto builder = render::ShapeKey::Builder().withOwnPipeline();
+            if (textRenderable->isTextTransparent()) {
+                builder.withTranslucent();
+            }
+            if (textRenderable->_unlit) {
+                builder.withUnlit();
+            }
+            if (textRenderable->_primitiveMode == PrimitiveMode::LINES) {
+                builder.withWireframe();
+            }
+            return builder.build();
         }
-        if (textRenderable->_unlit) {
-            builder.withUnlit();
-        }
-        if (textRenderable->_primitiveMode == PrimitiveMode::LINES) {
-            builder.withWireframe();
-        }
-        return builder.build();
     }
     return ShapeKey::Builder::invalid();
 }
@@ -336,7 +345,11 @@ void entities::TextPayload::render(RenderArgs* args) {
         return;
     }
 
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (!entityTreeRenderer) {
+        return;
+    }
+    auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
     if (!renderable) {
         return;
     }

@@ -32,6 +32,11 @@ CLauncherApp theApp;
 // CLauncherApp initialization
 
 BOOL CLauncherApp::InitInstance() {
+    // Close interface if is running
+    int interfacePID = -1;
+    if (LauncherUtils::isProcessRunning(L"interface.exe", interfacePID)) {
+        LauncherUtils::shutdownProcess(interfacePID, 0);
+    }
     int iNumOfArgs;
     LPWSTR* pArgs = CommandLineToArgvW(GetCommandLine(), &iNumOfArgs);
     bool isUninstalling = false;

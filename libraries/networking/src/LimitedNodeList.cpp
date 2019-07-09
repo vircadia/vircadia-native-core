@@ -584,7 +584,7 @@ SharedNodePointer LimitedNodeList::nodeWithLocalID(Node::LocalID localID) const 
     return idIter == _localIDMap.cend() ? nullptr : idIter->second;
 }
 
-void LimitedNodeList::eraseAllNodes() {
+void LimitedNodeList::eraseAllNodes(QString reason) {
     std::vector<SharedNodePointer> killedNodes;
 
     {
@@ -593,7 +593,7 @@ void LimitedNodeList::eraseAllNodes() {
         QWriteLocker writeLocker(&_nodeMutex);
 
         if (_nodeHash.size() > 0) {
-            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList.";
+            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList:" << reason;
 
             killedNodes.reserve(_nodeHash.size());
             for (auto& pair : _nodeHash) {
@@ -611,8 +611,8 @@ void LimitedNodeList::eraseAllNodes() {
     _delayedNodeAdds.clear();
 }
 
-void LimitedNodeList::reset() {
-    eraseAllNodes();
+void LimitedNodeList::reset(QString reason) {
+    eraseAllNodes(reason);
 
     // we need to make sure any socket connections are gone so wait on that here
     _nodeSocket.clearConnections();
@@ -1258,7 +1258,7 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
             _localSockAddr = sockAddr;
             if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
-                reset();
+                reset("local socket change");
                 _nodeSocket.rebind(0);
                 _localSockAddr.setPort(_nodeSocket.localPort());
                 qCInfo(networking) << "Local port changed to" << _localSockAddr.getPort();

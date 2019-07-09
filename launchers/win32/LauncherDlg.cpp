@@ -119,15 +119,22 @@ BOOL CLauncherDlg::OnInitDialog() {
     return TRUE;
 }
 
+POINT CLauncherDlg::getMouseCoords(MSG* pMsg) {
+    POINT pos;
+    pos.x = (int)(short)LOWORD(pMsg->lParam);
+    pos.y = (int)(short)HIWORD(pMsg->lParam);
+    return pos;
+}
+
 BOOL CLauncherDlg::PreTranslateMessage(MSG* pMsg) {
-    if ((pMsg->message == WM_KEYDOWN))
-    {
+    switch (pMsg->message) {
+    case WM_KEYDOWN:
         if (pMsg->wParam == 'A' && GetKeyState(VK_CONTROL) < 0) {
             CWnd* wnd = GetFocus();
             CWnd* myWnd = this->GetDlgItem(IDC_ORGNAME);
             if (wnd && (wnd == this->GetDlgItem(IDC_ORGNAME) ||
-                        wnd == this->GetDlgItem(IDC_USERNAME) ||
-                        wnd == this->GetDlgItem(IDC_PASSWORD))) {
+                wnd == this->GetDlgItem(IDC_USERNAME) ||
+                wnd == this->GetDlgItem(IDC_PASSWORD))) {
                 ((CEdit*)wnd)->SetSel(0, -1);
             }
             return TRUE;
@@ -135,6 +142,33 @@ BOOL CLauncherDlg::PreTranslateMessage(MSG* pMsg) {
             OnNextClicked();
             return TRUE;
         }
+        break;
+    case WM_LBUTTONDOWN:
+        if (pMsg->hwnd == GetSafeHwnd()) {
+            _draggingWindow = true;
+            _dragOffset = getMouseCoords(pMsg);
+            SetCapture();
+        }
+        break;
+    case WM_LBUTTONUP:
+        if (_draggingWindow) {
+            ReleaseCapture();
+            _draggingWindow = false;
+        }
+        break;
+    case WM_MOUSEMOVE:
+        if (_draggingWindow) {
+            POINT pos = getMouseCoords(pMsg);
+            RECT windowRect;
+            GetWindowRect(&windowRect);
+            int width = windowRect.right - windowRect.left;
+            int height = windowRect.bottom - windowRect.top;
+            ClientToScreen(&pos);
+            MoveWindow(pos.x - _dragOffset.x, pos.y - _dragOffset.y, width, height, FALSE);
+        }
+        break;
+    default:
+        break;
     }
     return CDialog::PreTranslateMessage(pMsg);
 }
@@ -174,19 +208,11 @@ void CLauncherDlg::startProcess() {
         theApp._manager.addToLog(_T("Starting Process Setup"));
         setDrawDialog(DrawStep::DrawProcessSetup);
     }
-    theApp._manager.addToLog(_T("Deleting directories before install"));
-
-    CString installDir;
-    theApp._manager.getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installDir);
+    theApp._manager.addToLog(_T("Deleting download directory"));
     CString downloadDir;
     theApp._manager.getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDir);
-
-    LauncherUtils::deleteDirectoriesOnThread(installDir, downloadDir, [&](int error) {
-        LauncherUtils::DeleteDirError deleteError = (LauncherUtils::DeleteDirError)error;
-        switch(error) { 
-        case LauncherUtils::DeleteDirError::NoErrorDeleting:
-            theApp._manager.addToLog(_T("Install directory deleted."));
-            theApp._manager.addToLog(_T("Downloads directory deleted."));
+    LauncherUtils::deleteDirectoryOnThread(downloadDir, [&](bool error) {
+        if (!error) {
             if (!theApp._manager.isLoggedIn()) {
                 theApp._manager.addToLog(_T("Downloading Content"));
                 theApp._manager.downloadContent();
@@ -194,23 +220,12 @@ void CLauncherDlg::startProcess() {
                 theApp._manager.addToLog(_T("Downloading App"));
                 theApp._manager.downloadApplication();
             }
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingBothDirs:
-            theApp._manager.addToLog(_T("Error deleting directories."));
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingApplicationDir:
-            theApp._manager.addToLog(_T("Error deleting application directory."));
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingDownloadsDir:
-            theApp._manager.addToLog(_T("Error deleting downloads directory."));
-            break;
-        default:
-            break;
-        }
-        if (error != LauncherUtils::DeleteDirError::NoErrorDeleting) {
+        } else {
+            theApp._manager.addToLog(_T("Error deleting download directory."));
             theApp._manager.setFailed(true);
         }
     });
+
 }
 
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
@@ -629,7 +644,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                         ::SetForegroundWindow(_applicationWND);
                         ::SetActiveWindow(_applicationWND);
                     }
-                    if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
+                    if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
                         exit(0);
                     }
                 }
@@ -653,7 +668,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             }
             _splashStep++;
         } else if (theApp._manager.shouldShutDown()) {
-            if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
+            if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
                 exit(0);
             }
         }

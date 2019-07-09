@@ -15,13 +15,10 @@
 #include "LauncherManager.h"
 
 
-LauncherManager::LauncherManager()
-{
+LauncherManager::LauncherManager() {
 }
 
-
-LauncherManager::~LauncherManager()
-{
+LauncherManager::~LauncherManager() {
 }
 
 void LauncherManager::init() {
@@ -41,6 +38,9 @@ void LauncherManager::init() {
                 addToLog(_T("New build found. Updating"));
                 _shouldUpdate = TRUE;
             }
+        } else if (_loggedIn) {
+            addToLog(_T("Interface not found but logged in. Reinstalling"));
+            _shouldUpdate = TRUE;
         }
     } else {
         _hasFailed = true;
@@ -113,8 +113,11 @@ BOOL LauncherManager::installLauncher() {
             // The installer is not running on the desired location and has to be installed
             // Kill of running before self-copy
             addToLog(_T("Installing Launcher."));
-            if (LauncherUtils::IsProcessRunning(LAUNCHER_EXE_FILENAME)) {
-                ShellExecute(NULL, NULL, L"taskkill", L"/F /T /IM " + LAUNCHER_EXE_FILENAME, NULL, SW_HIDE);
+            int launcherPID = -1;
+            if (LauncherUtils::isProcessRunning(LAUNCHER_EXE_FILENAME, launcherPID)) {
+                if (!LauncherUtils::shutdownProcess(launcherPID, 0)) {
+                    addToLog(_T("Error shutting down the Launcher"));
+                }
             }
             CopyFile(appPath, instalationPath, FALSE);
         }
@@ -151,7 +154,7 @@ BOOL LauncherManager::createShortcuts() {
     CString installDir;
     getAndCreatePaths(PathType::Launcher_Directory, installDir);
     CString installPath = installDir + LAUNCHER_EXE_FILENAME;
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(desktopLnkPath), _T("CLick to Setup and Launch HQ."))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(desktopLnkPath), _T("CLick to Setup and Launch HQ."))) {
         return FALSE;
     }
     CString startLinkPath;
@@ -159,13 +162,13 @@ BOOL LauncherManager::createShortcuts() {
     CString appStartLinkPath = startLinkPath + _T("HQ Launcher.lnk");
     CString uniStartLinkPath = startLinkPath + _T("Uninstall HQ.lnk");
     CString uniLinkPath = installDir + _T("Uninstall HQ.lnk");
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(appStartLinkPath), _T("CLick to Setup and Launch HQ."))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(appStartLinkPath), _T("CLick to Setup and Launch HQ."))) {
         return FALSE;
     }
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(uniStartLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(uniStartLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
         return FALSE;
     }
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(uniLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(uniLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
         return FALSE;
     }
     return TRUE;
@@ -189,9 +192,9 @@ BOOL LauncherManager::isApplicationInstalled(CString& version, CString& domain,
     CString applicationPath = applicationDir + "interface\\interface.exe";
     BOOL isApplicationInstalled = PathFileExistsW(applicationPath);
     BOOL configFileExist = PathFileExistsW(applicationDir + _T("interface\\config.json"));
-    if (isApplicationInstalled && configFileExist) {
+    if (configFileExist) {
         LauncherUtils::ResponseError status = readConfigJSON(version, domain, content, loggedIn);
-        return status == LauncherUtils::ResponseError::NoError;
+        return isApplicationInstalled && status == LauncherUtils::ResponseError::NoError;
     }
     return FALSE;
 }
@@ -308,7 +311,8 @@ LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, C
     }
     Json::Value config;
     configFile >> config;
-    if (config["version"].isString() && config["domain"].isString() &&
+    if (config["version"].isString() && 
+        config["domain"].isString() &&
         config["content"].isString()) {
         loggedIn = config["loggedIn"].asBool();
         version = config["version"].asCString();
@@ -440,10 +444,6 @@ void LauncherManager::onZipExtracted(ZipType type, int size) {
         downloadApplication();
     } else if (type == ZipType::ZipApplication) {
         createShortcuts();
-        CString versionPath;
-        getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, versionPath);
-        addToLog(_T("Creating config.json"));
-        createConfigJSON();
         addToLog(_T("Launching application."));
         _shouldLaunch = TRUE;
         if (!_shouldUpdate) {
@@ -457,6 +457,8 @@ void LauncherManager::onZipExtracted(ZipType type, int size) {
 BOOL LauncherManager::extractApplication() {
     CString installPath;
     getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installPath);
+    addToLog(_T("Creating config.json"));
+    createConfigJSON();
     BOOL success = LauncherUtils::unzipFileOnThread(ZipType::ZipApplication, LauncherUtils::cStringToStd(_applicationZipPath),
         LauncherUtils::cStringToStd(installPath), [&](int type, int size) {
         if (size > 0) {
@@ -476,11 +478,31 @@ BOOL LauncherManager::extractApplication() {
 
 void LauncherManager::onFileDownloaded(DownloadType type) {
     if (type == DownloadType::DownloadContent) {
-        addToLog(_T("Installing content."));
-        installContent();
+        addToLog(_T("Deleting content directory before install"));
+        CString contentDir;
+        getAndCreatePaths(PathType::Content_Directory, contentDir);
+        LauncherUtils::deleteDirectoryOnThread(contentDir, [&](bool error) {
+            if (!error) {
+                addToLog(_T("Installing content."));
+                installContent();
+            } else {
+                addToLog(_T("Error deleting content directory."));
+                setFailed(true);
+            }
+        });
     } else if (type == DownloadType::DownloadApplication) {
-        addToLog(_T("Installing application."));
-        extractApplication();
+        addToLog(_T("Deleting application directory before install"));
+        CString applicationDir;
+        getAndCreatePaths(PathType::Interface_Directory, applicationDir);
+        LauncherUtils::deleteDirectoryOnThread(applicationDir, [&](bool error) {
+            if (!error) {
+                addToLog(_T("Installing application."));
+                extractApplication();
+            } else {
+                addToLog(_T("Error deleting install directory."));
+                setFailed(true);
+            }
+        });
     }
 }
 
