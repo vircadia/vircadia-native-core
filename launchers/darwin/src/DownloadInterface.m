@@ -6,6 +6,7 @@
 
 - (void) downloadInterface:(NSString*) downloadUrl
 {
+    NSLog(@"-----------------> %@", downloadUrl);
     self.progressPercentage = 0.0;
     self.taskProgressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
@@ -30,7 +31,7 @@
 
 - (double) getProgressPercentage
 {
-    return (self.progressPercentage * 0.90) + (self.taskProgressPercentage * 0.10);
+    return (self.progressPercentage * 0.70) + (self.taskProgressPercentage * 0.30);
 }
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didResumeAtOffset:(int64_t)fileOffset expectedTotalBytes:(int64_t)expectedTotalBytes {
@@ -102,7 +103,13 @@
 }
 
 - (void) updateTaskPercentage:(NSTimer*) timer {
-    self.taskProgressPercentage += 3.0;
+    if (self.taskProgressPercentage < 100.0) {
+        self.taskProgressPercentage += 1.5;
+
+        if (self.taskProgressPercentage > 100.0) {
+            self.taskProgressPercentage = 100.0;
+        }
+    }
     [[Launcher sharedLauncher] updateProgressIndicator];
 }
 

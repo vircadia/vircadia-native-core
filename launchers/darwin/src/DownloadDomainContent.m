@@ -5,7 +5,7 @@
 
 - (double) getProgressPercentage
 {
-    return (self.progressPercentage * 0.50) + (self.taskProgressPercentage * 0.50);
+    return (self.progressPercentage * 0.70) + (self.taskProgressPercentage * 0.30);
 }
 
 - (void) downloadDomainContent:(NSString *)domainContentUrl
@@ -90,7 +90,13 @@
 }
 
 - (void) updatePercentage:(NSTimer*) timer {
-    self.taskProgressPercentage += 4.0;
+    if (self.taskProgressPercentage < 100.0) {
+        self.taskProgressPercentage += 1.5;
+
+        if (self.taskProgressPercentage > 100.0) {
+            self.taskProgressPercentage = 100.0;
+        }
+    }
     [[Launcher sharedLauncher] updateProgressIndicator];
 }
 

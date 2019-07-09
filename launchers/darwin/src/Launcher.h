@@ -21,6 +21,12 @@ typedef enum LoginErrorTypes
     CREDENTIALS
 } LoginError;
 
+struct LatestBuildInfo {
+    NSString* downloadURL;
+    BOOL shouldDownload;
+    BOOL requestBuildFinished;
+};
+
 @interface Launcher : NSObject <NSApplicationDelegate, NSWindowDelegate, NSURLDownloadDelegate> {
 }
 @property (nonatomic, retain) NSString* password;
@@ -52,6 +58,7 @@ typedef enum LoginErrorTypes
 @property (nonatomic, assign, readwrite) LoginError loginError;
 @property (nonatomic, assign) NSProgressIndicator* progressIndicator;
 @property (nonatomic) double progressTarget;
+@property (nonatomic) struct LatestBuildInfo buildInfo;
 
 - (NSProgressIndicator*) getProgressView;
 - (void) setProgressView:(NSProgressIndicator*) aProgressIndicator;
@@ -89,8 +96,8 @@ typedef enum LoginErrorTypes
 - (BOOL) isLoadedIn;
 - (NSString*) getAppPath;
 - (void) updateProgressIndicator;
-- (void) setShouldDownloadInterface:(BOOL) shouldDownlaod;
-- (BOOL) getShouldDownloadInterface;
+- (void) setLatestBuildInfo:(struct LatestBuildInfo) latestBuildInfo;
+- (struct LatestBuildInfo) getLatestBuildInfo;
 
 + (id) sharedLauncher;
 @end
