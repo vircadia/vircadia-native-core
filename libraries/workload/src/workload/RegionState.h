@@ -53,8 +53,11 @@ namespace workload {
         using Inputs = IndexVectors;
         using JobModel = workload::Job::ModelI<RegionState, Inputs, Config>;
 
+        // we track Proxies in regions R1 through R3
+        const uint32_t NUM_REGIONS_TRACKED = uint32_t(Region::R3 - Region::R1 + 1);
+
         RegionState() {
-            _state.resize(Region::R3 + 1);
+            _state.resize(NUM_REGIONS_TRACKED);
         }
 
         void configure(const Config& config);
