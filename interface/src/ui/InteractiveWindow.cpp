@@ -32,7 +32,8 @@
 
 static auto CONTENT_WINDOW_QML = QUrl("InteractiveWindow.qml");
 
-static const char* const FLAGS_PROPERTY = "flags";
+static const char* const ADDITIONAL_FLAGS_PROPERTY = "additionalFlags";
+static const char* const OVERRIDE_FLAGS_PROPERTY = "overrideFlags";
 static const char* const SOURCE_PROPERTY = "source";
 static const char* const TITLE_PROPERTY = "title";
 static const char* const POSITION_PROPERTY = "position";
@@ -92,8 +93,12 @@ void InteractiveWindow::forwardKeyReleaseEvent(int key, int modifiers) {
  * @property {InteractiveWindow.PresentationWindowInfo} [presentationWindowInfo] - Controls how a <code>NATIVE</code> window is 
  *     displayed. If used, the window is docked to the specified edge of the Interface window, otherwise the window is 
  *     displayed as its own separate window.
- * @property {InteractiveWindow.Flags} [flags=0] - Window behavior flags, set at window creation. Possible flag values are 
- *     provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
+ * @property {InteractiveWindow.AdditionalFlags} [additionalFlags=0] - Window behavior flags in addition to "native window flags" (minimize/maximize/close),
+ *     set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
+ *     Additional flag values can be found on Qt's website at https://doc.qt.io/qt-5/qt.html#WindowType-enum.
+ * @property {InteractiveWindow.OverrideFlags} [overrideFlags=0] - Window behavior flags instead of the default window flags.
+ *     Set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
+ *     Additional flag values can be found on Qt's website at https://doc.qt.io/qt-5/qt.html#WindowType-enum.
  */
 InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties) {
     InteractiveWindowPresentationMode presentationMode = InteractiveWindowPresentationMode::Native;
@@ -179,8 +184,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
             _qmlWindow = object;
             context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
-            if (properties.contains(FLAGS_PROPERTY)) {
-                object->setProperty(FLAGS_PROPERTY, properties[FLAGS_PROPERTY].toUInt());
+            if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
+                object->setProperty(ADDITIONAL_FLAGS_PROPERTY, properties[ADDITIONAL_FLAGS_PROPERTY].toUInt());
+            }
+            if (properties.contains(OVERRIDE_FLAGS_PROPERTY)) {
+                object->setProperty(OVERRIDE_FLAGS_PROPERTY, properties[OVERRIDE_FLAGS_PROPERTY].toUInt());
             }
             if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
                 object->setProperty(PRESENTATION_MODE_PROPERTY, properties[PRESENTATION_MODE_PROPERTY].toInt());

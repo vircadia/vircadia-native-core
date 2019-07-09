@@ -17,7 +17,7 @@ import TabletScriptingInterface 1.0
 
 Rectangle {
     id: root
-    color: simplifiedUI.colors.darkBackground
+    color: simplifiedUI.colors.white
     anchors.fill: parent
 
     property int originalWidth: 48
@@ -74,7 +74,7 @@ Rectangle {
     Rectangle {
         id: drawerContainer
         z: 1
-        color: simplifiedUI.colors.darkBackground
+        color: simplifiedUI.colors.white
         anchors.top: parent.top
         anchors.right: parent.right
         height: parent.height
@@ -85,7 +85,7 @@ Rectangle {
             anchors.fill: parent
             horizontalAlignment: Text.AlignHCenter
             size: 20
-            color: simplifiedUI.colors.text.almostWhite
+            color: simplifiedUI.colors.text.black
         }
     }
 

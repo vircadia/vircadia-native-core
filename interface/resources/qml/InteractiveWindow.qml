@@ -31,6 +31,8 @@ Windows.Window {
     signal selfDestruct();
 
     property var flags: 0;
+    property var additionalFlags: 0;
+    property var overrideFlags: 0;
 
     property var source;
     property var dynamicContent;
@@ -153,10 +155,11 @@ Windows.Window {
             Qt.WindowMaximizeButtonHint |
             Qt.WindowMinimizeButtonHint;
         // only use the always on top feature for non Windows OS
-        if (Qt.platform.os !== "windows" && (flags & Desktop.ALWAYS_ON_TOP)) {
+        if (Qt.platform.os !== "windows" && (root.additionalFlags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
-        nativeWindow.flags = flags || nativeWindowFlags;
+        root.flags = root.overrideFlags || nativeWindowFlags;
+        nativeWindow.flags = root.flags;
 
         nativeWindow.x = interactiveWindowPosition.x;
         nativeWindow.y = interactiveWindowPosition.y;
@@ -225,16 +228,18 @@ Windows.Window {
     // Handle message traffic from our loaded QML to the script that launched us
     signal sendToScript(var message);
 
+    // Children of this InteractiveWindow Item are able to request a new width and height
+    // for the parent Item (this one) and its associated C++ InteractiveWindow using these methods.
     function onRequestNewWidth(newWidth) {
         interactiveWindowSize.width = newWidth;
         updateInteractiveWindowSizeForMode();
     }
-
     function onRequestNewHeight(newWidth) {
         interactiveWindowSize.width = newWidth;
         updateInteractiveWindowSizeForMode();
     }
     
+    // These signals are used to forward key-related events from the QML to the C++.
     signal keyPressEvent(int key, int modifiers);
     signal keyReleaseEvent(int key, int modifiers);
 
@@ -312,7 +317,7 @@ Windows.Window {
         // set invisible on close, to make it not re-appear unintended after switching PresentationMode
         interactiveWindowVisible = false;
 
-        if ((flags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
+        if ((root.flags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
             selfDestruct();
         }
     }

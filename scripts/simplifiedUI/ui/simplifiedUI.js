@@ -129,7 +129,7 @@ function toggleAvatarApp() {
             x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - AVATAR_APP_WIDTH_PX / 2),
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - AVATAR_APP_HEIGHT_PX / 2)
         },
-        flags: AVATAR_APP_WINDOW_FLAGS
+        overrideFlags: AVATAR_APP_WINDOW_FLAGS
     });
 
     avatarAppWindow.fromQml.connect(onMessageFromAvatarApp);
@@ -202,7 +202,7 @@ function toggleSettingsApp() {
             x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - SETTINGS_APP_WIDTH_PX / 2),
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - SETTINGS_APP_HEIGHT_PX / 2)
         },
-        flags: SETTINGS_APP_WINDOW_FLAGS
+        overrideFlags: SETTINGS_APP_WINDOW_FLAGS
     });
 
     settingsAppWindow.fromQml.connect(onMessageFromSettingsApp);
@@ -269,7 +269,7 @@ function showEmoteAppBar() {
             x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
             y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
         },
-        flags: EMOTE_APP_BAR_WINDOW_FLAGS
+        overrideFlags: EMOTE_APP_BAR_WINDOW_FLAGS
     });
 
     emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
