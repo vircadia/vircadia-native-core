@@ -23,10 +23,8 @@
         <@elif HIFI_USE_TRANSLUCENT@>
             <@if not HIFI_USE_FORWARD@>
                 <@include LightLocal.slh@>
-                <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
-            <@else@>
-                <$declareEvalGlobalLightingAlphaBlended()$>
             <@endif@>
+            <$declareEvalGlobalLightingAlphaBlended()$>
         <@else@>
             <$declareEvalSkyboxGlobalColor()$>
         <@endif@>
@@ -298,7 +296,7 @@ void main(void) {
                                                       vec4(0), vec4(0), opacity);
                 }
 
-                _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+                _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
                     cam._viewInverse,
                     1.0,
                     occlusion,

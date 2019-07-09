@@ -1,5 +1,5 @@
 <!
-//  DeferredGlobalLight.slh
+//  GlobalLight.slh
 //  libraries/render-utils/src
 //
 //  Created by Sam Gateau on 2/5/15.
@@ -98,9 +98,7 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 
 <@endfunc@>
 
-<@if not HIFI_USE_FORWARD@>
 <@include Haze.slh@>
-<@endif@>
 
 <@func declareEvalSkyboxGlobalColor(supportScattering)@>
 
@@ -142,12 +140,10 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += directionalDiffuse;
     color += directionalSpecular;
 
-<@if not HIFI_USE_FORWARD@>
     // Attenuate the light if haze effect selected
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
         color = computeHazeColorKeyLightAttenuation(color, lightDirection, fragPositionWS);    
     }
-<@endif@>
 
     return color;
 }
@@ -184,61 +180,7 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 <$declareLightingAmbient(1, 1, 1)$>
 <$declareLightingDirectional()$>
 
-vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) {
-    <$prepareGlobalLight(position, normal)$>
-
-    SurfaceData surfaceWS = initSurfaceData(roughness, fragNormalWS, fragEyeDirWS);
-
-    color += emissive * isEmissiveEnabled();
-
-    // Ambient
-    vec3 ambientDiffuse;
-    vec3 ambientSpecular;
-    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, surfaceWS, metallic, fresnel, albedo, obscurance);
-    color += ambientDiffuse;
-
-    // Directional
-    vec3 directionalDiffuse;
-    vec3 directionalSpecular;
-    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation);
-    color += directionalDiffuse;
-    color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
-
-    return color;
-}
-
-vec3 evalGlobalLightingAlphaBlended(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity, vec3 prevLighting) {
-    <$prepareGlobalLight(position, normal)$>
-    
-    SurfaceData surfaceWS = initSurfaceData(roughness, fragNormalWS, fragEyeDirWS);
-
-    color = prevLighting;
-    color += emissive * isEmissiveEnabled();
-
-    // Ambient
-    vec3 ambientDiffuse;
-    vec3 ambientSpecular;
-    evalLightingAmbient(ambientDiffuse, ambientSpecular, lightAmbient, surfaceWS, metallic, fresnel, albedo, obscurance);
-    color += ambientDiffuse;
-
-    // Directional
-    vec3 directionalDiffuse;
-    vec3 directionalSpecular;
-    evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation);
-    color += directionalDiffuse;
-    color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
-
-    return color;
-}
-
-<@endfunc@>
-
-<@func declareEvalGlobalLightingAlphaBlendedWithHaze()@>
-
-<$declareLightingAmbient(1, 1, 1)$>
-<$declareLightingDirectional()$>
-
-vec3 evalGlobalLightingAlphaBlendedWithHaze(
+vec3 evalGlobalLightingAlphaBlended(
     mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 normalWS, 
     vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) 
 {
@@ -261,7 +203,6 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     color += directionalDiffuse;
     color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
-<@if not HIFI_USE_FORWARD@>
     // Haze
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
         vec4 hazeColor = computeHazeColor(
@@ -273,12 +214,11 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
 
         color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
     }
-<@endif@>
 
     return color;
 }
 
-vec3 evalGlobalLightingAlphaBlendedWithHaze(
+vec3 evalGlobalLightingAlphaBlended(
     mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 positionWS, 
     vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, SurfaceData surface, float opacity, vec3 prevLighting) 
 {
@@ -300,7 +240,6 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
     color += ambientDiffuse + directionalDiffuse;
     color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
-<@if not HIFI_USE_FORWARD@>
     // Haze
     if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
         vec4 hazeColor = computeHazeColor(
@@ -312,7 +251,6 @@ vec3 evalGlobalLightingAlphaBlendedWithHaze(
 
         color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
     }
-<@endif@>
 
     return color;
 }

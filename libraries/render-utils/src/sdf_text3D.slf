@@ -16,7 +16,7 @@
     <@if HIFI_USE_FORWARD@>
         <$declareEvalSkyboxGlobalColor()$>
     <@else@>
-        <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
+        <$declareEvalGlobalLightingAlphaBlended()$>
     <@endif@>
 
     <@include gpu/Transform.slh@>
@@ -78,7 +78,7 @@ void main() {
                 DEFAULT_ROUGHNESS),
                 alpha);
         <@else@>
-            _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+            _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
                 cam._viewInverse,
                 1.0,
                 DEFAULT_OCCLUSION,

@@ -16,7 +16,7 @@
     <@include DefaultMaterials.slh@>
 
     <@include GlobalLight.slh@>
-    <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
+    <$declareEvalGlobalLightingAlphaBlended()$>
 
     layout(location=0) out vec4 _fragColor0;
 <@endif@>
@@ -167,7 +167,7 @@ void main(void) {
     if (emissiveAmount > 0.0) {
         _fragColor0 = vec4(diffuse, alpha);
     } else {
-        _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+        _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
             cam._viewInverse,
             1.0,
             occlusion,

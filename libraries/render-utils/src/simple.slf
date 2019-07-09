@@ -31,7 +31,7 @@
         <$declareEvalSkyboxGlobalColor()$>
     <@elif HIFI_USE_TRANSLUCENT@>
         <@include GlobalLight.slh@>
-        <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
+        <$declareEvalGlobalLightingAlphaBlended()$>
     <@else@>
         <@include DeferredBufferWrite.slh@>
     <@endif@>
@@ -101,7 +101,7 @@ void main(void) {
             DEFAULT_ROUGHNESS),
             texel.a);
     <@elif HIFI_USE_TRANSLUCENT@>
-        _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+        _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
             cam._viewInverse,
             1.0,
             DEFAULT_OCCLUSION,
