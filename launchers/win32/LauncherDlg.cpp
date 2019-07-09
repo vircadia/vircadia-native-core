@@ -258,7 +258,9 @@ afx_msg void CLauncherDlg::OnNextClicked() {
         startProcess();
     } else if (_drawStep == DrawStep::DrawError) {
         theApp._manager.restartLauncher();
-    } else {
+    } else if (_drawStep == DrawStep::DrawLoginLogin || 
+               _drawStep == DrawStep::DrawLoginErrorCred || 
+               _drawStep == DrawStep::DrawLoginErrorOrg) {
         CString token;
         CString username, password, orgname;
         m_orgname.GetWindowTextW(orgname);
@@ -686,6 +688,8 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                     theApp._manager.addToLog(_T("Starting login"));
                     setDrawDialog(DrawStep::DrawLoginLogin);
                 }
+            } else if (theApp._manager.needsUninstall()) {
+                theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, (float)_splashStep/100);
             }
             _splashStep++;
         } else if (theApp._manager.shouldShutDown()) {

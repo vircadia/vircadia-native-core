@@ -152,21 +152,24 @@ BOOL LauncherManager::restartLauncher() {
 
 void LauncherManager::updateProgress(ProcessType processType, float progress) {
     switch (processType) {
-    case LauncherManager::DownloadContent:
+    case ProcessType::Uninstall:
+        _progress = progress;
+        break;
+    case ProcessType::DownloadContent:
         _progress = DOWNLOAD_CONTENT_INSTALL_WEIGHT * progress;
         break;
-    case LauncherManager::UnzipContent:
+    case ProcessType::UnzipContent:
         _progress = DOWNLOAD_CONTENT_INSTALL_WEIGHT +
                     EXTRACT_CONTENT_INSTALL_WEIGHT * progress;
         break;
-    case LauncherManager::DownloadApplication:
+    case ProcessType::DownloadApplication:
         _progress = !_shouldUpdate ?
                     (DOWNLOAD_CONTENT_INSTALL_WEIGHT +
                     EXTRACT_CONTENT_INSTALL_WEIGHT +
                     DOWNLOAD_APPLICATION_INSTALL_WEIGHT * progress) :
                     DOWNLOAD_APPLICATION_UPDATE_WEIGHT * progress;
         break;
-    case LauncherManager::UnzipApplication:
+    case ProcessType::UnzipApplication:
         _progress = !_shouldUpdate ?
                     (DOWNLOAD_CONTENT_INSTALL_WEIGHT +
                     EXTRACT_CONTENT_INSTALL_WEIGHT +

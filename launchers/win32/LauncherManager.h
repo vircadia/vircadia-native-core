@@ -52,7 +52,8 @@ public:
         DownloadContent,
         DownloadApplication,
         UnzipContent,
-        UnzipApplication
+        UnzipApplication,
+        Uninstall
     };
     LauncherManager();
     ~LauncherManager();
@@ -104,9 +105,9 @@ public:
     void onZipExtracted(ProcessType type, int size);
     void onFileDownloaded(ProcessType type);
     float getProgress() { return _progress; }
+    void updateProgress(ProcessType processType, float progress);
 
 private:
-    void updateProgress(ProcessType processType, float progress);
     ProcessType _currentProcess { ProcessType::DownloadApplication };
     CString _latestApplicationURL;
     CString _latestVersion;
