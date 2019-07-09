@@ -631,3 +631,11 @@ BOOL LauncherManager::downloadApplication() {
     CString applicationURL = getLatestInterfaceURL();
     return downloadFile(ProcessType::DownloadApplication, applicationURL, _applicationZipPath);
 }
+
+void LauncherManager::onCancel() {
+    if (_currentProcess == ProcessType::UnzipApplication) {
+        _latestVersion = _T("");
+        _version = _T("");
+        createConfigJSON();
+    }
+}

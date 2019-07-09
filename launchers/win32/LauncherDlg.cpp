@@ -143,6 +143,8 @@ BOOL CLauncherDlg::PreTranslateMessage(MSG* pMsg) {
         } else if (pMsg->wParam == VK_RETURN) {
             OnNextClicked();
             return TRUE;
+        } else if (pMsg->wParam == VK_ESCAPE) {
+            theApp._manager.onCancel();
         }
         break;
     case WM_LBUTTONDOWN:
@@ -347,14 +349,16 @@ void CLauncherDlg::drawProgress(CHwndRenderTarget* pRenderTarget, float progress
     auto size = pRenderTarget->GetPixelSize();
     if (progress == 0.0f) {
         return;
-    }
+    } else {
+        progress = min(1.0f, progress);
+    }    
     CRect winRec;
-    CD2DRectF bkCircleRect1 = CD2DRectF(0,0,(float)size.height, (float)size.height);
-    progress = min(1.0f, progress);
-    CD2DRectF bkCircleRect2 = CD2DRectF((float)size.width * progress - (float)size.height, 0, 
-                                        (float)size.width * progress, (float)size.height);
-    CD2DRectF bkRect = CD2DRectF(0.5f*(float)size.height, 0, 
-                                 (float)size.width*progress - 0.5f*(float)size.height, (float)size.height);
+    float fullHeight = (float)size.height;
+    float halfHeight = 0.5f * (float)size.height;
+    CD2DRectF bkCircleRect1 = CD2DRectF(0.0f, 0.0f, fullHeight, fullHeight);
+    float progPos = halfHeight + (float)(size.width - size.height) * progress;
+    CD2DRectF bkCircleRect2 = CD2DRectF(progPos - halfHeight, 0.0f, progPos + halfHeight, fullHeight);
+    CD2DRectF bkRect = CD2DRectF(halfHeight, 0.0f, progPos, fullHeight);
     CD2DEllipse bkCircle1 = CD2DEllipse(bkCircleRect1);
     CD2DEllipse bkCircle2 = CD2DEllipse(bkCircleRect2);
     CD2DSolidColorBrush brush(pRenderTarget, color);
@@ -639,8 +643,8 @@ BOOL CLauncherDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 }
 
 void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
-    const int CONSOLE_MAX_SHUTDOWN_TRY_COUNT = 10;
-    const int CONSOLE_DELTATIME_BETWEEN_TRYS = 10;
+
+
     if (theApp._manager.hasFailed() && _drawStep != DrawStep::DrawError) {
         theApp._manager.saveErrorLog();
         prepareProcess(DrawStep::DrawError);

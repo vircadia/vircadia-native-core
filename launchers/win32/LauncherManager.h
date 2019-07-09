@@ -106,6 +106,7 @@ public:
     void onFileDownloaded(ProcessType type);
     float getProgress() { return _progress; }
     void updateProgress(ProcessType processType, float progress);
+    void onCancel();
 
 private:
     ProcessType _currentProcess { ProcessType::DownloadApplication };
