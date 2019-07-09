@@ -16,7 +16,8 @@
 #include "ViewFrustum.h"
 
 std::string LightStage::_stageName { "LIGHT_STAGE"};
-const glm::mat4 LightStage::Shadow::_biasMatrix{
+// The bias matrix goes from homogeneous coordinates to UV coords (see http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-16-shadow-mapping/#basic-shader)
+const glm::mat4 LightStage::Shadow::_biasMatrix {
     0.5, 0.0, 0.0, 0.0,
     0.0, 0.5, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
@@ -249,7 +250,7 @@ void LightStage::Shadow::setKeylightFrustum(const ViewFrustum& viewFrustum,
 }
 
 void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                            float nearDepth, float farDepth, float fixedBias, float slopeBias) {
+                                            float nearDepth, float farDepth) {
     assert(nearDepth < farDepth);
     assert(cascadeIndex < _cascades.size());
 
@@ -300,7 +301,12 @@ void LightStage::Shadow::setKeylightCascadeFrustum(unsigned int cascadeIndex, co
     auto& schema = _schemaBuffer.edit<Schema>();
     auto& schemaCascade = schema.cascades[cascadeIndex];
     schemaCascade.reprojection = _biasMatrix * ortho * shadowViewInverse.getMatrix();
-    schemaCascade.fixedBias = fixedBias;
+}
+
+void LightStage::Shadow::setKeylightCascadeBias(unsigned int cascadeIndex, float constantBias, float slopeBias) {
+    auto& schema = _schemaBuffer.edit<Schema>();
+    auto& schemaCascade = schema.cascades[cascadeIndex];
+    schemaCascade.fixedBias = constantBias;
     schemaCascade.slopeBias = slopeBias;
 }
 

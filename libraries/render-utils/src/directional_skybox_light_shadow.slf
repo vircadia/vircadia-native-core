@@ -35,7 +35,6 @@ void main(void) {
     vec3 worldLightDirection = getLightDirection(shadowLight);
     float shadowAttenuation = evalShadowAttenuation(worldLightDirection, worldPos, -viewPos.z, frag.normal);
 
-    // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT || frag.mode == FRAG_MODE_LIGHTMAPPED) {
         discard;
     } else {

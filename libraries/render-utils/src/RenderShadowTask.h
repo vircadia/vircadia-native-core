@@ -138,7 +138,6 @@ private:
     float slopeBias3;
     float biasInput;
     float maxDistance;
-    std::array<float, 8> cacasdeDistances;  // 4 max then 4 min distances
 
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);

@@ -329,37 +329,31 @@ void RenderShadowSetup::configure(const Config& config) {
 }
 
 void RenderShadowSetup::calculateBiases(float biasInput) {
-    // slope scaling values derived from ratio between original constantBias and slopeBias pairs
-    const std::array<float, SHADOW_CASCADE_MAX_COUNT> SLOPE_SCALES = {{ 2.7f, 3.0f, 3.7f, 3.5f }};
-    const float CONVERT_BIAS = 100.0f;
-    const float MIN_SCALE_DIVISOR = 0.5f;
-
-    // the bias is relative to resolution
-    // to remain consistent with the constant and slope bias values, the biasInput
-    // value is in the 0.0 - 1.0 range but needs to be scaled up for further calculations
-    // TODO: expose variable resolution
-    int resolution = LightStage::Shadow::MAP_SIZE;
-    const int DEFAULT_RESOLUTION = LightStage::Shadow::MAP_SIZE;
-    float inverseResolution = 1.0f / (float)resolution;
-    int resolutionScale = DEFAULT_RESOLUTION * inverseResolution;
-    float convertedBias = biasInput * (CONVERT_BIAS / resolutionScale);
-    float scaleFactor = 1.0f;
+    const std::array<float, SHADOW_CASCADE_MAX_COUNT> CONSTANT_CASCADE_SCALE = {{ 0.01f, 0.01f, 0.015f, 0.02f }};
+    const float SLOPE_BIAS_SCALE = 0.005f;
 
     for (int i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-        scaleFactor = convertedBias * (cacasdeDistances[0] / glm::max(MIN_SCALE_DIVISOR, cacasdeDistances[i + SHADOW_CASCADE_MAX_COUNT])) * inverseResolution;
-        float constantBias = cacasdeDistances[i] * scaleFactor;
-        float slopeBias = cacasdeDistances[i] * scaleFactor * SLOPE_SCALES[i];
+        auto& cascade = _globalShadowObject->getCascade(i);
+
+        // Constant bias is dependent on the depth precision
+        float cascadeDepth = cascade.getMaxDistance() - cascade.getMinDistance();
+        float constantBias = CONSTANT_CASCADE_SCALE[i] * biasInput / cascadeDepth;
         setConstantBias(i, constantBias);
-        setSlopeBias(i, slopeBias);
+
+        // Slope bias is dependent on the texel size
+        float cascadeWidth = cascade.getFrustum()->getWidth();
+        float cascadeHeight = cascade.getFrustum()->getHeight();
+        float cascadeTexelMaxDim = glm::max(cascadeWidth, cascadeHeight) / LightStage::Shadow::MAP_SIZE; // TODO: variable cascade resolution
+        setSlopeBias(i, cascadeTexelMaxDim * constantBias / SLOPE_BIAS_SCALE);
     }
 }
 
 void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {
-    _bias[cascadeIndex]._constant = value * value * value * 0.004f;
+    _bias[cascadeIndex]._constant = value;
 }
 
 void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
-    _bias[cascadeIndex]._slope = value * value * value * 0.001f;
+    _bias[cascadeIndex]._slope = value;
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
@@ -398,9 +392,9 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     // Update our biases and maxDistance from the light or config
     _globalShadowObject->setMaxDistance(maxDistance > 0.0f ? maxDistance : currentKeyLight->getShadowsMaxDistance());
 
+    // Adjust each cascade frustum
     for (unsigned int cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
-        cacasdeDistances[cascadeIndex] = _globalShadowObject->getCascade(cascadeIndex).getMaxDistance();
-        cacasdeDistances[cascadeIndex + SHADOW_CASCADE_MAX_COUNT] = _globalShadowObject->getCascade(cascadeIndex).getMinDistance();
+        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
     }
 
     calculateBiases(biasInput > 0.0f ? biasInput : currentKeyLight->getShadowBias());
@@ -416,14 +410,9 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
         if (slopeBias > 0.0f) {
             setSlopeBias(cascadeIndex, slopeBias);
         }
-    }
 
-    // Adjust each cascade frustum
-    for (unsigned int cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& bias = _bias[cascadeIndex];
-        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(), 
-                                                       SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR, 
-                                                       bias._constant, bias._slope);
+        _globalShadowObject->setKeylightCascadeBias(cascadeIndex, bias._constant, bias._slope);
     }
 
     _shadowFrameCache->pushShadow(_globalShadowObject);

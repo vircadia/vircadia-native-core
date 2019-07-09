@@ -156,7 +156,7 @@ Rectangle {
                     integral: false
                     config: shadowConfig
                     property: "constantBias"+modelData
-                    max: 3.0
+                    max: 1.0
                     min: 0.0
                     height: 38
                     width: 250
@@ -166,7 +166,7 @@ Rectangle {
                     integral: false
                     config: shadowConfig
                     property: "slopeBias"+modelData
-                    max: 3.0
+                    max: 1.0
                     min: 0.0
                     height: 38
                     width: 250
