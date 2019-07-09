@@ -135,19 +135,12 @@ Rectangle {
                     height: 400
                     spacing: 20
 
-                    Image {
-                        id: image1
-                        width: 30
-                        height: 30
-                        source: "qrc:/qtquickplugin/images/template_image.png"
-                    }
-
                     Text {
                         id: text2
                         width: 160
                         x: dynamic.width / 2
                         color: "#ffffff"
-                        text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic, and should not be used as floors")
+                        text: qsTr("Models with automatic collisions set to 'Exact' cannot be dynamic.")
                         wrapMode: Text.WordWrap
                         font.pixelSize: 12
                     }
