@@ -548,6 +548,13 @@ public:
                 return true;
             }
 
+            if (message->message == WM_POWERBROADCAST) {
+                if (message->wParam == PBT_APMRESUMEAUTOMATIC) {
+                    qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
+                    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+                }
+            }
+
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
                 QUrl url = QUrl((const char*)(pcds->lpData));

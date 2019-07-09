@@ -121,12 +121,13 @@ void DomainGatekeeper::processConnectRequestPacket(QSharedPointer<ReceivedMessag
         nodeData->setNodeInterestSet(safeInterestSet);
         nodeData->setPlaceName(nodeConnection.placeName);
 
+        QMetaEnum metaEnum = QMetaEnum::fromType<LimitedNodeList::ConnectReason>();
         qDebug() << "Allowed connection from node" << uuidStringWithoutCurlyBraces(node->getUUID()) 
             << "on" << message->getSenderSockAddr() 
             << "with MAC" << nodeConnection.hardwareAddress 
             << "and machine fingerprint" << nodeConnection.machineFingerprint 
             << "user" << username 
-            << "reason" << QString(nodeConnection.connectReason ? "SilentDomainDisconnect" : "Connect")
+            << "reason" << QString(metaEnum.valueToKey(nodeConnection.connectReason))
             << "previous connection uptime" << nodeConnection.previousConnectionUpTime/USECS_PER_MSEC << "msec"
             << "sysinfo" << nodeConnection.SystemInfo;
 
