@@ -518,6 +518,7 @@ BOOL LauncherManager::extractApplication() {
     std::function<void(float)> onProgress = [&](float progress) {
         updateProgress(ProcessType::UnzipApplication, progress);
     };
+    _currentProcess = ProcessType::UnzipApplication;
     BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipApplication, 
                                                     LauncherUtils::cStringToStd(_applicationZipPath),
                                                     LauncherUtils::cStringToStd(installPath), 
@@ -578,6 +579,7 @@ BOOL LauncherManager::installContent() {
     std::function<void(float)> onProgress = [&](float progress) {
         updateProgress(ProcessType::UnzipContent, progress);
     };
+    _currentProcess = ProcessType::UnzipContent;
     BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipContent, contentZipFile,
         LauncherUtils::cStringToStd(contentPath), onInstallFinished, onProgress);
     if (success) {
@@ -636,6 +638,8 @@ void LauncherManager::onCancel() {
     if (_currentProcess == ProcessType::UnzipApplication) {
         _latestVersion = _T("");
         _version = _T("");
-        createConfigJSON();
+        if (!createConfigJSON()) {
+            TRACE(_T("err"));
+        }
     }
 }
