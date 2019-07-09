@@ -6,7 +6,6 @@
 
 - (void) downloadInterface:(NSString*) downloadUrl
 {
-    NSLog(@"-----------------> %@", downloadUrl);
     self.progressPercentage = 0.0;
     self.taskProgressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
