@@ -272,7 +272,9 @@ BOOL LauncherUtils::getFont(const CString& fontName, int fontSize, bool isBold, 
     return TRUE;
 }
 
-uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string& path, std::vector<std::string>& files) {
+uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string& path, 
+                                   std::vector<std::string>& files, 
+                                   std::function<void(float)> progressCallback) {
     {
         CString msg;
         msg.Format(_T("Reading zip file %s, extracting to %s"), CString(zipFile.c_str()), CString(path.c_str()));
@@ -292,7 +294,6 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
         theApp._manager.addToLog(msg);
         return 0;
     }
-
     int fileCount = (int)mz_zip_reader_get_num_files(&zip_archive);
     {
         CString msg;
@@ -313,6 +314,7 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
     // Get root folder
     CString lastDir = _T("");
     uint64_t totalSize = 0;
+    uint64_t totalCompressedSize = 0;
     bool _shouldFail = false;
     for (int i = 0; i < fileCount; i++) {
         if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) continue;
@@ -335,7 +337,9 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
         }
         CT2A destFile(fullFilename);
         if (mz_zip_reader_extract_to_file(&zip_archive, i, destFile, 0)) {
+            totalCompressedSize += (uint64_t)file_stat.m_comp_size;
             totalSize += (uint64_t)file_stat.m_uncomp_size;
+            progressCallback((float)totalCompressedSize / (float)zip_archive.m_archive_size);
             files.emplace_back(destFile);
         } else {
             CString msg;
@@ -466,7 +470,7 @@ BOOL LauncherUtils::hMac256(const CString& cmessage, const char* keystr, CString
 
 DWORD WINAPI LauncherUtils::unzipThread(LPVOID lpParameter) {
     UnzipThreadData& data = *((UnzipThreadData*)lpParameter);
-    uint64_t size = LauncherUtils::extractZip(data._zipFile, data._path, std::vector<std::string>());
+    uint64_t size = LauncherUtils::extractZip(data._zipFile, data._path, std::vector<std::string>(), data.progressCallback);
     int mb_size = (int)(size * 0.001f);
     data.callback(data._type, mb_size);
     delete &data;
@@ -475,7 +479,10 @@ DWORD WINAPI LauncherUtils::unzipThread(LPVOID lpParameter) {
 
 DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter) {
     DownloadThreadData& data = *((DownloadThreadData*)lpParameter);
-    auto hr = URLDownloadToFile(0, data._url, data._file, 0, NULL);
+    ProgressCallback progressCallback;
+    progressCallback.setProgressCallback(data.progressCallback);
+    auto hr = URLDownloadToFile(0, data._url, data._file, 0, 
+                                static_cast<LPBINDSTATUSCALLBACK>(&progressCallback));
     data.callback(data._type, hr != S_OK);
     return 0;
 }
@@ -487,13 +494,16 @@ DWORD WINAPI LauncherUtils::deleteDirectoryThread(LPVOID lpParameter) {
     return 0;
 }
 
-BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, std::function<void(int, int)> callback) {
+BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, 
+                                      std::function<void(int, int)> callback,
+                                      std::function<void(float)> progressCallback) {
     DWORD myThreadID;
     UnzipThreadData* unzipThreadData = new UnzipThreadData();
     unzipThreadData->_type = type;
     unzipThreadData->_zipFile = zipFile;
     unzipThreadData->_path = path;
     unzipThreadData->setCallback(callback);
+    unzipThreadData->setProgressCallback(progressCallback);
     HANDLE myHandle = CreateThread(0, 0, unzipThread, unzipThreadData, 0, &myThreadID);
     if (myHandle) {
         CloseHandle(myHandle);
@@ -502,13 +512,16 @@ BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, cons
     return FALSE;
 }
 
-BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int, bool)> callback) {
+BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CString& file, 
+                                         std::function<void(int, bool)> callback, 
+                                         std::function<void(float)> progressCallback) {
     DWORD myThreadID;
     DownloadThreadData* downloadThreadData = new DownloadThreadData();
     downloadThreadData->_type = type;
     downloadThreadData->_url = url;
     downloadThreadData->_file = file;
     downloadThreadData->setCallback(callback);
+    downloadThreadData->setProgressCallback(progressCallback);
     HANDLE myHandle = CreateThread(0, 0, downloadThread, downloadThreadData, 0, &myThreadID);
     if (myHandle) {
         CloseHandle(myHandle);

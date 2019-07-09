@@ -109,8 +109,10 @@ BOOL CLauncherDlg::OnInitDialog() {
     m_trouble = (CStatic *)GetDlgItem(IDC_TROUBLE);
 
     m_voxel = (CStatic *)GetDlgItem(IDC_VOXEL);
+    m_progress = (CStatic *)GetDlgItem(IDC_PROGRESS);
 
     m_voxel->EnableD2DSupport();
+    m_progress->EnableD2DSupport();
 
     m_pRenderTarget = GetRenderTarget();
 
@@ -292,8 +294,9 @@ afx_msg void CLauncherDlg::OnNextClicked() {
 
 void CLauncherDlg::drawBackground(CHwndRenderTarget* pRenderTarget) {
     CD2DBitmap m_pBitmamBackground(pRenderTarget, IDB_PNG1, _T("PNG"));
-    auto size = pRenderTarget->GetSize();
+    auto size = GetRenderTarget()->GetSize();
     CD2DRectF backRec(0.0f, 0.0f, size.width, size.height);
+    GetRenderTarget()->DrawBitmap(&m_pBitmamBackground, backRec);
     pRenderTarget->DrawBitmap(&m_pBitmamBackground, backRec);
 }
 
@@ -303,7 +306,7 @@ void CLauncherDlg::drawLogo(CHwndRenderTarget* pRenderTarget) {
     int logoWidth = 231;
     int logoHeight = 173;
     float logoPosX = 0.5f * (size.width - logoWidth);
-    float logoPosY = 0.95f * (size.height - logoHeight);
+    float logoPosY = 0.5f * (size.height - logoHeight);
     CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
     pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
 }
@@ -338,6 +341,26 @@ void CLauncherDlg::drawVoxel(CHwndRenderTarget* pRenderTarget) {
     pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 }
 
+void CLauncherDlg::drawProgress(CHwndRenderTarget* pRenderTarget, float progress, const D2D1::ColorF& color) {
+    auto size = pRenderTarget->GetPixelSize();
+    if (progress == 0.0f) {
+        return;
+    }
+    CRect winRec;
+    CD2DRectF bkCircleRect1 = CD2DRectF(0,0,(float)size.height, (float)size.height);
+    progress = min(1.0f, progress);
+    CD2DRectF bkCircleRect2 = CD2DRectF((float)size.width * progress - (float)size.height, 0, 
+                                        (float)size.width * progress, (float)size.height);
+    CD2DRectF bkRect = CD2DRectF(0.5f*(float)size.height, 0, 
+                                 (float)size.width*progress - 0.5f*(float)size.height, (float)size.height);
+    CD2DEllipse bkCircle1 = CD2DEllipse(bkCircleRect1);
+    CD2DEllipse bkCircle2 = CD2DEllipse(bkCircleRect2);
+    CD2DSolidColorBrush brush(pRenderTarget, color);
+    pRenderTarget->FillEllipse(bkCircle1, &brush);
+    pRenderTarget->FillEllipse(bkCircle2, &brush);
+    pRenderTarget->FillRectangle(bkRect, &brush);
+}
+
 void CLauncherDlg::showWindows(std::vector<CStatic*> windows, bool show) {
     for (auto window : windows) {
         window->ShowWindow(show ? SW_SHOW : SW_HIDE);
@@ -346,6 +369,7 @@ void CLauncherDlg::showWindows(std::vector<CStatic*> windows, bool show) {
 
 void CLauncherDlg::prepareLogin(DrawStep step) {
     m_voxel->ShowWindow(SW_HIDE);
+    m_progress->ShowWindow(SW_HIDE);
     m_orgname_banner->SetWindowTextW(_T("Organization Name"));
     m_username_banner->SetWindowTextW(_T("Username"));
     m_password_banner->SetWindowTextW(_T("Password"));
@@ -370,7 +394,6 @@ void CLauncherDlg::prepareLogin(DrawStep step) {
     m_trouble->SetWindowTextW(_T("Having Trouble?"));
     m_trouble->ShowWindow(SW_SHOW);
     m_trouble_link.ShowWindow(SW_SHOW);
-    
 }
 
 void CLauncherDlg::prepareChoose() {
@@ -410,6 +433,7 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
     m_action_label->ShowWindow(SW_HIDE);
     m_message_label->ShowWindow(SW_HIDE);
     m_voxel->ShowWindow(SW_SHOW);
+    m_progress->ShowWindow(SW_SHOW);
     CString actionText = _T("");
     CString messageText = _T("");
     
@@ -440,6 +464,7 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
         setVerticalElement(m_message2_label, 0, 5, false);
         setVerticalElement(&m_btnNext, 10);
         m_btnNext.ShowWindow(SW_SHOW);
+        m_progress->ShowWindow(SW_HIDE);
         break;
     default:
         break;
@@ -503,7 +528,6 @@ BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
 
 HBRUSH CLauncherDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
-
     HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
     TextFormat textFormat;
     int resId = pWnd->GetDlgCtrlID();
@@ -523,6 +547,7 @@ HBRUSH CLauncherDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
             CRect lineRect = CRect(rect.left + padding, rect.bottom, rect.right - padding, rect.bottom + borderThick);
             lineRect.MoveToY(lineRect.bottom + 1);
             pDC->FillSolidRect(lineRect, COLOR_GREY);
+            
         }
     } 
     return (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -622,7 +647,9 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
     if (_drawStep != DrawStep::DrawError) {
         if (_drawStep == DrawStep::DrawProcessSetup ||
             _drawStep == DrawStep::DrawProcessUpdate ||
-            _drawStep == DrawStep::DrawProcessUninstall) {
+            _drawStep == DrawStep::DrawProcessUninstall ||
+            _drawStep == DrawStep::DrawProcessFinishHq ||
+            _drawStep == DrawStep::DrawProcessFinishUpdate) {
             // Refresh
             setDrawDialog(_drawStep, true);
         }
@@ -631,13 +658,11 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                 if (theApp._manager.needsUninstall()) {
                     theApp._manager.addToLog(_T("Waiting to uninstall"));
                     setDrawDialog(DrawStep::DrawProcessUninstall);
-                }
-                else {
+                } else {
                     theApp._manager.addToLog(_T("Start splash screen"));
                     setDrawDialog(DrawStep::DrawLogo);
                 }
-            }
-            else if (_splashStep > 100) {
+            } else if (_splashStep > 100) {
                 _showSplash = false;
                 if (theApp._manager.shouldShutDown()) {
                     if (_applicationWND != NULL) {
@@ -647,21 +672,17 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                     if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
                         exit(0);
                     }
-                }
-                else if (theApp._manager.needsUpdate()) {
+                } else if (theApp._manager.needsUpdate()) {
                     startProcess();
-                }
-                else if (theApp._manager.needsUninstall()) {
+                } else if (theApp._manager.needsUninstall()) {
                     if (theApp._manager.uninstallApplication()) {
                         theApp._manager.addToLog(_T("HQ uninstalled successfully."));
                         exit(0);
-                    }
-                    else {
+                    } else {
                         theApp._manager.addToLog(_T("HQ failed to uninstall."));
                         theApp._manager.setFailed(true);
                     }
-                }
-                else {
+                } else {
                     theApp._manager.addToLog(_T("Starting login"));
                     setDrawDialog(DrawStep::DrawLoginLogin);
                 }
@@ -673,6 +694,10 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             }
         }
         if (theApp._manager.shouldLaunch()) {
+            if (theApp._manager.needsInstall() || theApp._manager.needsUpdate()) {
+                auto finishProcess = theApp._manager.needsUpdate() ? DrawStep::DrawProcessFinishUpdate : DrawStep::DrawProcessFinishHq;
+                setDrawDialog(finishProcess);
+            }
             _applicationWND = theApp._manager.launchApplication();
         }
     }
@@ -699,16 +724,16 @@ void CLauncherDlg::setVerticalElement(CWnd* element, int verticalOffset, int hei
 
 void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
     _drawStep = step;
+    float progress = 0.0f;
     auto m_pRenderTarget = GetRenderTarget();
     auto m_voxelRenderTarget = m_voxel->GetRenderTarget();
+    auto m_progressRenderTarget = m_progress->GetRenderTarget();
     switch (_drawStep) {
     case DrawStep::DrawLogo:
         m_pRenderTarget->BeginDraw();
         drawBackground(m_pRenderTarget);
+        drawLogo(m_pRenderTarget);
         m_pRenderTarget->EndDraw();
-        m_voxelRenderTarget->BeginDraw();
-        drawLogo(m_voxelRenderTarget);
-        m_voxelRenderTarget->EndDraw();
         break;
     case DrawStep::DrawLoginLogin:
     case DrawStep::DrawLoginErrorOrg:
@@ -744,7 +769,12 @@ void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
             drawSmallLogo(m_pRenderTarget);
             m_pRenderTarget->EndDraw();
             RedrawWindow();
-        }   
+        }        
+        m_progressRenderTarget->BeginDraw();
+        m_progressRenderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f));
+        drawProgress(m_progressRenderTarget, 1.0f, D2D1::ColorF(0.2f, 0.2f, 0.2f));
+        drawProgress(m_progressRenderTarget, theApp._manager.getProgress(), D2D1::ColorF(0.0f, 0.62f, 0.9f));
+        m_progressRenderTarget->EndDraw();
         m_voxelRenderTarget->BeginDraw();
         drawVoxel(m_voxelRenderTarget);
         m_voxelRenderTarget->EndDraw();     
