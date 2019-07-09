@@ -5409,9 +5409,10 @@ void Application::loadSettings() {
     if (_firstRun.get()) {
         // If this is our first run, and no preferred devices were set, default to
         // an HMD device if available.
+        // Based on feedback changing to non hmd device as default if not prefered
         auto displayPlugins = pluginManager->getDisplayPlugins();
         for (auto& plugin : displayPlugins) {
-            if (plugin->isHmd()) {
+            if (!plugin->isHmd()) {
                 if (auto action = menu->getActionForOption(plugin->getName())) {
                     action->setChecked(true);
                     action->trigger();
@@ -8891,7 +8892,7 @@ void Application::updateDisplayMode() {
             // Menu might have been removed if the display plugin lost
             if (!action) {
                 continue;
-            }
+            } //STOPPED HERE>>>>> HOW DO WE FIND OUT HOW THE ACTION->isChecked is set
             if (action->isChecked()) {
                 newDisplayPlugin = displayPlugin;
                 break;
