@@ -34,7 +34,7 @@ CLauncherApp theApp;
 BOOL CLauncherApp::InitInstance() {
     // Close interface if is running
     int interfacePID = -1;
-    if (LauncherUtils::IsProcessRunning(L"interface.exe", interfacePID)) {
+    if (LauncherUtils::isProcessRunning(L"interface.exe", interfacePID)) {
         LauncherUtils::shutdownProcess(interfacePID, 0);
     }
     int iNumOfArgs;

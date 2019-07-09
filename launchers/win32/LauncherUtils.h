@@ -30,13 +30,6 @@ public:
         NoError
     };
 
-    enum DeleteDirError {
-        NoErrorDeleting = 0,
-        ErrorDeletingApplicationDir,
-        ErrorDeletingDownloadsDir,
-        ErrorDeletingBothDirs
-    };
-
     struct DownloadThreadData {
         int _type;
         CString _url;
@@ -60,10 +53,14 @@ public:
     };
 
     struct DeleteThreadData {
-        CString _applicationDir;
-        CString _downloadsDir;
-        std::function<void(int)> callback;
-        void setCallback(std::function<void(int)> fn) { callback = std::bind(fn, std::placeholders::_1); }
+        CString _dirPath;
+        std::function<void(bool)> callback;
+        void setCallback(std::function<void(bool)> fn) { callback = std::bind(fn, std::placeholders::_1); }
+    };
+
+    struct ProcessData {
+        int processID = -1;
+        BOOL isOpened = FALSE;
     };
 
     static BOOL parseJSON(const CString& jsonTxt, Json::Value& jsonObject);
@@ -73,20 +70,20 @@ public:
     static std::string cStringToStd(CString cstring);
     static BOOL getFont(const CString& fontName, int fontSize, bool isBold, CFont& fontOut);
     static BOOL launchApplication(LPCWSTR lpApplicationName, LPTSTR cmdArgs = _T(""));
-    static BOOL IsProcessRunning(const wchar_t *processName, int& processID);
+    static BOOL CALLBACK isWindowOpenedCallback(HWND hWnd, LPARAM lparam);
+    static BOOL isProcessRunning(const wchar_t *processName, int& processID);
+    static BOOL isProcessWindowOpened(const wchar_t *processName);
     static BOOL shutdownProcess(DWORD dwProcessId, UINT uExitCode);
     static BOOL insertRegistryKey(const std::string& regPath, const std::string& name, const std::string& value);
     static BOOL insertRegistryKey(const std::string& regPath, const std::string& name, DWORD value);
     static BOOL deleteFileOrDirectory(const CString& dirPath, bool noRecycleBin = true);
-    static HRESULT CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs = _T(""));
+    static HRESULT createLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs = _T(""));
     static BOOL hMac256(const CString& message, const char* key, CString& hashOut);
     static uint64_t extractZip(const std::string& zipFile, const std::string& path, std::vector<std::string>& files);
     static BOOL deleteRegistryKey(const CString& registryPath);
     static BOOL unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, std::function<void(int, int)> callback);
     static BOOL downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int, bool)> callback);
-    static BOOL deleteDirectoriesOnThread(const CString& applicationDir,
-                                              const CString& downloadsDir,
-                                              std::function<void(int)> callback);
+    static BOOL deleteDirectoryOnThread(const CString& dirPath, std::function<void(bool)> callback);
     static CString urlEncodeString(const CString& url);
     static HWND executeOnForeground(const CString& path, const CString& params);
 
@@ -94,5 +91,5 @@ private:
     // Threads
     static DWORD WINAPI unzipThread(LPVOID lpParameter);
     static DWORD WINAPI downloadThread(LPVOID lpParameter);
-    static DWORD WINAPI deleteDirectoriesThread(LPVOID lpParameter);
+    static DWORD WINAPI deleteDirectoryThread(LPVOID lpParameter);
 };

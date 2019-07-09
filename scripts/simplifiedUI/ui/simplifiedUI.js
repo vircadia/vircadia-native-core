@@ -483,6 +483,25 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 }
 
 
+var oldAutomaticLODAdjust;
+var oldLODLevel;
+var DEFAULT_AUTO_LOD_ADJUST = false;
+var DEFAULT_LOD_LEVEL = 0.5;
+function modifyLODSettings() {
+    oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
+    oldLODLevel = LODManager.lodQualityLevel;
+
+    LODManager.automaticLODAdjust = DEFAULT_AUTO_LOD_ADJUST;
+    LODManager.lodQualityLevel = DEFAULT_LOD_LEVEL;
+}
+
+
+function restoreLODSettings() {
+    LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
+    LODManager.lodQualityLevel = oldLODLevel;
+}
+
+
 var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
 var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
 var si;
@@ -491,6 +510,7 @@ var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
 function startup() {
     maybeRemoveDesktopMenu();
+    modifyLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
         pauseCurrentScripts();
@@ -541,6 +561,7 @@ function restoreScripts() {
 
 function shutdown() {
     restoreScripts();
+    restoreLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
         console.log("The Simplified UI script has been shut down. If you notice any strangeness with user interface, please restart this application.");

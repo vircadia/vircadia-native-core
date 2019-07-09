@@ -21,7 +21,8 @@ namespace platform { namespace keys {
         const char*  model = "model";
         const char*  clockSpeed = "clockSpeed";
         const char*  numCores = "numCores";
-    }
+        const char*  isMaster = "isMaster";
+        }
     namespace gpu {
         const char*  vendor = "vendor";
         const char*  vendor_NVIDIA = "NVIDIA";
@@ -31,6 +32,8 @@ namespace platform { namespace keys {
         const char*  model = "model";
         const char*  videoMemory = "videoMemory";
         const char*  driver = "driver";
+        const char*  displays = "displays";
+        const char*  isMaster = "isMaster";
     }
     namespace nic {
         const char* mac = "mac";
@@ -39,10 +42,19 @@ namespace platform { namespace keys {
     namespace display {
         const char*  description = "description";
         const char*  name = "deviceName";
-        const char*  coordsLeft = "coordinatesleft";
-        const char*  coordsRight = "coordinatesright";
-        const char*  coordsTop = "coordinatestop";
-        const char*  coordsBottom = "coordinatesbottom";
+        const char*  boundsLeft = "boundsLeft";
+        const char*  boundsRight = "boundsRight";
+        const char*  boundsTop = "boundsTop";
+        const char*  boundsBottom = "boundsBottom";
+        const char*  gpu = "gpu";
+        const char*  ppi = "ppi";
+        const char*  ppiDesktop = "ppiDesktop";
+        const char*  physicalWidth = "physicalWidth";
+        const char*  physicalHeight = "physicalHeight";
+        const char*  modeRefreshrate = "modeRefreshrate";
+        const char*  modeWidth = "modeWidth";
+        const char*  modeHeight = "modeHeight";
+        const char*  isMaster = "isMaster";
     }
     namespace memory {
         const char*  memTotal = "memTotal";
@@ -117,6 +129,10 @@ json platform::getCPU(int index) {
     return _instance->getCPU(index);
 }
 
+int platform::getMasterCPU() {
+    return _instance->getMasterCPU();
+}
+
 int platform::getNumGPUs() {
     return _instance->getNumGPUs();
 }
@@ -125,12 +141,20 @@ json platform::getGPU(int index) {
     return _instance->getGPU(index);
 }
 
+int platform::getMasterGPU() {
+    return _instance->getMasterGPU();
+}
+
 int platform::getNumDisplays() {
     return _instance->getNumDisplays();
 }
 
 json platform::getDisplay(int index) {
     return _instance->getDisplay(index);
+}
+
+int platform::getMasterDisplay() {
+    return _instance->getMasterDisplay();
 }
 
 json platform::getMemory() {
