@@ -2498,7 +2498,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             return true;
         } else if (allNodesDeleteRegex.indexIn(url.path()) != -1) {
             qDebug() << "Received request to kill all nodes.";
-            nodeList->eraseAllNodes();
+            nodeList->eraseAllNodes(url.path());
 
             return true;
         }

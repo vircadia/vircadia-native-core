@@ -548,6 +548,13 @@ public:
                 return true;
             }
 
+            if (message->message == WM_POWERBROADCAST) {
+                if (message->wParam == PBT_APMRESUMEAUTOMATIC) {
+                    qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
+                    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+                }
+            }
+
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
                 QUrl url = QUrl((const char*)(pcds->lpData));
@@ -4164,6 +4171,13 @@ bool Application::event(QEvent* event) {
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
+        case QEvent::FocusIn:
+        { //testing to see if we can set focus when focus is not set to root window.
+            _glWidget->activateWindow();
+            _glWidget->setFocus();
+            return true; 
+        }
+
         case QEvent::TouchBegin:
             touchBeginEvent(static_cast<QTouchEvent*>(event));
             event->accept();
@@ -5125,7 +5139,7 @@ void Application::idle() {
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (offscreenUi && offscreenUi->getWindow()) {
         auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
-        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+        if (_keyboardDeviceHasFocus && (activeFocusItem != NULL && activeFocusItem != offscreenUi->getRootItem())) {
             _keyboardMouseDevice->pluginFocusOutEvent();
             _keyboardDeviceHasFocus = false;
             synthesizeKeyReleasEvents();
@@ -7880,7 +7894,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             getOffscreenUI()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
+            static const QUrl url("qrc:///qml/hifi/dialogs/TabletAssetServer.qml");
             if (!tablet->isPathLoaded(url)) {
                 tablet->pushOntoStack(url);
             }
@@ -8772,6 +8786,8 @@ bool Application::isThrottleRendering() const {
 
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
+
+    
 #if defined(Q_OS_WIN)
     // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
     // take user focus away from their current window. So also check whether the application is the user's current foreground

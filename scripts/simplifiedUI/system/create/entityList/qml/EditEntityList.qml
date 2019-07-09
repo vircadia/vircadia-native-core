@@ -10,7 +10,7 @@ import stylesUit 1.0
 
 WebView {
     id: entityListToolWebView
-    url: Paths.defaultScripts + "/system/html/entityList.html"
+    url: Qt.resolvedUrl("../html/entityList.html")
     enabled: true
     blurOnCtrlShift: false
 }

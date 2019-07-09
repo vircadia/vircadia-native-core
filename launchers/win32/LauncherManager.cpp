@@ -38,6 +38,9 @@ void LauncherManager::init() {
                 addToLog(_T("New build found. Updating"));
                 _shouldUpdate = TRUE;
             }
+        } else if (_loggedIn) {
+            addToLog(_T("Interface not found but logged in. Reinstalling"));
+            _shouldUpdate = TRUE;
         }
     } else {
         _hasFailed = true;
@@ -189,9 +192,9 @@ BOOL LauncherManager::isApplicationInstalled(CString& version, CString& domain,
     CString applicationPath = applicationDir + "interface\\interface.exe";
     BOOL isApplicationInstalled = PathFileExistsW(applicationPath);
     BOOL configFileExist = PathFileExistsW(applicationDir + _T("interface\\config.json"));
-    if (isApplicationInstalled && configFileExist) {
+    if (configFileExist) {
         LauncherUtils::ResponseError status = readConfigJSON(version, domain, content, loggedIn);
-        return status == LauncherUtils::ResponseError::NoError;
+        return isApplicationInstalled && status == LauncherUtils::ResponseError::NoError;
     }
     return FALSE;
 }
@@ -441,10 +444,6 @@ void LauncherManager::onZipExtracted(ZipType type, int size) {
         downloadApplication();
     } else if (type == ZipType::ZipApplication) {
         createShortcuts();
-        CString versionPath;
-        getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, versionPath);
-        addToLog(_T("Creating config.json"));
-        createConfigJSON();
         addToLog(_T("Launching application."));
         _shouldLaunch = TRUE;
         if (!_shouldUpdate) {
@@ -458,6 +457,8 @@ void LauncherManager::onZipExtracted(ZipType type, int size) {
 BOOL LauncherManager::extractApplication() {
     CString installPath;
     getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installPath);
+    addToLog(_T("Creating config.json"));
+    createConfigJSON();
     BOOL success = LauncherUtils::unzipFileOnThread(ZipType::ZipApplication, LauncherUtils::cStringToStd(_applicationZipPath),
         LauncherUtils::cStringToStd(installPath), [&](int type, int size) {
         if (size > 0) {
@@ -477,11 +478,31 @@ BOOL LauncherManager::extractApplication() {
 
 void LauncherManager::onFileDownloaded(DownloadType type) {
     if (type == DownloadType::DownloadContent) {
-        addToLog(_T("Installing content."));
-        installContent();
+        addToLog(_T("Deleting content directory before install"));
+        CString contentDir;
+        getAndCreatePaths(PathType::Content_Directory, contentDir);
+        LauncherUtils::deleteDirectoryOnThread(contentDir, [&](bool error) {
+            if (!error) {
+                addToLog(_T("Installing content."));
+                installContent();
+            } else {
+                addToLog(_T("Error deleting content directory."));
+                setFailed(true);
+            }
+        });
     } else if (type == DownloadType::DownloadApplication) {
-        addToLog(_T("Installing application."));
-        extractApplication();
+        addToLog(_T("Deleting application directory before install"));
+        CString applicationDir;
+        getAndCreatePaths(PathType::Interface_Directory, applicationDir);
+        LauncherUtils::deleteDirectoryOnThread(applicationDir, [&](bool error) {
+            if (!error) {
+                addToLog(_T("Installing application."));
+                extractApplication();
+            } else {
+                addToLog(_T("Error deleting install directory."));
+                setFailed(true);
+            }
+        });
     }
 }
 
