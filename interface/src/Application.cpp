@@ -4164,6 +4164,13 @@ bool Application::event(QEvent* event) {
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
+        case QEvent::FocusIn:
+        { //testing to see if we can set focus when focus is not set to root window.
+            _glWidget->activateWindow();
+            _glWidget->setFocus();
+            return true; 
+        }
+
         case QEvent::TouchBegin:
             touchBeginEvent(static_cast<QTouchEvent*>(event));
             event->accept();
@@ -5125,7 +5132,7 @@ void Application::idle() {
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (offscreenUi && offscreenUi->getWindow()) {
         auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
-        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+        if (_keyboardDeviceHasFocus && (activeFocusItem != NULL && activeFocusItem != offscreenUi->getRootItem())) {
             _keyboardMouseDevice->pluginFocusOutEvent();
             _keyboardDeviceHasFocus = false;
             synthesizeKeyReleasEvents();
@@ -8772,6 +8779,8 @@ bool Application::isThrottleRendering() const {
 
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
+
+    
 #if defined(Q_OS_WIN)
     // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
     // take user focus away from their current window. So also check whether the application is the user's current foreground
