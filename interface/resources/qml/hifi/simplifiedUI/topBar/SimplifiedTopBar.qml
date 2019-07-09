@@ -76,10 +76,20 @@ Rectangle {
                 return;
             }
 
-            if (walletStatus === 5) {
+            switch (walletStatus) {
+            case 1:
+                var randomNumber = Math.floor(Math.random() * 34) + 1;
+                var securityImagePath = "images/" + randomNumber.toString().padStart(2, '0') + ".jpg";
+                Commerce.getWalletAuthenticatedStatus(); // before writing security image, ensures that salt/account password is set.
+                Commerce.chooseSecurityImage(securityImagePath);
+                Commerce.generateKeyPair()
+                Commerce.getWalletStatus();
+                break;
+            case 5:
                 topBarInventoryModel.getFirstPage();
-            } else {
-                // Show some error to the user
+                break;
+            default:
+                console.log('WARNING: SimplifiedTopBar.qml walletStatusResult:', walletStatus);
             }
         }
 
