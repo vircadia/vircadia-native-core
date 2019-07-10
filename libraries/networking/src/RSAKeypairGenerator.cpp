@@ -28,6 +28,7 @@ RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
 }
 
 void RSAKeypairGenerator::run() {
+    qCDebug(networking) << "KEYPAIR: thread started";
     generateKeypair();
 }
 
@@ -53,6 +54,7 @@ void RSAKeypairGenerator::generateKeypair() {
         BN_free(exponent);
         return;
     }
+    qCDebug(networking) << "KEYPAIR: OpenSSL generated a" << RSA_KEY_BITS << "bit RSA key-pair";
     
     // we don't need the BIGNUM anymore so clean that up
     BN_free(exponent);
@@ -95,5 +97,6 @@ void RSAKeypairGenerator::generateKeypair() {
     OPENSSL_free(publicKeyDER);
     OPENSSL_free(privateKeyDER);
     
+    qCDebug(networking) << "KEYPAIR: emitting generated signal and finishing";
     emit generatedKeypair(_publicKey, _privateKey);
 }
