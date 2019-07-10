@@ -8903,7 +8903,7 @@ void Application::updateDisplayMode() {
             // Menu might have been removed if the display plugin lost
             if (!action) {
                 continue;
-            } 
+            }
             if (action->isChecked()) {
                 newDisplayPlugin = displayPlugin;
                 break;
