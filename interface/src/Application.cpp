@@ -839,6 +839,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     QCoreApplication::addLibraryPath(audioDLLPath);
 #endif 
 
+    QString defaultScriptsOverrideOption = getCmdOption(argc, constArgv, "--defaultScriptsOverride");
+
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, InterfaceDynamicFactory>();
@@ -860,7 +862,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
 #endif
     DependencyManager::set<StatTracker>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
+    DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
     DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
