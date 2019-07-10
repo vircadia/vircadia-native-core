@@ -213,7 +213,7 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
                 //   INVALID = not known to workload
                 // So any entity sorted into R3 or R4 is definitelyNotPhysical
 
-                bool definitelyNotPhysical = region == workload::Region::R2 ||
+                bool definitelyNotPhysical = region == workload::Region::R3 ||
                     region == workload::Region::R4 ||
                     !entity->shouldBePhysical() ||
                     modelEntity->unableToLoadCollisionShape();
