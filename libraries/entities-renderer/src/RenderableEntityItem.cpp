@@ -177,9 +177,7 @@ ItemKey EntityRenderer::getKey() {
 
     if (isTransparent()) {
         builder.withTransparent();
-    }
-
-    if (_canCastShadow) {
+    } else if (_canCastShadow) {
         builder.withShadowCaster();
     }
 
