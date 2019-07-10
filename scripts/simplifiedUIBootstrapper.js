@@ -12,13 +12,28 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
+
+
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
     "simplifiedUI/ui/simplifiedUI.js"
 ];
 function loadSeparateDefaults() {
-    for (var i in DEFAULT_SCRIPTS_SEPARATE) {
-        Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
+    for (var i = 0; i < DEFAULT_SCRIPTS_SEPARATE.length; i++) {
+        var shouldLoadCurrentDefaultScript = true;
+
+        for (var j = 0; j < currentlyRunningScripts.length; j++) {
+            var currentRunningScriptObject = currentlyRunningScripts[j];
+            var currentDefaultScriptName = DEFAULT_SCRIPTS_SEPARATE[i].substr((DEFAULT_SCRIPTS_SEPARATE[i].lastIndexOf("/") + 1), DEFAULT_SCRIPTS_SEPARATE[i].length);
+            if (currentDefaultScriptName === currentRunningScriptObject.name) {
+                shouldLoadCurrentDefaultScript = false;
+            }
+        }
+
+        if (shouldLoadCurrentDefaultScript) {
+            Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
+        }
     }
 }
 
@@ -29,11 +44,24 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/away.js"
 ];
 function runDefaultsTogether() {
-    for (var i in DEFAULT_SCRIPTS_COMBINED) {
-        Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
+    for (var i = 0; i < DEFAULT_SCRIPTS_COMBINED.length; i++) {
+        var shouldIncludeCurrentDefaultScript = true;
+
+        for (var j = 0; j < currentlyRunningScripts.length; j++) {
+            var currentRunningScriptObject = currentlyRunningScripts[j];
+            var currentDefaultScriptName = DEFAULT_SCRIPTS_COMBINED[i].substr((DEFAULT_SCRIPTS_COMBINED[i].lastIndexOf("/") + 1), DEFAULT_SCRIPTS_COMBINED[i].length);
+            if (currentDefaultScriptName === currentRunningScriptObject.name) {
+                shouldIncludeCurrentDefaultScript = false;
+            }
+        }
+
+        if (shouldIncludeCurrentDefaultScript) {
+            Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
+        }
     }
-    loadSeparateDefaults();
 }
 
 
+
 runDefaultsTogether();
+loadSeparateDefaults();
