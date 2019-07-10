@@ -5418,8 +5418,7 @@ void Application::loadSettings() {
             }
         }
         isFirstPerson = (qApp->isHMDMode());
-    }
-    else {
+    } else {
         if (_firstRun.get()) {
             // If this is our first run, and no preferred devices were set, default to
             // an HMD device if available.
@@ -5434,15 +5433,13 @@ void Application::loadSettings() {
                 }
             }
             isFirstPerson = (qApp->isHMDMode());
-        }
-        else {
+        } else {
             // if this is not the first run, the camera will be initialized differently depending on user settings
 
             if (qApp->isHMDMode()) {
                 // if the HMD is active, use first-person camera, unless the appropriate setting is checked
                 isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
-            }
-            else {
+            } else {
                 // if HMD is not active, only use first person if the menu option is checked
                 isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
             }
