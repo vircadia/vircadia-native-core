@@ -3,8 +3,15 @@
 
 @implementation DownloadDomainContent
 
+- (double) getProgressPercentage
+{
+    return (self.progressPercentage * 0.70) + (self.taskProgressPercentage * 0.30);
+}
+
 - (void) downloadDomainContent:(NSString *)domainContentUrl
 {
+    self.progressPercentage = 0.0;
+    self.taskProgressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:domainContentUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
@@ -17,7 +24,10 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
-    NSLog(@"domain content downloaded %d%%", (int)(100.0*prog));
+    NSLog(@"domain content downloaded %f", (100.0*prog));
+
+    self.progressPercentage = (int)(100.0 * prog);
+    [[Launcher sharedLauncher] updateProgressIndicator];
 
 }
 
@@ -27,6 +37,11 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location {
     NSLog(@"Did finish downloading to url");
+    NSTimer* timer = [NSTimer scheduledTimerWithTimeInterval: 0.1
+                                                      target: self
+                                                    selector: @selector(updatePercentage:)
+                                                    userInfo:nil
+                                                     repeats: YES];
     NSError *error = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
@@ -47,6 +62,7 @@
 
     if (error) {
         NSLog(@"DownlodDomainContent: failed to move file to destintation -> error: %@", error);
+        [timer invalidate];
         [sharedLauncher displayErrorPage];
         return;
     }
@@ -55,18 +71,33 @@
     BOOL extractionSuccessful = [sharedLauncher extractZipFileAtDestination:[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:@"content"] :[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:[sharedLauncher getDownloadContentFilename]]];
 
     if (!extractionSuccessful) {
+        [timer invalidate];
         [sharedLauncher displayErrorPage];
         return;
     }
     NSLog(@"finished extracting content file");
+    [timer invalidate];
+    self.taskProgressPercentage = 100.0;
+    [sharedLauncher updateProgressIndicator];
     [sharedLauncher domainContentDownloadFinished];
 }
 
--(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
     NSLog(@"completed; error: %@", error);
     if (error) {
         [[Launcher sharedLauncher] displayErrorPage];
     }
+}
+
+- (void) updatePercentage:(NSTimer*) timer {
+    if (self.taskProgressPercentage < 100.0) {
+        self.taskProgressPercentage += 1.5;
+
+        if (self.taskProgressPercentage > 100.0) {
+            self.taskProgressPercentage = 100.0;
+        }
+    }
+    [[Launcher sharedLauncher] updateProgressIndicator];
 }
 
 @end

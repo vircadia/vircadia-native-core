@@ -6,6 +6,8 @@
 
 - (void) downloadInterface:(NSString*) downloadUrl
 {
+    self.progressPercentage = 0.0;
+    self.taskProgressPercentage = 0.0;
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
@@ -21,6 +23,14 @@
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
     NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
 
+    self.progressPercentage = (100.0 * prog);
+    [[Launcher sharedLauncher] updateProgressIndicator];
+
+}
+
+- (double) getProgressPercentage
+{
+    return (self.progressPercentage * 0.70) + (self.taskProgressPercentage * 0.30);
 }
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didResumeAtOffset:(int64_t)fileOffset expectedTotalBytes:(int64_t)expectedTotalBytes {
@@ -29,6 +39,11 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location {
     NSLog(@"Did finish downloading to url");
+    NSTimer* timer = [NSTimer scheduledTimerWithTimeInterval: 0.1
+                                                      target: self
+                                                    selector: @selector(updateTaskPercentage:)
+                                                    userInfo:nil
+                                                     repeats: YES];
     NSError *error = nil;
     NSFileManager *fileManager = [NSFileManager defaultManager];
     NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
@@ -44,6 +59,7 @@
 
     if (error) {
         NSLog(@"Download Interface: failed to move file to destination -> error: %@", error);
+        [timer invalidate];
         [sharedLauncher displayErrorPage];
         return;
     }
@@ -54,6 +70,7 @@
     NSLog(@"extract interface zip");
     BOOL success = [sharedLauncher extractZipFileAtDestination:appPath :[appPath stringByAppendingString:downloadFileName]];
     if (!success) {
+        [timer invalidate];
         [sharedLauncher displayErrorPage];
         return;
     }
@@ -71,6 +88,9 @@
     NSString* launcherPath = [appPath stringByAppendingString:@"Launcher"];
 
     [[Settings sharedSettings] setLauncherPath:launcherPath];
+    [timer invalidate];
+    self.taskProgressPercentage = 100.0;
+    [sharedLauncher updateProgressIndicator];
     [sharedLauncher interfaceFinishedDownloading];
 }
 
@@ -79,6 +99,17 @@
         NSLog(@"DownloadInterface: did complete with error -> error: %@", error);
         [[Launcher sharedLauncher] displayErrorPage];
     }
+}
+
+- (void) updateTaskPercentage:(NSTimer*) timer {
+    if (self.taskProgressPercentage < 100.0) {
+        self.taskProgressPercentage += 1.5;
+
+        if (self.taskProgressPercentage > 100.0) {
+            self.taskProgressPercentage = 100.0;
+        }
+    }
+    [[Launcher sharedLauncher] updateProgressIndicator];
 }
 
 
