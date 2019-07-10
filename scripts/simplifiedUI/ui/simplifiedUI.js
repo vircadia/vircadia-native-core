@@ -21,28 +21,6 @@ var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/
 // END CONFIG OPTIONS
 
 
-var DEFAULT_SCRIPTS_SEPARATE = [
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/controllers/controllerScripts.js"
-];
-function loadNewSeparateDefaults() {
-    for (var i in DEFAULT_SCRIPTS_SEPARATE) {
-        Script.load(DEFAULT_SCRIPTS_SEPARATE[i]);
-    }
-}
-
-
-var DEFAULT_SCRIPTS_COMBINED = [
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/request-service.js",
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/progress.js",
-    DEFAULT_SCRIPTS_PATH_PREFIX + "system/away.js"
-];
-function runNewDefaultsTogether() {
-    for (var i in DEFAULT_SCRIPTS_COMBINED) {
-        Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
-    }
-}
-
-
 var MENU_NAMES = ["File", "Edit", "Display", "View", "Navigate", "Settings", "Developer", "Help"];
 var keepMenusSetting = Settings.getValue("simplifiedUI/keepMenus", false);
 function maybeRemoveDesktopMenu() {    
@@ -466,21 +444,6 @@ function loadSimplifiedTopBar() {
 }
 
 
-var pausedScriptList = [];
-var SCRIPT_NAME_WHITELIST = ["simplifiedUI.js", "defaultScripts.js", "controllerScripts.js"];
-function pauseCurrentScripts() {
-    var currentlyRunningScripts = ScriptDiscoveryService.getRunning();
-    
-    for (var i = 0; i < currentlyRunningScripts.length; i++) {
-        var currentScriptObject = currentlyRunningScripts[i];
-        if (SCRIPT_NAME_WHITELIST.indexOf(currentScriptObject.name) === -1) {
-            ScriptDiscoveryService.stopScript(currentScriptObject.url);
-            pausedScriptList.push(currentScriptObject.url);
-        }
-    }
-}
-
-
 function maybeDeleteInputDeviceMutedOverlay() {
     if (inputDeviceMutedOverlay) {
         Overlays.deleteOverlay(inputDeviceMutedOverlay);
@@ -597,10 +560,6 @@ function startup() {
     modifyLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
-        pauseCurrentScripts();
-        runNewDefaultsTogether();
-        loadNewSeparateDefaults();
-
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
             if (toolbar) {
@@ -638,17 +597,7 @@ function startup() {
 }
 
 
-function restoreScripts() {
-    pausedScriptList.forEach(function(url) {
-        ScriptDiscoveryService.loadScript(url);
-    });
-
-    pausedScriptList = [];
-}
-
-
 function shutdown() {
-    restoreScripts();
     restoreLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
