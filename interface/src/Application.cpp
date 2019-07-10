@@ -5435,7 +5435,6 @@ void Application::loadSettings() {
             isFirstPerson = (qApp->isHMDMode());
         } else {
             // if this is not the first run, the camera will be initialized differently depending on user settings
-
             if (qApp->isHMDMode()) {
                 // if the HMD is active, use first-person camera, unless the appropriate setting is checked
                 isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
