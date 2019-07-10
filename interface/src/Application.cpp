@@ -5425,12 +5425,10 @@ void Application::loadSettings() {
     }
 
     bool isFirstPerson = false;
-    if (_firstRun.get()) {
-        // If this is our first run, and no preferred devices were set, default to
-        // an HMD device if available.
+    if (arguments().contains("--no-launcher")) {
         auto displayPlugins = pluginManager->getDisplayPlugins();
         for (auto& plugin : displayPlugins) {
-            if (plugin->isHmd()) {
+            if (!plugin->isHmd()) {
                 if (auto action = menu->getActionForOption(plugin->getName())) {
                     action->setChecked(true);
                     action->trigger();
@@ -5438,18 +5436,31 @@ void Application::loadSettings() {
                 }
             }
         }
-
         isFirstPerson = (qApp->isHMDMode());
-
     } else {
-        // if this is not the first run, the camera will be initialized differently depending on user settings
-
-        if (qApp->isHMDMode()) {
-            // if the HMD is active, use first-person camera, unless the appropriate setting is checked
-            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+        if (_firstRun.get()) {
+            // If this is our first run, and no preferred devices were set, default to
+            // an HMD device if available.
+            auto displayPlugins = pluginManager->getDisplayPlugins();
+            for (auto& plugin : displayPlugins) {
+                if (plugin->isHmd()) {
+                    if (auto action = menu->getActionForOption(plugin->getName())) {
+                        action->setChecked(true);
+                        action->trigger();
+                        break;
+                    }
+                }
+            }
+            isFirstPerson = (qApp->isHMDMode());
         } else {
-            // if HMD is not active, only use first person if the menu option is checked
-            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+            // if this is not the first run, the camera will be initialized differently depending on user settings
+            if (qApp->isHMDMode()) {
+                // if the HMD is active, use first-person camera, unless the appropriate setting is checked
+                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+            } else {
+                // if HMD is not active, only use first person if the menu option is checked
+                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+            }
         }
     }
 
