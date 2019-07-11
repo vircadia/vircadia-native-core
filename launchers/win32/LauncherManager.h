@@ -19,6 +19,12 @@ const CString DIRECTORY_NAME_CONTENT = _T("content");
 const CString EXTRA_PARAMETERS = _T(" --suppress-settings-reset --no-launcher --no-updater");
 const CString LAUNCHER_EXE_FILENAME = _T("HQ Launcher.exe");
 const bool INSTALL_ZIP = true;
+const float DOWNLOAD_CONTENT_INSTALL_WEIGHT = 0.2f;
+const float EXTRACT_CONTENT_INSTALL_WEIGHT = 0.1f;
+const float DOWNLOAD_APPLICATION_INSTALL_WEIGHT = 0.5f;
+const float EXTRACT_APPLICATION_INSTALL_WEIGHT = 0.2f;
+const float DOWNLOAD_APPLICATION_UPDATE_WEIGHT = 0.75f;
+const float EXTRACT_APPLICATION_UPDATE_WEIGHT = 0.25f;
 
 class LauncherManager
 {
@@ -33,22 +39,21 @@ public:
         StartMenu_Directory,
         Temp_Directory
     };
-    enum ZipType {
-        ZipContent = 0,
-        ZipApplication
-    };
-    enum DownloadType {
-        DownloadContent = 0,
-        DownloadApplication
-    };
     enum ErrorType {
-        ErrorNetworkAuth,
+        ErrorNetworkAuth = 0,
         ErrorNetworkUpdate,
         ErrorNetworkHq,
         ErrorDownloading,
         ErrorUpdating,
         ErrorInstall,
         ErrorIOFiles
+    };
+    enum ProcessType {
+        DownloadContent,
+        DownloadApplication,
+        UnzipContent,
+        UnzipApplication,
+        Uninstall
     };
     LauncherManager();
     ~LauncherManager();
@@ -62,7 +67,7 @@ public:
     BOOL isApplicationInstalled(CString& version, CString& domain,
                                 CString& content, bool& loggedIn);
     LauncherUtils::ResponseError getAccessTokenForCredentials(const CString& username, const CString& password);
-    LauncherUtils::ResponseError getMostRecentBuild(CString& urlOut, CString& versionOut);
+    LauncherUtils::ResponseError getMostRecentBuild(CString& urlOut, CString& versionOut, CString& response);
     LauncherUtils::ResponseError readOrganizationJSON(const CString& hash);
     LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain,
                                                 CString& content, bool& loggedIn);
@@ -84,6 +89,7 @@ public:
     BOOL shouldLaunch() const { return _shouldLaunch; }
     BOOL needsUpdate() { return _shouldUpdate; }
     BOOL needsUninstall() { return _shouldUninstall; }
+    BOOL needsInstall() { return _shouldInstall; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() { return _loggedIn; }
     bool hasFailed() { return _hasFailed; }
@@ -91,15 +97,19 @@ public:
     const CString& getLatestInterfaceURL() const { return _latestApplicationURL; }
     void uninstall() { _shouldUninstall = true; };
 
-    BOOL downloadFile(DownloadType type, const CString& url, CString& localPath);
+    BOOL downloadFile(ProcessType type, const CString& url, CString& localPath);
     BOOL downloadContent();
     BOOL downloadApplication();
     BOOL installContent();
     BOOL extractApplication();
-    void onZipExtracted(ZipType type, int size);
-    void onFileDownloaded(DownloadType type);
+    void onZipExtracted(ProcessType type, int size);
+    void onFileDownloaded(ProcessType type);
+    float getProgress() { return _progress; }
+    void updateProgress(ProcessType processType, float progress);
+    void onCancel();
 
 private:
+    ProcessType _currentProcess { ProcessType::DownloadApplication };
     CString _latestApplicationURL;
     CString _latestVersion;
     CString _contentURL;
@@ -109,12 +119,14 @@ private:
     CString _tokensJSON;
     CString _applicationZipPath;
     CString _contentZipPath;
-    bool _loggedIn{ false };
-    bool _hasFailed{ false };
-    BOOL _shouldUpdate{ FALSE };
-    BOOL _shouldUninstall{ FALSE };
-    BOOL _shouldShutdown{ FALSE };
-    BOOL _shouldLaunch{ FALSE };
+    bool _loggedIn { false };
+    bool _hasFailed { false };
+    BOOL _shouldUpdate { FALSE };
+    BOOL _shouldUninstall { FALSE };
+    BOOL _shouldInstall { FALSE };
+    BOOL _shouldShutdown { FALSE };
+    BOOL _shouldLaunch { FALSE };
+    float _progress { 0.0f };
     CStdioFile _logFile;
 };
 

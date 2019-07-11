@@ -52,7 +52,7 @@
         var qml = Script.resolvePath(QMLAPP_URL);
         window = Desktop.createWindow(Script.resolvePath(QMLAPP_URL), {
             title: TABLET_BUTTON_NAME,
-            flags: Desktop.ALWAYS_ON_TOP,
+            additionalFlags: Desktop.ALWAYS_ON_TOP,
             presentationMode: Desktop.PresentationMode.NATIVE,
             size: {x: 400, y: 600}
         });

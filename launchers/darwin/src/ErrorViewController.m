@@ -20,7 +20,7 @@
 
 -(IBAction)resartLauncher:(id)sender
 {
-    [[Launcher sharedLauncher] showLoginScreen];
+    [[Launcher sharedLauncher] restart];
 }
 
 @end

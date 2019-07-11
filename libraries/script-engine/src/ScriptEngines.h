@@ -56,7 +56,7 @@ class ScriptEngines : public QObject, public Dependency {
 public:
     using ScriptInitializer = ScriptInitializerMixin::ScriptInitializer;
 
-    ScriptEngines(ScriptEngine::Context context);
+    ScriptEngines(ScriptEngine::Context context, const QUrl& defaultScriptsOverride = QUrl());
     void registerScriptInitializer(ScriptInitializer initializer);
     int runScriptInitializers(ScriptEnginePointer engine);
     void loadScripts();
@@ -284,6 +284,12 @@ protected:
     std::atomic<bool> _isReloading { false };
     bool _defaultScriptsLocationOverridden { false };
     QString _debugScriptUrl;
+
+    // If this is set, defaultScripts.js will not be run if it is in the settings,
+    // and this will be run instead. This script will not be persisted to settings.
+    const QUrl _defaultScriptsOverride { };
+    // If an override is set, this will be true if defaultScripts.js was previously running.
+    bool _defaultScriptsWasRunning { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

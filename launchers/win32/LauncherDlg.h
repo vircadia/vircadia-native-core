@@ -53,9 +53,7 @@ protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
     void startProcess();
     void setCustomDialog();
-
-    void setVerticalElement(CWnd* element, int verticalOffset, int heightOffset = 0, bool fromMainWindowBottom = true);
-
+    void setVerticalElement(CWnd* element, int verticalOffset, int heightOffset = 0, bool fromMainWindowBottom = true);    
     BOOL getHQInfo(const CString& orgname);
     DrawStep _drawStep { DrawStep::DrawLogo };
     BOOL getTextFormat(int ResID, TextFormat& formatOut);
@@ -86,6 +84,7 @@ protected:
     CStatic* m_terms;
     CStatic* m_trouble;
     CStatic* m_voxel;
+    CStatic* m_progress;
 
     CEdit m_orgname;
     CEdit m_username;
@@ -101,6 +100,7 @@ protected:
     void drawLogo(CHwndRenderTarget* pRenderTarget);
     void drawSmallLogo(CHwndRenderTarget* pRenderTarget);
     void drawVoxel(CHwndRenderTarget* pRenderTarget);
+    void drawProgress(CHwndRenderTarget* pRenderTarget, float progress, const D2D1::ColorF& color);
 
     void prepareLogin(DrawStep step);
     void prepareProcess(DrawStep step);
