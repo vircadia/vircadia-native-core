@@ -15,9 +15,9 @@
 <$declareDeferredFrameTransform()$>
 
 <@include graphics/Light.slh@>
+<$declareLightBuffer()$>
 
 <@include LightingModel.slh@>
-<$declareLightBuffer()$>
 
 <@include graphics/Haze.slh@>
 
