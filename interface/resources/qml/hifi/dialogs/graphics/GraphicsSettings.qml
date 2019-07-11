@@ -18,13 +18,11 @@ import controlsUit 1.0 as HifiControlsUit
 import "qrc:////qml//controls" as HifiControls
 import PerformanceEnums 1.0
 
-Flickable {
+Item {
     HifiStylesUit.HifiConstants { id: hifi; }
 
     id: root;
-    contentWidth: parent.width
-    contentHeight: graphicsSettingsColumnLayout.height
-    clip: true
+    anchors.fill: parent
 
     ColumnLayout {
         id: graphicsSettingsColumnLayout
@@ -38,13 +36,13 @@ Flickable {
         ColumnLayout {
             id: avatarNameTagsContainer
             Layout.preferredWidth: parent.width
-            Layout.topMargin: 38
+            Layout.topMargin: 18
             spacing: 0
 
             HifiStylesUit.RalewayRegular {
                 text: "GRAPHICS SETTINGS"
                 Layout.maximumWidth: parent.width
-                height: paintedHeight
+                height: 30
                 size: 16
                 color: "#FFFFFF"
             }
@@ -52,12 +50,12 @@ Flickable {
             ColumnLayout {
                 Layout.topMargin: 10
                 Layout.preferredWidth: parent.width
-                Layout.preferredHeight: contentItem.height
                 spacing: 0
 
                 HifiControlsUit.RadioButton {
                     id: performanceLow
                     colorScheme: hifi.colorSchemes.dark
+                    height: 18
                     fontSize: 16
                     leftPadding: 0
                     text: "Low"
@@ -71,6 +69,7 @@ Flickable {
                 HifiControlsUit.RadioButton {
                     id: performanceMedium
                     colorScheme: hifi.colorSchemes.dark
+                    height: 18
                     fontSize: 16
                     leftPadding: 0
                     text: "Medium"
@@ -84,6 +83,7 @@ Flickable {
                 HifiControlsUit.RadioButton {
                     id: performanceHigh
                     colorScheme: hifi.colorSchemes.dark
+                    height: 18
                     fontSize: 16
                     leftPadding: 0
                     text: "High"
@@ -97,6 +97,7 @@ Flickable {
                 HifiControlsUit.RadioButton {
                     id: performanceCustom
                     colorScheme: hifi.colorSchemes.dark
+                    height: 18
                     fontSize: 16
                     leftPadding: 0
                     text: "Custom"
@@ -110,55 +111,7 @@ Flickable {
             ColumnLayout {
                 Layout.topMargin: 10
                 Layout.preferredWidth: parent.width
-                Layout.preferredHeight: contentItem.height
-                spacing: 30
-
-                Item {
-                    Layout.preferredWidth: parent.width
-                    Layout.preferredHeight: 35
-
-                    HifiStylesUit.RalewayRegular {
-                        id: resolutionHeader
-                        text: "Resolution Scale (" + Number.parseFloat(Render.viewportResolutionScale).toPrecision(3) + ")"
-                        anchors.left: parent.left
-                        anchors.top: parent.top
-                        width: 130
-                        height: parent.height
-                        size: 16
-                        color: "#FFFFFF"
-                    }
-                
-                    HifiControlsUit.Slider {
-                        id: resolutionScaleSlider
-                        enabled: performanceCustom.checked
-                        anchors.left: resolutionHeader.right
-                        anchors.leftMargin: 57
-                        anchors.top: parent.top
-                        width: 150 
-                        height: parent.height
-                        colorScheme: hifi.colorSchemes.dark
-                        minimumValue: 0.25
-                        maximumValue: 1.5
-                        stepSize: 0.02
-                        value: Render.viewportResolutionScale
-                        live: true
-
-                        function updateResolutionScale(sliderValue) {
-                            if (Render.viewportResolutionScale !== sliderValue) {
-                                Render.viewportResolutionScale = sliderValue;
-                            }
-                        }
-
-                        onValueChanged: {
-                            updateResolutionScale(value);
-                        }
-                        onPressedChanged: {
-                            if (!pressed) {
-                                updateResolutionScale(value);
-                            }
-                        }
-                    }
-                }
+                spacing: 0
 
                 Item {
                     Layout.preferredWidth: parent.width
@@ -229,6 +182,7 @@ Flickable {
                 Item {
                     Layout.preferredWidth: parent.width
                     Layout.preferredHeight: 35
+                    Layout.topMargin: 20
 
                     HifiStylesUit.RalewayRegular {
                         id: renderingEffectsHeader
@@ -303,6 +257,7 @@ Flickable {
                 Item {
                     Layout.preferredWidth: parent.width
                     Layout.preferredHeight: 35
+                    Layout.topMargin: 20
 
                     HifiStylesUit.RalewayRegular {
                         id: refreshRateHeader
@@ -361,6 +316,54 @@ Flickable {
                         onCurrentIndexChanged: {
                             Performance.setRefreshRateProfile(model.get(currentIndex).refreshRatePreset);
                             refreshRateDropdown.displayText = model.get(currentIndex).text;
+                        }
+                    }
+                }
+
+                Item {
+                    Layout.preferredWidth: parent.width
+                    Layout.preferredHeight: 35
+                    Layout.topMargin: 16
+
+                    HifiStylesUit.RalewayRegular {
+                        id: resolutionHeader
+                        text: "Resolution Scale (" + Number.parseFloat(Render.viewportResolutionScale).toPrecision(3) + ")"
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        width: 130
+                        height: parent.height
+                        size: 16
+                        color: "#FFFFFF"
+                    }
+                
+                    HifiControlsUit.Slider {
+                        id: resolutionScaleSlider
+                        enabled: performanceCustom.checked
+                        anchors.left: resolutionHeader.right
+                        anchors.leftMargin: 57
+                        anchors.top: parent.top
+                        width: 150 
+                        height: parent.height
+                        colorScheme: hifi.colorSchemes.dark
+                        minimumValue: 0.25
+                        maximumValue: 1.5
+                        stepSize: 0.02
+                        value: Render.viewportResolutionScale
+                        live: true
+
+                        function updateResolutionScale(sliderValue) {
+                            if (Render.viewportResolutionScale !== sliderValue) {
+                                Render.viewportResolutionScale = sliderValue;
+                            }
+                        }
+
+                        onValueChanged: {
+                            updateResolutionScale(value);
+                        }
+                        onPressedChanged: {
+                            if (!pressed) {
+                                updateResolutionScale(value);
+                            }
                         }
                     }
                 }
