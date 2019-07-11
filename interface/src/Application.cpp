@@ -2836,20 +2836,17 @@ void Application::cleanupBeforeQuit() {
 }
 
 Application::~Application() {
-    qCInfo(interfaceapp) << "HRS FIXME Quit 1";
     // remove avatars from physics engine
     auto avatarManager = DependencyManager::get<AvatarManager>();
     avatarManager->clearOtherAvatars();
     auto myCharacterController = getMyAvatar()->getCharacterController();
     myCharacterController->clearDetailedMotionStates();
-    qCInfo(interfaceapp) << "HRS FIXME Quit 2";
 
     PhysicsEngine::Transaction transaction;
     avatarManager->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     avatarManager->handleProcessedPhysicsTransaction(transaction);
     avatarManager->deleteAllAvatars();
-    qCInfo(interfaceapp) << "HRS FIXME Quit 3";
 
     _physicsEngine->setCharacterController(nullptr);
 
@@ -2860,12 +2857,9 @@ Application::~Application() {
     // shutdown graphics engine
     _graphicsEngine.shutdown();
 
-    qCInfo(interfaceapp) << "HRS FIXME Quit 4";
     _gameWorkload.shutdown();
-    qCInfo(interfaceapp) << "HRS FIXME Quit 5";
 
     DependencyManager::destroy<Preferences>();
-    qCInfo(interfaceapp) << "HRS FIXME Quit 6";
 #ifdef Q_OS_MAC
     DependencyManager::destroy<MacHelper>();
 #endif

@@ -11,32 +11,34 @@
 
 #include "InterfaceLogging.h"
 #include "MacHelper.h"
+#include <NodeList.h>
 
 #ifdef Q_OS_MAC
-#include <IOKit/pwr_mgt/IOPMLib.h>
 #include <IOKit/IOMessage.h>
- 
-io_connect_t  root_port;
-IONotificationPortRef notifyPortRef;
-io_object_t notifierObject;
-void* refCon;
+#include <IOKit/pwr_mgt/IOPMLib.h>
 
-void sleepHandler(void* refCon, io_service_t service, natural_t messageType, void* messageArgument) {
-    qCInfo(interfaceapp) << "HRS FIXME sleepHandler.";
+// These type definitions come from IOKit, which includes a definition of Duration that conflicts with ours.
+// So... we include these definitions here rather than in the .h, as the .h is included in Application.cpp which
+// uses Duration.
+static io_connect_t  root_port;
+static IONotificationPortRef notifyPortRef;
+static io_object_t notifierObject;
+static void* refCon;
+
+static void sleepHandler(void* refCon, io_service_t service, natural_t messageType, void* messageArgument) {
     if (messageType == kIOMessageSystemHasPoweredOn) {
-        qCInfo(interfaceapp) << "HRS FIXME Waking up from sleep or hybernation.";
+        qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
+        QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
     }
 }
 #endif
 
 MacHelper::MacHelper() {
-    qCInfo(interfaceapp) << "HRS FIXME Start MacHelper.";
 #ifdef Q_OS_MAC
      root_port = IORegisterForSystemPower(refCon, &notifyPortRef, sleepHandler, &notifierObject);
      if (root_port == 0) {
          qCWarning(interfaceapp) << "IORegisterForSystemPower failed";
-     } else {
-         qCDebug(interfaceapp) << "HRS FIXME IORegisterForSystemPower OK";
+         return;
      }
      CFRunLoopAddSource(CFRunLoopGetCurrent(),
                         IONotificationPortGetRunLoopSource(notifyPortRef),
@@ -45,7 +47,6 @@ MacHelper::MacHelper() {
 }
 
 MacHelper::~MacHelper() {
-    qCInfo(interfaceapp) << "HRS FIXME End MacHelper.";
 #ifdef Q_OS_MAC
      CFRunLoopRemoveSource(CFRunLoopGetCurrent(),
                            IONotificationPortGetRunLoopSource(notifyPortRef),
