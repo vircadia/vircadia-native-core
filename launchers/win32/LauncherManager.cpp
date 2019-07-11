@@ -296,8 +296,9 @@ HWND LauncherManager::launchApplication() {
     LauncherManager::getAndCreatePaths(PathType::Interface_Directory, installDir);
     CString interfaceExe = installDir + _T("\\interface.exe");
     CString urlParam = _T("--url \"") + _domainURL + ("\" ");
-    CString scriptsURL = installDir + _T("\\scripts\\simplifiedUI");
-    CString scriptsParam = _T("--scripts \"") + scriptsURL + ("\" ");
+    CString scriptsURL = installDir + _T("\\scripts\\simplifiedUIBootstrapper.js");
+    scriptsURL.Replace(_T("\\"), _T("/"));
+    CString scriptsParam = _T("--defaultScriptsOverride \"") + scriptsURL + ("\" ");
     CString cacheDir;
     LauncherManager::getAndCreatePaths(PathType::Content_Directory, cacheDir);
     CString cacheParam = _T("--cache \"") + cacheDir + ("\" ");
