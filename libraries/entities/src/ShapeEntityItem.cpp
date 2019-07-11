@@ -30,8 +30,8 @@ namespace entity {
      *   </thead>
      *   <tbody>
      *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></tr>
-     *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Cone"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Cylinder"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Dodecahedron"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Hexagon"</code></td><td>3D</td><td>A hexagonal prism.</td></tr>

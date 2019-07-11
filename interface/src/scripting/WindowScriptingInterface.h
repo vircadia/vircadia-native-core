@@ -666,7 +666,7 @@ signals:
     /**jsdoc
      * Triggered when the interstitial mode changes.
      * @function Window.interstitialModeChanged
-     * @param {bool} interstitialMode - The new interstitial mode value. If <code>true</code>, the interstitial graphics are 
+     * @param {boolean} interstitialMode - The new interstitial mode value. If <code>true</code>, the interstitial graphics are 
      * displayed when the domain is loading.
      * @returns {Signal}
      */

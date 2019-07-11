@@ -62,7 +62,7 @@ class QScriptEngine;
  * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen entity. <code>null</code> if not in HMD mode.
  * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
  *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
- * @property {bool} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
+ * @property {boolean} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
  *     <code>false</code>.
  * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
  * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>

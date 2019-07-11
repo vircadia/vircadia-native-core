@@ -987,8 +987,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
  *     {@link Entities.getJointIndex|getJointIndex}.
  * @property {Vec3[]} jointTranslations=[]] - Joint translations applied to the model; <code>[]</code> if none are applied or 
- *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative 
- *     to each joint's parent.
+ *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Translations are 
+ *     relative to each joint's parent.
  *     <p>Joint translations can be set by {@link Entities.setLocalJointTranslation|setLocalJointTranslation} and similar 
  *     functions, or by setting the value of this property. If you set a joint translation using this property you also need to 
  *     set the corresponding <code>jointTranslationsSet</code> value to <code>true</code>.</p>

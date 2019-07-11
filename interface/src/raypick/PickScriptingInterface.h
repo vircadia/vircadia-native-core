@@ -29,7 +29,7 @@
  * @property {FilterFlags} PICK_AVATAR_ENTITIES - Include avatar entities when intersecting. <em>Read-only.</em>
  * @property {FilterFlags} PICK_LOCAL_ENTITIES - Include local entities when intersecting. <em>Read-only.</em>
  * @property {FilterFlags} PICK_AVATARS - Include avatars when intersecting. <em>Read-only.</em>
- * @property {FilterFlags} PICK_HUD - Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
+ * @property {FilterFlags} PICK_HUD - Include the HUD surface when intersecting in HMD mode. <em>Read-only.</em>
  *
  * @property {FilterFlags} PICK_ENTITIES - Include domain and avatar entities when intersecting. <em>Read-only.</em>
  *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>PICK_DOMAIN_ENTITIES | 
@@ -61,7 +61,7 @@
  *     <p class="important">Deprecated: This property is deprecated and will be removed. Use 
  *     <code>INTERSECTED_LOCAL_ENTITY</code> instead.</p>
  * @property {IntersectionType} INTERSECTED_AVATAR - Intersected an avatar. <em>Read-only.</em>
- * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD sphere. <em>Read-only.</em>
+ * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD surface. <em>Read-only.</em>
  *
  * @property {number} perFrameTimeBudget - The maximum time, in microseconds, to spend per frame updating pick results.
  */
