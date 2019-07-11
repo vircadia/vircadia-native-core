@@ -2772,8 +2772,6 @@ void Application::cleanupBeforeQuit() {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
 
-    DependencyManager::destroy<HMDScriptingInterface>();
-    
     PluginManager::getInstance()->shutdown();
 
     // Cleanup all overlays after the scripts, as scripts might add more
