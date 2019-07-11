@@ -2119,7 +2119,7 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool 
         using namespace shader::render_utils::program;
         static const std::vector<std::tuple<bool, bool, uint32_t>> keys = {
             std::make_tuple(false, false, web_browser), std::make_tuple(false, true, web_browser_forward),
-            std::make_tuple(true, false, web_browser_translucent)
+            std::make_tuple(true, false, web_browser_translucent), std::make_tuple(true, true, web_browser_forward) // The forward opaque/translucent pipelines are the same for now
         };
 
         for (auto& key : keys) {
@@ -2134,9 +2134,6 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool 
 
             _webPipelines[{std::get<0>(key), std::get<1>(key)}] = gpu::Pipeline::create(gpu::Shader::createProgram(std::get<2>(key)), state);
         }
-
-        // The forward opaque/translucent pipelines are the same for now
-        _webPipelines[{ true, true }] = _webPipelines[{ false, true }];
     }
 
     return _webPipelines[{ transparent, forward }];
