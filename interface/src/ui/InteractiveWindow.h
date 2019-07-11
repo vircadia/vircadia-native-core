@@ -18,9 +18,32 @@
 #include <QtCore/QPointer>
 #include <QtScript/QScriptValue>
 #include <QQmlEngine>
+#include <ui/QmlWrapper.h>
 
 #include <glm/glm.hpp>
 #include <GLMHelpers.h>
+
+class QmlWindowProxy : QmlWrapper {
+    Q_OBJECT
+
+public:
+    QmlWindowProxy(QObject* qmlObject, QObject* parent = nullptr);
+
+    Q_INVOKABLE void updateInteractiveWindowPositionForMode();
+
+    Q_INVOKABLE void setPosition(const glm::vec2& position);
+    glm::vec2 getPositiion() const;
+
+    Q_INVOKABLE void setSize(const glm::vec2& size);
+    glm::vec2 getSize() const;
+
+    Q_INVOKABLE void setTitle(const QString& title);
+    QString getTitle() const;
+private:
+    QObject* _qmlWindow;
+
+};
+
 
 namespace InteractiveWindowEnums {
     Q_NAMESPACE

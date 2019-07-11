@@ -51,6 +51,26 @@ static const QStringList KNOWN_SCHEMES = QStringList() << "http" << "https" << "
 
 static const int DEFAULT_HEIGHT = 60;
 
+QmlWindowProxy::QmlWindowProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) {
+    _qmlWindow = qmlObject;
+}
+
+void QmlWindowProxy::updateInteractiveWindowPositionForMode() {
+}
+
+void QmlWindowProxy::setPosition(const glm::vec2& position) {
+}
+
+glm::vec2 QmlWindowProxy::getPosition() const {
+}
+
+void QmlWindowProxy::setSize(const glm::vec2& size) {
+}
+
+glm::vec2 QmlWindowProxy::getSize() const {
+}
+
+void QmlWindowProxy::setTitle(const QString& title
 static void dockWidgetDeleter(DockWidget* dockWidget) {
     dockWidget->deleteLater();
 }
@@ -296,11 +316,6 @@ void InteractiveWindow::qmlToScript(const QVariant& message) {
 }
 
 void InteractiveWindow::setVisible(bool visible) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setVisible", Q_ARG(bool, visible));
-        return;
-    }
-
     if (!_qmlWindow.isNull()) {
         QMetaObject::invokeMethod(_qmlWindow, "setProperty", Q_ARG(const char*, INTERACTIVE_WINDOW_VISIBLE_PROPERTY),
                                   Q_ARG(bool, visible));
@@ -324,11 +339,6 @@ glm::vec2 InteractiveWindow::getPosition() const {
 }
 
 void InteractiveWindow::setPosition(const glm::vec2& position) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setPosition", Q_ARG(const glm::vec2&, position));
-        return;
-    }
-
     if (!_qmlWindow.isNull()) {
         QMetaObject::invokeMethod(_qmlWindow, "setProperty", Q_ARG(const char*, INTERACTIVE_WINDOW_POSITION_PROPERTY),
                                   Q_ARG(QPointF, QPointF(position.x, position.y)));
