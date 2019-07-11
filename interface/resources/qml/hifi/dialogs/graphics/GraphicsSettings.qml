@@ -247,7 +247,7 @@ Item {
                                 PlatformInfo.isRenderMethodDeferredCapable()) {
                                 renderMethodToSet = 0;
                             }
-                            Render.renderMethod = model.get(currentIndex).preferredRenderMethod;
+                            Render.renderMethod = renderMethodToSet;
                             Render.shadowsEnabled = model.get(currentIndex).shadowsEnabled;
                             renderingEffectsDropdown.displayText = model.get(currentIndex).text;
                         }
