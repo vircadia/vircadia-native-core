@@ -71,6 +71,9 @@ public:
  * The <code>Overlays</code> API provides facilities to create and interact with overlays. These are 2D and 3D objects visible 
  * only to yourself and that aren't persisted to the domain. They are used for UI.
  *
+ * <p><strong>Note:</strong> 3D overlays are local {@link Entities}, internally, so many of the methods also work with 
+ * entities.</p>
+ *
  * <p class="important">3D overlays are deprecated: Use local {@link Entities} for these instead.</p>
  *
  * @namespace Overlays
@@ -79,9 +82,9 @@ public:
  * @hifi-client-entity
  * @hifi-avatar
  *
- * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Entities.EntityTypes|Web} entity that has keyboard focus.
- *     If no entity has keyboard focus, returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to 
- *     clear keyboard focus.
+ * @property {Uuid} keyboardFocusOverlay - The <code>{@link Overlays.OverlayProperties-Web3D|"web3d"}</code> overlay 
+ *     ({@link Entities.EntityProperties-Web|Web} entity) that has keyboard focus. If no overlay (entity) has keyboard focus, 
+ *     returns <code>null</code>; set to <code>null</code> or {@link Uuid(0)|Uuid.NULL} to clear keyboard focus.
  */
 
 class Overlays : public QObject {
@@ -121,7 +124,7 @@ public:
 
 public slots:
     /**jsdoc
-     * Add an overlay to the scene.
+     * Adds an overlay to the scene.
      * @function Overlays.addOverlay
      * @param {Overlays.OverlayType} type - The type of the overlay to add.
      * @param {Overlays.OverlayProperties} properties - The properties of the overlay to add.
@@ -137,19 +140,21 @@ public slots:
     QUuid addOverlay(const QString& type, const QVariant& properties);
 
     /**jsdoc
-     * Create a clone of an existing entity (or 2D overlay).
+     * Creates a clone of an existing overlay (or entity).
+     * <p>Note: For cloning behavior of 3D overlays and entities, see {@link Entities.cloneEntity}.</p>
      * @function Overlays.cloneOverlay
-     * @param {Uuid} id - The ID of the entity/2D overlay to clone.
-     * @returns {Uuid} The ID of the new object if successful, otherwise {@link Uuid(0)|Uuid.NULL}.
+     * @param {Uuid} id - The ID of the overlay (or entity) to clone.
+     * @returns {Uuid} The ID of the new overlay (or entity) if successful, otherwise {@link Uuid(0)|Uuid.NULL}.
      */
     QUuid cloneOverlay(const QUuid& id);
 
     /**jsdoc
-     * Edit an overlay's properties.
+     * Edits an overlay's (or entity's) properties.
      * @function Overlays.editOverlay
-     * @param {Uuid} id - The ID of the overlay to edit.
+     * @param {Uuid} id - The ID of the overlay (or entity) to edit.
      * @param {Overlays.OverlayProperties} properties - The properties changes to make.
-     * @returns {boolean} <code>true</code> if the overlay was found and edited, otherwise <code>false</code>.
+     * @returns {boolean} <code>false</code> if Interface is exiting. Otherwise, if a 2D overlay then <code>true</code> always, 
+     *    and if a 3D overlay then <code>true</code> if the overlay was found and edited, otherwise <code>false</code>.
      * @example <caption>Add an overlay in front of your avatar then change its color.</caption>
      * var overlay = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
@@ -166,12 +171,11 @@ public slots:
     bool editOverlay(const QUuid& id, const QVariant& properties);
 
     /**jsdoc
-     * Edit multiple overlays' properties.
+     * Edits multiple overlays' (or entities') properties.
      * @function Overlays.editOverlays
-     * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - An object with overlay IDs as keys and
+     * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - An object with overlay (or entity) IDs as keys and
      *     {@link Overlays.OverlayProperties|OverlayProperties} edits to make as values.
-     * @returns {boolean} <code>true</code> if all overlays were found and edited, otherwise <code>false</code> (some may have
-     *     been found and edited).
+     * @returns {boolean} <code>false</code> if Interface is exiting, otherwise <code>true</code>.
      * @example <caption>Create two overlays in front of your avatar then change their colors.</caption>
      * var overlayA = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
@@ -195,18 +199,18 @@ public slots:
     bool editOverlays(const QVariant& propertiesById);
 
     /**jsdoc
-     * Delete an entity or 2D overlay.
+     * Deletes an overlay (or entity).
      * @function Overlays.deleteOverlay
-     * @param {Uuid} id - The ID of the object to delete.
+     * @param {Uuid} id - The ID of the overlay (or entity) to delete.
      */
     void deleteOverlay(const QUuid& id);
 
     /**jsdoc
-     * Get the type of an entity or 2D overlay.
+     * Gets the type of an overlay.
      * @function Overlays.getOverlayType
-     * @param {Uuid} id - The ID of the object to get the type of.
-     * @returns {string} The type of the object if found, otherwise an empty string.
-     * @example <caption>Create an object in front of your avatar then get and report its type.</caption>
+     * @param {Uuid} id - The ID of the overlay to get the type of.
+     * @returns {Overlays.OverlayType} The type of the overlay if found, otherwise <code>"unknown"</code>.
+     * @example <caption>Create an overlay in front of your avatar then get and report its type.</caption>
      * var overlay = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
      *     rotation: MyAvatar.orientation,
@@ -214,56 +218,82 @@ public slots:
      *     solid: true
      * });
      * var type = Overlays.getOverlayType(overlay);
-     * print("Type: " + type);
+     * print("Type: " + type); // cube
      */
     QString getOverlayType(const QUuid& id);
 
     /**jsdoc
-     * Get the overlay script object. In particular, this is useful for accessing the event bridge for a <code>"web3d"</code>
-     * overlay.
+     * Gets an overlay's (or entity's) script object. In particular, this is useful for accessing a 
+     * <code>{@link Overlays.OverlayProperties-Web3D|"web3d"}</code> overlay's <code>EventBridge</code> script object to 
+     * exchange messages with the web page script.
+     * <p>To send a message from an Interface script to a <code>"web3d"</code> overlay over its event bridge:</p>
+     * <pre class="prettyprint"><code>var overlayObject = Overlays.getOverlayObject(overlayID);
+     * overlayObject.emitScriptEvent(message);</code></pre>
+     * <p>To receive a message from a <code>"web3d"</code> overlay over its event bridge in an Interface script:</p>
+     * <pre class="prettyprint"><code>var overlayObject = Overlays.getOverlayObject(overlayID);
+     * overlayObject.webEventReceived.connect(function(message) {
+     *     ...
+     * };</code></pre>
      * @function Overlays.getOverlayObject
      * @param {Uuid} overlayID - The ID of the overlay to get the script object of.
      * @returns {object} The script object for the overlay if found.
-     * @example <caption>Receive "hello" messages from a <code>"web3d"</code> overlay.</caption>
-     * // HTML file: name "web3d.html".
+     * @example <caption>Exchange messages with a <code>"web3d"</code> overlay.</caption>
+     * // HTML file, name: "web3d.html".
      * <!DOCTYPE html>
      * <html>
      * <head>
      *     <title>HELLO</title>
      * </head>
      * <body>
-     *     <h1>HELLO</h1></h1>
+     *     <h1>HELLO</h1>
      *     <script>
+     *         function onScriptEventReceived(message) {
+     *             // Message received from the script.
+     *             console.log("Message received: " + message);
+     *         }
+     * 
+     *         EventBridge.scriptEventReceived.connect(onScriptEventReceived);
+     * 
      *         setInterval(function () {
+     *             // Send a message to the script.
      *             EventBridge.emitWebEvent("hello");
      *         }, 2000);
      *     </script>
      * </body>
      * </html>
-     *
-     * // Script file.
-     * var web3dOverlay = Overlays.addOverlay("web3d", {
-     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, {x: 0, y: 0.5, z: -3 })),
-     *     rotation: MyAvatar.orientation,
-     *     url: Script.resolvePath("web3d.html"),
-     *     alpha: 1.0
-     * });
-     *
-     * function onWebEventReceived(event) {
-     *     print("onWebEventReceived() : " + JSON.stringify(event));
+     * 
+     * // Interface script file.
+     * var web3DOverlay = Overlays.addOverlay("web3d", {
+     *     type: "Web",
+     *     position : Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y : 0.5, z : -3 })),
+     *     rotation : MyAvatar.orientation,
+     *     sourceUrl : Script.resolvePath("web3d.html"),
+     *     alpha : 1.0
+     *     });
+     * 
+     * var overlayObject;
+     * 
+     * function onWebEventReceived(message) {
+     *     // Message received.
+     *     print("Message received: " + message);
+     * 
+     *     // Send a message back.
+     *     overlayObject.emitScriptEvent(message + " back");
      * }
-     *
-     * overlayObject = Overlays.getOverlayObject(web3dOverlay);
-     * overlayObject.webEventReceived.connect(onWebEventReceived);
-     *
-     * Script.scriptEnding.connect(function () {
-     *     Overlays.deleteOverlay(web3dOverlay);
+     * 
+     * Script.setTimeout(function() {
+     *     overlayObject = Overlays.getOverlayObject(web3DOverlay);
+     *     overlayObject.webEventReceived.connect(onWebEventReceived);
+     * }, 500);
+     * 
+     * Script.scriptEnding.connect(function() {
+     *     Overlays.deleteOverlay(web3DOverlay);
      * });
      */
     QObject* getOverlayObject(const QUuid& id);
 
     /**jsdoc
-     * Get the ID of the 2D overlay at a particular point on the screen or HUD.
+     * Gets the ID of the 2D overlay at a particular point on the desktop screen or HUD surface.
      * @function Overlays.getOverlayAtPoint
      * @param {Vec2} point - The point to check for an overlay.
      * @returns {Uuid} The ID of the 2D overlay at the specified point if found, otherwise <code>null</code>.
@@ -282,10 +312,11 @@ public slots:
     QUuid getOverlayAtPoint(const glm::vec2& point);
 
     /**jsdoc
-     * Get the value of a 3D overlay's property.
+     * Gets the value of a 3D overlay's (or entity's) property.
+     * <p><strong>Note:</strong> 2D overlays' property values cannot be retrieved.</p>
      * @function Overlays.getProperty
-     * @param {Uuid} id - The ID of the overlay. <em>Must be for a 3D {@link Overlays.OverlayType|OverlayType}.</em>
-     * @param {string} property - The name of the property value to get.
+     * @param {Uuid} id - The ID of the 3D overlay (or entity).
+     * @param {string} property - The name of the property to get the value of.
      * @returns {object} The value of the property if the 3D overlay and property can be found, otherwise
      *     <code>undefined</code>.
      * @example <caption>Create an overlay in front of your avatar then report its alpha property value.</caption>
@@ -301,12 +332,13 @@ public slots:
     QVariant getProperty(const QUuid& id, const QString& property);
 
     /**jsdoc
-     * Get the values of an overlay's properties.
+     * Gets the values of a 3D overlay's (or entity's) properties.
+     * <p><strong>Note:</strong> 2D overlays' property values cannot be retrieved.</p>
      * @function Overlays.getProperties
-     * @param {Uuid} id - The ID of the overlay.
-     * @param {Array.<string>} properties - An array of names of properties to get the values of.
-     * @returns {Overlays.OverlayProperties} The values of valid properties if the overlay can be found, otherwise 
-     *     <code>undefined</code>.
+     * @param {Uuid} id - The ID of the overlay (or entity).
+     * @param {Array.<string>} properties - The names of the properties to get the values of.
+     * @returns {Overlays.OverlayProperties} The values of valid properties if the overlay can be found, otherwise an empty 
+     *     object.
      * @example <caption>Create an overlay in front of your avatar then report some of its properties.</caption>
      * var overlay = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
@@ -320,11 +352,11 @@ public slots:
     QVariantMap getProperties(const QUuid& id, const QStringList& properties);
 
     /**jsdoc
-     * Get the values of multiple overlays' properties.
+     * Gets the values of multiple overlays' (or entities') properties.
      * @function Overlays.getOverlaysProperties
-     * @param propertiesById {object.<Uuid, Array.<string>>} - An object with overlay IDs as keys and arrays of the names of 
-     *     properties to get for each as values.
-     * @returns {object.<Uuid, Overlays.OverlayProperties>} An object with overlay IDs as keys and
+     * @param propertiesById {object.<Uuid, Array.<string>>} - An object with overlay (or entity) IDs as keys and arrays of the 
+     *     names of properties to get for each as values.
+     * @returns {object.<Uuid, Overlays.OverlayProperties>} An object with overlay (or entity) IDs as keys and
      *     {@link Overlays.OverlayProperties|OverlayProperties} as values.
      * @example <caption>Create two cube overlays in front of your avatar then get some of their properties.</caption>
      * var overlayA = Overlays.addOverlay("cube", {
@@ -348,22 +380,20 @@ public slots:
     QVariantMap getOverlaysProperties(const QVariant& overlaysProperties);
 
     /**jsdoc
-     *  Find the closest 3D overlay intersected by a {@link PickRay}. Overlays with their <code>drawInFront</code> property set  
-     * to <code>true</code> have priority over overlays that don't, except that tablet overlays have priority over any  
-     * <code>drawInFront</code> overlays behind them. I.e., if a <code>drawInFront</code> overlay is behind one that isn't  
-     * <code>drawInFront</code>, the <code>drawInFront</code> overlay is returned, but if a tablet overlay is in front of a  
-     * <code>drawInFront</code> overlay, the tablet overlay is returned.
+     * Finds the closest 3D overlay (or local entity) intersected by a {@link PickRay}.
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
-     * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {Array.<Uuid>} [include=[]] - If not empty then the search is restricted to these overlays.
-     * @param {Array.<Uuid>} [discard=[]] - Overlays to ignore during the search.
-     * @param {boolean} [visibleOnly=false] - If <code>true</code> then only entities that are 
-     *     <code>{@link Entities.EntityProperties|visible}<code> are searched.
-     * @param {boolean} [collideableOnly=false] - If <code>true</code> then only entities that are not 
+     * @param {boolean} [precisionPicking=false] - code>true</code> to pick against precise meshes, <code>false</code> to pick 
+     *     against coarse meshes. If <coide>true</code> and the intersected entity is a model, the result's 
+     *     <code>extraInfo</code> property includes more information than it otherwise would.
+     * @param {Array.<Uuid>} [include=[]] - If not empty then the search is restricted to these overlays (and local entities).
+     * @param {Array.<Uuid>} [discard=[]] - Overlays (and local entities) to ignore during the search.
+     * @param {boolean} [visibleOnly=false] - If <code>true</code> then only overlays (and local entities) that are 
+     *     <code>{@link Overlays.OverlayProperties|visible}</code> are searched.
+     * @param {boolean} [collideableOnly=false] - If <code>true</code> then only local entities that are not 
      *     <code>{@link Entities.EntityProperties|collisionless}</code> are searched.
-     * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
-     *     into account <code>overlayIDsToInclude</code> and <code>overlayIDsToExclude</code> if they're not empty.
+     * @returns {Overlays.RayToOverlayIntersectionResult} The result of the search for the first intersected overlay (or local 
+     *     entity.
      * @example <caption>Create a cube overlay in front of your avatar. Report 3D overlay intersection details for mouse 
      *     clicks.</caption>
      * var overlay = Overlays.addOverlay("cube", {
@@ -387,12 +417,13 @@ public slots:
                                                        bool collidableOnly = false);
 
     /**jsdoc
-     * Return a list of local entities with bounding boxes that touch a search sphere.
+     * Gets a list of visible 3D overlays (local entities) with bounding boxes that touch a search sphere.
      * @function Overlays.findOverlays
      * @param {Vec3} center - The center of the search sphere.
      * @param {number} radius - The radius of the search sphere.
-     * @returns {Uuid[]} An array of entity IDs with bounding boxes that touch a search sphere.
-     * @example <caption>Create two cube entities in front of your avatar then search for entities near your avatar.</caption>
+     * @returns {Uuid[]} The IDs of the overlays (local entities) that are visible and have bounding boxes that touch a search 
+     *     sphere.
+     * @example <caption>Create two overlays in front of your avatar then search for overlays near your avatar.</caption>
      * var overlayA = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
      *     rotation: MyAvatar.orientation,
@@ -414,11 +445,13 @@ public slots:
     QVector<QUuid> findOverlays(const glm::vec3& center, float radius);
 
     /**jsdoc
-     * Check whether an overlay's assets have been loaded. For example, for an <code>image</code> overlay the result indicates
-     * whether its image has been loaded.
+     * Checks whether an overlay's (or entity's) assets have been loaded. For example, for an 
+     * <code>{@link Overlays.OverlayProperties-Image|"image"}</code> overlay, the result indicates whether its image has been 
+     * loaded.
      * @function Overlays.isLoaded
-     * @param {Uuid} id - The ID of the overlay to check.
-     * @returns {boolean} <code>true</code> if the overlay's assets have been loaded, otherwise <code>false</code>.
+     * @param {Uuid} id - The ID of the overlay (or entity) to check.
+     * @returns {boolean} <code>true</code> if the overlay's (or entity's) assets have been loaded, otherwise 
+     *     <code>false</code>.
      * @example <caption>Create an image overlay and report whether its image is loaded after 1s.</caption>
      * var overlay = Overlays.addOverlay("image", {
      *     bounds: { x: 100, y: 100, width: 200, height: 200 },
@@ -432,44 +465,49 @@ public slots:
     bool isLoaded(const QUuid& id);
 
     /**jsdoc
-     * Calculates the size of the given text in the specified object if it is a text entity or overlay.
+     * Calculates the size of some text in a text overlay (or entity). The overlay (or entity) need not be set visible.
+     * <p><strong>Note:</strong> The size of text in a 3D overlay (or entity) cannot be calculated immediately after the 
+     * overlay (or entity) is created; a short delay is required while the overlay (or entity) finishes being created.</p>
      * @function Overlays.textSize
-     * @param {Uuid} id - The ID of the object to use for calculation.
+     * @param {Uuid} id - The ID of the overlay (or entity) to use for calculation.
      * @param {string} text - The string to calculate the size of.
-     * @returns {Size} The size of the <code>text</code> if the object is a text entity or overlay, otherwise
-     *     <code>{ height: 0, width : 0 }</code>. If the object is a 2D overlay, the size is in pixels; if the object is an entity,
-     *     the size is in meters.
+     * @returns {Size} The size of the <code>text</code> if the object is a text overlay (or entity), otherwise
+     *     <code>{ height: 0, width : 0 }</code>. If the object is a 2D overlay, the size is in pixels; if the object is a 3D 
+     *     overlay (or entity), the size is in meters.
      * @example <caption>Calculate the size of "hello" in a 3D text entity.</caption>
      * var overlay = Overlays.addOverlay("text3d", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -2 })),
      *     rotation: MyAvatar.orientation,
-     *     text: "hello",
-     *     lineHeight: 0.2
+     *     lineHeight: 0.2,
+     *     visible: false
      * });
-     * var textSize = Overlays.textSize(overlay, "hello");
-     * print("Size of \"hello\": " + JSON.stringify(textSize));
+     *
+     * Script.setTimeout(function() {
+     *     var textSize = Overlays.textSize(overlay, "hello");
+     *     print("Size of \"hello\": " + JSON.stringify(textSize));
+     * }, 500);
      */
     QSizeF textSize(const QUuid& id, const QString& text);
 
     /**jsdoc
-     * Get the width of the window or HUD.
+     * Gets the width of the Interface window or HUD.
      * @function Overlays.width
-     * @returns {number} The width, in pixels, of the Interface window if in desktop mode or the HUD if in HMD mode.
+     * @returns {number} The width, in pixels, of the Interface window if in desktop mode or the HUD surface if in HMD mode.
      */
     float width();
 
     /**jsdoc
-     * Get the height of the window or HUD.
+     * Gets the height of the Interface window or HUD.
      * @function Overlays.height
-     * @returns {number} The height, in pixels, of the Interface window if in desktop mode or the HUD if in HMD mode.
+     * @returns {number} The height, in pixels, of the Interface window if in desktop mode or the HUD surface if in HMD mode.
      */
     float height();
 
     /**jsdoc
-     * Check if there is an object of a given ID.
+     * Checks if an overlay (or entity) exists.
      * @function Overlays.isAddedOverlay
-     * @param {Uuid} id - The ID to check.
-     * @returns {boolean} <code>true</code> if an object with the given ID exists, <code>false</code> otherwise.
+     * @param {Uuid} id - The ID of the overlay (or entity) to check.
+     * @returns {boolean} <code>true</code> if an overlay (or entity) with the given ID exists, <code>false</code> if it doesn't.
      */
     bool isAddedOverlay(const QUuid& id);
 
@@ -554,18 +592,21 @@ public slots:
     void sendHoverLeaveOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Get the ID of the Web3D entity that has keyboard focus.
+     * Gets the ID of the <code>{@link Overlays.OverlayProperties-Web3D|"web3d"}</code> overlay 
+     * ({@link Entities.EntityProperties-Web|Web} entity) that has keyboard focus.
      * @function Overlays.getKeyboardFocusOverlay
-     * @returns {Uuid} The ID of the {@link Entities.EntityTypes|Web} overlay that has focus, if any, otherwise 
-     *     <code>null</code>.
+     * @returns {Uuid} The ID of the <code>{@link Overlays.OverlayProperties-Web3D|"web3d"}</code> overlay 
+     * ({@link Entities.EntityProperties-Web|Web} entity) that has focus, if any, otherwise <code>null</code>.
      */
     QUuid getKeyboardFocusOverlay() { return DependencyManager::get<EntityScriptingInterface>()->getKeyboardFocusEntity(); }
 
     /**jsdoc
-     * Set the Web3D entity that has keyboard focus.
+     * Sets the <code>{@link Overlays.OverlayProperties-Web3D|"web3d"}</code> overlay 
+     * ({@link Entities.EntityProperties-Web|Web} entity) that has keyboard focus.
      * @function Overlays.setKeyboardFocusOverlay
-     * @param {Uuid} id - The ID of the {@link Entities.EntityTypes|Web} entity to set keyboard focus to. Use 
-     *     <code>null</code> or {@link Uuid(0)|Uuid.NULL} to unset keyboard focus from an overlay.
+     * @param {Uuid} id - The ID of the <code>{@link Overlays.OverlayProperties-Web3D|"web3d"}</code> overlay 
+     * ({@link Entities.EntityProperties-Web|Web} entity) to set keyboard focus to. Use <code>null</code> or 
+     * {@link Uuid(0)|Uuid.NULL} to unset keyboard focus from an overlay (entity).
      */
     void setKeyboardFocusOverlay(const QUuid& id) { DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(id); }
 
