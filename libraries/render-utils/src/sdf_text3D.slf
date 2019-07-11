@@ -13,10 +13,10 @@
     <@include DefaultMaterials.slh@>
 
     <@include GlobalLight.slh@>
-    <@if HIFI_USE_FORWARD@>
-        <$declareEvalSkyboxGlobalColor()$>
-    <@else@>
+    <@if HIFI_USE_TRANSLUCENT@>
         <$declareEvalGlobalLightingAlphaBlended()$>
+    <@else@>
+        <$declareEvalSkyboxGlobalColor(_SCRIBE_NULL, HIFI_USE_FORWARD)$>
     <@endif@>
 
     <@include gpu/Transform.slh@>
@@ -65,19 +65,7 @@ void main() {
         TransformCamera cam = getTransformCamera();
         vec3 fragPosition = _positionES.xyz;
 
-        <@if HIFI_USE_FORWARD@>
-            _fragColor0 = vec4(evalSkyboxGlobalColor(
-                cam._viewInverse,
-                1.0,
-                DEFAULT_OCCLUSION,
-                fragPosition,
-                normalize(_normalWS),
-                _color.rgb,
-                DEFAULT_FRESNEL,
-                DEFAULT_METALLIC,
-                DEFAULT_ROUGHNESS),
-                alpha);
-        <@else@>
+        <@if HIFI_USE_TRANSLUCENT@>
             _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
                 cam._viewInverse,
                 1.0,
@@ -89,6 +77,18 @@ void main() {
                 DEFAULT_METALLIC,
                 DEFAULT_EMISSIVE,
                 DEFAULT_ROUGHNESS, alpha),
+                alpha);
+        <@else@>
+            _fragColor0 = vec4(evalSkyboxGlobalColor(
+                cam._viewInverse,
+                1.0,
+                DEFAULT_OCCLUSION,
+                fragPosition,
+                normalize(_normalWS),
+                _color.rgb,
+                DEFAULT_FRESNEL,
+                DEFAULT_METALLIC,
+                DEFAULT_ROUGHNESS),
                 alpha);
         <@endif@>
     <@else@>

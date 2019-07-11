@@ -259,7 +259,7 @@ void GraphicsEngine::render_performFrame() {
             batch.enableSkybox(true);
             batch.enableStereo(isStereo);
             batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
-            _splashScreen->render(batch, viewFrustum);
+            _splashScreen->render(batch, viewFrustum, renderArgs._renderMethod == RenderArgs::RenderMethod::FORWARD);
         });
     } else {
         {

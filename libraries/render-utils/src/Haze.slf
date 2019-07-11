@@ -19,7 +19,7 @@
 <@include LightingModel.slh@>
 <$declareLightBuffer()$>
 
-<@include Haze.slh@>
+<@include graphics/Haze.slh@>
 
 LAYOUT(binding=RENDER_UTILS_TEXTURE_HAZE_LINEAR_DEPTH) uniform sampler2D linearDepthMap;
 

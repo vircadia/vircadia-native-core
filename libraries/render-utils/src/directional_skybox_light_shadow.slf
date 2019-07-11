@@ -15,7 +15,7 @@
 <@include render-utils/ShaderConstants.h@>
 
 <@include GlobalLight.slh@>
-<$declareEvalSkyboxGlobalColor(isScattering)$>
+<$declareEvalSkyboxGlobalColor(isScattering, _SCRIBE_NULL)$>
 
 <@include Shadow.slh@>
 

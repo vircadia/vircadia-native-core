@@ -22,7 +22,7 @@
 LAYOUT(binding=0) uniform sampler2D _texture;
 
 <@if not HIFI_USE_FORWARD@>
-layout(location=0) in vec3 _normalWS;
+    layout(location=0) in vec3 _normalWS;
 <@endif@>
 layout(location=1) in vec2 _texCoord;
 layout(location=2) in vec4 _color;

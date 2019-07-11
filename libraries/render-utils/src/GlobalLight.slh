@@ -98,9 +98,9 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 
 <@endfunc@>
 
-<@include Haze.slh@>
+<@include graphics/Haze.slh@>
 
-<@func declareEvalSkyboxGlobalColor(supportScattering)@>
+<@func declareEvalSkyboxGlobalColor(supportScattering, computeHaze)@>
 
 <$declareLightingAmbient(_SCRIBE_NULL, 1, _SCRIBE_NULL, $supportScattering$)$>
 <$declareLightingDirectional($supportScattering$)$>
@@ -109,13 +109,13 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 <$declareDeferredCurvature()$>
 <@endif@>
 
-vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal,
+vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 normalWS,
     vec3 albedo, vec3 fresnel, float metallic, float roughness
 <@if supportScattering@>
     , float scattering, vec4 midNormalCurvature, vec4 lowNormalCurvature
 <@endif@>
     ) {
-    <$prepareGlobalLight(position, normal)$>
+    <$prepareGlobalLight(positionES, normalWS)$>
 
     SurfaceData surfaceWS = initSurfaceData(roughness, fragNormalWS, fragEyeDirWS);
 
@@ -130,6 +130,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += ambientDiffuse;
     color += ambientSpecular;
 
+    // Directional
     vec3 directionalDiffuse;
     vec3 directionalSpecular;
     evalLightingDirectional(directionalDiffuse, directionalSpecular, lightDirection, lightIrradiance, surfaceWS, metallic, fresnel, albedo, shadowAttenuation
@@ -140,9 +141,24 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     color += directionalDiffuse;
     color += directionalSpecular;
 
-    // Attenuate the light if haze effect selected
-    if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
-        color = computeHazeColorKeyLightAttenuation(color, lightDirection, fragPositionWS);    
+    // Haze
+    if (isHazeEnabled() > 0.0) {
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
+            color = computeHazeColorKeyLightAttenuation(color, lightDirection, fragPositionWS);
+        }
+
+<@if computeHaze@>
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+            vec4 hazeColor = computeHazeColor(
+                positionES,                     // fragment position in eye   coordinates
+                fragPositionWS,                 // fragment position in world coordinates
+                invViewMat[3].xyz,              // eye      position in world coordinates
+                lightDirection                  // keylight direction vector in world coordinates
+            );
+
+            color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
+        }
+<@endif@>
     }
 
     return color;
@@ -181,8 +197,8 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscur
 <$declareLightingDirectional()$>
 
 vec3 evalGlobalLightingAlphaBlended(
-    mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 normalWS, 
-    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity) 
+    mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 normalWS,
+    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, float roughness, float opacity)
 {
     <$prepareGlobalLight(positionES, normalWS)$>
     
@@ -204,23 +220,29 @@ vec3 evalGlobalLightingAlphaBlended(
     color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
     // Haze
-    if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
-        vec4 hazeColor = computeHazeColor(
-            positionES,                     // fragment position in eye   coordinates
-            fragPositionWS,                 // fragment position in world coordinates
-            invViewMat[3].xyz,              // eye      position in world coordinates
-            lightDirection                  // keylight direction vector in world coordinates
-        );
+    if (isHazeEnabled() > 0.0) {
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
+            color = computeHazeColorKeyLightAttenuation(color, lightDirection, fragPositionWS);
+        }
 
-        color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+            vec4 hazeColor = computeHazeColor(
+                positionES,                     // fragment position in eye   coordinates
+                fragPositionWS,                 // fragment position in world coordinates
+                invViewMat[3].xyz,              // eye      position in world coordinates
+                lightDirection                  // keylight direction vector in world coordinates
+            );
+
+            color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
+        }
     }
 
     return color;
 }
 
 vec3 evalGlobalLightingAlphaBlended(
-    mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 positionWS, 
-    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, SurfaceData surface, float opacity, vec3 prevLighting) 
+    mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 positionES, vec3 normalWS,
+    vec3 albedo, vec3 fresnel, float metallic, vec3 emissive, SurfaceData surface, float opacity, vec3 prevLighting)
 {
     <$fetchGlobalLight()$>
     
@@ -241,15 +263,23 @@ vec3 evalGlobalLightingAlphaBlended(
     color += evalSpecularWithOpacity(ambientSpecular + directionalSpecular, opacity);
 
     // Haze
-    if ((isHazeEnabled() > 0.0) && (hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
-        vec4 hazeColor = computeHazeColor(
-            positionES,                     // fragment position in eye   coordinates
-            positionWS,                     // fragment position in world coordinates
-            invViewMat[3].xyz,              // eye      position in world coordinates
-            lightDirection                  // keylight direction vector
-        );
+    if (isHazeEnabled() > 0.0) {
+        vec3 fragPositionWS = vec3(invViewMat * vec4(positionES, 1.0));
 
-        color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_KEYLIGHT_ATTENUATED) == HAZE_MODE_IS_KEYLIGHT_ATTENUATED) {
+            color = computeHazeColorKeyLightAttenuation(color, lightDirection, fragPositionWS);
+        }
+
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+            vec4 hazeColor = computeHazeColor(
+                positionES,                     // fragment position in eye   coordinates
+                fragPositionWS,                 // fragment position in world coordinates
+                invViewMat[3].xyz,              // eye      position in world coordinates
+                lightDirection                  // keylight direction vector in world coordinates
+            );
+
+            color = mix(color.rgb, hazeColor.rgb, hazeColor.a);
+        }
     }
 
     return color;

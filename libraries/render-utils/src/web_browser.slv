@@ -17,7 +17,9 @@
 
 <@include render-utils/ShaderConstants.h@>
 
-layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+<@if not HIFI_USE_FORWARD@>
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+<@endif@>
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
@@ -28,5 +30,8 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+
+<@if not HIFI_USE_FORWARD@>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+<@endif@>
 }

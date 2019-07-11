@@ -28,7 +28,7 @@
         <@include DefaultMaterials.slh@>
 
         <@include GlobalLight.slh@>
-        <$declareEvalSkyboxGlobalColor()$>
+        <$declareEvalSkyboxGlobalColor(_SCRIBE_NULL, HIFI_USE_FORWARD)$>
 
         <@include gpu/Transform.slh@>
         <$declareStandardCameraTransform()$>
@@ -52,7 +52,9 @@
     LAYOUT(binding=0) uniform polyvoxParamsBuffer {
         PolyvoxParams params;
     };
-<@else@>
+<@endif@>
+
+<@if HIFI_USE_SHADOW or HIFI_USE_FORWARD@>
     layout(location=0) out vec4 _fragColor0;
 <@endif@>
 
@@ -101,7 +103,7 @@ void main(void) {
             DEFAULT_SCATTERING);
     <@else@>
         TransformCamera cam = getTransformCamera();
-        vec4 color = vec4(evalSkyboxGlobalColor(
+        _fragColor0 = vec4(evalSkyboxGlobalColor(
             cam._viewInverse,
             1.0,
             DEFAULT_OCCLUSION,

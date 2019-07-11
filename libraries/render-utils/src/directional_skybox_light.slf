@@ -15,7 +15,7 @@
 <@include render-utils/ShaderConstants.h@>
 
 <@include GlobalLight.slh@>
-<$declareEvalSkyboxGlobalColor(isScattering)$>
+<$declareEvalSkyboxGlobalColor(isScattering, _SCRIBE_NULL)$>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy

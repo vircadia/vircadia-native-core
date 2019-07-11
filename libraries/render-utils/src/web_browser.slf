@@ -21,7 +21,9 @@
 
 LAYOUT(binding=0) uniform sampler2D webTexture;
 
-layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+<@if not HIFI_USE_FORWARD@>
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+<@endif@>
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy

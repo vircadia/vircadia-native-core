@@ -1,8 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//  skybox.frag
-//  fragment shader
 //
 //  Created by Sam Gateau on 5/5/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -11,6 +10,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include graphics/ShaderConstants.h@>
+
+<@if HIFI_USE_FORWARD@>
+    <@include graphics/Haze.slh@>
+<@endif@>
 
 LAYOUT(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
 
@@ -36,4 +39,9 @@ void main(void) {
     vec3 skyboxColor = skybox.color.rgb;
     _fragColor = vec4(mix(vec3(1.0), skyboxTexel, float(skybox.color.a > 0.0)) *
                       mix(vec3(1.0), skyboxColor, float(skybox.color.a < 1.0)), 1.0);
+
+<@if HIFI_USE_FORWARD@>
+    _fragColor = vec4(hazeParams.hazeColor, 1);
+<@endif@>
+
 }

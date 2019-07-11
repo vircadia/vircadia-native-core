@@ -26,7 +26,7 @@
             <@endif@>
             <$declareEvalGlobalLightingAlphaBlended()$>
         <@else@>
-            <$declareEvalSkyboxGlobalColor()$>
+            <$declareEvalSkyboxGlobalColor(_SCRIBE_NULL, HIFI_USE_FORWARD)$>
         <@endif@>
         <@include gpu/Transform.slh@>
         <$declareStandardCameraTransform()$>
@@ -195,6 +195,7 @@ void main(void) {
     <@else@>
             vec3 fragNormalWS = _normalWS;
     <@endif@>
+        fragNormalWS = normalize(fragNormalWS);
 
     <@if HIFI_USE_FORWARD@>
         TransformCamera cam = getTransformCamera();
@@ -253,7 +254,7 @@ void main(void) {
         <@if not HIFI_USE_TRANSLUCENT@>
             <@if not HIFI_USE_LIGHTMAP@>
                 packDeferredFragment(
-                    normalize(fragNormalWS),
+                    fragNormalWS,
                     opacity,
                     albedo,
                     roughness,
@@ -267,7 +268,7 @@ void main(void) {
                     scattering);
             <@else@>
                 packDeferredFragmentLightmap(
-                    normalize(fragNormalWS),
+                    fragNormalWS,
                     evalOpaqueFinalAlpha(getMaterialOpacity(mat), opacity),
                     albedo,
                     roughness,
@@ -301,7 +302,7 @@ void main(void) {
                     1.0,
                     occlusion,
                     _positionES.xyz,
-                    fragPositionWS,
+                    fragNormalWS,
                     albedo,
                     fresnel,
                     metallic,

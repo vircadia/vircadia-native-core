@@ -13,6 +13,8 @@
 
 #include <gpu/Context.h>
 
+#include <graphics/ShaderConstants.h>
+
 std::string BackgroundStage::_stageName { "BACKGROUND_STAGE"};
 const BackgroundStage::Index BackgroundStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
@@ -71,6 +73,8 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         }   
     }
 
+    const auto& hazeFrame = inputs.get2();
+
     if (skybox && !skybox->empty()) {
         PerformanceTimer perfTimer("skybox");
         auto args = renderContext->args;
@@ -91,7 +95,18 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
 
-            skybox->render(batch, args->getViewFrustum());
+            // If we're using forward rendering, we need to calculate haze
+            if (args->_renderMethod == render::Args::RenderMethod::FORWARD) {
+                const auto& hazeStage = args->_scene->getStage<HazeStage>();
+                if (hazeStage && hazeFrame->_hazes.size() > 0) {
+                    const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
+                    if (hazePointer) {
+                        batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
+                    }
+                }
+            }
+
+            skybox->render(batch, args->getViewFrustum(), args->_renderMethod == render::Args::RenderMethod::FORWARD);
         });
         args->_batch = nullptr;
     }
