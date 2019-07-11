@@ -383,15 +383,15 @@ public slots:
      * Finds the closest 3D overlay (or local entity) intersected by a {@link PickRay}.
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
-     * @param {boolean} [precisionPicking=false] - code>true</code> to pick against precise meshes, <code>false</code> to pick 
+     * @param {boolean} [precisionPicking=false] - <code>true</code> to pick against precise meshes, <code>false</code> to pick 
      *     against coarse meshes. If <coide>true</code> and the intersected entity is a model, the result's 
      *     <code>extraInfo</code> property includes more information than it otherwise would.
      * @param {Array.<Uuid>} [include=[]] - If not empty then the search is restricted to these overlays (and local entities).
      * @param {Array.<Uuid>} [discard=[]] - Overlays (and local entities) to ignore during the search.
-     * @param {boolean} [visibleOnly=false] - If <code>true</code> then only overlays (and local entities) that are 
-     *     <code>{@link Overlays.OverlayProperties|visible}</code> are searched.
-     * @param {boolean} [collideableOnly=false] - If <code>true</code> then only local entities that are not 
-     *     <code>{@link Entities.EntityProperties|collisionless}</code> are searched.
+     * @param {boolean} [visibleOnly=false] - <code>true</code> if only overlays (and local entities) that are 
+     *     <code>{@link Overlays.OverlayProperties|visible}</code> should be searched.
+     * @param {boolean} [collideableOnly=false] - <code>true</code> if only local entities that are not 
+     *     <code>{@link Entities.EntityProperties|collisionless}</code> should be searched.
      * @returns {Overlays.RayToOverlayIntersectionResult} The result of the search for the first intersected overlay (or local 
      *     entity.
      * @example <caption>Create a cube overlay in front of your avatar. Report 3D overlay intersection details for mouse 
