@@ -282,20 +282,7 @@ ItemKey entities::TextPayload::getKey() const {
         auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
         if (renderable) {
             auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
-            ItemKey::Builder key;
-            // Similar to EntityRenderer::getKey()
-            if (textRenderable->isTextTransparent()) {
-                key = ItemKey::Builder::transparentShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
-            } else if (textRenderable->_canCastShadow) {
-                key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withShadowCaster().withLayer(textRenderable->getHifiRenderLayer());
-            } else {
-                key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
-            }
-
-            if (!textRenderable->_visible) {
-                key.withInvisible();
-            }
-            return key;
+            return ItemKey::Builder(textRenderable->getKey()).withoutMetaCullGroup().withSubMetaCulled();
         }
     }
     return ItemKey::Builder::opaqueShape();
