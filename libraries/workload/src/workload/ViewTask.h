@@ -196,7 +196,7 @@ namespace workload {
         } data;
 
         struct DataExport {
-            static const int SIZE{ workload::Region::NUM_VIEW_REGIONS };
+            static const int SIZE{ workload::Region::NUM_TRACKED_REGIONS };
             float timings[SIZE];
             glm::vec2 ranges[SIZE];
             QList<qreal> _timings { 6, 2.0 };
@@ -252,8 +252,8 @@ namespace workload {
         void configure(const Config& config);
         void run(const workload::WorkloadContextPointer& runContext, const Input& inputs, Output& outputs);
 
-        std::array<glm::vec2, workload::Region::NUM_VIEW_REGIONS> regionBackFronts;
-        std::array<Regulator, workload::Region::NUM_VIEW_REGIONS> regionRegulators;
+        std::array<glm::vec2, workload::Region::NUM_TRACKED_REGIONS> regionBackFronts;
+        std::array<Regulator, workload::Region::NUM_TRACKED_REGIONS> regionRegulators;
 
         void regulateViews(workload::Views& views, const workload::Timings& timings);
         void enforceRegionContainment();

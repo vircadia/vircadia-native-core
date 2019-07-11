@@ -34,7 +34,7 @@ void RegionTracker::run(const WorkloadContextPointer& context, Outputs& outputs)
         space->categorizeAndGetChanges(outChanges);
 
         // use exit/enter lists for each region less than Region::R4
-        outRegionChanges.resize(2 * (workload::Region::NUM_CLASSIFICATIONS - 1));
+        outRegionChanges.resize(2 * workload::Region::NUM_TRACKED_REGIONS);
         for (uint32_t i = 0; i < outChanges.size(); ++i) {
             Space::Change& change = outChanges[i];
             if (change.prevRegion < Region::R4) {

@@ -26,10 +26,9 @@ public:
         INVALID,  // INVALID = not known to workload
     };
 
-    static const uint8_t NUM_CLASSIFICATIONS = 4;
-    static const uint8_t NUM_TRANSITIONS = NUM_CLASSIFICATIONS * (NUM_CLASSIFICATIONS - 1);
-
-    static const uint8_t NUM_VIEW_REGIONS = (NUM_CLASSIFICATIONS - 1);
+    static constexpr uint32_t NUM_KNOWN_REGIONS = uint32_t(Region::R4 - Region::R1 + 1); // R1 through R4 inclusive
+    static constexpr uint32_t NUM_TRACKED_REGIONS = uint32_t(Region::R3 - Region::R1 + 1); // R1 through R3 inclusive
+    static const uint8_t NUM_REGION_TRANSITIONS = NUM_KNOWN_REGIONS * (NUM_KNOWN_REGIONS - 1);
 
     static uint8_t computeTransitionIndex(uint8_t prevIndex, uint8_t newIndex);
 
@@ -63,11 +62,11 @@ inline uint8_t Region::computeTransitionIndex(uint8_t prevIndex, uint8_t newInde
     // 3  |       |       |       |       |
     //    |     9 |    10 |    11 |    -1 |
     //    +-------+-------+-------+-------+
-    uint8_t p = prevIndex + Region::NUM_CLASSIFICATIONS * newIndex;
-    if (0 == (p % (Region::NUM_CLASSIFICATIONS + 1))) {
+    uint8_t p = prevIndex + Region::NUM_KNOWN_REGIONS * newIndex;
+    if (0 == (p % (Region::NUM_KNOWN_REGIONS + 1))) {
         return -1;
     }
-    return p - (1 + p / (Region::NUM_CLASSIFICATIONS + 1));
+    return p - (1 + p / (Region::NUM_KNOWN_REGIONS + 1));
 }
 
 } // namespace workload
