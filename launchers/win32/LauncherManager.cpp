@@ -24,8 +24,7 @@ LauncherManager::~LauncherManager() {
 void LauncherManager::init() {
     initLog();
     addToLog(_T("Getting most recent build"));
-    CString response;
-    getMostRecentBuild(_latestApplicationURL, _latestVersion, response);
+    getMostRecentBuild(_latestApplicationURL, _latestVersion);
 }
 
 BOOL LauncherManager::initLog() {
@@ -360,7 +359,7 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     return LauncherUtils::ResponseError::ParsingJSON;
 }
 
-void LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut, CString& response) {
+void LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut) {
     CString contentTypeJson = L"content-type:application/json";
     std::function<void(CString, int)> httpCallback = [&](CString response, int err) {
         LauncherUtils::ResponseError error = LauncherUtils::ResponseError(err);

@@ -67,7 +67,7 @@ public:
     BOOL isApplicationInstalled(CString& version, CString& domain,
                                 CString& content, bool& loggedIn);
     LauncherUtils::ResponseError getAccessTokenForCredentials(const CString& username, const CString& password);
-    void getMostRecentBuild(CString& urlOut, CString& versionOut, CString& response);
+    void getMostRecentBuild(CString& urlOut, CString& versionOut);
     LauncherUtils::ResponseError readOrganizationJSON(const CString& hash);
     LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain,
                                                 CString& content, bool& loggedIn);
