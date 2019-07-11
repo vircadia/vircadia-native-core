@@ -17,6 +17,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QSharedPointer>
 
+#include <set>
+
 #include "EntityItem.h"
 #include "EntityDynamicInterface.h"
 
@@ -27,14 +29,18 @@ class EntityItemID;
 
 class SafeLanding : public QObject {
 public:
+    static constexpr OCTREE_PACKET_SEQUENCE MAX_SEQUENCE = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max();
+    static constexpr OCTREE_PACKET_SEQUENCE INVALID_SEQUENCE = MAX_SEQUENCE; // not technically invalid, but close enough
+
     void startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRenderer);
     void updateTracking();
     void stopTracking();
+    void reset();
     bool isTracking() const { return _trackingEntities; }
     bool trackingIsComplete() const;
 
-    void finishSequence(int first, int last);  // 'last' exclusive.
-    void addToSequence(int sequenceNumber);
+    void finishSequence(OCTREE_PACKET_SEQUENCE first, OCTREE_PACKET_SEQUENCE last);  // 'last' exclusive.
+    void addToSequence(OCTREE_PACKET_SEQUENCE sequenceNumber);
     float loadingProgressPercentage();
 
 private slots:
@@ -52,24 +58,22 @@ private:
     using EntityMap = std::map<EntityItemID, EntityItemPointer>;
     EntityMap _trackedEntities;
 
-    static constexpr int INVALID_SEQUENCE = -1;
-    int _initialStart { INVALID_SEQUENCE };
-    int _initialEnd { INVALID_SEQUENCE };
-    int _maxTrackedEntityCount { 0 };
-    int _trackedEntityStabilityCount { 0 };
+    OCTREE_PACKET_SEQUENCE _sequenceStart { INVALID_SEQUENCE };
+    OCTREE_PACKET_SEQUENCE _sequenceEnd { INVALID_SEQUENCE };
+    int32_t _maxTrackedEntityCount { 0 };
+    int32_t _trackedEntityStabilityCount { 0 };
 
     quint64 _startTime { 0 };
 
     struct SequenceLessThan {
-        bool operator()(const int& a, const int& b) const;
+        bool operator()(const OCTREE_PACKET_SEQUENCE& a, const OCTREE_PACKET_SEQUENCE& b) const;
     };
 
-    std::set<int, SequenceLessThan> _sequenceNumbers;
+    using SequenceSet = std::set<OCTREE_PACKET_SEQUENCE, SequenceLessThan>;
+    SequenceSet _sequenceNumbers;
 
     static CalculateEntityLoadingPriority entityLoadingOperatorElevateCollidables;
     CalculateEntityLoadingPriority _prevEntityLoadingPriorityOperator { nullptr };
-
-    static const int SEQUENCE_MODULO;
 };
 
 #endif  // hifi_SafeLanding_h
