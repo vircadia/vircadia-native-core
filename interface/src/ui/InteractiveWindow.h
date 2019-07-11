@@ -23,22 +23,30 @@
 #include <glm/glm.hpp>
 #include <GLMHelpers.h>
 
-class QmlWindowProxy : QmlWrapper {
+class QmlWindowProxy : public QmlWrapper {
     Q_OBJECT
 
 public:
     QmlWindowProxy(QObject* qmlObject, QObject* parent = nullptr);
 
-    Q_INVOKABLE void updateInteractiveWindowPositionForMode();
-
     Q_INVOKABLE void setPosition(const glm::vec2& position);
-    glm::vec2 getPositiion() const;
+    glm::vec2 getPosition() const;
 
     Q_INVOKABLE void setSize(const glm::vec2& size);
     glm::vec2 getSize() const;
 
     Q_INVOKABLE void setTitle(const QString& title);
     QString getTitle() const;
+
+    Q_INVOKABLE void setVisible(bool visible);
+    bool isVisible() const;
+
+    Q_INVOKABLE void setPresentationMode(int presentationMode);
+    int getPresentationMode() const;
+
+    Q_INVOKABLE void parentNativeWindowToMainWindow();
+
+    QObject* getQmlWindow() const { return _qmlWindow; }
 private:
     QObject* _qmlWindow;
 
@@ -314,7 +322,7 @@ protected slots:
     void forwardKeyReleaseEvent(int key, int modifiers);
 
 private:
-    QPointer<QObject> _qmlWindow;
+    std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };
 };
 
