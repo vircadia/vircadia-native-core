@@ -442,7 +442,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
     NSString* contentPath = [[self getDownloadPathForContentAndScripts] stringByAppendingString:@"content"];
     NSString* displayName = [ self displayName];
-    NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUI/"];
+    NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUIBootstrapper.js"];
     NSString* domainUrl = [[Settings sharedSettings] getDomainUrl];
     NSString* userToken = [[Launcher sharedLauncher] getTokenString];
     NSString* homeBookmark = [[NSString stringWithFormat:@"hqhome="] stringByAppendingString:domainUrl];
@@ -453,7 +453,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                         @"--tokens", userToken,
                         @"--cache", contentPath,
                         @"--displayName", displayName,
-                        @"--scripts", scriptsPath,
+                        @"--defaultScriptsOverride", scriptsPath,
                         @"--setBookmark", homeBookmark,
                         @"--no-updater",
                         @"--no-launcher", nil];
@@ -461,7 +461,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         arguments = [NSArray arrayWithObjects:
                             @"--url" , domainUrl,
                             @"--cache", contentPath,
-                            @"--scripts", scriptsPath,
+                            @"--defaultScriptsOverride", scriptsPath,
                             @"--setBookmark", homeBookmark,
                             @"--no-updater",
                             @"--no-launcher", nil];
