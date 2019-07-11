@@ -31,6 +31,17 @@ const float LINE_SCALE_RATIO = 1.2f;
 TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
     Parent(entity),
     _textRenderer(TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f)) {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (geometryCache) {
+        _geometryID = geometryCache->allocateID();
+    }
+}
+
+TextEntityRenderer::~TextEntityRenderer() {
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    if (_geometryID && geometryCache) {
+        geometryCache->releaseID(_geometryID);
+    }
 }
 
 bool TextEntityRenderer::isTransparent() const {
@@ -59,9 +70,12 @@ ItemKey TextEntityRenderer::getKey() {
 }
 
 ShapeKey TextEntityRenderer::getShapeKey() {
-    auto builder = render::ShapeKey::Builder();
+    auto builder = render::ShapeKey::Builder().withoutCullFace();
     if (isTransparent()) {
         builder.withTranslucent();
+    }
+    if (_unlit) {
+        builder.withUnlit();
     }
     if (_primitiveMode == PrimitiveMode::LINES) {
         builder.withWireframe();
@@ -69,7 +83,7 @@ ShapeKey TextEntityRenderer::getShapeKey() {
     return builder.build();
 }
 
-uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
+uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     auto parentSubs = Parent::metaFetchMetaSubItems(subItems);
     if (Item::isValidID(_textRenderID)) {
         subItems.emplace_back(_textRenderID);
@@ -127,6 +141,10 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
+    if (_unlit != entity->getUnlit()) {
+        return true;
+    }
+
     if (_pulseProperties != entity->getPulseProperties()) {
         return true;
     }
@@ -160,6 +178,7 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
         _rightMargin = entity->getRightMargin();
         _topMargin = entity->getTopMargin();
         _bottomMargin = entity->getBottomMargin();
+        _unlit = entity->getUnlit();
         updateTextRenderItem();
     });
 }
@@ -193,17 +212,19 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     batch.setModelTransform(modelTransform);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    render::ShapePipelinePointer pipeline;
-    if (renderLayer == RenderLayer::WORLD && args->_renderMethod != Args::RenderMethod::FORWARD) {
-        pipeline = backgroundColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-    } else {
-        pipeline = backgroundColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
-    }
-    if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
-        geometryCache->renderWireShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
-    } else {
-        geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
-    }
+    // FIXME: we want to use instanced rendering here, but if textAlpha < 1 and backgroundAlpha < 1, the transparency sorting will be wrong
+    //render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(backgroundColor.a < 1.0f, _unlit,
+    //    renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
+    //if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
+    //    geometryCache->renderWireShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
+    //} else {
+    //    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Quad, backgroundColor, pipeline);
+    //}
+
+    geometryCache->renderQuad(batch, glm::vec2(-0.5), glm::vec2(0.5), backgroundColor, _geometryID);
+
+    const int TRIANBLES_PER_QUAD = 2;
+    args->_details._trianglesRendered += TRIANBLES_PER_QUAD;
 }
 
 QSizeF TextEntityRenderer::textSize(const QString& text) const {
@@ -224,7 +245,6 @@ void TextEntityRenderer::onAddToSceneTyped(const TypedEntityPointer& entity) {
     render::Transaction transaction;
     transaction.resetItem(_textRenderID, renderPayload);
     AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
-    updateTextRenderItem();
 }
 
 void TextEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity) {
@@ -257,48 +277,47 @@ entities::TextPayload::~TextPayload() {
 }
 
 ItemKey entities::TextPayload::getKey() const {
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
-    if (renderable) {
-        auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
-        ItemKey::Builder key;
-        // Similar to EntityRenderer::getKey()
-        if (textRenderable->isTextTransparent()) {
-            key = ItemKey::Builder::transparentShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
-        } else if (textRenderable->_canCastShadow) {
-            key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withShadowCaster().withLayer(textRenderable->getHifiRenderLayer());
-        } else {
-            key = ItemKey::Builder::opaqueShape().withSubMetaCulled().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
+            return ItemKey::Builder(textRenderable->getKey()).withoutMetaCullGroup().withSubMetaCulled();
         }
-
-        if (!textRenderable->_visible) {
-            key.withInvisible();
-        }
-        return key;
     }
     return ItemKey::Builder::opaqueShape();
 }
 
 Item::Bound entities::TextPayload::getBound() const {
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
-    if (renderable) {
-        return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound();
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            return std::static_pointer_cast<TextEntityRenderer>(renderable)->getBound();
+        }
     }
     return Item::Bound();
 }
 
 ShapeKey entities::TextPayload::getShapeKey() const {
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
-    if (renderable) {
-        auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (entityTreeRenderer) {
+        auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
+        if (renderable) {
+            auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
 
-        auto builder = render::ShapeKey::Builder().withOwnPipeline();
-        if (textRenderable->isTextTransparent()) {
-            builder.withTranslucent();
+            auto builder = render::ShapeKey::Builder().withOwnPipeline();
+            if (textRenderable->isTextTransparent()) {
+                builder.withTranslucent();
+            }
+            if (textRenderable->_unlit) {
+                builder.withUnlit();
+            }
+            if (textRenderable->_primitiveMode == PrimitiveMode::LINES) {
+                builder.withWireframe();
+            }
+            return builder.build();
         }
-        if (textRenderable->_primitiveMode == PrimitiveMode::LINES) {
-            builder.withWireframe();
-        }
-        return builder.build();
     }
     return ShapeKey::Builder::invalid();
 }
@@ -313,7 +332,11 @@ void entities::TextPayload::render(RenderArgs* args) {
         return;
     }
 
-    auto renderable = DependencyManager::get<EntityTreeRenderer>()->renderableForEntityId(_entityID);
+    auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    if (!entityTreeRenderer) {
+        return;
+    }
+    auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
     if (!renderable) {
         return;
     }
@@ -355,7 +378,7 @@ void entities::TextPayload::render(RenderArgs* args) {
     batch.setModelTransform(modelTransform);
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (leftMargin + rightMargin), dimensions.y - (topMargin + bottomMargin));
-    textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, text, textColor, bounds / scale, forward);
+    textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, text, textColor, bounds / scale, textRenderable->_unlit, forward);
 }
 
 namespace render {

@@ -527,6 +527,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RIGHT_MARGIN, rightMargin);
     CHECK_PROPERTY_CHANGE(PROP_TOP_MARGIN, topMargin);
     CHECK_PROPERTY_CHANGE(PROP_BOTTOM_MARGIN, bottomMargin);
+    CHECK_PROPERTY_CHANGE(PROP_UNLIT, unlit);
 
     // Zone
     changedProperties += _keyLight.getChangedProperties();
@@ -1284,6 +1285,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} rightMargin=0.0 - The right margin, in meters.
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
+ * @property {boolean} unlit=false - <code>true</code> if the entity should be unaffected by lighting.  Otherwise, the text
+ *     is lit by the keylight and local lights.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code> 
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
@@ -1723,6 +1726,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RIGHT_MARGIN, rightMargin);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TOP_MARGIN, topMargin);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BOTTOM_MARGIN, bottomMargin);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_UNLIT, unlit);
     }
 
     // Zones only
@@ -2098,6 +2102,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rightMargin, float, setRightMargin);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(topMargin, float, setTopMargin);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(bottomMargin, float, setBottomMargin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(unlit, bool, setUnlit);
 
     // Zone
     _keyLight.copyFromScriptValue(object, _defaultSettings);
@@ -2381,6 +2386,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(rightMargin);
     COPY_PROPERTY_IF_CHANGED(topMargin);
     COPY_PROPERTY_IF_CHANGED(bottomMargin);
+    COPY_PROPERTY_IF_CHANGED(unlit);
 
     // Zone
     _keyLight.merge(other._keyLight);
@@ -2739,6 +2745,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_RIGHT_MARGIN, RightMargin, rightMargin, float);
         ADD_PROPERTY_TO_MAP(PROP_TOP_MARGIN, TopMargin, topMargin, float);
         ADD_PROPERTY_TO_MAP(PROP_BOTTOM_MARGIN, BottomMargin, bottomMargin, float);
+        ADD_PROPERTY_TO_MAP(PROP_UNLIT, Unlit, unlit, bool);
 
         // Zone
         { // Keylight
@@ -3168,6 +3175,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, properties.getRightMargin());
                 APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, properties.getTopMargin());
                 APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, properties.getBottomMargin());
+                APPEND_ENTITY_PROPERTY(PROP_UNLIT, properties.getUnlit());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -3646,6 +3654,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RIGHT_MARGIN, float, setRightMargin);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TOP_MARGIN, float, setTopMargin);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BOTTOM_MARGIN, float, setBottomMargin);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_UNLIT, bool, setUnlit);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -4038,6 +4047,7 @@ void EntityItemProperties::markAllChanged() {
     _rightMarginChanged = true;
     _topMarginChanged = true;
     _bottomMarginChanged = true;
+    _unlitChanged = true;
 
     // Zone
     _keyLight.markAllChanged();
@@ -4626,6 +4636,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (bottomMarginChanged()) {
         out += "bottomMargin";
+    }
+    if (unlitChanged()) {
+        out += "unlit";
     }
 
     // Zone

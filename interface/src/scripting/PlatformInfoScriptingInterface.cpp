@@ -167,7 +167,9 @@ bool PlatformInfoScriptingInterface::isStandalone() {
 int PlatformInfoScriptingInterface::getNumCPUs() {
     return platform::getNumCPUs();
 }
-
+int PlatformInfoScriptingInterface::getMasterCPU() {
+    return platform::getMasterCPU();
+}
 QString PlatformInfoScriptingInterface::getCPU(int index) {
     auto desc = platform::getCPU(index);
     return QString(desc.dump().c_str());
@@ -176,7 +178,9 @@ QString PlatformInfoScriptingInterface::getCPU(int index) {
 int PlatformInfoScriptingInterface::getNumGPUs() {
     return platform::getNumGPUs();
 }
-
+int PlatformInfoScriptingInterface::getMasterGPU() {
+    return platform::getMasterGPU();
+}
 QString PlatformInfoScriptingInterface::getGPU(int index) {
     auto desc = platform::getGPU(index);
     return QString(desc.dump().c_str());
@@ -185,7 +189,9 @@ QString PlatformInfoScriptingInterface::getGPU(int index) {
 int PlatformInfoScriptingInterface::getNumDisplays() {
     return platform::getNumDisplays();
 }
-
+int PlatformInfoScriptingInterface::getMasterDisplay() {
+    return platform::getMasterDisplay();
+}
 QString PlatformInfoScriptingInterface::getDisplay(int index) {
     auto desc = platform::getDisplay(index);
     return QString(desc.dump().c_str());

@@ -548,6 +548,13 @@ public:
                 return true;
             }
 
+            if (message->message == WM_POWERBROADCAST) {
+                if (message->wParam == PBT_APMRESUMEAUTOMATIC) {
+                    qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
+                    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+                }
+            }
+
             if (message->message == WM_COPYDATA) {
                 COPYDATASTRUCT* pcds = (COPYDATASTRUCT*)(message->lParam);
                 QUrl url = QUrl((const char*)(pcds->lpData));
@@ -832,6 +839,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     QCoreApplication::addLibraryPath(audioDLLPath);
 #endif 
 
+    QString defaultScriptsOverrideOption = getCmdOption(argc, constArgv, "--defaultScriptsOverride");
+
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, InterfaceDynamicFactory>();
@@ -853,7 +862,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AccountManager>(std::bind(&Application::getUserAgent, qApp));
 #endif
     DependencyManager::set<StatTracker>();
-    DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT);
+    DependencyManager::set<ScriptEngines>(ScriptEngine::CLIENT_SCRIPT, defaultScriptsOverrideOption);
     DependencyManager::set<ScriptInitializerMixin, NativeScriptInitializers>();
     DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
@@ -1345,9 +1354,22 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
-    connect(this, &Application::activeDisplayPluginChanged, this, [](){
+    connect(this, &Application::activeDisplayPluginChanged, this, [=](){
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
         auto displayPlugin = qApp->getActiveDisplayPlugin();
+
+        if (displayPlugin->isHmd()) {
+            if (_preferredCursor.get() == Cursor::Manager::getIconName(Cursor::Icon::RETICLE)) {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::RETICLE));
+            }
+            else {
+                setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::ARROW));
+            }
+        }
+        else {
+            setPreferredCursor(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+        }
+
         setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
@@ -1451,6 +1473,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
         _saveAvatarOverrideUrl = true;
     }
+
+    // setDefaultFormat has no effect after the platform window has been created, so call it here.
+    QSurfaceFormat::setDefaultFormat(getDefaultOpenGLSurfaceFormat());
 
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
@@ -4148,6 +4173,13 @@ bool Application::event(QEvent* event) {
         case QEvent::FocusOut:
             focusOutEvent(static_cast<QFocusEvent*>(event));
             return true;
+        case QEvent::FocusIn:
+        { //testing to see if we can set focus when focus is not set to root window.
+            _glWidget->activateWindow();
+            _glWidget->setFocus();
+            return true; 
+        }
+
         case QEvent::TouchBegin:
             touchBeginEvent(static_cast<QTouchEvent*>(event));
             event->accept();
@@ -5109,7 +5141,7 @@ void Application::idle() {
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (offscreenUi && offscreenUi->getWindow()) {
         auto activeFocusItem = offscreenUi->getWindow()->activeFocusItem();
-        if (_keyboardDeviceHasFocus && activeFocusItem != offscreenUi->getRootItem()) {
+        if (_keyboardDeviceHasFocus && (activeFocusItem != NULL && activeFocusItem != offscreenUi->getRootItem())) {
             _keyboardMouseDevice->pluginFocusOutEvent();
             _keyboardDeviceHasFocus = false;
             synthesizeKeyReleasEvents();
@@ -5393,12 +5425,10 @@ void Application::loadSettings() {
     }
 
     bool isFirstPerson = false;
-    if (_firstRun.get()) {
-        // If this is our first run, and no preferred devices were set, default to
-        // an HMD device if available.
+    if (arguments().contains("--no-launcher")) {
         auto displayPlugins = pluginManager->getDisplayPlugins();
         for (auto& plugin : displayPlugins) {
-            if (plugin->isHmd()) {
+            if (!plugin->isHmd()) {
                 if (auto action = menu->getActionForOption(plugin->getName())) {
                     action->setChecked(true);
                     action->trigger();
@@ -5406,18 +5436,31 @@ void Application::loadSettings() {
                 }
             }
         }
-
         isFirstPerson = (qApp->isHMDMode());
-
     } else {
-        // if this is not the first run, the camera will be initialized differently depending on user settings
-
-        if (qApp->isHMDMode()) {
-            // if the HMD is active, use first-person camera, unless the appropriate setting is checked
-            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+        if (_firstRun.get()) {
+            // If this is our first run, and no preferred devices were set, default to
+            // an HMD device if available.
+            auto displayPlugins = pluginManager->getDisplayPlugins();
+            for (auto& plugin : displayPlugins) {
+                if (plugin->isHmd()) {
+                    if (auto action = menu->getActionForOption(plugin->getName())) {
+                        action->setChecked(true);
+                        action->trigger();
+                        break;
+                    }
+                }
+            }
+            isFirstPerson = (qApp->isHMDMode());
         } else {
-            // if HMD is not active, only use first person if the menu option is checked
-            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+            // if this is not the first run, the camera will be initialized differently depending on user settings
+            if (qApp->isHMDMode()) {
+                // if the HMD is active, use first-person camera, unless the appropriate setting is checked
+                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+            } else {
+                // if HMD is not active, only use first person if the menu option is checked
+                isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+            }
         }
     }
 
@@ -7864,7 +7907,7 @@ void Application::showAssetServerWidget(QString filePath) {
         if (!hmd->getShouldShowTablet() && !isHMDMode()) {
             getOffscreenUI()->show(url, "AssetServer", startUpload);
         } else {
-            static const QUrl url("hifi/dialogs/TabletAssetServer.qml");
+            static const QUrl url("qrc:///qml/hifi/dialogs/TabletAssetServer.qml");
             if (!tablet->isPathLoaded(url)) {
                 tablet->pushOntoStack(url);
             }
@@ -8756,6 +8799,8 @@ bool Application::isThrottleRendering() const {
 
 bool Application::hasFocus() const {
     bool result = (QApplication::activeWindow() != nullptr);
+
+    
 #if defined(Q_OS_WIN)
     // On Windows, QWidget::activateWindow() - as called in setFocus() - makes the application's taskbar icon flash but doesn't
     // take user focus away from their current window. So also check whether the application is the user's current foreground

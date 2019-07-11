@@ -37,17 +37,53 @@ CString LauncherUtils::urlEncodeString(const CString& url) {
     return stringOut;
 }
 
-BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
+BOOL LauncherUtils::shutdownProcess(DWORD dwProcessId, UINT uExitCode) {
+    DWORD dwDesiredAccess = PROCESS_TERMINATE;
+    BOOL  bInheritHandle = FALSE;
+    HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
+    if (hProcess == NULL) {
+        return FALSE;
+    }
+    BOOL result = TerminateProcess(hProcess, uExitCode);
+    CloseHandle(hProcess);
+    return result;
+}
+
+BOOL CALLBACK LauncherUtils::isWindowOpenedCallback(HWND hWnd, LPARAM lparam) {
+    ProcessData* processData = reinterpret_cast<ProcessData*>(lparam);
+    if (processData) {
+        DWORD idptr;
+        GetWindowThreadProcessId(hWnd, &idptr);
+        if (idptr && (int)(idptr) == processData->processID) {
+            processData->isOpened = IsWindowVisible(hWnd);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+BOOL LauncherUtils::isProcessWindowOpened(const wchar_t *processName) {
+    ProcessData processData;
+    BOOL result = isProcessRunning(processName, processData.processID);
+    if (result) {
+        EnumWindows(LauncherUtils::isWindowOpenedCallback, reinterpret_cast<LPARAM>(&processData));
+        return processData.isOpened;
+    }
+    return result;
+}
+
+BOOL LauncherUtils::isProcessRunning(const wchar_t *processName, int& processID) {
     bool exists = false;
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
 
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
-
+    
     if (Process32First(snapshot, &entry)) {
         while (Process32Next(snapshot, &entry)) {
             if (!_wcsicmp(entry.szExeFile, processName)) {
                 exists = true;
+                processID = entry.th32ProcessID;
                 break;
             }
         }
@@ -56,7 +92,7 @@ BOOL LauncherUtils::IsProcessRunning(const wchar_t *processName) {
     return exists;
 }
 
-HRESULT LauncherUtils::CreateLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs) {
+HRESULT LauncherUtils::createLink(LPCWSTR lpszPathObj, LPCSTR lpszPathLink, LPCWSTR lpszDesc, LPCWSTR lpszArgs) {
     IShellLink* psl;
 
     // Get a pointer to the IShellLink interface. It is assumed that CoInitialize
@@ -236,7 +272,9 @@ BOOL LauncherUtils::getFont(const CString& fontName, int fontSize, bool isBold, 
     return TRUE;
 }
 
-uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string& path, std::vector<std::string>& files) {
+uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string& path, 
+                                   std::vector<std::string>& files, 
+                                   std::function<void(float)> progressCallback) {
     {
         CString msg;
         msg.Format(_T("Reading zip file %s, extracting to %s"), CString(zipFile.c_str()), CString(path.c_str()));
@@ -256,40 +294,58 @@ uint64_t LauncherUtils::extractZip(const std::string& zipFile, const std::string
         theApp._manager.addToLog(msg);
         return 0;
     }
-
     int fileCount = (int)mz_zip_reader_get_num_files(&zip_archive);
-    if (fileCount == 0) {
-        theApp._manager.addToLog(_T("Zip archive has a file count of 0"));
+    {
+        CString msg;
+        msg.Format(_T("Zip archive has a file count of %d"), fileCount);
+        theApp._manager.addToLog(msg);
+    }
 
+    if (fileCount == 0) {
         mz_zip_reader_end(&zip_archive);
         return 0;
     }
     mz_zip_archive_file_stat file_stat;
     if (!mz_zip_reader_file_stat(&zip_archive, 0, &file_stat)) {
         theApp._manager.addToLog(_T("Zip archive cannot be stat'd"));
-
         mz_zip_reader_end(&zip_archive);
         return 0;
     }
     // Get root folder
     CString lastDir = _T("");
     uint64_t totalSize = 0;
+    uint64_t totalCompressedSize = 0;
+    bool _shouldFail = false;
     for (int i = 0; i < fileCount; i++) {
         if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat)) continue;
         std::string filename = file_stat.m_filename;
         std::replace(filename.begin(), filename.end(), '/', '\\');
         CString fullFilename = CString(path.c_str()) + "\\" + CString(filename.c_str());
         if (mz_zip_reader_is_file_a_directory(&zip_archive, i)) {
-            if (SHCreateDirectoryEx(NULL, fullFilename, NULL) || ERROR_ALREADY_EXISTS == GetLastError()) {
-                break;
-            } else {
-                continue;
+            int error = SHCreateDirectoryEx(NULL, fullFilename, NULL);
+            if (error == ERROR_BAD_PATHNAME ||
+                error == ERROR_FILENAME_EXCED_RANGE ||
+                error == ERROR_PATH_NOT_FOUND ||
+                error == ERROR_CANCELLED) {
+                CString msg;
+                msg.Format(_T("Unzipping error: %d creating folder: %s"), error, fullFilename);
+                theApp._manager.addToLog(msg);
+                mz_zip_reader_end(&zip_archive);
+                return 0;
             }
+            continue;
         }
         CT2A destFile(fullFilename);
         if (mz_zip_reader_extract_to_file(&zip_archive, i, destFile, 0)) {
+            totalCompressedSize += (uint64_t)file_stat.m_comp_size;
             totalSize += (uint64_t)file_stat.m_uncomp_size;
+            progressCallback((float)totalCompressedSize / (float)zip_archive.m_archive_size);
             files.emplace_back(destFile);
+        } else {
+            CString msg;
+            msg.Format(_T("Error unzipping the file: %s"), fullFilename);
+            theApp._manager.addToLog(msg);
+            _shouldFail = true;
         }
     }
 
@@ -414,41 +470,40 @@ BOOL LauncherUtils::hMac256(const CString& cmessage, const char* keystr, CString
 
 DWORD WINAPI LauncherUtils::unzipThread(LPVOID lpParameter) {
     UnzipThreadData& data = *((UnzipThreadData*)lpParameter);
-    uint64_t size = LauncherUtils::extractZip(data._zipFile, data._path, std::vector<std::string>());
+    uint64_t size = LauncherUtils::extractZip(data._zipFile, data._path, std::vector<std::string>(), data.progressCallback);
     int mb_size = (int)(size * 0.001f);
     data.callback(data._type, mb_size);
     delete &data;
     return 0;
 }
 
-DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter)
-{
+DWORD WINAPI LauncherUtils::downloadThread(LPVOID lpParameter) {
     DownloadThreadData& data = *((DownloadThreadData*)lpParameter);
-    auto hr = URLDownloadToFile(0, data._url, data._file, 0, NULL);
-    data.callback(data._type);
+    ProgressCallback progressCallback;
+    progressCallback.setProgressCallback(data.progressCallback);
+    auto hr = URLDownloadToFile(0, data._url, data._file, 0, 
+                                static_cast<LPBINDSTATUSCALLBACK>(&progressCallback));
+    data.callback(data._type, hr != S_OK);
     return 0;
 }
 
-DWORD WINAPI LauncherUtils::deleteDirectoriesThread(LPVOID lpParameter) {
+DWORD WINAPI LauncherUtils::deleteDirectoryThread(LPVOID lpParameter) {
     DeleteThreadData& data = *((DeleteThreadData*)lpParameter);
-    DeleteDirError error = DeleteDirError::NoErrorDeleting;
-    if (!LauncherUtils::deleteFileOrDirectory(data._applicationDir)) {
-        error = DeleteDirError::ErrorDeletingApplicationDir;
-    }
-    if (!LauncherUtils::deleteFileOrDirectory(data._downloadsDir)) {
-        error = error == NoError ? DeleteDirError::ErrorDeletingDownloadsDir : DeleteDirError::ErrorDeletingBothDirs;
-    }
-    data.callback(error);
+    BOOL success = LauncherUtils::deleteFileOrDirectory(data._dirPath);
+    data.callback(!success);
     return 0;
 }
 
-BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, std::function<void(int, int)> callback) {
+BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, const std::string& path, 
+                                      std::function<void(int, int)> callback,
+                                      std::function<void(float)> progressCallback) {
     DWORD myThreadID;
     UnzipThreadData* unzipThreadData = new UnzipThreadData();
     unzipThreadData->_type = type;
     unzipThreadData->_zipFile = zipFile;
     unzipThreadData->_path = path;
     unzipThreadData->setCallback(callback);
+    unzipThreadData->setProgressCallback(progressCallback);
     HANDLE myHandle = CreateThread(0, 0, unzipThread, unzipThreadData, 0, &myThreadID);
     if (myHandle) {
         CloseHandle(myHandle);
@@ -457,13 +512,16 @@ BOOL LauncherUtils::unzipFileOnThread(int type, const std::string& zipFile, cons
     return FALSE;
 }
 
-BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CString& file, std::function<void(int)> callback) {
+BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CString& file, 
+                                         std::function<void(int, bool)> callback, 
+                                         std::function<void(float)> progressCallback) {
     DWORD myThreadID;
     DownloadThreadData* downloadThreadData = new DownloadThreadData();
     downloadThreadData->_type = type;
     downloadThreadData->_url = url;
     downloadThreadData->_file = file;
     downloadThreadData->setCallback(callback);
+    downloadThreadData->setProgressCallback(progressCallback);
     HANDLE myHandle = CreateThread(0, 0, downloadThread, downloadThreadData, 0, &myThreadID);
     if (myHandle) {
         CloseHandle(myHandle);
@@ -472,15 +530,12 @@ BOOL LauncherUtils::downloadFileOnThread(int type, const CString& url, const CSt
     return FALSE;
 }
 
-BOOL LauncherUtils::deleteDirectoriesOnThread(const CString& applicationDir,
-                                              const CString& downloadsDir,
-                                              std::function<void(int)> callback) {
+BOOL LauncherUtils::deleteDirectoryOnThread(const CString& dirPath, std::function<void(bool)> callback) {
     DWORD myThreadID;
     DeleteThreadData* deleteThreadData = new DeleteThreadData();
-    deleteThreadData->_applicationDir = applicationDir;
-    deleteThreadData->_downloadsDir = downloadsDir;
+    deleteThreadData->_dirPath = dirPath;
     deleteThreadData->setCallback(callback);
-    HANDLE myHandle = CreateThread(0, 0, deleteDirectoriesThread, deleteThreadData, 0, &myThreadID);
+    HANDLE myHandle = CreateThread(0, 0, deleteDirectoryThread, deleteThreadData, 0, &myThreadID);
     if (myHandle) {
         CloseHandle(myHandle);
         return TRUE;

@@ -43,30 +43,33 @@ public:
 
     void setDrawDialog(DrawStep step, BOOL isUpdate = FALSE);
 
-
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
     enum { IDD = IDD_LAUNCHER_DIALOG };
 #endif
 
-    protected:
+// Implementation
+protected:
     virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
     void startProcess();
     void setCustomDialog();
-
-// Implementation
-protected:
-
+    void setVerticalElement(CWnd* element, int verticalOffset, int heightOffset = 0, bool fromMainWindowBottom = true);    
     BOOL getHQInfo(const CString& orgname);
     DrawStep _drawStep { DrawStep::DrawLogo };
     BOOL getTextFormat(int ResID, TextFormat& formatOut);
     void showWindows(std::vector<CStatic*> windows, bool show);
+    POINT getMouseCoords(MSG* pMsg);
 
-    bool _isConsoleRunning{ false };
-    bool _isInstalling{ false };
-    bool _isFirstDraw{ false };
-    bool _showSplash{ true };
-    int _splashStep{ 0 };
+
+    bool _isConsoleRunning { false };
+    bool _isInstalling { false };
+    bool _isFirstDraw { false };
+    bool _showSplash { true };
+    
+    bool _draggingWindow { false };
+    POINT _dragOffset;
+
+    int _splashStep { 0 };
     float _logoRotation { 0.0f };
 
     HICON m_hIcon;
@@ -81,6 +84,7 @@ protected:
     CStatic* m_terms;
     CStatic* m_trouble;
     CStatic* m_voxel;
+    CStatic* m_progress;
 
     CEdit m_orgname;
     CEdit m_username;
@@ -96,11 +100,11 @@ protected:
     void drawLogo(CHwndRenderTarget* pRenderTarget);
     void drawSmallLogo(CHwndRenderTarget* pRenderTarget);
     void drawVoxel(CHwndRenderTarget* pRenderTarget);
+    void drawProgress(CHwndRenderTarget* pRenderTarget, float progress, const D2D1::ColorF& color);
 
     void prepareLogin(DrawStep step);
     void prepareProcess(DrawStep step);
     void prepareChoose();
-    void prepareError();
 
     void redrawBanner(const CEdit& edit, CStatic* banner);
 

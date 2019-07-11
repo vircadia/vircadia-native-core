@@ -51,6 +51,7 @@ Rectangle {
             }
             Prop.PropFolderPanel {
                 label: "Platform"
+                isUnfold: true
                 panelFrameData: Component {
                     Platform {
                     }

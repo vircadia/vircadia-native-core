@@ -848,7 +848,7 @@ var toolBar = (function () {
                     var DIALOG_WINDOW_SIZE = { x: 500, y: 300 };
                     dialogWindow = Desktop.createWindow(qmlPath, {
                         title: "New " + entityType + " Entity",
-                        flags: Desktop.ALWAYS_ON_TOP | Desktop.CLOSE_BUTTON_HIDES,
+                        additionalFlags: Desktop.ALWAYS_ON_TOP | Desktop.CLOSE_BUTTON_HIDES,
                         presentationMode: Desktop.PresentationMode.NATIVE,
                         size: DIALOG_WINDOW_SIZE,
                         visible: true

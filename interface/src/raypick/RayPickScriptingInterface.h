@@ -107,7 +107,8 @@ public:
 
 
     /**jsdoc
-     * Sets whether or not to use precision picking, i.e., whether to pick against precise meshes or coarse meshes.
+     * Sets whether or not a ray pick should use precision picking, i.e., whether it should pick against precise meshes or 
+     * coarse meshes.
      * @function RayPick.setPrecisionPicking
      * @param {number} id - The ID of the ray pick.
      * @param {boolean} precisionPicking - <code>true</code> to use precision picking, <code>false</code> to use coarse picking.
@@ -115,7 +116,7 @@ public:
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
 
     /**jsdoc
-     * Sets a list of entity and avatar IDs to ignore during intersection.
+     * Sets a list of entity and avatar IDs that a ray pick should ignore during intersection.
      * @function RayPick.setIgnoreItems
      * @param {number} id - The ID of the ray pick.
      * @param {Uuid[]} ignoreItems - The list of IDs to ignore.
@@ -123,7 +124,8 @@ public:
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities);
 
     /**jsdoc
-     * Sets a list of entity IDs and/or avatar IDs to include during intersection, instead of intersecting with everything.
+     * Sets a list of entity and avatar IDs that a ray pick should include during intersection, instead of intersecting with 
+     * everything.
      * @function RayPick.setIncludeItems
      * @param {number} id - The ID of the ray pick.
      * @param {Uuid[]} includeItems - The list of IDs to include.
@@ -132,9 +134,9 @@ public:
 
 
     /**jsdoc
-     * Checks if a pick is associated with the left hand: a ray or parabola pick with joint set to
-     * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>, or a stylus pick with hand
-     * set to <code>0</code>.
+     * Checks if a pick is associated with the left hand: a ray or parabola pick with <code>joint</code> property set to
+     * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>, or a stylus pick with 
+     * <code>hand</code> property set to <code>0</code>.
      * @function RayPick.isLeftHand
      * @param {number} id - The ID of the ray pick.
      * @returns {boolean} <code>true</code> if the pick is associated with the left hand, <code>false</code> if it isn't.
@@ -142,9 +144,9 @@ public:
     Q_INVOKABLE bool isLeftHand(unsigned int uid);
 
     /**jsdoc
-     * Checks if a pick is associated with the right hand: a ray or parabola pick with joint set to
-     * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>, or a stylus pick with hand
-     * set to <code>1</code>.
+     * Checks if a pick is associated with the right hand: a ray or parabola pick with <code>joint</code> property set to
+     * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>, or a stylus pick with 
+     * <code>hand</code> property set to <code>1</code>.
      * @function RayPick.isRightHand
      * @param {number} id - The ID of the ray pick.
      * @returns {boolean} <code>true</code> if the pick is associated with the right hand, <code>false</code> if it isn't.
@@ -152,7 +154,8 @@ public:
     Q_INVOKABLE bool isRightHand(unsigned int uid);
 
     /**jsdoc
-     * Checks if a pick is associated with the system mouse: a ray or parabola pick with joint set to <code>"Mouse"</code>.
+     * Checks if a pick is associated with the system mouse: a ray or parabola pick with <code>joint</code> property set to 
+     * <code>"Mouse"</code>.
      * @function RayPick.isMouse
      * @param {number} id - The ID of the ray pick.
      * @returns {boolean} <code>true</code> if the pick is associated with the system mouse, <code>false</code> if it isn't.

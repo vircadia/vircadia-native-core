@@ -614,7 +614,7 @@ public:
     virtual ShapeKey getShapeKey() = 0;
     virtual Item::Bound getBound() = 0;
     virtual void render(RenderArgs* args) = 0;
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) = 0;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const = 0;
 };
 
 template <> const ItemKey payloadGetKey(const PayloadProxyInterface::Pointer& payload);

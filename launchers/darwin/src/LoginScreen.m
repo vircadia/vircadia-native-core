@@ -38,25 +38,25 @@
 
     [self.backgroundImage setImage:[NSImage imageNamed:hifiBackgroundFilename]];
     [self.smallLogo setImage:[NSImage imageNamed:hifiSmallLogoFilename]];
-    
+
     NSMutableAttributedString* usernameString = [[NSMutableAttributedString alloc] initWithString:@"Username"];
-    
+
     [usernameString addAttribute:NSForegroundColorAttributeName value:[NSColor grayColor] range:NSMakeRange(0,8)];
     [usernameString addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:18] range:NSMakeRange(0,8)];
-    
+
     NSMutableAttributedString* orgName = [[NSMutableAttributedString alloc] initWithString:@"Organization Name"];
     [orgName addAttribute:NSForegroundColorAttributeName value:[NSColor grayColor] range:NSMakeRange(0,17)];
     [orgName addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:18] range:NSMakeRange(0,17)];
-    
+
     NSMutableAttributedString* passwordString = [[NSMutableAttributedString alloc] initWithString:@"Password"];
-    
+
     [passwordString addAttribute:NSForegroundColorAttributeName value:[NSColor grayColor] range:NSMakeRange(0,8)];
     [passwordString addAttribute:NSFontAttributeName value:[NSFont systemFontOfSize:18] range:NSMakeRange(0,8)];
-    
+
     [self.username setPlaceholderAttributedString:usernameString];
     [self.orginization setPlaceholderAttributedString:orgName];
     [self.password setPlaceholderAttributedString:passwordString];
-    
+
     [self.password setTarget:self];
     [self.password setAction:@selector(goToLogin:)];
 }

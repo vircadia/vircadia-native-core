@@ -93,7 +93,7 @@ module.exports = (function() {
             var windowRect = getWindowRect(this.settingsKey, defaultRect);
             this.window = Desktop.createWindow(this.qmlPath, {
                 title: this.title,
-                flags: Desktop.ALWAYS_ON_TOP | Desktop.CLOSE_BUTTON_HIDES,
+                additionalFlags: Desktop.ALWAYS_ON_TOP | Desktop.CLOSE_BUTTON_HIDES,
                 presentationMode: Desktop.PresentationMode.NATIVE,
                 size: windowRect.size,
                 visible: true,
