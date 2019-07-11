@@ -2117,22 +2117,24 @@ void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent, b
 gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool forward) {
     if (_webPipelines.empty()) {
         using namespace shader::render_utils::program;
-        static const std::vector<std::tuple<bool, bool, uint32_t>> keys = {
-            std::make_tuple(false, false, web_browser), std::make_tuple(false, true, web_browser_forward),
-            std::make_tuple(true, false, web_browser_translucent), std::make_tuple(true, true, web_browser_forward) // The forward opaque/translucent pipelines are the same for now
-        };
+        const int NUM_WEB_PIPELINES = 4;
+        for (int i = 0; i < NUM_WEB_PIPELINES; ++i) {
+            bool transparent = i & 1;
+            bool forward = i & 2;
 
-        for (auto& key : keys) {
+            // For any non-opaque or non-deferred pipeline, we use web_browser_forward
+            auto pipeline = (transparent || forward) ? web_browser_forward : web_browser;
+
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             // FIXME: do we need a testMaskDrawNoAA?
             PrepareStencil::testMaskDrawShapeNoAA(*state);
-            state->setBlendFunction(std::get<0>(key),
+            state->setBlendFunction(transparent,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
             state->setCullMode(gpu::State::CULL_NONE);
 
-            _webPipelines[{std::get<0>(key), std::get<1>(key)}] = gpu::Pipeline::create(gpu::Shader::createProgram(std::get<2>(key)), state);
+            _webPipelines[{ transparent, forward }] = gpu::Pipeline::create(gpu::Shader::createProgram(pipeline), state);
         }
     }
 

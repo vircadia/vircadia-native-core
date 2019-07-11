@@ -17,7 +17,10 @@
 
 <@include render-utils/ShaderConstants.h@>
 
-<@if not HIFI_USE_FORWARD@>
+<@if HIFI_USE_FORWARD@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+    layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+<@else@>
     layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 <@endif@>
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
@@ -29,9 +32,10 @@ void main(void) {
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
+<@if HIFI_USE_FORWARD@>
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, inPosition, _positionWS, _positionES, gl_Position)$>
+<@else@>
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-
-<@if not HIFI_USE_FORWARD@>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 <@endif@>
 }
