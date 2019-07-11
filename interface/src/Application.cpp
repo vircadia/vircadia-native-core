@@ -4429,27 +4429,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_P: {
-                if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
-                    AudioInjectorOptions options;
-                    options.localOnly = true;
-                    options.positionSet = false;    // system sound
-                    options.stereo = true;
-
-                    Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true };
-                    Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
-                    if (notificationSounds.get() && notificationSoundSnapshot.get()) {
-                        if (_snapshotSoundInjector) {
-                            DependencyManager::get<AudioInjectorManager>()->setOptionsAndRestart(_snapshotSoundInjector, options);
-                        } else {
-                            _snapshotSoundInjector = DependencyManager::get<AudioInjectorManager>()->playSound(_snapshotSound, options);
-                        }
-                    }
-                    takeSnapshot(true);
-                }
-                break;
-            }
-
             case Qt::Key_Apostrophe: {
                 if (isMeta) {
                     auto cursor = Cursor::Manager::instance().getCursor();

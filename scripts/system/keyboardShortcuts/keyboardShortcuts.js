@@ -12,11 +12,19 @@
 //
 
 (function () { // BEGIN LOCAL_SCOPE
+    var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
     function keyPressEvent(event) {
         if (event.text.toUpperCase() === "B" && event.isControl) {
             Window.openWebBrowser();
         } else if (event.text.toUpperCase() === "N" && event.isControl) {
             Users.toggleIgnoreRadius();
+        } else if (event.text.toUpperCase() === "P") {
+            Audio.playSound(snapActivateSound, {
+                position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+                localOnly: true,
+                volume: 0.5
+            });
+            Window.takeSnapshot(true);
         }
     }
 
