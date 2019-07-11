@@ -18,6 +18,7 @@ QtObject {
             readonly property color white: "#FFFFFF"
             readonly property color lightBlue: "#00B4EF"
             readonly property color lightBlueHover: "#3dcfff"
+            readonly property color black: "#000000"
         }
 
         readonly property QtObject controls: QtObject {

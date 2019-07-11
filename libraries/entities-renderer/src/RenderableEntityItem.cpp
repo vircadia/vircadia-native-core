@@ -173,16 +173,19 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
 }
 
 ItemKey EntityRenderer::getKey() {
+    ItemKey::Builder builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+        builder.withTransparent();
+    } else if (_canCastShadow) {
+        builder.withShadowCaster();
     }
 
-    // This allows shapes to cast shadows
-    if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster().withLayer(getHifiRenderLayer());
-    } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    if (!_visible) {
+        builder.withInvisible();
     }
+
+    return builder;
 }
 
 uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
