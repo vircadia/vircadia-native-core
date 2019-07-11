@@ -46,7 +46,7 @@ void View::updateRegionsDefault(View& view) {
 
     float refFar = 10.0f;
     float refClose = 2.0f;
-    for (int i = 0; i < Region::NUM_TRACKED_REGIONS; i++) {
+    for (int i = 0; i < (int)Region::NUM_TRACKED_REGIONS; i++) {
         float weight = i + 1.0f;
         config[i * 2] = refClose;
         config[i * 2 + 1] = refFar * weight;
@@ -56,13 +56,13 @@ void View::updateRegionsDefault(View& view) {
 }
 
 void View::updateRegionsFromBackFronts(View& view) {
-    for (int i = 0; i < Region::NUM_TRACKED_REGIONS; i++) {
+    for (int i = 0; i < (int)Region::NUM_TRACKED_REGIONS; i++) {
         view.regions[i] = evalRegionSphere(view, view.regionBackFronts[i].x, view.regionBackFronts[i].y);
     }
 }
 
 void View::updateRegionsFromBackFrontDistances(View& view, const float* configDistances) {
-    for (int i = 0; i < Region::NUM_TRACKED_REGIONS; i++) {
+    for (int i = 0; i < (int)Region::NUM_TRACKED_REGIONS; i++) {
         view.regionBackFronts[i] = glm::vec2(configDistances[i * 2], configDistances[i * 2 + 1]);
     }
     updateRegionsFromBackFronts(view);
