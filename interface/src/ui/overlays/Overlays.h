@@ -512,13 +512,13 @@ public slots:
     bool isAddedOverlay(const QUuid& id);
 
     /**jsdoc
-     * Generate a mouse press event on an overlay.
+     * Generates a mouse press event on an overlay (or local entity).
      * @function Overlays.sendMousePressOnOverlay
-     * @param {Uuid} id - The ID of the overlay to generate a mouse press event on.
+     * @param {Uuid} id - The ID of the overlay (or local entity) to generate a mouse press event on.
      * @param {PointerEvent} event - The mouse press event details.
-     * @example <caption>Create a 2D rectangle overlay plus a 3D cube overlay and generate mousePressOnOverlay events for the 2D
-     * overlay.</caption>
-     * var overlay = Overlays.addOverlay("cube", {
+     * @example <caption>Create a 2D rectangle overlay plus a 3D cube overlay and generate mousePressOnOverlay events for the 
+     * 2D overlay.</caption>
+     * var overlay3D = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
      *     rotation: MyAvatar.orientation,
      *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
@@ -526,7 +526,7 @@ public slots:
      * });
      * print("3D overlay: " + overlay);
      *
-     * var overlay = Overlays.addOverlay("rectangle", {
+     * var overlay2D = Overlays.addOverlay("rectangle", {
      *     bounds: { x: 100, y: 100, width: 200, height: 100 },
      *     color: { red: 255, green: 255, blue: 255 }
      * });
@@ -552,41 +552,41 @@ public slots:
     void sendMousePressOnOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Generate a mouse release event on an overlay.
+     * Generates a mouse release event on an overlay (or local entity).
      * @function Overlays.sendMouseReleaseOnOverlay
-     * @param {Uuid} id - The ID of the overlay to generate a mouse release event on.
+     * @param {Uuid} id - The ID of the overlay (or local entity) to generate a mouse release event on.
      * @param {PointerEvent} event - The mouse release event details.
      */
     void sendMouseReleaseOnOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Generate a mouse move event on an overlay.
+     * Generates a mouse move event on an overlay (or local entity).
      * @function Overlays.sendMouseMoveOnOverlay
-     * @param {Uuid} id - The ID of the overlay to generate a mouse move event on.
+     * @param {Uuid} id - The ID of the overlay (or local entity) to generate a mouse move event on.
      * @param {PointerEvent} event - The mouse move event details.
      */
     void sendMouseMoveOnOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Generate a hover enter event on an overlay.
+     * Generates a hover enter event on an overlay (or local entity).
      * @function Overlays.sendHoverEnterOverlay
-     * @param {Uuid} id - The ID of the overlay to generate a hover enter event on.
+     * @param {Uuid} id - The ID of the overlay (or local entity) to generate a hover enter event on.
      * @param {PointerEvent} event - The hover enter event details.
      */
     void sendHoverEnterOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Generate a hover over event on an overlay.
+     * Generates a hover over event on an overlay (or entity).
      * @function Overlays.sendHoverOverOverlay
-     * @param {Uuid} id - The ID of the overlay to generate a hover over event on.
+     * @param {Uuid} id - The ID of the overlay (or local entity) to generate a hover over event on.
      * @param {PointerEvent} event - The hover over event details.
      */
     void sendHoverOverOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Generate a hover leave event on an overlay.
+     * Generates a hover leave event on an overlay (or local entity).
      * @function Overlays.sendHoverLeaveOverlay
-     * @param {Uuid} id - The ID of the overlay to generate a hover leave event on.
+     * @param {Uuid} id - The ID of the overlay (or local entity) to generate a hover leave event on.
      * @param {PointerEvent} event - The hover leave event details.
      */
     void sendHoverLeaveOverlay(const QUuid& id, const PointerEvent& event);
@@ -612,9 +612,9 @@ public slots:
 
 signals:
     /**jsdoc
-     * Triggered when an overlay is deleted.
+     * Triggered when an overlay (or entity) is deleted.
      * @function Overlays.overlayDeleted
-     * @param {Uuid} id - The ID of the overlay that was deleted.
+     * @param {Uuid} id - The ID of the overlay (or entity) that was deleted.
      * @returns {Signal}
      * @example <caption>Create an overlay then delete it after 1s.</caption>
      * var overlay = Overlays.addOverlay("cube", {
