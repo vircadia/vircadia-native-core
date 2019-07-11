@@ -9,6 +9,7 @@
 //
 
 #include "stdafx.h"
+#include <regex>
 #include "LauncherApp.h"
 #include "LauncherDlg.h"
 
@@ -268,7 +269,10 @@ afx_msg void CLauncherDlg::OnNextClicked() {
         m_orgname.GetWindowTextW(orgname);
         m_username.GetWindowTextW(username);
         m_password.GetWindowTextW(password);
-
+        // trim spaces
+        orgname = CString(std::regex_replace(LauncherUtils::cStringToStd(orgname), std::regex("^ +| +$|( ) +"), "$1").c_str());
+        username = CString(std::regex_replace(LauncherUtils::cStringToStd(username), std::regex("^ +| +$|( ) +"), "$1").c_str());
+        // encode
         username = LauncherUtils::urlEncodeString(username);
         password = LauncherUtils::urlEncodeString(password);
         LauncherUtils::ResponseError error;
