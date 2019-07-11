@@ -672,7 +672,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                     theApp._manager.addToLog(_T("Start splash screen"));
                     setDrawDialog(DrawStep::DrawLogo);
                 }
-            } else if (_splashStep > 100) {
+            } else if (_splashStep > 100 && !theApp._manager.needsToWait()) {
                 _showSplash = false;
                 if (theApp._manager.shouldShutDown()) {
                     if (_applicationWND != NULL) {
