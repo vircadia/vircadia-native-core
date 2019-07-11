@@ -59,7 +59,7 @@ public:
     ToneCurve getToneCurve() const { return (ToneCurve)_parametersBuffer.get<Parameters>()._toneCurve; }
 
     // Inputs: lightingFramebuffer, destinationFramebuffer
-    using Input = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Input = gpu::FramebufferPointer;
     using Output = gpu::FramebufferPointer;
     using Config = ToneMappingConfig;
     using JobModel = render::Job::ModelIO<ToneMapAndResample, Input, Output, Config>;

@@ -95,7 +95,7 @@ RenderDeferredTask::RenderDeferredTask()
 
 void RenderDeferredTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
-    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebuffer>("PreparePrimaryBufferDeferred");
     assert(preparePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
 }
@@ -145,7 +145,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto jitter = task.addJob<JitterSample>("JitterCam");
 
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
-    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBufferDeferred");
 
     // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform", jitter);
@@ -238,7 +238,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = ToneMapAndResample::Input(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
+    const auto toneMappingInputs = lightingFramebuffer;
     const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappingInputs);
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
@@ -252,6 +252,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
+
 }
 
 RenderDeferredTaskDebug::RenderDeferredTaskDebug() {

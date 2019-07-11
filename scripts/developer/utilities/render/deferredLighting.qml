@@ -45,7 +45,7 @@ Rectangle {
             anchors.right: parent.right 
             spacing: 5 
             Repeater {
-                model: [ "MSAA:PrepareFramebuffer:numSamples:4:1"
+                model: [ "MSAA:PreparePrimaryBufferForward:numSamples:4:1"
                               ]
                 ConfigSlider {
                         label: qsTr(modelData.split(":")[0])

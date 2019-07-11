@@ -38,7 +38,7 @@ void ToneMapAndResample::init(RenderArgs* args) {
     blitState->setColorWriteMask(true, true, true, true);
 
     _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping), blitState));
-    _mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMappingMirroredX), blitState));
+    _mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping_mirrored), blitState));
 }
 
 void ToneMapAndResample::setExposure(float exposure) {
@@ -56,67 +56,6 @@ void ToneMapAndResample::setToneCurve(ToneCurve curve) {
     }
 }
 
-gpu::FramebufferPointer ToneMapAndResample::getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer) {
-    if (_factor == 1.0f) {
-        return sourceFramebuffer;
-    }
-
-    auto resampledFramebufferSize = glm::uvec2(glm::vec2(sourceFramebuffer->getSize()) * _factor);
-
-    _destinationFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("ResampledOutput"));
-
-    auto sampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-    auto target = gpu::Texture::createRenderBuffer(sourceFramebuffer->getRenderBuffer(0)->getTexelFormat(), resampledFramebufferSize.x, resampledFramebufferSize.y, gpu::Texture::SINGLE_MIP, sampler);
-    _destinationFrameBuffer->setRenderBuffer(0, target);
-
-    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
-    auto primaryDepthTexture = gpu::Texture::createRenderBuffer(depthFormat, resampledFramebufferSize.x, resampledFramebufferSize.y, gpu::Texture::SINGLE_MIP, sampler);
-    _destinationFrameBuffer->setDepthStencilBuffer(primaryDepthTexture, depthFormat);
-
-    return _destinationFrameBuffer;
-}
-
-// TODO why was destination const
-void ToneMapAndResample::render(RenderArgs* args, const gpu::TexturePointer& lightingBuffer, gpu::FramebufferPointer& destinationFramebuffer) {
-    
-    if (!_pipeline) {
-        init(args);
-    }
-    
-    if (!lightingBuffer || !destinationFramebuffer) {
-        return;
-    }
-
-    const auto destBufferSize = destinationFramebuffer->getSize();
-
-    auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
-
-    glm::ivec4 destViewport{ 0, 0, destBufferSize.x, destBufferSize.y };
-
-    gpu::doInBatch("ToneMapAndResample::render", args->_context, [&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.setFramebuffer(destinationFramebuffer);
-
-        // FIXME: Generate the Luminosity map
-        //batch.generateTextureMips(lightingBuffer);
-
-        batch.setViewportTransform(destViewport);
-        batch.setProjectionTransform(glm::mat4());
-        batch.resetViewTransform();
-        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(srcBufferSize, args->_viewport));
-        batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
-
-        batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
-        batch.setResourceTexture(render_utils::slot::texture::ToneMappingColor, lightingBuffer);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
-
-    //Set full final viewport
-    args->_viewport = destViewport;
-
-    // TODO access violation reading 0xFFFFFFFFFFFFFFFF
-}
-
 void ToneMapAndResample::configure(const Config& config) {
     setExposure(config.exposure);
     setToneCurve((ToneCurve)config.curve);
@@ -129,13 +68,47 @@ void ToneMapAndResample::run(const render::RenderContextPointer& renderContext, 
 
     RenderArgs* args = renderContext->args;
 
-    auto lightingBuffer = input.get0()->getRenderBuffer(0);
+    auto lightingBuffer = input->getRenderBuffer(0);
 
-    auto resampledFramebuffer = args->_blitFramebuffer;
+    auto blitFramebuffer = args->_blitFramebuffer;
 
-    render(args, lightingBuffer, resampledFramebuffer);
+    if (!_pipeline) {
+        init(args);
+    }
 
-    output = resampledFramebuffer;
+    if (!lightingBuffer || !blitFramebuffer) {
+        return;
+    }
+
+    const auto blitBufferSize = blitFramebuffer->getSize();
+
+    auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
+
+    glm::ivec4 destViewport{ 0, 0, blitBufferSize.x, blitBufferSize.y };
+
+    gpu::doInBatch("ToneMapAndResample::render", args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(blitFramebuffer);
+
+        // FIXME: Generate the Luminosity map
+        //batch.generateTextureMips(lightingBuffer);
+
+        batch.setViewportTransform(destViewport);
+        batch.setProjectionTransform(glm::mat4());
+        batch.resetViewTransform();
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(srcBufferSize, args->_viewport));
+
+        batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
+        
+        batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
+        batch.setResourceTexture(render_utils::slot::texture::ToneMappingColor, lightingBuffer);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        });
+
+    //Set full final viewport
+    args->_viewport = destViewport;
+
+    output = blitFramebuffer;
 }
 
 
