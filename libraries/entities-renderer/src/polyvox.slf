@@ -39,7 +39,6 @@
     <@endif@>
     layout(location=RENDER_UTILS_ATTR_POSITION_MS) in vec3 _positionMS;
     layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
-    layout(location=RENDER_UTILS_ATTR_NORMAL_MS) in vec3 _normalMS;
 
     LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_XMAP) uniform sampler2D xMap;
     LAYOUT(binding=ENTITIES_TEXTURE_POLYVOX_YMAP) uniform sampler2D yMap;
@@ -81,7 +80,7 @@ void main(void) {
     vec4 xzDiffuse = texture(yMap, vec2(-inPositionX, inPositionZ));
     vec4 yzDiffuse = texture(zMap, vec2(inPositionZ, -inPositionY));
 
-    vec3 normalMS = normalize(_normalMS);
+    vec3 normalMS = normalize(cross(dFdy(_positionMS.xyz), dFdx(_positionMS.xyz)));
     vec3 xyDiffuseScaled = xyDiffuse.rgb * abs(normalMS.z);
     vec3 xzDiffuseScaled = xzDiffuse.rgb * abs(normalMS.y);
     vec3 yzDiffuseScaled = yzDiffuse.rgb * abs(normalMS.x);

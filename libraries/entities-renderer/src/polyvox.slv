@@ -24,7 +24,6 @@
     <@endif@>
     layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec3 _positionMS;
     layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
-    layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
 <@endif@>
 
 void main(void) {
@@ -41,7 +40,6 @@ void main(void) {
     <@endif@>
 
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
-    _normalMS = inNormal.xyz;
     _positionMS = inPosition.xyz;
 <@endif@>
 <@if HIFI_USE_FADE@>
