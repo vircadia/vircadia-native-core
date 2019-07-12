@@ -1,4 +1,5 @@
 #!/bin/bash -l
+LOCAL_PATH="`dirname \"$0\"`"
 prefix=${1:-""}
 declare -a packages_systemd=("assignment-client" "domain-server" "ice-server")
 cd ./build
@@ -22,8 +23,8 @@ do
     fpm -s dir -t deb -n hifi-${prefix}${package_name} -v ${VERSION} -d hifiqt5.12.3 --vendor "High Fidelity Inc" -m "<ops@highfidelity.com>" \
         --url "https://highfidelity.com" --license "Apache License 2.0" --description "${DESCRIPTION}" -d libgomp1 -d libtbb2 -d libgl1-mesa-glx -d libnss3 \
         -d libxi6 -d libxcursor1 -d libxcomposite1 -d libasound2 -d libxtst6 -d libxslt1.1 --template-scripts --template-value "service"="hifi-${package_name}" \
-        --deb-systemd ${WORKSPACE}/hifi-${package_name} --before-install ${WORKSPACE}/${package_name}-before-install.sh \
-        --after-install ${WORKSPACE}/after-install.sh --before-remove ${WORKSPACE}/before-remove.sh \
+        --deb-systemd ${LOCAL_PATH}/hifi-${package_name} --before-install ${LOCAL_PATH}/${package_name}-before-install.sh \
+        --after-install ${LOCAL_PATH}/after-install.sh --before-remove ${LOCAL_PATH}/before-remove.sh \
          ${SOURCE_DESTINATION_LIST}
 
     dpkg-sig --sign builder -k 15FF1AAE -g '--no-tty --passphrase "${MASKED_DEB_REPO_SIGN_PASSPHRASE}"' ./hifi-${prefix}${package_name}_${VERSION}_amd64.deb
