@@ -55,78 +55,6 @@ QmlWindowProxy::QmlWindowProxy(QObject* qmlObject, QObject* parent) : QmlWrapper
     _qmlWindow = qmlObject;
 }
 
-void QmlWindowProxy::setPosition(const glm::vec2& position) {
-    if (_qmlWindow) {
-        _qmlWindow->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(position.x, position.y));
-        QMetaObject::invokeMethod(_qmlWindow, "updateInteractiveWindowPositionForMode");
-    }
-}
-
-glm::vec2 QmlWindowProxy::getPosition() const {
-    if (!_qmlWindow) {
-        return {};
-    }
-
-    return toGlm(_qmlWindow->property(INTERACTIVE_WINDOW_POSITION_PROPERTY).toPointF());
-}
-
-void QmlWindowProxy::setSize(const glm::vec2& size) {
-    if (_qmlWindow) {
-        _qmlWindow->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(size.x, size.y));
-        QMetaObject::invokeMethod(_qmlWindow, "updateInteractiveWindowSizeForMode");
-    }
-}
-
-glm::vec2 QmlWindowProxy::getSize() const {
-    if (!_qmlWindow) {
-        return {};
-    }
-
-    return toGlm(_qmlWindow->property(INTERACTIVE_WINDOW_SIZE_PROPERTY).toSize());
-}
-
-void QmlWindowProxy::setTitle(const QString& title) {
-    if (_qmlWindow) {
-        _qmlWindow->setProperty(TITLE_PROPERTY, title);
-    }
-}
-
-QString QmlWindowProxy::getTitle() const {
-    if (!_qmlWindow) {
-        return QString();
-    }
-
-    return _qmlWindow->property(TITLE_PROPERTY).toString();
-}
-
-void QmlWindowProxy::setVisible(bool visible) {
-    if (_qmlWindow) {
-        _qmlWindow->setProperty(INTERACTIVE_WINDOW_VISIBLE_PROPERTY, visible);
-    }
-}
-
-bool QmlWindowProxy::isVisible() const {
-    if (!_qmlWindow) {
-        return false;
-    }
-
-    return _qmlWindow->property(INTERACTIVE_WINDOW_VISIBLE_PROPERTY).toBool();
-}
-
-void QmlWindowProxy::setPresentationMode(int presentationMode) {
-    if (_qmlWindow) {
-        _qmlWindow->setProperty(PRESENTATION_MODE_PROPERTY, presentationMode);
-    }
-}
-
-int QmlWindowProxy::getPresentationMode() const {
-    if (!_qmlWindow) {
-        return Virtual;
-    }
-
-    return _qmlWindow->property(PRESENTATION_MODE_PROPERTY).toInt();
-}
-
 void QmlWindowProxy::parentNativeWindowToMainWindow() {
 #ifdef Q_OS_WIN
     if (!_qmlWindow) {
@@ -395,7 +323,8 @@ void InteractiveWindow::qmlToScript(const QVariant& message) {
 
 void InteractiveWindow::setVisible(bool visible) {
     if (_qmlWindowProxy) {
-        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "setVisible", Q_ARG(bool, visible));
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_VISIBLE_PROPERTY),
+                                  Q_ARG(QVariant, visible));
     }
 }
 
@@ -403,8 +332,10 @@ bool InteractiveWindow::isVisible() const {
     if (!_qmlWindowProxy) {
         return false;
     }
-
-    return _qmlWindowProxy->isVisible();
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, INTERACTIVE_WINDOW_VISIBLE_PROPERTY));
+    return result.toBool();
 }
 
 glm::vec2 InteractiveWindow::getPosition() const {
@@ -412,12 +343,18 @@ glm::vec2 InteractiveWindow::getPosition() const {
         return {};
     }
 
-    return _qmlWindowProxy->getPosition();
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, INTERACTIVE_WINDOW_POSITION_PROPERTY));
+
+    return toGlm(result.toPointF());
 }
 
 void InteractiveWindow::setPosition(const glm::vec2& position) {
     if (_qmlWindowProxy) {
-        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "setPosition", Q_ARG(const glm::vec2&, position));
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_POSITION_PROPERTY),
+                                  Q_ARG(QVariant, QPointF(position.x, position.y)));
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "updateInteractiveWindowPositionForMode");
     }
 }
 
@@ -425,12 +362,18 @@ glm::vec2 InteractiveWindow::getSize() const {
     if (!_qmlWindowProxy) {
         return {};
     }
-    return _qmlWindowProxy->getSize();
+
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, INTERACTIVE_WINDOW_SIZE_PROPERTY));
+    return toGlm(result.toSize());
 }
 
 void InteractiveWindow::setSize(const glm::vec2& size) {
     if (_qmlWindowProxy) {
-        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "setSize", Q_ARG(const glm::vec2&, size));
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_SIZE_PROPERTY),
+                                  Q_ARG(QVariant, QSize(size.x, size.y)));
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "updateInteractiveWindowSizeForMode");
     }
 }
 
@@ -438,12 +381,17 @@ QString InteractiveWindow::getTitle() const {
     if (!_qmlWindowProxy) {
         return QString();
     }
-    return _qmlWindowProxy->getTitle();
+
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, TITLE_PROPERTY));
+    return result.toString();
 }
 
 void InteractiveWindow::setTitle(const QString& title) {
     if (_qmlWindowProxy) {
-        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "setTitle", Q_ARG(const QString&, title));
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, TITLE_PROPERTY),
+                                  Q_ARG(QVariant, title));
     }
 }
 
@@ -451,7 +399,10 @@ int InteractiveWindow::getPresentationMode() const {
     if (!_qmlWindowProxy) {
         return Virtual;
     }
-    return _qmlWindowProxy->getPresentationMode();
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, PRESENTATION_MODE_PROPERTY));
+    return result.toInt();
 }
 
 void InteractiveWindow::parentNativeWindowToMainWindow() {
@@ -462,6 +413,7 @@ void InteractiveWindow::parentNativeWindowToMainWindow() {
 
 void InteractiveWindow::setPresentationMode(int presentationMode) {
     if (_qmlWindowProxy) {
-        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "setPresentationMode", Q_ARG(int, presentationMode));
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, PRESENTATION_MODE_PROPERTY),
+                                  Q_ARG(QVariant, presentationMode));
     }
 }

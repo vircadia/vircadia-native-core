@@ -29,21 +29,6 @@ class QmlWindowProxy : public QmlWrapper {
 public:
     QmlWindowProxy(QObject* qmlObject, QObject* parent = nullptr);
 
-    Q_INVOKABLE void setPosition(const glm::vec2& position);
-    glm::vec2 getPosition() const;
-
-    Q_INVOKABLE void setSize(const glm::vec2& size);
-    glm::vec2 getSize() const;
-
-    Q_INVOKABLE void setTitle(const QString& title);
-    QString getTitle() const;
-
-    Q_INVOKABLE void setVisible(bool visible);
-    bool isVisible() const;
-
-    Q_INVOKABLE void setPresentationMode(int presentationMode);
-    int getPresentationMode() const;
-
     Q_INVOKABLE void parentNativeWindowToMainWindow();
 
     QObject* getQmlWindow() const { return _qmlWindow; }
