@@ -2772,6 +2772,7 @@ void Application::cleanupBeforeQuit() {
         DependencyManager::get<AccountManager>()->removeAccountFromFile();
     }
 
+    _displayPlugin.reset();
     PluginManager::getInstance()->shutdown();
 
     // Cleanup all overlays after the scripts, as scripts might add more
@@ -2806,11 +2807,8 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
-
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
-    _displayPlugin.reset();
-    
     _snapshotSoundInjector = nullptr;
 
     // destroy Audio so it and its threads have a chance to go down safely
