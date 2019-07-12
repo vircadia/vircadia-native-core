@@ -288,7 +288,7 @@ static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
 // For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
 // we will never drop below the 'min' value
-static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
+static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
 
 static const QString SNAPSHOT_EXTENSION = ".jpg";
 static const QString JPG_EXTENSION = ".jpg";
