@@ -96,7 +96,7 @@ private:
 
 class DrawForward{
 public:
-    using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
+    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, HazeStage::FramePointer>;
     using JobModel = render::Job::ModelI<DrawForward, Inputs>;
 
     DrawForward(const render::ShapePlumberPointer& shapePlumber, bool opaquePass) : _shapePlumber(shapePlumber), _opaquePass(opaquePass) {}

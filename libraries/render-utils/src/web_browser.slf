@@ -1,0 +1,74 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Anthony Thibault on 7/25/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Color.slh@>
+<@include render-utils/ShaderConstants.h@>
+
+<@if HIFI_USE_FORWARD@>
+    <@include LightingModel.slh@>
+    <@include graphics/Haze.slh@>
+
+    <@include gpu/Transform.slh@>
+    <$declareStandardCameraTransform()$>
+
+    <@include graphics/Light.slh@>
+    <$declareLightBuffer()$>
+
+    layout(location=0) out vec4 _fragColor0;
+<@else@>
+    <@include DeferredBufferWrite.slh@>
+<@endif@>
+
+LAYOUT(binding=0) uniform sampler2D webTexture;
+
+<@if HIFI_USE_FORWARD@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
+    layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+<@else@>
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+<@endif@>
+layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
+#define _texCoord0 _texCoord01.xy
+#define _texCoord1 _texCoord01.zw
+
+void main(void) {
+    vec4 texel = texture(webTexture, _texCoord0);
+    texel = color_sRGBAToLinear(texel);
+    texel *= _color;
+
+<@if HIFI_USE_FORWARD@>
+    _fragColor0 = texel;
+
+    if (isHazeEnabled() > 0.0) {
+        // no light attenuation because we're unlit
+
+        TransformCamera cam = getTransformCamera();
+
+        Light light = getKeyLight();
+        vec3 lightDirectionWS = getLightDirection(light);
+
+        if ((hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+            vec4 hazeColor = computeHazeColor(
+                _positionES.xyz,
+                _positionWS.xyz,
+                cam._viewInverse[3].xyz,
+                lightDirectionWS
+            );
+
+            _fragColor0.xyz = mix(_fragColor0.rgb, hazeColor.rgb, hazeColor.a);
+        }
+    }
+<@else@>
+    packDeferredFragmentUnlit(normalize(_normalWS), 1.0, texel.rgb);
+<@endif@>
+}

@@ -11,14 +11,13 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
-<@include Shadow.slh@>
 <@include DeferredBufferRead.slh@>
-<@include DeferredGlobalLight.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-<$declareEvalLightmappedColor()$>
+<@include GlobalLight.slh@>
 <$declareEvalAmbientSphereGlobalColor(isScattering)$>
+
+<@include Shadow.slh@>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
