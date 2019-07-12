@@ -14,11 +14,11 @@
 (function () { // BEGIN LOCAL_SCOPE
     var snapActivateSound = SoundCache.getSound(Script.resourcesPath() + "sounds/snapshot/snap.wav");
     function keyPressEvent(event) {
-        if (event.text.toUpperCase() === "B" && event.isControl) {
+        if (event.text.toUpperCase() === "B" && event.isControl && !event.isShifted && !event.isAlt) {
             Window.openWebBrowser();
-        } else if (event.text.toUpperCase() === "N" && event.isControl) {
+        } else if (event.text.toUpperCase() === "N" && event.isControl && !event.isShifted && !event.isAlt) {
             Users.toggleIgnoreRadius();
-        } else if (event.text.toUpperCase() === "P") {
+        } else if (event.text.toUpperCase() === "P" && !event.isControl && !event.isShifted && !event.isAlt) {
             Audio.playSound(snapActivateSound, {
                 position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
                 localOnly: true,
