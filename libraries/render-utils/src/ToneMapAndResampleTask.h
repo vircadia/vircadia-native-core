@@ -76,7 +76,7 @@ protected:
 
     float _factor{ 2.0f };
 
-    gpu::FramebufferPointer ToneMapAndResample::getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
+    gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
 
 private:
 
