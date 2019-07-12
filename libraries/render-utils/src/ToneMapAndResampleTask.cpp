@@ -33,7 +33,6 @@ void ToneMapAndResample::init(RenderArgs* args) {
     // shared_ptr to gpu::State
     gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
 
-    // TODO why was this in the upsample task
     blitState->setDepthTest(gpu::State::DepthTest(false, false));
     blitState->setColorWriteMask(true, true, true, true);
 
