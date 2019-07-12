@@ -1,0 +1,12 @@
+[Unit]
+Description=Assignment client service for High Fidelity server
+After=network.target
+[Service]
+Restart=always
+
+WorkingDirectory=/usr/share/hifi/assignment-client
+Environment="LD_LIBRARY_PATH=/usr/share/hifi/assignment-client/"
+
+ExecStart=/bin/bash -c 'ulimit -c unlimited; /usr/share/hifi/assignment-client/assignment-client -n 7 2>&1 >> /var/log/hifi/assignment-client.log'
+[Install]
+WantedBy=multi-user.target
