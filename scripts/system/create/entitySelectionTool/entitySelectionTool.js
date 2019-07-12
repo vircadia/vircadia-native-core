@@ -2039,10 +2039,10 @@ SelectionDisplay = (function() {
                     Vec3.print("    pickResult.intersection", pickResult.intersection);
                 }
 
-                // Duplicate entities if alt is pressed.  This will make a
+                // Duplicate entities if Ctrl is pressed.  This will make a
                 // copy of the selected entities and move the _original_ entities, not
                 // the new ones.
-                if (event.isAlt || doDuplicate) {
+                if (event.isControl || doDuplicate) {
                     duplicatedEntityIDs = SelectionManager.duplicateSelection();
                     var ids = [];
                     for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
@@ -2265,10 +2265,10 @@ SelectionDisplay = (function() {
         addHandleTool(overlay, {
             mode: mode,
             onBegin: function(event, pickRay, pickResult) {
-                // Duplicate entities if alt is pressed.  This will make a
+                // Duplicate entities if Ctrl is pressed.  This will make a
                 // copy of the selected entities and move the _original_ entities, not
                 // the new ones.
-                if (event.isAlt) {
+                if (event.isControl) {
                     duplicatedEntityIDs = SelectionManager.duplicateSelection();
                     var ids = [];
                     for (var i = 0; i < duplicatedEntityIDs.length; ++i) {
