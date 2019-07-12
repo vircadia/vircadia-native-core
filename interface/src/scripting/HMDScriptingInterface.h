@@ -66,6 +66,25 @@ class QScriptEngine;
  *     <code>false</code>.
  * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
  * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>
+ *
+ * @property {number} visionSqueezeRatioX=0.0 - The amount of vision squeeze for the x-axis when moving, range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>.
+ * @property {number} visionSqueezeRatioY=0.0 - The amount of vision squeeze for the y-axis when moving, range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>. 
+ * @property {number} visionSqueezeTurningXFactor=0.51 - The additional amount of vision squeeze for the x-axis when turning,
+ *     range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} visionSqueezeTurningYFactor=0.36 - <em>Currently unused.</em>
+ * @property {number} visionSqueezeUnSqueezeDelay=0.2 - The delay in undoing the vision squeeze effect after motion stops, in
+ *     seconds.
+ * @property {number} visionSqueezeUnSqueezeSpeed=3.0 - How quickly the vision squeeze effect fades, once 
+ *     <code>visionSqueezeUnSqueezeDelay</code> has passed.
+ * @property {number} visionSqueezeTransition=0.25 - How tightly vision is squeezed, range <code>0.01</code> &ndash; 
+ *     <code>0.7</code>.
+ * @property {number} visionSqueezePerEye=1 - <code>1</code> if each eye gets a tube to see through, <code>0</code> if the face 
+ *     gets a tube.
+ * @property {number} visionSqueezeGroundPlaneY=0.0 - Adjusts how far below the camera the vision squeeze grid is displayed at.
+ * @property {number} visionSqueezeSpotlightSize=6.0 - The diameter of the circle of vision squeeze grid that is illuminated 
+ *     around the camera.
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
