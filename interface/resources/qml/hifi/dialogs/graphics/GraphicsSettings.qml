@@ -34,7 +34,6 @@ Item {
         spacing: 8
 
         ColumnLayout {
-            id: avatarNameTagsContainer
             Layout.preferredWidth: parent.width
             Layout.topMargin: 18
             spacing: 0
