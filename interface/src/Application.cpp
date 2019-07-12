@@ -1187,6 +1187,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     auto accountManager = DependencyManager::get<AccountManager>();
 
+    // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    if (!accountManager->hasKeyPair()) {
+        accountManager->generateNewUserKeypair();
+    }
+
 #ifndef Q_OS_ANDROID
     _logger->setSessionID(accountManager->getSessionID());
 #endif
@@ -1333,10 +1340,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-
-    // set the account manager's root URL and trigger a login request if we don't have the access token
-    accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
