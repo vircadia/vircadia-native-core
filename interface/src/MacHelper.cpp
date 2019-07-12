@@ -17,7 +17,7 @@
 #include <IOKit/IOMessage.h>
 #include <IOKit/pwr_mgt/IOPMLib.h>
 
-// These type definitions come from IOKit, which includes a definition of Duration that conflicts with ours.
+// The type definitions in these variables come from IOKit, which includes a definition of Duration that conflicts with ours.
 // So... we include these definitions here rather than in the .h, as the .h is included in Application.cpp which
 // uses Duration.
 static io_connect_t  root_port;
