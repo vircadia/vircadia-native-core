@@ -29,7 +29,6 @@
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 
-#include <Windows.h>
 #include <iostream>
 #include <sstream>
 
