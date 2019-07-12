@@ -207,7 +207,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame, hazeFrame).asVarying();
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", backgroundInputs);
 
     const auto drawHazeInputs = render::Varying(DrawHaze::Inputs(hazeFrame, lightingFramebuffer, linearDepthTarget, deferredFrameTransform, lightingModel, lightFrame));
@@ -225,8 +225,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
     // Layered Over (in front)
-    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, jitter).asVarying();
-    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, jitter).asVarying();
+    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, hazeFrame, jitter).asVarying();
+    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, hazeFrame, jitter).asVarying();
     task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
     task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
@@ -254,7 +254,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
     // HUD Layer
-    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
@@ -506,7 +506,7 @@ void RenderTransparentDeferred::run(const RenderContextPointer& renderContext, c
         if (hazeStage && hazeFrame->_hazes.size() > 0) {
             const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 

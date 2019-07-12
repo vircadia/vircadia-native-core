@@ -17,6 +17,7 @@
 
 static BOOL const DELETE_ZIP_FILES = TRUE;
 @implementation Launcher
+
 + (id) sharedLauncher {
     static Launcher* sharedLauncher = nil;
     static dispatch_once_t onceToken;
@@ -35,11 +36,18 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         self.latestBuildRequest = [LatestBuildRequest alloc];
         self.organizationRequest = [OrganizationRequest alloc];
         self.downloadScripts = [DownloadScripts alloc];
+        struct LatestBuildInfo latestBuildInfo;
+        latestBuildInfo.downloadURL = nil;
+        latestBuildInfo.shouldDownload = FALSE;
+        latestBuildInfo.requestBuildFinished = FALSE;
+        self.buildInfo = latestBuildInfo;
         self.credentialsAccepted = TRUE;
         self.gotCredentialResponse = FALSE;
         self.waitingForCredentialReponse = FALSE;
         self.waitingForInterfaceToTerminate = FALSE;
+        self.latestBuildRequestFinished = FALSE;
         self.userToken = nil;
+        self.progressIndicator = nil;
         self.processState = DOWNLOADING_INTERFACE;
     }
     return self;
@@ -51,11 +59,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                                                            selector:@selector(didTerminateApp:)
                                                                name:NSWorkspaceDidTerminateApplicationNotification
                                                              object:nil];
-    
+
     SplashScreen* splashScreen = [[SplashScreen alloc] initWithNibName:@"SplashScreen" bundle:nil];
     [self.window setContentViewController: splashScreen];
     [self closeInterfaceIfRunning];
-    
+
     if (!self.waitingForInterfaceToTerminate) {
         [self checkLoginStatus];
     }
@@ -65,12 +73,12 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 {
     NSString* filePath = [[NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES) objectAtIndex:0]
                           stringByAppendingString:@"/Launcher/"];
-    
+
     if (![[NSFileManager defaultManager] fileExistsAtPath:filePath]) {
         NSError * error = nil;
         [[NSFileManager defaultManager] createDirectoryAtPath:filePath withIntermediateDirectories:TRUE attributes:nil error:&error];
     }
-    
+
     return filePath;
 }
 
@@ -79,19 +87,67 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return [[[NSBundle mainBundle] bundlePath] stringByAppendingString:@"/Contents/MacOS/"];
 }
 
-- (void) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
+- (void) updateProgressIndicator
+{
+    double contentPercentage = [self.downloadDomainContent getProgressPercentage];
+    double interfacePercentage = [self.downloadInterface getProgressPercentage];
+    double currentTotalPercentage = self.progressTarget;
+    if (self.processState == DOWNLOADING_INTERFACE) {
+        if (self.shouldDownloadInterface) {
+            currentTotalPercentage = (contentPercentage * 0.5) + (interfacePercentage * 0.5);
+        } else {
+            currentTotalPercentage = contentPercentage;
+        }
+    } else {
+        currentTotalPercentage = interfacePercentage;
+    }
+    self.progressTarget = currentTotalPercentage;
+}
+
+- (double) lerp:(double) pointA :(double) pointB :(double) interp
+{
+    double lerpValue = pointA + interp * (pointB - pointA);
+    return lerpValue;
+}
+
+- (BOOL) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
 {
     NSTask* task = [[NSTask alloc] init];
     task.launchPath = @"/usr/bin/unzip";
     task.arguments = @[@"-o", @"-d", destination, file];
-    
+
     [task launch];
     [task waitUntilExit];
-    
+
     if (DELETE_ZIP_FILES) {
         NSFileManager* fileManager = [NSFileManager defaultManager];
         [fileManager removeItemAtPath:file error:NULL];
     }
+
+    if ([task terminationStatus] != 0) {
+        NSLog(@"Extracting file failed -> termination status: %d", [task terminationStatus]);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+-(void) setProgressView:(NSProgressIndicator*) aProgressIndicator
+{
+    self.progressIndicator = aProgressIndicator;
+}
+
+-(NSProgressIndicator*) getProgressView
+{
+    return self.progressIndicator;
+}
+
+- (void) restart
+{
+    SplashScreen* splashScreen = [[SplashScreen alloc] initWithNibName:@"SplashScreen" bundle:nil];
+    [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: splashScreen];
+
+    [self checkLoginStatus];
 }
 
 - (void) displayErrorPage
@@ -102,19 +158,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) checkLoginStatus
 {
-    if ([self isLoadedIn]) {
-        Launcher* sharedLauncher = [Launcher sharedLauncher];
-        [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
-        ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
-        [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
-        [self.latestBuildRequest requestLatestBuildInfo];
-    } else {
-        [NSTimer scheduledTimerWithTimeInterval:2.0
-                                         target:self
-                                       selector:@selector(onSplashScreenTimerFinished:)
-                                       userInfo:nil
-                                        repeats:NO];
-    }
+    [NSTimer scheduledTimerWithTimeInterval:1.0
+                                     target:self
+                                   selector:@selector(onSplashScreenTimerFinished:)
+                                   userInfo:nil
+                                    repeats:NO];
     [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
 }
 
@@ -136,6 +184,31 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (NSString*) getDownloadScriptsFilename
 {
     return self.scriptsFilename;
+}
+
+- (void) startUpdateProgressIndicatorTimer
+{
+    self.progressTarget = 0.0;
+    self.updateProgressIndicatorTimer = [NSTimer scheduledTimerWithTimeInterval: 0.0016
+                                                                        target: self
+                                                                      selector: @selector(updateIndicator:)
+                                                                      userInfo:nil
+                                                                       repeats: YES];
+
+    [[NSRunLoop mainRunLoop] addTimer:self.updateProgressIndicatorTimer forMode:NSRunLoopCommonModes];
+}
+
+- (void) endUpdateProgressIndicatorTimer
+{
+    [self.updateProgressIndicatorTimer invalidate];
+    self.updateProgressIndicatorTimer = nil;
+}
+
+- (void) updateIndicator:(NSTimer*) timer
+{
+    NSProgressIndicator* progressIndicator = [self getProgressView];
+    double oldValue = progressIndicator.doubleValue;
+    progressIndicator.doubleValue = [self lerp:oldValue :self.progressTarget :0.3];
 }
 
 - (void)didTerminateApp:(NSNotification *)notification {
@@ -175,7 +248,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     self.domainURL = aDomainURL;
     self.domainContentUrl = aDomainContentUrl;
     self.domainScriptsUrl = aDomainScriptsUrl;
-    
+
     [[Settings sharedSettings] setDomainUrl:aDomainURL];
 }
 
@@ -192,6 +265,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void) displayNameEntered:(NSString*)aDiplayName
 {
     self.processState = DOWNLOADING_INTERFACE;
+    [self startUpdateProgressIndicatorTimer];
     ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
     [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
     [self.downloadDomainContent downloadDomainContent:self.domainContentUrl];
@@ -200,8 +274,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) domainContentDownloadFinished
 {
-    //.[self.downloadScripts downloadScripts:self.domainScriptsUrl];
-    [self.latestBuildRequest requestLatestBuildInfo];
+    if (self.shouldDownloadInterface) {
+        [self.downloadInterface downloadInterface: self.interfaceDownloadUrl];
+        return;
+    }
+    [self interfaceFinishedDownloading];
 }
 
 - (void) domainScriptsDownloadFinished
@@ -228,14 +305,21 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) interfaceFinishedDownloading
 {
-    if (self.processState == DOWNLOADING_INTERFACE) {
-        self.processState = RUNNING_INTERFACE_AFTER_DOWNLOAD;
+    [self endUpdateProgressIndicatorTimer];
+    NSProgressIndicator* progressIndicator = [self getProgressView];
+    progressIndicator.doubleValue = self.progressTarget;
+    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    if ([sharedLauncher currentProccessState] == DOWNLOADING_INTERFACE) {
+        [sharedLauncher setCurrentProcessState: RUNNING_INTERFACE_AFTER_DOWNLOAD];
     } else {
-        self.processState = RUNNING_INTERFACE_AFTER_UPDATE;
+        [sharedLauncher setCurrentProcessState: RUNNING_INTERFACE_AFTER_UPDATE];
     }
-    ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
-    [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
-    [self launchInterface];
+
+    [NSTimer scheduledTimerWithTimeInterval: 0.2
+                                     target: self
+                                   selector: @selector(callLaunchInterface:)
+                                   userInfo:nil
+                                    repeats: NO];
 }
 
 - (void) credentialsEntered:(NSString*)aOrginization :(NSString*)aUsername :(NSString*)aPassword
@@ -262,6 +346,16 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     return YES;
 }
 
+- (struct LatestBuildInfo) getLatestBuildInfo
+{
+    return self.buildInfo;
+}
+
+- (void) setLatestBuildInfo:(struct LatestBuildInfo) latestBuildInfo
+{
+    self.buildInfo = latestBuildInfo;
+}
+
 -(void) showLoginScreen
 {
     LoginScreen* loginScreen = [[LoginScreen alloc] initWithNibName:@"LoginScreen" bundle:nil];
@@ -270,17 +364,29 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl
 {
-    if (shouldDownload) {
-        [self.downloadInterface downloadInterface: downloadUrl];
-        return;
+    self.shouldDownloadInterface = shouldDownload;
+    self.interfaceDownloadUrl = downloadUrl;
+    self.latestBuildRequestFinished = TRUE;
+    if ([self isLoadedIn]) {
+        Launcher* sharedLauncher = [Launcher sharedLauncher];
+        [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
+        if (shouldDownload) {
+            ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
+            [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
+            [self startUpdateProgressIndicatorTimer];
+            [self.downloadInterface downloadInterface: downloadUrl];
+            return;
+        }
+        [self interfaceFinishedDownloading];
+    } else {
+        [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
+        [self showLoginScreen];
     }
-    [self launchInterface];
 }
 
 -(void)onSplashScreenTimerFinished:(NSTimer *)timer
 {
-    [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
-    [self showLoginScreen];
+    [self.latestBuildRequest requestLatestBuildInfo];
 }
 
 -(void)setCurrentProcessState:(ProcessState)aProcessState
@@ -326,17 +432,17 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void) launchInterface
 {
     NSString* launcherPath = [[self getLauncherPath] stringByAppendingString:@"HQ Launcher"];
-    
+
     [[Settings sharedSettings] setLauncherPath:launcherPath];
     [[Settings sharedSettings] save];
     NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     NSURL *url = [NSURL fileURLWithPath:[workspace fullPathForApplication:[[self getAppPath] stringByAppendingString:@"interface.app/Contents/MacOS/interface"]]];
 
     NSError *error = nil;
-    
+
     NSString* contentPath = [[self getDownloadPathForContentAndScripts] stringByAppendingString:@"content"];
     NSString* displayName = [ self displayName];
-    NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUI/"];
+    NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUIBootstrapper.js"];
     NSString* domainUrl = [[Settings sharedSettings] getDomainUrl];
     NSString* userToken = [[Launcher sharedLauncher] getTokenString];
     NSString* homeBookmark = [[NSString stringWithFormat:@"hqhome="] stringByAppendingString:domainUrl];
@@ -347,7 +453,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                         @"--tokens", userToken,
                         @"--cache", contentPath,
                         @"--displayName", displayName,
-                        @"--scripts", scriptsPath,
+                        @"--defaultScriptsOverride", scriptsPath,
                         @"--setBookmark", homeBookmark,
                         @"--no-updater",
                         @"--no-launcher", nil];
@@ -355,19 +461,36 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         arguments = [NSArray arrayWithObjects:
                             @"--url" , domainUrl,
                             @"--cache", contentPath,
-                            @"--scripts", scriptsPath,
+                            @"--defaultScriptsOverride", scriptsPath,
                             @"--setBookmark", homeBookmark,
                             @"--no-updater",
                             @"--no-launcher", nil];
     }
     [workspace launchApplicationAtURL:url options:NSWorkspaceLaunchNewInstance configuration:[NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:&error];
-    
-    [NSApp terminate:self];
+
+    [NSTimer scheduledTimerWithTimeInterval: 3.0
+                                     target: self
+                                   selector: @selector(exitLauncher:)
+                                   userInfo:nil
+                                    repeats: NO];
 }
 
 - (ProcessState) currentProccessState
 {
     return self.processState;
+}
+
+- (void) callLaunchInterface:(NSTimer*) timer
+{
+    ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
+    [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
+    [self launchInterface];
+}
+
+
+- (void) exitLauncher:(NSTimer*) timer
+{
+    [NSApp terminate:self];
 }
 
 @end

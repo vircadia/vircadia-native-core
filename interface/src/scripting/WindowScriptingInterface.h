@@ -608,6 +608,12 @@ public slots:
      */
     void setActiveDisplayPlugin(int index);
 
+    /**jsdoc
+     * Opens a web browser in a pop-up window.
+     * @function Window.openWebBrowser
+     */
+    void openWebBrowser();
+
 
 private slots:
     void onWindowGeometryChanged(const QRect& geometry);

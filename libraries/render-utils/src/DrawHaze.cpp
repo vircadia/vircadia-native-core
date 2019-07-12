@@ -78,7 +78,7 @@ void DrawHaze::run(const render::RenderContextPointer& renderContext, const Inpu
         batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(outputFramebufferSize, args->_viewport));
 
         batch.setPipeline(_hazePipeline);
-        batch.setUniformBuffer(ru::Buffer::HazeParams, haze->getHazeParametersBuffer());
+        batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, haze->getHazeParametersBuffer());
 
         batch.setUniformBuffer(ru::Buffer::DeferredFrameTransform, transformBuffer->getFrameTransformBuffer());
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());

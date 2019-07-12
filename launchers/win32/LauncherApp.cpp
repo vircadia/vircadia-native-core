@@ -32,19 +32,36 @@ CLauncherApp theApp;
 // CLauncherApp initialization
 
 BOOL CLauncherApp::InitInstance() {
-    // don't launch if already running
-    CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        return FALSE;
+    // Close interface if is running
+    int interfacePID = -1;
+    if (LauncherUtils::isProcessRunning(L"interface.exe", interfacePID)) {
+        LauncherUtils::shutdownProcess(interfacePID, 0);
     }
     int iNumOfArgs;
     LPWSTR* pArgs = CommandLineToArgvW(GetCommandLine(), &iNumOfArgs);
-    if (iNumOfArgs > 1 && CString(pArgs[1]).Compare(_T("--uninstall")) == 0) {
+    bool isUninstalling = false;
+    bool isRestarting = false;
+    if (iNumOfArgs > 1) {
+        if (CString(pArgs[1]).Compare(_T("--uninstall")) == 0) {
+            isUninstalling = true;
+        } else if (CString(pArgs[1]).Compare(_T("--restart")) == 0) {
+            isRestarting = true;
+        }
+    }
+    if (!isRestarting) {
+        // don't launch if already running
+        CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            return FALSE;
+        }
+    }
+
+    if (isUninstalling) {
         _manager.uninstall();
     } else {
         _manager.init();
     }   
-    if (!_manager.installLauncher()) {
+    if (!_manager.hasFailed() && !_manager.installLauncher()) {
         return FALSE;
     }
     installFont(IDR_FONT_REGULAR);

@@ -67,7 +67,7 @@ Rectangle {
     }
 
     ColumnLayout {
-        spacing: 20
+        spacing: 10
         anchors.left: parent.left
         anchors.right: parent.right      
         anchors.margins: hifi.dimensions.contentMargin.x  
@@ -108,6 +108,26 @@ Rectangle {
                 color: "red"
                 font.italic: true
             }
+        }
+        ConfigSlider {
+            label: qsTr("Bias Input")
+            integral: false
+            config: shadowConfig
+            property: "biasInput"
+            max: 1.0
+            min: 0.0
+            height: 38
+            width:250
+        }
+        ConfigSlider {
+            label: qsTr("Shadow Max Distance")
+            integral: false
+            config: shadowConfig
+            property: "globalMaxDistance"
+            max: 100.0
+            min: 1.0
+            height: 38
+            width:250
         }
         Repeater {
             model: [

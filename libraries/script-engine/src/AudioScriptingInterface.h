@@ -108,8 +108,8 @@ public:
      * Sets whether your microphone audio is echoed back to you from the server. When enabled, microphone audio is echoed 
      * only if you're unmuted or are using push-to-talk.
      * @function Audio.setServerEcho
-     * @parm {boolean} serverEcho - <code>true</code> to enable echoing microphone back to you from the server, 
-     *     <code>false<code> to disable.
+     * @param {boolean} serverEcho - <code>true</code> to enable echoing microphone back to you from the server, 
+     *     <code>false</code> to disable.
      */
     Q_INVOKABLE void setServerEcho(bool serverEcho);
 

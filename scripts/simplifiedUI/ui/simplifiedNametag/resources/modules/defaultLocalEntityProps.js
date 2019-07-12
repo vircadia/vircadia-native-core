@@ -20,7 +20,8 @@ var localEntityProps = {
     backgroundAlpha: 0.6,
     billboardMode: "full",
     lifetime: 3,
-    canCastShadow: true
+    canCastShadow: true,
+    unlit: true
 };
 
 module.exports = localEntityProps;

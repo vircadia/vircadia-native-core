@@ -86,12 +86,14 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     qRegisterMetaType<AccountManagerAuth::Type>();
+    connect(this, &AccountManager::loginComplete, this, &AccountManager::uploadPublicKey);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
+
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
 
@@ -837,18 +839,30 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair, this,
             &AccountManager::handleKeypairGenerationError);
 
-        qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair.";
+        static constexpr int RSA_THREAD_PRIORITY = 1;
+        qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair, priority"
+            << RSA_THREAD_PRIORITY << "- QThreadPool::maxThreadCount =" << QThreadPool::globalInstance()->maxThreadCount();
         // Start on Qt's global thread pool.
-        QThreadPool::globalInstance()->start(keypairGenerator);
+        QThreadPool::globalInstance()->start(keypairGenerator, RSA_THREAD_PRIORITY);
     }
 }
 
 void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey) {
 
-    qCDebug(networking) << "Generated 2048-bit RSA keypair. Uploading public key now.";
+    qCDebug(networking) << "Generated 2048-bit RSA keypair.";
 
     // hold the private key to later set our metaverse API account info if upload succeeds
+    _pendingPublicKey = publicKey;
     _pendingPrivateKey = privateKey;
+    uploadPublicKey();
+}
+
+void AccountManager::uploadPublicKey() {
+    if (_pendingPrivateKey.isEmpty()) {
+        return;
+    }
+
+    qCDebug(networking) << "Attempting upload of public key";
 
     // upload the public key so data-web has an up-to-date key
     const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
@@ -870,7 +884,7 @@ void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray pr
 
     publicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
                         QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
-    publicKeyPart.setBody(publicKey);
+    publicKeyPart.setBody(_pendingPublicKey);
     requestMultiPart->append(publicKeyPart);
 
     // Currently broken? We don't have the temporary domain key.
@@ -899,6 +913,7 @@ void AccountManager::publicKeyUploadSucceeded(QNetworkReply* reply) {
 
     // public key upload complete - store the matching private key and persist the account to settings
     _accountInfo.setPrivateKey(_pendingPrivateKey);
+    _pendingPublicKey.clear();
     _pendingPrivateKey.clear();
     persistAccountToFile();
 
@@ -914,9 +929,6 @@ void AccountManager::publicKeyUploadFailed(QNetworkReply* reply) {
 
     // we aren't waiting for a response any longer
     _isWaitingForKeypairResponse = false;
-
-    // clear our pending private key
-    _pendingPrivateKey.clear();
 }
 
 void AccountManager::handleKeypairGenerationError() {
@@ -959,4 +971,8 @@ void AccountManager::saveLoginStatus(bool isLoggedIn) {
             QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
         }
     }
+}
+
+bool AccountManager::hasKeyPair() const {
+    return _accountInfo.hasPrivateKey();
 }

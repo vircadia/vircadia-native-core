@@ -453,6 +453,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // or that somehow we haven't sent
             if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
                 ++numAvatarsHeldBack;
+
+                // BUGZ-781 verbose debugging:
+                auto usecLastTimeSent = destinationNodeData->getLastOtherAvatarEncodeTime(sourceAvatarNodeData->getNodeLocalID());
+                if (usecLastTimeSent != 0 && startIgnoreCalculation - usecLastTimeSent > 10 * USECS_PER_SECOND) {
+                    qCDebug(avatars) << "Not sent avatar" << *sourceAvatarNode << "to Node" << *destinationNode << "in > 10 s";
+                }
+
                 sendAvatar = false;
             } else if (lastSeqFromSender == 0) {
                 // We have have not yet received any data about this avatar. Ignore it for now

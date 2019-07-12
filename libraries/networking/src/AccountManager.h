@@ -81,6 +81,7 @@ public:
     bool needsToRefreshToken();
     Q_INVOKABLE bool checkAndSignalForAccessToken();
     void setAccessTokenForCurrentAuthURL(const QString& accessToken);
+    bool hasKeyPair() const;
 
     void requestProfile();
 
@@ -139,6 +140,7 @@ signals:
 private slots:
     void handleKeypairGenerationError();
     void processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey);
+    void uploadPublicKey();
     void publicKeyUploadSucceeded(QNetworkReply* reply);
     void publicKeyUploadFailed(QNetworkReply* reply);
     void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
@@ -162,6 +164,7 @@ private:
 
     bool _isWaitingForKeypairResponse { false };
     QByteArray _pendingPrivateKey;
+    QByteArray _pendingPublicKey;
 
     QUuid _sessionID { QUuid::createUuid() };
 

@@ -11,9 +11,8 @@
 
 #include <gpu/Pipeline.h>
 #include "LightStage.h"
+#include "HazeStage.h"
 #include "LightingModel.h"
-
-
 
 class BeginGPURangeTimer {
 public:
@@ -62,7 +61,7 @@ protected:
 
 class DrawLayered3D {
 public:
-    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
+    using Inputs = render::VaryingSet4<render::ItemBounds, LightingModelPointer, HazeStage::FramePointer, glm::vec2>;
     using Config = DrawLayered3DConfig;
     using JobModel = render::Job::ModelI<DrawLayered3D, Inputs, Config>;
 

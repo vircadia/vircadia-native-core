@@ -21,12 +21,15 @@ bool enumeratePlatform();
 
 int getNumCPUs();
 json getCPU(int index);
+int getMasterCPU();
 
 int getNumGPUs();
 json getGPU(int index);
+int getMasterGPU();
 
 int getNumDisplays();
 json getDisplay(int index);
+int getMasterDisplay();
 
 json getMemory();
 

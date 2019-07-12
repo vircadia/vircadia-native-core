@@ -20,6 +20,7 @@ namespace platform { namespace keys{
         extern const char*  model;
         extern const char*  clockSpeed;
         extern const char*  numCores;
+        extern const char*  isMaster;
     }
     namespace gpu {
         extern const char*  vendor;
@@ -30,14 +31,29 @@ namespace platform { namespace keys{
         extern const char*  model;
         extern const char*  videoMemory;
         extern const char*  driver;
+        extern const char*  displays;
+        extern const char*  isMaster;
+    }
+    namespace nic {
+        extern const char* mac;
+        extern const char* name;
     }
     namespace display {
         extern const char*  description;
         extern const char*  name;
-        extern const char*  coordsLeft;
-        extern const char*  coordsRight;
-        extern const char*  coordsTop;
-        extern const char*  coordsBottom;
+        extern const char*  boundsLeft;
+        extern const char*  boundsRight;
+        extern const char*  boundsTop;
+        extern const char*  boundsBottom;
+        extern const char*  gpu;
+        extern const char*  ppi;
+        extern const char*  ppiDesktop;
+        extern const char*  physicalWidth;
+        extern const char*  physicalHeight;
+        extern const char*  modeRefreshrate;
+        extern const char*  modeWidth;
+        extern const char*  modeHeight;
+        extern const char*  isMaster;
     }
     namespace memory {
         extern const char*  memTotal;
@@ -63,6 +79,7 @@ namespace platform { namespace keys{
     extern const char*  CPUS;
     extern const char*  GPUS;
     extern const char*  DISPLAYS;
+    extern const char*  NICS;
     extern const char*  MEMORY;
     extern const char*  COMPUTER;
 

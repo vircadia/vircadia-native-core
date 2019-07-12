@@ -1,6 +1,6 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-// <$_SCRIBE_FILENAME$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
 //
 //  Created by Andrzej Kapolka on 5/6/14.
@@ -10,55 +10,320 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBufferWrite.slh@>
 <@include graphics/Material.slh@>
 <@include graphics/MaterialTextures.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC, EMISSIVE, OCCLUSION, SCATTERING)$>
+<@if not HIFI_USE_SHADOW@>
+    <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
+        <@include DefaultMaterials.slh@>
+        <@include GlobalLight.slh@>
+        <@if HIFI_USE_LIGHTMAP@>
+            <$declareEvalLightmappedColor()$>
+        <@elif HIFI_USE_TRANSLUCENT@>
+            <@if not HIFI_USE_FORWARD@>
+                <@include LightLocal.slh@>
+            <@endif@>
+            <$declareEvalGlobalLightingAlphaBlended()$>
+        <@else@>
+            <$declareEvalSkyboxGlobalColor(_SCRIBE_NULL, HIFI_USE_FORWARD)$>
+        <@endif@>
+        <@include gpu/Transform.slh@>
+        <$declareStandardCameraTransform()$>
+        layout(location=0) out vec4 _fragColor0;
+    <@else@>
+        <@include DeferredBufferWrite.slh@>
+    <@endif@>
+<@else@>
+    layout(location=0) out vec4 _fragColor0;
+<@endif@>
 
+<@if HIFI_USE_UNLIT@>
+    <@include LightingModel.slh@>
+<@endif@>
+
+<@if HIFI_USE_SHADOW or HIFI_USE_UNLIT@>
+    <$declareMaterialTextures(ALBEDO)$>
+<@else@>
+    <@if not HIFI_USE_LIGHTMAP@>
+        <@if HIFI_USE_NORMALMAP and HIFI_USE_TRANSLUCENT@>
+            <$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL , METALLIC, EMISSIVE, OCCLUSION)$>
+        <@elif HIFI_USE_NORMALMAP@>
+            <$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL , METALLIC, EMISSIVE, OCCLUSION, SCATTERING)$>
+        <@elif HIFI_USE_TRANSLUCENT@>
+            <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL , METALLIC, EMISSIVE, OCCLUSION)$>
+        <@else@>
+            <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL , METALLIC, EMISSIVE, OCCLUSION, SCATTERING)$>
+        <@endif@>
+    <@else@>
+        <@if HIFI_USE_NORMALMAP@>
+            <$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC)$>
+        <@else@>
+            <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
+        <@endif@>
+        <$declareMaterialLightmap()$>
+    <@endif@>
+<@endif@>
+
+<@if HIFI_USE_FADE@>
+    <@include Fade.slh@>
+    <$declareFadeFragment()$>
+<@endif@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) in vec4 _positionWS;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
-layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+<@if not HIFI_USE_SHADOW@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
+    layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
+    <@if HIFI_USE_NORMALMAP@>
+        layout(location=RENDER_UTILS_ATTR_TANGENT_WS) in vec3 _tangentWS;
+    <@endif@>
+<@endif@>
 
 void main(void) {
+<@if HIFI_USE_FADE@>
+    <@if not HIFI_USE_SHADOW@>
+        vec3 fadeEmissive;
+        FadeObjectParams fadeParams;
+        <$fetchFadeObjectParams(fadeParams)$>
+        applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
+    <@else@>
+        FadeObjectParams fadeParams;
+        <$fetchFadeObjectParams(fadeParams)$>
+        applyFadeClip(fadeParams, _positionWS.xyz);
+    <@endif@>
+<@endif@>
+
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex, scatteringTex)$>
-    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+<@if HIFI_USE_SHADOW or HIFI_USE_UNLIT@>
+        <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex)$>
 
-    float opacity = 1.0;
-    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
-    <$discardTransparent(opacity)$>;
+    <@if HIFI_USE_TRANSLUCENT@>
+        float opacity = getMaterialOpacity(mat) * _color.a;
+    <@else@>
+        float opacity = 1.0;
+    <@endif@>
+        <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <@if HIFI_USE_TRANSLUCENT@>
+        <$discardInvisible(opacity)$>;
+    <@else@>
+        <$discardTransparent(opacity)$>;
+    <@endif@>
 
-    vec3 albedo = getMaterialAlbedo(mat);
-    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
-    albedo *= _color.rgb;
+    <@if not HIFI_USE_SHADOW@>
+            vec3 albedo = getMaterialAlbedo(mat);
+            <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+            albedo *= _color.rgb;
+        <@if HIFI_USE_FADE@>
+                albedo += fadeEmissive;
+        <@endif@>
+    <@endif@>
 
-    float roughness = getMaterialRoughness(mat);
-    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+    <@if HIFI_USE_SHADOW@>
+            _fragColor0 = vec4(1.0);
+    <@elif HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
+            _fragColor0 = vec4(albedo * isUnlitEnabled(), opacity);
+    <@else@>
+            packDeferredFragmentUnlit(
+                normalize(_normalWS),
+                opacity,
+                albedo * isUnlitEnabled());
+    <@endif@>
+<@else@>
+    <@if not HIFI_USE_LIGHTMAP@>
+        <@if HIFI_USE_NORMALMAP and HIFI_USE_TRANSLUCENT@>
+            <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, metallicTex, emissiveTex, _SCRIBE_NULL)$>
+        <@elif HIFI_USE_NORMALMAP@>
+            <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, metallicTex, emissiveTex, scatteringTex)$>
+        <@elif HIFI_USE_TRANSLUCENT@>
+            <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex, _SCRIBE_NULL)$>
+        <@else@>
+            <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex, emissiveTex, scatteringTex)$>
+        <@endif@>
+            <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+    <@else@>
+        <@if HIFI_USE_NORMALMAP@>
+            <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, metallicTex)$>
+        <@else@>
+            <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex)$>
+        <@endif@>
+            <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmap)$>
+    <@endif@>
 
-    float metallic = getMaterialMetallic(mat);
-    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+    <@if HIFI_USE_TRANSLUCENT@>
+        float opacity = getMaterialOpacity(mat) * _color.a;
+    <@else@>
+        float opacity = 1.0;
+    <@endif@>
+        <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <@if HIFI_USE_TRANSLUCENT@>
+            <$discardInvisible(opacity)$>;
+    <@else@>
+            <$discardTransparent(opacity)$>;
+    <@endif@>
 
-    vec3 emissive = getMaterialEmissive(mat);
-    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+        vec3 albedo = getMaterialAlbedo(mat);
+        <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+        albedo *= _color.rgb;
 
-    float occlusion = DEFAULT_OCCLUSION;
-    <$evalMaterialOcclusion(occlusionTex, matKey, occlusion)$>;
+        float roughness = getMaterialRoughness(mat);
+        <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
-    float scattering = getMaterialScattering(mat);
-    <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
+        float metallic = getMaterialMetallic(mat);
+        <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
-    packDeferredFragment(
-        normalize(_normalWS), 
-        opacity,
-        albedo,
-        roughness,
-        metallic,
-        emissive,
-        occlusion,
-        scattering);
+    <@if not HIFI_USE_LIGHTMAP@>
+            vec3 emissive = getMaterialEmissive(mat);
+            <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+
+            float occlusion = DEFAULT_OCCLUSION;
+            <$evalMaterialOcclusion(occlusionTex, matKey, occlusion)$>;
+
+        <@if not HIFI_USE_TRANSLUCENT@>
+                float scattering = getMaterialScattering(mat);
+                <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
+        <@endif@>
+    <@endif@>
+
+    <@if HIFI_USE_NORMALMAP@>
+            vec3 fragNormalWS;
+            <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
+    <@else@>
+            vec3 fragNormalWS = _normalWS;
+    <@endif@>
+        fragNormalWS = normalize(fragNormalWS);
+
+    <@if HIFI_USE_FORWARD@>
+        TransformCamera cam = getTransformCamera();
+        vec3 fresnel = getFresnelF0(metallic, albedo);
+        <@if not HIFI_USE_TRANSLUCENT@>
+            <@if not HIFI_USE_LIGHTMAP@>
+                vec4 color = vec4(evalSkyboxGlobalColor(
+                    cam._viewInverse,
+                    1.0,
+                    occlusion,
+                    _positionES.xyz,
+                    fragNormalWS,
+                    albedo,
+                    fresnel,
+                    metallic,
+                    roughness),
+                    opacity);
+                color.rgb += emissive * isEmissiveEnabled();
+                _fragColor0 = color;
+            <@else@>
+                _fragColor0 = vec4(evalLightmappedColor(
+		            cam._viewInverse,
+		            1.0,
+		            DEFAULT_OCCLUSION,
+		            fragNormalWS,
+		            albedo,
+		            lightmap),
+		            opacity);
+            <@endif@>
+        <@else@>
+            <@if not HIFI_USE_LIGHTMAP@>
+                _fragColor0 =  vec4(evalGlobalLightingAlphaBlended(
+                    cam._viewInverse,
+                    1.0,
+                    occlusion,
+                    _positionES.xyz,
+                    fragNormalWS,
+                    albedo,
+                    fresnel,
+                    metallic,
+                    emissive,
+                    roughness, opacity),
+                    opacity);
+            <@else@>
+                _fragColor0 = vec4(evalLightmappedColor(
+		            cam._viewInverse,
+		            1.0,
+		            DEFAULT_OCCLUSION,
+		            fragNormalWS,
+		            albedo,
+		            lightmap),
+		            opacity);
+            <@endif@>
+        <@endif@>
+    <@else@>
+        <@if not HIFI_USE_TRANSLUCENT@>
+            <@if not HIFI_USE_LIGHTMAP@>
+                packDeferredFragment(
+                    fragNormalWS,
+                    opacity,
+                    albedo,
+                    roughness,
+                    metallic,
+                    emissive
+                <@if HIFI_USE_FADE@>
+                        + fadeEmissive
+                <@endif@>
+                    ,
+                    occlusion,
+                    scattering);
+            <@else@>
+                packDeferredFragmentLightmap(
+                    fragNormalWS,
+                    evalOpaqueFinalAlpha(getMaterialOpacity(mat), opacity),
+                    albedo,
+                    roughness,
+                    metallic,
+                    lightmap
+                <@if HIFI_USE_FADE@>
+                        + fadeEmissive
+                <@endif@>
+                    );
+            <@endif@>
+        <@else@>
+            TransformCamera cam = getTransformCamera();
+            <@if not HIFI_USE_LIGHTMAP@>
+                vec3 fresnel = getFresnelF0(metallic, albedo);
+
+                vec3 fragPositionWS = _positionWS.xyz;
+                vec3 fragToEyeWS = cam._viewInverse[3].xyz - fragPositionWS;
+                vec3 fragToEyeDirWS = normalize(fragToEyeWS);
+                SurfaceData surfaceWS = initSurfaceData(roughness, fragNormalWS, fragToEyeDirWS);
+
+                vec4 localLighting = vec4(0.0);
+                <$fetchClusterInfo(_positionWS)$>;
+                if (hasLocalLights(numLights, clusterPos, dims)) {
+                    localLighting = evalLocalLighting(cluster, numLights, fragPositionWS, surfaceWS,
+                                                      metallic, fresnel, albedo, 0.0,
+                                                      vec4(0), vec4(0), opacity);
+                }
+
+                _fragColor0 = vec4(evalGlobalLightingAlphaBlended(
+                    cam._viewInverse,
+                    1.0,
+                    occlusion,
+                    _positionES.xyz,
+                    fragNormalWS,
+                    albedo,
+                    fresnel,
+                    metallic,
+                    emissive
+                <@if HIFI_USE_FADE@>
+                        + fadeEmissive
+                <@endif@>
+                    ,
+                    surfaceWS, opacity, localLighting.rgb),
+                    opacity);
+            <@else@>
+                _fragColor0 = vec4(evalLightmappedColor(
+		            cam._viewInverse,
+		            1.0,
+		            DEFAULT_OCCLUSION,
+		            fragNormalWS,
+		            albedo,
+		            lightmap),
+		            opacity);
+            <@endif@>
+        <@endif@>
+    <@endif@>
+<@endif@>
 }

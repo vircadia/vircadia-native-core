@@ -55,7 +55,7 @@ PickFilter getPickFilter(unsigned int filter) {
 }
 
 /**jsdoc
- * A set of properties that can be passed to {@link Picks.createPick} when creating a new ray pick.
+ * The properties of a ray pick.
  *
  * @typedef {object} Picks.RayPickProperties
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should 
@@ -138,7 +138,7 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
 }
 
 /**jsdoc
- * A set of properties that can be passed to {@link Picks.createPick} when creating a new stylus pick.
+ * The properties of a stylus pick.
  *
  * @typedef {object} Picks.StylusPickProperties
  * @property {number} [hand=-1] <code>0</code> for the left hand, <code>1</code> for the right hand, invalid (<code>-1</code>) 
@@ -189,7 +189,7 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
 
 // NOTE: Laser pointer still uses scaleWithAvatar. Until scaleWithAvatar is also deprecated for pointers, scaleWithAvatar should not be removed from the pick API.
 /**jsdoc
- * A set of properties that can be passed to {@link Picks.createPick} when creating a new parabola pick.
+ * The properties of a parabola pick.
  *
  * @typedef {object} Picks.ParabolaPickProperties
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should 
@@ -297,7 +297,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 
 
 /**jsdoc
- * A set of properties that can be passed to {@link Picks.createPick} when creating a new collision pick.
+ * The properties of a collision pick.
  *
  * @typedef {object} Picks.CollisionPickProperties
  * @property {boolean} [enabled=false] - <code>true</code> if this pick should start enabled, <code>false</code> if it should

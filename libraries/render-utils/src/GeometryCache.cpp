@@ -113,6 +113,7 @@ static const uint SHAPE_NORMALS_OFFSET = offsetof(GeometryCache::ShapeVertex, no
 static const uint SHAPE_TEXCOORD0_OFFSET = offsetof(GeometryCache::ShapeVertex, uv);
 static const uint SHAPE_TANGENT_OFFSET = offsetof(GeometryCache::ShapeVertex, tangent);
 
+std::map<std::pair<bool, bool>, gpu::PipelinePointer> GeometryCache::_webPipelines;
 std::map<std::pair<bool, bool>, gpu::PipelinePointer> GeometryCache::_gridPipelines;
 
 void GeometryCache::computeSimpleHullPointListForShape(const int entityShape, const glm::vec3 &entityExtents, QVector<glm::vec3> &outPointList) {
@@ -722,42 +723,12 @@ gpu::ShaderPointer GeometryCache::_forwardUnlitShader;
 gpu::ShaderPointer GeometryCache::_forwardSimpleFadeShader;
 gpu::ShaderPointer GeometryCache::_forwardUnlitFadeShader;
 
-render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
-render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
-render::ShapePipelinePointer GeometryCache::_forwardSimpleOpaquePipeline;
-render::ShapePipelinePointer GeometryCache::_forwardSimpleTransparentPipeline;
-render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
-render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
-render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
-
-uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
-
-render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
-    initializeShapePipelines();
-
-    if (key.isWireframe()) {
-        return _simpleWirePipeline;
-    }
-
-    if (key.isFaded()) {
-        if (key.isTranslucent()) {
-            return _simpleTransparentFadePipeline;
-        } else {
-            return _simpleOpaqueFadePipeline;
-        }
-    } else {
-        if (key.isTranslucent()) {
-            return _simpleTransparentPipeline;
-        } else {
-            return _simpleOpaquePipeline;
-        }
-    }
-}
+std::map<std::tuple<bool, bool, bool>, render::ShapePipelinePointer> GeometryCache::_shapePipelines;
 
 GeometryCache::GeometryCache() :
 _nextID(0) {
     // Let's register its special shapePipeline factory:
-    registerShapePipeline();
+    initializeShapePipelines();
     buildShapes();
 }
 
@@ -799,16 +770,14 @@ void GeometryCache::releaseID(int id) {
 }
 
 void GeometryCache::initializeShapePipelines() {
-    if (!_simpleOpaquePipeline) {
-        _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
-        _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
-        _forwardSimpleOpaquePipeline = getShapePipeline(false, false, true, false, false, true);
-        _forwardSimpleTransparentPipeline = getShapePipeline(false, true, true, false, false, true);
-
-        // FIXME: these need forward pipelines
-        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
-        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
-        _simpleWirePipeline = getShapePipeline(false, false, true, true);
+    if (_shapePipelines.empty()) {
+        const int NUM_PIPELINES = 8;
+        for (int i = 0; i < NUM_PIPELINES; ++i) {
+            bool transparent = i & 1;
+            bool unlit = i & 2;
+            bool forward = i & 4;
+            _shapePipelines[std::make_tuple(transparent, unlit, forward)] = getShapePipeline(false, transparent, true, unlit, false, forward);
+        }
     }
 }
 
@@ -1027,7 +996,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
+    const glm::vec3 NORMAL(0.0f, -1.0f, 0.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
     int compactColor = 0;
@@ -1105,7 +1074,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
+    const glm::vec3 NORMAL(0.0f, -1.0f, 0.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
     for (auto i = 0; i < pointCount; i++) {
@@ -1193,7 +1162,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
+    const glm::vec3 NORMAL(0.0f, -1.0f, 0.0f);
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points[i];
         glm::vec2 texCoord = texCoords[i];
@@ -2050,7 +2019,7 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
         const float DEPTH_BIAS = 0.001f;
 
         static const std::vector<std::tuple<bool, bool, uint32_t>> keys = {
-            std::make_tuple(false, false, grid), std::make_tuple(false, true, forward_grid), std::make_tuple(true, false, grid_translucent), std::make_tuple(true, true, forward_grid_translucent)
+            std::make_tuple(false, false, grid), std::make_tuple(false, true, grid_forward), std::make_tuple(true, false, grid_translucent), std::make_tuple(true, true, grid_translucent_forward)
         };
 
         for (auto& key : keys) {
@@ -2141,34 +2110,35 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-static void buildWebShader(int programId, bool blendEnable,
-                           gpu::ShaderPointer& shaderPointerOut, gpu::PipelinePointer& pipelinePointerOut) {
-    shaderPointerOut = gpu::Shader::createProgram(programId);
-    auto state = std::make_shared<gpu::State>();
-    state->setCullMode(gpu::State::CULL_NONE);
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    state->setBlendFunction(blendEnable,
-                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-    PrepareStencil::testMaskDrawShapeNoAA(*state);
-
-    pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
+void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent, bool forward) {
+    batch.setPipeline(getWebBrowserProgram(transparent, forward));
 }
 
-void GeometryCache::bindWebBrowserProgram(gpu::Batch& batch, bool transparent) {
-    batch.setPipeline(getWebBrowserProgram(transparent));
-}
+gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent, bool forward) {
+    if (_webPipelines.empty()) {
+        using namespace shader::render_utils::program;
+        const int NUM_WEB_PIPELINES = 4;
+        for (int i = 0; i < NUM_WEB_PIPELINES; ++i) {
+            bool transparent = i & 1;
+            bool forward = i & 2;
 
-gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
-    static std::once_flag once;
-    std::call_once(once, [&]() {
-        // FIXME: need a forward pipeline for this
-        buildWebShader(shader::render_utils::program::simple_opaque_web_browser, false, _simpleOpaqueWebBrowserShader, _simpleOpaqueWebBrowserPipeline);
-        buildWebShader(shader::render_utils::program::simple_transparent_web_browser, true, _simpleTransparentWebBrowserShader, _simpleTransparentWebBrowserPipeline);
-    });
+            // For any non-opaque or non-deferred pipeline, we use web_browser_forward
+            auto pipeline = (transparent || forward) ? web_browser_forward : web_browser;
 
-    return transparent ? _simpleTransparentWebBrowserPipeline : _simpleOpaqueWebBrowserPipeline;
+            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+            // FIXME: do we need a testMaskDrawNoAA?
+            PrepareStencil::testMaskDrawShapeNoAA(*state);
+            state->setBlendFunction(transparent,
+                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+            state->setCullMode(gpu::State::CULL_NONE);
+
+            _webPipelines[{ transparent, forward }] = gpu::Pipeline::create(gpu::Shader::createProgram(pipeline), state);
+        }
+    }
+
+    return _webPipelines[{ transparent, forward }];
 }
 
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased, bool forward) {
@@ -2196,24 +2166,24 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         std::call_once(once, [&]() {
             using namespace shader::render_utils::program;
 
-            _forwardSimpleShader = gpu::Shader::createProgram(forward_simple_textured);
-            _forwardTransparentShader = gpu::Shader::createProgram(forward_simple_textured_transparent);
-            _forwardUnlitShader = gpu::Shader::createProgram(forward_simple_textured_unlit);
+            _forwardSimpleShader = gpu::Shader::createProgram(simple_forward);
+            _forwardTransparentShader = gpu::Shader::createProgram(simple_translucent_forward);
+            _forwardUnlitShader = gpu::Shader::createProgram(simple_unlit_forward);
 
-            _simpleShader = gpu::Shader::createProgram(simple_textured);
-            _transparentShader = gpu::Shader::createProgram(simple_transparent_textured);
-            _unlitShader = gpu::Shader::createProgram(simple_textured_unlit);
+            _simpleShader = gpu::Shader::createProgram(simple);
+            _transparentShader = gpu::Shader::createProgram(simple_translucent);
+            _unlitShader = gpu::Shader::createProgram(simple_unlit);
         });
     } else {
         static std::once_flag once;
         std::call_once(once, [&]() {
             using namespace shader::render_utils::program;
-            // FIXME: these aren't right...
-            _forwardSimpleFadeShader = gpu::Shader::createProgram(forward_simple_textured);
-            _forwardUnlitFadeShader = gpu::Shader::createProgram(forward_simple_textured_unlit);
+            // Fading is currently disabled during forward rendering
+            _forwardSimpleFadeShader = gpu::Shader::createProgram(simple_forward);
+            _forwardUnlitFadeShader = gpu::Shader::createProgram(simple_unlit_forward);
 
-            _simpleFadeShader = gpu::Shader::createProgram(simple_textured_fade);
-            _unlitFadeShader = gpu::Shader::createProgram(simple_textured_unlit_fade);
+            _simpleFadeShader = gpu::Shader::createProgram(simple_fade);
+            _unlitFadeShader = gpu::Shader::createProgram(simple_unlit_fade);
         });
     }
 
@@ -2281,8 +2251,7 @@ void renderInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color
 
         if (isWire) {
             DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
-        }
-        else {
+        } else {
             DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
         }
     });

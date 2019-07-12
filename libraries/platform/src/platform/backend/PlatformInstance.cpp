@@ -8,6 +8,7 @@
 
 
 #include "PlatformInstance.h"
+#include <QNetworkInterface>
 
 #include "../PlatformKeys.h"
 #include "../Profiler.h"
@@ -15,16 +16,93 @@
 using namespace platform;
 
 bool Instance::enumeratePlatform() {
+    //clear all knowledge
+    _computer.clear();
+    _memory.clear();
+    _cpus.clear();
+    _gpus.clear();
+    _displays.clear();
+    _nics.clear();
+
+    // enumerate platform components
     enumerateComputer();
     enumerateMemory();
     enumerateCpus();
-    enumerateGpus();
-    enumerateDisplays();
+    enumerateGpusAndDisplays();
+    enumerateNics();
+    
+    // eval the master index for each platform scopes
+    updateMasterIndices();
 
     // And profile the platform and put the tier in "computer"
     _computer[keys::computer::profileTier] = Profiler::TierNames[Profiler::profilePlatform()];
 
     return true;
+}
+
+void Instance::updateMasterIndices() {
+    // We assume a single CPU at the moment:
+    {
+        if (!_cpus.empty()) {
+            _masterCPU = 0;
+            _cpus[0][keys::cpu::isMaster] = true; 
+        } else {
+            _masterCPU = NOT_FOUND;
+        }
+    }
+
+    // Go through the displays list
+    {
+        _masterDisplay = NOT_FOUND;
+        for (int i = 0; i < (int) _displays.size(); ++i) {
+            const auto& display = _displays[i];
+            if (display.count(keys::display::isMaster)) {
+                if (display[keys::display::isMaster].get<bool>()) {
+                    _masterDisplay = i;
+                    break;
+                }
+            }
+        }
+        // NO master display found, return the first one or NOT_FOUND if no display
+        if (_masterDisplay == NOT_FOUND) {
+            if (!_displays.empty()) {
+                _masterDisplay = 0;
+                _displays[0][keys::display::isMaster] = true;
+            }
+        }
+    }
+
+    // From the master display decide the master gpu
+    {
+        _masterGPU = NOT_FOUND;
+        if (_masterDisplay != NOT_FOUND) {
+            const auto& display = _displays[_masterDisplay];
+            // FInd the GPU index of the master display
+            if (display.count(keys::display::gpu)) {
+                _masterGPU = display[keys::display::gpu];
+                _gpus[_masterGPU][keys::gpu::isMaster] = true; 
+            }
+        }
+        // NO master GPU found from master display, bummer, return the first one or NOT_FOUND if no display
+        if (_masterGPU == NOT_FOUND) {
+            if (!_gpus.empty()) {
+                _masterGPU = 0;
+                _gpus[0][keys::gpu::isMaster] = true;
+            }
+        }        
+    }
+}
+
+void Instance::enumerateNics() {
+    QNetworkInterface interface;
+    foreach(interface, interface.allInterfaces()) {
+        if (interface.flags().testFlag(QNetworkInterface::IsRunning) && !interface.hardwareAddress().isEmpty()) {
+            json nic = {};
+            nic[keys::nic::mac] = interface.hardwareAddress().toUtf8().constData();
+            nic[keys::nic::name] = interface.humanReadableName().toUtf8().constData();
+            _nics.push_back(nic);
+        }
+    }
 }
 
 json Instance::getCPU(int index) {
@@ -43,6 +121,7 @@ json Instance::getGPU(int index) {
     
     return _gpus.at(index);
 }
+
 
 json Instance::getDisplay(int index) {
     assert(index <(int) _displays.size());
@@ -85,13 +164,13 @@ json Instance::listAllKeys() {
         keys::gpu::model,
         keys::gpu::videoMemory,
         keys::gpu::driver,
+        keys::gpu::displays,
 
-        keys::display::description,
-        keys::display::name,
-        keys::display::coordsLeft,
-        keys::display::coordsRight,
-        keys::display::coordsTop,
-        keys::display::coordsBottom,
+        keys::display::boundsLeft,
+        keys::display::boundsRight,
+        keys::display::boundsTop,
+        keys::display::boundsBottom,
+        keys::display::gpu,
 
         keys::memory::memTotal,
 
@@ -140,6 +219,7 @@ json Instance::getAll() {
     all[keys::CPUS] = _cpus;
     all[keys::GPUS] = _gpus;
     all[keys::DISPLAYS] = _displays;
+    all[keys::NICS] = _nics;
 
     return all;
 }

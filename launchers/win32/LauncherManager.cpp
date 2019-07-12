@@ -15,31 +15,43 @@
 #include "LauncherManager.h"
 
 
-LauncherManager::LauncherManager()
-{
+LauncherManager::LauncherManager() {
 }
 
-
-LauncherManager::~LauncherManager()
-{
+LauncherManager::~LauncherManager() {
 }
 
 void LauncherManager::init() {
     initLog();
     addToLog(_T("Getting most recent build"));
-    getMostRecentBuild(_latestApplicationURL, _latestVersion);
-    addToLog(_T("Latest version: ") + _latestVersion);
-    CString currentVersion;
-    if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
-        addToLog(_T("Installed version: ") + currentVersion);
-        if (_latestVersion.Compare(currentVersion) == 0) {
-            addToLog(_T("Already running most recent build. Launching interface.exe"));
-            _shouldLaunch = TRUE;
-            _shouldShutdown = TRUE;
-        } else {
-            addToLog(_T("New build found. Updating"));
+    CString response;
+    LauncherUtils::ResponseError error = getMostRecentBuild(_latestApplicationURL, _latestVersion, response);
+    if (error == LauncherUtils::ResponseError::NoError) {
+        addToLog(_T("Latest version: ") + _latestVersion);
+        CString currentVersion;
+        if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
+            addToLog(_T("Installed version: ") + currentVersion);
+            if (_latestVersion.Compare(currentVersion) == 0) {
+                addToLog(_T("Already running most recent build. Launching interface.exe"));
+                _shouldLaunch = TRUE;
+                _shouldShutdown = TRUE;
+            } else {
+                addToLog(_T("New build found. Updating"));
+                _shouldUpdate = TRUE;
+            }
+        } else if (_loggedIn) {
+            addToLog(_T("Interface not found but logged in. Reinstalling"));
             _shouldUpdate = TRUE;
+        } else {
+            _shouldInstall = TRUE;
         }
+    } else {
+        _hasFailed = true;
+        CString msg;
+        msg.Format(_T("Getting most recent build has failed with error: %d"), error);
+        addToLog(msg);
+        msg.Format(_T("Response: %s"), response);
+        addToLog(msg);
     }
 }
 
@@ -74,8 +86,19 @@ void LauncherManager::closeLog() {
     }
 }
 
+void LauncherManager::saveErrorLog() {
+    CString logPath = _logFile.GetFilePath();
+    CString errorLogPath;
+    auto result = getAndCreatePaths(PathType::Launcher_Directory, errorLogPath);
+    if (result) {
+        CString filename;
+        errorLogPath += _T("log_error.txt");
+        closeLog();
+        CopyFile(logPath, errorLogPath, FALSE);
+    }
+}
+
 BOOL LauncherManager::installLauncher() {
-    addToLog(_T("Installing Launcher."));
     CString appPath;
     BOOL result = getAndCreatePaths(PathType::Running_Path, appPath);
     if (!result) {
@@ -93,13 +116,17 @@ BOOL LauncherManager::installLauncher() {
         if (!_shouldUninstall) {
             // The installer is not running on the desired location and has to be installed
             // Kill of running before self-copy
-            if (LauncherUtils::IsProcessRunning(LAUNCHER_EXE_FILENAME)) {
-                ShellExecute(NULL, NULL, L"taskkill", L"/F /T /IM " + LAUNCHER_EXE_FILENAME, NULL, SW_HIDE);
+            addToLog(_T("Installing Launcher."));
+            int launcherPID = -1;
+            if (LauncherUtils::isProcessRunning(LAUNCHER_EXE_FILENAME, launcherPID)) {
+                if (!LauncherUtils::shutdownProcess(launcherPID, 0)) {
+                    addToLog(_T("Error shutting down the Launcher"));
+                }
             }
             CopyFile(appPath, instalationPath, FALSE);
         }
     } else if (_shouldUninstall) {
-        addToLog(_T("Launching uninstall mode."));
+        addToLog(_T("Launching Uninstall mode."));
         CString tempPath;
         if (getAndCreatePaths(PathType::Temp_Directory, tempPath)) {
             tempPath += _T("\\HQ_uninstaller_tmp.exe");
@@ -111,6 +138,52 @@ BOOL LauncherManager::installLauncher() {
     return TRUE;
 }
 
+BOOL LauncherManager::restartLauncher() {
+    addToLog(_T("Restarting Launcher."));
+    CString installDirectory;
+    if (getAndCreatePaths(PathType::Launcher_Directory, installDirectory)) {
+        CString installPath = installDirectory + LAUNCHER_EXE_FILENAME;
+        LauncherUtils::launchApplication(installPath, _T(" --restart"));
+        exit(0);
+    }
+    addToLog(_T("Error restarting Launcher."));
+    return FALSE;
+}
+
+void LauncherManager::updateProgress(ProcessType processType, float progress) {
+    switch (processType) {
+    case ProcessType::Uninstall:
+        _progress = progress;
+        break;
+    case ProcessType::DownloadContent:
+        _progress = DOWNLOAD_CONTENT_INSTALL_WEIGHT * progress;
+        break;
+    case ProcessType::UnzipContent:
+        _progress = DOWNLOAD_CONTENT_INSTALL_WEIGHT +
+                    EXTRACT_CONTENT_INSTALL_WEIGHT * progress;
+        break;
+    case ProcessType::DownloadApplication:
+        _progress = !_shouldUpdate ?
+                    (DOWNLOAD_CONTENT_INSTALL_WEIGHT +
+                    EXTRACT_CONTENT_INSTALL_WEIGHT +
+                    DOWNLOAD_APPLICATION_INSTALL_WEIGHT * progress) :
+                    DOWNLOAD_APPLICATION_UPDATE_WEIGHT * progress;
+        break;
+    case ProcessType::UnzipApplication:
+        _progress = !_shouldUpdate ?
+                    (DOWNLOAD_CONTENT_INSTALL_WEIGHT +
+                    EXTRACT_CONTENT_INSTALL_WEIGHT +
+                    DOWNLOAD_APPLICATION_INSTALL_WEIGHT +
+                    EXTRACT_APPLICATION_INSTALL_WEIGHT * progress) :
+                    (DOWNLOAD_APPLICATION_UPDATE_WEIGHT +
+                     EXTRACT_APPLICATION_UPDATE_WEIGHT * progress);
+        break;
+    default:
+        break;
+    }
+    TRACE("progress = %f\n", _progress);
+}
+
 BOOL LauncherManager::createShortcuts() {
     CString desktopLnkPath;
     addToLog(_T("Creating shortcuts."));
@@ -119,7 +192,7 @@ BOOL LauncherManager::createShortcuts() {
     CString installDir;
     getAndCreatePaths(PathType::Launcher_Directory, installDir);
     CString installPath = installDir + LAUNCHER_EXE_FILENAME;
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(desktopLnkPath), _T("CLick to Setup and Launch HQ."))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(desktopLnkPath), _T("CLick to Setup and Launch HQ."))) {
         return FALSE;
     }
     CString startLinkPath;
@@ -127,13 +200,13 @@ BOOL LauncherManager::createShortcuts() {
     CString appStartLinkPath = startLinkPath + _T("HQ Launcher.lnk");
     CString uniStartLinkPath = startLinkPath + _T("Uninstall HQ.lnk");
     CString uniLinkPath = installDir + _T("Uninstall HQ.lnk");
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(appStartLinkPath), _T("CLick to Setup and Launch HQ."))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(appStartLinkPath), _T("CLick to Setup and Launch HQ."))) {
         return FALSE;
     }
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(uniStartLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(uniStartLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
         return FALSE;
     }
-    if (!LauncherUtils::CreateLink(installPath, (LPCSTR)CStringA(uniLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
+    if (!LauncherUtils::createLink(installPath, (LPCSTR)CStringA(uniLinkPath), _T("CLick to Uninstall HQ."), _T("--uninstall"))) {
         return FALSE;
     }
     return TRUE;
@@ -157,9 +230,9 @@ BOOL LauncherManager::isApplicationInstalled(CString& version, CString& domain,
     CString applicationPath = applicationDir + "interface\\interface.exe";
     BOOL isApplicationInstalled = PathFileExistsW(applicationPath);
     BOOL configFileExist = PathFileExistsW(applicationDir + _T("interface\\config.json"));
-    if (isApplicationInstalled && configFileExist) {
+    if (configFileExist) {
         LauncherUtils::ResponseError status = readConfigJSON(version, domain, content, loggedIn);
-        return status == LauncherUtils::ResponseError::NoError;
+        return isApplicationInstalled && status == LauncherUtils::ResponseError::NoError;
     }
     return FALSE;
 }
@@ -223,8 +296,9 @@ HWND LauncherManager::launchApplication() {
     LauncherManager::getAndCreatePaths(PathType::Interface_Directory, installDir);
     CString interfaceExe = installDir + _T("\\interface.exe");
     CString urlParam = _T("--url \"") + _domainURL + ("\" ");
-    CString scriptsURL = installDir + _T("\\scripts\\simplifiedUI");
-    CString scriptsParam = _T("--scripts \"") + scriptsURL + ("\" ");
+    CString scriptsURL = installDir + _T("\\scripts\\simplifiedUIBootstrapper.js");
+    scriptsURL.Replace(_T("\\"), _T("/"));
+    CString scriptsParam = _T("--defaultScriptsOverride \"") + scriptsURL + ("\" ");
     CString cacheDir;
     LauncherManager::getAndCreatePaths(PathType::Content_Directory, cacheDir);
     CString cacheParam = _T("--cache \"") + cacheDir + ("\" ");
@@ -266,7 +340,8 @@ BOOL LauncherManager::createConfigJSON() {
     return TRUE;
 }
 
-LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, CString& domain, CString& content, bool& loggedIn) {
+LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, CString& domain, 
+                                                             CString& content, bool& loggedIn) {
     CString configPath;
     getAndCreatePaths(PathType::Interface_Directory, configPath);
     configPath += "\\config.json";
@@ -276,7 +351,8 @@ LauncherUtils::ResponseError LauncherManager::readConfigJSON(CString& version, C
     }
     Json::Value config;
     configFile >> config;
-    if (config["version"].isString() && config["domain"].isString() &&
+    if (config["version"].isString() && 
+        config["domain"].isString() &&
         config["content"].isString()) {
         loggedIn = config["loggedIn"].asBool();
         version = config["version"].asCString();
@@ -293,8 +369,10 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     CString contentTypeJson = L"content-type:application/json";
     CString response;
     CString url = _T("/organizations/") + hash + _T(".json");
-    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", L"orgs.highfidelity.com", url,
-        contentTypeJson, CStringA(), response, false);
+    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", 
+                                                                     L"orgs.highfidelity.com", url,
+                                                                     contentTypeJson, CStringA(), 
+                                                                     response, false);
     if (error != LauncherUtils::ResponseError::NoError) {
         return error;
     }
@@ -309,11 +387,14 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     return LauncherUtils::ResponseError::ParsingJSON;
 }
 
-LauncherUtils::ResponseError LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut) {
+LauncherUtils::ResponseError LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut, 
+                                                                 CString& response) {
     CString contentTypeJson = L"content-type:application/json";
-    CString response;
-    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", L"thunder.highfidelity.com", L"/builds/api/tags/latest?format=json",
-        contentTypeJson, CStringA(), response, false);
+    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", 
+                                                                     L"thunder.highfidelity.com", 
+                                                                     L"/builds/api/tags/latest?format=json",
+                                                                     contentTypeJson, CStringA(), 
+                                                                     response, false);
     if (error != LauncherUtils::ResponseError::NoError) {
         return error;
     }
@@ -341,7 +422,8 @@ LauncherUtils::ResponseError LauncherManager::getMostRecentBuild(CString& urlOut
     return LauncherUtils::ResponseError::ParsingJSON;
 }
 
-LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const CString& username, const CString& password) {
+LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const CString& username, 
+                                                                           const CString& password) {
     CStringA post = "grant_type=password&username=";
     post += username;
     post += "&password=";
@@ -350,8 +432,11 @@ LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const
 
     CString contentTypeText = L"content-type:application/x-www-form-urlencoded";
     CString response;
-    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", L"metaverse.highfidelity.com", L"/oauth/token",
-        contentTypeText, post, response, true);
+    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", 
+                                                                     L"metaverse.highfidelity.com", 
+                                                                     L"/oauth/token",
+                                                                     contentTypeText, post, 
+                                                                     response, true);
     if (error != LauncherUtils::ResponseError::NoError) {
         return error;
     }
@@ -395,21 +480,19 @@ BOOL LauncherManager::uninstallApplication() {
     CString installDir;
     getAndCreatePaths(PathType::Launcher_Directory, installDir);
     BOOL success = LauncherUtils::deleteFileOrDirectory(installDir);
-    success = success && (deleteShortcuts());   
-    success = success && (deleteApplicationRegistryKeys());
+    if (success) {
+        deleteShortcuts();
+        deleteApplicationRegistryKeys();
+    }
     return success;
 }
 
-void LauncherManager::onZipExtracted(ZipType type, int size) {
-    if (type == ZipType::ZipContent) {
+void LauncherManager::onZipExtracted(ProcessType type, int size) {
+    if (type == ProcessType::UnzipContent) {
         addToLog(_T("Downloading application."));
         downloadApplication();
-    } else if (type == ZipType::ZipApplication) {
+    } else if (type == ProcessType::UnzipApplication) {
         createShortcuts();
-        CString versionPath;
-        getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, versionPath);
-        addToLog(_T("Creating config.json"));
-        createConfigJSON();
         addToLog(_T("Launching application."));
         _shouldLaunch = TRUE;
         if (!_shouldUpdate) {
@@ -423,10 +506,24 @@ void LauncherManager::onZipExtracted(ZipType type, int size) {
 BOOL LauncherManager::extractApplication() {
     CString installPath;
     getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installPath);
-    BOOL success = LauncherUtils::unzipFileOnThread(ZipType::ZipApplication, LauncherUtils::cStringToStd(_applicationZipPath),
-        LauncherUtils::cStringToStd(installPath), [&](int type, int size) {
-        onZipExtracted((ZipType)type, size);
-    });
+    std::function<void(int, int)> onExtractFinished = [&](int type, int size) {
+        addToLog(_T("Creating config.json"));
+        createConfigJSON();
+        if (size > 0) {
+            onZipExtracted((ProcessType)type, size);
+        } else {
+            addToLog(_T("Error decompressing application zip file."));
+            _hasFailed = true;
+        }
+    };
+    std::function<void(float)> onProgress = [&](float progress) {
+        updateProgress(ProcessType::UnzipApplication, progress);
+    };
+    _currentProcess = ProcessType::UnzipApplication;
+    BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipApplication, 
+                                                    LauncherUtils::cStringToStd(_applicationZipPath),
+                                                    LauncherUtils::cStringToStd(installPath), 
+                                                    onExtractFinished, onProgress);
     if (success) {
         addToLog(_T("Created thread for unzipping application."));
     } else {
@@ -435,13 +532,33 @@ BOOL LauncherManager::extractApplication() {
     return success;
 }
 
-void LauncherManager::onFileDownloaded(DownloadType type) {
-    if (type == DownloadType::DownloadContent) {
-        addToLog(_T("Installing content."));
-        installContent();
-    } else if (type == DownloadType::DownloadApplication) {
-        addToLog(_T("Installing application."));
-        extractApplication();
+void LauncherManager::onFileDownloaded(ProcessType type) {
+    if (type == ProcessType::DownloadContent) {
+        addToLog(_T("Deleting content directory before install"));
+        CString contentDir;
+        getAndCreatePaths(PathType::Content_Directory, contentDir);
+        LauncherUtils::deleteDirectoryOnThread(contentDir, [&](bool error) {
+            if (!error) {
+                addToLog(_T("Installing content."));
+                installContent();
+            } else {
+                addToLog(_T("Error deleting content directory."));
+                setFailed(true);
+            }
+        });
+    } else if (type == ProcessType::DownloadApplication) {
+        addToLog(_T("Deleting application directory before install"));
+        CString applicationDir;
+        getAndCreatePaths(PathType::Interface_Directory, applicationDir);
+        LauncherUtils::deleteDirectoryOnThread(applicationDir, [&](bool error) {
+            if (!error) {
+                addToLog(_T("Installing application."));
+                extractApplication();
+            } else {
+                addToLog(_T("Error deleting install directory."));
+                setFailed(true);
+            }
+        });
     }
 }
 
@@ -450,10 +567,22 @@ BOOL LauncherManager::installContent() {
     std::string contentZipFile = LauncherUtils::cStringToStd(_contentZipPath);
     CString contentPath;
     getAndCreatePaths(LauncherManager::PathType::Content_Directory, contentPath);
-    BOOL success = LauncherUtils::unzipFileOnThread(ZipType::ZipContent, contentZipFile,
-        LauncherUtils::cStringToStd(contentPath), [&](int type, int size) {
-        onZipExtracted((ZipType)type, size);
-    });
+    std::function<void(int, int)> onInstallFinished = [&](int type, int size) {
+        if (size > 0) {
+            addToLog(_T("Content zip decompresed."));
+            onZipExtracted((ProcessType)type, size);
+        }
+        else {
+            addToLog(_T("Error decompressing content zip file."));
+            _hasFailed = true;
+        }
+    };
+    std::function<void(float)> onProgress = [&](float progress) {
+        updateProgress(ProcessType::UnzipContent, progress);
+    };
+    _currentProcess = ProcessType::UnzipContent;
+    BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipContent, contentZipFile,
+        LauncherUtils::cStringToStd(contentPath), onInstallFinished, onProgress);
     if (success) {
         addToLog(_T("Created thread for unzipping content."));
     } else {
@@ -463,15 +592,32 @@ BOOL LauncherManager::installContent() {
 }
 
 
-BOOL LauncherManager::downloadFile(DownloadType type, const CString& url, CString& outPath) {
+BOOL LauncherManager::downloadFile(ProcessType type, const CString& url, CString& outPath) {
     CString fileName = url.Mid(url.ReverseFind('/') + 1);
     CString downloadDirectory;
     BOOL success = getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDirectory);
     outPath = downloadDirectory + fileName;
+    _currentProcess = type;
     if (success) {
-        if (!LauncherUtils::downloadFileOnThread(type, url, outPath, [&](int type) {
-            onFileDownloaded((DownloadType)type);
-        })) {
+        addToLog(_T("Downloading: ") + url);
+        std::function<void(int, bool)> onDownloadFinished = [&](int type, bool error) {
+            if (!error) {
+                onFileDownloaded((ProcessType)type);
+            }
+            else {
+                if (type == ProcessType::DownloadApplication) {
+                    addToLog(_T("Error downloading content."));
+                }
+                else {
+                    addToLog(_T("Error downloading application."));
+                }
+                _hasFailed = true;
+            }
+        };
+        std::function<void(float)> onProgress = [&](float progress) {
+            updateProgress(_currentProcess, progress);
+        };
+        if (!LauncherUtils::downloadFileOnThread(type, url, outPath, onDownloadFinished, onProgress)) {
             success = FALSE;
         }
     }
@@ -481,10 +627,18 @@ BOOL LauncherManager::downloadFile(DownloadType type, const CString& url, CStrin
 BOOL LauncherManager::downloadContent() {
     addToLog(_T("Downloading content."));
     CString contentURL = getContentURL();
-    return downloadFile(DownloadType::DownloadContent, contentURL, _contentZipPath);
+    return downloadFile(ProcessType::DownloadContent, contentURL, _contentZipPath);
 }
 
 BOOL LauncherManager::downloadApplication() {
     CString applicationURL = getLatestInterfaceURL();
-    return downloadFile(DownloadType::DownloadApplication, applicationURL, _applicationZipPath);
+    return downloadFile(ProcessType::DownloadApplication, applicationURL, _applicationZipPath);
+}
+
+void LauncherManager::onCancel() {
+    if (_currentProcess == ProcessType::UnzipApplication) {
+        _latestVersion = _T("");
+        _version = _T("");
+        createConfigJSON();
+    }
 }

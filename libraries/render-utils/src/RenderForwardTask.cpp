@@ -90,6 +90,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         const auto currentStageFrames = lightingStageInputs.get0();
             const auto lightFrame = currentStageFrames[0];
             const auto backgroundFrame = currentStageFrames[1];
+            const auto hazeFrame = currentStageFrames[2];
  
         const auto& zones = lightingStageInputs[1];
 
@@ -111,21 +112,21 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<PrepareStencil>("PrepareStencil", scaledPrimaryFramebuffer);
 
     // Draw opaques forward
-    const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
+    const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel, hazeFrame).asVarying();
     task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber, true);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame, hazeFrame).asVarying();
     task.addJob<DrawBackgroundStage>("DrawBackgroundForward", backgroundInputs);
 
     // Draw transparent objects forward
-    const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
+    const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel, hazeFrame).asVarying();
     task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber, false);
 
      // Layered
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
-    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, nullJitter).asVarying();
-    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, nullJitter).asVarying();
+    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, hazeFrame, nullJitter).asVarying();
+    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, hazeFrame, nullJitter).asVarying();
     task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
     task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
@@ -144,9 +145,9 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Just resolve the msaa
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
-     const auto toneMappedBuffer = resolvedFramebuffer;
+    const auto toneMappedBuffer = resolvedFramebuffer;
 #else
     const auto newResolvedFramebuffer = task.addJob<NewOrDefaultFramebuffer>("MakeResolvingFramebuffer");
 
@@ -167,7 +168,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
     // HUD Layer
-    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent).asVarying();
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
@@ -258,10 +259,16 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
+    const auto& hazeFrame = inputs.get2();
+
+    graphics::HazePointer haze;
+    const auto& hazeStage = renderContext->args->_scene->getStage<HazeStage>();
+    if (hazeStage && hazeFrame->_hazes.size() > 0) {
+        haze = hazeStage->getHaze(hazeFrame->_hazes.front());
+    }
 
     gpu::doInBatch("DrawForward::run", args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-
 
         // Setup projection
         glm::mat4 projMat;
@@ -275,6 +282,10 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
         // Setup lighting model for all items;
         batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
         batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
+
+        if (haze) {
+            batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, haze->getHazeParametersBuffer());
+        }
 
         // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;

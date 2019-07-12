@@ -9,6 +9,7 @@
 //
 
 #include "stdafx.h"
+#include <regex>
 #include "LauncherApp.h"
 #include "LauncherDlg.h"
 
@@ -109,8 +110,10 @@ BOOL CLauncherDlg::OnInitDialog() {
     m_trouble = (CStatic *)GetDlgItem(IDC_TROUBLE);
 
     m_voxel = (CStatic *)GetDlgItem(IDC_VOXEL);
+    m_progress = (CStatic *)GetDlgItem(IDC_PROGRESS);
 
     m_voxel->EnableD2DSupport();
+    m_progress->EnableD2DSupport();
 
     m_pRenderTarget = GetRenderTarget();
 
@@ -119,22 +122,58 @@ BOOL CLauncherDlg::OnInitDialog() {
     return TRUE;
 }
 
+POINT CLauncherDlg::getMouseCoords(MSG* pMsg) {
+    POINT pos;
+    pos.x = (int)(short)LOWORD(pMsg->lParam);
+    pos.y = (int)(short)HIWORD(pMsg->lParam);
+    return pos;
+}
+
 BOOL CLauncherDlg::PreTranslateMessage(MSG* pMsg) {
-    if ((pMsg->message == WM_KEYDOWN))
-    {
+    switch (pMsg->message) {
+    case WM_KEYDOWN:
         if (pMsg->wParam == 'A' && GetKeyState(VK_CONTROL) < 0) {
             CWnd* wnd = GetFocus();
             CWnd* myWnd = this->GetDlgItem(IDC_ORGNAME);
             if (wnd && (wnd == this->GetDlgItem(IDC_ORGNAME) ||
-                        wnd == this->GetDlgItem(IDC_USERNAME) ||
-                        wnd == this->GetDlgItem(IDC_PASSWORD))) {
+                wnd == this->GetDlgItem(IDC_USERNAME) ||
+                wnd == this->GetDlgItem(IDC_PASSWORD))) {
                 ((CEdit*)wnd)->SetSel(0, -1);
             }
             return TRUE;
         } else if (pMsg->wParam == VK_RETURN) {
             OnNextClicked();
             return TRUE;
+        } else if (pMsg->wParam == VK_ESCAPE) {
+            theApp._manager.onCancel();
         }
+        break;
+    case WM_LBUTTONDOWN:
+        if (pMsg->hwnd == GetSafeHwnd()) {
+            _draggingWindow = true;
+            _dragOffset = getMouseCoords(pMsg);
+            SetCapture();
+        }
+        break;
+    case WM_LBUTTONUP:
+        if (_draggingWindow) {
+            ReleaseCapture();
+            _draggingWindow = false;
+        }
+        break;
+    case WM_MOUSEMOVE:
+        if (_draggingWindow) {
+            POINT pos = getMouseCoords(pMsg);
+            RECT windowRect;
+            GetWindowRect(&windowRect);
+            int width = windowRect.right - windowRect.left;
+            int height = windowRect.bottom - windowRect.top;
+            ClientToScreen(&pos);
+            MoveWindow(pos.x - _dragOffset.x, pos.y - _dragOffset.y, width, height, FALSE);
+        }
+        break;
+    default:
+        break;
     }
     return CDialog::PreTranslateMessage(pMsg);
 }
@@ -174,19 +213,11 @@ void CLauncherDlg::startProcess() {
         theApp._manager.addToLog(_T("Starting Process Setup"));
         setDrawDialog(DrawStep::DrawProcessSetup);
     }
-    theApp._manager.addToLog(_T("Deleting directories before install"));
-
-    CString installDir;
-    theApp._manager.getAndCreatePaths(LauncherManager::PathType::Interface_Directory, installDir);
+    theApp._manager.addToLog(_T("Deleting download directory"));
     CString downloadDir;
     theApp._manager.getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDir);
-
-    LauncherUtils::deleteDirectoriesOnThread(installDir, downloadDir, [&](int error) {
-        LauncherUtils::DeleteDirError deleteError = (LauncherUtils::DeleteDirError)error;
-        switch(error) { 
-        case LauncherUtils::DeleteDirError::NoErrorDeleting:
-            theApp._manager.addToLog(_T("Install directory deleted."));
-            theApp._manager.addToLog(_T("Downloads directory deleted."));
+    LauncherUtils::deleteDirectoryOnThread(downloadDir, [&](bool error) {
+        if (!error) {
             if (!theApp._manager.isLoggedIn()) {
                 theApp._manager.addToLog(_T("Downloading Content"));
                 theApp._manager.downloadContent();
@@ -194,20 +225,12 @@ void CLauncherDlg::startProcess() {
                 theApp._manager.addToLog(_T("Downloading App"));
                 theApp._manager.downloadApplication();
             }
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingBothDirs:
-            theApp._manager.addToLog(_T("Error deleting directories."));
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingApplicationDir:
-            theApp._manager.addToLog(_T("Error deleting application directory."));
-            break;
-        case LauncherUtils::DeleteDirError::ErrorDeletingDownloadsDir:
-            theApp._manager.addToLog(_T("Error deleting downloads directory."));
-            break;
-        default:
-            break;
+        } else {
+            theApp._manager.addToLog(_T("Error deleting download directory."));
+            theApp._manager.setFailed(true);
         }
     });
+
 }
 
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
@@ -230,13 +253,26 @@ afx_msg void CLauncherDlg::OnTermsClicked() {
 }
 
 afx_msg void CLauncherDlg::OnNextClicked() {
-    if (_drawStep != DrawStep::DrawChoose) {
+    if (_drawStep == DrawStep::DrawChoose) {
+        CString displayName;
+        m_username.GetWindowTextW(displayName);
+        theApp._manager.setDisplayName(displayName);
+        theApp._manager.addToLog(_T("Setting display name: " + displayName));
+        startProcess();
+    } else if (_drawStep == DrawStep::DrawError) {
+        theApp._manager.restartLauncher();
+    } else if (_drawStep == DrawStep::DrawLoginLogin || 
+               _drawStep == DrawStep::DrawLoginErrorCred || 
+               _drawStep == DrawStep::DrawLoginErrorOrg) {
         CString token;
         CString username, password, orgname;
         m_orgname.GetWindowTextW(orgname);
         m_username.GetWindowTextW(username);
         m_password.GetWindowTextW(password);
-
+        // trim spaces
+        orgname = CString(std::regex_replace(LauncherUtils::cStringToStd(orgname), std::regex("^ +| +$|( ) +"), "$1").c_str());
+        username = CString(std::regex_replace(LauncherUtils::cStringToStd(username), std::regex("^ +| +$|( ) +"), "$1").c_str());
+        // encode
         username = LauncherUtils::urlEncodeString(username);
         password = LauncherUtils::urlEncodeString(password);
         LauncherUtils::ResponseError error;
@@ -261,19 +297,14 @@ afx_msg void CLauncherDlg::OnNextClicked() {
                 setDrawDialog(DrawStep::DrawLoginErrorOrg);
             }
         }
-    } else {
-        CString displayName;
-        m_username.GetWindowTextW(displayName);
-        theApp._manager.setDisplayName(displayName);
-        theApp._manager.addToLog(_T("Setting display name: " + displayName));
-        startProcess();
     }
 }
 
 void CLauncherDlg::drawBackground(CHwndRenderTarget* pRenderTarget) {
     CD2DBitmap m_pBitmamBackground(pRenderTarget, IDB_PNG1, _T("PNG"));
-    auto size = pRenderTarget->GetSize();
+    auto size = GetRenderTarget()->GetSize();
     CD2DRectF backRec(0.0f, 0.0f, size.width, size.height);
+    GetRenderTarget()->DrawBitmap(&m_pBitmamBackground, backRec);
     pRenderTarget->DrawBitmap(&m_pBitmamBackground, backRec);
 }
 
@@ -283,7 +314,7 @@ void CLauncherDlg::drawLogo(CHwndRenderTarget* pRenderTarget) {
     int logoWidth = 231;
     int logoHeight = 173;
     float logoPosX = 0.5f * (size.width - logoWidth);
-    float logoPosY = 0.95f * (size.height - logoHeight);
+    float logoPosY = 0.5f * (size.height - logoHeight);
     CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
     pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
 }
@@ -318,6 +349,27 @@ void CLauncherDlg::drawVoxel(CHwndRenderTarget* pRenderTarget) {
     pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 }
 
+void CLauncherDlg::drawProgress(CHwndRenderTarget* pRenderTarget, float progress, const D2D1::ColorF& color) {
+    auto size = pRenderTarget->GetPixelSize();
+    if (progress == 0.0f) {
+        return;
+    } else {
+        progress = min(1.0f, progress);
+    }    
+    CRect winRec;
+    float fullHeight = (float)size.height;
+    float halfHeight = 0.5f * (float)size.height;
+    CD2DRectF bkCircleRect1 = CD2DRectF(0.0f, 0.0f, fullHeight, fullHeight);
+    float progPos = halfHeight + (float)(size.width - size.height) * progress;
+    CD2DRectF bkCircleRect2 = CD2DRectF(progPos - halfHeight, 0.0f, progPos + halfHeight, fullHeight);
+    CD2DRectF bkRect = CD2DRectF(halfHeight, 0.0f, progPos, fullHeight);
+    CD2DEllipse bkCircle1 = CD2DEllipse(bkCircleRect1);
+    CD2DEllipse bkCircle2 = CD2DEllipse(bkCircleRect2);
+    CD2DSolidColorBrush brush(pRenderTarget, color);
+    pRenderTarget->FillEllipse(bkCircle1, &brush);
+    pRenderTarget->FillEllipse(bkCircle2, &brush);
+    pRenderTarget->FillRectangle(bkRect, &brush);
+}
 
 void CLauncherDlg::showWindows(std::vector<CStatic*> windows, bool show) {
     for (auto window : windows) {
@@ -327,6 +379,7 @@ void CLauncherDlg::showWindows(std::vector<CStatic*> windows, bool show) {
 
 void CLauncherDlg::prepareLogin(DrawStep step) {
     m_voxel->ShowWindow(SW_HIDE);
+    m_progress->ShowWindow(SW_HIDE);
     m_orgname_banner->SetWindowTextW(_T("Organization Name"));
     m_username_banner->SetWindowTextW(_T("Username"));
     m_password_banner->SetWindowTextW(_T("Password"));
@@ -342,7 +395,7 @@ void CLauncherDlg::prepareLogin(DrawStep step) {
     m_password.ShowWindow(SW_SHOW);
     CString actionText = step == DrawStep::DrawLoginLogin ? _T("Please log in") : _T("Uh-oh, we have a problem");
     CString messageText = step == DrawStep::DrawLoginLogin ? _T("Be sure you've uploaded your Avatar before signing in.") :
-        step == DrawStep::DrawLoginErrorCred ? _T("There is a problem with your credentials\n please try again.") : _T("There is a problem with your Organization name\n please try again.");
+        step == DrawStep::DrawLoginErrorCred ? _T("There is a problem with your credentials.\n Please try again.") : _T("There is a problem with your Organization name.\n Please try again.");
     m_action_label->SetWindowTextW(actionText);
     m_message_label->SetWindowTextW(messageText);
     m_action_label->ShowWindow(SW_SHOW);
@@ -351,9 +404,7 @@ void CLauncherDlg::prepareLogin(DrawStep step) {
     m_trouble->SetWindowTextW(_T("Having Trouble?"));
     m_trouble->ShowWindow(SW_SHOW);
     m_trouble_link.ShowWindow(SW_SHOW);
-    
 }
-
 
 void CLauncherDlg::prepareChoose() {
     m_orgname.ShowWindow(SW_HIDE);
@@ -371,14 +422,7 @@ void CLauncherDlg::prepareChoose() {
     m_terms_link.ShowWindow(SW_SHOW);
     m_terms->SetWindowTextW(_T("By signing in, you agree to the High Fidelity"));
     m_terms_link.SetWindowTextW(_T("Terms of Service"));
-    CRect rec;
-    m_btnNext.GetWindowRect(&rec);
-    ScreenToClient(&rec);
-    if (rec.top > 281) {
-        rec.bottom -= 35;
-        rec.top -= 35;
-        m_btnNext.MoveWindow(rec, FALSE);
-    }
+    setVerticalElement(&m_btnNext, -35, 0, false);
     m_btnNext.ShowWindow(SW_SHOW);
 }
 
@@ -399,8 +443,10 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
     m_action_label->ShowWindow(SW_HIDE);
     m_message_label->ShowWindow(SW_HIDE);
     m_voxel->ShowWindow(SW_SHOW);
+    m_progress->ShowWindow(SW_SHOW);
     CString actionText = _T("");
     CString messageText = _T("");
+    
     switch (step) {
     case DrawStep::DrawProcessSetup:
         actionText = _T("We're building your virtual HQ");
@@ -422,14 +468,21 @@ void CLauncherDlg::prepareProcess(DrawStep step) {
         actionText = _T("Uninstalling...");
         messageText = _T("It'll take one sec.");
         break;
+    case DrawStep::DrawError:
+        actionText = _T("Uh oh.");
+        messageText = _T("We seem to have a problem.\nPlease restart HQ.");
+        setVerticalElement(m_message2_label, 0, 5, false);
+        setVerticalElement(&m_btnNext, 10);
+        m_btnNext.ShowWindow(SW_SHOW);
+        m_progress->ShowWindow(SW_HIDE);
+        break;
+    default:
+        break;
     }
     m_action2_label->SetWindowTextW(actionText);
     m_message2_label->SetWindowTextW(messageText);
     m_action2_label->ShowWindow(SW_SHOW);
     m_message2_label->ShowWindow(SW_SHOW);
-}
-
-void CLauncherDlg::prepareError() {
 }
 
 BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
@@ -485,7 +538,6 @@ BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
 
 HBRUSH CLauncherDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
-
     HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
     TextFormat textFormat;
     int resId = pWnd->GetDlgCtrlID();
@@ -505,6 +557,7 @@ HBRUSH CLauncherDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
             CRect lineRect = CRect(rect.left + padding, rect.bottom, rect.right - padding, rect.bottom + borderThick);
             lineRect.MoveToY(lineRect.bottom + 1);
             pDC->FillSolidRect(lineRect, COLOR_GREY);
+            
         }
     } 
     return (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -523,6 +576,8 @@ void CLauncherDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
             btnName += _drawStep == DrawStep::DrawLoginLogin ? _T("NEXT") : _T("LOG IN");
             int xpan = -20;
             defrect = CRect(rect.left - xpan, rect.top, rect.right + xpan, rect.bottom);
+        } else if (_drawStep == DrawStep::DrawError) {
+            btnName += _T("RESTART");
         } else {
             btnName += _T("TRY AGAIN");
         }
@@ -592,66 +647,105 @@ BOOL CLauncherDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 }
 
 void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
-    const int CONSOLE_MAX_SHUTDOWN_TRY_COUNT = 10;
-    const int CONSOLE_DELTATIME_BETWEEN_TRYS = 10;
-    if (_drawStep == DrawStep::DrawProcessSetup || 
-        _drawStep == DrawStep::DrawProcessUpdate || 
-        _drawStep == DrawStep::DrawProcessUninstall) {
-        // Refresh
-        setDrawDialog(_drawStep, true);
+
+
+    if (theApp._manager.hasFailed() && _drawStep != DrawStep::DrawError) {
+        theApp._manager.saveErrorLog();
+        prepareProcess(DrawStep::DrawError);
+        setDrawDialog(DrawStep::DrawError, false);
     }
-    if (_showSplash) {
-        if (_splashStep == 0){
-            if (theApp._manager.needsUninstall()) {
-                theApp._manager.addToLog(_T("Waiting to uninstall"));
-                setDrawDialog(DrawStep::DrawProcessUninstall);
-            } else {
-                theApp._manager.addToLog(_T("Start splash screen"));
-                setDrawDialog(DrawStep::DrawLogo);
-            }
-        } else if (_splashStep > 100) {
-            _showSplash = false;
-            if (theApp._manager.shouldShutDown()) {
-                if (_applicationWND != NULL) {
-                    ::SetForegroundWindow(_applicationWND);
-                    ::SetActiveWindow(_applicationWND);
+    if (_drawStep != DrawStep::DrawError) {
+        if (_drawStep == DrawStep::DrawProcessSetup ||
+            _drawStep == DrawStep::DrawProcessUpdate ||
+            _drawStep == DrawStep::DrawProcessUninstall ||
+            _drawStep == DrawStep::DrawProcessFinishHq ||
+            _drawStep == DrawStep::DrawProcessFinishUpdate) {
+            // Refresh
+            setDrawDialog(_drawStep, true);
+        }
+        if (_showSplash) {
+            if (_splashStep == 0) {
+                if (theApp._manager.needsUninstall()) {
+                    theApp._manager.addToLog(_T("Waiting to uninstall"));
+                    setDrawDialog(DrawStep::DrawProcessUninstall);
+                } else {
+                    theApp._manager.addToLog(_T("Start splash screen"));
+                    setDrawDialog(DrawStep::DrawLogo);
                 }
-                if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
-                    exit(0);
+            } else if (_splashStep > 100) {
+                _showSplash = false;
+                if (theApp._manager.shouldShutDown()) {
+                    if (_applicationWND != NULL) {
+                        ::SetForegroundWindow(_applicationWND);
+                        ::SetActiveWindow(_applicationWND);
+                    }
+                    if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
+                        exit(0);
+                    }
+                } else if (theApp._manager.needsUpdate()) {
+                    startProcess();
+                } else if (theApp._manager.needsUninstall()) {
+                    if (theApp._manager.uninstallApplication()) {
+                        theApp._manager.addToLog(_T("HQ uninstalled successfully."));
+                        exit(0);
+                    } else {
+                        theApp._manager.addToLog(_T("HQ failed to uninstall."));
+                        theApp._manager.setFailed(true);
+                    }
+                } else {
+                    theApp._manager.addToLog(_T("Starting login"));
+                    setDrawDialog(DrawStep::DrawLoginLogin);
                 }
-            } else if (theApp._manager.needsUpdate()) {
-                startProcess();
             } else if (theApp._manager.needsUninstall()) {
-                theApp._manager.uninstallApplication();
+                theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, (float)_splashStep/100);
+            }
+            _splashStep++;
+        } else if (theApp._manager.shouldShutDown()) {
+            if (LauncherUtils::isProcessWindowOpened(L"interface.exe")) {
                 exit(0);
-            } else {
-                theApp._manager.addToLog(_T("Starting login"));
-                setDrawDialog(DrawStep::DrawLoginLogin);
             }
         }
-        _splashStep++;
-    } else if (theApp._manager.shouldShutDown()) {
-        if (LauncherUtils::IsProcessRunning(L"interface.exe")) {
-            exit(0);
+        if (theApp._manager.shouldLaunch()) {
+            if (theApp._manager.needsInstall() || theApp._manager.needsUpdate()) {
+                auto finishProcess = theApp._manager.needsUpdate() ? DrawStep::DrawProcessFinishUpdate : DrawStep::DrawProcessFinishHq;
+                setDrawDialog(finishProcess);
+            }
+            _applicationWND = theApp._manager.launchApplication();
         }
     }
-    if (theApp._manager.shouldLaunch()) {
-        _applicationWND = theApp._manager.launchApplication();
+}
+
+void CLauncherDlg::setVerticalElement(CWnd* element, int verticalOffset, int heightOffset, bool fromMainWindowBottom) {
+    CRect elementRec;
+    CRect windowRec;
+    if (element != NULL) {
+        element->GetWindowRect(&elementRec);
+        ScreenToClient(&elementRec);
+        int offset = verticalOffset;
+        if (fromMainWindowBottom) {
+            GetWindowRect(&windowRec);
+            ScreenToClient(&windowRec);
+            int currentDistance = windowRec.bottom - elementRec.bottom;
+            offset = currentDistance - verticalOffset;
+        }
+        elementRec.bottom = elementRec.bottom + offset + heightOffset;
+        elementRec.top = elementRec.top + offset;
+        element->MoveWindow(elementRec, FALSE);
     }
 }
 
 void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
     _drawStep = step;
+    float progress = 0.0f;
     auto m_pRenderTarget = GetRenderTarget();
     auto m_voxelRenderTarget = m_voxel->GetRenderTarget();
+    auto m_progressRenderTarget = m_progress->GetRenderTarget();
     switch (_drawStep) {
     case DrawStep::DrawLogo:
         m_pRenderTarget->BeginDraw();
         drawBackground(m_pRenderTarget);
+        drawLogo(m_pRenderTarget);
         m_pRenderTarget->EndDraw();
-        m_voxelRenderTarget->BeginDraw();
-        drawLogo(m_voxelRenderTarget);
-        m_voxelRenderTarget->EndDraw();
         break;
     case DrawStep::DrawLoginLogin:
     case DrawStep::DrawLoginErrorOrg:
@@ -671,6 +765,7 @@ void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
         m_pRenderTarget->EndDraw();
         RedrawWindow();
         break;
+    case DrawStep::DrawError:
     case DrawStep::DrawProcessFinishHq:
     case DrawStep::DrawProcessFinishUpdate:
     case DrawStep::DrawProcessUpdate:
@@ -686,7 +781,12 @@ void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
             drawSmallLogo(m_pRenderTarget);
             m_pRenderTarget->EndDraw();
             RedrawWindow();
-        }   
+        }        
+        m_progressRenderTarget->BeginDraw();
+        m_progressRenderTarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 1.0f));
+        drawProgress(m_progressRenderTarget, 1.0f, D2D1::ColorF(0.2f, 0.2f, 0.2f));
+        drawProgress(m_progressRenderTarget, theApp._manager.getProgress(), D2D1::ColorF(0.0f, 0.62f, 0.9f));
+        m_progressRenderTarget->EndDraw();
         m_voxelRenderTarget->BeginDraw();
         drawVoxel(m_voxelRenderTarget);
         m_voxelRenderTarget->EndDraw();     

@@ -442,11 +442,11 @@ glm::vec4 Procedural::getColor(const glm::vec4& entityColor) const {
 }
 
 void graphics::ProceduralMaterial::initializeProcedural() {
-    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple);
-    _procedural._vertexSourceSkinned = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::deformed_simple);
-    _procedural._vertexSourceSkinnedDQ = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::deformed_simple_dq);
+    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple_procedural);
+    _procedural._vertexSourceSkinned = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple_procedural_deformed);
+    _procedural._vertexSourceSkinnedDQ = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple_procedural_deformeddq);
 
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
-    _procedural._opaqueFragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple);
-    _procedural._transparentFragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple_transparent);
+    _procedural._opaqueFragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple_procedural);
+    _procedural._transparentFragmentSource = gpu::Shader::getFragmentShaderSource(shader::render_utils::fragment::simple_procedural_translucent);
 }

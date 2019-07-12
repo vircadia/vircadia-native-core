@@ -182,6 +182,7 @@ Flickable {
 
             ColumnLayout {
                 id: micControlsSwitchGroup
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
 
                 SimplifiedControls.Switch {
@@ -203,6 +204,22 @@ Flickable {
                     checked: AudioScriptingInterface.pushToTalkDesktop
                     onClicked: {
                         AudioScriptingInterface.pushToTalkDesktop = !AudioScriptingInterface.pushToTalkDesktop;
+                    }
+                }
+
+                SimplifiedControls.Switch {
+                    id: attenuateOutputSwitch
+                    enabled: AudioScriptingInterface.pushToTalkDesktop
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
+                    labelTextOn: "Reduce volume of other sounds while I'm pushing-to-talk"
+                    checked: AudioScriptingInterface.pushingToTalkOutputGainDesktop !== 0.0
+                    onClicked: {
+                        if (AudioScriptingInterface.pushingToTalkOutputGainDesktop === 0.0) {
+                            AudioScriptingInterface.pushingToTalkOutputGainDesktop = -20.0;
+                        } else {
+                            AudioScriptingInterface.pushingToTalkOutputGainDesktop = 0.0;
+                        }
                     }
                 }
             }

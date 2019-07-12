@@ -18,6 +18,7 @@ QtObject {
             readonly property color white: "#FFFFFF"
             readonly property color lightBlue: "#00B4EF"
             readonly property color lightBlueHover: "#3dcfff"
+            readonly property color black: "#000000"
         }
 
         readonly property QtObject controls: QtObject {
@@ -72,10 +73,14 @@ QtObject {
                         readonly property color border: "#00B4EF"
                     }
                 }
+                readonly property QtObject text: QtObject {
+                    readonly property color enabled: "#FFFFFF"
+                    readonly property color disabled: "#8F8F8F"
+                }
             }
             readonly property QtObject simplifiedSwitch: QtObject {
                 readonly property QtObject background: QtObject {
-                    readonly property color disabled: "#616161"
+                    readonly property color disabled: "#2B2B2B"
                     readonly property color off: "#616161"
                     readonly property color hover: "#616161"
                     readonly property color pressed: "#616161"

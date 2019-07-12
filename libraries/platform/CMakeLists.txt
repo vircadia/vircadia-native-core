@@ -12,4 +12,7 @@ if (APPLE)
   find_library(AppKit AppKit)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
+
+elseif(WIN32)
+    target_link_libraries(${TARGET_NAME} Iphlpapi.lib)
 endif ()

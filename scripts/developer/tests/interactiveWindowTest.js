@@ -19,7 +19,7 @@ function getPreferredTitle() {
 
 var virtualWindow = Desktop.createWindow(Script.resourcesPath() + 'qml/OverlayWindowTest.qml', {
     title: getPreferredTitle(),
-    flags: Desktop.ALWAYS_ON_TOP,
+    additionalFlags: Desktop.ALWAYS_ON_TOP,
     presentationMode: getPreferredPresentationMode(),
     size: {x: 500, y: 400}
 });

@@ -57,10 +57,11 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
  * @property {number} firstFrame=0 - The first frame to play in the animation.
  * @property {number} lastFrame=100000 - The last frame to play in the animation.
  * @property {number} currentFrame=0 - The current frame being played in the animation.
- * @property {boolean} running=false - If <code>true</code> then the animation should play.
- * @property {boolean} loop=true - If <code>true</code> then the animation is continuously repeated in a loop.
- * @property {boolean} hold=false - If <code>true</code> then the rotations and translations of the last frame played are 
- *     maintained when the animation stops playing.
+ * @property {boolean} running=false - <code>true</code> if the animation should play, <code>false</code> if it shouldn't.
+ * @property {boolean} loop=true - <code>true</code> if the animation is continuously repeated in a loop, <code>false</code> if 
+ *     it isn't.
+ * @property {boolean} hold=false - <code>true</code> if the rotations and translations of the last frame played are 
+ *     maintained when the animation stops playing, <code>false</code> if they aren't.
  */
 void AnimationPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_ANIMATION_URL, Animation, animation, URL, url);

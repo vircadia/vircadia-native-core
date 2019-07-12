@@ -29,7 +29,7 @@ LAYOUT_STD140(binding=0) uniform hudBuffer {
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
 
 void main() {
-  _texCoord01.xy = inTexCoord0.st;
+  _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
 
   // standard transform
   TransformCamera cam = getTransformCamera();

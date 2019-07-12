@@ -733,7 +733,7 @@
                                                                                         },
                                                                                         {
                                                                                             "id": "turnRight",
-                                                                                            "interpTarget": 6,
+                                                                                            "interpTarget": 8,
                                                                                             "interpDuration": 8,
                                                                                             "transitions": [
                                                                                                 { "var": "isNotTurning", "state": "idle" },
@@ -753,7 +753,7 @@
                                                                                         },
                                                                                         {
                                                                                             "id": "turnLeft",
-                                                                                            "interpTarget": 6,
+                                                                                            "interpTarget": 8,
                                                                                             "interpDuration": 8,
                                                                                             "transitions": [
                                                                                                 { "var": "isNotTurning", "state": "idle" },
@@ -773,7 +773,7 @@
                                                                                         },
                                                                                         {
                                                                                             "id": "strafeRightHmd",
-                                                                                            "interpTarget": 5,
+                                                                                            "interpTarget": 8,
                                                                                             "interpDuration": 8,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
@@ -794,7 +794,7 @@
                                                                                         },
                                                                                         {
                                                                                             "id": "strafeLeftHmd",
-                                                                                            "interpTarget": 5,
+                                                                                            "interpTarget": 8,
                                                                                             "interpDuration": 8,
                                                                                             "interpType": "snapshotPrev",
                                                                                             "transitions": [
@@ -905,40 +905,72 @@
                                                                                         "id": "idle",
                                                                                         "type": "overlay",
                                                                                         "data": {
-																						    "alpha": 1.0,
+                                                                                            "alpha": 1.0,
                                                                                             "alphaVar": "idleOverlayAlpha",
                                                                                             "boneSet": "upperBody"
                                                                                         },
                                                                                         "children": [
-																						    {
-																							    "id": "idleTalk",
+                                                                                            {
+                                                                                                "id": "idleTalk",
                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                 "data": {
-                                                                                                    "currentState": "idleTalk1",
-																									"triggerRandomSwitch": "idleTalkSwitch",
-																									"randomSwitchTimeMin": 5.0,
-																									"randomSwitchTimeMax": 10.0,
+                                                                                                    "currentState": "talk",
+                                                                                                    "triggerRandomSwitch": "idleTalkSwitch",
+                                                                                                    "randomSwitchTimeMin": 7.0,
+                                                                                                    "randomSwitchTimeMax": 12.0,
                                                                                                     "states": [
                                                                                                         {
-                                                                                                            "id": "idleTalk1",
-                                                                                                            "interpTarget": 6,
-                                                                                                            "interpDuration": 15,
+                                                                                                            "id": "talk",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
                                                                                                             "priority": 0.33,
                                                                                                             "resume": true,
                                                                                                             "transitions": []
                                                                                                         },
                                                                                                         {
-                                                                                                            "id": "idleTalk2",
-                                                                                                            "interpTarget": 6,
-                                                                                                            "interpDuration": 15,
+                                                                                                            "id": "talk02",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
                                                                                                             "priority": 0.33,
                                                                                                             "resume": true,
                                                                                                             "transitions": []
                                                                                                         },
                                                                                                         {
-                                                                                                            "id": "idleTalk3",
-                                                                                                            "interpTarget": 6,
-                                                                                                            "interpDuration": 15,
+                                                                                                            "id": "talk03",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "talk04",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "talk_armsdown",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "talk_lefthand",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": true,
+                                                                                                            "transitions": []
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "talk_righthand",
+                                                                                                            "interpTarget": 20,
+                                                                                                            "interpDuration": 20,
                                                                                                             "priority": 0.33,
                                                                                                             "resume": true,
                                                                                                             "transitions": []
@@ -947,57 +979,105 @@
                                                                                                 },
                                                                                                 "children": [
                                                                                                     {
-                                                                                                        "id": "idleTalk1",
+                                                                                                        "id": "talk",
                                                                                                         "type": "clip",
                                                                                                         "data": {
                                                                                                             "url": "qrc:///avatar/animations/talk.fbx",
                                                                                                             "startFrame": 1.0,
-                                                                                                            "endFrame": 800.0,
+                                                                                                            "endFrame": 500.0,
                                                                                                             "timeScale": 1.0,
                                                                                                             "loopFlag": true
                                                                                                         },
                                                                                                         "children": []
                                                                                                     },
                                                                                                     {
-                                                                                                        "id": "idleTalk2",
+                                                                                                        "id": "talk02",
                                                                                                         "type": "clip",
                                                                                                         "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk_righthand.fbx",
+                                                                                                            "url": "qrc:///avatar/animations/talk02.fbx",
                                                                                                             "startFrame": 1.0,
-                                                                                                            "endFrame": 501.0,
+                                                                                                            "endFrame": 325.0,
                                                                                                             "timeScale": 1.0,
                                                                                                             "loopFlag": true
                                                                                                         },
                                                                                                         "children": []
                                                                                                     },
                                                                                                     {
-                                                                                                        "id": "idleTalk3",
+                                                                                                        "id": "talk03",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk03.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 300.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "talk04",
                                                                                                         "type": "clip",
                                                                                                         "data": {
                                                                                                             "url": "qrc:///avatar/animations/talk04.fbx",
                                                                                                             "startFrame": 1.0,
-                                                                                                            "endFrame": 499.0,
+                                                                                                            "endFrame": 500.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "talk_armsdown",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk_armsdown.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 215.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "talk_lefthand",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk_lefthand.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 500.0,
+                                                                                                            "timeScale": 1.0,
+                                                                                                            "loopFlag": true
+                                                                                                        },
+                                                                                                        "children": []
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "id": "talk_righthand",
+                                                                                                        "type": "clip",
+                                                                                                        "data": {
+                                                                                                            "url": "qrc:///avatar/animations/talk_righthand.fbx",
+                                                                                                            "startFrame": 1.0,
+                                                                                                            "endFrame": 502.0,
                                                                                                             "timeScale": 1.0,
                                                                                                             "loopFlag": true
                                                                                                         },
                                                                                                         "children": []
                                                                                                     }
                                                                                                 ]
-																							},
+                                                                                            },
                                                                                             {
                                                                                                 "id": "idleStand",
                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                 "data": {
                                                                                                     "currentState": "masterIdle",
-																									"triggerTimeMin": 10.0,
-																									"triggerTimeMax": 60.0,
-																									"transitionVar": "timeToFidget",
+                                                                                                    "triggerTimeMin": 10.0,
+                                                                                                    "triggerTimeMax": 50.0,
+                                                                                                    "transitionVar": "timeToFidget",
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "masterIdle",
                                                                                                             "interpTarget": 21,
                                                                                                             "interpDuration": 20,
-																											"priority": 1.0,
+                                                                                                            "priority": 1.0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                                 { "var": "timeToFidget", "randomSwitchState": "fidget" }
@@ -1007,17 +1087,17 @@
                                                                                                             "id": "fidget",
                                                                                                             "interpTarget": 21,
                                                                                                             "interpDuration": 20,
-																											"priority": -1.0,
+                                                                                                            "priority": -1.0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
-                                                                                                                { "var": "movement1OnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "movement2OnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "movement3OnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "movement4OnDone", "randomSwitchState": "masterIdle" },
-																												{ "var": "movement5OnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "movement6OnDone", "randomSwitchState": "masterIdle" },
-																												{ "var": "movement7OnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "movement8OnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_slownodOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_headtiltOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_shiftheelpivotOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idleWS_allOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_lookaroundOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_neckstretchOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_lookleftrightOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                { "var": "idle_once_fidgetOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
                                                                                                                 { "var": "alt2ToMasterIdleOnDone", "randomSwitchState": "masterIdle" }
                                                                                                             ]
@@ -1032,13 +1112,13 @@
                                                                                                             "currentState": "masterIdle1",
                                                                                                             "triggerRandomSwitch": "masterIdleSwitch",
                                                                                                             "randomSwitchTimeMin": 10.0,
-                                                                                                            "randomSwitchTimeMax": 60.0,
+                                                                                                            "randomSwitchTimeMax": 30.0,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "masterIdle1",
                                                                                                                     "interpTarget": 21,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.33,
+                                                                                                                    "priority": 0.25,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 },
@@ -1046,7 +1126,7 @@
                                                                                                                     "id": "masterIdle2",
                                                                                                                     "interpTarget": 21,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.33,
+                                                                                                                    "priority": 0.25,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 },
@@ -1054,7 +1134,15 @@
                                                                                                                     "id": "masterIdle3",
                                                                                                                     "interpTarget": 21,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.33,
+                                                                                                                    "priority": 0.25,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "masterIdle4",
+                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.25,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 }
@@ -1077,10 +1165,10 @@
                                                                                                                 "id": "masterIdle2",
                                                                                                                 "type": "clip",
                                                                                                                 "data": {
-                                                                                                                    "url": "qrc:///avatar/animations/idleWS_all.fbx",
+                                                                                                                    "url": "qrc:///avatar/animations/idle02.fbx",
                                                                                                                     "startFrame": 1.0,
-                                                                                                                    "endFrame": 1620.0,
-                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "endFrame": 400.0,
+                                                                                                                    "timeScale": 0.75,
                                                                                                                     "loopFlag": true
                                                                                                                 },
                                                                                                                 "children": []
@@ -1089,9 +1177,21 @@
                                                                                                                 "id": "masterIdle3",
                                                                                                                 "type": "clip",
                                                                                                                 "data": {
-                                                                                                                    "url": "qrc:///avatar/animations/idle_lookaround01.fbx",
+                                                                                                                    "url": "qrc:///avatar/animations/idle03.fbx",
                                                                                                                     "startFrame": 1.0,
-                                                                                                                    "endFrame": 901.0,
+                                                                                                                    "endFrame": 800.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "masterIdle4",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/idle04.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 902.0,
                                                                                                                     "timeScale": 1.0,
                                                                                                                     "loopFlag": true
                                                                                                                 },
@@ -1109,7 +1209,7 @@
                                                                                                                     "id": "movement",
                                                                                                                     "interpTarget": 17,
                                                                                                                     "interpDuration": 15,
-                                                                                                                    "priority": 0.8,
+                                                                                                                    "priority": 0.6,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": []
                                                                                                                 },
@@ -1117,7 +1217,7 @@
                                                                                                                     "id": "alternateIdle",
                                                                                                                     "interpTarget": 17,
                                                                                                                     "interpDuration": 15,
-                                                                                                                    "priority": 0.2,
+                                                                                                                    "priority": 0.4,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": []
                                                                                                                 }
@@ -1128,10 +1228,10 @@
                                                                                                                 "id": "movement",
                                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                                 "data": {
-                                                                                                                    "currentState": "movement1",
+                                                                                                                    "currentState": "idle_once_slownod",
                                                                                                                     "states": [
                                                                                                                         {
-                                                                                                                            "id": "movement1",
+                                                                                                                            "id": "idle_once_slownod",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1139,7 +1239,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement2",
+                                                                                                                            "id": "idle_once_headtilt",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1147,7 +1247,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement3",
+                                                                                                                            "id": "idle_once_shiftheelpivot",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1155,7 +1255,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement4",
+                                                                                                                            "id": "idleWS_all",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1163,7 +1263,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement5",
+                                                                                                                            "id": "idle_once_lookaround",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1171,7 +1271,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement6",
+                                                                                                                            "id": "idle_once_neckstretch",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1179,7 +1279,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement7",
+                                                                                                                            "id": "idle_once_lookleftright",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1187,7 +1287,7 @@
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "movement8",
+                                                                                                                            "id": "idle_once_fidget",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
                                                                                                                             "priority": 0.2,
@@ -1198,11 +1298,11 @@
                                                                                                                 },
                                                                                                                 "children": [
                                                                                                                     {
-                                                                                                                        "id": "movement1",
+                                                                                                                        "id": "idle_once_slownod",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_once_slownod.fbx",
-                                                                                                                            "startFrame": 1,
+                                                                                                                            "startFrame": 1.0,
                                                                                                                             "endFrame": 91.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
@@ -1210,84 +1310,84 @@
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement2",
+                                                                                                                        "id": "idle_once_headtilt",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 154,
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 154.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement3",
+                                                                                                                        "id": "idle_once_shiftheelpivot",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 154,
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_shiftheelpivot.fbx",
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 491.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement4",
+                                                                                                                        "id": "idleWS_all",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idleWS_all.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 1620,
-                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 1620.0,
+                                                                                                                            "timeScale": 0.7,
                                                                                                                             "loopFlag": false
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement5",
+                                                                                                                        "id": "idle_once_lookaround",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 324,
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 324.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement6",
+                                                                                                                        "id": "idle_once_neckstretch",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_once_neckstretch.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 169,
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 169.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement7",
+                                                                                                                        "id": "idle_once_lookleftright",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idleWS_all.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 1620,
-                                                                                                                            "timeScale": 1.0,
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookleftright.fbx",
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 375.0,
+                                                                                                                            "timeScale": 0.7,
                                                                                                                             "loopFlag": false
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "movement8",
+                                                                                                                        "id": "idle_once_fidget",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 324,
+                                                                                                                            "url": "qrc:///avatar/animations/idle_once_fidget.fbx",
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 429.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1381,7 +1481,7 @@
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
                                                                                                                             "startFrame": 1,
-                                                                                                                            "endFrame": 55,
+                                                                                                                            "endFrame": 80,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1392,8 +1492,8 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 56,
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 80.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1404,7 +1504,7 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
-                                                                                                                            "startFrame": 55,
+                                                                                                                            "startFrame": 80,
                                                                                                                             "endFrame": 389,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": true
@@ -1416,8 +1516,8 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
-                                                                                                                            "startFrame": 56,
-                                                                                                                            "endFrame": 390,
+                                                                                                                            "startFrame": 80.0,
+                                                                                                                            "endFrame": 390.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": true
                                                                                                                         },
@@ -1440,8 +1540,8 @@
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
                                                                                                                             "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
-                                                                                                                            "startFrame": 390,
-                                                                                                                            "endFrame": 453,
+                                                                                                                            "startFrame": 390.0,
+                                                                                                                            "endFrame": 453.0,
                                                                                                                             "timeScale": 1.0,
                                                                                                                             "loopFlag": false
                                                                                                                         },
@@ -1463,7 +1563,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0.5, 1.8, 2.3, 3.0, 5.0],
+                                                                                            "characteristicSpeeds": [0.5, 1.8, 2.5, 3.55, 5.675],
                                                                                             "alphaVar": "moveForwardAlpha",
                                                                                             "desiredSpeedVar": "moveForwardSpeed"
                                                                                         },
@@ -1473,8 +1573,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_short_fwd.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 39.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 40.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1485,7 +1585,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_fwd.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 30.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
@@ -1497,8 +1597,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_fwd_fast.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 25.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 26.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1510,7 +1610,7 @@
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/jog_fwd.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 22.0,
+                                                                                                    "endFrame": 18.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1520,9 +1620,9 @@
                                                                                                 "id": "walkFwdRun_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/run_fwd.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/run_fast_fwd.fbx",
                                                                                                     "startFrame": 1.0,
-                                                                                                    "endFrame": 23.0,
+                                                                                                    "endFrame": 19.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1546,7 +1646,7 @@
                                                                                         "id": "idleSettle",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/settle_to_idle.fbx",
+                                                                                            "url": "qrc:///avatar/animations/settle_to_idle_small.fbx",
                                                                                             "startFrame": 1.0,
                                                                                             "endFrame": 59.0,
                                                                                             "timeScale": 1.0,
@@ -1560,7 +1660,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0.6, 1.6, 2.3, 3.1],
+                                                                                            "characteristicSpeeds": [0.6, 1.6, 2.8, 4.5],
                                                                                             "alphaVar": "moveBackwardAlpha",
                                                                                             "desiredSpeedVar": "moveBackwardSpeed"
                                                                                         },
@@ -1569,9 +1669,9 @@
                                                                                                 "id": "walkBwdShort_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/walk_short_bwd.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 38.0,
+                                                                                                    "url": "qrc:///avatar/animations/walk_bwd.fbx",
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 37.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1582,8 +1682,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_bwd_fast.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 27.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 28.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1594,8 +1694,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/jog_bwd.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 24.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1606,8 +1706,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/run_bwd.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 16.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 14.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1620,8 +1720,8 @@
                                                                                         "type": "clip",
                                                                                         "data": {
                                                                                             "url": "qrc:///avatar/animations/turn_left.fbx",
-                                                                                            "startFrame": 0.0,
-                                                                                            "endFrame": 32.0,
+                                                                                            "startFrame": 1.0,
+                                                                                            "endFrame": 33.0,
                                                                                             "timeScale": 1.0,
                                                                                             "loopFlag": true
                                                                                         },
@@ -1631,12 +1731,12 @@
                                                                                         "id": "turnRight",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/turn_left.fbx",
-                                                                                            "startFrame": 0.0,
-                                                                                            "endFrame": 32.0,
+                                                                                            "url": "qrc:///avatar/animations/turn_right.fbx",
+                                                                                            "startFrame": 1.0,
+                                                                                            "endFrame": 31.0,
                                                                                             "timeScale": 1.0,
                                                                                             "loopFlag": true,
-                                                                                            "mirrorFlag": true
+                                                                                            "mirrorFlag": false
                                                                                         },
                                                                                         "children": []
                                                                                     },
@@ -1646,7 +1746,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0.1, 0.5, 1.0, 2.6, 3.0],
+                                                                                            "characteristicSpeeds": [0.1, 0.5, 1.0, 2.55, 3.35, 5.25],
                                                                                             "alphaVar": "moveLateralAlpha",
                                                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                                                         },
@@ -1656,8 +1756,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_short_left.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 29.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 30.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1668,7 +1768,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
@@ -1680,7 +1780,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_left.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 35.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
@@ -1692,7 +1792,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/walk_left_fast.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 21.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
@@ -1704,8 +1804,20 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/jog_left.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 24.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 20.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "strafeLeftRun_c",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/run_fast_left.fbx",
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 19.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1719,7 +1831,7 @@
                                                                                         "data": {
                                                                                             "alpha": 0.0,
                                                                                             "desiredSpeed": 1.4,
-                                                                                            "characteristicSpeeds": [0.1, 0.5, 1.0, 2.6, 3.0],
+                                                                                            "characteristicSpeeds": [0.1, 0.5, 1.0, 2.55, 3.4, 5.25],
                                                                                             "alphaVar": "moveLateralAlpha",
                                                                                             "desiredSpeedVar": "moveLateralSpeed"
                                                                                         },
@@ -1728,8 +1840,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_short_left.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 29.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 30.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
                                                                                                     "mirrorFlag": true
@@ -1741,7 +1853,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
@@ -1753,12 +1865,12 @@
                                                                                                 "id": "strafeRightWalk_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/walk_left.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "url": "qrc:///avatar/animations/walk_right.fbx",
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 35.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
-                                                                                                    "mirrorFlag": true
+                                                                                                    "mirrorFlag": false
                                                                                                 },
                                                                                                 "children": []
                                                                                             },
@@ -1766,12 +1878,12 @@
                                                                                                 "id": "strafeRightFast_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/walk_left_fast.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "url": "qrc:///avatar/animations/walk_right_fast.fbx",
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 21.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
-                                                                                                    "mirrorFlag": true
+                                                                                                    "mirrorFlag": false
                                                                                                 },
                                                                                                 "children": []
                                                                                             },
@@ -1779,12 +1891,25 @@
                                                                                                 "id": "strafeRightJog_c",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jog_left.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 24.0,
+                                                                                                    "url": "qrc:///avatar/animations/jog_right.fbx",
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
-                                                                                                    "mirrorFlag": true
+                                                                                                    "mirrorFlag": false
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "strafeRightRun_c",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/run_fast_right.fbx",
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 19.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true,
+                                                                                                    "mirrorFlag": false
                                                                                                 },
                                                                                                 "children": []
                                                                                             }
@@ -1806,8 +1931,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_short_left.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 29.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 30.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
@@ -1818,7 +1943,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
@@ -1830,7 +1955,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left_fast.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 16.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
@@ -1855,8 +1980,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_short_left.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 29.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 30.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
                                                                                                     "mirrorFlag": true
@@ -1868,7 +1993,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 20.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
@@ -1881,7 +2006,7 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/side_step_left_fast.fbx",
-                                                                                                    "startFrame": 0.0,
+                                                                                                    "startFrame": 1.0,
                                                                                                     "endFrame": 16.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true,
@@ -1897,7 +2022,7 @@
                                                                                         "data": {
                                                                                             "url": "qrc:///avatar/animations/fly.fbx",
                                                                                             "startFrame": 1.0,
-                                                                                            "endFrame": 80.0,
+                                                                                            "endFrame": 79.0,
                                                                                             "timeScale": 1.0,
                                                                                             "loopFlag": true
                                                                                         },
@@ -1907,8 +2032,8 @@
                                                                                         "id": "takeoffStand",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/jump_standing_launch.fbx",
-                                                                                            "startFrame": 2.0,
+                                                                                            "url": "qrc:///avatar/animations/jump_standing_launch_all.fbx",
+                                                                                            "startFrame": 1.0,
                                                                                             "endFrame": 16.0,
                                                                                             "timeScale": 1.0,
                                                                                             "loopFlag": false
@@ -1919,7 +2044,7 @@
                                                                                         "id": "TAKEOFFRUN",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/jump_running_launch_land.fbx",
+                                                                                            "url": "qrc:///avatar/animations/jump_running_launch_land_all.fbx",
                                                                                             "startFrame": 4.0,
                                                                                             "endFrame": 15.0,
                                                                                             "timeScale": 1.0,
@@ -1939,9 +2064,9 @@
                                                                                                 "id": "inAirStandPreApex",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jump_standing_apex.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 0.0,
+                                                                                                    "url": "qrc:///avatar/animations/jump_standing_apex_all.fbx",
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 1.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": false
                                                                                                 },
@@ -1951,9 +2076,9 @@
                                                                                                 "id": "inAirStandApex",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jump_standing_apex.fbx",
-                                                                                                    "startFrame": 1.0,
-                                                                                                    "endFrame": 1.0,
+                                                                                                    "url": "qrc:///avatar/animations/jump_standing_apex_all.fbx",
+                                                                                                    "startFrame": 2.0,
+                                                                                                    "endFrame": 2.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": false
                                                                                                 },
@@ -1963,9 +2088,9 @@
                                                                                                 "id": "inAirStandPostApex",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jump_standing_apex.fbx",
-                                                                                                    "startFrame": 2.0,
-                                                                                                    "endFrame": 2.0,
+                                                                                                    "url": "qrc:///avatar/animations/jump_standing_apex_all.fbx",
+                                                                                                    "startFrame": 3.0,
+                                                                                                    "endFrame": 3.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": false
                                                                                                 },
@@ -1985,7 +2110,7 @@
                                                                                                 "id": "inAirRunPreApex",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jump_running_launch_land.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jump_running_launch_land_all.fbx",
                                                                                                     "startFrame": 16.0,
                                                                                                     "endFrame": 16.0,
                                                                                                     "timeScale": 1.0,
@@ -1997,7 +2122,7 @@
                                                                                                 "id": "inAirRunApex",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jump_running_launch_land.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jump_running_launch_land_all.fbx",
                                                                                                     "startFrame": 22.0,
                                                                                                     "endFrame": 22.0,
                                                                                                     "timeScale": 1.0,
@@ -2009,7 +2134,7 @@
                                                                                                 "id": "inAirRunPostApex",
                                                                                                 "type": "clip",
                                                                                                 "data": {
-                                                                                                    "url": "qrc:///avatar/animations/jump_running_launch_land.fbx",
+                                                                                                    "url": "qrc:///avatar/animations/jump_running_launch_land_all.fbx",
                                                                                                     "startFrame": 33.0,
                                                                                                     "endFrame": 33.0,
                                                                                                     "timeScale": 1.0,
@@ -2023,7 +2148,7 @@
                                                                                         "id": "landStandImpact",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/jump_standing_land_settle.fbx",
+                                                                                            "url": "qrc:///avatar/animations/jump_standing_land_settle_all.fbx",
                                                                                             "startFrame": 1.0,
                                                                                             "endFrame": 6.0,
                                                                                             "timeScale": 1.0,
@@ -2035,7 +2160,7 @@
                                                                                         "id": "landStand",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/jump_standing_land_settle.fbx",
+                                                                                            "url": "qrc:///avatar/animations/jump_standing_land_settle_all.fbx",
                                                                                             "startFrame": 6.0,
                                                                                             "endFrame": 68.0,
                                                                                             "timeScale": 1.0,
@@ -2047,7 +2172,7 @@
                                                                                         "id": "LANDRUN",
                                                                                         "type": "clip",
                                                                                         "data": {
-                                                                                            "url": "qrc:///avatar/animations/jump_running_launch_land.fbx",
+                                                                                            "url": "qrc:///avatar/animations/jump_running_launch_land_all.fbx",
                                                                                             "startFrame": 29.0,
                                                                                             "endFrame": 40.0,
                                                                                             "timeScale": 1.0,
@@ -2078,8 +2203,8 @@
                 "type": "clip",
                 "data": {
                     "url": "qrc:///avatar/animations/idle.fbx",
-                    "startFrame": 0.0,
-                    "endFrame": 90.0,
+                    "startFrame": 1.0,
+                    "endFrame": 300.0,
                     "timeScale": 1.0,
                     "loopFlag": true
                 },
@@ -2090,8 +2215,8 @@
                 "type": "clip",
                 "data": {
                     "url": "qrc:///avatar/animations/idle.fbx",
-                    "startFrame": 0.0,
-                    "endFrame": 90.0,
+                    "startFrame": 1.0,
+                    "endFrame": 300.0,
                     "timeScale": 1.0,
                     "loopFlag": true
                 },

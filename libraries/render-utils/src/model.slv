@@ -1,10 +1,10 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
-// <$_SCRIBE_FILENAME$> 
-// Generated on <$_SCRIBE_DATE$>
+//  <$_SCRIBE_FILENAME$>
+//  Generated on <$_SCRIBE_DATE$>
 //
-//  Created by Hifi Engine Team.
-//  Copyright 2013 High Fidelity, Inc.
+//  Created by Hifi Engine Team
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -12,32 +12,94 @@
 
 <@include gpu/Inputs.slh@>
 <@include gpu/Color.slh@>
-<@include gpu/Transform.slh@>
-<@include graphics/MaterialTextures.slh@>
-
-<$declareStandardTransform()$>
-
-<$declareMaterialTexMapArrayBuffer()$>
-
 <@include render-utils/ShaderConstants.h@>
 
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include graphics/MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
+
+<@if HIFI_USE_DEFORMED or HIFI_USE_DEFORMEDDQ@>
+    <@include MeshDeformer.slh@>
+    <@if HIFI_USE_DEFORMED@>
+        <@if HIFI_USE_SHADOW@>
+            <$declareMeshDeformer(_SCRIBE_NULL, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
+        <@elif not HIFI_USE_NORMALMAP@>
+            <$declareMeshDeformer(1, _SCRIBE_NULL, 1, _SCRIBE_NULL, 1)$>
+        <@else@>
+            <$declareMeshDeformer(1, 1, 1, _SCRIBE_NULL, 1)$>
+        <@endif@>
+    <@else@>
+        <@if HIFI_USE_SHADOW@>
+            <$declareMeshDeformer(_SCRIBE_NULL, _SCRIBE_NULL, 1, 1, 1)$>
+        <@elif not HIFI_USE_NORMALMAP@>
+            <$declareMeshDeformer(1, _SCRIBE_NULL, 1, 1, 1)$>
+        <@else@>
+            <$declareMeshDeformer(1, 1, 1, 1, 1)$>
+        <@endif@>
+    <@endif@>
+    <$declareMeshDeformerActivation(1, 1)$>
+<@endif@>
+
 layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
-layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
-layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+<@if not HIFI_USE_SHADOW@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+    layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+    <@if HIFI_USE_NORMALMAP@>
+        layout(location=RENDER_UTILS_ATTR_TANGENT_WS) out vec3 _tangentWS;
+    <@endif@>
+<@endif@>
 
 void main(void) {
-    _color.rgb = color_sRGBToLinear(inColor.rgb);
-    _color.a = inColor.a;
+    vec4 positionMS = inPosition;
+    vec3 normalMS = inNormal.xyz;
+    vec3 tangentMS = inTangent.xyz;
 
-    // standard transform
+<@if HIFI_USE_DEFORMED or HIFI_USE_DEFORMEDDQ@>
+        evalMeshDeformer(inPosition, positionMS,
+    <@if not HIFI_USE_SHADOW@>
+                            inNormal.xyz, normalMS,
+        <@if HIFI_USE_NORMALMAP@>
+                                inTangent.xyz, tangentMS,
+        <@endif@>
+    <@endif@>
+                         meshDeformer_doSkinning(_drawCallInfo.y), inSkinClusterIndex, inSkinClusterWeight,
+                         meshDeformer_doBlendshape(_drawCallInfo.y), gl_VertexID);
+<@endif@>
+
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToWorldAndEyeAndClipPos(cam, obj, inPosition, _positionWS, _positionES, gl_Position)$>
-    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+<@if not HIFI_USE_SHADOW@>
+        <$transformModelToWorldAndEyeAndClipPos(cam, obj, positionMS, _positionWS, _positionES, gl_Position)$>
+        <$transformModelToWorldDir(cam, obj, normalMS, _normalWS)$>
+<@else@>
+        <$transformModelToClipPos(cam, obj, positionMS, gl_Position)$>
+        <$transformModelToWorldPos(obj, positionMS, _positionWS)$>
+<@endif@>
 
-    TexMapArray texMapArray = getTexMapArray();
-    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _positionWS, _texCoord01.xy)$>
-    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _positionWS, _texCoord01.zw)$>
+<@if HIFI_USE_NORMALMAP@>
+        <$transformModelToWorldDir(cam, obj, tangentMS, _tangentWS)$>
+<@endif@>
+
+<@if HIFI_USE_SHADOW@>
+        Material mat = getMaterial();
+        BITFIELD matKey = getMaterialKey(mat);
+        // If we have an opacity mask than we need the first tex coord
+        if ((matKey & OPACITY_MASK_MAP_BIT) != 0) {
+            TexMapArray texMapArray = getTexMapArray();
+            <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _positionWS, _texCoord01.xy)$>
+            _texCoord01.zw = vec2(0.0);
+        } else {
+            _texCoord01 = vec4(0.0);
+        }
+<@else@>
+        _color = color_sRGBAToLinear(inColor);
+
+        TexMapArray texMapArray = getTexMapArray();
+        <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _positionWS, _texCoord01.xy)$>
+        <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord1, _positionWS, _texCoord01.zw)$>
+<@endif@>
 }

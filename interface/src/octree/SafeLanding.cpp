@@ -19,6 +19,11 @@
 
 const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 
+CalculateEntityLoadingPriority SafeLanding::entityLoadingOperatorElevateCollidables = [](const EntityItem& entityItem) {
+    const int COLLIDABLE_ENTITY_PRIORITY = 10.0f;
+    return entityItem.getCollisionless() * COLLIDABLE_ENTITY_PRIORITY;
+};
+
 namespace {
     template<typename T> bool lessThanWraparound(int a, int b) {
         constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
@@ -33,61 +38,46 @@ bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const
     return lessThanWraparound<OCTREE_PACKET_SEQUENCE>(a, b);
 }
 
-void SafeLanding::startEntitySequence(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
-
+void SafeLanding::startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRenderer) {
     if (!entityTreeRenderer.isNull()) {
         auto entityTree = entityTreeRenderer->getTree();
-        if (entityTree) {
+        if (entityTree && !_trackingEntities) {
             Locker lock(_lock);
             _entityTreeRenderer = entityTreeRenderer;
             _trackedEntities.clear();
-            _trackingEntities = true;
             _maxTrackedEntityCount = 0;
+            _initialStart = INVALID_SEQUENCE;
+            _initialEnd = INVALID_SEQUENCE;
+            _sequenceNumbers.clear();
+            _trackingEntities = true;
+            _startTime = usecTimestampNow();
+
             connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
                 &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity, Qt::DirectConnection);
             connect(std::const_pointer_cast<EntityTree>(entityTree).get(),
                 &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
 
-            _sequenceNumbers.clear();
-            _initialStart = INVALID_SEQUENCE;
-            _initialEnd = INVALID_SEQUENCE;
-            _startTime = usecTimestampNow();
-            EntityTreeRenderer::setEntityLoadingPriorityFunction(&ElevatedPriority);
+            _prevEntityLoadingPriorityOperator = EntityTreeRenderer::getEntityLoadingPriorityOperator();
+            EntityTreeRenderer::setEntityLoadingPriorityFunction(entityLoadingOperatorElevateCollidables);
         }
     }
 }
 
-void SafeLanding::stopEntitySequence() {
-    Locker lock(_lock);
-    _trackingEntities = false;
-    _maxTrackedEntityCount = 0;
-    _trackedEntityStabilityCount = 0;
-    _initialStart = INVALID_SEQUENCE;
-    _initialEnd = INVALID_SEQUENCE;
-    _trackedEntities.clear();
-    _sequenceNumbers.clear();
-}
-
 void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
-    if (_trackingEntities) {
+    if (_trackingEntities && _entityTreeRenderer) {
         Locker lock(_lock);
+        auto entityTree = _entityTreeRenderer->getTree();
+        if (entityTree) {
+            EntityItemPointer entity = entityTree->findEntityByID(entityID);
+            if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
+                _trackedEntities.emplace(entityID, entity);
 
-        if (_entityTreeRenderer.isNull() || _entityTreeRenderer->getTree() == nullptr) {
-            return;
-        }
-
-        EntityItemPointer entity = _entityTreeRenderer->getTree()->findEntityByID(entityID);
-
-        if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
-
-            _trackedEntities.emplace(entityID, entity);
-            int trackedEntityCount = (int)_trackedEntities.size();
-
-            if (trackedEntityCount > _maxTrackedEntityCount) {
-                _maxTrackedEntityCount = trackedEntityCount;
-                _trackedEntityStabilityCount = 0;
+                int trackedEntityCount = (int)_trackedEntities.size();
+                if (trackedEntityCount > _maxTrackedEntityCount) {
+                    _maxTrackedEntityCount = trackedEntityCount;
+                    _trackedEntityStabilityCount = 0;
+                }
             }
-            //qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
         }
     }
 }
@@ -97,32 +87,92 @@ void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
     _trackedEntities.erase(entityID);
 }
 
-void SafeLanding::setCompletionSequenceNumbers(int first, int last) {
+void SafeLanding::finishSequence(int first, int last) {
     Locker lock(_lock);
-    if (_initialStart == INVALID_SEQUENCE) {
+    if (_trackingEntities) {
         _initialStart = first;
         _initialEnd = last;
     }
 }
 
-void SafeLanding::noteReceivedsequenceNumber(int sequenceNumber) {
-    if (_trackingEntities) {
+void SafeLanding::addToSequence(int sequenceNumber) {
+    Locker lock(_lock);
+    _sequenceNumbers.insert(sequenceNumber);
+}
+
+void SafeLanding::updateTracking() {
+    if (!_trackingEntities || !_entityTreeRenderer) {
+        return;
+    }
+
+    {
         Locker lock(_lock);
-        _sequenceNumbers.insert(sequenceNumber);
+        bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
+        auto entityMapIter = _trackedEntities.begin();
+        while (entityMapIter != _trackedEntities.end()) {
+            auto entity = entityMapIter->second;
+            bool isVisuallyReady = true;
+            if (enableInterstitial) {
+                auto entityRenderable = _entityTreeRenderer->renderableForEntityId(entityMapIter->first);
+                if (!entityRenderable) {
+                    _entityTreeRenderer->addingEntity(entityMapIter->first);
+                }
+                isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
+            }
+            if (isEntityPhysicsReady(entity) && isVisuallyReady) {
+                entityMapIter = _trackedEntities.erase(entityMapIter);
+            } else {
+                if (!isVisuallyReady) {
+                    entity->requestRenderUpdate();
+                }
+                entityMapIter++;
+            }
+        }
+        if (enableInterstitial) {
+            _trackedEntityStabilityCount++;
+        }
+    }
+
+    if (_trackedEntities.empty()) {
+        // no more tracked entities --> check sequenceNumbers
+        if (_initialStart != INVALID_SEQUENCE) {
+            bool shouldStop = false;
+            {
+                Locker lock(_lock);
+                int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
+                    _initialEnd + SEQUENCE_MODULO - _initialStart;
+                auto startIter = _sequenceNumbers.find(_initialStart);
+                auto endIter = _sequenceNumbers.find(_initialEnd - 1);
+
+                bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
+                shouldStop = (sequenceSize == 0 ||
+                    (startIter != _sequenceNumbers.end() &&
+                     endIter != _sequenceNumbers.end() &&
+                     ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers)));
+            }
+            if (shouldStop) {
+                stopTracking();
+            }
+        }
     }
 }
 
-bool SafeLanding::isLoadSequenceComplete() {
-    if ((isEntityLoadingComplete() && isSequenceNumbersComplete()) || qApp->failedToConnectToEntityServer()) {
-        Locker lock(_lock);
-        _initialStart = INVALID_SEQUENCE;
-        _initialEnd = INVALID_SEQUENCE;
-        _entityTreeRenderer.clear();
-        _trackingEntities = false; // Don't track anything else that comes in.
-        EntityTreeRenderer::setEntityLoadingPriorityFunction(StandardPriority);
+void SafeLanding::stopTracking() {
+    Locker lock(_lock);
+    _trackingEntities = false;
+    if (_entityTreeRenderer) {
+        auto entityTree = _entityTreeRenderer->getTree();
+        disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+            &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
+        disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+            &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
+        _entityTreeRenderer.reset();
     }
+    EntityTreeRenderer::setEntityLoadingPriorityFunction(_prevEntityLoadingPriorityOperator);
+}
 
-    return !_trackingEntities;
+bool SafeLanding::trackingIsComplete() const {
+    return !_trackingEntities && (_initialStart != INVALID_SEQUENCE);
 }
 
 float SafeLanding::loadingProgressPercentage() {
@@ -139,29 +189,6 @@ float SafeLanding::loadingProgressPercentage() {
     }
 
     return entityReadyPercentage;
-}
-
-bool SafeLanding::isSequenceNumbersComplete() {
-    if (_initialStart != INVALID_SEQUENCE) {
-        Locker lock(_lock);
-        int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
-                _initialEnd + SEQUENCE_MODULO - _initialStart;
-        auto startIter = _sequenceNumbers.find(_initialStart);
-        auto endIter = _sequenceNumbers.find(_initialEnd - 1);
-
-        bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
-        if (sequenceSize == 0 ||
-            (startIter != _sequenceNumbers.end()
-            && endIter != _sequenceNumbers.end()
-             && ((distance(startIter, endIter) == sequenceSize - 1) || !missingSequenceNumbers))) {
-            bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-            if (!enableInterstitial) {
-                _trackingEntities = false; // Don't track anything else that comes in.
-            }
-            return true;
-        }
-    }
-    return false;
 }
 
 bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
@@ -181,54 +208,7 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
             }
         }
     }
-
     return true;
-}
-
-bool SafeLanding::isEntityLoadingComplete() {
-    Locker lock(_lock);
-
-
-    auto entityTree = qApp->getEntities();
-    auto entityMapIter = _trackedEntities.begin();
-
-    bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
-
-    while (entityMapIter != _trackedEntities.end()) {
-        auto entity = entityMapIter->second;
-
-        bool isVisuallyReady = true;
-
-        if (enableInterstitial) {
-            auto entityRenderable = entityTree->renderableForEntityId(entityMapIter->first);
-            if (!entityRenderable) {
-                entityTree->addingEntity(entityMapIter->first);
-            }
-
-            isVisuallyReady = entity->isVisuallyReady() || (!entityRenderable && !entity->isParentPathComplete());
-        }
-
-        if (isEntityPhysicsReady(entity) && isVisuallyReady) {
-            entityMapIter = _trackedEntities.erase(entityMapIter);
-        } else {
-            if (!isVisuallyReady) {
-                entity->requestRenderUpdate();
-            }
-
-            entityMapIter++;
-        }
-    }
-
-    if (enableInterstitial) {
-        _trackedEntityStabilityCount++;
-    }
-
-
-    return _trackedEntities.empty();
-}
-
-float SafeLanding::ElevatedPriority(const EntityItem& entityItem) {
-    return entityItem.getCollisionless() ? 0.0f : 10.0f;
 }
 
 void SafeLanding::debugDumpSequenceIDs() const {

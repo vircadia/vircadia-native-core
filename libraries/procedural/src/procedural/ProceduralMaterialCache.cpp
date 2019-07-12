@@ -117,16 +117,18 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     Supported models are: <code>"hifi_pbr"</code>, <code>"hifi_shader_simple"</code>.
  * @property {string} name="" - A name for the material. Supported by all material models.
  * @property {ColorFloat|RGBS|string} emissive - The emissive color, i.e., the color that the material emits. A 
- *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &mdash; 
+ *     {@link ColorFloat} value is treated as sRGB and must have component values in the range <code>0.0</code> &ndash; 
  *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {number|string} opacity=1.0 - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>. 
+ * @property {number|string} opacity=1.0 - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below.  <code>"hifi_pbr"</code> and
+ *     <code>"hifi_shader_simple"</code> models only.
+ * @property {boolean|string} unlit=false - <code>true</code> if the material is not lit, <code>false</code> if it is.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
- * @property {boolean|string} unlit=false - If <code>true</code>, the material is not lit, otherwise it is. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. Supported by all material models.
- * @property {ColorFloat|RGBS|string} albedo - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have 
- *     component values in the range <code>0.0</code> &mdash; <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
- *     Set to <code>"fallthrough"</code> to fall through to the material below. Supported by all material models.
+ * @property {ColorFloat|RGBS|string} albedo - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have
+ *     component values in the range <code>0.0</code> &ndash; <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB.
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> and
+ *     <code>"hifi_shader_simple"</code> models only.
  * @property {number|string} roughness - The roughness, range <code>0.0</code> &ndash; <code>1.0</code>. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {number|string} metallic - The metallicness, range <code>0.0</code> &ndash; <code>1.0</code>. 
@@ -174,9 +176,9 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  * @property {string} materialParams - Parameters for controlling the material projection and repetition. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only. 
  *     <p><em>Currently not used.</em></p>
- * @property {boolean} defaultFallthrough=false - If <code>true</code>, all properties fall through to the material below 
- *     unless they are set. If <code>false</code>, they respect their individual fall-through setting. <code>"hifi_pbr"</code> 
- *     model only.
+ * @property {boolean} defaultFallthrough=false - <code>true</code> if all properties fall through to the material below 
+ *     unless they are set, <code>false</code> if properties respect their individual fall-through settings. 
+ *     <code>"hifi_pbr"</code> model only.
  * @property {ProceduralData} procedural - The definition of a procedural shader material.  <code>"hifi_shader_simple"</code> model only.
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
@@ -476,11 +478,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
     }
 
     return std::pair<std::string, std::shared_ptr<NetworkMaterial>>(name, networkMaterial);
-}
-
-MaterialCache& MaterialCache::instance() {
-    static MaterialCache _instance;
-    return _instance;
 }
 
 NetworkMaterialResourcePointer MaterialCache::getMaterial(const QUrl& url) {

@@ -145,7 +145,8 @@ int ConicalViewFrustum::deserialize(const unsigned char* sourceBuffer) {
     return sourceBuffer - startPosition;
 }
 
-void ConicalViewFrustum::setSimpleRadius(float radius) {
+void ConicalViewFrustum::setPositionAndSimpleRadius(const glm::vec3& position, float radius) {
+    _position = position;
     _radius = radius;
     _farClip = radius / 2.0f;
 }

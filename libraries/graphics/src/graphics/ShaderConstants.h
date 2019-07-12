@@ -32,6 +32,8 @@
 #define GRAPHICS_TEXTURE_SKYBOX 11
 #define GRAPHICS_BUFFER_SKYBOX_PARAMS 5
 
+#define GRAPHICS_BUFFER_HAZE_PARAMS 7
+
 // <!
 
 namespace graphics { namespace slot {
@@ -43,7 +45,8 @@ enum Buffer {
     Light = GRAPHICS_BUFFER_LIGHT,
     KeyLight = GRAPHICS_BUFFER_KEY_LIGHT,
     AmbientLight = GRAPHICS_BUFFER_AMBIENT_LIGHT,
-    SkyboxParams = GRAPHICS_BUFFER_SKYBOX_PARAMS
+    SkyboxParams = GRAPHICS_BUFFER_SKYBOX_PARAMS,
+    HazeParams = GRAPHICS_BUFFER_HAZE_PARAMS
 };
 } // namespace buffer
 

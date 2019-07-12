@@ -432,7 +432,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         if (hazeStage && hazeFrame->_hazes.size() > 0) {
             const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 
@@ -655,7 +655,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
     if (!_defaultHaze) {
         auto hazeStage = renderContext->_scene->getStage<HazeStage>();
         if (hazeStage) {
-
             auto haze = std::make_shared<graphics::Haze>();
 
             _defaultHaze = haze;

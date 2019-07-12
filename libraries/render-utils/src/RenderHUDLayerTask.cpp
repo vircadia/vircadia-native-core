@@ -34,7 +34,7 @@ void CompositeHUD::run(const RenderContextPointer& renderContext, const gpu::Fra
             batch.setFramebuffer(inputs);
         }
         if (renderContext->args->_hudOperator) {
-            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
+            renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture);
         }
     });
 #endif
@@ -47,14 +47,15 @@ void RenderHUDLayerTask::build(JobModel& task, const render::Varying& input, ren
     const auto& lightingModel = inputs[1];
     const auto& hudOpaque = inputs[2];
     const auto& hudTransparent = inputs[3];
+    const auto& hazeFrame = inputs[4];
 
     // Composite the HUD and HUD overlays
     task.addJob<CompositeHUD>("HUD", primaryFramebuffer);
 
     // And HUD Layer objects
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
-    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
-    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
+    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, hazeFrame, nullJitter).asVarying();
+    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, hazeFrame, nullJitter).asVarying();
     task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
     task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
 }

@@ -24,7 +24,7 @@ var self = this;
         <tbody>
             <tr>
                 <td>
-                    <?js if (data.kind !== 'module' && data.description && !data.hideconstructor) { ?>
+                    <?js if (data.kind !== 'module' && !data.hideconstructor) { ?>
                         <p>
                             <?js= data.description ?>
                             <?js= this.partial('details.tmpl', data) ?>
