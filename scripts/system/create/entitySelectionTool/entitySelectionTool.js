@@ -1118,6 +1118,11 @@ SelectionDisplay = (function() {
             return false;
         }
 
+        // No action if the Alt key is pressed.
+        if (event.isAlt) {
+            return;
+        }
+
         var pickRay = generalComputePickRay(event.x, event.y);
         // TODO_Case6491:  Move this out to setup just to make it once
         var interactiveOverlays = getMainTabletIDs();
