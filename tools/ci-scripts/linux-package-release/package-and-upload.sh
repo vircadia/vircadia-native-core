@@ -1,5 +1,5 @@
 #!/bin/bash -l
-LOCAL_PATH="`dirname \"$0\"`"
+LOCAL_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 prefix=${1:-""}
 declare -a packages_systemd=("assignment-client" "domain-server" "ice-server")
 cd ./build
