@@ -55,15 +55,15 @@ public:
                                              ULONG ulStatusCode, LPCWSTR szStatusText) {
             float progress = (float)ulProgress / ulProgressMax;
             if (!isnan(progress)) {
-                onProgressCallback(progress);
+                _onProgressCallback(progress);
             }
             return S_OK;
         }
         void setProgressCallback(std::function<void(float)> fn) {
-            onProgressCallback = std::bind(fn, std::placeholders::_1);
+            _onProgressCallback = std::bind(fn, std::placeholders::_1);
         }
     private:        
-        std::function<void(float)> onProgressCallback;
+        std::function<void(float)> _onProgressCallback;
     };
 
     enum ResponseError {
@@ -82,14 +82,14 @@ public:
         int _type;
         CString _url;
         CString _file;
-        std::function<void(int, bool)> callback;
-        std::function<void(float)> progressCallback;
+        std::function<void(int, bool)> _callback;
+        std::function<void(float)> _progressCallback;
         // function(type, errorType)
         void setCallback(std::function<void(int, bool)> fn) {
-            callback = std::bind(fn, std::placeholders::_1, std::placeholders::_2);
+            _callback = std::bind(fn, std::placeholders::_1, std::placeholders::_2);
         }
         void setProgressCallback(std::function<void(float)> fn) {
-            progressCallback = std::bind(fn, std::placeholders::_1);
+            _progressCallback = std::bind(fn, std::placeholders::_1);
         }
     };
 
@@ -98,23 +98,36 @@ public:
         std::string _zipFile;
         std::string _path;
         // function(type, size)
-        std::function<void(int, int)> callback;
-        std::function<void(float)> progressCallback;
+        std::function<void(int, int)> _callback;
+        std::function<void(float)> _progressCallback;
         void setCallback(std::function<void(int, int)> fn) {
-            callback = std::bind(fn, std::placeholders::_1, std::placeholders::_2);
+            _callback = std::bind(fn, std::placeholders::_1, std::placeholders::_2);
         }
         void setProgressCallback(std::function<void(float)> fn) {
-            progressCallback = std::bind(fn, std::placeholders::_1);
+            _progressCallback = std::bind(fn, std::placeholders::_1);
         }
     };
 
     struct DeleteThreadData {
         CString _dirPath;
-        std::function<void(bool)> callback;
-        std::function<void(float)> progressCallback;
-        void setCallback(std::function<void(bool)> fn) { callback = std::bind(fn, std::placeholders::_1); }
+        std::function<void(bool)> _callback;
+        std::function<void(float)> _progressCallback;
+        void setCallback(std::function<void(bool)> fn) { _callback = std::bind(fn, std::placeholders::_1); }
         void setProgressCallback(std::function<void(float)> fn) {
-            progressCallback = std::bind(fn, std::placeholders::_1);
+            _progressCallback = std::bind(fn, std::placeholders::_1);
+        }
+    };
+
+    struct HttpThreadData {
+        CString _callerName;
+        CString _mainUrl; 
+        CString _dirUrl;
+        CString _contentType;
+        CStringA _postData;
+        bool _isPost { false };
+        std::function<void(CString, int)> _callback;
+        void setCallback(std::function<void(CString, int)> fn) { 
+            _callback = std::bind(fn, std::placeholders::_1, std::placeholders::_2);
         }
     };
 
@@ -150,6 +163,9 @@ public:
                                      std::function<void(int, bool)> callback,
                                      std::function<void(float)> progressCallback);
     static BOOL deleteDirectoryOnThread(const CString& dirPath, std::function<void(bool)> callback);
+    static BOOL httpCallOnThread(const CString& callerName, const CString& mainUrl, const CString& dirUrl,
+                                 const CString& contentType, CStringA& postData, bool isPost,
+                                 std::function<void(CString, int)> callback);
 
     static CString urlEncodeString(const CString& url);
     static HWND executeOnForeground(const CString& path, const CString& params);
@@ -159,4 +175,5 @@ private:
     static DWORD WINAPI unzipThread(LPVOID lpParameter);
     static DWORD WINAPI downloadThread(LPVOID lpParameter);
     static DWORD WINAPI deleteDirectoryThread(LPVOID lpParameter);
+    static DWORD WINAPI httpThread(LPVOID lpParameter);
 };

@@ -67,7 +67,7 @@ public:
     BOOL isApplicationInstalled(CString& version, CString& domain,
                                 CString& content, bool& loggedIn);
     LauncherUtils::ResponseError getAccessTokenForCredentials(const CString& username, const CString& password);
-    LauncherUtils::ResponseError getMostRecentBuild(CString& urlOut, CString& versionOut, CString& response);
+    void getMostRecentBuild(CString& urlOut, CString& versionOut);
     LauncherUtils::ResponseError readOrganizationJSON(const CString& hash);
     LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain,
                                                 CString& content, bool& loggedIn);
@@ -90,12 +90,13 @@ public:
     BOOL needsUpdate() { return _shouldUpdate; }
     BOOL needsUninstall() { return _shouldUninstall; }
     BOOL needsInstall() { return _shouldInstall; }
+    BOOL needsToWait() { return _shouldWait; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() { return _loggedIn; }
     bool hasFailed() { return _hasFailed; }
     void setFailed(bool hasFailed) { _hasFailed = hasFailed; }
     const CString& getLatestInterfaceURL() const { return _latestApplicationURL; }
-    void uninstall() { _shouldUninstall = true; };
+    void uninstall() { _shouldUninstall = true; _shouldWait = false; };
 
     BOOL downloadFile(ProcessType type, const CString& url, CString& localPath);
     BOOL downloadContent();
@@ -110,6 +111,7 @@ public:
 
 private:
     ProcessType _currentProcess { ProcessType::DownloadApplication };
+    void onMostRecentBuildReceived(const CString& response, LauncherUtils::ResponseError error);
     CString _latestApplicationURL;
     CString _latestVersion;
     CString _contentURL;
@@ -126,6 +128,7 @@ private:
     BOOL _shouldInstall { FALSE };
     BOOL _shouldShutdown { FALSE };
     BOOL _shouldLaunch { FALSE };
+    BOOL _shouldWait { TRUE };
     float _progress { 0.0f };
     CStdioFile _logFile;
 };
