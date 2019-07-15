@@ -51,6 +51,28 @@ static const QStringList KNOWN_SCHEMES = QStringList() << "http" << "https" << "
 
 static const int DEFAULT_HEIGHT = 60;
 
+QmlWindowProxy::QmlWindowProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) {
+    _qmlWindow = qmlObject;
+}
+
+void QmlWindowProxy::parentNativeWindowToMainWindow() {
+#ifdef Q_OS_WIN
+    if (!_qmlWindow) {
+        return;
+    }
+    const auto nativeWindowProperty = _qmlWindow->property("nativeWindow");
+    if (nativeWindowProperty.isNull() || !nativeWindowProperty.isValid()) {
+        return;
+    }
+    const auto nativeWindow = qvariant_cast<QQuickWindow*>(nativeWindowProperty);
+    SetWindowLongPtr((HWND)nativeWindow->winId(), GWLP_HWNDPARENT, (LONG)MainWindow::findMainWindow()->winId());
+#endif
+}
+
+static void qmlWindowProxyDeleter(QmlWindowProxy* qmlWindowProxy) {
+    qmlWindowProxy->deleteLater();
+}
+
 static void dockWidgetDeleter(DockWidget* dockWidget) {
     dockWidget->deleteLater();
 }
@@ -85,13 +107,13 @@ void InteractiveWindow::forwardKeyReleaseEvent(int key, int modifiers) {
  * @property {string} [title="InteractiveWindow] - The title of the window.
  * @property {Vec2} [position] - The initial position of the window, in pixels.
  * @property {Vec2} [size] - The initial size of the window, in pixels
- * @property {boolean} [visible=true] - <code>true</code> to make the window visible when created, <code>false</code> to make 
+ * @property {boolean} [visible=true] - <code>true</code> to make the window visible when created, <code>false</code> to make
  *     it invisible.
- * @property {InteractiveWindow.PresentationMode} [presentationMode=Desktop.PresentationMode.VIRTUAL] - 
- *     <code>Desktop.PresentationMode.VIRTUAL</code> to display the window inside Interface, <code>.NATIVE</code> to display it 
+ * @property {InteractiveWindow.PresentationMode} [presentationMode=Desktop.PresentationMode.VIRTUAL] -
+ *     <code>Desktop.PresentationMode.VIRTUAL</code> to display the window inside Interface, <code>.NATIVE</code> to display it
  *     as its own separate window.
- * @property {InteractiveWindow.PresentationWindowInfo} [presentationWindowInfo] - Controls how a <code>NATIVE</code> window is 
- *     displayed. If used, the window is docked to the specified edge of the Interface window, otherwise the window is 
+ * @property {InteractiveWindow.PresentationWindowInfo} [presentationWindowInfo] - Controls how a <code>NATIVE</code> window is
+ *     displayed. If used, the window is docked to the specified edge of the Interface window, otherwise the window is
  *     displayed as its own separate window.
  * @property {InteractiveWindow.AdditionalFlags} [additionalFlags=0] - Window behavior flags in addition to "native window flags" (minimize/maximize/close),
  *     set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
@@ -124,7 +146,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         auto mainWindow = qApp->getWindow();
         _dockWidget = std::shared_ptr<DockWidget>(new DockWidget(title, mainWindow), dockWidgetDeleter);
         auto quickView = _dockWidget->getQuickView();
-       
+
         Application::setupQmlSurface(quickView->rootContext() , true);
 
         //add any whitelisted callbacks
@@ -176,13 +198,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         });
 
         _dockWidget->setSource(QUrl(sourceUrl));
-        
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         // Build the event bridge and wrapper on the main thread
         offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
-            _qmlWindow = object;
+            _qmlWindowProxy = std::shared_ptr<QmlWindowProxy>(new QmlWindowProxy(object, nullptr), qmlWindowProxyDeleter);
             context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
             if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
                 object->setProperty(ADDITIONAL_FLAGS_PROPERTY, properties[ADDITIONAL_FLAGS_PROPERTY].toUInt());
@@ -249,60 +270,44 @@ void InteractiveWindow::sendToQml(const QVariant& message) {
             QMetaObject::invokeMethod(rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
         }
     } else {
-        QMetaObject::invokeMethod(_qmlWindow, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
     }
 }
 
 void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, scriptMessage));
-    } else {
-        emit scriptEventReceived(scriptMessage);
-    }
+    emit scriptEventReceived(scriptMessage);
 }
 
 void InteractiveWindow::emitWebEvent(const QVariant& webMessage) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, webMessage));
-    } else {
-        emit webEventReceived(webMessage);
-    }
+    emit webEventReceived(webMessage);
 }
 
 void InteractiveWindow::close() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "close");
-        return;
+    if (_qmlWindowProxy) {
+        QObject* qmlWindow = _qmlWindowProxy->getQmlWindow();
+        if (qmlWindow) {
+            qmlWindow->deleteLater();
+        }
+        _qmlWindowProxy->deleteLater();
     }
 
-    if (_qmlWindow) {
-        _qmlWindow->deleteLater();
+    if (_dockWidget) {
+        auto window = qApp->getWindow();
+        BLOCKING_INVOKE_METHOD(window, "removeDockWidget", Q_ARG(QDockWidget*, _dockWidget.get()));
     }
-
-    qApp->getWindow()->removeDockWidget(_dockWidget.get());
     _dockWidget = nullptr;
-    _qmlWindow = nullptr;
+    _qmlWindowProxy = nullptr;
 }
 
 void InteractiveWindow::show() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "show");
-        return;
-    }
-
-    if (_qmlWindow) {
-        QMetaObject::invokeMethod(_qmlWindow, "show", Qt::DirectConnection);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "show");
     }
 }
 
 void InteractiveWindow::raise() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "raise");
-        return;
-    }
-
-    if (_qmlWindow) {
-        QMetaObject::invokeMethod(_qmlWindow, "raiseWindow", Qt::DirectConnection);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "raiseWindow");
     }
 }
 
@@ -317,144 +322,98 @@ void InteractiveWindow::qmlToScript(const QVariant& message) {
 }
 
 void InteractiveWindow::setVisible(bool visible) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setVisible", Q_ARG(bool, visible));
-        return;
-    }
-
-    if (!_qmlWindow.isNull()) {
-        _qmlWindow->setProperty(INTERACTIVE_WINDOW_VISIBLE_PROPERTY, visible);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_VISIBLE_PROPERTY),
+                                  Q_ARG(QVariant, visible));
     }
 }
 
 bool InteractiveWindow::isVisible() const {
-    if (QThread::currentThread() != thread()) {
-        bool result = false;
-        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "isVisible", Q_RETURN_ARG(bool, result));
-        return result;
-    }
-
-    if (_qmlWindow.isNull()) {
+    if (!_qmlWindowProxy) {
         return false;
     }
-
-    return _qmlWindow->property(INTERACTIVE_WINDOW_VISIBLE_PROPERTY).toBool();
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, INTERACTIVE_WINDOW_VISIBLE_PROPERTY));
+    return result.toBool();
 }
 
 glm::vec2 InteractiveWindow::getPosition() const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec2 result;
-        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getPosition", Q_RETURN_ARG(glm::vec2, result));
-        return result;
-    }
-
-    if (_qmlWindow.isNull()) {
+    if (!_qmlWindowProxy) {
         return {};
     }
 
-    return toGlm(_qmlWindow->property(INTERACTIVE_WINDOW_POSITION_PROPERTY).toPointF());
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, INTERACTIVE_WINDOW_POSITION_PROPERTY));
+
+    return toGlm(result.toPointF());
 }
 
 void InteractiveWindow::setPosition(const glm::vec2& position) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setPosition", Q_ARG(const glm::vec2&, position));
-        return;
-    }
-
-    if (!_qmlWindow.isNull()) {
-        _qmlWindow->setProperty(INTERACTIVE_WINDOW_POSITION_PROPERTY, QPointF(position.x, position.y));
-        QMetaObject::invokeMethod(_qmlWindow, "updateInteractiveWindowPositionForMode", Qt::DirectConnection);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_POSITION_PROPERTY),
+                                  Q_ARG(QVariant, QPointF(position.x, position.y)));
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "updateInteractiveWindowPositionForMode");
     }
 }
 
 glm::vec2 InteractiveWindow::getSize() const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec2 result;
-        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getSize", Q_RETURN_ARG(glm::vec2, result));
-        return result;
-    }
-
-    if (_qmlWindow.isNull()) {
+    if (!_qmlWindowProxy) {
         return {};
     }
-    return toGlm(_qmlWindow->property(INTERACTIVE_WINDOW_SIZE_PROPERTY).toSize());
+
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, INTERACTIVE_WINDOW_SIZE_PROPERTY));
+    return toGlm(result.toSize());
 }
 
 void InteractiveWindow::setSize(const glm::vec2& size) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setSize", Q_ARG(const glm::vec2&, size));
-        return;
-    }
-
-    if (!_qmlWindow.isNull()) {
-        _qmlWindow->setProperty(INTERACTIVE_WINDOW_SIZE_PROPERTY, QSize(size.x, size.y));
-        QMetaObject::invokeMethod(_qmlWindow, "updateInteractiveWindowSizeForMode", Qt::DirectConnection);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, INTERACTIVE_WINDOW_SIZE_PROPERTY),
+                                  Q_ARG(QVariant, QSize(size.x, size.y)));
+        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "updateInteractiveWindowSizeForMode");
     }
 }
 
 QString InteractiveWindow::getTitle() const {
-    if (QThread::currentThread() != thread()) {
-        QString result;
-        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getTitle", Q_RETURN_ARG(QString, result));
-        return result;
-    }
-
-    if (_qmlWindow.isNull()) {
+    if (!_qmlWindowProxy) {
         return QString();
     }
-    return _qmlWindow->property(TITLE_PROPERTY).toString();
+
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, TITLE_PROPERTY));
+    return result.toString();
 }
 
 void InteractiveWindow::setTitle(const QString& title) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setTitle", Q_ARG(const QString&, title));
-        return;
-    }
-
-    if (!_qmlWindow.isNull()) {
-        _qmlWindow->setProperty(TITLE_PROPERTY, title);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, TITLE_PROPERTY),
+                                  Q_ARG(QVariant, title));
     }
 }
 
 int InteractiveWindow::getPresentationMode() const {
-    if (QThread::currentThread() != thread()) {
-        int result;
-        BLOCKING_INVOKE_METHOD(const_cast<InteractiveWindow*>(this), "getPresentationMode",
-            Q_RETURN_ARG(int, result));
-        return result;
-    }
-
-    if (_qmlWindow.isNull()) {
+    if (!_qmlWindowProxy) {
         return Virtual;
     }
-    return _qmlWindow->property(PRESENTATION_MODE_PROPERTY).toInt();
+    QVariant result;
+    BLOCKING_INVOKE_METHOD(_qmlWindowProxy.get(), "readProperty", Q_RETURN_ARG(QVariant, result),
+                           Q_ARG(QString, PRESENTATION_MODE_PROPERTY));
+    return result.toInt();
 }
 
 void InteractiveWindow::parentNativeWindowToMainWindow() {
-#ifdef Q_OS_WIN
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "parentNativeWindowToMainWindow");
-        return;
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "parentNativeWindowToMainWindow");
     }
-    if (_qmlWindow.isNull()) {
-        return;
-    }
-    const auto nativeWindowProperty = _qmlWindow->property("nativeWindow");
-    if (nativeWindowProperty.isNull() || !nativeWindowProperty.isValid()) {
-        return;
-    }
-    const auto nativeWindow = qvariant_cast<QQuickWindow*>(nativeWindowProperty);
-    SetWindowLongPtr((HWND)nativeWindow->winId(), GWLP_HWNDPARENT, (LONG)MainWindow::findMainWindow()->winId());
-#endif
 }
 
 void InteractiveWindow::setPresentationMode(int presentationMode) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setPresentationMode", Q_ARG(int, presentationMode));
-        return;
-    }
-
-    if (!_qmlWindow.isNull()) {
-        _qmlWindow->setProperty(PRESENTATION_MODE_PROPERTY, presentationMode);
+    if (_qmlWindowProxy) {
+        QMetaObject::invokeMethod(_qmlWindowProxy.get(), "writeProperty", Q_ARG(QString, PRESENTATION_MODE_PROPERTY),
+                                  Q_ARG(QVariant, presentationMode));
     }
 }

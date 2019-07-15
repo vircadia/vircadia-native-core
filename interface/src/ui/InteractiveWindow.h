@@ -18,9 +18,25 @@
 #include <QtCore/QPointer>
 #include <QtScript/QScriptValue>
 #include <QQmlEngine>
+#include <ui/QmlWrapper.h>
 
 #include <glm/glm.hpp>
 #include <GLMHelpers.h>
+
+class QmlWindowProxy : public QmlWrapper {
+    Q_OBJECT
+
+public:
+    QmlWindowProxy(QObject* qmlObject, QObject* parent = nullptr);
+
+    Q_INVOKABLE void parentNativeWindowToMainWindow();
+
+    QObject* getQmlWindow() const { return _qmlWindow; }
+private:
+    QObject* _qmlWindow;
+
+};
+
 
 namespace InteractiveWindowEnums {
     Q_NAMESPACE
@@ -291,7 +307,7 @@ protected slots:
     void forwardKeyReleaseEvent(int key, int modifiers);
 
 private:
-    QPointer<QObject> _qmlWindow;
+    std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };
 };
 
