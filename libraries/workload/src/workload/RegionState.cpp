@@ -30,7 +30,7 @@ void RegionState::run(const workload::WorkloadContextPointer& renderContext, con
     // inputs[2N + 1] = vector of ids entering region N
     //
     // But we only pass inputs for R1 through R3
-    assert(inputs.size() == 2 * RegionState::NUM_REGIONS_TRACKED);
+    assert(inputs.size() == 2 * workload::Region::NUM_TRACKED_REGIONS);
 
     // The id's in each vector are sorted in ascending order
     // because the source vectors are scanned in ascending order.
