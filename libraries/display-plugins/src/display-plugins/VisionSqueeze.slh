@@ -1,0 +1,106 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Seth Alves on 2019-2-13.
+//  Copyright 2019 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@if not VISION_SQUEEZE_SLH@>
+<@def VISION_SQUEEZE_SLH@>
+
+
+float ellipse(vec2 coord, vec2 centerUV, vec2 semiAxis) {
+    return pow(coord.x - centerUV.x, 2.0) / semiAxis.x + pow(coord.y - centerUV.y, 2.0) / semiAxis.y;
+}
+
+vec4 extractFovTan(mat4 m) {
+    mat4 mt = transpose(m);
+    vec4 v;
+    vec4 result;
+
+    // x -- Left
+    v = mt * vec4(1.0, 0.0, 0.0, 1.0);
+    result.x = -(v.z / v.x);
+    // y -- Right
+    v = mt * vec4(-1.0, 0.0, 0.0, 1.0);
+    result.y = (v.z / v.x);
+    // z -- Down
+    v = mt * vec4(0.0, 1.0, 0.0, 1.0);
+    result.z = -(v.z / v.y);
+    // w -- Up
+    v = mt * vec4(0.0, -1.0, 0.0, 1.0);
+    result.w = v.z / v.y;
+    return result;
+}
+
+// takes left-side projection matrix, returns NDC for right eye.  to get left, invert sign on x coord of result.
+vec2 extractFocalPoint(vec4 fovTan) {
+    float fovwidth = fovTan.x + fovTan.y;
+    float fovheight = fovTan.z + fovTan.w;
+    vec2 focalPoint = vec2(fovTan.y / fovwidth, (fovTan.z / fovheight) - 0.5f);
+    return focalPoint;
+}
+
+float squeezeVision(bool perEye, vec2 varTexCoord0, vec2 visionSqueezeRatios, float transitionRatio, vec2 focalPointUV) {
+    if (visionSqueezeRatios.x == 0.0 && visionSqueezeRatios.y == 0.0) {
+        return 0.0;
+    }
+
+    vec2 centerUV;
+    vec2 semiAxis;
+    if (perEye) {
+        // tubes in front of each eye
+        centerUV = focalPointUV;
+        semiAxis = vec2(0.25) - visionSqueezeRatios * 0.25;
+    } else {
+        // one tube in front of face
+        centerUV = vec2(0.5, focalPointUV.y);
+        semiAxis = vec2(0.5) - visionSqueezeRatios * 0.5;
+    }
+    float ellipseValue = ellipse(varTexCoord0, centerUV, semiAxis);
+    float frac = clamp((ellipseValue - 1.0) / clamp(transitionRatio, 0.01, 0.7), 0.0, 1.0);
+
+    return frac;
+}
+
+vec3 gridFloor(vec2 varTexCoord0, mat4 hmdSensorMatrix, mat4 projectionInverse, float groundPlaneY, float spotLightSize) {
+    vec4 ndc = vec4(varTexCoord0.x * 4.0 - 1.0 - 2.0 * float(varTexCoord0.x > 0.5), varTexCoord0.y * 2.0 - 1.0, -1.0, 1.0);
+
+    vec4 fragmentEyeCoords = hmdSensorMatrix * projectionInverse * ndc;
+    vec4 near4 = hmdSensorMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+
+    vec3 near = (near4 / near4.w).xyz;
+    vec3 far = fragmentEyeCoords.xyz / fragmentEyeCoords.w;
+
+    // intersect a line from near to far with the plane y = groundPlaneY
+    float t = -(near.y - groundPlaneY) / (far.y - near.y);
+    vec2 R = (near + t * (far - near)).xz;
+
+    float lineThickness = 1.5 / length(R);
+    vec4 gridColor = vec4(0.35);
+    vec4 baseColor = vec4(0.1);
+    vec4 skyColor = vec4(0.0, 0.0, 0.0, 0.0);
+    vec2 wrapped = fract(R) - 0.5f;
+    vec2 range = abs(wrapped);
+    vec2 speeds = fwidth(R);
+    vec2 pixelRange = range/speeds;
+    float lineWeight = clamp(min(pixelRange.x, pixelRange.y) - lineThickness, 0.0, 1.0);
+
+    float horizonFuzz = 0.02;
+    if (t < 0.0) {
+        return mix(gridColor, skyColor, clamp(0.0, 1.0, -t)).xyz;
+    } else if (t < horizonFuzz) {
+        lineWeight = lineWeight * max(0.0, t);
+    }
+
+    vec4 c = mix(gridColor, baseColor, lineWeight);
+
+    // fade out grid to avoid shimmer
+    float fadeVal = 0.7;
+    return mix(c, baseColor * fadeVal + gridColor * (1.0 - fadeVal),
+               0.1 * clamp((length(R) - spotLightSize), 0.0, 1.0)).xyz;
+}
+
+<@endif@>

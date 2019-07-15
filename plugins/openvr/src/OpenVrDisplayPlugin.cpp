@@ -396,6 +396,13 @@ void OpenVrDisplayPlugin::init() {
     _lastGoodHMDPose.m[2][2] = 1.0f;
     _lastGoodHMDPose.m[2][3] = 0.0f;
 
+    // Different HMDs end up showing the squeezed-vision egg as different sizes.  These values
+    // attempt to make them appear the same.
+    _visionSqueezeDeviceLowX = 0.8f;
+    _visionSqueezeDeviceHighX = 0.98f;
+    _visionSqueezeDeviceLowY = 0.8f;
+    _visionSqueezeDeviceHighY = 0.9f;
+
     emit deviceConnected(getName());
 }
 
@@ -651,6 +658,11 @@ void OpenVrDisplayPlugin::hmdPresent() {
     if (_threadedSubmit) {
         _submitThread->waitForPresent();
     } else {
+
+        _visionSqueezeParametersBuffer.edit<VisionSqueezeParameters>()._leftProjection = _eyeProjections[0];
+        _visionSqueezeParametersBuffer.edit<VisionSqueezeParameters>()._rightProjection = _eyeProjections[1];
+        _visionSqueezeParametersBuffer.edit<VisionSqueezeParameters>()._hmdSensorMatrix = _currentPresentFrameInfo.presentPose;
+
         GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
         vr::Texture_t vrTexture{ (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
@@ -828,4 +840,15 @@ DisplayPlugin::StencilMaskMeshOperator OpenVrDisplayPlugin::getStencilMaskMeshOp
         }
     }
     return nullptr;
+}
+
+void OpenVrDisplayPlugin::updateParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
+                                           int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
+                                           float visionSqueezeSpotlightSize) {
+    _visionSqueezeX = visionSqueezeX;
+    _visionSqueezeY = visionSqueezeY;
+    _visionSqueezeTransition = visionSqueezeTransition;
+    _visionSqueezePerEye = visionSqueezePerEye;
+    _visionSqueezeGroundPlaneY = visionSqueezeGroundPlaneY;
+    _visionSqueezeSpotlightSize = visionSqueezeSpotlightSize;
 }
