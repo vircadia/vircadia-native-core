@@ -574,6 +574,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     avatar->die();
     queuePhysicsChange(avatar);
+    avatar->removeOrb();
 
     // remove this avatar's entities from the tree now, if we wait (as we did previously) for this Avatar's destructor
     // it might not fire until after we create a new instance for the same remote avatar, which creates a race
