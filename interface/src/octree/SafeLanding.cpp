@@ -203,8 +203,22 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
             if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                 auto space = _entityTreeRenderer->getWorkloadSpace();
                 uint8_t region = space ? space->getRegion(entity->getSpaceIndex()) : (uint8_t)workload::Region::INVALID;
-                bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
-                return (!shouldBePhysical || entity->isInPhysicsSimulation() || modelEntity->computeShapeFailedToLoad());
+
+                // Note: the meanings of the workload regions are:
+                //   R1 = in physics simulation and willing to own simulation
+                //   R2 = in physics simulation but does NOT want to own simulation
+                //   R3 = not in physics simulation but kinematically animated when velocities are non-zero
+                //   R4 = sorted by workload and found to be outside R3
+                //   UNKNOWN = known to workload but not yet sorted
+                //   INVALID = not known to workload
+                // So any entity sorted into R3 or R4 is definitelyNotPhysical
+
+                bool definitelyNotPhysical = region == workload::Region::R3 ||
+                    region == workload::Region::R4 ||
+                    !entity->shouldBePhysical() ||
+                    modelEntity->unableToLoadCollisionShape();
+                bool definitelyPhysical = entity->isInPhysicsSimulation();
+                return definitelyNotPhysical || definitelyPhysical;
             }
         }
     }

@@ -53,9 +53,7 @@ namespace workload {
         using Inputs = IndexVectors;
         using JobModel = workload::Job::ModelI<RegionState, Inputs, Config>;
 
-        RegionState() {
-            _state.resize(Region::UNKNOWN);
-        }
+        RegionState() { _state.resize(workload::Region::NUM_TRACKED_REGIONS); }
 
         void configure(const Config& config);
         void run(const workload::WorkloadContextPointer& renderContext, const Inputs& inputs);
