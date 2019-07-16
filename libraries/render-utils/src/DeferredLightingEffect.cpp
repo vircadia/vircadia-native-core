@@ -287,10 +287,6 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
     }
     _deferredFramebuffer->updatePrimaryDepth(primaryFramebuffer->getDepthStencilBuffer());
 
-    auto dummy = _deferredFramebuffer->getFrameSize();
-    auto height = _deferredFramebuffer->getLightingFramebuffer()->getHeight();
-    auto width = _deferredFramebuffer->getLightingFramebuffer()->getWidth();
-
     outputs.edit0() = _deferredFramebuffer;
     outputs.edit1() = _deferredFramebuffer->getLightingFramebuffer();
 
