@@ -132,7 +132,6 @@ InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& 
 }
 
 InteractiveWindowPointer DesktopScriptingInterface::createWindowOnThread(const QString& sourceUrl, const QVariantMap& properties, QThread* targetThread) {
-
     // The offscreen surface already validates against non-local QML sources, but we also need to ensure that 
     // if we create top level QML, like dock widgets or other types of QQuickView containing desktop windows 
     // that the source URL is permitted
