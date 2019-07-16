@@ -34,8 +34,6 @@
 #include "RenderCommonTask.h"
 #include "RenderHUDLayerTask.h"
 
-#include <windows.h>
-
 namespace ru {
     using render_utils::slot::texture::Texture;
     using render_utils::slot::buffer::Buffer;
