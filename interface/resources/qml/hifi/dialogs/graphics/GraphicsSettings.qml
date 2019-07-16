@@ -31,6 +31,7 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: 26
         anchors.top: parent.top
+        anchors.topMargin: HMD.active ? 80 : 0
         spacing: 8
 
         ColumnLayout {
