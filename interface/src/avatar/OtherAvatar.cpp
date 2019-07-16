@@ -75,6 +75,7 @@ void OtherAvatar::createOrb() {
         properties.setType(EntityTypes::Sphere);
         properties.setAlpha(1.0f);
         properties.setColor(getLoadingOrbColor(_loadingStatus));
+        properties.setName("Loading Avatar " + getID().toString());
         properties.setPrimitiveMode(PrimitiveMode::LINES);
         properties.getPulse().setMin(0.5f);
         properties.getPulse().setMax(1.0f);
