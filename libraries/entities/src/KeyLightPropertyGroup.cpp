@@ -22,6 +22,8 @@ const float KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY = 1.0f;
 const float KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY = 0.5f;
 const glm::vec3 KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION = { 0.0f, -1.0f, 0.0f };
 const bool KeyLightPropertyGroup::DEFAULT_KEYLIGHT_CAST_SHADOWS { false };
+const float KeyLightPropertyGroup::DEFAULT_KEYLIGHT_SHADOW_BIAS { 0.5f };
+const float KeyLightPropertyGroup::DEFAULT_KEYLIGHT_SHADOW_MAX_DISTANCE { 40.0f };
 
 void KeyLightPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, 
     QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
@@ -30,6 +32,8 @@ void KeyLightPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desired
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_INTENSITY, KeyLight, keyLight, Intensity, intensity);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_DIRECTION, KeyLight, keyLight, Direction, direction);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_CAST_SHADOW, KeyLight, keyLight, CastShadows, castShadows);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_SHADOW_BIAS, KeyLight, keyLight, ShadowBias, shadowBias);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, KeyLight, keyLight, ShadowMaxDistance, shadowMaxDistance);
 }
 
 void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
@@ -37,6 +41,8 @@ void KeyLightPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, intensity, float, setIntensity);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, direction, vec3, setDirection);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, castShadows, bool, setCastShadows);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, shadowBias, float, setShadowBias);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(keyLight, shadowMaxDistance, float, setShadowMaxDistance);
 
     // legacy property support
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(keyLightColor, u8vec3Color, setColor, getColor);
@@ -50,14 +56,18 @@ void KeyLightPropertyGroup::merge(const KeyLightPropertyGroup& other) {
     COPY_PROPERTY_IF_CHANGED(intensity);
     COPY_PROPERTY_IF_CHANGED(direction);
     COPY_PROPERTY_IF_CHANGED(castShadows);
+    COPY_PROPERTY_IF_CHANGED(shadowBias);
+    COPY_PROPERTY_IF_CHANGED(shadowMaxDistance);
 }
 
 void KeyLightPropertyGroup::debugDump() const {
     qCDebug(entities) << "   KeyLightPropertyGroup: ---------------------------------------------";
-    qCDebug(entities) << "        color:" << getColor(); // << "," << getColor()[1] << "," << getColor()[2];
-    qCDebug(entities) << "        intensity:" << getIntensity();
-    qCDebug(entities) << "        direction:" << getDirection();
-    qCDebug(entities) << "        castShadows:" << getCastShadows();
+    qCDebug(entities) << "                   color:" << getColor();
+    qCDebug(entities) << "               intensity:" << getIntensity();
+    qCDebug(entities) << "               direction:" << getDirection();
+    qCDebug(entities) << "             castShadows:" << getCastShadows();
+    qCDebug(entities) << "              shadowBias:" << getShadowBias();
+    qCDebug(entities) << "       shadowMaxDistance:" << getShadowMaxDistance();
 }
 
 void KeyLightPropertyGroup::listChangedProperties(QList<QString>& out) {
@@ -72,6 +82,12 @@ void KeyLightPropertyGroup::listChangedProperties(QList<QString>& out) {
     }
     if (castShadowsChanged()) {
         out << "keyLight-castShadows";
+    }
+    if (shadowBiasChanged()) {
+        out << "keyLight-shadowBias";
+    }
+    if (shadowMaxDistanceChanged()) {
+        out << "keyLight-shadowMaxDistance";
     }
 }
 
@@ -88,6 +104,8 @@ bool KeyLightPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getDirection());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, getCastShadows());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_BIAS, getShadowBias());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, getShadowMaxDistance());
 
     return true;
 }
@@ -103,11 +121,15 @@ bool KeyLightPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFl
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_BIAS, float, setShadowBias);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, float, setShadowMaxDistance);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_COLOR, Color);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_INTENSITY, Intensity);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_DIRECTION, Direction);
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_CAST_SHADOW, CastShadows);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_SHADOW_BIAS, ShadowBias);
+    DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, ShadowMaxDistance);
 
     processedBytes += bytesRead;
 
@@ -121,6 +143,8 @@ void KeyLightPropertyGroup::markAllChanged() {
     _intensityChanged = true;
     _directionChanged = true;
     _castShadowsChanged = true;
+    _shadowBiasChanged = true;
+    _shadowMaxDistanceChanged = true;
 }
 
 EntityPropertyFlags KeyLightPropertyGroup::getChangedProperties() const {
@@ -130,6 +154,8 @@ EntityPropertyFlags KeyLightPropertyGroup::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_INTENSITY, intensity);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_DIRECTION, direction);
     CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_CAST_SHADOW, castShadows);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_SHADOW_BIAS, shadowBias);
+    CHECK_PROPERTY_CHANGE(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, shadowMaxDistance);
 
     return changedProperties;
 }
@@ -139,6 +165,8 @@ void KeyLightPropertyGroup::getProperties(EntityItemProperties& properties) cons
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(KeyLight, Intensity, getIntensity);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(KeyLight, Direction, getDirection);
     COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(KeyLight, CastShadows, getCastShadows);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(KeyLight, ShadowBias, getShadowBias);
+    COPY_ENTITY_GROUP_PROPERTY_TO_PROPERTIES(KeyLight, ShadowMaxDistance, getShadowMaxDistance);
 }
 
 bool KeyLightPropertyGroup::setProperties(const EntityItemProperties& properties) {
@@ -148,6 +176,8 @@ bool KeyLightPropertyGroup::setProperties(const EntityItemProperties& properties
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(KeyLight, Intensity, intensity, setIntensity);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(KeyLight, Direction, direction, setDirection);
     SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(KeyLight, CastShadows, castShadows, setCastShadows);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(KeyLight, ShadowBias, shadowBias, setShadowBias);
+    SET_ENTITY_GROUP_PROPERTY_FROM_PROPERTIES(KeyLight, ShadowMaxDistance, shadowMaxDistance, setShadowMaxDistance);
 
     return somethingChanged;
 }
@@ -159,6 +189,8 @@ EntityPropertyFlags KeyLightPropertyGroup::getEntityProperties(EncodeBitstreamPa
     requestedProperties += PROP_KEYLIGHT_INTENSITY;
     requestedProperties += PROP_KEYLIGHT_DIRECTION;
     requestedProperties += PROP_KEYLIGHT_CAST_SHADOW;
+    requestedProperties += PROP_KEYLIGHT_SHADOW_BIAS;
+    requestedProperties += PROP_KEYLIGHT_SHADOW_MAX_DISTANCE;
 
     return requestedProperties;
 }
@@ -177,6 +209,8 @@ void KeyLightPropertyGroup::appendSubclassData(OctreePacketData* packetData, Enc
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, getDirection());
     APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, getCastShadows());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_BIAS, getShadowBias());
+    APPEND_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, getShadowMaxDistance());
 }
 
 int KeyLightPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
@@ -191,6 +225,8 @@ int KeyLightPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char*
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_DIRECTION, glm::vec3, setDirection);
     READ_ENTITY_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, bool, setCastShadows);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_BIAS, float, setShadowBias);
+    READ_ENTITY_PROPERTY(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, float, setShadowMaxDistance);
 
     return bytesRead;
 }

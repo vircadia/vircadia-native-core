@@ -81,20 +81,12 @@ float Light::getShadowsMaxDistance() const {
     return _shadowsMaxDistance;
 }
 
-void Light::setShadowsBiasScale(const float scale) {
-    _shadowsBiasScale = std::max(0.0f, scale);
+void Light::setShadowBias(float bias) {
+    _shadowBias = bias;
 }
 
-float Light::getShadowsBiasScale() const {
-    return _shadowsBiasScale;
-}
-
-void Light::setBiasInput(float bias) {
-    _biasInput = bias;
-}
-
-float Light::getBiasInput() const {
-    return _biasInput;
+float Light::getShadowBias() const {
+    return _shadowBias;
 }
 
 void Light::setColor(const Color& color) {
