@@ -55,9 +55,9 @@ void OculusDisplayPlugin::init() {
 
     // Different HMDs end up showing the squeezed-vision egg as different sizes.  These values
     // attempt to make them appear the same.
-    _visionSqueezeDeviceLowX = 0.8f;
+    _visionSqueezeDeviceLowX = 0.7f;
     _visionSqueezeDeviceHighX = 0.98f;
-    _visionSqueezeDeviceLowY = 0.8f;
+    _visionSqueezeDeviceLowY = 0.7f;
     _visionSqueezeDeviceHighY = 0.9f;
 
     emit deviceConnected(getName());

@@ -485,22 +485,13 @@ float HmdDisplayPlugin::stutterRate() const {
 }
 
 float adjustVisionSqueezeRatioForDevice(float visionSqueezeRatio, float visionSqueezeDeviceLow, float visionSqueezeDeviceHigh) {
-    const float SETTINGS_STEP = 0.2f; // adjusting the slider in preferences changes the ratio by this much
-
-    if (visionSqueezeRatio == 0.0f) {
+    if (visionSqueezeRatio <= 0.0f) {
         return 0.0f;
     }
 
     float deviceRange = visionSqueezeDeviceHigh - visionSqueezeDeviceLow;
-
-    if (visionSqueezeRatio <= SETTINGS_STEP) {
-        // lowest "enabled" setting -- without this special case the user doesn't see anything on the lowest setting
-        float scaleFactor = (visionSqueezeRatio == SETTINGS_STEP) ? 0.24f : 0.18f; // these magic values were picked through experimentation
-        return deviceRange * scaleFactor + visionSqueezeDeviceLow;
-    } else {
-        const float SQUEEZE_ADJUSTMENT = 0.75f; // magic number picked through experimentation
-        return deviceRange * (SQUEEZE_ADJUSTMENT * visionSqueezeRatio) + visionSqueezeDeviceLow;
-    }
+    const float SQUEEZE_ADJUSTMENT = 0.75f; // magic number picked through experimentation
+    return deviceRange * (SQUEEZE_ADJUSTMENT * visionSqueezeRatio) + visionSqueezeDeviceLow;
 }
 
 void HmdDisplayPlugin::updateVisionSqueezeParameters(float visionSqueezeX, float visionSqueezeY,
