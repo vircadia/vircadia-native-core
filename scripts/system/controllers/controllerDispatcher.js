@@ -285,6 +285,21 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
 
+            // Enable/disable controller raypicking depending on whether we are in HMD
+            if (HMD.active) {
+                Pointers.enablePointer(_this.leftPointer);
+                Pointers.enablePointer(_this.rightPointer);
+                Pointers.enablePointer(_this.leftHudPointer);
+                Pointers.enablePointer(_this.rightHudPointer);
+                Picks.enablePick(_this.mouseRayPick);
+            } else {
+                Pointers.disablePointer(_this.leftPointer);
+                Pointers.disablePointer(_this.rightPointer);
+                Pointers.disablePointer(_this.leftHudPointer);
+                Pointers.disablePointer(_this.rightHudPointer);
+                Picks.disablePick(_this.mouseRayPick);
+            }
+
             // raypick for each controller
             var rayPicks = [
                 Pointers.getPrevPickResult(_this.leftPointer),
