@@ -159,16 +159,18 @@ void SafeLanding::updateTracking() {
 
 void SafeLanding::stopTracking() {
     Locker lock(_lock);
-    _trackingEntities = false;
-    if (_entityTreeRenderer) {
-        auto entityTree = _entityTreeRenderer->getTree();
-        disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
-            &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
-        disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
-            &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
-        _entityTreeRenderer.reset();
+    if (_trackingEntities) {
+        _trackingEntities = false;
+        if (_entityTreeRenderer) {
+            auto entityTree = _entityTreeRenderer->getTree();
+            disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
+            disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
+            _entityTreeRenderer.reset();
+        }
+        EntityTreeRenderer::setEntityLoadingPriorityFunction(_prevEntityLoadingPriorityOperator);
     }
-    EntityTreeRenderer::setEntityLoadingPriorityFunction(_prevEntityLoadingPriorityOperator);
 }
 
 void SafeLanding::reset() {
