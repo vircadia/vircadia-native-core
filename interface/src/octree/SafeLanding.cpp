@@ -138,9 +138,7 @@ void SafeLanding::updateTracking() {
             bool shouldStop = false;
             {
                 Locker lock(_lock);
-                int32_t sequenceSize = _sequenceStart < _sequenceEnd ?
-                    (int32_t)(_sequenceEnd - _sequenceStart) :
-                    (int32_t)((SafeLanding::MAX_SEQUENCE - _sequenceStart) + _sequenceEnd + 1); // with rollover
+                auto sequenceSize = _sequenceEnd - _sequenceStart; // this works even in rollover case
                 auto startIter = _sequenceNumbers.find(_sequenceStart);
                 auto endIter = _sequenceNumbers.find(_sequenceEnd - 1);
 
