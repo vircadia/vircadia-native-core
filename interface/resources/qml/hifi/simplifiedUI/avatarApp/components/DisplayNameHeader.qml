@@ -91,7 +91,7 @@ Item {
 
             SimplifiedControls.TextField {
                 id: myDisplayNameText
-                text: MyAvatar.sessionDisplayName === "" ? MyAvatar.displayName : MyAvatar.sessionDisplayName
+                text: MyAvatar.displayName
                 maximumLength: 256
                 clip: true
                 selectByMouse: true
