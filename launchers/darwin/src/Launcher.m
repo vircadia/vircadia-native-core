@@ -226,15 +226,9 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     NSWorkspace* workspace = [NSWorkspace sharedWorkspace];
     NSArray* apps = [workspace runningApplications];
     for (NSRunningApplication* app in apps) {
-        NSLog(@"app: %@", [app bundleIdentifier]);
         if ([[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface"] ||
             [[app bundleIdentifier] isEqualToString:@"com.highfidelity.interface-pr"]) {
-            pid_t pid = [app processIdentifier];
-            int status = kill(pid, SIGTERM);
-            
-            NSLog(@"exit status %d", status);
-            /*BOOL success = [app forceTerminate];
-            NSLog(success ? @"SUCCESSSFUL" : @"NOT SUCCESSFUL");*/
+            [app terminate];
             self.waitingForInterfaceToTerminate = true;
         }
     }
