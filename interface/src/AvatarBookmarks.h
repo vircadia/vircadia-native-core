@@ -16,8 +16,8 @@
 #include "Bookmarks.h"
 
 /**jsdoc 
- * The <code>AvatarBookmarks</code> API lets your create and use avatar bookmarks ("favorites" in the Avatar app). An avatar 
- * bookmark associates a name with an avatar model, scale, and avatar entities (wearables).
+ * The <code>AvatarBookmarks</code> API provides facilities for working with avatar bookmarks ("favorites" in the Avatar app). 
+ * An avatar bookmark associates a name with an avatar model, scale, and avatar entities (wearables).
  *
  * @namespace AvatarBookmarks
  *
