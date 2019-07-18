@@ -126,9 +126,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
 
         case PacketType::EntityQueryInitialResultsComplete: {
             // Read sequence #
+            OCTREE_PACKET_SEQUENCE completionNumber;
+            message->readPrimitive(&completionNumber);
             if (_safeLanding && _safeLanding->isTracking()) {
-                OCTREE_PACKET_SEQUENCE completionNumber;
-                message->readPrimitive(&completionNumber);
                 _safeLanding->finishSequence(_safeLandingSequenceStart, completionNumber);
             }
         } break;
