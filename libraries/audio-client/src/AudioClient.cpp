@@ -2208,7 +2208,7 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // send output buffer for recording
     if (_audio->_isRecording) {
         Lock lock(_recordMutex);
-        _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
+        _audio->_audioFileWav.addRawAudioChunk(data, bytesWritten);
     }
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
