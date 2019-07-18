@@ -16,7 +16,9 @@
 #include "Bookmarks.h"
 
 /**jsdoc 
- * This API helps manage adding and deleting avatar bookmarks.
+ * The <code>AvatarBookmarks</code> API lets your create and use avatar bookmarks ("favorites" in the Avatar app). An avatar 
+ * bookmark associates a name with an avatar model, scale, and avatar entities (wearables).
+ *
  * @namespace AvatarBookmarks
  *
  * @hifi-interface
@@ -32,41 +34,100 @@ class AvatarBookmarks: public Bookmarks, public  Dependency {
 public:
     AvatarBookmarks();
     void setupMenus(Menu* menubar, MenuWrapper* menu) override {};
+
+    /**jsdoc
+     * Gets the details of an avatar bookmark.
+     * @function AvatarBookmarks.getBookmark
+     * @param {string} bookmarkName - The name of the avatar bookmark. (Case sensitive.)
+     * @returns {AvatarBookmarks.BookmarkData|{}} The bookmark data if the bookmark exists, <code>{}</code> if it doesn't.
+     */
     Q_INVOKABLE QVariantMap getBookmark(const QString& bookmarkName);
 
 public slots:
     /**jsdoc 
-     * Add the current Avatar to your avatar bookmarks.
-     * @function AvatarBookmarks.addBookMark
+     * Adds a new (or updates an existing) avatar bookmark with your current avatar model, scale, and avatar entities.
+     * @function AvatarBookmarks.addBookmark
+     * @param {string} bookmarkName - The name of the avatar bookmark. (Case sensitive.)
+     * @example <caption>Add a new avatar bookmark and report the bookmark data.</caption>
+     * var bookmarkName = "New Bookmark";
+     * AvatarBookmarks.addBookmark(bookmarkName);
+     * var bookmarkData = AvatarBookmarks.getBookmark(bookmarkName);
+     * print("Bookmark data: " + JSON.stringify(bookmarkData));
      */
     void addBookmark(const QString& bookmarkName);
+
+    /**jsdoc
+     * Updates an existing bookmark with your current avatar model, scale, and wearables. No action is taken if the bookmark 
+     * doesn't exist.
+     * @function AvatarBookmarks.saveBookmark
+     * @param {string} bookmarkName - The name of the avatar bookmark. (Case sensitive.)
+     */
     void saveBookmark(const QString& bookmarkName);
+
+    /**jsdoc
+     * Loads an avatar bookmark, setting your avatar model, scale, and avatar entities (or attachments if an old bookmark) to 
+     * those in the bookmark.
+     * @function AvatarBookmarks.loadBookmark
+     * @param {string} bookmarkName - The name of the avatar bookmark to load. (Case sensitive.)
+     */
     void loadBookmark(const QString& bookmarkName);
+
+    /**jsdoc
+     * Deletes an avatar bookmark.
+     * @function AvatarBookmarks.removeBookmark
+     * @param {string} bookmarkName - The name of the avatar bookmark to delete. (Case sensitive.)
+     */
     void removeBookmark(const QString& bookmarkName);
+
+    /**jsdoc
+     * Updates the avatar entities and their properties. Current avatar entities not included in the list provided are deleted.
+     * @function AvatarBookmarks.updateAvatarEntities
+     * @param {MyAvatar.AvatarEntityData[]} avatarEntities - The avatar entity IDs and properties.
+     * @deprecated This function is deprecated and will be removed. Use the {@link MyAvatar} API instead.
+     */
     void updateAvatarEntities(const QVariantList& avatarEntities);
+
+    /**jsdoc
+     * Gets the details of all avatar bookmarks.
+     * @function AvatarBookmarks.getBookmarks
+     * @returns {Object<string,AvatarBookmarks.BookmarkData>} The current avatar bookmarks in an object where the keys are the 
+     *     bookmark names and the values are the bookmark details.
+     * @example <caption>List the names and URLs of all the avatar bookmarks.</caption>
+     * var bookmarks = AvatarBookmarks.getBookmarks();
+     * print("Avatar bookmarks:");
+     * for (var key in bookmarks) {
+     *     print("- " + key + " " + bookmarks[key].avatarUrl);
+     * };
+     */
     QVariantMap getBookmarks() { return _bookmarks; }
 
 signals:
     /**jsdoc
-     * This function gets triggered after avatar loaded from bookmark
+     * Triggered when an avatar bookmark is loaded, setting your avatar model, scale, and avatar entities (or attachments if an 
+     * old bookmark) to those in the bookmark.
      * @function AvatarBookmarks.bookmarkLoaded
-     * @param {string} bookmarkName
+     * @param {string} bookmarkName - The name of the avatar bookmark loaded.
      * @returns {Signal}
      */
     void bookmarkLoaded(const QString& bookmarkName);
 
     /**jsdoc
-     * This function gets triggered after avatar bookmark deleted
+     * Triggered when an avatar bookmark is deleted.
      * @function AvatarBookmarks.bookmarkDeleted
-     * @param {string} bookmarkName
+     * @param {string} bookmarkName - The name of the avatar bookmark deleted.
      * @returns {Signal}
+     * @example <caption>Report when a bookmark is deleted.</caption>
+     * AvatarBookmarks.bookmarkDeleted.connect(function (bookmarkName) {
+     *     print("Bookmark deleted: " + bookmarkName);
+     * });
      */
     void bookmarkDeleted(const QString& bookmarkName);
 
     /**jsdoc
-     * This function gets triggered after avatar bookmark added
+     * Triggered when a new avatar bookmark is added or an existing avatar bookmark is updated, using 
+     * {@link AvatarBookmarks.addBookmark|addBookmark}.
      * @function AvatarBookmarks.bookmarkAdded
-     * @param {string} bookmarkName
+     * @param {string} bookmarkName - The name of the avatar bookmark added or updated.
      * @returns {Signal}
      */
     void bookmarkAdded(const QString& bookmarkName);
@@ -77,6 +138,11 @@ protected:
     QVariantMap getAvatarDataToBookmark();
 
 protected slots: 
+    /**jsdoc
+     * Performs no action.
+     * @function AvatarBookmarks.deleteBookmark
+     * @deprecated This function is deprecated and will be removed.
+     */
     void deleteBookmark() override;
 
 private:
