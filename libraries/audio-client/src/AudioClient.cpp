@@ -2114,15 +2114,16 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         return maxSize;
     }
 
-    // samples requested from OUTPUT_CHANNEL_COUNT
+    // max samples requested from OUTPUT_CHANNEL_COUNT
     int deviceChannelCount = _audio->_outputFormat.channelCount();
-    int samplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
+    int maxSamplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
     // restrict samplesRequested to the size of our mix/scratch buffers
-    samplesRequested = std::min(samplesRequested, _audio->_outputPeriod);
+    maxSamplesRequested = std::min(maxSamplesRequested, _audio->_outputPeriod);
 
     int16_t* scratchBuffer = _audio->_outputScratchBuffer;
     float* mixBuffer = _audio->_outputMixBuffer;
 
+    int samplesRequested = maxSamplesRequested;
     int networkSamplesPopped;
     if ((networkSamplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available, %d requested)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable(), samplesRequested);
@@ -2167,40 +2168,42 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     });
 
     int samplesPopped = std::max(networkSamplesPopped, injectorSamplesPopped);
-    int framesPopped = samplesPopped / AudioConstants::STEREO;
-    int bytesWritten;
-    if (samplesPopped > 0) {
-
-        // apply output gain
-        float newGain = _audio->_outputGain.load(std::memory_order_acquire);
-        float oldGain = _audio->_lastOutputGain;
-        _audio->_lastOutputGain = newGain;
-
-        applyGainSmoothing<OUTPUT_CHANNEL_COUNT>(mixBuffer, framesPopped, oldGain, newGain);
-
-        if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
-            // limit the audio
-            _audio->_audioLimiter.render(mixBuffer, (int16_t*)data, framesPopped);
-        } else {
-            _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
-
-            // upmix or downmix to deviceChannelCount
-            if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
-                int extraChannels = deviceChannelCount - OUTPUT_CHANNEL_COUNT;
-                channelUpmix(scratchBuffer, (int16_t*)data, samplesPopped, extraChannels);
-            } else {
-                channelDownmix(scratchBuffer, (int16_t*)data, samplesPopped);
-            }
-        }
-
-        bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
-        assert(bytesWritten <= maxSize);
-
-    } else {
-        // nothing on network, don't grab anything from injectors, and just return 0s
-        memset(data, 0, maxSize);
-        bytesWritten = maxSize;
+    if (samplesPopped == 0) {
+        // nothing on network, don't grab anything from injectors, and fill with silence
+        samplesPopped = maxSamplesRequested;
+        memset(mixBuffer, 0, samplesPopped * sizeof(float));
     }
+    int framesPopped = samplesPopped / OUTPUT_CHANNEL_COUNT;
+
+    // apply output gain
+    float newGain = _audio->_outputGain.load(std::memory_order_acquire);
+    float oldGain = _audio->_lastOutputGain;
+    _audio->_lastOutputGain = newGain;
+
+    applyGainSmoothing<OUTPUT_CHANNEL_COUNT>(mixBuffer, framesPopped, oldGain, newGain);
+
+    // limit the audio
+    _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
+
+    // TODO:
+    // At this point, scratchBuffer contains the final (mixed, limited) output audio.
+    // format = interleaved int16_t
+    // samples = samplesPopped
+    // channels = OUTPUT_CHANNEL_COUNT
+    // sampleRate = _outputFormat.sampleRate()
+    // This can be used as the far-end signal for AEC.
+
+    // if required, upmix or downmix to deviceChannelCount
+    if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
+        memcpy(data, scratchBuffer, samplesPopped * AudioConstants::SAMPLE_SIZE);
+    } else if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
+        int extraChannels = deviceChannelCount - OUTPUT_CHANNEL_COUNT;
+        channelUpmix(scratchBuffer, (int16_t*)data, samplesPopped, extraChannels);
+    } else {
+        channelDownmix(scratchBuffer, (int16_t*)data, samplesPopped);
+    }
+    int bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
+    assert(bytesWritten <= maxSize);
 
     // send output buffer for recording
     if (_audio->_isRecording) {
