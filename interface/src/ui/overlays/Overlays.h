@@ -171,7 +171,7 @@ public slots:
     bool editOverlay(const QUuid& id, const QVariant& properties);
 
     /**jsdoc
-     * Edits multiple overlays' (or entities') properties.
+     * Edits the properties of multiple overlays (or entities).
      * @function Overlays.editOverlays
      * @param propertiesById {object.<Uuid, Overlays.OverlayProperties>} - An object with overlay (or entity) IDs as keys and
      *     {@link Overlays.OverlayProperties|OverlayProperties} edits to make as values.
@@ -312,7 +312,7 @@ public slots:
     QUuid getOverlayAtPoint(const glm::vec2& point);
 
     /**jsdoc
-     * Gets the value of a 3D overlay's (or entity's) property.
+     * Gets a specified property value of a 3D overlay (or entity).
      * <p><strong>Note:</strong> 2D overlays' property values cannot be retrieved.</p>
      * @function Overlays.getProperty
      * @param {Uuid} id - The ID of the 3D overlay (or entity).
@@ -332,7 +332,7 @@ public slots:
     QVariant getProperty(const QUuid& id, const QString& property);
 
     /**jsdoc
-     * Gets the values of a 3D overlay's (or entity's) properties.
+     * Gets specified property values of a 3D overlay (or entity).
      * <p><strong>Note:</strong> 2D overlays' property values cannot be retrieved.</p>
      * @function Overlays.getProperties
      * @param {Uuid} id - The ID of the overlay (or entity).
@@ -384,9 +384,9 @@ public slots:
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <code>true</code> to pick against precise meshes, <code>false</code> to pick 
-     *     against coarse meshes. If <coide>true</code> and the intersected entity is a model, the result's 
+     *     against coarse meshes. If <code>true</code> and the intersected entity is a model, the result's 
      *     <code>extraInfo</code> property includes more information than it otherwise would.
-     * @param {Array.<Uuid>} [include=[]] - If not empty then the search is restricted to these overlays (and local entities).
+     * @param {Array.<Uuid>} [include=[]] - If not empty, then the search is restricted to these overlays (and local entities).
      * @param {Array.<Uuid>} [discard=[]] - Overlays (and local entities) to ignore during the search.
      * @param {boolean} [visibleOnly=false] - <code>true</code> if only overlays (and local entities) that are 
      *     <code>{@link Overlays.OverlayProperties|visible}</code> should be searched.
@@ -490,14 +490,14 @@ public slots:
     QSizeF textSize(const QUuid& id, const QString& text);
 
     /**jsdoc
-     * Gets the width of the Interface window or HUD.
+     * Gets the width of the Interface window or HUD surface.
      * @function Overlays.width
      * @returns {number} The width, in pixels, of the Interface window if in desktop mode or the HUD surface if in HMD mode.
      */
     float width();
 
     /**jsdoc
-     * Gets the height of the Interface window or HUD.
+     * Gets the height of the Interface window or HUD surface.
      * @function Overlays.height
      * @returns {number} The height, in pixels, of the Interface window if in desktop mode or the HUD surface if in HMD mode.
      */

@@ -658,7 +658,8 @@ signals:
     /**jsdoc
      * Triggered when you try to visit a domain but are redirected into the error state.
      * @function Window.redirectErrorStateChanged
-     * @param {boolean} isInErrorState - If <code>true</code>, the user has been redirected to the error URL.
+     * @param {boolean} isInErrorState - <code>true</code> if the user has been redirected to the error URL, <code>false</code> 
+     *     if they haven't.
      * @returns {Signal}
      */
     void redirectErrorStateChanged(bool isInErrorState);
@@ -666,8 +667,8 @@ signals:
     /**jsdoc
      * Triggered when the interstitial mode changes.
      * @function Window.interstitialModeChanged
-     * @param {boolean} interstitialMode - The new interstitial mode value. If <code>true</code>, the interstitial graphics are 
-     * displayed when the domain is loading.
+     * @param {boolean} interstitialMode - <code>true</code> if the interstitial graphics are displayed when the domain is 
+     *     loading, <code>false</code> if they are not.
      * @returns {Signal}
      */
     void interstitialModeChanged(bool interstitialMode);

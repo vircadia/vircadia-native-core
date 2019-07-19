@@ -1393,8 +1393,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *   </tbody>
  * </table>
  * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
- * rendered at a position and orientation in-world.<p>
- * <p class="important">3D overlays are deprecated: Use local {@link Entities} for these instead.</p>
+ * rendered at a position and orientation in-world.</p>
+ * <p class="important">3D overlays are deprecated. Use local {@link Entities} instead.</p>
  * @typedef {string} Overlays.OverlayType
  */
 
@@ -1532,7 +1532,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be. 
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is 
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather 
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather 
  *     than a joint. 
  */
 
@@ -1580,7 +1580,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  */
 
@@ -1629,7 +1629,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is 
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather 
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather 
  *     than a joint. 
  */
 
@@ -1704,7 +1704,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
  * @property {Overlays.Shape} shape=Hexagon - The geometrical shape of the overlay.
@@ -1737,7 +1737,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
  * @property {string} url - The URL of the FBX or OBJ model used for the overlay.
@@ -1791,7 +1791,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  */
 
@@ -1835,7 +1835,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
  * @property {string} url - The URL of the image to display.
@@ -1881,7 +1881,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
  * @property {string} url - The URL of the web page to display.
@@ -1915,7 +1915,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
  * @property {Uuid} endParentID=null - The avatar, entity, or overlay that the end point of the line is parented to.
@@ -1991,7 +1991,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  */
 
@@ -2039,7 +2039,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {boolean} grabbable=false - <code>true</code> if the overlay can be grabbed, <code>false</code> if it can't be.
  * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
  * @property {number} parentJointIndex=65535 - Integer value specifying the joint of the entity or avatar that the entity is
- *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parents's position and orientation rather
+ *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
  * @property {number} startAt=0 - The counter-clockwise angle from the overlay's x-axis that drawing starts at, in degrees.
