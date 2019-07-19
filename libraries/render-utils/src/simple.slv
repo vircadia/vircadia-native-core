@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  simple.vert
-//  vertex shader
 //
 //  Created by Andrzej Kapolka on 9/15/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -19,22 +17,41 @@
 
 <@include render-utils/ShaderConstants.h@>
 
+<@if HIFI_USE_FADE@>
+    <@include Fade.slh@>
+    <$declareFadeVertexInstanced()$>
+
+    layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+<@endif@>
+
+<@if not HIFI_USE_UNLIT@>
+    <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
+        layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+    <@endif@>
+<@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
-layout(location=RENDER_UTILS_ATTR_POSITION_MS) out vec4 _positionMS;
-layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 
 void main(void) {
     _color = color_sRGBAToLinear(inColor);
-    _texCoord01.xy = inTexCoord0.st;
-    _positionMS = inPosition;
-    _normalMS = inNormal.xyz;
+    _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
 
-    // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+<@if not HIFI_USE_UNLIT@>
+    <@if HIFI_USE_FORWARD or HIFI_USE_TRANSLUCENT@>
+        <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <@else@>
+        <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <@endif@>
+<@else@>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+<@endif@>
+
+<@if HIFI_USE_FADE@>
+    <$transformModelToWorldPos(obj, inPosition, _positionWS)$>
+    <$passThroughFadeObjectParams()$>
+<@endif@>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
 }

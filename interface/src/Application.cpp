@@ -257,6 +257,10 @@ extern "C" {
 }
 #endif
 
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
+
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
 #include "AndroidHelper.h"
@@ -960,6 +964,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+#ifdef Q_OS_MAC
+    DependencyManager::set<MacHelper>();
+#endif
 
     QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
     if (!setBookmarkValue.isEmpty()) {
@@ -1187,6 +1194,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     auto accountManager = DependencyManager::get<AccountManager>();
 
+    // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
+    if (!accountManager->hasKeyPair()) {
+        accountManager->generateNewUserKeypair();
+    }
+
 #ifndef Q_OS_ANDROID
     _logger->setSessionID(accountManager->getSessionID());
 #endif
@@ -1333,10 +1347,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(accountManager.data(), &AccountManager::authRequired, dialogsManager.data(), &DialogsManager::showLoginDialog);
 #endif
     connect(accountManager.data(), &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
-
-    // set the account manager's root URL and trigger a login request if we don't have the access token
-    accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL());
 
     // use our MyAvatar position and quat for address manager path
     addressManager->setPositionGetter([] {
@@ -2807,7 +2817,7 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
-
+    
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
     _snapshotSoundInjector = nullptr;
@@ -2853,6 +2863,9 @@ Application::~Application() {
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
+#ifdef Q_OS_MAC
+    DependencyManager::destroy<MacHelper>();
+#endif
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
@@ -4429,27 +4442,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_P: {
-                if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
-                    AudioInjectorOptions options;
-                    options.localOnly = true;
-                    options.positionSet = false;    // system sound
-                    options.stereo = true;
-
-                    Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true };
-                    Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
-                    if (notificationSounds.get() && notificationSoundSnapshot.get()) {
-                        if (_snapshotSoundInjector) {
-                            DependencyManager::get<AudioInjectorManager>()->setOptionsAndRestart(_snapshotSoundInjector, options);
-                        } else {
-                            _snapshotSoundInjector = DependencyManager::get<AudioInjectorManager>()->playSound(_snapshotSound, options);
-                        }
-                    }
-                    takeSnapshot(true);
-                }
-                break;
-            }
-
             case Qt::Key_Apostrophe: {
                 if (isMeta) {
                     auto cursor = Cursor::Manager::instance().getCursor();
@@ -5994,6 +5986,7 @@ void Application::resetPhysicsReadyInformation() {
     _gpuTextureMemSizeStabilityCount = 0;
     _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
+    _octreeProcessor.stopSafeLanding();
 }
 
 void Application::reloadResourceCaches() {
@@ -6253,6 +6246,7 @@ void Application::tryToEnablePhysics() {
         // We keep physics disabled until we've received a full scene and everything near the avatar in that
         // scene is ready to compute its collision shape.
         if (getMyAvatar()->isReadyForPhysics()) {
+            _octreeProcessor.resetSafeLanding();
             _physicsEnabled = true;
             setIsInterstitialMode(false);
             getMyAvatar()->updateMotionBehaviorFromMenu();
@@ -6776,6 +6770,12 @@ void Application::update(float deltaTime) {
     if (!getActiveDisplayPlugin()->isActive()) {
         getMain3DScene()->processTransactionQueue();
     }
+
+    // decide if the sensorToWorldMatrix is changing in a way that warrents squeezing the edges of the view down
+    if (getActiveDisplayPlugin()->isHmd()) {
+        PerformanceTimer perfTimer("squeezeVision");
+        _visionSqueeze.updateVisionSqueeze(myAvatar->getSensorToWorldMatrix(), deltaTime);
+    }
 }
 
 void Application::updateRenderArgs(float deltaTime) {
@@ -6982,13 +6982,16 @@ int Application::sendNackPackets() {
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
-
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
     }
 
     const bool isModifiedQuery = !_physicsEnabled;
     if (isModifiedQuery) {
+        if (!_octreeProcessor.safeLandingIsActive()) {
+            // don't send the octreeQuery until SafeLanding knows it has started
+            return;
+        }
         // Create modified view that is a simple sphere.
         bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
@@ -7211,7 +7214,6 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
     setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
@@ -7221,7 +7223,6 @@ void Application::domainURLChanged(QUrl domainURL) {
 
 void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
     setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadErrorDomain(errorDomainURL);
@@ -7238,12 +7239,12 @@ void Application::resettingDomain() {
 void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
         if (_failedToConnectToEntityServer && !_entityServerConnectionTimer.isActive()) {
-            _failedToConnectToEntityServer = false;
             _octreeProcessor.stopSafeLanding();
-            _octreeProcessor.startSafeLanding();
+            _failedToConnectToEntityServer = false;
         } else if (_entityServerConnectionTimer.isActive()) {
             _entityServerConnectionTimer.stop();
         }
+        _octreeProcessor.startSafeLanding();
         _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
         _entityServerConnectionTimer.start();
     }
@@ -7318,7 +7319,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _entityEditSender.nodeKilled(node);
-     
+
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {

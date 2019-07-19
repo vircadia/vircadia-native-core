@@ -75,34 +75,31 @@ public:
     CullFunctor _cullFunctor;
 };
 
-const float DEFAULT_BIAS_INPUT = 0.5f;
-const float DEFAULT_MAX_DISTANCE = 40.0f;
-
 class RenderShadowSetupConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float constantBias0 MEMBER constantBias0 NOTIFY dirty)
-        Q_PROPERTY(float constantBias1 MEMBER constantBias1 NOTIFY dirty)
-        Q_PROPERTY(float constantBias2 MEMBER constantBias2 NOTIFY dirty)
-        Q_PROPERTY(float constantBias3 MEMBER constantBias3 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias0 MEMBER slopeBias0 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
-        Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
-        Q_PROPERTY(float biasInput MEMBER biasInput NOTIFY dirty)
-        Q_PROPERTY(float globalMaxDistance MEMBER globalMaxDistance NOTIFY dirty)
+    Q_PROPERTY(float constantBias0 MEMBER constantBias0 NOTIFY dirty)
+    Q_PROPERTY(float constantBias1 MEMBER constantBias1 NOTIFY dirty)
+    Q_PROPERTY(float constantBias2 MEMBER constantBias2 NOTIFY dirty)
+    Q_PROPERTY(float constantBias3 MEMBER constantBias3 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias0 MEMBER slopeBias0 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias1 MEMBER slopeBias1 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias2 MEMBER slopeBias2 NOTIFY dirty)
+    Q_PROPERTY(float slopeBias3 MEMBER slopeBias3 NOTIFY dirty)
+    Q_PROPERTY(float biasInput MEMBER biasInput NOTIFY dirty)
+    Q_PROPERTY(float maxDistance MEMBER maxDistance NOTIFY dirty)
 
 public:
-    float biasInput{ DEFAULT_BIAS_INPUT };
-    float globalMaxDistance{ DEFAULT_MAX_DISTANCE };
-
-    float constantBias0{ 0.15f };
-    float constantBias1{ 0.15f };
-    float constantBias2{ 0.175f };
-    float constantBias3{ 0.2f };
-    float slopeBias0{ 0.4f };
-    float slopeBias1{ 0.45f };
-    float slopeBias2{ 0.65f };
-    float slopeBias3{ 0.7f };
+    // Set to > 0 to experiment with these values
+    float constantBias0 { 0.0f };
+    float constantBias1 { 0.0f };
+    float constantBias2 { 0.0f };
+    float constantBias3 { 0.0f };
+    float slopeBias0 { 0.0f };
+    float slopeBias1 { 0.0f };
+    float slopeBias2 { 0.0f };
+    float slopeBias3 { 0.0f };
+    float biasInput { 0.0f };
+    float maxDistance { 0.0f };
 
 signals:
     void dirty();
@@ -116,7 +113,7 @@ public:
     using JobModel = render::Job::ModelIO<RenderShadowSetup, Input, Output, Config>;
 
     RenderShadowSetup();
-    void configure(const Config& configuration);
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 private:
@@ -130,29 +127,21 @@ private:
     LightStage::ShadowFrame::Object _globalShadowObject;
     LightStage::ShadowFramePointer _shadowFrameCache;
 
-    const int DEFAULT_RESOLUTION = 1024;
-    float _biasInput{ DEFAULT_BIAS_INPUT };
-    float _globalMaxDistance{ DEFAULT_MAX_DISTANCE };
-    int resolution{ DEFAULT_RESOLUTION };
-
-    // initialize with values from RenderShadowSetupConfig 
-    float constant0{ 0.15f };
-    float constant1{ 0.15f };
-    float constant2{ 0.175f };
-    float constant3{ 0.2f };
-    float slope0{ 0.4f };
-    float slope1{ 0.45f };
-    float slope2{ 0.65f };
-    float slope3{ 0.7f };
-    bool changeInDefaultConfigValues{ false }; 
-    bool distanceTriggeredByConfig{ false };
-    bool biasTriggeredByConfig{ false };
-    std::array<float, 8> cacasdeDistances;  // 4 max then 4 min distances
+    // Values from config
+    float constantBias0;
+    float constantBias1;
+    float constantBias2;
+    float constantBias3;
+    float slopeBias0;
+    float slopeBias1;
+    float slopeBias2;
+    float slopeBias3;
+    float biasInput;
+    float maxDistance;
 
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);
-    void setBiasInput(float input) { _biasInput = input; }
-    void calculateBiases();
+    void calculateBiases(float biasInput);
 };
 
 class RenderShadowCascadeSetup {

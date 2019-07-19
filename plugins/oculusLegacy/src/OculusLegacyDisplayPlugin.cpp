@@ -11,7 +11,7 @@
 
 #include <gl/Config.h>
 
-#include <QtCore/QThread.h>
+#include <QThread>
 #include <QtWidgets/QMainWindow>
 #include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>

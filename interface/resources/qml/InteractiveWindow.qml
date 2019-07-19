@@ -30,7 +30,6 @@ Windows.Window {
 
     signal selfDestruct();
 
-    property var flags: 0;
     property var additionalFlags: 0;
     property var overrideFlags: 0;
 
@@ -158,8 +157,7 @@ Windows.Window {
         if (Qt.platform.os !== "windows" && (root.additionalFlags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
-        root.flags = root.overrideFlags || nativeWindowFlags;
-        nativeWindow.flags = root.flags;
+        nativeWindow.flags = root.overrideFlags || nativeWindowFlags;
 
         nativeWindow.x = interactiveWindowPosition.x;
         nativeWindow.y = interactiveWindowPosition.y;
@@ -317,7 +315,7 @@ Windows.Window {
         // set invisible on close, to make it not re-appear unintended after switching PresentationMode
         interactiveWindowVisible = false;
 
-        if ((root.flags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
+        if ((root.additionalFlags & Desktop.CLOSE_BUTTON_HIDES) !== Desktop.CLOSE_BUTTON_HIDES) {
             selfDestruct();
         }
     }

@@ -6144,4 +6144,3 @@ void MyAvatar::sendPacket(const QUuid& entityID) const {
         });
     }
 }
-

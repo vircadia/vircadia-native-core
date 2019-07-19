@@ -842,7 +842,8 @@ bool Resource::handleFailedRequest(ResourceRequest::Result result) {
         // FALLTHRU
         default: {
             _attemptsRemaining = 0;
-            qCDebug(networking) << "Error loading, attempt:" << _attempts << "attemptsRemaining:" << _attemptsRemaining;
+            QMetaEnum metaEnum = QMetaEnum::fromType<ResourceRequest::Result>();
+            qCDebug(networking) << "Error loading:" << metaEnum.valueToKey(result) << "resource:" << _url.toString();
             auto error = (result == ResourceRequest::Timeout) ? QNetworkReply::TimeoutError
                                                               : QNetworkReply::UnknownNetworkError;
             emit failed(error);

@@ -59,12 +59,20 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
-    const auto jitter = inputs.get2();
+    const auto& hazeFrame = inputs.get2();
+    const auto jitter = inputs.get3();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
 
     RenderArgs* args = renderContext->args;
+
+    graphics::HazePointer haze;
+    const auto& hazeStage = renderContext->args->_scene->getStage<HazeStage>();
+    if (hazeStage && hazeFrame->_hazes.size() > 0) {
+        // We use _hazes.back() here because the last haze object will always have haze disabled.
+        haze = hazeStage->getHaze(hazeFrame->_hazes.back());
+    }
 
     // Clear the framebuffer without stereo
     // Needs to be distinct from the other batch because using the clear call 
@@ -95,6 +103,10 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
             batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
+
+            if (haze) {
+                batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, haze->getHazeParametersBuffer());
+            }
 
             if (_opaquePass) {
                 renderStateSortShapes(renderContext, _shapePlumber, inItems, _maxDrawn);

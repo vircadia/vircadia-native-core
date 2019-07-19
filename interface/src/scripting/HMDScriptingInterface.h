@@ -84,6 +84,17 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(QVariant playArea READ getPlayAreaRect);
     Q_PROPERTY(QVector<glm::vec3> sensorPositions READ getSensorPositions);
 
+    Q_PROPERTY(float visionSqueezeRatioX READ getVisionSqueezeRatioX WRITE setVisionSqueezeRatioX);
+    Q_PROPERTY(float visionSqueezeRatioY READ getVisionSqueezeRatioY WRITE setVisionSqueezeRatioY);
+    Q_PROPERTY(float visionSqueezeUnSqueezeDelay READ getVisionSqueezeUnSqueezeDelay WRITE setVisionSqueezeUnSqueezeDelay);
+    Q_PROPERTY(float visionSqueezeUnSqueezeSpeed READ getVisionSqueezeUnSqueezeSpeed WRITE setVisionSqueezeUnSqueezeSpeed);
+    Q_PROPERTY(float visionSqueezeTransition READ getVisionSqueezeTransition WRITE setVisionSqueezeTransition);
+    Q_PROPERTY(int visionSqueezePerEye READ getVisionSqueezePerEye WRITE setVisionSqueezePerEye);
+    Q_PROPERTY(float visionSqueezeGroundPlaneY READ getVisionSqueezeGroundPlaneY WRITE setVisionSqueezeGroundPlaneY);
+    Q_PROPERTY(float visionSqueezeSpotlightSize READ getVisionSqueezeSpotlightSize WRITE setVisionSqueezeSpotlightSize);
+    Q_PROPERTY(float visionSqueezeTurningXFactor READ getVisionSqueezeTurningXFactor WRITE setVisionSqueezeTurningXFactor);
+    Q_PROPERTY(float visionSqueezeTurningYFactor READ getVisionSqueezeTurningYFactor WRITE setVisionSqueezeTurningYFactor);
+
 public:
 
     /**jsdoc
@@ -338,6 +349,27 @@ public:
      *     contextual mode, set the world or local position and orientation of the <code>HMD.tabletID</code> overlay.
      */
     Q_INVOKABLE void openTablet(bool contextualMode = false);
+
+    float getVisionSqueezeRatioX() const;
+    float getVisionSqueezeRatioY() const;
+    void setVisionSqueezeRatioX(float value);
+    void setVisionSqueezeRatioY(float value);
+    float getVisionSqueezeUnSqueezeDelay() const;
+    void setVisionSqueezeUnSqueezeDelay(float value);
+    float getVisionSqueezeUnSqueezeSpeed() const;
+    void setVisionSqueezeUnSqueezeSpeed(float value);
+    float getVisionSqueezeTransition() const;
+    void setVisionSqueezeTransition(float value);
+    int getVisionSqueezePerEye() const;
+    void setVisionSqueezePerEye(int value);
+    float getVisionSqueezeGroundPlaneY() const;
+    void setVisionSqueezeGroundPlaneY(float value);
+    float getVisionSqueezeSpotlightSize() const;
+    void setVisionSqueezeSpotlightSize(float value);
+    float getVisionSqueezeTurningXFactor() const;
+    void setVisionSqueezeTurningXFactor(float value);
+    float getVisionSqueezeTurningYFactor() const;
+    void setVisionSqueezeTurningYFactor(float value);
 
 signals:
     /**jsdoc
