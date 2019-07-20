@@ -303,12 +303,6 @@ AudioClient::AudioClient() :
 #endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
 
-#if defined(WEBRTC_ENABLED)
-    qDebug() << "QQQQ calling AudioProcessingBuilder";
-    _apm = webrtc::AudioProcessingBuilder().Create();
-    qDebug() << "QQQQ done calling AudioProcessingBuilder";
-#endif
-
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
 
@@ -359,6 +353,10 @@ AudioClient::AudioClient() :
     _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_MSECS);
 
     configureReverb();
+
+#if defined(WEBRTC_ENABLED)
+    configureWebrtc();
+#endif
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
@@ -1091,6 +1089,137 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
+#if defined(WEBRTC_ENABLED)
+
+static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * webrtc::AudioProcessing::kMaxNativeSampleRateHz / 1000;
+static const int WEBRTC_CHANNELS_MAX = 2;
+
+static void deinterleaveToFloat(const int16_t* src, float* const* dst, int numFrames, int numChannels) {
+    for (int i = 0; i < numFrames; i++) {
+        for (int ch = 0; ch < numChannels; ch++) {
+            float f = *src++;
+            f *= (1/32768.0f);  // scale
+            dst[ch][i] = f;     // deinterleave
+        }
+    }
+}
+
+static void interleaveToInt16(const float* const* src, int16_t* dst, int numFrames, int numChannels) {
+    for (int i = 0; i < numFrames; i++) {
+        for (int ch = 0; ch < numChannels; ch++) {
+            float f = src[ch][i];
+            f *= 32768.0f;                                  // scale
+            f += (f < 0.0f) ? -0.5f : 0.5f;                 // round
+            f = std::max(std::min(f, 32767.0f), -32768.0f); // saturate
+            *dst++ = (int16_t)f;                            // interleave
+        }
+    }
+}
+
+void AudioClient::configureWebrtc() {
+    _apm = webrtc::AudioProcessingBuilder().Create();
+
+    webrtc::AudioProcessing::Config config;
+
+    config.pre_amplifier.enabled = false;
+    config.high_pass_filter.enabled = false;
+    config.echo_canceller.enabled = true;
+    config.echo_canceller.mobile_mode = false;
+    config.echo_canceller.use_legacy_aec = false;
+    config.noise_suppression.enabled = false;
+    config.noise_suppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kModerate;
+    config.voice_detection.enabled = false;
+    config.gain_controller1.enabled = false;
+    config.gain_controller2.enabled = false;
+    config.gain_controller2.fixed_digital.gain_db = 0.0f;
+    config.gain_controller2.adaptive_digital.enabled = false;
+    config.residual_echo_detector.enabled = true;
+    config.level_estimation.enabled = false;
+
+    _apm->ApplyConfig(config);
+
+    qCDebug(audioclient) << "WebRTC enabled for acoustic echo cancellation.";
+}
+
+// rebuffer into 10ms chunks
+void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate) {
+
+    // TODO: move to AudioClient.h
+    static int16_t _fifo[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX];
+    static int _numFifo = 0;    // numFrames saved in fifo
+
+    const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
+    const int numChunk = (int)streamConfig.num_frames();
+
+    if (sampleRate > webrtc::AudioProcessing::kMaxNativeSampleRateHz) {
+        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "output sample rate.";
+        return;
+    }
+    if (numChannels > WEBRTC_CHANNELS_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "output channels.";
+        return;
+    }
+
+    while (numFrames > 0) {
+
+        // number of frames to fill
+        int numFill = std::min(numFrames, numChunk - _numFifo);
+
+        // refill fifo
+        memcpy(&_fifo[_numFifo], samples, numFill * numChannels * sizeof(int16_t));
+        samples += numFill * numChannels;
+        numFrames -= numFill;
+        _numFifo += numFill;
+
+        if (_numFifo == numChunk) {
+
+            // convert audio format
+            float buffer[WEBRTC_CHANNELS_MAX][WEBRTC_FRAMES_MAX];
+            float* const buffers[WEBRTC_CHANNELS_MAX] = { buffer[0], buffer[1] };
+            deinterleaveToFloat(_fifo, buffers, numChunk, numChannels);
+
+            // process one chunk
+            if (_apm->kNoError != _apm->ProcessReverseStream(buffers, streamConfig, streamConfig, buffers)) {
+                qCWarning(audioclient) << "WebRTC ProcessReverseStream() returned an ERROR.";
+            }
+            _numFifo = 0;
+        }
+    }
+}
+
+void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate) {
+
+    const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
+    const int numChunk = (int)streamConfig.num_frames();
+
+    if (sampleRate > webrtc::AudioProcessing::kMaxNativeSampleRateHz) {
+        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "input sample rate.";
+        return;
+    }
+    if (numChannels > WEBRTC_CHANNELS_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "input channels.";
+        return;
+    }
+    if (numFrames != numChunk) {
+        qCWarning(audioclient) << "WebRTC requires exactly 10ms of input.";
+        return;
+    }
+
+    // convert audio format
+    float buffer[WEBRTC_CHANNELS_MAX][WEBRTC_FRAMES_MAX];
+    float* const buffers[WEBRTC_CHANNELS_MAX] = { buffer[0], buffer[1] };
+    deinterleaveToFloat(samples, buffers, numFrames, numChannels);
+
+    // process one chunk
+    if (_apm->kNoError != _apm->ProcessStream(buffers, streamConfig, streamConfig, buffers)) {
+        qCWarning(audioclient) << "WebRTC ProcessStream() returned an ERROR.";
+    }
+    // modify samples in-place
+    interleaveToInt16(buffers, samples, numFrames, numChannels);
+}
+
+#endif // WEBRTC_ENABLED
+
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
@@ -1268,6 +1397,11 @@ void AudioClient::handleMicAudioInput() {
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+
+#if defined(WEBRTC_ENABLED)
+        processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
+                             _inputFormat.channelCount(), _inputFormat.sampleRate());
+#endif
 
         // detect loudness and clipping on the raw input
         bool isClipping = false;
@@ -2185,13 +2319,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     // limit the audio
     _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
 
-    // TODO:
-    // At this point, scratchBuffer contains the final (mixed, limited) output audio.
-    // format = interleaved int16_t
-    // samples = samplesPopped
-    // channels = OUTPUT_CHANNEL_COUNT
-    // sampleRate = _outputFormat.sampleRate()
-    // This can be used as the far-end signal for AEC.
+#if defined(WEBRTC_ENABLED)
+    _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
+#endif
 
     // if required, upmix or downmix to deviceChannelCount
     if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {

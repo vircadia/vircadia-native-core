@@ -415,8 +415,14 @@ private:
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
-
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
+
+#if defined(WEBRTC_ENABLED)
+    webrtc::AudioProcessing* _apm { nullptr };
+    void configureWebrtc();
+    void processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate);
+    void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
+#endif
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
@@ -476,10 +482,6 @@ private:
     QTimer* _checkPeakValuesTimer { nullptr };
 
     bool _isRecording { false };
-
-#if WEBRTC_ENABLED
-    webrtc::AudioProcessing* _apm;
-#endif
 };
 
 
