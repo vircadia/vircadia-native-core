@@ -41,6 +41,8 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         latestBuildInfo.shouldDownload = FALSE;
         latestBuildInfo.requestBuildFinished = FALSE;
         self.buildInfo = latestBuildInfo;
+        struct LauncherParams launcherParams;
+        self.params = launcherParams;
         self.credentialsAccepted = TRUE;
         self.gotCredentialResponse = FALSE;
         self.waitingForCredentialReponse = FALSE;
@@ -108,6 +110,16 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 {
     double lerpValue = pointA + interp * (pointB - pointA);
     return lerpValue;
+}
+
+- (struct LauncherParams) getLauncherParams
+{
+    return self.params;
+}
+
+- (void) setLauncherParams:(struct LauncherParams) aParams
+{
+    self.params = aParams;
 }
 
 - (BOOL) extractZipFileAtDestination:(NSString *)destination :(NSString*)file
