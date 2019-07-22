@@ -6,7 +6,9 @@
         var scripts = ScriptDiscoveryService.getRunning();
        
         var runningSimplified =
-            !scripts.every(function(item){ return item.name !== "simplifiedUI.js"; });
+            !scripts.every(function (item) {
+                return item.name !== "simplifiedUI.js";
+            });
 
         var avatarAppQML = runningSimplified ? "hifi/simplifiedUI/avatarApp/AvatarApp.qml" : "hifi/AvatarApp.qml";
         tablet.loadQMLSource(avatarAppQML);
