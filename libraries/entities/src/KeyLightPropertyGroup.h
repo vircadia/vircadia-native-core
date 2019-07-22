@@ -37,10 +37,10 @@ class ReadBitstreamToTreeParams;
  *     are cast by avatars, plus {@link Entities.EntityProperties-Model|Model} and 
  *     {@link Entities.EntityProperties-Shape|Shape} entities that have their 
  *     <code>{@link Entities.EntityProperties|canCastShadow}</code> property set to <code>true</code>.
- * @property {number} shadowBias=0.5 - The bias of the shadows cast by the light.  Use this to fine-tune your shadows to your scene
- *     to prevent shadow acne and peter panning.  In the range <code>0.0</code> &ndash; <code>1.0</code>.
- * @property {number} shadowMaxDistance=40.0 - The max distance from your view at which shadows will be computed.  Higher values will
- *     cover more of your scene, but with less precision.  In the range <code>1.0</code> &ndash; <code>250.0</code>.
+ * @property {number} shadowBias=0.5 - The bias of the shadows cast by the light, range <code>0.0</code> &ndash; 
+ *     <code>1.0</code>. This fine-tunes shadows cast by the light, to prevent shadow acne and peter panning.
+ * @property {number} shadowMaxDistance=40.0 - The maximum distance from the camera position at which shadows will be computed, 
+ *     range <code>1.0</code> &ndash; <code>250.0</code>. Higher values cover more of the scene but with less precision.
  */
 class KeyLightPropertyGroup : public PropertyGroup {
 public:
