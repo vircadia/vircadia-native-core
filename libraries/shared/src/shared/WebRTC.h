@@ -14,13 +14,14 @@
 #if defined(Q_OS_MAC)
 #  define WEBRTC_ENABLED 1
 #  define WEBRTC_POSIX 1
-#elif defined(WIN32)
+#elif defined(Q_OS_WIN)
 #  define WEBRTC_ENABLED 1
 #  define WEBRTC_WIN 1
 #  define NOMINMAX 1
 #  define WIN32_LEAN_AND_MEAN 1
 #elif defined(Q_OS_ANDROID)
-// no webrtc for android -- this is here so the LINUX clause doesn't get used, below
+#  define WEBRTC_ENABLED 1
+#  define WEBRTC_POSIX 1
 #elif defined(Q_OS_LINUX)
 #  define WEBRTC_ENABLED 1
 #  define WEBRTC_POSIX 1

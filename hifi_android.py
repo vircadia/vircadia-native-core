@@ -94,6 +94,11 @@ ANDROID_PACKAGES = {
         'checksum': 'ddcb23df336b08017042ba4786db1d9e',
         'sharedLibFolder': 'lib',
         'includeLibs': {'libbreakpad_client.a'}
+    },
+    'webrtc': {
+        'file': 'webrtc-20190626-android.tar.gz',
+        'checksum': '8be046cf27e1fabff8a1029eabbe52c8',
+        'versionId': '8TU1LgZswAgZpBiNYvB5s3ZLwSqNJHuj',
     }
 }
 
