@@ -291,13 +291,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 Pointers.enablePointer(_this.rightPointer);
                 Pointers.enablePointer(_this.leftHudPointer);
                 Pointers.enablePointer(_this.rightHudPointer);
-                Picks.enablePick(_this.mouseRayPick);
+                Pointers.enablePointer(_this.mouseRayPointer);
             } else {
                 Pointers.disablePointer(_this.leftPointer);
                 Pointers.disablePointer(_this.rightPointer);
                 Pointers.disablePointer(_this.leftHudPointer);
                 Pointers.disablePointer(_this.rightHudPointer);
-                Picks.disablePick(_this.mouseRayPick);
+                Pointers.disablePointer(_this.mouseRayPointer);
             }
 
             // raypick for each controller
@@ -309,7 +309,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 Pointers.getPrevPickResult(_this.leftHudPointer),
                 Pointers.getPrevPickResult(_this.rightHudPointer)
             ];
-            var mouseRayPick = Pointers.getPrevPickResult(_this.mouseRayPick);
+            var mouseRayPointer = Pointers.getPrevPickResult(_this.mouseRayPointer);
             // if the pickray hit something very nearby, put it into the nearby entities list
             for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
 
@@ -380,7 +380,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 nearbyOverlayIDs: nearbyOverlayIDs,
                 rayPicks: rayPicks,
                 hudRayPicks: hudRayPicks,
-                mouseRayPick: mouseRayPick
+                mouseRayPointer: mouseRayPointer
             };
             if (PROFILE) {
                 Script.endProfileRange("dispatch.gather");
@@ -545,7 +545,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             hand: RIGHT_HAND
         });
 
-        this.mouseRayPick = Pointers.createPointer(PickType.Ray, {
+        this.mouseRayPointer = Pointers.createPointer(PickType.Ray, {
             joint: "Mouse",
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
             enabled: true
@@ -594,7 +594,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.cleanup = function () {
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
-            Pointers.removePointer(this.mouseRayPick);
+            Pointers.removePointer(this.mouseRayPointer);
         };
     }
 
