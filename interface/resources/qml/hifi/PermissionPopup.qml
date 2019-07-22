@@ -9,7 +9,6 @@ Item {
     width:  600
     height: 200
     z:100
-    HifiConstants { id: hifi }
 
     // anchors.top: buttons.bottom
     Rectangle {
@@ -21,7 +20,7 @@ Item {
         Row {
             id: webAccessHeaderContainer
             height: root.height * 0.30
-            RalewayLight {
+            HifiStyles.RalewayLight {
                 id: webAccessHeaderText
                 text: "WEB CAMERA ACCESS REQUEST"
                 width: mainContainer.width
@@ -37,7 +36,7 @@ Item {
             id: webAccessInfoContainer
             anchors.top: webAccessHeaderContainer.bottom
             anchors.topMargin: 10
-            RalewayLight {
+            HifiStyles.RalewayLight {
                 width: mainContainer.width
                 id: webAccessInfoText
                 horizontalAlignment: Text.AlignHCenter
@@ -57,7 +56,7 @@ Item {
             anchors.horizontalCenter: webAccessInfoContainer.horizontalCenter
             anchors.verticalCenter: webAccessInfoContainer.verticalCenter
             property real space: 5
-            Button {
+            HifiControls.Button {
                 anchors.left: permissionsButtonRow.left
                 id: leftButton
                 anchors.leftMargin: permissionsButtonRow.space
@@ -68,7 +67,7 @@ Item {
                 enabled: true
                 width: 155
             }
-            Button {  
+            HifiControls.Button {  
                 id: rightButton
                 anchors.left: leftButton.right
                 anchors.leftMargin: permissionsButtonRow.space
