@@ -40,7 +40,7 @@ public:
     /**jsdoc
      * Gets the metaverse address associated with a bookmark.
      * @function LocationBookmarks.getAddress
-     * @param {string} bookmarkName - Name of the bookmark to get the metaverse address for. {Case sensitive.)
+     * @param {string} bookmarkName - Name of the bookmark to get the metaverse address for {case sensitive).
      * @returns {string} The metaverse address for the bookmark. If the bookmark does not exist, <code>""</code> is returned.
      * @example <caption>Report the "Home" bookmark's metaverse address.</caption>
      * print("Home bookmark's address: " + LocationBookmarks.getAddress("Home"));
@@ -50,7 +50,7 @@ public:
 public slots:
 
     /**jsdoc
-     * Prompts the user to bookmark their current location: the user can specify the name of the bookmark in the dialog that is 
+     * Prompts the user to bookmark their current location. The user can specify the name of the bookmark in the dialog that is 
      * opened.
      * @function LocationBookmarks.addBookmark
      */
