@@ -5,6 +5,7 @@ import QtWebChannel 1.0
 import QtQuick.Controls 2.2
 
 import stylesUit 1.0 as StylesUIt
+import "../hifi/PermissionPopup.qml" as PermissionPopup
 
 Item {
     id: flick
@@ -140,8 +141,14 @@ Item {
             });
         }
 
+        PermissionPopup {
+            id: permissionPopup
+        }
+
         onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, false);
+            console.log("Requesting permissions:")
+            permissionPopup.visible = true;
+            // grantFeaturePermission(securityOrigin, feature, false);
         }
 
         //disable popup
