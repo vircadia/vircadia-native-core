@@ -1285,8 +1285,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} rightMargin=0.0 - The right margin, in meters.
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
- * @property {boolean} unlit=false - <code>true</code> if the entity should be unaffected by lighting.  Otherwise, the text
- *     is lit by the keylight and local lights.
+ * @property {boolean} unlit=false - <code>true</code> if the entity is unaffected by lighting, <code>false</code> if it is lit 
+ *     by the key light and local lights.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code> 
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
