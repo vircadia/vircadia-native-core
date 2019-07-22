@@ -38,7 +38,7 @@ public:
     /**jsdoc
      * Gets the details of an avatar bookmark.
      * @function AvatarBookmarks.getBookmark
-     * @param {string} bookmarkName - The name of the avatar bookmark. (Case sensitive.)
+     * @param {string} bookmarkName - The name of the avatar bookmark (case sensitive).
      * @returns {AvatarBookmarks.BookmarkData|{}} The bookmark data if the bookmark exists, <code>{}</code> if it doesn't.
      */
     Q_INVOKABLE QVariantMap getBookmark(const QString& bookmarkName);
@@ -47,7 +47,7 @@ public slots:
     /**jsdoc 
      * Adds a new (or updates an existing) avatar bookmark with your current avatar model, scale, and avatar entities.
      * @function AvatarBookmarks.addBookmark
-     * @param {string} bookmarkName - The name of the avatar bookmark. (Case sensitive.)
+     * @param {string} bookmarkName - The name of the avatar bookmark (case sensitive).
      * @example <caption>Add a new avatar bookmark and report the bookmark data.</caption>
      * var bookmarkName = "New Bookmark";
      * AvatarBookmarks.addBookmark(bookmarkName);
@@ -60,7 +60,7 @@ public slots:
      * Updates an existing bookmark with your current avatar model, scale, and wearables. No action is taken if the bookmark 
      * doesn't exist.
      * @function AvatarBookmarks.saveBookmark
-     * @param {string} bookmarkName - The name of the avatar bookmark. (Case sensitive.)
+     * @param {string} bookmarkName - The name of the avatar bookmark (case sensitive).
      */
     void saveBookmark(const QString& bookmarkName);
 
@@ -68,14 +68,14 @@ public slots:
      * Loads an avatar bookmark, setting your avatar model, scale, and avatar entities (or attachments if an old bookmark) to 
      * those in the bookmark.
      * @function AvatarBookmarks.loadBookmark
-     * @param {string} bookmarkName - The name of the avatar bookmark to load. (Case sensitive.)
+     * @param {string} bookmarkName - The name of the avatar bookmark to load (case sensitive).
      */
     void loadBookmark(const QString& bookmarkName);
 
     /**jsdoc
      * Deletes an avatar bookmark.
      * @function AvatarBookmarks.removeBookmark
-     * @param {string} bookmarkName - The name of the avatar bookmark to delete. (Case sensitive.)
+     * @param {string} bookmarkName - The name of the avatar bookmark to delete (case sensitive).
      */
     void removeBookmark(const QString& bookmarkName);
 
