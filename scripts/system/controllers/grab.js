@@ -221,7 +221,7 @@ function Grabber() {
     });
 }
 
-Grabber.prototype.setPicksEnabled = function(enabled) {
+Grabber.prototype.setPicksAndPointersEnabled = function(enabled) {
     if (enabled) {
         Picks.enablePick(this.mouseRayOverlays);
         Pointers.enablePointer(this.mouseRayEntities);
@@ -232,7 +232,7 @@ Grabber.prototype.setPicksEnabled = function(enabled) {
 }
 
 Grabber.prototype.displayModeChanged = function(isHMDMode) {
-    this.setPicksEnabled(!isHMDMode);
+    this.setPicksAndPointersEnabled(!isHMDMode);
 }
 
 Grabber.prototype.computeNewGrabPlane = function() {
