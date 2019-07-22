@@ -39,7 +39,6 @@ set(src_files
   src/LaunchInterface.h
   src/CustomUI.h
   src/CustomUI.m
-  src/LauncherParams.h
   src/main.mm
   nib/Window.xib
   nib/SplashScreen.xib
@@ -81,6 +80,7 @@ if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 file(GLOB NIB_FILES "nib/*.xib")
 

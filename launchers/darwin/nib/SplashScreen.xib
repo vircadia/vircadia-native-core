@@ -26,11 +26,21 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="qC6-tI-Uwf"/>
                 </imageView>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EgF-VK-Hfo">
+                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Label" id="gWS-UL-cjB">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="119.5" y="134"/>
         </customView>
         <customObject id="iJ0-FI-XIf" customClass="SplashScreen">
             <connections>
+                <outlet property="buildVersion" destination="EgF-VK-Hfo" id="lVp-Ua-9Mt"/>
                 <outlet property="imageView" destination="qtD-mb-qqq" id="rCt-Gd-Uux"/>
                 <outlet property="logoImage" destination="2i5-Zw-nH7" id="7tM-sX-cvR"/>
             </connections>

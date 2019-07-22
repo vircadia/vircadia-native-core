@@ -119,12 +119,22 @@
                         <action selector="havingTrouble:" target="NkF-nk-81S" id="tsf-tC-aqq"/>
                     </connections>
                 </textField>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EsT-hn-six">
+                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Label" id="AGt-jH-mX2">
+                        <font key="font" metaFont="system" size="11"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="138.5" y="154"/>
         </customView>
         <customObject id="NkF-nk-81S" customClass="LoginScreen">
             <connections>
                 <outlet property="backgroundImage" destination="L56-Jv-0N8" id="INT-rB-YtG"/>
+                <outlet property="buildVersion" destination="EsT-hn-six" id="Z4k-Gv-U5g"/>
                 <outlet property="button" destination="jKE-fV-Tjv" id="or6-tG-r6R"/>
                 <outlet property="header" destination="hIC-qf-Abj" id="sVQ-rl-cvR"/>
                 <outlet property="orginization" destination="L7W-3n-OKy" id="TiL-wn-Z2b"/>

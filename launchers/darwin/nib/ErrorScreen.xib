@@ -69,12 +69,22 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="CBD-Vk-Xd4"/>
                 </imageView>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Omk-5j-C6r">
+                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Label" id="xpG-oP-agI">
+                        <font key="font" metaFont="system" size="11"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="138.5" y="152"/>
         </customView>
         <customObject id="nWn-x7-LxT" customClass="ErrorViewController">
             <connections>
                 <outlet property="backgroundImage" destination="eih-a8-Pqa" id="2xh-8r-1Qu"/>
+                <outlet property="buildVersion" destination="Omk-5j-C6r" id="aTp-c3-RVy"/>
                 <outlet property="smallLogo" destination="ugn-Hk-gWL" id="EVI-d3-mf5"/>
                 <outlet property="voxelImage" destination="jmW-5q-Mf3" id="NiI-cY-tAf"/>
             </connections>

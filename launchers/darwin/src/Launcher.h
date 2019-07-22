@@ -5,7 +5,6 @@
 #import "LatestBuildRequest.h"
 #import "OrganizationRequest.h"
 #import "DownloadScripts.h"
-#import "LauncherParams.h";
 
 typedef enum processStateTypes
 {
@@ -60,10 +59,7 @@ struct LatestBuildInfo {
 @property (nonatomic, assign) NSProgressIndicator* progressIndicator;
 @property (nonatomic) double progressTarget;
 @property (nonatomic) struct LatestBuildInfo buildInfo;
-@property (nonatomic) struct LauncherParams params;
 
-- (struct LauncherParams) getLauncherParams;
-- (void) setLuancherParams:(struct LauncherParams) aParams;
 - (NSProgressIndicator*) getProgressView;
 - (void) setProgressView:(NSProgressIndicator*) aProgressIndicator;
 - (void) displayNameEntered:(NSString*)aDisplayName;

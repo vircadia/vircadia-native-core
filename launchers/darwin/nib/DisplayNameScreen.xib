@@ -102,12 +102,22 @@
                         <action selector="termsOfService:" target="YVh-OH-vU8" id="bgc-08-8Lj"/>
                     </connections>
                 </textField>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oJs-u5-OOJ">
+                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Label" id="H6o-Xs-wK1">
+                        <font key="font" metaFont="system" size="11"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="138.5" y="154"/>
         </customView>
         <customObject id="YVh-OH-vU8" customClass="DisplayNameScreen">
             <connections>
                 <outlet property="backgroundImage" destination="aus-lo-eVi" id="SRc-pV-lXG"/>
+                <outlet property="buildVersion" destination="oJs-u5-OOJ" id="avj-j2-5P6"/>
                 <outlet property="displayName" destination="Vhg-rq-xUH" id="Fb5-im-2hx"/>
                 <outlet property="smallLogo" destination="j8K-TD-h7e" id="OVd-p3-nu6"/>
             </connections>
