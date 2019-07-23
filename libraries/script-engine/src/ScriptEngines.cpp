@@ -542,9 +542,7 @@ void ScriptEngines::quitWhenFinished() {
 
 int ScriptEngines::runScriptInitializers(ScriptEnginePointer scriptEngine) {
     auto nativeCount = DependencyManager::get<ScriptInitializers>()->runScriptInitializers(scriptEngine.data());
-    return nativeCount + std::count_if(_scriptInitializers.begin(), _scriptInitializers.end(),
-        [scriptEngine](auto initializer){ initializer(scriptEngine); return true; }
-    );
+    return nativeCount + ScriptInitializerMixin<ScriptEnginePointer>::runScriptInitializers(scriptEngine);
 }
 
 void ScriptEngines::launchScriptEngine(ScriptEnginePointer scriptEngine) {

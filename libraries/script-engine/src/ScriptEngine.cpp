@@ -190,7 +190,6 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
         case Context::ENTITY_SERVER_SCRIPT:
             _type = Type::ENTITY_SERVER;
             break;
-        case Context::EDIT_FILTER_SCRIPT:
         case Context::AGENT_SCRIPT:
             _type = Type::AGENT;
             break;

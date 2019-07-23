@@ -130,8 +130,7 @@ public:
         CLIENT_SCRIPT,
         ENTITY_CLIENT_SCRIPT,
         ENTITY_SERVER_SCRIPT,
-        AGENT_SCRIPT,
-        EDIT_FILTER_SCRIPT
+        AGENT_SCRIPT
     };
 
     enum Type {
