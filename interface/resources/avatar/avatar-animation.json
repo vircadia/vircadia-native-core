@@ -903,246 +903,162 @@
                                                                                 "children": [
                                                                                     {
                                                                                         "id": "idle",
-                                                                                        "type": "overlay",
+                                                                                        "type": "stateMachine",
                                                                                         "data": {
-                                                                                            "alpha": 1.0,
-                                                                                            "alphaVar": "idleOverlayAlpha",
-                                                                                            "boneSet": "upperBody"
+                                                                                            "currentState": "idleOverlay",
+                                                                                            "states": [
+                                                                                                {
+                                                                                                    "id": "idleOverlay",
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        { "var": "reactionPositiveTrigger", "state": "reactionPositive" },
+                                                                                                        { "var": "reactionNegativeTrigger", "state": "reactionNegative" },
+                                                                                                        { "var": "reactionRaiseHandEnabled", "state": "reactionRaiseHand" },
+                                                                                                        { "var": "reactionApplaudEnabled", "state": "reactionApplaud" },
+                                                                                                        { "var": "reactionPointEnabled", "state": "reactionPoint" }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "reactionPositive",
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        { "var": "reactionPositiveOnDone", "state": "idleOverlay" },
+                                                                                                        { "var": "reactionNegativeTrigger", "state": "reactionNegative" },
+                                                                                                        { "var": "reactionRaiseHandEnabled", "state": "reactionRaiseHand" },
+                                                                                                        { "var": "reactionApplaudEnabled", "state": "reactionApplaud" },
+                                                                                                        { "var": "reactionPointEnabled", "state": "reactionPoint" }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "reactionNegative",
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        { "var": "reactionPositiveTrigger", "state": "reactionPositive" },
+                                                                                                        { "var": "reactionNegativeOnDone", "state": "idleOverlay" },
+                                                                                                        { "var": "reactionRaiseHandEnabled", "state": "reactionRaiseHand" },
+                                                                                                        { "var": "reactionApplaudEnabled", "state": "reactionApplaud" },
+                                                                                                        { "var": "reactionPointEnabled", "state": "reactionPoint" }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "reactionRaiseHand",
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        { "var": "reactionNegativeTrigger", "state": "reactionNegative" },
+                                                                                                        { "var": "reactionPositiveTrigger", "state": "reactionPositive" },
+                                                                                                        { "var": "reactionRaiseHandDisabled", "state": "idleOverlay" },
+                                                                                                        { "var": "reactionApplaudEnabled", "state": "reactionApplaud" },
+                                                                                                        { "var": "reactionPointEnabled", "state": "reactionPoint" }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "reactionApplaud",
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        { "var": "reactionNegativeTrigger", "state": "reactionNegative" },
+                                                                                                        { "var": "reactionPositiveTrigger", "state": "reactionPositive" },
+                                                                                                        { "var": "reactionRaiseHandEnabled", "state": "reactionRaiseHand" },
+                                                                                                        { "var": "reactionApplaudDisabled", "state": "idleOverlay" },
+                                                                                                        { "var": "reactionPointEnabled", "state": "reactionPoint" }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "reactionPoint",
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        { "var": "reactionNegativeTrigger", "state": "reactionNegative" },
+                                                                                                        { "var": "reactionPositiveTrigger", "state": "reactionPositive" },
+                                                                                                        { "var": "reactionRaiseHandEnabled", "state": "reactionRaiseHand" },
+                                                                                                        { "var": "reactionApplaudEnabled", "state": "reactionApplaud" },
+                                                                                                        { "var": "reactionPointDisabled", "state": "idleOverlay" }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
                                                                                         },
                                                                                         "children": [
                                                                                             {
-                                                                                                "id": "idleTalk",
-                                                                                                "type": "randomSwitchStateMachine",
+                                                                                                "id": "idleOverlay",
+                                                                                                "type": "overlay",
                                                                                                 "data": {
-                                                                                                    "currentState": "talk",
-                                                                                                    "triggerRandomSwitch": "idleTalkSwitch",
-                                                                                                    "randomSwitchTimeMin": 7.0,
-                                                                                                    "randomSwitchTimeMax": 12.0,
-                                                                                                    "states": [
-                                                                                                        {
-                                                                                                            "id": "talk",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "talk02",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "talk03",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "talk04",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "talk_armsdown",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "talk_lefthand",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "talk_righthand",
-                                                                                                            "interpTarget": 20,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 0.33,
-                                                                                                            "resume": true,
-                                                                                                            "transitions": []
-                                                                                                        }
-                                                                                                    ]
+                                                                                                    "alpha": 1.0,
+                                                                                                    "alphaVar": "idleOverlayAlpha",
+                                                                                                    "boneSet": "upperBody"
                                                                                                 },
                                                                                                 "children": [
                                                                                                     {
-                                                                                                        "id": "talk",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 500.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "talk02",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk02.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 325.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "talk03",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk03.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 300.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "talk04",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk04.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 500.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "talk_armsdown",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk_armsdown.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 215.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "talk_lefthand",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk_lefthand.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 500.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "id": "talk_righthand",
-                                                                                                        "type": "clip",
-                                                                                                        "data": {
-                                                                                                            "url": "qrc:///avatar/animations/talk_righthand.fbx",
-                                                                                                            "startFrame": 1.0,
-                                                                                                            "endFrame": 502.0,
-                                                                                                            "timeScale": 1.0,
-                                                                                                            "loopFlag": true
-                                                                                                        },
-                                                                                                        "children": []
-                                                                                                    }
-                                                                                                ]
-                                                                                            },
-                                                                                            {
-                                                                                                "id": "idleStand",
-                                                                                                "type": "randomSwitchStateMachine",
-                                                                                                "data": {
-                                                                                                    "currentState": "masterIdle",
-                                                                                                    "triggerTimeMin": 10.0,
-                                                                                                    "triggerTimeMax": 50.0,
-                                                                                                    "transitionVar": "timeToFidget",
-                                                                                                    "states": [
-                                                                                                        {
-                                                                                                            "id": "masterIdle",
-                                                                                                            "interpTarget": 21,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": 1.0,
-                                                                                                            "resume": false,
-                                                                                                            "transitions": [
-                                                                                                                { "var": "timeToFidget", "randomSwitchState": "fidget" }
-                                                                                                            ]
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "fidget",
-                                                                                                            "interpTarget": 21,
-                                                                                                            "interpDuration": 20,
-                                                                                                            "priority": -1.0,
-                                                                                                            "resume": false,
-                                                                                                            "transitions": [
-                                                                                                                { "var": "idle_once_slownodOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idle_once_headtiltOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idle_once_shiftheelpivotOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idleWS_allOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idle_once_lookaroundOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idle_once_neckstretchOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idle_once_lookleftrightOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "idle_once_fidgetOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
-                                                                                                                { "var": "alt2ToMasterIdleOnDone", "randomSwitchState": "masterIdle" }
-                                                                                                            ]
-                                                                                                        }
-                                                                                                    ]
-                                                                                                },
-                                                                                                "children": [
-                                                                                                    {
-                                                                                                        "id": "masterIdle",
+                                                                                                        "id": "idleTalk",
                                                                                                         "type": "randomSwitchStateMachine",
                                                                                                         "data": {
-                                                                                                            "currentState": "masterIdle1",
-                                                                                                            "triggerRandomSwitch": "masterIdleSwitch",
-                                                                                                            "randomSwitchTimeMin": 10.0,
-                                                                                                            "randomSwitchTimeMax": 30.0,
+                                                                                                            "currentState": "talk",
+                                                                                                            "triggerRandomSwitch": "idleTalkSwitch",
+                                                                                                            "randomSwitchTimeMin": 7.0,
+                                                                                                            "randomSwitchTimeMax": 12.0,
                                                                                                             "states": [
                                                                                                                 {
-                                                                                                                    "id": "masterIdle1",
-                                                                                                                    "interpTarget": 21,
+                                                                                                                    "id": "talk",
+                                                                                                                    "interpTarget": 20,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.25,
+                                                                                                                    "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 },
                                                                                                                 {
-                                                                                                                    "id": "masterIdle2",
-                                                                                                                    "interpTarget": 21,
+                                                                                                                    "id": "talk02",
+                                                                                                                    "interpTarget": 20,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.25,
+                                                                                                                    "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 },
                                                                                                                 {
-                                                                                                                    "id": "masterIdle3",
-                                                                                                                    "interpTarget": 21,
+                                                                                                                    "id": "talk03",
+                                                                                                                    "interpTarget": 20,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.25,
+                                                                                                                    "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 },
                                                                                                                 {
-                                                                                                                    "id": "masterIdle4",
-                                                                                                                    "interpTarget": 21,
+                                                                                                                    "id": "talk04",
+                                                                                                                    "interpTarget": 20,
                                                                                                                     "interpDuration": 20,
-                                                                                                                    "priority": 0.25,
+                                                                                                                    "priority": 0.33,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "talk_armsdown",
+                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.33,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "talk_lefthand",
+                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.33,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": []
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "talk_righthand",
+                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": []
                                                                                                                 }
@@ -1150,10 +1066,34 @@
                                                                                                         },
                                                                                                         "children": [
                                                                                                             {
-                                                                                                                "id": "masterIdle1",
+                                                                                                                "id": "talk",
                                                                                                                 "type": "clip",
                                                                                                                 "data": {
-                                                                                                                    "url": "qrc:///avatar/animations/idle.fbx",
+                                                                                                                    "url": "qrc:///avatar/animations/talk.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 500.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "talk02",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/talk02.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 325.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "talk03",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/talk03.fbx",
                                                                                                                     "startFrame": 1.0,
                                                                                                                     "endFrame": 300.0,
                                                                                                                     "timeScale": 1.0,
@@ -1162,36 +1102,48 @@
                                                                                                                 "children": []
                                                                                                             },
                                                                                                             {
-                                                                                                                "id": "masterIdle2",
+                                                                                                                "id": "talk04",
                                                                                                                 "type": "clip",
                                                                                                                 "data": {
-                                                                                                                    "url": "qrc:///avatar/animations/idle02.fbx",
+                                                                                                                    "url": "qrc:///avatar/animations/talk04.fbx",
                                                                                                                     "startFrame": 1.0,
-                                                                                                                    "endFrame": 400.0,
-                                                                                                                    "timeScale": 0.75,
-                                                                                                                    "loopFlag": true
-                                                                                                                },
-                                                                                                                "children": []
-                                                                                                            },
-                                                                                                            {
-                                                                                                                "id": "masterIdle3",
-                                                                                                                "type": "clip",
-                                                                                                                "data": {
-                                                                                                                    "url": "qrc:///avatar/animations/idle03.fbx",
-                                                                                                                    "startFrame": 1.0,
-                                                                                                                    "endFrame": 800.0,
+                                                                                                                    "endFrame": 500.0,
                                                                                                                     "timeScale": 1.0,
                                                                                                                     "loopFlag": true
                                                                                                                 },
                                                                                                                 "children": []
                                                                                                             },
                                                                                                             {
-                                                                                                                "id": "masterIdle4",
+                                                                                                                "id": "talk_armsdown",
                                                                                                                 "type": "clip",
                                                                                                                 "data": {
-                                                                                                                    "url": "qrc:///avatar/animations/idle04.fbx",
+                                                                                                                    "url": "qrc:///avatar/animations/talk_armsdown.fbx",
                                                                                                                     "startFrame": 1.0,
-                                                                                                                    "endFrame": 902.0,
+                                                                                                                    "endFrame": 215.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "talk_lefthand",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/talk_lefthand.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 500.0,
+                                                                                                                    "timeScale": 1.0,
+                                                                                                                    "loopFlag": true
+                                                                                                                },
+                                                                                                                "children": []
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "id": "talk_righthand",
+                                                                                                                "type": "clip",
+                                                                                                                "data": {
+                                                                                                                    "url": "qrc:///avatar/animations/talk_righthand.fbx",
+                                                                                                                    "startFrame": 1.0,
+                                                                                                                    "endFrame": 502.0,
                                                                                                                     "timeScale": 1.0,
                                                                                                                     "loopFlag": true
                                                                                                                 },
@@ -1200,275 +1152,159 @@
                                                                                                         ]
                                                                                                     },
                                                                                                     {
-                                                                                                        "id": "fidget",
+                                                                                                        "id": "idleStand",
                                                                                                         "type": "randomSwitchStateMachine",
                                                                                                         "data": {
-                                                                                                            "currentState": "movement",
+                                                                                                            "currentState": "masterIdle",
+                                                                                                            "triggerTimeMin": 10.0,
+                                                                                                            "triggerTimeMax": 50.0,
+                                                                                                            "transitionVar": "timeToFidget",
                                                                                                             "states": [
                                                                                                                 {
-                                                                                                                    "id": "movement",
-                                                                                                                    "interpTarget": 17,
-                                                                                                                    "interpDuration": 15,
-                                                                                                                    "priority": 0.6,
+                                                                                                                    "id": "masterIdle",
+                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": 1.0,
                                                                                                                     "resume": false,
-                                                                                                                    "transitions": []
+                                                                                                                    "transitions": [
+                                                                                                                        { "var": "timeToFidget", "randomSwitchState": "fidget" }
+                                                                                                                    ]
                                                                                                                 },
                                                                                                                 {
-                                                                                                                    "id": "alternateIdle",
-                                                                                                                    "interpTarget": 17,
-                                                                                                                    "interpDuration": 15,
-                                                                                                                    "priority": 0.4,
+                                                                                                                    "id": "fidget",
+                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 20,
+                                                                                                                    "priority": -1.0,
                                                                                                                     "resume": false,
-                                                                                                                    "transitions": []
+                                                                                                                    "transitions": [
+                                                                                                                        { "var": "idle_once_slownodOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idle_once_headtiltOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idle_once_shiftheelpivotOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idleWS_allOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idle_once_lookaroundOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idle_once_neckstretchOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idle_once_lookleftrightOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "idle_once_fidgetOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "alt1ToMasterIdleOnDone", "randomSwitchState": "masterIdle" },
+                                                                                                                        { "var": "alt2ToMasterIdleOnDone", "randomSwitchState": "masterIdle" }
+                                                                                                                    ]
                                                                                                                 }
                                                                                                             ]
                                                                                                         },
                                                                                                         "children": [
                                                                                                             {
-                                                                                                                "id": "movement",
+                                                                                                                "id": "masterIdle",
                                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                                 "data": {
-                                                                                                                    "currentState": "idle_once_slownod",
+                                                                                                                    "currentState": "masterIdle1",
+                                                                                                                    "triggerRandomSwitch": "masterIdleSwitch",
+                                                                                                                    "randomSwitchTimeMin": 10.0,
+                                                                                                                    "randomSwitchTimeMax": 30.0,
                                                                                                                     "states": [
                                                                                                                         {
-                                                                                                                            "id": "idle_once_slownod",
+                                                                                                                            "id": "masterIdle1",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
+                                                                                                                            "priority": 0.25,
+                                                                                                                            "resume": true,
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "idle_once_headtilt",
+                                                                                                                            "id": "masterIdle2",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
+                                                                                                                            "priority": 0.25,
+                                                                                                                            "resume": true,
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "idle_once_shiftheelpivot",
+                                                                                                                            "id": "masterIdle3",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
+                                                                                                                            "priority": 0.25,
+                                                                                                                            "resume": true,
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "idleWS_all",
+                                                                                                                            "id": "masterIdle4",
                                                                                                                             "interpTarget": 21,
                                                                                                                             "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": []
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "idle_once_lookaround",
-                                                                                                                            "interpTarget": 21,
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": []
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "idle_once_neckstretch",
-                                                                                                                            "interpTarget": 21,
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": []
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "idle_once_lookleftright",
-                                                                                                                            "interpTarget": 21,
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": []
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "idle_once_fidget",
-                                                                                                                            "interpTarget": 21,
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "priority": 0.2,
-                                                                                                                            "resume": false,
+                                                                                                                            "priority": 0.25,
+                                                                                                                            "resume": true,
                                                                                                                             "transitions": []
                                                                                                                         }
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 "children": [
                                                                                                                     {
-                                                                                                                        "id": "idle_once_slownod",
+                                                                                                                        "id": "masterIdle1",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_slownod.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle.fbx",
                                                                                                                             "startFrame": 1.0,
-                                                                                                                            "endFrame": 91.0,
+                                                                                                                            "endFrame": 300.0,
                                                                                                                             "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
+                                                                                                                            "loopFlag": true
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "idle_once_headtilt",
+                                                                                                                        "id": "masterIdle2",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle02.fbx",
                                                                                                                             "startFrame": 1.0,
-                                                                                                                            "endFrame": 154.0,
+                                                                                                                            "endFrame": 400.0,
+                                                                                                                            "timeScale": 0.75,
+                                                                                                                            "loopFlag": true
+                                                                                                                        },
+                                                                                                                        "children": []
+                                                                                                                    },
+                                                                                                                    {
+                                                                                                                        "id": "masterIdle3",
+                                                                                                                        "type": "clip",
+                                                                                                                        "data": {
+                                                                                                                            "url": "qrc:///avatar/animations/idle03.fbx",
+                                                                                                                            "startFrame": 1.0,
+                                                                                                                            "endFrame": 800.0,
                                                                                                                             "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
+                                                                                                                            "loopFlag": true
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "idle_once_shiftheelpivot",
+                                                                                                                        "id": "masterIdle4",
                                                                                                                         "type": "clip",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_shiftheelpivot.fbx",
+                                                                                                                            "url": "qrc:///avatar/animations/idle04.fbx",
                                                                                                                             "startFrame": 1.0,
-                                                                                                                            "endFrame": 491.0,
+                                                                                                                            "endFrame": 902.0,
                                                                                                                             "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "idleWS_all",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idleWS_all.fbx",
-                                                                                                                            "startFrame": 1.0,
-                                                                                                                            "endFrame": 1620.0,
-                                                                                                                            "timeScale": 0.7,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "idle_once_lookaround",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
-                                                                                                                            "startFrame": 1.0,
-                                                                                                                            "endFrame": 324.0,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "idle_once_neckstretch",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_neckstretch.fbx",
-                                                                                                                            "startFrame": 1.0,
-                                                                                                                            "endFrame": 169.0,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "idle_once_lookleftright",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_lookleftright.fbx",
-                                                                                                                            "startFrame": 1.0,
-                                                                                                                            "endFrame": 375.0,
-                                                                                                                            "timeScale": 0.7,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "idle_once_fidget",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_once_fidget.fbx",
-                                                                                                                            "startFrame": 1.0,
-                                                                                                                            "endFrame": 429.0,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
+                                                                                                                            "loopFlag": true
                                                                                                                         },
                                                                                                                         "children": []
                                                                                                                     }
                                                                                                                 ]
                                                                                                             },
                                                                                                             {
-                                                                                                                "id": "alternateIdle",
+                                                                                                                "id": "fidget",
                                                                                                                 "type": "randomSwitchStateMachine",
                                                                                                                 "data": {
-                                                                                                                    "currentState": "transitionToAltIdle1",
-                                                                                                                    "triggerTimeMin": 10.0,
-                                                                                                                    "triggerTimeMax": 60.0,
-                                                                                                                    "transitionVar": "finishAltIdle2",
+                                                                                                                    "currentState": "movement",
                                                                                                                     "states": [
                                                                                                                         {
-                                                                                                                            "id": "transitionToAltIdle1",
-                                                                                                                            "interpTarget": 11,
-                                                                                                                            "interpDuration": 10,
-                                                                                                                            "priority": 0.5,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": [
-                                                                                                                                {
-                                                                                                                                    "var": "transitionToAltIdle1OnDone",
-                                                                                                                                    "randomSwitchState": "altIdle1"
-                                                                                                                                }
-                                                                                                                            ]
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "transitionToAltIdle2",
-                                                                                                                            "interpTarget": 11,
-                                                                                                                            "interpDuration": 10,
-                                                                                                                            "priority": 0.5,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": [
-                                                                                                                                {
-                                                                                                                                    "var": "transitionToAltIdle2OnDone",
-                                                                                                                                    "randomSwitchState": "altIdle2"
-                                                                                                                                }
-                                                                                                                            ]
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "altIdle1",
-                                                                                                                            "interpTarget": 11,
-                                                                                                                            "interpDuration": 10,
-                                                                                                                            "priority": -1.0,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": [
-                                                                                                                                {
-                                                                                                                                    "var": "finishAltIdle2",
-                                                                                                                                    "randomSwitchState": "alt1ToMasterIdle"
-                                                                                                                                }
-                                                                                                                            ]
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "altIdle2",
-                                                                                                                            "interpTarget": 11,
-                                                                                                                            "interpDuration": 10,
-                                                                                                                            "priority": -1.0,
-                                                                                                                            "resume": false,
-                                                                                                                            "transitions": [
-                                                                                                                                {
-                                                                                                                                    "var": "finishAltIdle2",
-                                                                                                                                    "randomSwitchState": "alt2ToMasterIdle"
-                                                                                                                                }
-                                                                                                                            ]
-                                                                                                                        },
-                                                                                                                        {
-                                                                                                                            "id": "alt1ToMasterIdle",
-                                                                                                                            "interpTarget": 11,
-                                                                                                                            "interpDuration": 10,
-                                                                                                                            "priority": -1.0,
+                                                                                                                            "id": "movement",
+                                                                                                                            "interpTarget": 17,
+                                                                                                                            "interpDuration": 15,
+                                                                                                                            "priority": 0.6,
                                                                                                                             "resume": false,
                                                                                                                             "transitions": []
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "id": "alt2ToMasterIdle",
-                                                                                                                            "interpTarget": 11,
-                                                                                                                            "interpDuration": 10,
-                                                                                                                            "priority": -1.0,
+                                                                                                                            "id": "alternateIdle",
+                                                                                                                            "interpTarget": 17,
+                                                                                                                            "interpDuration": 15,
+                                                                                                                            "priority": 0.4,
                                                                                                                             "resume": false,
                                                                                                                             "transitions": []
                                                                                                                         }
@@ -1476,84 +1312,396 @@
                                                                                                                 },
                                                                                                                 "children": [
                                                                                                                     {
-                                                                                                                        "id": "transitionToAltIdle1",
-                                                                                                                        "type": "clip",
+                                                                                                                        "id": "movement",
+                                                                                                                        "type": "randomSwitchStateMachine",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
-                                                                                                                            "startFrame": 1,
-                                                                                                                            "endFrame": 80,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
+                                                                                                                            "currentState": "idle_once_slownod",
+                                                                                                                            "states": [
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_slownod",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_headtilt",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_shiftheelpivot",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idleWS_all",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_lookaround",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_neckstretch",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_lookleftright",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "idle_once_fidget",
+                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "priority": 0.2,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                }
+                                                                                                                            ]
                                                                                                                         },
-                                                                                                                        "children": []
+                                                                                                                        "children": [
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_slownod",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_slownod.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 91.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_headtilt",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_headtilt.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 154.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_shiftheelpivot",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_shiftheelpivot.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 491.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idleWS_all",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idleWS_all.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 1620.0,
+                                                                                                                                    "timeScale": 0.7,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_lookaround",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_lookaround.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 324.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_neckstretch",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_neckstretch.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 169.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_lookleftright",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_lookleftright.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 375.0,
+                                                                                                                                    "timeScale": 0.7,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "idle_once_fidget",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_once_fidget.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 429.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            }
+                                                                                                                        ]
                                                                                                                     },
                                                                                                                     {
-                                                                                                                        "id": "transitionToAltIdle2",
-                                                                                                                        "type": "clip",
+                                                                                                                        "id": "alternateIdle",
+                                                                                                                        "type": "randomSwitchStateMachine",
                                                                                                                         "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
-                                                                                                                            "startFrame": 1.0,
-                                                                                                                            "endFrame": 80.0,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
+                                                                                                                            "currentState": "transitionToAltIdle1",
+                                                                                                                            "triggerTimeMin": 10.0,
+                                                                                                                            "triggerTimeMax": 60.0,
+                                                                                                                            "transitionVar": "finishAltIdle2",
+                                                                                                                            "states": [
+                                                                                                                                {
+                                                                                                                                    "id": "transitionToAltIdle1",
+                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 10,
+                                                                                                                                    "priority": 0.5,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "var": "transitionToAltIdle1OnDone",
+                                                                                                                                            "randomSwitchState": "altIdle1"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "transitionToAltIdle2",
+                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 10,
+                                                                                                                                    "priority": 0.5,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "var": "transitionToAltIdle2OnDone",
+                                                                                                                                            "randomSwitchState": "altIdle2"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "altIdle1",
+                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 10,
+                                                                                                                                    "priority": -1.0,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "var": "finishAltIdle2",
+                                                                                                                                            "randomSwitchState": "alt1ToMasterIdle"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "altIdle2",
+                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 10,
+                                                                                                                                    "priority": -1.0,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": [
+                                                                                                                                        {
+                                                                                                                                            "var": "finishAltIdle2",
+                                                                                                                                            "randomSwitchState": "alt2ToMasterIdle"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "alt1ToMasterIdle",
+                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 10,
+                                                                                                                                    "priority": -1.0,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "id": "alt2ToMasterIdle",
+                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 10,
+                                                                                                                                    "priority": -1.0,
+                                                                                                                                    "resume": false,
+                                                                                                                                    "transitions": []
+                                                                                                                                }
+                                                                                                                            ]
                                                                                                                         },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "altIdle1",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
-                                                                                                                            "startFrame": 80,
-                                                                                                                            "endFrame": 389,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": true
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "altIdle2",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
-                                                                                                                            "startFrame": 80.0,
-                                                                                                                            "endFrame": 390.0,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": true
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "alt1ToMasterIdle",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
-                                                                                                                            "startFrame": 389,
-                                                                                                                            "endFrame": 472,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
-                                                                                                                    },
-                                                                                                                    {
-                                                                                                                        "id": "alt2ToMasterIdle",
-                                                                                                                        "type": "clip",
-                                                                                                                        "data": {
-                                                                                                                            "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
-                                                                                                                            "startFrame": 390.0,
-                                                                                                                            "endFrame": 453.0,
-                                                                                                                            "timeScale": 1.0,
-                                                                                                                            "loopFlag": false
-                                                                                                                        },
-                                                                                                                        "children": []
+                                                                                                                        "children": [
+                                                                                                                            {
+                                                                                                                                "id": "transitionToAltIdle1",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
+                                                                                                                                    "startFrame": 1,
+                                                                                                                                    "endFrame": 80,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "transitionToAltIdle2",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
+                                                                                                                                    "startFrame": 1.0,
+                                                                                                                                    "endFrame": 80.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "altIdle1",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
+                                                                                                                                    "startFrame": 80,
+                                                                                                                                    "endFrame": 389,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": true
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "altIdle2",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
+                                                                                                                                    "startFrame": 80.0,
+                                                                                                                                    "endFrame": 390.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": true
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "alt1ToMasterIdle",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_LFF_all.fbx",
+                                                                                                                                    "startFrame": 389,
+                                                                                                                                    "endFrame": 472,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            },
+                                                                                                                            {
+                                                                                                                                "id": "alt2ToMasterIdle",
+                                                                                                                                "type": "clip",
+                                                                                                                                "data": {
+                                                                                                                                    "url": "qrc:///avatar/animations/idle_RFF_all.fbx",
+                                                                                                                                    "startFrame": 390.0,
+                                                                                                                                    "endFrame": 453.0,
+                                                                                                                                    "timeScale": 1.0,
+                                                                                                                                    "loopFlag": false
+                                                                                                                                },
+                                                                                                                                "children": []
+                                                                                                                            }
+                                                                                                                        ]
                                                                                                                     }
                                                                                                                 ]
                                                                                                             }
 
                                                                                                         ]
                                                                                                     }
-
                                                                                                 ]
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "reactionPositive",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/emote_agree_acknowledge.fbx",
+                                                                                                    "startFrame": 0.0,
+                                                                                                    "endFrame": 45.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": false
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "reactionNegative",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/emote_disagree_defeated.fbx",
+                                                                                                    "startFrame": 0.0,
+                                                                                                    "endFrame": 110.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": false
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "reactionRaiseHand",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/emote_raisehand01_all.fbx",
+                                                                                                    "startFrame": 18.0,
+                                                                                                    "endFrame": 300.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "reactionApplaud",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/emote_clap01_all.fbx",
+                                                                                                    "startFrame": 20.0,
+                                                                                                    "endFrame": 84.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true
+                                                                                                },
+                                                                                                "children": []
+                                                                                            },
+                                                                                            {
+                                                                                                "id": "reactionPoint",
+                                                                                                "type": "clip",
+                                                                                                "data": {
+                                                                                                    "url": "qrc:///avatar/animations/emote_point01_all.fbx",
+                                                                                                    "startFrame": 20.0,
+                                                                                                    "endFrame": 50.0,
+                                                                                                    "timeScale": 1.0,
+                                                                                                    "loopFlag": true
+                                                                                                },
+                                                                                                "children": []
                                                                                             }
                                                                                         ]
                                                                                     },
