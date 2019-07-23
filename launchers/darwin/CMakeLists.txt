@@ -20,6 +20,8 @@ set(src_files
   src/DownloadInterface.m
   src/DownloadDomainContent.h
   src/DownloadDomainContent.m
+  src/DownloadLauncher.h
+  src/DownloadLauncher.m
   src/DownloadScripts.h
   src/DownloadScripts.m
   src/CredentialsRequest.h
@@ -34,6 +36,8 @@ set(src_files
   src/Interface.m
   src/ErrorViewController.h
   src/ErrorViewController.m
+  src/LauncherCommandlineArgs.h
+  src/LauncherCommandlineArgs.m
   src/Settings.h
   src/Settings.m
   src/LaunchInterface.h
@@ -106,8 +110,12 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
 
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND updater
+  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+
 install(
-  TARGETS HQLauncher updater
+  TARGETS HQLauncher
   BUNDLE DESTINATION "."
   COMPONENT applications
 )

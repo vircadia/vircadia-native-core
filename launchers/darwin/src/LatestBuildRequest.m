@@ -58,9 +58,11 @@
 
         NSFileManager* fileManager = [NSFileManager defaultManager];
         NSArray *values = [json valueForKey:@"results"];
+        NSDictionary *launcherValues = [json valueForKey:@"launcher"];
         NSDictionary *value  = [values objectAtIndex:0];
 
-
+        NSString* launcherVersion = [launcherValues valueForKey:@"version"];
+        NSString* launcherUrl = [[launcherValues valueForKey:@"mac"] valueForKey:@"url"];
         NSString* buildNumber = [value valueForKey:@"latest_version"];
         NSDictionary* installers = [value objectForKey:@"installers"];
         NSDictionary* macInstallerObject = [installers objectForKey:@"mac"];
@@ -71,16 +73,22 @@
         dispatch_async(dispatch_get_main_queue(), ^{
 
             NSInteger currentVersion = [self getCurrentVersion];
+            NSInteger currentLauncherVersion = atoi(LAUNCHER_BUILD_VERSION);
+            NSLog(@"Latest Build Request -> current launcher version %ld", currentLauncherVersion);
+            NSLog(@"Latest Build Request -> latest launcher version %ld", launcherVersion.integerValue);
+            NSLog(@"Latest Build Request -> launcher url %@", launcherUrl);
             NSLog(@"Latest Build Request -> does build directory exist: %@", appDirectoryExist ? @"TRUE" : @"FALSE");
             NSLog(@"Latest Build Request -> current version: %ld", currentVersion);
             NSLog(@"Latest Build Request -> latest version: %ld", buildNumber.integerValue);
             NSLog(@"Latest Build Request -> mac url: %@", macInstallerUrl);
             BOOL latestVersionAvailable = (currentVersion != buildNumber.integerValue);
+            BOOL latestLauncherVersionAvailable = (currentLauncherVersion != launcherVersion.integerValue);
             [[Settings sharedSettings] buildVersion:buildNumber.integerValue];
 
             BOOL shouldDownloadInterface = (latestVersionAvailable || !appDirectoryExist);
             NSLog(@"Latest Build Request -> SHOULD DOWNLOAD: %@", shouldDownloadInterface ? @"TRUE" : @"FALSE");
-            [sharedLauncher shouldDownloadLatestBuild:shouldDownloadInterface :macInstallerUrl];
+            [sharedLauncher shouldDownloadLatestBuild:shouldDownloadInterface :macInstallerUrl
+                                                     :latestLauncherVersionAvailable :launcherUrl];
         });
     }];
 
