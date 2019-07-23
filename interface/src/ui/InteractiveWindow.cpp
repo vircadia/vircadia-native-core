@@ -69,6 +69,16 @@ void QmlWindowProxy::parentNativeWindowToMainWindow() {
 #endif
 }
 
+void InteractiveWindowProxy::emitScriptEvent(const QVariant& scriptMessage){
+    qDebug() << "EmitScriptEvent";
+    emit scriptEventReceived(scriptMessage);
+}
+
+void InteractiveWindowProxy::emitWebEvent(const QVariant& webMessage) {
+    qDebug() << "EmitWebEvent";
+    emit webEventReceived(webMessage);
+}
+
 static void qmlWindowProxyDeleter(QmlWindowProxy* qmlWindowProxy) {
     qmlWindowProxy->deleteLater();
 }
@@ -129,6 +139,10 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
     }
 
+    if (!_interactiveWindowProxy) {
+        _interactiveWindowProxy = new InteractiveWindowProxy();
+    }
+
     if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
         QVariantMap nativeWindowInfo = properties[DOCKED_PROPERTY].toMap();
         Qt::DockWidgetArea dockArea = Qt::TopDockWidgetArea;
@@ -182,11 +196,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                     break;
             }
         }
-
+      
+        
         QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
-                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
                 QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)),
                                  Qt::QueuedConnection);
                 QObject::connect(rootItem, SIGNAL(keyPressEvent(int, int)), this, SLOT(forwardKeyPressEvent(int, int)),
@@ -202,9 +217,9 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
     } else {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         // Build the event bridge and wrapper on the main thread
-        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
+        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&, this](QQmlContext* context, QObject* object) {
             _qmlWindowProxy = std::shared_ptr<QmlWindowProxy>(new QmlWindowProxy(object, nullptr), qmlWindowProxyDeleter);
-            context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+            context->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
             if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
                 object->setProperty(ADDITIONAL_FLAGS_PROPERTY, properties[ADDITIONAL_FLAGS_PROPERTY].toUInt());
             }
@@ -275,10 +290,12 @@ void InteractiveWindow::sendToQml(const QVariant& message) {
 }
 
 void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
+    //_interactiveWindowProxy->emitScriptEvent(scriptMessage);
     emit scriptEventReceived(scriptMessage);
 }
 
 void InteractiveWindow::emitWebEvent(const QVariant& webMessage) {
+    //_interactiveWindowProxy->emitWebEvent(webMessage);
     emit webEventReceived(webMessage);
 }
 
@@ -289,6 +306,10 @@ void InteractiveWindow::close() {
             qmlWindow->deleteLater();
         }
         _qmlWindowProxy->deleteLater();
+    }
+
+    if (_interactiveWindowProxy) {
+        delete(_interactiveWindowProxy);
     }
 
     if (_dockWidget) {
