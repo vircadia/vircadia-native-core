@@ -52,6 +52,7 @@ protected:
 
 protected slots:
     /**jsdoc
+     * Prompts the user to delete a bookmark. The user can select the bookmark to delete in the dialog that is opened.
      * @function LocationBookmarks.deleteBookmark
      */
     virtual void deleteBookmark();

@@ -459,7 +459,7 @@ signals:
     /**jsdoc
      * Triggered when the server injector gain changes.
      * @function Audio.serverInjectorGainChanged
-     * @param {float} gain - The new server injector gain value.
+     * @param {number} gain - The new server injector gain value.
      * @returns {Signal}
      */
     void serverInjectorGainChanged(float gain);

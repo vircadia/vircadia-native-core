@@ -38,7 +38,7 @@ void FramebufferCache::createPrimaryFramebuffer() {
 gpu::FramebufferPointer FramebufferCache::getFramebuffer() {
     std::unique_lock<std::mutex> lock(_mutex);
     if (_cachedFramebuffers.empty()) {
-        _cachedFramebuffers.push_back(gpu::FramebufferPointer(gpu::Framebuffer::create("cached", gpu::Element::COLOR_SRGBA_32, _frameBufferSize.width(), _frameBufferSize.height())));
+        _cachedFramebuffers.push_back(gpu::FramebufferPointer(gpu::Framebuffer::create("cached", gpu::Element::COLOR_SRGBA_32, gpu::Element::DEPTH24_STENCIL8, _frameBufferSize.width(), _frameBufferSize.height())));
     }
     gpu::FramebufferPointer result = _cachedFramebuffers.front();
     _cachedFramebuffers.pop_front();
