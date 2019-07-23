@@ -5,4 +5,6 @@ Text {
     style: Text.Outline;
     styleColor: "black";
     font.pixelSize: 12;
+    font.bold: true;
+    font.family: "monospace";
 }

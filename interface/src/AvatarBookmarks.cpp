@@ -179,6 +179,18 @@ void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     }
 }
 
+/**jsdoc
+ * Details of an avatar bookmark.
+ * @typedef {object} AvatarBookmarks.BookmarkData
+ * @property {number} version - The version of the bookmark data format.
+ * @property {string} avatarUrl - The URL of the avatar model.
+ * @property {number} avatarScale - The target scale of the avatar.
+ * @property {Array<Object<"properties",Entities.EntityProperties>>} [avatarEntites] - The avatar entities included with the 
+ *     bookmark.
+ * @property {MyAvatar.AttachmentData[]} [attachments] - The attachments included with the bookmark.
+ *     <p class="important">Deprecated: Use avatar entities instead.
+ */
+
 void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(this, "loadBookmark", Q_ARG(QString, bookmarkName));
