@@ -47,6 +47,9 @@ set(src_files
   nib/ProcessScreen.xib
   nib/DisplayNameScreen.xib)
 
+set(updater_src_files
+  src/updater/main.m)
+
 set(APP_NAME "HQ Launcher")
 
 set(CMAKE_C_FLAGS "-x objective-c")
@@ -72,6 +75,7 @@ endfunction()
   set_packaging_parameters()
 
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+add_executable("updater" ${updater_src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
   MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
@@ -103,7 +107,7 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
   ${CMAKE_SOURCE_DIR}/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
 
 install(
-  TARGETS HQLauncher
+  TARGETS HQLauncher updater
   BUNDLE DESTINATION "."
   COMPONENT applications
 )
