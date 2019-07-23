@@ -104,33 +104,33 @@ void Instance::enumerateNics() {
         }
     }
 }
-
 json Instance::getCPU(int index) {
-    assert(index <(int) _cpus.size());
-    if (index >= (int)_cpus.size())
+    assert(index < (int)_cpus.size());
+
+    if (index < 0 || (int)_cpus.size() <= index)
         return json();
 
     return _cpus.at(index);
 }
 
 json Instance::getGPU(int index) {
-    assert(index <(int) _gpus.size());
+    assert(index < (int)_gpus.size());
 
-    if (index >=(int) _gpus.size())
+    if (index < 0 || (int)_gpus.size() <= index)
         return json();
-    
+
     return _gpus.at(index);
 }
 
-
 json Instance::getDisplay(int index) {
-    assert(index <(int) _displays.size());
-    
-    if (index >=(int) _displays.size())
+    assert(index < (int)_displays.size());
+
+    if (index < 0 || (int)_displays.size() <= index)
         return json();
 
     return _displays.at(index);
 }
+
 
 Instance::~Instance() {
     if (_cpus.size() > 0) {
