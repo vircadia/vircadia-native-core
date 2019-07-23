@@ -70,10 +70,10 @@
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="CBD-Vk-Xd4"/>
                 </imageView>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Omk-5j-C6r">
-                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <rect key="frame" x="381" y="0.0" width="130" height="14"/>
                     <autoresizingMask key="autoresizingMask"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" title="Label" id="xpG-oP-agI">
-                        <font key="font" metaFont="system" size="11"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Label" id="xpG-oP-agI">
+                        <font key="font" metaFont="smallSystem"/>
                         <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>

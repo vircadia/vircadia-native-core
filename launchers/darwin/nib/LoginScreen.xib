@@ -120,10 +120,10 @@
                     </connections>
                 </textField>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EsT-hn-six">
-                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <rect key="frame" x="380" y="0.0" width="130" height="14"/>
                     <autoresizingMask key="autoresizingMask"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" title="Label" id="AGt-jH-mX2">
-                        <font key="font" metaFont="system" size="11"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Label" id="AGt-jH-mX2">
+                        <font key="font" metaFont="smallSystem"/>
                         <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>

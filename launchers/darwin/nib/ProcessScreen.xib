@@ -54,10 +54,10 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                 </progressIndicator>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="U3I-TA-xRz">
-                    <rect key="frame" x="466" y="0.0" width="42" height="14"/>
+                    <rect key="frame" x="380" y="0.0" width="130" height="14"/>
                     <autoresizingMask key="autoresizingMask"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" title="Label" id="8YH-Td-daK">
-                        <font key="font" metaFont="system" size="11"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Label" id="8YH-Td-daK">
+                        <font key="font" metaFont="smallSystem"/>
                         <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
