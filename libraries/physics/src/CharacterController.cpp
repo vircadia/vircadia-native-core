@@ -384,6 +384,8 @@ static const char* stateToStr(CharacterController::State state) {
         return "InAir";
     case CharacterController::State::Hover:
         return "Hover";
+    case CharacterController::State::Seated:
+        return "Seated";
     default:
         return "Unknown";
     }
@@ -739,9 +741,11 @@ void CharacterController::updateState() {
     // disable normal state transitions while collisionless
     const btScalar MAX_WALKING_SPEED = 2.65f;
     if (collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS) {
-        // when collisionless: only switch between State::Ground and State::Hover
+        // when collisionless: only switch between State::Ground, State::Hover and State::Seated
         // and bypass state debugging
-        if (rayHasHit) {
+        if (_isSeated) {
+            _state = State::Seated;
+        } else if (rayHasHit) {
             if (velocity.length() > (MAX_WALKING_SPEED)) {
                 _state = State::Hover;
             } else {

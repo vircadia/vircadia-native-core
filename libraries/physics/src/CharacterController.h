@@ -111,7 +111,8 @@ public:
         Ground = 0,
         Takeoff,
         InAir,
-        Hover
+        Hover,
+        Seated
     };
 
     State getState() const { return _state; }
@@ -135,6 +136,7 @@ public:
     void setCollisionlessAllowed(bool value);
 
     void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
+    void setSeated(bool isSeated) { _isSeated = isSeated;  }
 
 protected:
 #ifdef DEBUG_STATE_CHANGE
@@ -208,6 +210,7 @@ protected:
     State _state;
     bool _isPushingUp;
     bool _isStuck { false };
+    bool _isSeated { false };
 
     btDynamicsWorld* _dynamicsWorld { nullptr };
     btRigidBody* _rigidBody { nullptr };

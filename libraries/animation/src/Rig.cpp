@@ -1092,6 +1092,11 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _desiredStateAge = 0.0f;
             }
             _desiredState = RigRole::Takeoff;
+        } else if (ccState == CharacterControllerState::Seated) {
+            if (_desiredState != RigRole::Seated) {
+                _desiredStateAge = 0.0f;
+            }
+            _desiredState = RigRole::Seated;
         } else {
             float moveThresh;
             if (_state != RigRole::Move) {
@@ -1216,6 +1221,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirStand", false);
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
+            _animVars.set("isSeated", false);
 
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
@@ -1244,6 +1250,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirStand", false);
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
+            _animVars.set("isSeated", false);
 
         } else if (_state == RigRole::Idle) {
             // default anim vars to notMoving and notTurning
@@ -1265,6 +1272,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirStand", false);
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
+            _animVars.set("isSeated", false);
 
         } else if (_state == RigRole::Hover) {
             // flying.
@@ -1286,6 +1294,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirStand", false);
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
+            _animVars.set("isSeated", false);
 
         } else if (_state == RigRole::Takeoff) {
             // jumping in-air
@@ -1315,6 +1324,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirStand", false);
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", false);
+            _animVars.set("isSeated", false);
 
         } else if (_state == RigRole::InAir) {
             // jumping in-air
@@ -1333,6 +1343,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isTakeoffStand", false);
             _animVars.set("isTakeoffRun", false);
             _animVars.set("isNotTakeoff", true);
+            _animVars.set("isSeated", false);
 
             bool inAirRun = forwardSpeed > 0.1f;
             if (inAirRun) {
@@ -1354,6 +1365,26 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             float alpha = glm::clamp((-workingVelocity.y * sensorToWorldScale) / jumpSpeed, -1.0f, 1.0f) + 1.0f;
 
             _animVars.set("inAirAlpha", alpha);
+        } else if (_state == RigRole::Seated) {
+            _animVars.set("isMovingForward", false);
+            _animVars.set("isMovingBackward", false);
+            _animVars.set("isMovingRight", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRightHmd", false);
+            _animVars.set("isMovingLeftHmd", false);
+            _animVars.set("isNotMoving", false);
+            _animVars.set("isTurningRight", false);
+            _animVars.set("isTurningLeft", false);
+            _animVars.set("isNotTurning", true);
+            _animVars.set("isFlying", false);
+            _animVars.set("isNotFlying", true);
+            _animVars.set("isTakeoffStand", false);
+            _animVars.set("isTakeoffRun", false);
+            _animVars.set("isNotTakeoff", true);
+            _animVars.set("isInAirStand", false);
+            _animVars.set("isInAirRun", false);
+            _animVars.set("isNotInAir", true);
+            _animVars.set("isSeated", true);
         }
 
         t += deltaTime;

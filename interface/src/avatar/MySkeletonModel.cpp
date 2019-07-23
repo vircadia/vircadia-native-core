@@ -32,6 +32,8 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
             return Rig::CharacterControllerState::InAir;
         case CharacterController::State::Hover:
             return Rig::CharacterControllerState::Hover;
+        case CharacterController::State::Seated:
+            return Rig::CharacterControllerState::Seated;
     };
 }
 

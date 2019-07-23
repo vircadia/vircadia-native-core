@@ -6144,3 +6144,81 @@ void MyAvatar::sendPacket(const QUuid& entityID) const {
         });
     }
 }
+
+QStringList MyAvatar::getSitRolesToOverride() {
+    auto allRoles = getAnimationRoles();
+    auto sitRolesToOverride = QStringList();
+    for (auto role : allRoles) {
+        if (!(role.startsWith("right") || role.startsWith("left"))) {
+            sitRolesToOverride.append(role);
+        }
+    }
+    return sitRolesToOverride;
+}
+
+void MyAvatar::setSitDriveKeysStatus(bool enabled) {
+    const std::vector<DriveKeys> DISABLED_DRIVE_KEYS_DURING_SIT = {
+        DriveKeys::TRANSLATE_X,
+        DriveKeys::TRANSLATE_Y,
+        DriveKeys::TRANSLATE_Z,
+        DriveKeys::STEP_TRANSLATE_X,
+        DriveKeys::STEP_TRANSLATE_Y,
+        DriveKeys::STEP_TRANSLATE_Z
+    };
+    for (auto key : DISABLED_DRIVE_KEYS_DURING_SIT) {
+        if (enabled) {
+            enableDriveKey(key);
+        } else {
+            disableDriveKey(key);
+        }
+    }
+}
+
+void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
+    const QString ANIMATION_URL = PathUtils::defaultScriptsLocation().toString() + "/resources/animations/sittingIdle.fbx";
+    const int ANIMATION_FPS = 30;
+    const int ANIMATION_FIRST_FRAME = 1;
+    const int ANIMATION_LAST_FRAME = 350;
+    _characterController.setSeated(true);
+    setCollisionsEnabled(false);    
+    setHMDLeanRecenterEnabled(false);
+    /*
+    auto sitRolesToOverride = getSitRolesToOverride();
+    for (auto& role: sitRolesToOverride) { // restore roles to prevent overlap
+        if (_isSeated) {
+            restoreRoleAnimation(role);
+        }
+        overrideRoleAnimation(role, ANIMATION_URL, ANIMATION_FPS, true,
+                              ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+    }
+    */
+
+    // Disable movement
+    setSitDriveKeysStatus(false);
+    centerBody();
+    int hipIndex = getJointIndex("Hips");
+    clearPinOnJoint(hipIndex);
+    goToLocation(position, true, rotation, false, false);
+    pinJoint(hipIndex, position, rotation);
+    _isSeated = true;
+}
+
+void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
+    clearPinOnJoint(getJointIndex("Hips"));
+    /*
+    auto sitRolesToOverride = getSitRolesToOverride();
+    for (auto& role : sitRolesToOverride) {
+        restoreRoleAnimation(role);
+    }
+    */
+    _characterController.setSeated(false);
+    setCollisionsEnabled(true);
+    setHMDLeanRecenterEnabled(true);
+    centerBody();
+    float STANDUP_BUMP = 0.225f;
+    glm::vec3 currentPosition = getWorldPosition();
+    currentPosition.y = currentPosition.y + STANDUP_BUMP;
+    setWorldPosition(currentPosition);
+    // Enable movement again
+    setSitDriveKeysStatus(true);
+}
