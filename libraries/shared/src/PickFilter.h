@@ -26,7 +26,7 @@ public:
      *     <tr><td>PICK_AVATAR_ENTITIES</td><td><code>2</code></td><td>Include avatar entities when intersecting.</td></tr>
      *     <tr><td>PICK_LOCAL_ENTITIES</td><td><code>4</code></td><td>Include local entities when intersecting.</td></tr>
      *     <tr><td>PICK_AVATATRS</td><td><code>8</code></td><td>Include avatars when intersecting.</td></tr>
-     *     <tr><td>PICK_HUD</td><td><code>16</code></td><td>Include the HUD sphere when intersecting in HMD mode.</td></tr>
+     *     <tr><td>PICK_HUD</td><td><code>16</code></td><td>Include the HUD surface when intersecting in HMD mode.</td></tr>
      *     <tr><td>PICK_INCLUDE_VISIBLE</td><td><code>32</code></td><td>Include visible objects when intersecting.</td></tr>
      *     <tr><td>PICK_INCLUDE_INVISIBLE</td><td><code>64</code></td><td>Include invisible objects when intersecting.</td></tr>
      *     <tr><td>PICK_INCLUDE_COLLIDABLE</td><td><code>128</code></td><td>Include collidable objects when 

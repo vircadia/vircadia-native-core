@@ -142,6 +142,22 @@ endif()
 if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
+  set_from_env(XCODE_DEVELOPMENT_TEAM XCODE_DEVELOPMENT_TEAM "")
+  if ("${XCODE_DEVELOPMENT_TEAM}" STREQUAL "")
+    message(WARNING "XCODE_DEVELOPMENT_TEAM environment variable is not set. Not signing build.")
+  else()
+    set_target_properties(${TARGET_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/interface.entitlements"
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Developer ID Application"
+        XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS NO
+        XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual"
+        XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${XCODE_DEVELOPMENT_TEAM}"
+        XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME YES
+        XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "--timestamp --deep"
+        XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER ""
+    )
+  endif()
+
   # make sure the output name for the .app bundle is correct
   # Fix up the rpath so macdeployqt works
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")

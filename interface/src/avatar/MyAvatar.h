@@ -1369,9 +1369,9 @@ public:
     bool hasDriveInput() const;
 
     /**jsdoc
-     * Gets the list of avatar entities and their properties.
+     * Gets the current avatar entity IDs and their properties.
      * @function MyAvatar.getAvatarEntitiesVariant
-     * @returns {MyAvatar.AvatarEntityData[]} The list of avatar entities and their properties.
+     * @returns {MyAvatar.AvatarEntityData[]} The current avatar entity IDs and their properties.
      */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
 
