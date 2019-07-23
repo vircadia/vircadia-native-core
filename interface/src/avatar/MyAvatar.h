@@ -2022,17 +2022,19 @@ public slots:
     void setEnableDebugDrawDefaultPose(bool isEnabled);
 
     /**jsdoc
-     * Displays animation debug graphics.  By default it shows the animation poses used for rendering.
-     * However, the property MyAvatar.setDebugDrawAnimPoseName can be used to draw a specific animation node.
+     * Displays animation debug graphics. By default, the animation poses used for rendering are displayed. However, 
+     * {@link MyAvatar.setDebugDrawAnimPoseName} can be used to set a specific animation node to display.
      * @function MyAvatar.setEnableDebugDrawAnimPose
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawAnimPose(bool isEnabled);
 
     /**jsdoc
-     * If set it determines which animation debug graphics to draw, when MyAvatar.setEnableDebugDrawAnimPose is set to true.
+     * Sets the animation node to display when animation debug graphics are enabled with 
+     * {@link MyAvatar.setEnableDebugDrawAnimPose}.
      * @function MyAvatar.setDebugDrawAnimPoseName
-     * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
+     * @param {string} poseName - The name of the animation node to display debug graphics for. Use <code>""</code> to reset to 
+     *     default.
      */
     void setDebugDrawAnimPoseName(QString poseName);
 
