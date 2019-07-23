@@ -2,9 +2,6 @@
 import os
 import sys
 import shutil
-import subprocess
-import tempfile
-import uuid
 import zipfile
 import base64
 
@@ -13,33 +10,6 @@ SOURCE_PATH = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..', '
 sys.path.append(SOURCE_PATH)
 
 import hifi_utils
-
-
-class ZipAttrs:
-    """ A readable wrapper for ZipInfo's external attributes bit field """
-
-    S_IFREG = 0x8
-    S_IFLNK = 0xa
-    S_IFDIR = 0x4
-    MODE_MASK = 0xfff0000
-
-    def __init__(self, zip_info):
-        # File stats are the 4 high bits of external_attr, a 32 bit field.
-        self._stat = zip_info.external_attr >> 28
-        self.mode = (zip_info.external_attr & self.MODE_MASK) >> 16
-
-    @property
-    def is_symlink(self):
-        return self._stat == self.S_IFLNK
-
-    @property
-    def is_dir(self):
-        return self._stat == self.S_IFDIR
-
-    @property
-    def is_regular(self):
-        return self._stat == self.S_IFREG
-
 
 BUILD_PATH = os.path.join(SOURCE_PATH, 'build')
 INTERFACE_BUILD_PATH = os.path.join(BUILD_PATH, 'interface', 'Release')
@@ -95,12 +65,8 @@ def fixupMacZip(filename):
     fullPath = os.path.join(BUILD_PATH, "{}.zip".format(filename))
     outFullPath = "{}.zip".format(fullPath)
     print("Fixup mac ZIP file {}".format(fullPath))
-    tmpDir = os.path.join(tempfile.gettempdir(),
-                          'com.highfidelity.launcher.postbuild',
-                          str(uuid.uuid4()))
-
-    try:
-        with zipfile.ZipFile(fullPath) as inzip:
+    with zipfile.ZipFile(fullPath) as inzip:
+        with zipfile.ZipFile(outFullPath, 'w') as outzip:
             rootPath = inzip.infolist()[0].filename
             for entry in inzip.infolist():
                 if entry.filename == rootPath:
@@ -120,51 +86,11 @@ def fixupMacZip(filename):
                     continue
                 # if we made it here, include the file in the output
                 buffer = inzip.read(entry.filename)
-                newFilename = os.path.join(tmpDir, newFilename)
-
-                attrs = ZipAttrs(entry)
-                if attrs.is_dir:
-                    os.makedirs(newFilename)
-                elif attrs.is_regular:
-                    with open(newFilename, mode='wb') as _file:
-                        _file.write(buffer)
-                    os.chmod(newFilename, mode=attrs.mode)
-                elif attrs.is_symlink:
-                    os.symlink(buffer, newFilename)
-                else:
-                    raise IOError('Invalid file stat')
-
-        if 'XCODE_DEVELOPMENT_TEAM' in os.environ:
-            print('XCODE_DEVELOPMENT_TEAM environment variable is not set. '
-                  'Not signing build.', file=sys.stderr)
-        else:
-            # The interface.app bundle must be signed again after being
-            # stripped.
-            print('Signing interface.app bundle')
-            entitlementsPath = os.path.join(
-                os.path.dirname(__file__),
-                '../../interface/interface.entitlements')
-            subprocess.run([
-                'codesign', '-s', 'Developer ID Application', '--deep',
-                '--timestamp', '--force', '--entitlements', entitlementsPath,
-                os.path.join(tmpDir, 'interface.app')
-            ], check=True)
-
-        # Repackage the zip including the signed version of interface.app
-        print('Replacing {} with fixed {}'.format(fullPath, outFullPath))
-        if os.path.exists(outFullPath):
-            print('fixed zip already exists, deleting it', file=sys.stderr)
-            os.unlink(outFullPath)
-        previous_cwd = os.getcwd()
-        os.chdir(tmpDir)
-        try:
-            subprocess.run(['zip', '--symlink', '-r', outFullPath, './.'],
-                           stdout=subprocess.DEVNULL, check=True)
-        finally:
-            os.chdir(previous_cwd)
-
-    finally:
-        shutil.rmtree(tmpDir)
+                entry.filename = newFilename
+                outzip.writestr(entry, buffer)
+            outzip.close()
+    print("Replacing {} with fixed {}".format(fullPath, outFullPath))
+    shutil.move(outFullPath, fullPath)
 
 def fixupWinZip(filename):
     fullPath = os.path.join(BUILD_PATH, "{}.zip".format(filename))
