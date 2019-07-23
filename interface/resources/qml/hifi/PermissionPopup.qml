@@ -8,7 +8,10 @@ Item {
     id: root
     width:  600
     height: 200
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
     z:100
+    signal permissionButtonPressed(real buttonNumber)
 
     // anchors.top: buttons.bottom
     Rectangle {
@@ -20,7 +23,7 @@ Item {
         Row {
             id: webAccessHeaderContainer
             height: root.height * 0.30
-            HifiStyles.RalewayLight {
+            HifiStyles.RalewayBold {
                 id: webAccessHeaderText
                 text: "WEB CAMERA ACCESS REQUEST"
                 width: mainContainer.width
@@ -41,7 +44,7 @@ Item {
                 id: webAccessInfoText
                 horizontalAlignment: Text.AlignHCenter
                 text: "This domain is requesting access to your web camera and microphone"
-                size: 17
+                size: 15
                 color: hifi.colors.black
             }
         }
@@ -49,7 +52,7 @@ Item {
         Rectangle {
             id: permissionsButtonRow
             color: "#AAAAAA"
-            anchors.topMargin: 10
+            anchors.topMargin: 35
             height: 50
             width: leftButton.width + rightButton.width + (this.space * 3)
             anchors.top: webAccessInfoContainer.bottom
@@ -63,9 +66,13 @@ Item {
 
                 text: "Yes allow access"
                 color: hifi.buttons.blue
-                colorScheme: root.colorScheme
+                // colorScheme: root.colorScheme
                 enabled: true
                 width: 155
+                onClicked: {
+                    console.log("\n\n JUST CLICKED BUTTON 0, GOING TO SEND SIGNAL!")
+                    root.permissionButtonPressed(0)
+                }
             }
             HifiControls.Button {  
                 id: rightButton
@@ -73,8 +80,12 @@ Item {
                 anchors.leftMargin: permissionsButtonRow.space
                 text: "Don't Allow"
                 color: hifi.buttons.red
-                colorScheme: root.colorScheme
+                // colorScheme: root.colorScheme
                 enabled: true
+                onClicked: {
+                    console.log("\n\n JUST CLICKED BUTTON 1, GOING TO SEND SIGNAL!")
+                    root.permissionButtonPressed(1)
+                }
             }
         }
     }

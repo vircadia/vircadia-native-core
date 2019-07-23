@@ -222,36 +222,6 @@ function onEmoteAppBarClosed() {
     emoteAppBarWindow = false;
 }
 
-var PERMISSION_QML_PATH = Script.resourcesPath() + "qml/hifi/Permission.qml";
-var PERMISSION_WINDOW_TITLE = "Permissions";
-var PERMISSION_WINDOW_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
-var PERMISSION_WINDOW_WIDTH_PX = 600;
-var PERMISSION_WINDOW_HEIGHT_PX = 200;
-var PERMISSION_WINDOW_FLAGS = 
-    0x00000001 | // Qt::Window
-    0x00000800 | // Qt::FramelessWindowHint
-    0x40000000 | // Qt::NoDropShadowWindowHint
-    0x00200000;  // Qt::WindowDoesNotAcceptFocus
-var PERMISSION_WINDOW_LEFT_MARGIN = 600;
-var PERMISSION_WINDOW_BOTTOM_MARGIN = 200;
-var permissionWindow = false;
-function showPermissionsWindow() {
-    permissionWindow = Desktop.createWindow(PERMISSION_QML_PATH, {
-        title: PERMISSION_WINDOW_TITLE,
-        presentationMode: PERMISSION_WINDOW_PRESENTATION_MODE,
-        size: {
-            x: PERMISSION_WINDOW_WIDTH_PX,
-            y: PERMISSION_WINDOW_HEIGHT_PX
-        },
-        position: {
-            x: Window.x + PERMISSION_WINDOW_LEFT_MARGIN,
-            y: Window.y + Window.innerHeight - PERMISSION_WINDOW_BOTTOM_MARGIN
-        },
-        overrideFlags: PERMISSION_WINDOW_FLAGS
-    });
-    // emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
-    // emoteAppBarWindow.closed.connect(onEmoteAppBarClosed);
-}
 
 var EMOTE_APP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/emoteApp/bar/EmoteAppBar.qml";
 var EMOTE_APP_BAR_WINDOW_TITLE = "Emote";

@@ -141,14 +141,17 @@ Item {
             });
         }
 
-        Controls.PermissionPopup {
-            id: permissionPopup
-        }
-
         onFeaturePermissionRequested: {
+            console.log('feature');
+            console.log(JSON.stringify(feature, null, 4));
+
+            if (feature === 0) return;
             console.log("Requesting permissions:")
             permissionPopup.visible = true;
-            // grantFeaturePermission(securityOrigin, feature, false);
+            console.log('security origin');
+            console.log(JSON.stringify(securityOrigin, null, 4));
+            permissionPopup.permissionsOptions.securityOrigin = securityOrigin;
+            permissionPopup.permissionsOptions.feature = feature;
         }
 
         //disable popup
@@ -193,4 +196,15 @@ Item {
             webViewCore.focus = false; 
         }
     }
+
+    Controls.PermissionPopupBackground {
+        id: permissionPopup
+        onSendPermission: {
+            console.log("security origin we are allowing", securityOrigin);
+            console.log("feature we are allowing", securityOrigin);
+            console.log("shouldGivePermission:", shouldGivePermission);
+            webViewCore.grantFeaturePermission(securityOrigin, feature, shouldGivePermission)
+        }
+    }
+
 }
