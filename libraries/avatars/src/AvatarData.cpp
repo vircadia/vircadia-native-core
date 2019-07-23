@@ -2861,7 +2861,7 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
  * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
  * @property {string} modelUrl - The URL of the model file. Models can be FBX or OBJ format.
- * @property {string} jointName - The offset to apply to the model relative to the joint position.
+ * @property {string} jointName - The name of the joint that the attachment is parented to.
  * @property {Vec3} translation - The offset from the joint that the attachment is positioned at.
  * @property {Vec3} rotation - The rotation applied to the model relative to the joint orientation.
  * @property {number} scale - The scale applied to the attachment model.

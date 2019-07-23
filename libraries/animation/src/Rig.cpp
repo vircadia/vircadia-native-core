@@ -1904,6 +1904,61 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabl
     }
 }
 
+void Rig::updateReactions(const ControllerParameters& params) {
+
+    // enable/disable animVars
+    bool enabled = params.reactionEnabledFlags[AVATAR_REACTION_POSITIVE];
+    _animVars.set("reactionPositiveEnabled", enabled);
+    _animVars.set("reactionPositiveDisabled", !enabled);
+
+    enabled = params.reactionEnabledFlags[AVATAR_REACTION_NEGATIVE];
+    _animVars.set("reactionNegativeEnabled", enabled);
+    _animVars.set("reactionNegativeDisabled", !enabled);
+
+    enabled = params.reactionEnabledFlags[AVATAR_REACTION_RAISE_HAND];
+    _animVars.set("reactionRaiseHandEnabled", enabled);
+    _animVars.set("reactionRaiseHandDisabled", !enabled);
+
+    enabled = params.reactionEnabledFlags[AVATAR_REACTION_APPLAUD];
+    _animVars.set("reactionApplaudEnabled", enabled);
+    _animVars.set("reactionApplaudDisabled", !enabled);
+
+    enabled = params.reactionEnabledFlags[AVATAR_REACTION_POINT];
+    _animVars.set("reactionPointEnabled", enabled);
+    _animVars.set("reactionPointDisabled", !enabled);
+
+    // trigger animVars
+    if (params.reactionTriggers[AVATAR_REACTION_POSITIVE]) {
+        _animVars.set("reactionPositiveTrigger", true);
+    } else {
+        _animVars.set("reactionPositiveTrigger", false);
+    }
+
+    if (params.reactionTriggers[AVATAR_REACTION_NEGATIVE]) {
+        _animVars.set("reactionNegativeTrigger", true);
+    } else {
+        _animVars.set("reactionNegativeTrigger", false);
+    }
+
+    if (params.reactionTriggers[AVATAR_REACTION_RAISE_HAND]) {
+        _animVars.set("reactionRaiseHandTrigger", true);
+    } else {
+        _animVars.set("reactionRaiseHandTrigger", false);
+    }
+
+    if (params.reactionTriggers[AVATAR_REACTION_APPLAUD]) {
+        _animVars.set("reactionApplaudTrigger", true);
+    } else {
+        _animVars.set("reactionApplaudTrigger", false);
+    }
+
+    if (params.reactionTriggers[AVATAR_REACTION_POINT]) {
+        _animVars.set("reactionPointTrigger", true);
+    } else {
+        _animVars.set("reactionPointTrigger", false);
+    }
+}
+
 void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAtSpot, const glm::vec3& saccade) {
 
     // TODO: does not properly handle avatar scale.
@@ -2182,6 +2237,8 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             }
         }
     }
+
+    updateReactions(params);
 
     _previousControllerParameters = params;
 }
