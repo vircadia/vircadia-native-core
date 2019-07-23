@@ -1292,6 +1292,7 @@ void OctreeServer::aboutToFinish() {
     for (auto& it : _sendThreads) {
         auto& sendThread = *it.second;
         sendThread.setIsShuttingDown();
+        sendThread.terminate();
     }
 
     // Clear will destruct all the unique_ptr to OctreeSendThreads which will call the GenericThread's dtor
