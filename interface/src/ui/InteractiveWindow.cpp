@@ -202,8 +202,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
                 _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
+                // The qmlToScript method handles the thread-safety of this call. Because the QVariant argument
+                // passed to the sendToScript signal may wrap an externally managed and thread-unsafe QJSValue,
+                // qmlToScript needs to be called directly, so the QJSValue can be immediately converted to a plain QVariant.
                 QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)),
-                                 Qt::QueuedConnection);
+                                 Qt::DirectConnection);
                 QObject::connect(rootItem, SIGNAL(keyPressEvent(int, int)), this, SLOT(forwardKeyPressEvent(int, int)),
                                  Qt::QueuedConnection);
                 QObject::connect(rootItem, SIGNAL(keyReleaseEvent(int, int)), this, SLOT(forwardKeyReleaseEvent(int, int)),
@@ -244,7 +247,10 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                 object->setProperty(VISIBLE_PROPERTY, properties[INTERACTIVE_WINDOW_VISIBLE_PROPERTY].toBool());
             }
 
-            connect(object, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            // The qmlToScript method handles the thread-safety of this call. Because the QVariant argument
+            // passed to the sendToScript signal may wrap an externally managed and thread-unsafe QJSValue,
+            // qmlToScript needs to be called directly, so the QJSValue can be immediately converted to a plain QVariant.
+            connect(object, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::DirectConnection);
             QObject::connect(object, SIGNAL(keyPressEvent(int, int)), this, SLOT(forwardKeyPressEvent(int, int)),
                              Qt::QueuedConnection);
             QObject::connect(object, SIGNAL(keyReleaseEvent(int, int)), this, SLOT(forwardKeyReleaseEvent(int, int)),
@@ -295,7 +301,6 @@ void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
 }
 
 void InteractiveWindow::emitWebEvent(const QVariant& webMessage) {
-   emit webEventReceived(webMessage);
 }
 
 void InteractiveWindow::close() {
@@ -336,13 +341,21 @@ void InteractiveWindow::raise() {
     }
 }
 
-void InteractiveWindow::qmlToScript(const QVariant& message) {
+void InteractiveWindow::qmlToScript(const QVariant& originalMessage) {
+    QVariant message = originalMessage;
     if (message.canConvert<QJSValue>()) {
-        emit fromQml(qvariant_cast<QJSValue>(message).toVariant());
+        message = qvariant_cast<QJSValue>(message).toVariant();
     } else if (message.canConvert<QString>()) {
-        emit fromQml(message.toString());
+        message = message.toString();
     } else {
         qWarning() << "Unsupported message type " << message;
+        return;
+    }
+
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "fromQml", Q_ARG(const QVariant&, message));
+    } else {
+        emit fromQml(message);
     }
 }
 
