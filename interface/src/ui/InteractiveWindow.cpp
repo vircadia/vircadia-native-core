@@ -70,7 +70,7 @@ void QmlWindowProxy::parentNativeWindowToMainWindow() {
 }
 
 void InteractiveWindowProxy::emitScriptEvent(const QVariant& scriptMessage){
-    emit scriptEventReceived(scriptMessage);
+  //  emit scriptEventReceived(scriptMessage);
 }
 
 void InteractiveWindowProxy::emitWebEvent(const QVariant& webMessage) {
@@ -137,11 +137,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
     }
 
-    if (!_interactiveWindowProxy) {
-        _interactiveWindowProxy = new InteractiveWindowProxy();
-        QObject::connect(_interactiveWindowProxy, &InteractiveWindowProxy::webEventReceived, this, &InteractiveWindow::emitWebEvent, Qt::QueuedConnection);
-        QObject::connect(this, &InteractiveWindow::scriptEventReceived, _interactiveWindowProxy, &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);
-    }
+    _interactiveWindowProxy = std::make_unique<InteractiveWindowProxy>();
+    QObject::connect(_interactiveWindowProxy.get(), &InteractiveWindowProxy::webEventReceived, 
+        this, &InteractiveWindow::emitWebEvent, Qt::QueuedConnection);
+    QObject::connect(this, &InteractiveWindow::scriptEventReceived, 
+        _interactiveWindowProxy.get(), &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);
 
     if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
         QVariantMap nativeWindowInfo = properties[DOCKED_PROPERTY].toMap();
