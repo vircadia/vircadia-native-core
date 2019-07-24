@@ -33,5 +33,9 @@ ScriptAudioInjector::ScriptAudioInjector(const AudioInjectorPointer& injector) :
 }
 
 ScriptAudioInjector::~ScriptAudioInjector() {
-    DependencyManager::get<AudioInjectorManager>()->stop(_injector);
+    const auto audioInjectorManager = DependencyManager::get<AudioInjectorManager>();
+    // AudioInjectorManager may have been destroyed on application shutdown.
+    if (audioInjectorManager) {
+        audioInjectorManager->stop(_injector);
+    }
 }
