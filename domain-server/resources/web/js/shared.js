@@ -44,7 +44,8 @@ $.extend(Settings, {
   INVALID_ROW_CLASS: 'invalid-input',
   DATA_ROW_INDEX: 'data-row-index',
   CONTENT_ARCHIVES_PANEL_ID: 'content_archives',
-  UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content'
+  UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content',
+  INSTALLED_ARCHIVE_INFO: 'installed_archive_info'
 });
 
 var URLs = {

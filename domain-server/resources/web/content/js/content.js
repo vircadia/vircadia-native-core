@@ -4,8 +4,13 @@ $(document).ready(function(){
   var RESTORE_SETTINGS_FILE_ID = 'restore-settings-file';
   var UPLOAD_CONTENT_ALLOWED_DIV_ID = 'upload-content-allowed';
   var UPLOAD_CONTENT_RECOVERING_DIV_ID = 'upload-content-recovering';
+  var INSTALLED_ARCHIVE_NAME_ID = 'installed-archive-name';
+  var INSTALLED_ARCHIVE_CREATED_ID = 'installed-archive-created';
+  var INSTALLED_ARCHIVE_INSTALLED_ID = 'installed-archive-installed';
+  var INSTALLED_ARCHIVE_INSTALLED_BY_ID = 'installed-archive-installed-by';
 
   var isRestoring = false;
+  var restoreErrorShown = false;
 
   function progressBarHTML(extraClass, label) {
     var html = "<div class='progress'>";
@@ -103,8 +108,21 @@ $(document).ready(function(){
     html += "<span class='help-block'>Restore in progress</span>";
     html += progressBarHTML('recovery', 'Restoring');
     html += "</div></div>";
-
     $('#' + Settings.UPLOAD_CONTENT_BACKUP_PANEL_ID + ' .panel-body').html(html);
+  }
+
+  function setupInstalledContentInfo() {
+    var html = "<table class='table table-bordered'><tbody>";
+    html += "<tr class='headers'><td class='data'><strong>Name</strong></td>";
+    html += "<td class='data'><strong>Created</strong></td>";
+    html += "<td class='data'><strong>Installed</strong></td>";
+    //html += "<td class='data'><strong>Installed By</strong></td></tr>";
+    html += "<tr><td class='data' id='" + INSTALLED_ARCHIVE_NAME_ID + "'/>";
+    html += "<td class='data' id='" + INSTALLED_ARCHIVE_CREATED_ID + "'/>";
+    html += "<td class='data' id='" + INSTALLED_ARCHIVE_INSTALLED_ID + "'/>";
+    //html += "<td class='data' id='" + INSTALLED_ARCHIVE_INSTALLED_BY_ID + "'/></tr>";
+    html += "</tbody></table>";
+    $('#' + Settings.INSTALLED_ARCHIVE_INFO + ' .panel-body').html(html);
   }
 
   // handle content archive or entity file upload
@@ -135,6 +153,7 @@ $(document).ready(function(){
 
   var GENERATE_ARCHIVE_BUTTON_ID = 'generate-archive-button';
   var CONTENT_ARCHIVES_NORMAL_ID = 'content-archives-success';
+  var CONTENT_ARCHIVES_CONTENT_INFO_ID = 'content-archives-content-info';
   var CONTENT_ARCHIVES_ERROR_ID = 'content-archives-error';
   var AUTOMATIC_ARCHIVES_TABLE_ID = 'automatic-archives-table';
   var AUTOMATIC_ARCHIVES_TBODY_ID = 'automatic-archives-tbody';
@@ -230,13 +249,28 @@ $(document).ready(function(){
       url: '/api/backups',
       cache: false
     }).done(function(data) {
-
+console.log(data);
       // split the returned data into manual and automatic manual backups
       var splitBackups = _.partition(data.backups, function(value, index) {
         return value.isManualBackup;
       });
-
-      if (isRestoring && !data.status.isRecovering) {
+      if (data.status.recoveryError && !restoreErrorShown) {
+        restoreErrorShown = true;
+        swal({
+          title: "Error",
+          text: "There was a problem restoring domain content.\n"
+          + data.status.recoveryError,
+          type: "error",
+          showCancelButton: false,
+          confirmButtonText: "Restart",
+          closeOnConfirm: true,
+        },
+        function() {
+          $.get("/restart");
+          showRestartModal();
+        });
+      }
+      if (isRestoring && !data.status.isRecovering && !data.status.recoveryError) {
         // we were recovering and we finished - the DS is going to restart so show the restart modal
         showRestartModal();
         return;
@@ -326,6 +360,12 @@ $(document).ready(function(){
       // hide or show the manual content upload file and button depending on our recovering status
       $('#' + UPLOAD_CONTENT_ALLOWED_DIV_ID).toggle(!data.status.isRecovering);
       $('#' + UPLOAD_CONTENT_RECOVERING_DIV_ID).toggle(data.status.isRecovering);
+
+
+      $('#' + INSTALLED_ARCHIVE_NAME_ID).text(data.installed_archive.name);
+      $('#' + INSTALLED_ARCHIVE_CREATED_ID).text(moment(data.installed_archive.creation_time).format('lll'));
+      $('#' + INSTALLED_ARCHIVE_INSTALLED_ID).text(moment(data.installed_archive.install_time).format('lll'));
+      //$('#' + INSTALLED_ARCHIVE_INSTALLED_BY_ID).text(data.current_archive.installed_by);
 
       // update the progress bars for current restore status
       if (data.status.isRecovering) {
@@ -514,6 +554,7 @@ $(document).ready(function(){
   Settings.afterReloadActions = function() {
     setupBackupUpload();
     setupContentArchives();
+    setupInstalledContentInfo();
 
     // load the latest backups immediately
     reloadBackupInformation();

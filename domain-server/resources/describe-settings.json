@@ -1788,6 +1788,29 @@
           "default": false
         }
       ]
+    },
+    {
+      "name": "installed_archive",
+      "label": "Installed Archive",
+      "hidden": true,
+      "settings": [
+        {
+          "name": "filename",
+          "content_setting": true,
+          "default": ""
+        },
+        {
+          "name": "install_time",
+          "type": "int",
+          "content_setting": true,
+          "default": 0
+        },
+        {
+          "name": "installed_by",
+          "content_setting": true,
+          "default": ""
+        }
+      ]
     }
   ]
 }

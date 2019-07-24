@@ -28,7 +28,7 @@ public:
 
     void createBackup(const QString& backupName, QuaZip& zip) override;
 
-    void recoverBackup(const QString& backupName, QuaZip& zip) override;
+    std::pair<bool, QString> recoverBackup(const QString& backupName, QuaZip& zip) override;
 
     void deleteBackup(const QString& backupName) override {}
 

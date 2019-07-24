@@ -307,11 +307,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
     maybeHandleReplacementEntityFile();
 
-
-    static const QString BACKUP_RULES_KEYPATH = AUTOMATIC_CONTENT_ARCHIVES_GROUP + ".backup_rules";
-    auto backupRulesVariant = _settingsManager.valueOrDefaultValueForKeyPath(BACKUP_RULES_KEYPATH);
-
-    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), backupRulesVariant.toList()));
+    _contentManager.reset(new DomainContentBackupManager(getContentBackupDir(), _settingsManager));
 
     connect(_contentManager.get(), &DomainContentBackupManager::started, _contentManager.get(), [this](){
         _contentManager->addBackupHandler(BackupHandlerPointer(new EntitiesBackupHandler(getEntitiesFilePath(), getEntitiesReplacementFilePath())));
@@ -2333,8 +2329,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
-                rootJSON["success"] = success;
-                QJsonDocument docJSON(rootJSON);
+                QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
                 connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
@@ -2362,8 +2357,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
-                rootJSON["success"] = success;
-                QJsonDocument docJSON(rootJSON);
+                QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
                 connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
@@ -2467,8 +2461,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 QJsonObject rootJSON;
                 auto success = result["success"].toBool();
-                rootJSON["success"] = success;
-                QJsonDocument docJSON(rootJSON);
+                QJsonDocument docJSON(QJsonObject::fromVariantMap(result));
                 connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
@@ -2687,11 +2680,12 @@ void DomainServer::profileRequestFinished() {
 
 bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url) {
 
-    const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
-    const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
-    const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
-    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http_username";
-    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http_password";
+    static const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
+    static const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
+    static const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
+    static const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http_username";
+    static const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http_password";
+    const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
 
     const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
 
@@ -2702,7 +2696,6 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
         && (adminUsersVariant.isValid() || adminRolesVariant.isValid())) {
         QString cookieString = connection->requestHeader(HTTP_COOKIE_HEADER_KEY);
 
-        const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
         QRegExp cookieUUIDRegex(COOKIE_UUID_REGEX_STRING);
 
         QUuid cookieUUID;

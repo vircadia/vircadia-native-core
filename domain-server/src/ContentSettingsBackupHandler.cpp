@@ -24,6 +24,7 @@
 #pragma GCC diagnostic pop
 #endif
 
+static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
 
 ContentSettingsBackupHandler::ContentSettingsBackupHandler(DomainServerSettingsManager& domainServerSettingsManager) :
     _settingsManager(domainServerSettingsManager)
@@ -31,6 +32,10 @@ ContentSettingsBackupHandler::ContentSettingsBackupHandler(DomainServerSettingsM
 }
 
 static const QString CONTENT_SETTINGS_BACKUP_FILENAME = "content-settings.json";
+static const QString INSTALLED_ARCHIVE = "installed_archive";
+static const QString INSTALLED_ARCHIVE_FILENAME = "filename";
+static const QString INSTALLED_ARCHIVE_INSTALL_TIME = "install_time";
+static const QString INSTALLED_ARCHIVE_INSTALLED_BY = "installed_by";
 
 void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 
@@ -41,6 +46,15 @@ void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZi
         DomainServerSettingsManager::IncludeContentSettings, DomainServerSettingsManager::NoDefaultSettings,
         DomainServerSettingsManager::ForBackup
     );
+
+    // save the filename internally as it's used to determine the name/creation time
+    // of the archive, and we don't want that to change if the actual file is renamed
+    // after download.
+    QJsonObject installed_archive {
+        { INSTALLED_ARCHIVE_FILENAME, backupName },
+    };
+
+    contentSettingsJSON.insert(INSTALLED_ARCHIVE, installed_archive);
 
     // make a QJsonDocument using the object
     QJsonDocument contentSettingsDocument { contentSettingsJSON };
@@ -62,24 +76,46 @@ void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZi
     }
 }
 
-void ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
+std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
     if (!zip.setCurrentFile(CONTENT_SETTINGS_BACKUP_FILENAME)) {
-        qWarning() << "Failed to find" << CONTENT_SETTINGS_BACKUP_FILENAME << "while recovering backup";
-        return;
+        QString errorStr("Failed to find " + CONTENT_SETTINGS_BACKUP_FILENAME + " while recovering backup");
+        qWarning() << errorStr;
+        return { false, errorStr };
     }
 
     QuaZipFile zipFile { &zip };
     if (!zipFile.open(QIODevice::ReadOnly)) {
-        qCritical() << "Failed to open" << CONTENT_SETTINGS_BACKUP_FILENAME << "in backup";
-        return;
+        QString errorStr("Failed to open " + CONTENT_SETTINGS_BACKUP_FILENAME + " in backup");
+        qCritical() << errorStr;
+        return { false, errorStr };
     }
 
     auto rawData = zipFile.readAll();
     zipFile.close();
 
-    QJsonDocument jsonDocument = QJsonDocument::fromJson(rawData);
-
-    if (!_settingsManager.restoreSettingsFromObject(jsonDocument.object(), ContentSettings)) {
-        qCritical() << "Failed to restore settings from" << CONTENT_SETTINGS_BACKUP_FILENAME << "in content archive";
+    if (zipFile.getZipError() != UNZ_OK) {
+        QString errorStr("Failed to unzip " + CONTENT_SETTINGS_BACKUP_FILENAME + ": " + zipFile.getZipError());
+        qCritical() << errorStr;
+        return { false, errorStr };
     }
+
+    QJsonDocument jsonDocument = QJsonDocument::fromJson(rawData);
+    QJsonObject jsonObject = jsonDocument.object();
+
+    auto archiveJson = jsonObject.find(INSTALLED_ARCHIVE)->toObject();
+
+    QJsonObject installed_archive {
+        { INSTALLED_ARCHIVE_FILENAME, archiveJson[INSTALLED_ARCHIVE_FILENAME]},
+        { INSTALLED_ARCHIVE_INSTALL_TIME, QDateTime::currentDateTime().currentMSecsSinceEpoch() },
+        { INSTALLED_ARCHIVE_INSTALLED_BY, ""}
+    };
+
+    jsonObject.insert(INSTALLED_ARCHIVE, installed_archive);
+
+    if (!_settingsManager.restoreSettingsFromObject(jsonObject, ContentSettings)) {
+        QString errorStr("Failed to restore settings from " + CONTENT_SETTINGS_BACKUP_FILENAME + " in content archive");
+        qCritical() << errorStr;
+        return { false, errorStr };
+    }
+    return { true, QString() };
 }

@@ -28,6 +28,7 @@
 #include <GenericThread.h>
 
 #include "BackupHandler.h"
+#include "DomainServerSettingsManager.h"
 
 #include <shared/MiniPromises.h>
 
@@ -71,7 +72,7 @@ public:
     static const std::chrono::seconds DEFAULT_PERSIST_INTERVAL;
 
     DomainContentBackupManager(const QString& rootBackupDirectory,
-                               const QVariantList& settings,
+                               DomainServerSettingsManager& domainServerSettingsManager,
                                std::chrono::milliseconds persistInterval = DEFAULT_PERSIST_INTERVAL,
                                bool debugTimestampNow = false);
 
@@ -108,13 +109,15 @@ protected:
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 
-    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip);
+    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip, bool rollingBack = false);
 
 private slots:
     void removeOldConsolidatedBackups();
     void consolidateBackupInternal(QString fileName);
 
 private:
+    DomainServerSettingsManager& _settingsManager;
+
     QTimer _consolidatedBackupCleanupTimer;
 
     const QString _consolidatedBackupDirectory;
@@ -126,6 +129,7 @@ private:
     std::unordered_map<QString, ConsolidatedBackupInfo> _consolidatedBackups;
 
     std::atomic<bool> _isRecovering { false };
+    QString _recoveryError;
     QString _recoveryFilename { };
 
     p_high_resolution_clock::time_point _lastCheck;
