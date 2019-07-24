@@ -325,7 +325,7 @@ protected slots:
 private:
     std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };
-    std::unique_ptr<InteractiveWindowProxy> _interactiveWindowProxy{ nullptr };
+    InteractiveWindowProxy *_interactiveWindowProxy{ nullptr };
 };
 
 typedef InteractiveWindow* InteractiveWindowPointer;
