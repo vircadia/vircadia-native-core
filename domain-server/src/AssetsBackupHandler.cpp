@@ -240,12 +240,12 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
-        qCWarning(asset_backup) << "There is already an operation in progress.  Please wait.";
+        qCWarning(asset_backup) << "There is already an operation in progress.";
         return;
     }
 
     if (_assetServerEnabled && _lastMappingsRefresh.time_since_epoch().count() == 0) {
-        qCWarning(asset_backup) << "Current mappings not yet loaded.  Please wait.";
+        qCWarning(asset_backup) << "Current mappings not yet loaded.";
         _backups.emplace_back(backupName, AssetUtils::Mappings(), true);
         return;
     }

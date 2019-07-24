@@ -249,7 +249,6 @@ $(document).ready(function(){
       url: '/api/backups',
       cache: false
     }).done(function(data) {
-console.log(data);
       // split the returned data into manual and automatic manual backups
       var splitBackups = _.partition(data.backups, function(value, index) {
         return value.isManualBackup;
@@ -265,7 +264,7 @@ console.log(data);
           confirmButtonText: "Restart",
           closeOnConfirm: true,
         },
-        function() {
+        function () {
           $.get("/restart");
           showRestartModal();
         });

@@ -173,6 +173,8 @@ bool DomainContentBackupManager::process() {
                 return handler->getRecoveryStatus().first;
             });
 
+            // if an error occurred, don't restart the server so that the user
+            // can be notified of the error and take action.
             if (!isStillRecovering && _recoveryError.isEmpty()) {
                 _isRecovering = false;
                 _recoveryFilename = "";
