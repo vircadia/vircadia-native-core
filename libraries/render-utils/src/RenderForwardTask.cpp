@@ -153,11 +153,11 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
+#endif
+
     // Lighting Buffer ready for tone mapping
     const auto toneMappingInputs = resolvedFramebuffer;
     const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappingInputs);
-
-#endif
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
