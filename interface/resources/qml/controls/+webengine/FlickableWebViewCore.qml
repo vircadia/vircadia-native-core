@@ -146,8 +146,8 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            permissionPopupBackground.permissionsOptions.securityOrigin = securityOrigin;
-            permissionPopupBackground.permissionsOptions.feature = feature;
+            permissionPopupBackground.securityOrigin = securityOrigin;
+            permissionPopupBackground.feature = feature;
 
             permissionPopupBackground.visible = true;
         }

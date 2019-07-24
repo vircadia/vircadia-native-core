@@ -8,34 +8,27 @@ Rectangle {
     id: root
     anchors.fill: parent
     color: Qt.rgba(0, 0, 0, 0.5);
-    HifiConstants { id: hifi }
     visible: false
-    property variant permissionsOptions: {'securityOrigin':'none','feature': -1}
-    signal sendPermission(string securityOrigin, int feature, bool shouldGivePermission)
- 
-    Component.onCompleted: {
-        console.log("loaded component");
-        // console.log("\n\n TESTING!! \n\n")
+    property var permissionsOptions: ({'securityOrigin':'none','feature': 'none'})
+    property string securityOrigin: 'none'
+    property string feature: 'none'
+    signal sendPermission(string securityOrigin, string feature, bool shouldGivePermission)
+
+    onFeatureChanged: {
+        permissionPopupItem.currentRequestedPermission = feature;
     }
 
     PermissionPopup {
         id: permissionPopupItem
-        Component.onCompleted: {
-            permissionPopupItem.currentRequestedPermission = permissionsOptions.feature;
-            console.log("test");
-            // console.log("\n\n TESTING!! \n\n")
-        }
         onPermissionButtonPressed: {
-            console.log("JUST MADE IT TO ON PERMISSIONS PRESSEED!");
-            console.log(buttonNumber);
             if (buttonNumber === 0) {
-                root.sendPermission(permissionsOptions.securityOrigin, permissionsOptions.feature, true)
+                root.sendPermission(securityOrigin, feature, true)
             } else {
-                root.sendPermission(permissionsOptions.securityOrigin, permissionsOptions.feature, false)
+                root.sendPermission(securityOrigin, feature, false)
             }
             root.visible = false;
-            permissionsOptions.securityOrigin = "none";
-            permissionsOptions.feature = -1;
+            securityOrigin = 'none';
+            feature = 'none';
         }
     }
 }

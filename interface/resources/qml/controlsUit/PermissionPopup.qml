@@ -9,31 +9,25 @@ Item {
     id: root
     width:  600
     height: 200
+    z:100
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
-    z:100
-    property var permissionLanguage: {
-        "test": "test"
-    }
-    property int currentRequestedPermission
+    readonly property var permissionLanguage: ({
+        [WebEngineView.MediaAudioCapture]: "access an audio input device",
+        [WebEngineView.MediaVideoCapture]: "access a video device, like your webcam",
+        [WebEngineView.MediaAudioVideoCapture]: "access an audio input device and video device",
+        [WebEngineView.Geolocation]: "access your location",
+        [WebEngineView.DesktopVideoCapture]: "capture video from your desktop",
+        [WebEngineView.DesktopAudioVideoCapture]: "capture audio and video from your desktop"
+    })
+    property string currentRequestedPermission
     signal permissionButtonPressed(real buttonNumber)
     
     Component.onCompleted: {
-        console.log("loaded component");
-        // console.log("\n\n TESTING!! \n\n")
-        console.log("WebEngineView.MediaAudioCapture", WebEngineView.MediaAudioCapture)
-        // root.permissionLanguage["test"] = "test"
-        root.permissionLanguage[WebEngineView.MediaAudioCapture] = "access an audio input device";
-        root.permissionLanguage[WebEngineView.MediaVideoCapture] = "access a video device, like your webcam";
-        root.permissionLanguage[WebEngineView.MediaAudioVideoCapture] = "access an audio input device and video device";
-        root.permissionLanguage[WebEngineView.Geolocation] = "access your location";
-        root.permissionLanguage[WebEngineView.DesktopVideoCapture] = "capture video from your desktop";
-        root.permissionLanguage[WebEngineView.DesktopAudioVideoCapture] = "capture audio and video from your desktop";
         console.log(JSON.stringify(root.permissionLanguage))
-
+        console.log("\n\n\n\n\n current permission:" + root.currentRequestedPermission);
     }
 
-    // anchors.top: buttons.bottom
     Rectangle {
         id: mainContainer
         width: root.width
@@ -86,11 +80,9 @@ Item {
 
                 text: "Yes allow access"
                 color: hifi.buttons.blue
-                // colorScheme: root.colorScheme
                 enabled: true
                 width: 155
                 onClicked: {
-                    console.log("\n\n JUST CLICKED BUTTON 0, GOING TO SEND SIGNAL!")
                     root.permissionButtonPressed(0)
                 }
             }
@@ -100,10 +92,8 @@ Item {
                 anchors.leftMargin: permissionsButtonRow.space
                 text: "Don't Allow"
                 color: hifi.buttons.red
-                // colorScheme: root.colorScheme
                 enabled: true
                 onClicked: {
-                    console.log("\n\n JUST CLICKED BUTTON 1, GOING TO SEND SIGNAL!")
                     root.permissionButtonPressed(1)
                 }
             }
