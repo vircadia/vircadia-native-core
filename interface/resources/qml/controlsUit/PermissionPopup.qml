@@ -23,11 +23,6 @@ Item {
     property string currentRequestedPermission
     signal permissionButtonPressed(real buttonNumber)
     
-    Component.onCompleted: {
-        console.log(JSON.stringify(root.permissionLanguage))
-        console.log("\n\n\n\n\n current permission:" + root.currentRequestedPermission);
-    }
-
     Rectangle {
         id: mainContainer
         width: root.width

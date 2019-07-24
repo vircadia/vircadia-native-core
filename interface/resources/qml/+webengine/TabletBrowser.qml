@@ -91,7 +91,6 @@ Item {
             permissionPopupBackground.permissionsOptions.feature = feature;
 
             permissionPopupBackground.visible = true;
-            // grantFeaturePermission(securityOrigin, feature, false);
         }
 
         onLoadingChanged: {

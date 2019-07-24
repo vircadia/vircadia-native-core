@@ -9,7 +9,6 @@ Rectangle {
     anchors.fill: parent
     color: Qt.rgba(0, 0, 0, 0.5);
     visible: false
-    property var permissionsOptions: ({'securityOrigin':'none','feature': 'none'})
     property string securityOrigin: 'none'
     property string feature: 'none'
     signal sendPermission(string securityOrigin, string feature, bool shouldGivePermission)
