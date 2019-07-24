@@ -62,6 +62,8 @@ class LODManager : public QObject, public Dependency {
 
         Q_PROPERTY(float lodQualityLevel READ getLODQualityLevel WRITE setLODQualityLevel NOTIFY lodQualityLevelChanged)
 
+        Q_PROPERTY(float octreeSizeScale READ getOctreeSizeScale WRITE setOctreeSizeScale)
+
         Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust NOTIFY autoLODChanged)
 
         Q_PROPERTY(float presentTime READ getPresentTime)
@@ -149,6 +151,12 @@ public:
      * @returns {number}
      */
     Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
+
+    /**jsdoc
+    * @function LODManager.getDefaultOctreeSizeScale
+    * @param {number} sizeScale
+    */
+    Q_INVOKABLE float getDefaultOctreeSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
 
     /**jsdoc
      * @function LODManager.setBoundaryLevelAdjust

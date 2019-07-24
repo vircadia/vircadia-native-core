@@ -531,21 +531,21 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 
 
 var oldAutomaticLODAdjust;
-var oldLODLevel;
+var oldOctreeSizeScale;
 var DEFAULT_AUTO_LOD_ADJUST = false;
-var DEFAULT_LOD_LEVEL = 0.5;
+var DEFAULT_OCTREE_SIZE_SCALE = LODManager.getDefaultOctreeSizeScale();
 function modifyLODSettings() {
     oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
-    oldLODLevel = LODManager.lodQualityLevel;
+    oldOctreeSizeScale = LODManager.octreeSizeScale;
 
     LODManager.automaticLODAdjust = DEFAULT_AUTO_LOD_ADJUST;
-    LODManager.lodQualityLevel = DEFAULT_LOD_LEVEL;
+    LODManager.octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
 }
 
 
 function restoreLODSettings() {
     LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
-    LODManager.lodQualityLevel = oldLODLevel;
+    LODManager.octreeSizeScale = oldOctreeSizeScale;
 }
 
 
