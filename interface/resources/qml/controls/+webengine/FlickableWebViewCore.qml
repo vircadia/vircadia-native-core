@@ -5,7 +5,7 @@ import QtWebChannel 1.0
 import QtQuick.Controls 2.2
 
 import stylesUit 1.0 as StylesUIt
-import "../hifi" as Controls
+import controlsUit 1.0 as ControlsUit
 
 Item {
     id: flick
@@ -28,6 +28,10 @@ Item {
     property bool interactive: false
 
     property bool blurOnCtrlShift: true
+
+    onUrlChanged: {
+        permissionPopupBackground.visible = false;
+    }
 
     StylesUIt.HifiConstants {
         id: hifi
@@ -68,6 +72,12 @@ Item {
     }
 
     function onLoadingChanged(loadRequest) {
+        console.log("WebEngineView.LoadStartedStatus", WebEngineView.LoadStartedStatus);
+        console.log("WebEngineView.LoadSucceededStatus", WebEngineView.LoadSucceededStatus);
+        console.log("WebEngineView.LoadFailedStatus", WebEngineView.LoadFailedStatus);
+
+        console.log("status:" + loadRequest.status);
+        
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
 
             // Required to support clicking on "hifi://" links
@@ -142,16 +152,10 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            console.log('feature');
-            console.log(JSON.stringify(feature, null, 4));
+            permissionPopupBackground.permissionsOptions.securityOrigin = securityOrigin;
+            permissionPopupBackground.permissionsOptions.feature = feature;
 
-            if (feature === 0) return;
-            console.log("Requesting permissions:")
-            permissionPopup.visible = true;
-            console.log('security origin');
-            console.log(JSON.stringify(securityOrigin, null, 4));
-            permissionPopup.permissionsOptions.securityOrigin = securityOrigin;
-            permissionPopup.permissionsOptions.feature = feature;
+            permissionPopupBackground.visible = true;
         }
 
         //disable popup
@@ -197,13 +201,10 @@ Item {
         }
     }
 
-    Controls.PermissionPopupBackground {
-        id: permissionPopup
+    ControlsUit.PermissionPopupBackground {
+        id: permissionPopupBackground
         onSendPermission: {
-            console.log("security origin we are allowing", securityOrigin);
-            console.log("feature we are allowing", securityOrigin);
-            console.log("shouldGivePermission:", shouldGivePermission);
-            webViewCore.grantFeaturePermission(securityOrigin, feature, shouldGivePermission)
+            webViewCore.grantFeaturePermission(securityOrigin, feature, shouldGivePermission);
         }
     }
 

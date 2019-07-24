@@ -10,16 +10,21 @@
 
 import QtQuick 2.7
 import QtWebEngine 1.5
+import controlsUit 1.0 as ControlsUit
 
 WebEngineView {
     id: root
-
+    
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
         // Ensure the JS from the web-engine makes it to our logging
         root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
+    }
+
+    onUrlChanged: {
+        permissionPopupBackground.visible = false;
     }
 
     onLoadingChanged: {
@@ -37,6 +42,17 @@ WebEngineView {
     WebSpinner { }
 
     onFeaturePermissionRequested: {
-        grantFeaturePermission(securityOrigin, feature, false);
+        permissionPopupBackground.permissionsOptions.securityOrigin = securityOrigin;
+        permissionPopupBackground.permissionsOptions.feature = feature;
+
+        permissionPopupBackground.visible = true;
+    }
+
+    ControlsUit.PermissionPopupBackground {
+        z: 100
+        id: permissionPopupBackground
+        onSendPermission: {
+            root.grantFeaturePermission(securityOrigin, feature, shouldGivePermission);
+        }
     }
 }

@@ -5,13 +5,13 @@ import "../windows"
 import "../."
 
 Rectangle {
-    id: permissionPopupBackground
+    id: root
     anchors.fill: parent
     color: Qt.rgba(0, 0, 0, 0.5);
     HifiConstants { id: hifi }
-    visible: true
-    property variant permissionsOptions: {'securityOrigin':'none','feature':'none'}
-    signal sendPermission(string securityOrigin, string feature, bool shouldGivePermission)
+    visible: false
+    property variant permissionsOptions: {'securityOrigin':'none','feature': -1}
+    signal sendPermission(string securityOrigin, int feature, bool shouldGivePermission)
  
     Component.onCompleted: {
         console.log("loaded component");
@@ -21,6 +21,7 @@ Rectangle {
     PermissionPopup {
         id: permissionPopupItem
         Component.onCompleted: {
+            permissionPopupItem.currentRequestedPermission = permissionsOptions.feature;
             console.log("test");
             // console.log("\n\n TESTING!! \n\n")
         }
@@ -28,13 +29,13 @@ Rectangle {
             console.log("JUST MADE IT TO ON PERMISSIONS PRESSEED!");
             console.log(buttonNumber);
             if (buttonNumber === 0) {
-                permissionPopupBackground.sendPermission(permissionsOptions.securityOrigin, permissionsOptions.feature, true)
+                root.sendPermission(permissionsOptions.securityOrigin, permissionsOptions.feature, true)
             } else {
-                permissionPopupBackground.sendPermission(permissionsOptions.securityOrigin, permissionsOptions.feature, false)
+                root.sendPermission(permissionsOptions.securityOrigin, permissionsOptions.feature, false)
             }
-            permissionPopupBackground.visible = false;
+            root.visible = false;
             permissionsOptions.securityOrigin = "none";
-            permissionsOptions.feature = "none";
+            permissionsOptions.feature = -1;
         }
     }
 }

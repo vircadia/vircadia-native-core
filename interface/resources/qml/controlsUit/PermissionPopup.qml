@@ -1,4 +1,5 @@
 import QtQuick 2.5
+import QtWebEngine 1.5
 import controlsUit 1.0 as HifiControls
 import stylesUit 1.0 as HifiStyles
 import "../windows" as Windows
@@ -11,7 +12,26 @@ Item {
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
     z:100
+    property var permissionLanguage: {
+        "test": "test"
+    }
+    property int currentRequestedPermission
     signal permissionButtonPressed(real buttonNumber)
+    
+    Component.onCompleted: {
+        console.log("loaded component");
+        // console.log("\n\n TESTING!! \n\n")
+        console.log("WebEngineView.MediaAudioCapture", WebEngineView.MediaAudioCapture)
+        // root.permissionLanguage["test"] = "test"
+        root.permissionLanguage[WebEngineView.MediaAudioCapture] = "access an audio input device";
+        root.permissionLanguage[WebEngineView.MediaVideoCapture] = "access a video device, like your webcam";
+        root.permissionLanguage[WebEngineView.MediaAudioVideoCapture] = "access an audio input device and video device";
+        root.permissionLanguage[WebEngineView.Geolocation] = "access your location";
+        root.permissionLanguage[WebEngineView.DesktopVideoCapture] = "capture video from your desktop";
+        root.permissionLanguage[WebEngineView.DesktopAudioVideoCapture] = "capture audio and video from your desktop";
+        console.log(JSON.stringify(root.permissionLanguage))
+
+    }
 
     // anchors.top: buttons.bottom
     Rectangle {
@@ -25,7 +45,7 @@ Item {
             height: root.height * 0.30
             HifiStyles.RalewayBold {
                 id: webAccessHeaderText
-                text: "WEB CAMERA ACCESS REQUEST"
+                text: "REQUEST FOR DEVICE ACCESS"
                 width: mainContainer.width
                 horizontalAlignment: Text.AlignHCenter
                 anchors.bottom: parent.bottom
@@ -43,7 +63,7 @@ Item {
                 width: mainContainer.width
                 id: webAccessInfoText
                 horizontalAlignment: Text.AlignHCenter
-                text: "This domain is requesting access to your web camera and microphone"
+                text: "This website is attempting to " + root.permissionLanguage[root.currentRequestedPermission] + "."
                 size: 15
                 color: hifi.colors.black
             }
