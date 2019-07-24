@@ -194,7 +194,6 @@ private:
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
 
-    QString getWebSessionUsername(HTTPConnection* connection);
     bool isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url);
 
     QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
