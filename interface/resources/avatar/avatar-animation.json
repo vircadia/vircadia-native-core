@@ -584,6 +584,28 @@
                                                                                     "currentState": "idle",
                                                                                     "states": [
                                                                                         {
+                                                                                            "id": "seated",
+                                                                                            "interpTarget": 20,
+                                                                                            "interpDuration": 8,
+                                                                                            "interpType": "snapshotPrev",
+                                                                                            "transitions": [
+                                                                                                { "var": "isNotMoving", "state": "idle" },
+                                                                                                { "var": "isMovingForward", "state": "WALKFWD" },
+                                                                                                { "var": "isMovingBackward", "state": "WALKBWD" },
+                                                                                                { "var": "isMovingRight", "state": "STRAFERIGHT" },
+                                                                                                { "var": "isMovingLeft", "state": "STRAFELEFT" },
+                                                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                                                { "var": "isFlying", "state": "fly" },
+                                                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                                                { "var": "isTakeoffRun", "state": "TAKEOFFRUN" },
+                                                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" },
+                                                                                                { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                            ]
+                                                                                        },
+                                                                                        {
                                                                                             "id": "idle",
                                                                                             "interpTarget": 20,
                                                                                             "interpDuration": 8,
@@ -601,7 +623,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -622,7 +645,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -644,7 +668,8 @@
                                                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                                                 { "var": "isTakeoffRun", "state": "TAKEOFFRUN" },
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
-                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" }
+                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -665,7 +690,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -686,7 +712,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -707,7 +734,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -728,7 +756,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -748,7 +777,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -768,7 +798,8 @@
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -789,7 +820,8 @@
                                                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                                                 { "var": "isTakeoffRun", "state": "TAKEOFFRUN" },
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
-                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" }
+                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -810,7 +842,8 @@
                                                                                                 { "var": "isTakeoffStand", "state": "takeoffStand" },
                                                                                                 { "var": "isTakeoffRun", "state": "TAKEOFFRUN" },
                                                                                                 { "var": "isInAirStand", "state": "inAirStand" },
-                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" }
+                                                                                                { "var": "isInAirRun", "state": "INAIRRUN" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -884,7 +917,8 @@
                                                                                                 { "var": "isInAirRun", "state": "INAIRRUN" },
                                                                                                 { "var": "landStandOnDone", "state": "idle" },
                                                                                                 { "var": "isMovingRightHmd", "state": "strafeRightHmd" },
-                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" }
+                                                                                                { "var": "isMovingLeftHmd", "state": "strafeLeftHmd" },
+                                                                                                { "var": "isSeated", "state": "seated" }
                                                                                             ]
                                                                                         },
                                                                                         {
@@ -901,6 +935,18 @@
                                                                                     ]
                                                                                 },
                                                                                 "children": [
+                                                                                    {
+                                                                                        "id": "seated",
+                                                                                        "type": "clip",
+                                                                                        "data": {
+                                                                                            "url": "qrc:///avatar/animations/sitting_idle.fbx",
+                                                                                            "startFrame": 1.0,
+                                                                                            "endFrame": 350.0,
+                                                                                            "timeScale": 1.0,
+                                                                                            "loopFlag": true
+                                                                                        },
+                                                                                        "children": []
+                                                                                    },
                                                                                     {
                                                                                         "id": "idle",
                                                                                         "type": "stateMachine",

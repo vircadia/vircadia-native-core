@@ -6208,17 +6208,6 @@ void MyAvatar::sendPacket(const QUuid& entityID) const {
     }
 }
 
-QStringList MyAvatar::getSitRolesToOverride() {
-    auto allRoles = getAnimationRoles();
-    auto sitRolesToOverride = QStringList();
-    for (auto role : allRoles) {
-        if (!(role.startsWith("right") || role.startsWith("left"))) {
-            sitRolesToOverride.append(role);
-        }
-    }
-    return sitRolesToOverride;
-}
-
 void MyAvatar::setSitDriveKeysStatus(bool enabled) {
     const std::vector<DriveKeys> DISABLED_DRIVE_KEYS_DURING_SIT = {
         DriveKeys::TRANSLATE_X,
@@ -6245,17 +6234,6 @@ void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
     _characterController.setSeated(true);
     setCollisionsEnabled(false);    
     setHMDLeanRecenterEnabled(false);
-    /*
-    auto sitRolesToOverride = getSitRolesToOverride();
-    for (auto& role: sitRolesToOverride) { // restore roles to prevent overlap
-        if (_isSeated) {
-            restoreRoleAnimation(role);
-        }
-        overrideRoleAnimation(role, ANIMATION_URL, ANIMATION_FPS, true,
-                              ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
-    }
-    */
-
     // Disable movement
     setSitDriveKeysStatus(false);
     centerBody();
@@ -6268,13 +6246,8 @@ void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
 
 void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
     clearPinOnJoint(getJointIndex("Hips"));
-    /*
-    auto sitRolesToOverride = getSitRolesToOverride();
-    for (auto& role : sitRolesToOverride) {
-        restoreRoleAnimation(role);
-    }
-    */
     _characterController.setSeated(false);
+    _characterController.updateState();
     setCollisionsEnabled(true);
     setHMDLeanRecenterEnabled(true);
     centerBody();

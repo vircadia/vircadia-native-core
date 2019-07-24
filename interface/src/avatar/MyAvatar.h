@@ -2537,7 +2537,6 @@ private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();
-    QStringList getSitRolesToOverride();
     void setSitDriveKeysStatus(bool enabled);
 
     void clampTargetScaleToDomainLimits();
