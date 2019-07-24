@@ -72,12 +72,6 @@ Item {
     }
 
     function onLoadingChanged(loadRequest) {
-        console.log("WebEngineView.LoadStartedStatus", WebEngineView.LoadStartedStatus);
-        console.log("WebEngineView.LoadSucceededStatus", WebEngineView.LoadSucceededStatus);
-        console.log("WebEngineView.LoadFailedStatus", WebEngineView.LoadFailedStatus);
-
-        console.log("status:" + loadRequest.status);
-        
         if (WebEngineView.LoadStartedStatus === loadRequest.status) {
 
             // Required to support clicking on "hifi://" links
