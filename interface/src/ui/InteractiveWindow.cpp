@@ -291,12 +291,10 @@ void InteractiveWindow::sendToQml(const QVariant& message) {
 }
 
 void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
-    //_interactiveWindowProxy->emitScriptEvent(scriptMessage);
     emit scriptEventReceived(scriptMessage);
 }
 
 void InteractiveWindow::emitWebEvent(const QVariant& webMessage) {
-    //_interactiveWindowProxy->emitWebEvent(webMessage);
    emit webEventReceived(webMessage);
 }
 
