@@ -70,12 +70,10 @@ void QmlWindowProxy::parentNativeWindowToMainWindow() {
 }
 
 void InteractiveWindowProxy::emitScriptEvent(const QVariant& scriptMessage){
-    qDebug() << "EmitScriptEvent";
     emit scriptEventReceived(scriptMessage);
 }
 
 void InteractiveWindowProxy::emitWebEvent(const QVariant& webMessage) {
-    qDebug() << "EmitWebEvent";
     emit webEventReceived(webMessage);
 }
 
@@ -141,6 +139,8 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
 
     if (!_interactiveWindowProxy) {
         _interactiveWindowProxy = new InteractiveWindowProxy();
+        QObject::connect(_interactiveWindowProxy, &InteractiveWindowProxy::webEventReceived, this, &InteractiveWindow::emitWebEvent, Qt::QueuedConnection);
+        QObject::connect(this, &InteractiveWindow::scriptEventReceived, _interactiveWindowProxy, &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);
     }
 
     if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
@@ -278,6 +278,7 @@ InteractiveWindow::~InteractiveWindow() {
 }
 
 void InteractiveWindow::sendToQml(const QVariant& message) {
+
     // Forward messages received from the script on to QML
     if (_dockWidget) {
         QQuickItem* rootItem = _dockWidget->getRootItem();
@@ -296,7 +297,7 @@ void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
 
 void InteractiveWindow::emitWebEvent(const QVariant& webMessage) {
     //_interactiveWindowProxy->emitWebEvent(webMessage);
-    emit webEventReceived(webMessage);
+   emit webEventReceived(webMessage);
 }
 
 void InteractiveWindow::close() {
@@ -309,7 +310,7 @@ void InteractiveWindow::close() {
     }
 
     if (_interactiveWindowProxy) {
-        delete(_interactiveWindowProxy);
+        _interactiveWindowProxy->deleteLater();
     }
 
     if (_dockWidget) {
@@ -322,6 +323,7 @@ void InteractiveWindow::close() {
     }
     _dockWidget = nullptr;
     _qmlWindowProxy = nullptr;
+    _interactiveWindowProxy = nullptr;
 }
 
 void InteractiveWindow::show() {
