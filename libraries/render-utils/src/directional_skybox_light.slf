@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  directional_skybox_light.frag
-//  fragment shader
 //
 //  Created by Sam Gateau on 5/8/2015.
 //  Copyright 2016 High Fidelity, Inc.
@@ -15,20 +13,36 @@
 <@include render-utils/ShaderConstants.h@>
 
 <@include GlobalLight.slh@>
-<$declareEvalSkyboxGlobalColor(isScattering, _SCRIBE_NULL)$>
+<@if HIFI_USE_AMBIENT@>
+    <$declareEvalAmbientSphereGlobalColor(supportScattering)$>
+<@else@>
+    <$declareEvalSkyboxGlobalColor(supportScattering, _SCRIBE_NULL)$>
+<@endif@>
+
+<@if HIFI_USE_SHADOW@>
+    <@include Shadow.slh@>
+<@endif@>
 
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
+
 layout(location=0) out vec4 _fragColor;
 
 void main(void) {
     DeferredFrameTransform deferredTransform = getDeferredFrameTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
+<@if HIFI_USE_SHADOW@>
+    vec4 viewPos = vec4(frag.position.xyz, 1.0);
+    vec4 worldPos = getViewInverse() * viewPos;
+    Light shadowLight = getKeyLight();
+    vec3 worldLightDirection = getLightDirection(shadowLight);
+    float shadowAttenuation = evalShadowAttenuation(worldLightDirection, worldPos, -viewPos.z, frag.normal);
+<@else@>
     float shadowAttenuation = 1.0;
+<@endif@>
 
-    // Light mapped or not ?
     if (frag.mode == FRAG_MODE_UNLIT || frag.mode == FRAG_MODE_LIGHTMAPPED) {
         discard;
     } else {
@@ -39,6 +53,21 @@ void main(void) {
         midNormalCurvature = check * midNormalCurvature;
         lowNormalCurvature = check * lowNormalCurvature;
 
+<@if HIFI_USE_AMBIENT@>
+        vec3 color = evalAmbientSphereGlobalColor(
+                        getViewInverse(),
+                        shadowAttenuation,
+                        frag.obscurance,
+                        frag.position.xyz,
+                        frag.normal,
+                        frag.albedo,
+                        frag.fresnel,
+                        frag.metallic,
+                        frag.roughness,
+                        frag.scattering,
+                        midNormalCurvature,
+                        lowNormalCurvature);
+<@else@>
         vec3 color = evalSkyboxGlobalColor(
                         getViewInverse(),
                         shadowAttenuation,
@@ -52,6 +81,7 @@ void main(void) {
                         frag.scattering,
                         midNormalCurvature,
                         lowNormalCurvature);
+<@endif@>
 
         _fragColor = vec4(color, 1.0);
     }
