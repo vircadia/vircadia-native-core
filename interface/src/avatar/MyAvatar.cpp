@@ -6246,8 +6246,7 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
         setCollisionsEnabled(true);
         setHMDLeanRecenterEnabled(true);
         centerBody();
-        setWorldPosition(position);
-        setWorldOrientation(rotation);
+        goToLocation(position, true, rotation, false, false);
         // Enable movement again
         setSitDriveKeysStatus(true);
     }
