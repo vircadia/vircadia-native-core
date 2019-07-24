@@ -2554,7 +2554,6 @@ private:
     bool _isBeingPushed { false };
     bool _isBraking { false };
     bool _isAway { false };
-    bool _isSeated { false };
 
     float _boomLength { ZOOM_DEFAULT };
     float _yawSpeed; // degrees/sec

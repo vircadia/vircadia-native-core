@@ -806,7 +806,7 @@ void CharacterController::updateState() {
                 }
                 break;
             }
-            case State::Hover:
+            case State::Hover: {
                 btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
                 bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
                 if (!_zoneFlyingAllowed) {
@@ -819,6 +819,11 @@ void CharacterController::updateState() {
                     SET_STATE(State::Ground, "touching ground");
                 }
                 break;
+            }
+            case State::Seated: {
+                SET_STATE(State::Ground, "Standing up");
+                break;
+            }
         }
     }
 }
