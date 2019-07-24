@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
 project(HQLauncher)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+include("cmake/macros/SetPackagingParameters.cmake")
 set(src_files
   src/Launcher.h
   src/Launcher.m
@@ -59,14 +60,16 @@ set_target_properties(${this_target} PROPERTIES
 set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-    if (NOT DEFINED ${_RESULT_NAME}) 
-        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
-            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
-        else()
-            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
-        endif()
+  if (NOT DEFINED ${_RESULT_NAME}) 
+    if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+      set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+    else()
+      set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
     endif()
+  endif()
 endfunction()
+
+  set_packaging_parameters()
 
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
@@ -77,6 +80,7 @@ if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 file(GLOB NIB_FILES "nib/*.xib")
 

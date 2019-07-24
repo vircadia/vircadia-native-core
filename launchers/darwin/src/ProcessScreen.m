@@ -9,6 +9,7 @@
 @property (nonatomic, assign) IBOutlet NSTextField* boldStatus;
 @property (nonatomic, assign) IBOutlet NSTextField* smallStatus;
 @property (nonatomic, assign) IBOutlet NSProgressIndicator* progressView;
+@property (nonatomic, assign) IBOutlet NSTextField* buildVersion;
 @end
 
 @implementation ProcessScreen
@@ -37,6 +38,7 @@
         default:
             break;
     }
+    [self.buildVersion setStringValue: [@"V." stringByAppendingString:@LAUNCHER_BUILD_VERSION]];
     [self.background setImage: [NSImage imageNamed:hifiBackgroundFilename]];
     [self.smallLogo setImage: [NSImage imageNamed:hifiSmallLogoFilename]];
     [self.voxelImage setImage: [NSImage imageNamed:hifiVoxelFilename]];

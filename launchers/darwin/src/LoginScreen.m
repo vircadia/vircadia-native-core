@@ -12,6 +12,7 @@
 @property (nonatomic, assign) IBOutlet NSTextField* smallHeader;
 @property (nonatomic, assign) IBOutlet NSTextField* trouble;
 @property (nonatomic, assign) IBOutlet NSButton* button;
+@property (nonatomic, assign) IBOutlet NSTextField* buildVersion;
 @end
 
 @implementation LoginScreen
@@ -36,6 +37,7 @@
         [self.button setTitle:@"TRY AGAIN"];
     }
 
+    [self.buildVersion setStringValue: [@"V." stringByAppendingString:@LAUNCHER_BUILD_VERSION]];
     [self.backgroundImage setImage:[NSImage imageNamed:hifiBackgroundFilename]];
     [self.smallLogo setImage:[NSImage imageNamed:hifiSmallLogoFilename]];
 
