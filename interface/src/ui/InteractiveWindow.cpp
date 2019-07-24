@@ -217,7 +217,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
     } else {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         // Build the event bridge and wrapper on the main thread
-        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&, this](QQmlContext* context, QObject* object) {
+        offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
             _qmlWindowProxy = std::shared_ptr<QmlWindowProxy>(new QmlWindowProxy(object, nullptr), qmlWindowProxyDeleter);
             context->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
             if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
