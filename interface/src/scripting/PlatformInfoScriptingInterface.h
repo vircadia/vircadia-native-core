@@ -32,7 +32,7 @@ public:
     virtual ~PlatformInfoScriptingInterface();
 
     /**jsdoc
-     * <p>The platform tier of a computer is an indication of its graphics capability.</p>
+     * <p>The platform tier of a computer is an indication of its rendering capability.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Name</th><th>Description</th></tr>
@@ -139,23 +139,23 @@ public slots:
     bool isStandalone();
 
     /**jsdoc
-     * Gets the number of CPUs in the hardware platform.
+     * Gets the number of CPUs.
      * @function PlatformInfo.getNumCPUs
-     * @returns {number} The number of CPUs in the hardware platform.
+     * @returns {number} The number of CPUs.
      */
     int getNumCPUs();
 
     /**jsdoc
      * Gets the index number of the master CPU.
      * @function PlatformInfo.getMasterCPU
-     * @returns {number} The index of the master CPU in the hardware platform.
+     * @returns {number} The index of the master CPU.
      */
     int getMasterCPU();
 
     /**jsdoc
      * Gets the platform description of a CPU.
      * @function PlatformInfo.getCPU
-     * @param {number} index - The index number of the CPU in the hardware platform.
+     * @param {number} index - The index number of the CPU.
      * @returns {string} The CPU's {@link PlatformInfo.CPUDescription|CPUDescription} information as a JSON string.
      * @example <caption>Report details of the computer's CPUs.</caption>
      * var numCPUs = PlatformInfo.getNumCPUs();
@@ -168,22 +168,22 @@ public slots:
     QString getCPU(int index);
 
     /**jsdoc
-     * Gets the number of GPUs in the hardware platform.
+     * Gets the number of GPUs.
      * @function PlatformInfo.getNumGPUs
-     * @returns {number} The number of GPUs in the hardware platform.
+     * @returns {number} The number of GPUs.
      */
     int getNumGPUs();
 
     /**jsdoc
      * Gets the index number of the master GPU.
      * @function PlatformInfo.getMasterGPU
-     * @returns {number} The index of the master GPU detected in the hardware platform.
+     * @returns {number} The index of the master GPU.
      */
     int getMasterGPU();
 
     /**jsdoc
      * Gets the platform description of a GPU.
-     * @param {number} index - The index number of the GPU in the hardware platform.
+     * @param {number} index - The index number of the GPU.
      * @function PlatformInfo.getGPU
      * @returns {string} The GPU's {@link PlatformInfo.GPUDescription|GPUDescription} information as a JSON string.
      * @example <caption>Report details of the computer's GPUs.</caption>
@@ -197,22 +197,22 @@ public slots:
     QString getGPU(int index);
 
     /**jsdoc
-     * Gets the number of displays in the hardware platform.
+     * Gets the number of displays.
      * @function PlatformInfo.getNumDisplays
-     * @returns {number} The number of displays in the hardware platform.
+     * @returns {number} The number of displays.
      */
     int getNumDisplays();
 
     /**jsdoc
      * Gets the index number of the master display.
      * @function PlatformInfo.getMasterDisplay
-     * @returns {number} The index of the master display in the hardware platform.
+     * @returns {number} The index of the master display.
      */
     int getMasterDisplay();
 
     /**jsdoc
      * Gets the platform description of a display.
-     * @param {number} index - The index number of the display in the hardware platform.
+     * @param {number} index - The index number of the display.
      * @function PlatformInfo.getDisplay
      * @returns {string} The display's {@link PlatformInfo.DisplayDescription|DisplayDescription} information as a JSON string.
      * @example <caption>Report details of the systems's displays.</caption>
@@ -242,7 +242,7 @@ public slots:
     QString getComputer();
 
     /**jsdoc
-     * Gets the complete description of the hardware platform.
+     * Gets the complete description of the computer as a whole.
      * @function PlatformInfo.getPlatform
      * @returns {string} The {@link PlatformInfo.PlatformDescription|PlatformDescription} information as a JSON string.
      */

@@ -11,7 +11,7 @@
 #include "../PlatformKeys.h"
 
 /**jsdoc
- * Information on the hardware platform.
+ * Information on the computer platform as a whole.
  * @typedef {object} PlatformInfo.PlatformDescription
  * @property {PlatformInfo.ComputerDescription} computer - Information on the computer.
  * @property {PlatformInfo.CPUDescription[]} cpus - Information on the computer's CPUs.
@@ -96,7 +96,7 @@ namespace platform { namespace keys {
      * @property {number} modeRefreshrate - The refresh rate of the current display mode, in Hz.
      * @property {number} modeWidth - The width of the current display mode, in pixels.
      * @property {number} modeHeight - The height of the current display mode, in pixels.
-     * @property {boolean} isMaster - <code>true</code> if the GPU is the "master" or primary GPU, <code>false</code> or
+     * @property {boolean} isMaster - <code>true</code> if the GPU is the "master" or primary display, <code>false</code> or
      *     <code>undefined</code> if it isn't.
      */
     namespace display {
