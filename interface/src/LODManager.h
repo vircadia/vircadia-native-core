@@ -57,6 +57,8 @@ class LODManager : public QObject, public Dependency {
 
         Q_PROPERTY(float worldDetailQuality READ getWorldDetailQuality WRITE setWorldDetailQuality NOTIFY worldDetailQualityChanged)
 
+        Q_PROPERTY(float lodQualityLevel READ getLODQualityLevel WRITE setLODQualityLevel NOTIFY lodQualityLevelChanged)
+
         Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust NOTIFY autoLODChanged)
 
         Q_PROPERTY(float presentTime READ getPresentTime)
@@ -189,6 +191,9 @@ public:
     void setWorldDetailQuality(float quality);
     float getWorldDetailQuality() const;
 
+    void setLODQualityLevel(float quality);
+    float getLODQualityLevel() const;
+
     float getLODAngleDeg() const;
     void setLODAngleDeg(float lodAngle);
     float getLODAngleHalfTan() const;
@@ -243,6 +248,8 @@ private:
     float _nowRenderTime{ 0.0f }; // msec
     float _smoothScale{ 10.0f }; // smooth is evaluated over 10 times longer than now
     float _smoothRenderTime{ 0.0f }; // msec
+
+    float _lodQualityLevel{ LOD_DEFAULT_QUALITY_LEVEL };
 
     float _desktopTargetFPS { LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_DESKTOP_FPS };
     float _hmdTargetFPS { LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS };
