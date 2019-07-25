@@ -301,6 +301,7 @@ void InteractiveWindow::emitScriptEvent(const QVariant& scriptMessage) {
 }
 
 void InteractiveWindow::emitWebEvent(const QVariant& webMessage) {
+    emit webEventReceived(webMessage);
 }
 
 void InteractiveWindow::close() {
