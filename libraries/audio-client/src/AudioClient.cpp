@@ -286,6 +286,7 @@ AudioClient::AudioClient() :
     _shouldEchoLocally(false),
     _shouldEchoToServer(false),
     _isNoiseGateEnabled(true),
+    _isAECEnabled(true),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
     _inputToNetworkResampler(NULL),
@@ -1711,6 +1712,15 @@ void AudioClient::setWarnWhenMuted(bool enable, bool emitSignal) {
         _warnWhenMuted = enable;
         if (emitSignal) {
             emit warnWhenMutedChanged(_warnWhenMuted);
+        }
+    }
+}
+
+void AudioClient::setAcousticEchoCancellation(bool enable, bool emitSignal) {
+    if (_isAECEnabled != enable) {
+        _isAECEnabled = enable;
+        if (emitSignal) {
+            emit acousticEchoCancellationChanged(_isAECEnabled);
         }
     }
 }
