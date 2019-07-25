@@ -10,6 +10,7 @@ set(CMAKE_MFC_FLAG 1)
 
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+include("cmake/macros/SetPackagingParameters.cmake")
 
 add_executable(HQLauncher
   WIN32
@@ -49,6 +50,8 @@ function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
     endif()
 endfunction()
 
+set_packaging_parameters()
+
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
 
 if (LAUNCHER_HMAC_SECRET STREQUAL "")
@@ -56,7 +59,7 @@ if (LAUNCHER_HMAC_SECRET STREQUAL "")
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
-
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 # Preprocessor definitions
 target_compile_definitions(HQLauncher PRIVATE

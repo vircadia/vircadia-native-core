@@ -23,8 +23,11 @@ LauncherManager::~LauncherManager() {
 
 void LauncherManager::init() {
     initLog();
-    addToLog(_T("Getting most recent build"));
-    getMostRecentBuild(_latestApplicationURL, _latestVersion);
+    int tokenPos = 0;
+    _launcherVersion = CString(LAUNCHER_BUILD_VERSION).Tokenize(_T("-"), tokenPos);
+    addToLog(_T("Launcher is running version: " + _launcherVersion));
+    addToLog(_T("Getting most recent builds"));
+    getMostRecentBuilds(_latestLauncherURL, _latestLauncherVersion, _latestApplicationURL, _latestVersion);
 }
 
 BOOL LauncherManager::initLog() {
@@ -124,6 +127,8 @@ BOOL LauncherManager::restartLauncher() {
 
 void LauncherManager::updateProgress(ProcessType processType, float progress) {
     switch (processType) {
+    case ProcessType::DownloadLauncher:
+        break;
     case ProcessType::Uninstall:
         _progress = progress;
         break;
@@ -359,14 +364,23 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     return LauncherUtils::ResponseError::ParsingJSON;
 }
 
-void LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut) {
+void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& launcherVersionOut,
+                                          CString& interfaceUrlOut, CString& interfaceVersionOut) {
     CString contentTypeJson = L"content-type:application/json";
     std::function<void(CString, int)> httpCallback = [&](CString response, int err) {
         LauncherUtils::ResponseError error = LauncherUtils::ResponseError(err);
         if (error == LauncherUtils::ResponseError::NoError) {
             Json::Value json;
-            error = LauncherUtils::ResponseError::ParsingJSON;
             if (LauncherUtils::parseJSON(response, json)) {
+                if (json["launcher"].isObject()) {
+                    if (json["launcher"]["windows"].isObject() && json["launcher"]["windows"]["url"].isString()) {
+                        launcherUrlOut = json["launcher"]["windows"]["url"].asCString();
+                    }
+                    if (json["launcher"]["version"].isInt()) {
+                        std::string version = std::to_string(json["launcher"]["version"].asInt());
+                        launcherVersionOut = CString(version.c_str());
+                    }
+                }
                 int count = json["count"].isInt() ? json["count"].asInt() : 0;
                 if (count > 0 && json["results"].isArray()) {
                     for (int i = 0; i < count; i++) {
@@ -374,19 +388,21 @@ void LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut) {
                             Json::Value result = json["results"][i];
                             if (result["latest_version"].isInt()) {
                                 std::string version = std::to_string(result["latest_version"].asInt());
-                                versionOut = CString(version.c_str());
+                                interfaceVersionOut = CString(version.c_str());
                             }
                             if (result["installers"].isObject() &&
                                 result["installers"]["windows"].isObject() &&
                                 result["installers"]["windows"]["zip_url"].isString()) {
-                                urlOut = result["installers"]["windows"]["zip_url"].asCString();
-                                error = LauncherUtils::ResponseError::NoError;
+                                interfaceUrlOut = result["installers"]["windows"]["zip_url"].asCString();
                             }
                         }
                     }
                 }
+                if (launcherUrlOut.IsEmpty() || launcherVersionOut.IsEmpty() || interfaceUrlOut.IsEmpty() || interfaceVersionOut.IsEmpty()) {
+                    error = LauncherUtils::ResponseError::ParsingJSON;
+                }
             }
-            onMostRecentBuildReceived(response, error);
+            onMostRecentBuildsReceived(response, error);
         }
     };
     LauncherUtils::httpCallOnThread(L"HQ Launcher",
@@ -395,31 +411,46 @@ void LauncherManager::getMostRecentBuild(CString& urlOut, CString& versionOut) {
                                     contentTypeJson, CStringA(), false, httpCallback);
 }
 
-void LauncherManager::onMostRecentBuildReceived(const CString& response, LauncherUtils::ResponseError error) {
+void LauncherManager::onMostRecentBuildsReceived(const CString& response, LauncherUtils::ResponseError error) {
     if (error == LauncherUtils::ResponseError::NoError) {
-        addToLog(_T("Latest version: ") + _latestVersion);
-        CString currentVersion;
-        if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
-            addToLog(_T("Installed version: ") + currentVersion);
-            if (_latestVersion.Compare(currentVersion) == 0) {
-                addToLog(_T("Already running most recent build. Launching interface.exe"));
-                _shouldLaunch = TRUE;
-                _shouldShutdown = TRUE;
-            } else {
-                addToLog(_T("New build found. Updating"));
-                _shouldUpdate = TRUE;
-            }
-        } else if (_loggedIn) {
-            addToLog(_T("Interface not found but logged in. Reinstalling"));
-            _shouldUpdate = TRUE;
+        addToLog(_T("Latest launcher version: ") + _latestLauncherVersion);
+        
+        if (_updateLauncherAllowed && _latestLauncherVersion.Compare(_launcherVersion) != 0) {
+            CString updatingMsg;
+            updatingMsg.Format(_T("Updating Launcher from version: %s to version: %s"), _launcherVersion, _latestLauncherVersion);
+            addToLog(updatingMsg);
+            _shouldUpdateLauncher = TRUE;
+            _shouldDownloadLauncher = TRUE;
         } else {
-            _shouldInstall = TRUE;
+            if (_updateLauncherAllowed) {
+                addToLog(_T("Already running most recent build. Launching interface.exe"));
+            } else {
+                addToLog(_T("Updating the launcher was not allowed --noUpdate"));
+            }            
+            CString currentVersion;
+            if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
+                addToLog(_T("Installed version: ") + currentVersion);
+                if (_latestVersion.Compare(currentVersion) == 0) {
+                    addToLog(_T("Already running most recent build. Launching interface.exe"));
+                    _shouldLaunch = TRUE;
+                    _shouldShutdown = TRUE;
+                } else {
+                    addToLog(_T("New build found. Updating"));
+                    _shouldUpdate = TRUE;
+                }
+            } else if (_loggedIn) {
+                addToLog(_T("Interface not found but logged in. Reinstalling"));
+                _shouldUpdate = TRUE;
+            } else {
+                _shouldInstall = TRUE;
+            }
         }
         _shouldWait = FALSE;
+        
     } else {
         _hasFailed = true;
         CString msg;
-        msg.Format(_T("Getting most recent build has failed with error: %d"), error);
+        msg.Format(_T("Getting most recent builds has failed with error: %d"), error);
         addToLog(msg);
         msg.Format(_T("Response: %s"), response);
         addToLog(msg);
@@ -563,7 +594,13 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
                 setFailed(true);
             }
         });
+    } else if (type == ProcessType::DownloadLauncher) {
+        _shouldRestartNewLauncher = true;
     }
+}
+
+void LauncherManager::restartNewLauncher() {
+    LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart"));
 }
 
 
@@ -610,18 +647,18 @@ BOOL LauncherManager::downloadFile(ProcessType type, const CString& url, CString
             } else {
                 if (type == ProcessType::DownloadApplication) {
                     addToLog(_T("Error downloading content."));
+                } else if (type == ProcessType::DownloadLauncher) {
+                    addToLog(_T("Error downloading launcher."));
                 } else {
                     addToLog(_T("Error downloading application."));
                 }
                 _hasFailed = true;
             }
         };
-        std::function<void(float)> onProgress = [&](float progress) {
+        std::function<void(float)> onProgress = [&, type](float progress) {
             updateProgress(_currentProcess, progress);
         };
-        if (!LauncherUtils::downloadFileOnThread(type, url, outPath, onDownloadFinished, onProgress)) {
-            success = FALSE;
-        }
+        success = LauncherUtils::downloadFileOnThread(type, url, outPath, onDownloadFinished, onProgress);
     }
     return success;
 }
@@ -635,6 +672,13 @@ BOOL LauncherManager::downloadContent() {
 BOOL LauncherManager::downloadApplication() {
     CString applicationURL = getLatestInterfaceURL();
     return downloadFile(ProcessType::DownloadApplication, applicationURL, _applicationZipPath);
+}
+
+BOOL LauncherManager::downloadNewLauncher() {
+    _shouldDownloadLauncher = FALSE;
+    getAndCreatePaths(PathType::Temp_Directory, _tempLauncherPath);
+    _tempLauncherPath += _T("/") + LAUNCHER_EXE_FILENAME;
+    return downloadFile(ProcessType::DownloadLauncher, _latestLauncherURL, _tempLauncherPath);
 }
 
 void LauncherManager::onCancel() {

@@ -40,6 +40,8 @@ static CString GRAPHIK_SEMIBOLD = _T("Graphik-Semibold");
 static CString TROUBLE_URL = _T("https://www.highfidelity.com/hq-support");
 static CString TERMS_URL = _T("https://www.highfidelity.com/termsofservice");
 
+static int SPLASH_DURATION = 100;
+
 
 CLauncherDlg::CLauncherDlg(CWnd* pParent)
     : CDialog(IDD_LAUNCHER_DIALOG, pParent)
@@ -111,6 +113,11 @@ BOOL CLauncherDlg::OnInitDialog() {
 
     m_voxel = (CStatic *)GetDlgItem(IDC_VOXEL);
     m_progress = (CStatic *)GetDlgItem(IDC_PROGRESS);
+
+    m_version = (CStatic *)GetDlgItem(IDC_VERSION);
+    CString version;
+    version.Format(_T("V.%s"), theApp._manager.getLauncherVersion());
+    m_version->SetWindowTextW(version);
 
     m_voxel->EnableD2DSupport();
     m_progress->EnableD2DSupport();
@@ -230,7 +237,6 @@ void CLauncherDlg::startProcess() {
             theApp._manager.setFailed(true);
         }
     });
-
 }
 
 BOOL CLauncherDlg::getHQInfo(const CString& orgname) {
@@ -322,11 +328,12 @@ void CLauncherDlg::drawLogo(CHwndRenderTarget* pRenderTarget) {
 void CLauncherDlg::drawSmallLogo(CHwndRenderTarget* pRenderTarget) {
     CD2DBitmap m_pBitmamLogo(pRenderTarget, IDB_PNG5, _T("PNG"));
     auto size = pRenderTarget->GetSize();
-    int padding = 6;
+    int xPadding = 6;
+    int yPadding = 22;
     int logoWidth = 100;
     int logoHeight = 18;
-    float logoPosX = size.width - logoWidth - padding;
-    float logoPosY = size.height - logoHeight - padding;
+    float logoPosX = size.width - logoWidth - xPadding;
+    float logoPosY = size.height - logoHeight - yPadding;
     CD2DRectF logoRec(logoPosX, logoPosY, logoPosX + logoWidth, logoPosY + logoHeight);
     pRenderTarget->DrawBitmap(&m_pBitmamLogo, logoRec);
 }
@@ -521,6 +528,7 @@ BOOL CLauncherDlg::getTextFormat(int resID, TextFormat& formatOut) {
         formatOut.size = FIELDS_FONT_SIZE;
         formatOut.color = COLOR_GREY;
         break;
+    case IDC_VERSION:
     case IDC_TERMS:
         formatOut.size = TERMS_FONT_SIZE;
         break;
@@ -663,6 +671,24 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             // Refresh
             setDrawDialog(_drawStep, true);
         }
+
+        if (theApp._manager.needsSelfUpdate()) {
+            if (theApp._manager.needsSelfDownload()) {
+                theApp._manager.downloadNewLauncher();
+            } else {
+                if (_splashStep > SPLASH_DURATION && _splashStep < 2 * SPLASH_DURATION) {
+                    theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, (float)(_splashStep - SPLASH_DURATION) / SPLASH_DURATION);
+                    _splashStep++;
+                }
+                if (theApp._manager.needsRestartNewLauncher()) {
+                    if (_splashStep >= 2 * SPLASH_DURATION) {
+                        theApp._manager.restartNewLauncher();
+                        exit(0);
+                    }
+                }
+            }
+        }
+
         if (_showSplash) {
             if (_splashStep == 0) {
                 if (theApp._manager.needsUninstall()) {
@@ -672,7 +698,7 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                     theApp._manager.addToLog(_T("Start splash screen"));
                     setDrawDialog(DrawStep::DrawLogo);
                 }
-            } else if (_splashStep > 100 && !theApp._manager.needsToWait()) {
+            } else if (_splashStep > SPLASH_DURATION && !theApp._manager.needsToWait()) {
                 _showSplash = false;
                 if (theApp._manager.shouldShutDown()) {
                     if (_applicationWND != NULL) {
@@ -692,12 +718,14 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                         theApp._manager.addToLog(_T("HQ failed to uninstall."));
                         theApp._manager.setFailed(true);
                     }
+                } else if (theApp._manager.needsSelfUpdate()) {
+                    setDrawDialog(DrawStep::DrawProcessUpdate);
                 } else {
                     theApp._manager.addToLog(_T("Starting login"));
                     setDrawDialog(DrawStep::DrawLoginLogin);
                 }
             } else if (theApp._manager.needsUninstall()) {
-                theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, (float)_splashStep/100);
+                theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, (float)_splashStep / SPLASH_DURATION);
             }
             _splashStep++;
         } else if (theApp._manager.shouldShutDown()) {
