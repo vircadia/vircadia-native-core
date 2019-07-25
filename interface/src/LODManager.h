@@ -146,12 +146,6 @@ public:
     Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
 
     /**jsdoc
-    * @function LODManager.getDefaultOctreeSizeScale
-    * @param {number} sizeScale
-    */
-    Q_INVOKABLE float getDefaultOctreeSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
-
-    /**jsdoc
      * @function LODManager.setBoundaryLevelAdjust
      * @param {number} boundaryLevelAdjust
      */

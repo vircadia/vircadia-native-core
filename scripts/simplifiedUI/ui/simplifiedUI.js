@@ -532,14 +532,14 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 
 var oldAutomaticLODAdjust;
 var oldOctreeSizeScale;
-var DEFAULT_AUTO_LOD_ADJUST = false;
-var DEFAULT_OCTREE_SIZE_SCALE = LODManager.getDefaultOctreeSizeScale();
+var SIMPLIFIED_UI_AUTO_LOD_ADJUST = false;
+var SIMPLIFIED_UI_OCTREE_SIZE_SCALE = 32768 * 916; // Octree cell size in meters (constant) * distance in meters at which we want a 1 meter cube to be visible
 function modifyLODSettings() {
     oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
     oldOctreeSizeScale = LODManager.octreeSizeScale;
 
-    LODManager.automaticLODAdjust = DEFAULT_AUTO_LOD_ADJUST;
-    LODManager.octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    LODManager.automaticLODAdjust = SIMPLIFIED_UI_AUTO_LOD_ADJUST;
+    LODManager.octreeSizeScale = SIMPLIFIED_UI_OCTREE_SIZE_SCALE;
 }
 
 
