@@ -69,6 +69,14 @@ void QmlWindowProxy::parentNativeWindowToMainWindow() {
 #endif
 }
 
+void InteractiveWindowProxy::emitScriptEvent(const QVariant& scriptMessage){
+    emit scriptEventReceived(scriptMessage);
+}
+
+void InteractiveWindowProxy::emitWebEvent(const QVariant& webMessage) {
+    emit webEventReceived(webMessage);
+}
+
 static void qmlWindowProxyDeleter(QmlWindowProxy* qmlWindowProxy) {
     qmlWindowProxy->deleteLater();
 }
@@ -129,6 +137,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
     }
 
+    if (!_interactiveWindowProxy) {
+        _interactiveWindowProxy = new InteractiveWindowProxy();
+        QObject::connect(_interactiveWindowProxy, &InteractiveWindowProxy::webEventReceived, this, &InteractiveWindow::emitWebEvent, Qt::QueuedConnection);
+        QObject::connect(this, &InteractiveWindow::scriptEventReceived, _interactiveWindowProxy, &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);
+    }
+
     if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
         QVariantMap nativeWindowInfo = properties[DOCKED_PROPERTY].toMap();
         Qt::DockWidgetArea dockArea = Qt::TopDockWidgetArea;
@@ -182,11 +196,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                     break;
             }
         }
-
+      
+        
         QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
-                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
                 // The qmlToScript method handles the thread-safety of this call. Because the QVariant argument
                 // passed to the sendToScript signal may wrap an externally managed and thread-unsafe QJSValue,
                 // qmlToScript needs to be called directly, so the QJSValue can be immediately converted to a plain QVariant.
@@ -207,7 +222,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         // Build the event bridge and wrapper on the main thread
         offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
             _qmlWindowProxy = std::shared_ptr<QmlWindowProxy>(new QmlWindowProxy(object, nullptr), qmlWindowProxyDeleter);
-            context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+            context->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
             if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
                 object->setProperty(ADDITIONAL_FLAGS_PROPERTY, properties[ADDITIONAL_FLAGS_PROPERTY].toUInt());
             }
@@ -269,6 +284,7 @@ InteractiveWindow::~InteractiveWindow() {
 }
 
 void InteractiveWindow::sendToQml(const QVariant& message) {
+
     // Forward messages received from the script on to QML
     if (_dockWidget) {
         QQuickItem* rootItem = _dockWidget->getRootItem();
@@ -297,6 +313,10 @@ void InteractiveWindow::close() {
         _qmlWindowProxy->deleteLater();
     }
 
+    if (_interactiveWindowProxy) {
+        _interactiveWindowProxy->deleteLater();
+    }
+
     if (_dockWidget) {
         auto window = qApp->getWindow();
         if (QThread::currentThread() != window->thread()) {
@@ -307,6 +327,7 @@ void InteractiveWindow::close() {
     }
     _dockWidget = nullptr;
     _qmlWindowProxy = nullptr;
+    _interactiveWindowProxy = nullptr;
 }
 
 void InteractiveWindow::show() {
