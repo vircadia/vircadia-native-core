@@ -2591,7 +2591,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
                 _pendingContentFiles.erase(sessionId);
             });
 
-            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName());
+            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName(), filename);
         }
     } else if (filename.endsWith(".json", Qt::CaseInsensitive)
         || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {

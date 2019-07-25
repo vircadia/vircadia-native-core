@@ -45,7 +45,7 @@ $.extend(Settings, {
   DATA_ROW_INDEX: 'data-row-index',
   CONTENT_ARCHIVES_PANEL_ID: 'content_archives',
   UPLOAD_CONTENT_BACKUP_PANEL_ID: 'upload_content',
-  INSTALLED_ARCHIVE_INFO: 'installed_archive_info'
+  INSTALLED_CONTENT: 'installed_content'
 });
 
 var URLs = {

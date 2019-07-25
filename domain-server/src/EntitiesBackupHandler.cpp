@@ -57,7 +57,7 @@ void EntitiesBackupHandler::createBackup(const QString& backupName, QuaZip& zip)
     }
 }
 
-std::pair<bool, QString> EntitiesBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
+std::pair<bool, QString> EntitiesBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& sourceFilename) {
     if (!zip.setCurrentFile(ENTITIES_BACKUP_FILENAME)) {
         QString errorStr("Failed to find " + ENTITIES_BACKUP_FILENAME + " while recovering backup");
         qWarning() << errorStr;

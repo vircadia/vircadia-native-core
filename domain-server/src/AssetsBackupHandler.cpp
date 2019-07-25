@@ -278,7 +278,7 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
     _backups.emplace_back(backupName, mappings, false);
 }
 
-std::pair<bool, QString> AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
+std::pair<bool, QString> AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& sourceFilename) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {

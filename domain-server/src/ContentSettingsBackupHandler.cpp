@@ -10,6 +10,7 @@
 //
 
 #include "ContentSettingsBackupHandler.h"
+#include "DomainContentBackupManager.h"
 
 #if !defined(__clang__) && defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -32,10 +33,12 @@ ContentSettingsBackupHandler::ContentSettingsBackupHandler(DomainServerSettingsM
 }
 
 static const QString CONTENT_SETTINGS_BACKUP_FILENAME = "content-settings.json";
-static const QString INSTALLED_ARCHIVE = "installed_archive";
-static const QString INSTALLED_ARCHIVE_FILENAME = "filename";
-static const QString INSTALLED_ARCHIVE_INSTALL_TIME = "install_time";
-static const QString INSTALLED_ARCHIVE_INSTALLED_BY = "installed_by";
+static const QString INSTALLED_CONTENT = "installed_content";
+static const QString INSTALLED_CONTENT_FILENAME = "filename";
+static const QString INSTALLED_CONTENT_NAME = "name";
+static const QString INSTALLED_CONTENT_CREATION_TIME = "creation_time";
+static const QString INSTALLED_CONTENT_INSTALL_TIME = "install_time";
+static const QString INSTALLED_CONTENT_INSTALLED_BY = "installed_by";
 
 void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 
@@ -46,15 +49,26 @@ void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZi
         DomainServerSettingsManager::IncludeContentSettings, DomainServerSettingsManager::NoDefaultSettings,
         DomainServerSettingsManager::ForBackup
     );
+    QString prefixFormat = "(" + QRegExp::escape(AUTOMATIC_BACKUP_PREFIX) + "|" + QRegExp::escape(MANUAL_BACKUP_PREFIX) + ")";
+    QString nameFormat = "(.+)";
+    QString dateTimeFormat = "(" + DATETIME_FORMAT_RE + ")";
+    QRegExp backupNameFormat { prefixFormat + nameFormat + "-" + dateTimeFormat + "\\.zip" };
 
-    // save the filename internally as it's used to determine the name/creation time
-    // of the archive, and we don't want that to change if the actual file is renamed
-    // after download.
-    QJsonObject installed_archive {
-        { INSTALLED_ARCHIVE_FILENAME, backupName },
+    QString name{ "" };
+    QDateTime createdAt;
+
+    if (backupNameFormat.exactMatch(backupName)) {
+        name = backupNameFormat.cap(2);
+        auto dateTime = backupNameFormat.cap(3);
+        createdAt = QDateTime::fromString(dateTime, DATETIME_FORMAT);
+    }
+
+    QJsonObject installed_content {
+        { INSTALLED_CONTENT_NAME, name},
+        { INSTALLED_CONTENT_CREATION_TIME, createdAt.currentMSecsSinceEpoch()}
     };
 
-    contentSettingsJSON.insert(INSTALLED_ARCHIVE, installed_archive);
+    contentSettingsJSON.insert(INSTALLED_CONTENT, installed_content);
 
     // make a QJsonDocument using the object
     QJsonDocument contentSettingsDocument { contentSettingsJSON };
@@ -76,7 +90,7 @@ void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZi
     }
 }
 
-std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
+std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& sourceFilename) {
     if (!zip.setCurrentFile(CONTENT_SETTINGS_BACKUP_FILENAME)) {
         QString errorStr("Failed to find " + CONTENT_SETTINGS_BACKUP_FILENAME + " while recovering backup");
         qWarning() << errorStr;
@@ -102,15 +116,17 @@ std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QStri
     QJsonDocument jsonDocument = QJsonDocument::fromJson(rawData);
     QJsonObject jsonObject = jsonDocument.object();
 
-    auto archiveJson = jsonObject.find(INSTALLED_ARCHIVE)->toObject();
+    auto archiveJson = jsonObject.find(INSTALLED_CONTENT)->toObject();
 
-    QJsonObject installed_archive {
-        { INSTALLED_ARCHIVE_FILENAME, archiveJson[INSTALLED_ARCHIVE_FILENAME]},
-        { INSTALLED_ARCHIVE_INSTALL_TIME, QDateTime::currentDateTime().currentMSecsSinceEpoch() },
-        { INSTALLED_ARCHIVE_INSTALLED_BY, ""}
+    QJsonObject installed_content {
+        { INSTALLED_CONTENT_FILENAME, sourceFilename },
+        { INSTALLED_CONTENT_NAME, archiveJson[INSTALLED_CONTENT_NAME].toString()},
+        { INSTALLED_CONTENT_CREATION_TIME, archiveJson[INSTALLED_CONTENT_CREATION_TIME].toVariant().toLongLong() },
+        { INSTALLED_CONTENT_INSTALL_TIME, QDateTime::currentDateTime().currentMSecsSinceEpoch() },
+        { INSTALLED_CONTENT_INSTALLED_BY, "" }
     };
 
-    jsonObject.insert(INSTALLED_ARCHIVE, installed_archive);
+    jsonObject.insert(INSTALLED_CONTENT, installed_content);
 
     if (!_settingsManager.restoreSettingsFromObject(jsonObject, ContentSettings)) {
         QString errorStr("Failed to restore settings from " + CONTENT_SETTINGS_BACKUP_FILENAME + " in content archive");

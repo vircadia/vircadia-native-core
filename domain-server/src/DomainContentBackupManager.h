@@ -34,6 +34,10 @@
 
 #include <PortableHighResolutionClock.h>
 
+const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
+const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
+const QString MANUAL_BACKUP_PREFIX { "backup-" };
+
 struct BackupItemInfo {
     BackupItemInfo(QString pId, QString pName, QString pAbsolutePath, QDateTime pCreatedAt, bool pIsManualBackup) :
         id(pId), name(pName), absolutePath(pAbsolutePath), createdAt(pCreatedAt), isManualBackup(pIsManualBackup) { };
@@ -87,7 +91,7 @@ public slots:
     void createManualBackup(MiniPromise::Promise promise, const QString& name);
     void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
     void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup);
-    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename);
+    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename, QString sourceFilename);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
 
 signals:
@@ -109,7 +113,7 @@ protected:
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 
-    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip, bool rollingBack = false);
+    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip, const QString& sourceFilename, bool rollingBack = false);
 
 private slots:
     void removeOldConsolidatedBackups();

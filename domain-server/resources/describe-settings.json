@@ -1790,14 +1790,24 @@
       ]
     },
     {
-      "name": "installed_archive",
-      "label": "Installed Archive",
+      "name": "installed_content",
+      "label": "Installed Content",
       "hidden": true,
       "settings": [
         {
           "name": "filename",
           "content_setting": true,
           "default": ""
+        },
+        {
+          "name": "name",
+          "content_setting": true,
+          "default": ""
+        },
+        {
+          "name": "creation_time",
+          "content_setting": true,
+          "default": 0
         },
         {
           "name": "install_time",

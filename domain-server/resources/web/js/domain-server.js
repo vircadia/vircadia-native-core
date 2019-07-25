@@ -57,8 +57,8 @@ $(document).ready(function(){
   // define extra groups to add to setting panels, with their splice index
   Settings.extraContentGroupsAtIndex = {
     0: {
-      html_id: Settings.INSTALLED_ARCHIVE_INFO,
-      label: 'Installed Archive'
+      html_id: Settings.INSTALLED_CONTENT,
+      label: 'Installed Content'
     },
     1: {
       html_id: Settings.CONTENT_ARCHIVES_PANEL_ID,

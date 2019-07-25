@@ -4,10 +4,11 @@ $(document).ready(function(){
   var RESTORE_SETTINGS_FILE_ID = 'restore-settings-file';
   var UPLOAD_CONTENT_ALLOWED_DIV_ID = 'upload-content-allowed';
   var UPLOAD_CONTENT_RECOVERING_DIV_ID = 'upload-content-recovering';
-  var INSTALLED_ARCHIVE_NAME_ID = 'installed-archive-name';
-  var INSTALLED_ARCHIVE_CREATED_ID = 'installed-archive-created';
-  var INSTALLED_ARCHIVE_INSTALLED_ID = 'installed-archive-installed';
-  var INSTALLED_ARCHIVE_INSTALLED_BY_ID = 'installed-archive-installed-by';
+  var INSTALLED_CONTENT_FILENAME_ID = 'installed-content-filename';
+  var INSTALLED_CONTENT_NAME_ID = 'installed-content-name';
+  var INSTALLED_CONTENT_CREATED_ID = 'installed-content-created';
+  var INSTALLED_CONTENT_INSTALLED_ID = 'installed-content-installed';
+  var INSTALLED_CONTENT_INSTALLED_BY_ID = 'installed-content-installed-by';
 
   var isRestoring = false;
   var restoreErrorShown = false;
@@ -114,15 +115,17 @@ $(document).ready(function(){
   function setupInstalledContentInfo() {
     var html = "<table class='table table-bordered'><tbody>";
     html += "<tr class='headers'><td class='data'><strong>Name</strong></td>";
+    html += "<td class='data'><strong>File Name</strong></td>";
     html += "<td class='data'><strong>Created</strong></td>";
     html += "<td class='data'><strong>Installed</strong></td>";
     //html += "<td class='data'><strong>Installed By</strong></td></tr>";
-    html += "<tr><td class='data' id='" + INSTALLED_ARCHIVE_NAME_ID + "'/>";
-    html += "<td class='data' id='" + INSTALLED_ARCHIVE_CREATED_ID + "'/>";
-    html += "<td class='data' id='" + INSTALLED_ARCHIVE_INSTALLED_ID + "'/>";
-    //html += "<td class='data' id='" + INSTALLED_ARCHIVE_INSTALLED_BY_ID + "'/></tr>";
+    html += "<tr><td class='data' id='" + INSTALLED_CONTENT_NAME_ID + "'/>";
+    html += "<td class='data' id='" + INSTALLED_CONTENT_FILENAME_ID + "'/>";
+    html += "<td class='data' id='" + INSTALLED_CONTENT_CREATED_ID + "'/>";
+    html += "<td class='data' id='" + INSTALLED_CONTENT_INSTALLED_ID + "'/>";
+    //html += "<td class='data' id='" + INSTALLED_CONTENT_INSTALLED_BY_ID + "'/></tr>";
     html += "</tbody></table>";
-    $('#' + Settings.INSTALLED_ARCHIVE_INFO + ' .panel-body').html(html);
+    $('#' + Settings.INSTALLED_CONTENT + ' .panel-body').html(html);
   }
 
   // handle content archive or entity file upload
@@ -360,11 +363,11 @@ $(document).ready(function(){
       $('#' + UPLOAD_CONTENT_ALLOWED_DIV_ID).toggle(!data.status.isRecovering);
       $('#' + UPLOAD_CONTENT_RECOVERING_DIV_ID).toggle(data.status.isRecovering);
 
-
-      $('#' + INSTALLED_ARCHIVE_NAME_ID).text(data.installed_archive.name);
-      $('#' + INSTALLED_ARCHIVE_CREATED_ID).text(moment(data.installed_archive.creation_time).format('lll'));
-      $('#' + INSTALLED_ARCHIVE_INSTALLED_ID).text(moment(data.installed_archive.install_time).format('lll'));
-      //$('#' + INSTALLED_ARCHIVE_INSTALLED_BY_ID).text(data.current_archive.installed_by);
+      $('#' + INSTALLED_CONTENT_NAME_ID).text(data.installed_content.name);
+      $('#' + INSTALLED_CONTENT_FILENAME_ID).text(data.installed_content.filename);
+      $('#' + INSTALLED_CONTENT_CREATED_ID).text(data.installed_content.creation_time ? moment(data.installed_content.creation_time).format('lll') : "");
+      $('#' + INSTALLED_CONTENT_INSTALLED_ID).text(data.installed_content.install_time ? moment(data.installed_content.install_time).format('lll') : "");
+      //$('#' + INSTALLED_CONTENT_INSTALLED_BY_ID).text(data.installed_content.installed_by);
 
       // update the progress bars for current restore status
       if (data.status.isRecovering) {
