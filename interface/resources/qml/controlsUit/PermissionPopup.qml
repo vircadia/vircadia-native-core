@@ -26,13 +26,10 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent
         Rectangle {
-            id: webAccessHeaderContainer
             height: 75
-            anchors.top: parent.top
             Layout.preferredWidth: parent.width
 
             HifiStyles.RalewayBold {
-                id: webAccessHeaderText
                 text: "REQUEST FOR DEVICE ACCESS"
 
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -44,12 +41,10 @@ Rectangle {
         }
 
         Rectangle {
-            id: webAccessInfoContainer
             height: 35
             Layout.preferredWidth: parent.width
 
             HifiStyles.RalewayLight {
-                id: webAccessInfoText
                 text: "This website is attempting to " + root.permissionLanguage[root.currentRequestedPermission] + "."
 
                 anchors.centerIn: parent
@@ -60,39 +55,33 @@ Rectangle {
         }
         
         Rectangle {
-            id: permissionsButtonsRow
             height: 100
             Layout.preferredWidth: parent.width
             Layout.topMargin: 35
             property int space: 8
-            readonly property int _LEFT_BUTTON: 0
-            readonly property int _RIGHT_BUTTON: 1
 
             HifiControls.Button {
-                id: leftButton
                 text: "Don't Allow"
 
                 anchors.right: parent.horizontalCenter
                 anchors.rightMargin: parent.space
+                width: 125
                 color: hifi.buttons.red
-                enabled: true
                 height: 38
                 onClicked: {
-                    root.permissionButtonPressed(parent._LEFT_BUTTON);
+                    root.permissionButtonPressed(0);
                 }
             }
             HifiControls.Button {
-                id: rightButton
                 text: "Yes allow access"
 
                 anchors.left: parent.horizontalCenter
                 anchors.leftMargin: parent.space
                 color: hifi.buttons.blue
-                enabled: true
                 width: 155
                 height: 38
                 onClicked: {
-                    root.permissionButtonPressed(parent._RIGHT_BUTTON);
+                    root.permissionButtonPressed(1);
                 }
             }
         }

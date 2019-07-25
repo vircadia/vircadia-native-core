@@ -41,6 +41,10 @@ WebEngineView {
     WebSpinner { }
 
     onFeaturePermissionRequested: {
+        if (permissionPopupBackground.visible === true) {
+            console.log("Browser engine requested a new permission, but user is already being presented with a different permission request. Aborting request for new permission...");
+            return;
+        }
         permissionPopupBackground.securityOrigin = securityOrigin;
         permissionPopupBackground.feature = feature;
 
