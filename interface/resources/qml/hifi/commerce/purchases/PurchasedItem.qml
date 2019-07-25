@@ -729,7 +729,7 @@ Item {
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 if (root.itemType === "contentSet") {
-                    sendToPurchases({method: 'showReplaceContentLightbox', itemHref: root.itemHref, certID: root.certificateId});
+                    sendToPurchases({method: 'showReplaceContentLightbox', itemHref: root.itemHref, certID: root.certificateId, itemName: root.itemName});
                 } else if (root.itemType === "avatar") {
                     sendToPurchases({method: 'showChangeAvatarLightbox', itemName: root.itemName, itemHref: root.itemHref});
                 } else if (root.itemType === "app") {

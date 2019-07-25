@@ -33,12 +33,6 @@ ContentSettingsBackupHandler::ContentSettingsBackupHandler(DomainServerSettingsM
 }
 
 static const QString CONTENT_SETTINGS_BACKUP_FILENAME = "content-settings.json";
-static const QString INSTALLED_CONTENT = "installed_content";
-static const QString INSTALLED_CONTENT_FILENAME = "filename";
-static const QString INSTALLED_CONTENT_NAME = "name";
-static const QString INSTALLED_CONTENT_CREATION_TIME = "creation_time";
-static const QString INSTALLED_CONTENT_INSTALL_TIME = "install_time";
-static const QString INSTALLED_CONTENT_INSTALLED_BY = "installed_by";
 
 void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 

@@ -37,6 +37,12 @@
 const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
 const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
 const QString MANUAL_BACKUP_PREFIX { "backup-" };
+const QString INSTALLED_CONTENT = "installed_content";
+const QString INSTALLED_CONTENT_FILENAME = "filename";
+const QString INSTALLED_CONTENT_NAME = "name";
+const QString INSTALLED_CONTENT_CREATION_TIME = "creation_time";
+const QString INSTALLED_CONTENT_INSTALL_TIME = "install_time";
+const QString INSTALLED_CONTENT_INSTALLED_BY = "installed_by";
 
 struct BackupItemInfo {
     BackupItemInfo(QString pId, QString pName, QString pAbsolutePath, QDateTime pCreatedAt, bool pIsManualBackup) :

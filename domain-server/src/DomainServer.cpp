@@ -2606,7 +2606,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             // invoke our method to hand the new octree file off to the octree server
             QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent));
+                Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent), Q_ARG(QString, filename), Q_ARG(QString, QString()));
             _pendingUploadedContents.erase(sessionId);
         }
     } else {
@@ -3491,7 +3491,7 @@ void DomainServer::maybeHandleReplacementEntityFile() {
     }
 }
 
-void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
+void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name) {
     OctreeUtils::RawEntityData data;
     if (data.readOctreeDataInfoFromData(octreeFile)) {
         data.resetIdAndVersion();
@@ -3507,6 +3507,18 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
             // process it when it comes back up
             qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
 
+            QJsonObject installed_content {
+                { INSTALLED_CONTENT_FILENAME, sourceFilename },
+                { INSTALLED_CONTENT_NAME, name },
+                { INSTALLED_CONTENT_CREATION_TIME, 0 },
+                { INSTALLED_CONTENT_INSTALL_TIME, QDateTime::currentDateTime().currentMSecsSinceEpoch() },
+                { INSTALLED_CONTENT_INSTALLED_BY, "" }
+            };
+
+            QJsonObject jsonObject { { INSTALLED_CONTENT, installed_content } };
+
+            _settingsManager.recurseJSONObjectAndOverwriteSettings(jsonObject, ContentSettings);
+
             QMetaObject::invokeMethod(this, "restart", Qt::QueuedConnection);
         } else {
             qWarning() << "Could not write replacement octree data to file - refusing to process";
@@ -3515,6 +3527,8 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile) {
         qDebug() << "Received replacement octree file that is invalid - refusing to process";
     }
 }
+
+static const QString CONTENT_SET_NAME_QUERY_PARAM = "name";
 
 void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message) {
     qInfo() << "Received request to replace content from a url";
@@ -3527,13 +3541,16 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
         QNetworkRequest request(modelsURL);
         QNetworkReply* reply = networkAccessManager.get(request);
 
-        qDebug() << "Downloading JSON from: " << modelsURL;
+        qDebug() << "Downloading JSON from: " << modelsURL.toString(QUrl::FullyEncoded);
 
         connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
             QNetworkReply::NetworkError networkError = reply->error();
             if (networkError == QNetworkReply::NoError) {
                 if (modelsURL.fileName().endsWith(".json.gz")) {
-                    handleOctreeFileReplacement(reply->readAll());
+                    QUrlQuery urlQuery(modelsURL.query(QUrl::FullyEncoded));
+
+                    QString itemName = urlQuery.queryItemValue(CONTENT_SET_NAME_QUERY_PARAM);
+                    handleOctreeFileReplacement(reply->readAll(), modelsURL.fileName(), itemName);
                 } else if (modelsURL.fileName().endsWith(".zip")) {
                     auto deferred = makePromise("recoverFromUploadedBackup");
                     _contentManager->recoverFromUploadedBackup(deferred, reply->readAll());
@@ -3548,6 +3565,6 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
 void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
     auto node = DependencyManager::get<NodeList>()->nodeWithLocalID(message->getSourceID());
     if (node->getCanReplaceContent()) {
-        handleOctreeFileReplacement(message->readAll());
+        handleOctreeFileReplacement(message->readAll(), QString(), QString());
     }
 }
