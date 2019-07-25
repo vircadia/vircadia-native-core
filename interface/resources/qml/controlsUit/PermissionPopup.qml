@@ -7,7 +7,7 @@ import stylesUit 1.0 as HifiStyles
 Rectangle {
     id: root
     width: 750
-    height: 225
+    height: 210
     color: hifi.colors.white
 
     anchors.centerIn: parent
@@ -61,7 +61,7 @@ Rectangle {
         
         Rectangle {
             id: permissionsButtonsRow
-            height: 115
+            height: 100
             Layout.preferredWidth: parent.width
             Layout.topMargin: 35
             property int space: 8
