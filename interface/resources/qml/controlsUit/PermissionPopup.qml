@@ -61,10 +61,9 @@ Rectangle {
             id: permissionsButtonsContainer
             height: 50
             width: parent.width
-            anchors.top: webAccessInfoContainer.bottom
-            anchors.horizontalCenter: webAccessInfoContainer.horizontalCenter
+            anchors.fill: parent
+
             property int space: 5
-            color: "#998899"
 
             HifiControls.Button {
                 id: leftButton
