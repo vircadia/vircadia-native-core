@@ -14,7 +14,6 @@ import controlsUit 1.0 as ControlsUit
 
 WebEngineView {
     id: root
-    
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
         // Ensure the JS from the web-engine makes it to our logging
@@ -42,15 +41,15 @@ WebEngineView {
     WebSpinner { }
 
     onFeaturePermissionRequested: {
-        permissionPopupBackground.permissionsOptions.securityOrigin = securityOrigin;
-        permissionPopupBackground.permissionsOptions.feature = feature;
+        permissionPopupBackground.securityOrigin = securityOrigin;
+        permissionPopupBackground.feature = feature;
 
         permissionPopupBackground.visible = true;
     }
 
     ControlsUit.PermissionPopupBackground {
-        z: 100
         id: permissionPopupBackground
+        z: 100
         onSendPermission: {
             root.grantFeaturePermission(securityOrigin, feature, shouldGivePermission);
         }

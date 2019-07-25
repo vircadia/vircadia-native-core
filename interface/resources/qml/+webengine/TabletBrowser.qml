@@ -87,8 +87,8 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            permissionPopupBackground.permissionsOptions.securityOrigin = securityOrigin;
-            permissionPopupBackground.permissionsOptions.feature = feature;
+            permissionPopupBackground.securityOrigin = securityOrigin;
+            permissionPopupBackground.feature = feature;
 
             permissionPopupBackground.visible = true;
         }
@@ -132,7 +132,7 @@ Item {
     HifiControls.PermissionPopupBackground {
         id: permissionPopupBackground
         onSendPermission: {
-            webview.grantFeaturePermission(securityOrigin, feature, shouldGivePermission)
+            webview.grantFeaturePermission(securityOrigin, feature, shouldGivePermission);
         }
     }
 }

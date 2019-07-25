@@ -1,8 +1,4 @@
 import QtQuick 2.5
-import controlsUit 1.0
-import stylesUit 1.0
-import "../windows"
-import "../."
 
 Rectangle {
     id: root
@@ -17,13 +13,19 @@ Rectangle {
         permissionPopupItem.currentRequestedPermission = feature;
     }
 
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        propagateComposedEvents: false
+    }
+
     PermissionPopup {
         id: permissionPopupItem
         onPermissionButtonPressed: {
             if (buttonNumber === 0) {
-                root.sendPermission(securityOrigin, feature, true)
+                root.sendPermission(securityOrigin, feature, false);
             } else {
-                root.sendPermission(securityOrigin, feature, false)
+                root.sendPermission(securityOrigin, feature, true);
             }
             root.visible = false;
             securityOrigin = 'none';
