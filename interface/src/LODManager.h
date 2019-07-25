@@ -12,6 +12,8 @@
 #ifndef hifi_LODManager_h
 #define hifi_LODManager_h
 
+#include <mutex>
+
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 #include <OctreeConstants.h>
@@ -230,6 +232,7 @@ signals:
 private:
     LODManager();
 
+    std::mutex _automaticLODLock;
     bool _automaticLODAdjust = true;
 
     float _presentTime{ 0.0f }; // msec
