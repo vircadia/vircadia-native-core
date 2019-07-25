@@ -531,21 +531,21 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 
 
 var oldAutomaticLODAdjust;
-var oldOctreeSizeScale;
+var oldLODAngleDeg;
 var SIMPLIFIED_UI_AUTO_LOD_ADJUST = false;
-var SIMPLIFIED_UI_OCTREE_SIZE_SCALE = 32768 * 916; // Octree cell size in meters (constant) * distance in meters at which we want a 1 meter cube to be visible
+var SIMPLIFIED_UI_LOD_ANGLE_DEG = 1.0
 function modifyLODSettings() {
     oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
-    oldOctreeSizeScale = LODManager.octreeSizeScale;
+    oldLODAngleDeg = LODManager.lodAngleDeg;
 
     LODManager.automaticLODAdjust = SIMPLIFIED_UI_AUTO_LOD_ADJUST;
-    LODManager.octreeSizeScale = SIMPLIFIED_UI_OCTREE_SIZE_SCALE;
+    LODManager.lodAngleDeg = SIMPLIFIED_UI_LOD_ANGLE_DEG;
 }
 
 
 function restoreLODSettings() {
     LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
-    LODManager.octreeSizeScale = oldOctreeSizeScale;
+    LODManager.lodAngleDeg = oldLODAngleDeg;
 }
 
 

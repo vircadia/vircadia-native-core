@@ -55,8 +55,6 @@ class LODManager : public QObject, public Dependency {
 
         Q_PROPERTY(float worldDetailQuality READ getWorldDetailQuality WRITE setWorldDetailQuality NOTIFY worldDetailQualityChanged)
 
-        Q_PROPERTY(float octreeSizeScale READ getOctreeSizeScale WRITE setOctreeSizeScale)
-
         Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust NOTIFY autoLODChanged)
 
         Q_PROPERTY(float presentTime READ getPresentTime)
