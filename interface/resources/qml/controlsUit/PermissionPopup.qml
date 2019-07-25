@@ -55,7 +55,7 @@ Rectangle {
         }
         
         Rectangle {
-            height: 100
+            Layout.preferredHeight: 100
             Layout.preferredWidth: parent.width
             Layout.topMargin: 35
             property int space: 8
