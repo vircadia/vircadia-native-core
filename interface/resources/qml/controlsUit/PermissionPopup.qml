@@ -41,7 +41,7 @@ Rectangle {
         }
 
         Rectangle {
-            height: 35
+            Layout.preferredHeight: 35
             Layout.preferredWidth: parent.width
 
             HifiStyles.RalewayLight {
