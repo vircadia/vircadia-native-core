@@ -59,7 +59,7 @@ public:
     };
     LauncherManager();
     ~LauncherManager();
-    void init(BOOL allowUpdate, BOOL continueUpdating);
+    void init(BOOL allowUpdate, BOOL continueUpdating, BOOL skipSplashScreen);
     BOOL initLog();
     BOOL addToLog(const CString& line);
     void closeLog();
@@ -90,18 +90,19 @@ public:
     const CString& getVersion() const { return _version; }
     BOOL shouldShutDown() const { return _shouldShutdown; }
     BOOL shouldLaunch() const { return _shouldLaunch; }
-    BOOL needsUpdate() { return _shouldUpdate; }
-    BOOL needsSelfUpdate() { return _shouldUpdateLauncher; }
-    BOOL needsSelfDownload() { return _shouldDownloadLauncher; }
-    BOOL needsUninstall() { return _shouldUninstall; }
-    BOOL needsInstall() { return _shouldInstall; }
-    BOOL needsToWait() { return _shouldWait; }
-    BOOL needsRestartNewLauncher() { return _shouldRestartNewLauncher; }
-    BOOL shouldContinueUpdating() { return _continueUpdating; }
-    BOOL willContinueUpdating() { return _willContinueUpdating; }
+    BOOL shouldSkipSplashScreen() const { return _skipSplashScreen; }
+    BOOL needsUpdate() const { return _shouldUpdate; }
+    BOOL needsSelfUpdate() const { return _shouldUpdateLauncher; }
+    BOOL needsSelfDownload() const { return _shouldDownloadLauncher; }
+    BOOL needsUninstall() const { return _shouldUninstall; }
+    BOOL needsInstall() const { return _shouldInstall; }
+    BOOL needsToWait() const { return _shouldWait; }
+    BOOL needsRestartNewLauncher() const { return _shouldRestartNewLauncher; }
+    BOOL shouldContinueUpdating() const { return _continueUpdating; }
+    BOOL willContinueUpdating() const { return _willContinueUpdating; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
-    bool isLoggedIn() { return _loggedIn; }
-    bool hasFailed() { return _hasFailed; }
+    bool isLoggedIn() const { return _loggedIn; }
+    bool hasFailed() const { return _hasFailed; }
     void setFailed(bool hasFailed) { _hasFailed = hasFailed; }
     const CString& getLatestInterfaceURL() const { return _latestApplicationURL; }
     void uninstall() { _shouldUninstall = true; _shouldWait = false; };
@@ -115,7 +116,7 @@ public:
     void restartNewLauncher();
     void onZipExtracted(ProcessType type, int size);
     void onFileDownloaded(ProcessType type);
-    float getProgress() { return _progress; }
+    float getProgress() const { return _progress; }
     void updateProgress(ProcessType processType, float progress);
     void onCancel();
     const CString& getLauncherVersion() const { return _launcherVersion; }
@@ -145,11 +146,12 @@ private:
     BOOL _shouldLaunch { FALSE };
     BOOL _shouldWait { TRUE };
     BOOL _shouldUpdateLauncher { FALSE };
-    BOOL _shouldDownloadLauncher{ FALSE };
+    BOOL _shouldDownloadLauncher { FALSE };
     BOOL _updateLauncherAllowed { TRUE };
     BOOL _shouldRestartNewLauncher { FALSE };
-    BOOL _continueUpdating{ FALSE };
-    BOOL _willContinueUpdating{ FALSE };
+    BOOL _continueUpdating { FALSE };
+    BOOL _willContinueUpdating { FALSE };
+    BOOL _skipSplashScreen { FALSE };
     float _progressOffset { 0.0f };
     float _progress { 0.0f };
     CStdioFile _logFile;

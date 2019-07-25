@@ -21,11 +21,13 @@ LauncherManager::LauncherManager() {
 LauncherManager::~LauncherManager() {
 }
 
-void LauncherManager::init(BOOL allowUpdate, BOOL continueUpdating) {
+void LauncherManager::init(BOOL allowUpdate, BOOL continueUpdating, BOOL skipSplashScreen) {
     initLog();
     int tokenPos = 0;
     _updateLauncherAllowed = allowUpdate;
     _continueUpdating = continueUpdating;
+    _skipSplashScreen = skipSplashScreen;
+    _shouldWait = !skipSplashScreen;
     if (_continueUpdating) {
         _progressOffset = CONTINUE_UPDATING_GLOBAL_OFFSET;
     }
@@ -613,7 +615,7 @@ void LauncherManager::restartNewLauncher() {
     if (_willContinueUpdating) {
         LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --continueUpdating"));
     } else {
-        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate"));
+        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --skipSplash"));
     }    
     Sleep(500);
 }

@@ -693,7 +693,6 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                 }
             }
         }
-        BOOL needsToWait = theApp._manager.needsToWait();
         if (_showSplash) {
             if (_splashStep == 0) {
                 if (theApp._manager.needsUninstall()) {
@@ -704,10 +703,14 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                     setDrawDialog(DrawStep::DrawProcessUpdate);
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 0.0f);
                 } else {
-                    theApp._manager.addToLog(_T("Start splash screen"));
-                    setDrawDialog(DrawStep::DrawLogo);
+                    if (theApp._manager.shouldSkipSplashScreen()) {
+                        _splashStep = SPLASH_DURATION;
+                    } else {
+                        theApp._manager.addToLog(_T("Start splash screen"));
+                        setDrawDialog(DrawStep::DrawLogo);
+                    }
                 }
-            } else if (_splashStep > SPLASH_DURATION && !needsToWait) {
+            } else if (_splashStep > SPLASH_DURATION && !theApp._manager.needsToWait()) {
                 _showSplash = false;
                 if (theApp._manager.shouldShutDown()) {
                     if (_applicationWND != NULL) {
