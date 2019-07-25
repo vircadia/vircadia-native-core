@@ -48,7 +48,7 @@ Rectangle {
                 text: "This website is attempting to " + root.permissionLanguage[root.currentRequestedPermission] + "."
 
                 anchors.centerIn: parent
-                wrapMode: Text.WordWrap
+                wrapMode: Text.Wrap
                 size: 20
                 color: hifi.colors.black
             }
