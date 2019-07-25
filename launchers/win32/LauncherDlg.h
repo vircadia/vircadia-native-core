@@ -94,6 +94,8 @@ protected:
     CStatic* m_username_banner;
     CStatic* m_password_banner;
 
+    CStatic* m_version;
+
     HWND _applicationWND { 0 };
 
     void drawBackground(CHwndRenderTarget* pRenderTarget);

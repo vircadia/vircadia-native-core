@@ -39,16 +39,28 @@ BOOL CLauncherApp::InitInstance() {
     }
     int iNumOfArgs;
     LPWSTR* pArgs = CommandLineToArgvW(GetCommandLine(), &iNumOfArgs);
-    bool isUninstalling = false;
-    bool isRestarting = false;
+    bool uninstalling = false;
+    bool restarting = false;
+    bool noUpdate = false;
+    bool continueUpdating = false;
+    bool skipSplash = false;
     if (iNumOfArgs > 1) {
-        if (CString(pArgs[1]).Compare(_T("--uninstall")) == 0) {
-            isUninstalling = true;
-        } else if (CString(pArgs[1]).Compare(_T("--restart")) == 0) {
-            isRestarting = true;
+        for (int i = 1; i < iNumOfArgs; i++) {
+            CString curArg = CString(pArgs[i]);
+            if (curArg.Compare(_T("--uninstall")) == 0) {
+                uninstalling = true;
+            } else if (curArg.Compare(_T("--restart")) == 0) {
+                restarting = true;
+            } else if (curArg.Compare(_T("--noUpdate")) == 0) {
+                noUpdate = true;
+            } else if (curArg.Compare(_T("--continueUpdating")) == 0) {
+                continueUpdating = true;
+            } else if (curArg.Compare(_T("--skipSplash")) == 0) {
+                skipSplash = true;
+            }
         }
     }
-    if (!isRestarting) {
+    if (!restarting) {
         // don't launch if already running
         CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
         if (GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -56,10 +68,10 @@ BOOL CLauncherApp::InitInstance() {
         }
     }
 
-    if (isUninstalling) {
+    if (uninstalling) {
         _manager.uninstall();
     } else {
-        _manager.init();
+        _manager.init(!noUpdate, continueUpdating, skipSplash);
     }   
     if (!_manager.hasFailed() && !_manager.installLauncher()) {
         return FALSE;
