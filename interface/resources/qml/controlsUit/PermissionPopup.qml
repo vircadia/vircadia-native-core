@@ -26,7 +26,7 @@ Rectangle {
     ColumnLayout {
         anchors.fill: parent
         Rectangle {
-            height: 75
+            Layout.preferredHeight: 75
             Layout.preferredWidth: parent.width
 
             HifiStyles.RalewayBold {
