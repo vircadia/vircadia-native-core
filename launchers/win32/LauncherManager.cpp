@@ -21,9 +21,14 @@ LauncherManager::LauncherManager() {
 LauncherManager::~LauncherManager() {
 }
 
-void LauncherManager::init() {
+void LauncherManager::init(BOOL allowUpdate, BOOL continueUpdating) {
     initLog();
     int tokenPos = 0;
+    _updateLauncherAllowed = allowUpdate;
+    _continueUpdating = continueUpdating;
+    if (_continueUpdating) {
+        _progressOffset = CONTINUE_UPDATING_GLOBAL_OFFSET;
+    }
     _launcherVersion = CString(LAUNCHER_BUILD_VERSION).Tokenize(_T("-"), tokenPos);
     addToLog(_T("Launcher is running version: " + _launcherVersion));
     addToLog(_T("Getting most recent builds"));
@@ -158,6 +163,7 @@ void LauncherManager::updateProgress(ProcessType processType, float progress) {
     default:
         break;
     }
+    _progress = _progressOffset + (1.0f - _progressOffset) * _progress;
     TRACE("progress = %f\n", _progress);
 }
 
@@ -205,11 +211,11 @@ BOOL LauncherManager::isApplicationInstalled(CString& version, CString& domain,
     CString applicationDir;
     getAndCreatePaths(PathType::Launcher_Directory, applicationDir);
     CString applicationPath = applicationDir + "interface\\interface.exe";
-    BOOL isApplicationInstalled = PathFileExistsW(applicationPath);
+    BOOL isInstalled = PathFileExistsW(applicationPath);
     BOOL configFileExist = PathFileExistsW(applicationDir + _T("interface\\config.json"));
     if (configFileExist) {
         LauncherUtils::ResponseError status = readConfigJSON(version, domain, content, loggedIn);
-        return isApplicationInstalled && status == LauncherUtils::ResponseError::NoError;
+        return isInstalled && status == LauncherUtils::ResponseError::NoError;
     }
     return FALSE;
 }
@@ -414,23 +420,26 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
 void LauncherManager::onMostRecentBuildsReceived(const CString& response, LauncherUtils::ResponseError error) {
     if (error == LauncherUtils::ResponseError::NoError) {
         addToLog(_T("Latest launcher version: ") + _latestLauncherVersion);
-        
-        if (_updateLauncherAllowed && _latestLauncherVersion.Compare(_launcherVersion) != 0) {
+        CString currentVersion;
+        BOOL isInstalled = (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn);
+        bool newInterfaceVersion = _latestVersion.Compare(currentVersion) != 0;
+        bool newLauncherVersion = _latestLauncherVersion.Compare(_launcherVersion) != 0 && _updateLauncherAllowed;
+        if (newLauncherVersion) {
             CString updatingMsg;
             updatingMsg.Format(_T("Updating Launcher from version: %s to version: %s"), _launcherVersion, _latestLauncherVersion);
             addToLog(updatingMsg);
             _shouldUpdateLauncher = TRUE;
             _shouldDownloadLauncher = TRUE;
+            _willContinueUpdating = isInstalled && newInterfaceVersion;
         } else {
             if (_updateLauncherAllowed) {
                 addToLog(_T("Already running most recent build. Launching interface.exe"));
             } else {
                 addToLog(_T("Updating the launcher was not allowed --noUpdate"));
             }            
-            CString currentVersion;
-            if (isApplicationInstalled(currentVersion, _domainURL, _contentURL, _loggedIn) && _loggedIn) {
+            if (isInstalled) {
                 addToLog(_T("Installed version: ") + currentVersion);
-                if (_latestVersion.Compare(currentVersion) == 0) {
+                if (!newInterfaceVersion) {
                     addToLog(_T("Already running most recent build. Launching interface.exe"));
                     _shouldLaunch = TRUE;
                     _shouldShutdown = TRUE;
@@ -552,7 +561,7 @@ BOOL LauncherManager::extractApplication() {
         }
     };
     std::function<void(float)> onProgress = [&](float progress) {
-        updateProgress(ProcessType::UnzipApplication, progress);
+        updateProgress(ProcessType::UnzipApplication, max(progress, 0.0f));
     };
     _currentProcess = ProcessType::UnzipApplication;
     BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipApplication, 
@@ -600,7 +609,13 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 }
 
 void LauncherManager::restartNewLauncher() {
-    LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart"));
+    closeLog();
+    if (_willContinueUpdating) {
+        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --continueUpdating"));
+    } else {
+        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate"));
+    }    
+    Sleep(500);
 }
 
 
@@ -619,7 +634,7 @@ BOOL LauncherManager::installContent() {
         }
     };
     std::function<void(float)> onProgress = [&](float progress) {
-        updateProgress(ProcessType::UnzipContent, progress);
+        updateProgress(ProcessType::UnzipContent, max(progress, 0.0f));
     };
     _currentProcess = ProcessType::UnzipContent;
     BOOL success = LauncherUtils::unzipFileOnThread(ProcessType::UnzipContent, contentZipFile,
@@ -634,10 +649,13 @@ BOOL LauncherManager::installContent() {
 
 
 BOOL LauncherManager::downloadFile(ProcessType type, const CString& url, CString& outPath) {
-    CString fileName = url.Mid(url.ReverseFind('/') + 1);
-    CString downloadDirectory;
-    BOOL success = getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDirectory);
-    outPath = downloadDirectory + fileName;
+    BOOL success = TRUE;
+    if (outPath.IsEmpty()) {
+        CString fileName = url.Mid(url.ReverseFind('/') + 1);
+        CString downloadDirectory;
+        BOOL success = getAndCreatePaths(LauncherManager::PathType::Download_Directory, downloadDirectory);
+        outPath = downloadDirectory + fileName;
+    }
     _currentProcess = type;
     if (success) {
         addToLog(_T("Downloading: ") + url);
@@ -656,7 +674,7 @@ BOOL LauncherManager::downloadFile(ProcessType type, const CString& url, CString
             }
         };
         std::function<void(float)> onProgress = [&, type](float progress) {
-            updateProgress(_currentProcess, progress);
+            updateProgress(_currentProcess, max(progress, 0.0f));
         };
         success = LauncherUtils::downloadFileOnThread(type, url, outPath, onDownloadFinished, onProgress);
     }
@@ -677,7 +695,8 @@ BOOL LauncherManager::downloadApplication() {
 BOOL LauncherManager::downloadNewLauncher() {
     _shouldDownloadLauncher = FALSE;
     getAndCreatePaths(PathType::Temp_Directory, _tempLauncherPath);
-    _tempLauncherPath += _T("/") + LAUNCHER_EXE_FILENAME;
+    CString tempName = _T("HQLauncher") + _launcherVersion + _T(".exe");
+    _tempLauncherPath += tempName;
     return downloadFile(ProcessType::DownloadLauncher, _latestLauncherURL, _tempLauncherPath);
 }
 

@@ -25,6 +25,7 @@ const float DOWNLOAD_APPLICATION_INSTALL_WEIGHT = 0.5f;
 const float EXTRACT_APPLICATION_INSTALL_WEIGHT = 0.2f;
 const float DOWNLOAD_APPLICATION_UPDATE_WEIGHT = 0.75f;
 const float EXTRACT_APPLICATION_UPDATE_WEIGHT = 0.25f;
+const float CONTINUE_UPDATING_GLOBAL_OFFSET = 0.2f;
 
 class LauncherManager
 {
@@ -58,7 +59,7 @@ public:
     };
     LauncherManager();
     ~LauncherManager();
-    void init();
+    void init(BOOL allowUpdate, BOOL continueUpdating);
     BOOL initLog();
     BOOL addToLog(const CString& line);
     void closeLog();
@@ -96,6 +97,8 @@ public:
     BOOL needsInstall() { return _shouldInstall; }
     BOOL needsToWait() { return _shouldWait; }
     BOOL needsRestartNewLauncher() { return _shouldRestartNewLauncher; }
+    BOOL shouldContinueUpdating() { return _continueUpdating; }
+    BOOL willContinueUpdating() { return _willContinueUpdating; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() { return _loggedIn; }
     bool hasFailed() { return _hasFailed; }
@@ -145,6 +148,9 @@ private:
     BOOL _shouldDownloadLauncher{ FALSE };
     BOOL _updateLauncherAllowed { TRUE };
     BOOL _shouldRestartNewLauncher { FALSE };
+    BOOL _continueUpdating{ FALSE };
+    BOOL _willContinueUpdating{ FALSE };
+    float _progressOffset { 0.0f };
     float _progress { 0.0f };
     CStdioFile _logFile;
 };

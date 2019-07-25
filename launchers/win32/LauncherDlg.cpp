@@ -677,7 +677,12 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                 theApp._manager.downloadNewLauncher();
             } else {
                 if (_splashStep > SPLASH_DURATION && _splashStep < 2 * SPLASH_DURATION) {
-                    theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, (float)(_splashStep - SPLASH_DURATION) / SPLASH_DURATION);
+                    float progress = (float)(_splashStep - SPLASH_DURATION) / SPLASH_DURATION;
+                    if (theApp._manager.willContinueUpdating()) {
+                        progress = CONTINUE_UPDATING_GLOBAL_OFFSET * progress;
+                        progress = min(progress, CONTINUE_UPDATING_GLOBAL_OFFSET);
+                    }                    
+                    theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, progress);
                     _splashStep++;
                 }
                 if (theApp._manager.needsRestartNewLauncher()) {
@@ -688,17 +693,21 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                 }
             }
         }
-
+        BOOL needsToWait = theApp._manager.needsToWait();
         if (_showSplash) {
             if (_splashStep == 0) {
                 if (theApp._manager.needsUninstall()) {
                     theApp._manager.addToLog(_T("Waiting to uninstall"));
                     setDrawDialog(DrawStep::DrawProcessUninstall);
+                } else if (theApp._manager.shouldContinueUpdating()) {
+                    _splashStep = SPLASH_DURATION;
+                    setDrawDialog(DrawStep::DrawProcessUpdate);
+                    theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 0.0f);
                 } else {
                     theApp._manager.addToLog(_T("Start splash screen"));
                     setDrawDialog(DrawStep::DrawLogo);
                 }
-            } else if (_splashStep > SPLASH_DURATION && !theApp._manager.needsToWait()) {
+            } else if (_splashStep > SPLASH_DURATION && !needsToWait) {
                 _showSplash = false;
                 if (theApp._manager.shouldShutDown()) {
                     if (_applicationWND != NULL) {
@@ -769,12 +778,17 @@ void CLauncherDlg::setDrawDialog(DrawStep step, BOOL isUpdate) {
     auto m_voxelRenderTarget = m_voxel->GetRenderTarget();
     auto m_progressRenderTarget = m_progress->GetRenderTarget();
     switch (_drawStep) {
-    case DrawStep::DrawLogo:
+    case DrawStep::DrawLogo: {
         m_pRenderTarget->BeginDraw();
         drawBackground(m_pRenderTarget);
         drawLogo(m_pRenderTarget);
         m_pRenderTarget->EndDraw();
+        CRect redrawRec;
+        GetClientRect(redrawRec);
+        redrawRec.top = redrawRec.bottom - 30;
+        RedrawWindow(redrawRec);
         break;
+    }
     case DrawStep::DrawLoginLogin:
     case DrawStep::DrawLoginErrorOrg:
     case DrawStep::DrawLoginErrorCred:
