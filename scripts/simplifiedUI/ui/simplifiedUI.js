@@ -533,7 +533,7 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 var oldAutomaticLODAdjust;
 var oldLODAngleDeg;
 var SIMPLIFIED_UI_AUTO_LOD_ADJUST = false;
-var SIMPLIFIED_UI_LOD_ANGLE_DEG = 1.0
+var SIMPLIFIED_UI_LOD_ANGLE_DEG = 0.5;
 function modifyLODSettings() {
     oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
     oldLODAngleDeg = LODManager.lodAngleDeg;
