@@ -1135,8 +1135,6 @@ void AudioClient::configureWebrtc() {
     config.level_estimation.enabled = false;
 
     _apm->ApplyConfig(config);
-
-    qCDebug(audioclient) << "WebRTC enabled for acoustic echo cancellation.";
 }
 
 // rebuffer into 10ms chunks
@@ -1207,7 +1205,7 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
 
     // process one chunk
     int error = _apm->ProcessStream(buffers, streamConfig, streamConfig, buffers);
-    if (error =! _apm->kNoError) {
+    if (error != _apm->kNoError) {
         qCWarning(audioclient) << "WebRTC ProcessStream() returned ERROR:" << error;
     } else {
         // modify samples in-place
@@ -1396,8 +1394,10 @@ void AudioClient::handleMicAudioInput() {
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
 
 #if defined(WEBRTC_ENABLED)
-        processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
-                             _inputFormat.channelCount(), _inputFormat.sampleRate());
+        if (_isAECEnabled) {
+            processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
+                                 _inputFormat.channelCount(), _inputFormat.sampleRate());
+        }
 #endif
 
         // detect loudness and clipping on the raw input
@@ -2326,7 +2326,9 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
 
 #if defined(WEBRTC_ENABLED)
-    _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
+    if (_audio->_isAECEnabled) {
+        _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
+    }
 #endif
 
     // if required, upmix or downmix to deviceChannelCount
