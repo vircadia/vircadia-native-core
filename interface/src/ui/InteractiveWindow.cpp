@@ -136,8 +136,10 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
     if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
         presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
     }
-
-    _interactiveWindowProxy = std::unique_ptr<InteractiveWindowProxy, InteractiveWindowProxyDeleter>(new InteractiveWindowProxy());
+    
+   _interactiveWindowProxy= std::unique_ptr<InteractiveWindowProxy, std::function<void(InteractiveWindowProxy*)>>(new InteractiveWindowProxy, [](InteractiveWindowProxy *p) {
+       p->deleteLater();
+   });
 
     QObject::connect(_interactiveWindowProxy.get(), &InteractiveWindowProxy::webEventReceived, this, &InteractiveWindow::emitWebEvent, Qt::QueuedConnection);
     QObject::connect(this, &InteractiveWindow::scriptEventReceived, _interactiveWindowProxy.get(), &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);

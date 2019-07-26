@@ -37,7 +37,6 @@ private:
 };
 
 
-
 class InteractiveWindowProxy : public QObject {
     Q_OBJECT
 public:
@@ -53,13 +52,6 @@ signals:
     void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
 };
-
-struct InteractiveWindowProxyDeleter {
-    void operator()(InteractiveWindowProxy * p) {
-        p->deleteLater();
-    }
-};
-
 
 namespace InteractiveWindowEnums {
     Q_NAMESPACE
@@ -332,7 +324,7 @@ protected slots:
 private:
     std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };
-    std::unique_ptr<InteractiveWindowProxy, InteractiveWindowProxyDeleter>  _interactiveWindowProxy;
+    std::unique_ptr<InteractiveWindowProxy, std::function<void(InteractiveWindowProxy*)>> _interactiveWindowProxy;
 };
 
 typedef InteractiveWindow* InteractiveWindowPointer;
