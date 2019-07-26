@@ -2583,7 +2583,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         _pendingFileContent.close();
 
         // Respond immediately - will timeout if we wait for restore.
-        connection->respond(HTTPConnection::StatusCode200);
+        connection->respond(HTTPConnection::StatusCode204);
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             auto deferred = makePromise("recoverFromUploadedBackup");
 
@@ -2610,7 +2610,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
             }
             _pendingUploadedContents.erase(sessionId);
         }
-        connection->respond(HTTPConnection::StatusCode200);
+        connection->respond(HTTPConnection::StatusCode204);
     } else {
         connection->respond(HTTPConnection::StatusCode400);
         return false;
