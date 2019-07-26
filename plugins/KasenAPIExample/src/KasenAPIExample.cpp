@@ -10,7 +10,7 @@
 //
 // Example of prototyping new JS APIs by leveraging the existing plugin system.
 
-#include "DeprecatedScriptPlugin.h"
+#include "ExampleScriptPlugin.h"
 
 #include <QCoreApplication>
 #include <QtCore/QJsonObject>
@@ -25,11 +25,11 @@ namespace custom_api_example {
 
 QLoggingCategory logger{ "custom_api_example" };
 
-class KasenAPIExample : public deprecated::ScriptPlugin {
+class KasenAPIExample : public example::ScriptPlugin {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "KasenAPIExample" FILE "plugin.json")
 public:
-    KasenAPIExample() : deprecated::ScriptPlugin("KasenAPIExample", "0.0.0") {
+    KasenAPIExample() : example::ScriptPlugin("KasenAPIExample", "0.0.1") {
         qCInfo(logger) << "plugin loaded" << qApp << toString() << QThread::currentThread(); 
     }
 
@@ -134,6 +134,6 @@ private:
 
 }
 
-const QLoggingCategory& deprecated::logger{ custom_api_example::logger };
+const QLoggingCategory& example::logger{ custom_api_example::logger };
 
 #include "KasenAPIExample.moc"

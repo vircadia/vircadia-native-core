@@ -4,7 +4,7 @@
     "package": {
         "author": "Revofire",
         "homepage": "www.realities.dev",
-        "version": "0.0.0",
+        "version": "0.0.1",
         "engines": {
           "hifi-interface": ">= 0.83.0",
           "hifi-assignment-client": ">= 0.83.0"

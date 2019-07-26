@@ -1,5 +1,5 @@
 //
-//  DeprecatedScriptPlugin.h
+//  ExampleScriptPlugin.h
 //  plugins/KasenAPIExample/src
 //
 //  Created by Kasen IO on 2019.07.14 | realities.dev | kasenvr@gmail.com
@@ -10,8 +10,8 @@
 //
 // Supporting file containing all QtScript specific integration.
 
-#ifndef DEPRECATED_SCRIPT_PLUGIN_H
-#define DEPRECATED_SCRIPT_PLUGIN_H
+#ifndef EXAMPLE_SCRIPT_PLUGIN_H
+#define EXAMPLE_SCRIPT_PLUGIN_H
 
 #if DEV_BUILD
 #pragma message("QtScript is deprecated see: doc.qt.io/qt-5/topics-scripting.html")
@@ -22,16 +22,14 @@
 #include <QCoreApplication>
 #include <shared/ScriptInitializerMixin.h>
 
-namespace deprecated {
+namespace example {
 
 extern const QLoggingCategory& logger;
 
 inline void setGlobalInstance(QScriptEngine* engine, const QString& name, QObject* object) {
     auto value = engine->newQObject(object, QScriptEngine::QtOwnership);
     engine->globalObject().setProperty(name, value);
-    if (1 || getenv("DEBUG")) {
-        qCDebug(logger) << "(via ScriptInitializers)...setGlobalInstance" << name << engine->property("fileName");
-    }
+    qCDebug(logger) << "setGlobalInstance" << name << engine->property("fileName");
 }
 
 class ScriptPlugin : public QObject {
@@ -53,6 +51,6 @@ public slots:
     inline QString toString() const { return QString("[%1 version=%2]").arg(objectName()).arg(_version); }
 };
 
-}  // namespace deprecated
+}  // namespace example
 
 #endif
