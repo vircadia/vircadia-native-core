@@ -10,6 +10,7 @@
 #include <QObject>
 
 #include <DependencyManager.h>
+#include <SettingHandle.h>
 
 #include "Forward.h"
 
@@ -70,6 +71,9 @@ private:
     using LoaderList = QList<Loader>;
 
     const LoaderList& getLoadedPlugins() const;
+    Setting::Handle<bool> _enableScriptingPlugins {
+        "private/enableScriptingPlugins", (bool)qgetenv("enableScriptingPlugins").toInt()
+    };
 };
 
 // TODO: we should define this value in CMake, and then use CMake

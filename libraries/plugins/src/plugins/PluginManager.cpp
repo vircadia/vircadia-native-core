@@ -110,6 +110,16 @@ int PluginManager::instantiate() {
             pluginDir.setNameFilters(QStringList() << "libplugins_lib*.so");
 #endif
             auto candidates = pluginDir.entryList();
+
+            if (_enableScriptingPlugins.get()) {
+                QDir scriptingPluginDir{ pluginDir };
+                scriptingPluginDir.cd("scripting");
+                qCDebug(plugins) << "Loading scripting plugins from " << scriptingPluginDir.path();
+                for (auto plugin : scriptingPluginDir.entryList()) {
+                    candidates << "scripting/" + plugin;
+                }
+            }
+
             for (auto plugin : candidates) {
                 qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
                 QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
@@ -144,7 +154,9 @@ int PluginManager::instantiate() {
                     qCDebug(plugins) << " " << qPrintable(loader->errorString());
                 }
             }
-        } else qWarning() << "pluginPath does not exit..." << pluginDir;
+        } else {
+            qWarning() << "pluginPath does not exit..." << pluginDir;
+        }
     });
     return loadedPlugins;
 }

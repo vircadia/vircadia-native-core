@@ -7,7 +7,8 @@
 #
 macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
   set(${TARGET_NAME}_SHARED 1)
-  setup_hifi_library(${ARGV})
+  set(PLUGIN_SUBFOLDER ${ARGN})
+  setup_hifi_library()
 
   if (BUILD_CLIENT)
     add_dependencies(interface ${TARGET_NAME})
@@ -25,6 +26,11 @@ macro(SETUP_HIFI_CLIENT_SERVER_PLUGIN)
   else()
     set(CLIENT_PLUGIN_PATH "plugins")
     set(SERVER_PLUGIN_PATH "plugins")
+  endif()
+
+  if (PLUGIN_SUBFOLDER)
+      set(CLIENT_PLUGIN_PATH "${CLIENT_PLUGIN_PATH}/${PLUGIN_SUBFOLDER}")
+      set(SERVER_PLUGIN_PATH "${SERVER_PLUGIN_PATH}/${PLUGIN_SUBFOLDER}")
   endif()
 
   if (CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_GENERATOR STREQUAL "Unix Makefiles")
