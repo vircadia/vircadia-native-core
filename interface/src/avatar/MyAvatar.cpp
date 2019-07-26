@@ -125,16 +125,25 @@ QString userRecenterModelToString(MyAvatar::SitStandModelType model) {
     }
 }
 
-static const QStringList REACTION_NAMES = {
+static const QStringList TRIGGER_REACTION_NAMES = {
     QString("positive"),
-    QString("negative"),
+    QString("negative")
+};
+
+static const QStringList BEGIN_END_REACTION_NAMES = {
     QString("raiseHand"),
     QString("applaud"),
     QString("point")
 };
 
-static int reactionNameToIndex(const QString& reactionName) {
-    return REACTION_NAMES.indexOf(reactionName);
+static int triggerReactionNameToIndex(const QString& reactionName) {
+    assert(NUM_AVATAR_TRIGGER_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    return TRIGGER_REACTION_NAMES.indexOf(reactionName);
+}
+
+static int beginEndReactionNameToIndex(const QString& reactionName) {
+    assert(NUM_AVATAR_BEGIN_END_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    return BEGIN_END_REACTION_NAMES.indexOf(reactionName);
 }
 
 MyAvatar::MyAvatar(QThread* thread) :
@@ -5824,13 +5833,17 @@ void MyAvatar::setModelScale(float scale) {
     }
 }
 
-QStringList MyAvatar::getReactions() const {
-    return REACTION_NAMES;
+QStringList MyAvatar::getBeginEndReactions() const {
+    return BEGIN_END_REACTION_NAMES;
+}
+
+QStringList MyAvatar::getTriggerReactions() const {
+    return TRIGGER_REACTION_NAMES;
 }
 
 bool MyAvatar::triggerReaction(QString reactionName) {
-    int reactionIndex = reactionNameToIndex(reactionName);
-    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_REACTIONS) {
+    int reactionIndex = triggerReactionNameToIndex(reactionName);
+    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_TRIGGER_REACTIONS) {
         std::lock_guard<std::mutex> guard(_reactionLock);
         _reactionTriggers[reactionIndex] = true;
         return true;
@@ -5839,8 +5852,8 @@ bool MyAvatar::triggerReaction(QString reactionName) {
 }
 
 bool MyAvatar::beginReaction(QString reactionName) {
-    int reactionIndex = reactionNameToIndex(reactionName);
-    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_REACTIONS) {
+    int reactionIndex = beginEndReactionNameToIndex(reactionName);
+    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
         std::lock_guard<std::mutex> guard(_reactionLock);
         _reactionEnabledRefCounts[reactionIndex]++;
         return true;
@@ -5849,8 +5862,8 @@ bool MyAvatar::beginReaction(QString reactionName) {
 }
 
 bool MyAvatar::endReaction(QString reactionName) {
-    int reactionIndex = reactionNameToIndex(reactionName);
-    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_REACTIONS) {
+    int reactionIndex = beginEndReactionNameToIndex(reactionName);
+    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
         std::lock_guard<std::mutex> guard(_reactionLock);
         _reactionEnabledRefCounts[reactionIndex]--;
         return true;
@@ -5860,12 +5873,17 @@ bool MyAvatar::endReaction(QString reactionName) {
 
 void MyAvatar::updateRigControllerParameters(Rig::ControllerParameters& params) {
     std::lock_guard<std::mutex> guard(_reactionLock);
-    for (int i = 0; i < NUM_AVATAR_REACTIONS; i++) {
 
+    for (int i = 0; i < TRIGGER_REACTION_NAMES.size(); i++) {
+        params.reactionTriggers[i] = _reactionTriggers[i];
+    }
+
+    for (int i = 0; i < BEGIN_END_REACTION_NAMES.size(); i++) {
         // copy current state into params.
         params.reactionEnabledFlags[i] = _reactionEnabledRefCounts[i] > 0;
-        params.reactionTriggers[i] = _reactionTriggers[i];
+    }
 
+    for (int i = 0; i < TRIGGER_REACTION_NAMES.size(); i++) {
         // clear reaction triggers here as well
         _reactionTriggers[i] = false;
     }

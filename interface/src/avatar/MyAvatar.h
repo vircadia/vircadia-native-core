@@ -2213,13 +2213,23 @@ public slots:
     virtual void setModelScale(float scale) override;
 
     /**jsdoc
-     * MyAvatar.getReactions
+     * MyAvatar.getTriggerReactions
+     * Returns a list of reactions names that can be triggered using MyAvatar.triggerReaction().
      * @returns {string[]} Array of reaction names.
      */
-    QStringList getReactions() const;
+    QStringList getTriggerReactions() const;
+
+
+    /**jsdoc
+     * MyAvatar.getBeginReactions
+     * Returns a list of reactions names that can be enabled using MyAvatar.beginReaction() and MyAvatar.endReaction().
+     * @returns {string[]} Array of reaction names.
+     */
+    QStringList getBeginEndReactions() const;
 
     /**jsdoc
      * MyAvatar.triggerReaction
+     * Plays the given reaction on the avatar, once the reaction is complete it will automatically complete.  Only reaction names returned from MyAvatar.getTriggerReactions() are available.
      * @param {string} reactionName - reaction name
      * @returns {bool} false if the given reaction is not supported.
      */
@@ -2227,6 +2237,9 @@ public slots:
 
     /**jsdoc
      * MyAvatar.beginReaction
+     * Plays the given reaction on the avatar.  The avatar will continue to play the reaction until stopped via the MyAvatar.endReaction() call or superseeded by another reaction.
+     * Only reaction names returned from MyAvatar.getBeginEndReactions() are available.
+     * NOTE: the caller is responsible for calling the corresponding MyAvatar.endReaction(), otherwise the avatar might become stuck in the reaction forever.
      * @param {string} reactionName - reaction name
      * @returns {bool} false if the given reaction is not supported.
      */
@@ -2234,6 +2247,7 @@ public slots:
 
     /**jsdoc
      * MyAvatar.endReaction
+     * Used to stop a given reaction that was started via MyAvatar.beginReaction().
      * @param {string} reactionName - reaction name
      * @returns {bool} false if the given reaction is not supported.
      */
@@ -2872,8 +2886,9 @@ private:
     QScriptEngine* _scriptEngine { nullptr };
     bool _needToSaveAvatarEntitySettings { false };
 
-    int _reactionEnabledRefCounts[NUM_AVATAR_REACTIONS] { 0, 0, 0, 0, 0 };
-    bool _reactionTriggers[NUM_AVATAR_REACTIONS] { false, false, false, false, false };
+    bool _reactionTriggers[NUM_AVATAR_TRIGGER_REACTIONS] { false, false };
+    int _reactionEnabledRefCounts[NUM_AVATAR_BEGIN_END_REACTIONS] { 0, 0, 0 };
+
     mutable std::mutex _reactionLock;
 };
 

@@ -95,6 +95,15 @@ const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, co
     return _poses;
 }
 
+const QString& AnimStateMachine::getCurrentStateID() const {
+    if (_currentState) {
+        return _currentState->getID();
+    } else {
+        static QString emptyString;
+        return emptyString;
+    }
+}
+
 void AnimStateMachine::setCurrentState(State::Pointer state) {
     _previousState = _currentState ? _currentState : state;
     _currentState = state;
