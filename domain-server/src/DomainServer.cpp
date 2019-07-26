@@ -2604,7 +2604,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
 
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             // invoke our method to hand the new octree file off to the octree server
-            if(!handleOctreeFileReplacement(_pendingUploadedContent, filename, QString())) {
+            if (!handleOctreeFileReplacement(_pendingUploadedContent, filename, QString())) {
                 connection->respond(HTTPConnection::StatusCode400);
                 return false;
             }
