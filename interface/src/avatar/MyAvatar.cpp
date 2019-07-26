@@ -6247,8 +6247,11 @@ void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
         setHMDLeanRecenterEnabled(true);
         centerBody();
         goToLocation(position, true, rotation, false, false);
-        // Enable movement again
-        setSitDriveKeysStatus(true);
+        float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
+        QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
+            // Enable movement again
+            setSitDriveKeysStatus(true);
+        });
     }
 
 }
