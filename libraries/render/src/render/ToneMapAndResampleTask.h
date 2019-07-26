@@ -17,6 +17,31 @@
 #include "Engine.h"
 
 namespace render {
+
+    enum class ToneCurve {
+        // Different tone curve available
+            None,
+        Gamma22,
+        Reinhard,
+        Filmic,
+    };
+
+    class ToneMappingConfig : public render::Job::Config {
+        Q_OBJECT
+        Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
+        Q_PROPERTY(int curve MEMBER curve WRITE setCurve);
+
+    public:
+        ToneMappingConfig() : render::Job::Config(true) {}
+
+        void setExposure(float newExposure) { exposure = newExposure; emit dirty(); }
+        void setCurve(int newCurve) { curve = std::max((int)ToneCurve::None, std::min((int)ToneCurve::Filmic, newCurve)); emit dirty(); }
+
+        float exposure{ 0.0f };
+        int curve{ (int)ToneCurve::Gamma22 };
+    signals:
+        void dirty();
+    };
 /*
     class HalfDownsample {
     public:
@@ -37,6 +62,7 @@ namespace render {
         gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
     };
 */
+/*
     class ResampleConfig : public render::Job::Config {
         Q_OBJECT
         Q_PROPERTY(float factor MEMBER factor NOTIFY dirty)
@@ -67,20 +93,58 @@ namespace render {
 
         gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
     };
-
-    class ResampleToBlitFramebuffer {
+    */
+    class ToneMapAndResample{
     public:
+        ToneMapAndResample();
+        virtual ~ToneMapAndResample() {}
+
+        void setExposure(float exposure);
+        float getExposure() const { return _parametersBuffer.get<Parameters>()._exposure; }
+
+        void setToneCurve(ToneCurve curve);
+        ToneCurve getToneCurve() const { return (ToneCurve)_parametersBuffer.get<Parameters>()._toneCurve; }
+
+        // Inputs: lightingFramebuffer, destinationFramebuffer
         using Input = gpu::FramebufferPointer;
-        using JobModel = Job::ModelIO<ResampleToBlitFramebuffer, Input, gpu::FramebufferPointer>;
+        using Output = gpu::FramebufferPointer;
+        using Config = ToneMappingConfig;
+        //using JobModel = render::Job::ModelIO<ToneMapAndResample, Input, Output, Config>;
+        using JobModel = Job::ModelIO<ToneMapAndResample, Input, gpu::FramebufferPointer, Config>;
 
-        ResampleToBlitFramebuffer() {}
-
+        void configure(const Config& config);
         void run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer);
 
     protected:
 
         static gpu::PipelinePointer _pipeline;
         static gpu::PipelinePointer _mirrorPipeline;
+
+        gpu::FramebufferPointer _destinationFrameBuffer;
+
+        float _factor{ 2.0f };
+
+        gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
+
+    private:
+
+        gpu::PipelinePointer _blitLightBuffer;
+
+        // Class describing the uniform buffer with all the parameters common to the tone mapping shaders
+        class Parameters {
+        public:
+            float _exposure = 0.0f;
+            float _twoPowExposure = 1.0f;
+            glm::vec2 spareA;
+            int _toneCurve = (int)ToneCurve::Gamma22;
+            glm::vec3 spareB;
+
+            Parameters() {}
+        };
+        typedef gpu::BufferView UniformBufferView;
+        gpu::BufferView _parametersBuffer;
+
+        void init(RenderArgs* args);
     };
 }
 

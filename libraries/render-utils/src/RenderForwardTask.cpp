@@ -168,7 +168,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Upscale to finale resolution
     //const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
-    const auto primaryFramebuffer = task.addJob<render::ResampleToBlitFramebuffer>("ToneMapAndResample", toneMappedBuffer);
+    const auto primaryFramebuffer = task.addJob<render::ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
