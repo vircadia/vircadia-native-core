@@ -1835,6 +1835,22 @@ public:
      */
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
+    /**jsdoc
+     * Starts a sitting action for the avatar
+     * @function MyAvatar.beginSit
+     * @param {Vec3} position - The point in space where the avatar will sit.
+     * @param {Quat} rotation - Initial absolute orientation of the avatar once is seated.
+     */
+    Q_INVOKABLE void beginSit(const glm::vec3& position, const glm::quat& rotation);
+
+    /**jsdoc
+     * Ends a sitting action for the avatar
+     * @function MyAvatar.endSit
+     * @param {Vec3} position - The position of the avatar when standing up.
+     * @param {Quat} rotation - The absolute rotation of the avatar once the sitting action ends.
+     */
+    Q_INVOKABLE void endSit(const glm::vec3& position, const glm::quat& rotation);
+
     int getOverrideJointCount() const;
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
@@ -2521,6 +2537,7 @@ private:
 
     virtual void updatePalms() override {}
     void lateUpdatePalms();
+    void setSitDriveKeysStatus(bool enabled);
 
     void clampTargetScaleToDomainLimits();
     void clampScaleChangeToDomainLimits(float desiredScale);

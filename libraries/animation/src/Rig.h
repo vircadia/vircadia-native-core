@@ -109,7 +109,8 @@ public:
         Ground = 0,
         Takeoff,
         InAir,
-        Hover
+        Hover,
+        Seated
     };
 
     Rig();
@@ -339,7 +340,8 @@ protected:
         Move,
         Hover,
         Takeoff,
-        InAir
+        InAir,
+        Seated
     };
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
