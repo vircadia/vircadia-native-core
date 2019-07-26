@@ -1145,12 +1145,10 @@ void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int
     const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
     const int numChunk = (int)streamConfig.num_frames();
 
-    if (sampleRate > webrtc::AudioProcessing::kMaxNativeSampleRateHz) {
-        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "output sample rate.";
+    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
         return;
     }
     if (numChannels > WEBRTC_CHANNELS_MAX) {
-        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "output channels.";
         return;
     }
 
@@ -1186,16 +1184,13 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
     const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
     const int numChunk = (int)streamConfig.num_frames();
 
-    if (sampleRate > webrtc::AudioProcessing::kMaxNativeSampleRateHz) {
-        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "input sample rate.";
+    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
         return;
     }
     if (numChannels > WEBRTC_CHANNELS_MAX) {
-        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "input channels.";
         return;
     }
     if (numFrames != numChunk) {
-        qCWarning(audioclient) << "WebRTC requires exactly 10ms of input.";
         return;
     }
 

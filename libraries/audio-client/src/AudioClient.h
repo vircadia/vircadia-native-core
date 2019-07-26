@@ -423,8 +423,9 @@ private:
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
 #if defined(WEBRTC_ENABLED)
-    static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * webrtc::AudioProcessing::kMaxNativeSampleRateHz / 1000;
+    static const int WEBRTC_SAMPLE_RATE_MAX = 96000;
     static const int WEBRTC_CHANNELS_MAX = 2;
+    static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
 
     webrtc::AudioProcessing* _apm { nullptr };
 
