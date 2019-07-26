@@ -3393,7 +3393,7 @@ void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
     surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
     surfaceContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-    surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Settings", new QMLSettingsScriptingInterface(surfaceContext));
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
@@ -3509,7 +3509,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("offscreenFlags", flags);
         surfaceContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
 
-        surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("Settings", new QMLSettingsScriptingInterface(surfaceContext));
         surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
         surfaceContext->setContextProperty("Performance", new PerformanceScriptingInterface());
 
