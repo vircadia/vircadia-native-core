@@ -30,6 +30,7 @@ ScriptAudioInjector::ScriptAudioInjector(const AudioInjectorPointer& injector) :
     _injector(injector)
 {
     QObject::connect(injector.data(), &AudioInjector::finished, this, &ScriptAudioInjector::finished);
+    connect(injector.data(), &QObject::destroyed, this, &QObject::deleteLater);
 }
 
 ScriptAudioInjector::~ScriptAudioInjector() {
