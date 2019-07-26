@@ -1146,9 +1146,11 @@ void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int
     const int numChunk = (int)streamConfig.num_frames();
 
     if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "output sample rate.";
         return;
     }
     if (numChannels > WEBRTC_CHANNELS_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "output channels.";
         return;
     }
 
@@ -1171,8 +1173,9 @@ void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int
             deinterleaveToFloat(_fifoFarEnd, buffers, numChunk, numChannels);
 
             // process one chunk
-            if (_apm->kNoError != _apm->ProcessReverseStream(buffers, streamConfig, streamConfig, buffers)) {
-                qCWarning(audioclient) << "WebRTC ProcessReverseStream() returned an ERROR.";
+            int error = _apm->ProcessReverseStream(buffers, streamConfig, streamConfig, buffers);
+            if (error != _apm->kNoError) {
+                qCWarning(audioclient) << "WebRTC ProcessReverseStream() returned ERROR:" << error;
             }
             _numFifoFarEnd = 0;
         }
@@ -1185,12 +1188,15 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
     const int numChunk = (int)streamConfig.num_frames();
 
     if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "input sample rate.";
         return;
     }
     if (numChannels > WEBRTC_CHANNELS_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "input channels.";
         return;
     }
     if (numFrames != numChunk) {
+        qCWarning(audioclient) << "WebRTC requires exactly 10ms of input.";
         return;
     }
 
@@ -1200,11 +1206,13 @@ void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numC
     deinterleaveToFloat(samples, buffers, numFrames, numChannels);
 
     // process one chunk
-    if (_apm->kNoError != _apm->ProcessStream(buffers, streamConfig, streamConfig, buffers)) {
-        qCWarning(audioclient) << "WebRTC ProcessStream() returned an ERROR.";
+    int error = _apm->ProcessStream(buffers, streamConfig, streamConfig, buffers);
+    if (error =! _apm->kNoError) {
+        qCWarning(audioclient) << "WebRTC ProcessStream() returned ERROR:" << error;
+    } else {
+        // modify samples in-place
+        interleaveToInt16(buffers, samples, numFrames, numChannels);
     }
-    // modify samples in-place
-    interleaveToInt16(buffers, samples, numFrames, numChannels);
 }
 
 #endif // WEBRTC_ENABLED
