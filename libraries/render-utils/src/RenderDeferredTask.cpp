@@ -29,7 +29,7 @@
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
-#include <render/ResampleTask.h>
+#include <render/ToneMapAndResampleTask.h>
 
 #include "RenderHifi.h"
 #include "render-utils/ShaderConstants.h"
@@ -251,11 +251,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     }
 
     // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
+    //const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
 
     // HUD Layer
-    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
-    task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
+    //const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
+    //task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
 RenderDeferredTaskDebug::RenderDeferredTaskDebug() {

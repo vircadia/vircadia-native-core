@@ -19,7 +19,8 @@
 #include <gpu/Texture.h>
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
-#include <render/ResampleTask.h>
+//#include <render/ResampleTask.h>
+#include <render/ToneMapAndResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -29,6 +30,7 @@
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
 #include "ToneMappingEffect.h"
+//#include "ToneMapAndResampleTask.h"
 #include "BackgroundStage.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -165,7 +167,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 #endif
 
     // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
+    //const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
+    const auto primaryFramebuffer = task.addJob<render::ResampleToBlitFramebuffer>("ToneMapAndResample", toneMappedBuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
