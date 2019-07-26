@@ -24,6 +24,9 @@ FileTypeProfile::FileTypeProfile(QQmlContext* parent) :
     static const QString WEB_ENGINE_USER_AGENT = "Chrome/48.0 (HighFidelityInterface)";
     setHttpUserAgent(WEB_ENGINE_USER_AGENT);
 
+    setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
+    setOffTheRecord(false);
+
     auto requestInterceptor = new RequestInterceptor(this);
     setRequestInterceptor(requestInterceptor);
 }

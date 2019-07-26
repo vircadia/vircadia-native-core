@@ -22,6 +22,7 @@ static const QString QML_WEB_ENGINE_STORAGE_NAME = "qmlWebEngine";
 HFWebEngineProfile::HFWebEngineProfile(QQmlContext* parent) : Parent(parent)
 {
     setStorageName(QML_WEB_ENGINE_STORAGE_NAME);
+    setOffTheRecord(false);
 
     // we use the HFWebEngineRequestInterceptor to make sure that web requests are authenticated for the interface user
     setRequestInterceptor(new RequestInterceptor(this));
