@@ -99,7 +99,7 @@ private slots:
 
     void handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message);
     void handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message);
-    void handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name);
+    bool handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name);
 
     void processOctreeDataRequestMessage(QSharedPointer<ReceivedMessage> message);
     void processOctreeDataPersistMessage(QSharedPointer<ReceivedMessage> message);

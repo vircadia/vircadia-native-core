@@ -2601,14 +2601,16 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         }
         QByteArray& _pendingUploadedContent = _pendingUploadedContents[sessionId];
         _pendingUploadedContent += dataChunk;
-        connection->respond(HTTPConnection::StatusCode200);
 
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             // invoke our method to hand the new octree file off to the octree server
-            QMetaObject::invokeMethod(this, "handleOctreeFileReplacement",
-                Qt::QueuedConnection, Q_ARG(QByteArray, _pendingUploadedContent), Q_ARG(QString, filename), Q_ARG(QString, QString()));
+            if(!handleOctreeFileReplacement(_pendingUploadedContent, filename, QString())) {
+                connection->respond(HTTPConnection::StatusCode400);
+                return false;
+            }
             _pendingUploadedContents.erase(sessionId);
         }
+        connection->respond(HTTPConnection::StatusCode200);
     } else {
         connection->respond(HTTPConnection::StatusCode400);
         return false;
@@ -3491,7 +3493,7 @@ void DomainServer::maybeHandleReplacementEntityFile() {
     }
 }
 
-void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name) {
+bool DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name) {
     OctreeUtils::RawEntityData data;
     if (data.readOctreeDataInfoFromData(octreeFile)) {
         data.resetIdAndVersion();
@@ -3520,11 +3522,14 @@ void DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString so
             _settingsManager.recurseJSONObjectAndOverwriteSettings(jsonObject, ContentSettings);
 
             QMetaObject::invokeMethod(this, "restart", Qt::QueuedConnection);
+            return true;
         } else {
             qWarning() << "Could not write replacement octree data to file - refusing to process";
+            return false;
         }
     } else {
         qDebug() << "Received replacement octree file that is invalid - refusing to process";
+        return false;
     }
 }
 
