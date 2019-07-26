@@ -2190,7 +2190,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
             return true;
         } else if (url.path() == URI_RESTART) {
-            connection->respond(HTTPConnection::StatusCode200);
+            connection->respond(HTTPConnection::StatusCode204);
             restart();
             return true;
         } else if (url.path() == URI_API_METAVERSE_INFO) {

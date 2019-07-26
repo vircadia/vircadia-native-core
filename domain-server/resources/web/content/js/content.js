@@ -70,11 +70,23 @@ $(document).ready(function(){
 
       var ajaxObject = $.ajax(ajaxParams);
       ajaxObject.fail(function (jqXHR, textStatus, errorThrown) {
-        showErrorMessage(
-          "Error",
-          "There was a problem restoring domain content.\n"
-          + "Please ensure that the content archive or entity file is valid and try again."
-        );
+        // status of 0 means the connection was reset, which
+        // happens after the content is parsed and the server restarts
+        // in the case of json and json.gz files
+        if (jqXHR.status != 0) {
+          showErrorMessage(
+            "Error",
+            "There was a problem restoring domain content.\n"
+            + "Please ensure that the content archive or entity file is valid and try again."
+          );
+        } else {
+            isRestoring = true;
+
+            // immediately reload backup information since one should be restoring now
+            reloadBackupInformation();
+
+            swal.close();
+        }
       });
 
       updateProgressBars($('.upload-content-progress'), (offset + nextChunkSize) * 100 / fileSize);
