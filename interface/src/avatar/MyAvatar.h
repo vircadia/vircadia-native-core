@@ -1369,9 +1369,9 @@ public:
     bool hasDriveInput() const;
 
     /**jsdoc
-     * Gets the list of avatar entities and their properties.
+     * Gets the current avatar entity IDs and their properties.
      * @function MyAvatar.getAvatarEntitiesVariant
-     * @returns {MyAvatar.AvatarEntityData[]} The list of avatar entities and their properties.
+     * @returns {MyAvatar.AvatarEntityData[]} The current avatar entity IDs and their properties.
      */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
 
@@ -1839,6 +1839,10 @@ public:
     bool getFlowActive() const;
     bool getNetworkGraphActive() const;
 
+    // sets the reaction enabled and triggered parameters of the passed in params
+    // also clears internal reaction triggers
+    void updateRigControllerParameters(Rig::ControllerParameters& params);
+
 public slots:
 
    /**jsdoc
@@ -2191,6 +2195,33 @@ public slots:
      * @deprecated This function is deprecated and will be removed.
      */
     virtual void setModelScale(float scale) override;
+
+    /**jsdoc
+     * MyAvatar.getReactions
+     * @returns {string[]} Array of reaction names.
+     */
+    QStringList getReactions() const;
+
+    /**jsdoc
+     * MyAvatar.triggerReaction
+     * @param {string} reactionName - reaction name
+     * @returns {bool} false if the given reaction is not supported.
+     */
+    bool triggerReaction(QString reactionName);
+
+    /**jsdoc
+     * MyAvatar.beginReaction
+     * @param {string} reactionName - reaction name
+     * @returns {bool} false if the given reaction is not supported.
+     */
+    bool beginReaction(QString reactionName);
+
+    /**jsdoc
+     * MyAvatar.endReaction
+     * @param {string} reactionName - reaction name
+     * @returns {bool} false if the given reaction is not supported.
+     */
+    bool endReaction(QString reactionName);
 
 signals:
 
@@ -2823,6 +2854,10 @@ private:
     mutable std::mutex _scriptEngineLock;
     QScriptEngine* _scriptEngine { nullptr };
     bool _needToSaveAvatarEntitySettings { false };
+
+    int _reactionEnabledRefCounts[NUM_AVATAR_REACTIONS] { 0, 0, 0, 0, 0 };
+    bool _reactionTriggers[NUM_AVATAR_REACTIONS] { false, false, false, false, false };
+    mutable std::mutex _reactionLock;
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

@@ -221,4 +221,6 @@ QStringList PlatformInfoScriptingInterface::getPlatformTierNames() {
     return platformTierNames;
 }
 
-
+bool PlatformInfoScriptingInterface::isRenderMethodDeferredCapable() {
+    return platform::Profiler::isRenderMethodDeferredCapable();
+}

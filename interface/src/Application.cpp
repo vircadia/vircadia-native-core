@@ -257,6 +257,10 @@ extern "C" {
 }
 #endif
 
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
+
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
 #include "AndroidHelper.h"
@@ -960,6 +964,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+#ifdef Q_OS_MAC
+    DependencyManager::set<MacHelper>();
+#endif
 
     QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
     if (!setBookmarkValue.isEmpty()) {
@@ -2810,13 +2817,14 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
-
+    
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
     _snapshotSoundInjector = nullptr;
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
+    AudioInjector::setLocalAudioInterface(nullptr);
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
@@ -2856,6 +2864,9 @@ Application::~Application() {
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
+#ifdef Q_OS_MAC
+    DependencyManager::destroy<MacHelper>();
+#endif
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
@@ -5976,6 +5987,7 @@ void Application::resetPhysicsReadyInformation() {
     _gpuTextureMemSizeStabilityCount = 0;
     _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
+    _octreeProcessor.stopSafeLanding();
 }
 
 void Application::reloadResourceCaches() {
@@ -6235,6 +6247,7 @@ void Application::tryToEnablePhysics() {
         // We keep physics disabled until we've received a full scene and everything near the avatar in that
         // scene is ready to compute its collision shape.
         if (getMyAvatar()->isReadyForPhysics()) {
+            _octreeProcessor.resetSafeLanding();
             _physicsEnabled = true;
             setIsInterstitialMode(false);
             getMyAvatar()->updateMotionBehaviorFromMenu();
@@ -6758,6 +6771,12 @@ void Application::update(float deltaTime) {
     if (!getActiveDisplayPlugin()->isActive()) {
         getMain3DScene()->processTransactionQueue();
     }
+
+    // decide if the sensorToWorldMatrix is changing in a way that warrents squeezing the edges of the view down
+    if (getActiveDisplayPlugin()->isHmd()) {
+        PerformanceTimer perfTimer("squeezeVision");
+        _visionSqueeze.updateVisionSqueeze(myAvatar->getSensorToWorldMatrix(), deltaTime);
+    }
 }
 
 void Application::updateRenderArgs(float deltaTime) {
@@ -6964,13 +6983,16 @@ int Application::sendNackPackets() {
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
-
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
     }
 
     const bool isModifiedQuery = !_physicsEnabled;
     if (isModifiedQuery) {
+        if (!_octreeProcessor.safeLandingIsActive()) {
+            // don't send the octreeQuery until SafeLanding knows it has started
+            return;
+        }
         // Create modified view that is a simple sphere.
         bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
@@ -7193,7 +7215,6 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
     setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
@@ -7203,7 +7224,6 @@ void Application::domainURLChanged(QUrl domainURL) {
 
 void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
     setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadErrorDomain(errorDomainURL);
@@ -7220,12 +7240,12 @@ void Application::resettingDomain() {
 void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
         if (_failedToConnectToEntityServer && !_entityServerConnectionTimer.isActive()) {
-            _failedToConnectToEntityServer = false;
             _octreeProcessor.stopSafeLanding();
-            _octreeProcessor.startSafeLanding();
+            _failedToConnectToEntityServer = false;
         } else if (_entityServerConnectionTimer.isActive()) {
             _entityServerConnectionTimer.stop();
         }
+        _octreeProcessor.startSafeLanding();
         _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
         _entityServerConnectionTimer.start();
     }
@@ -7300,7 +7320,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _entityEditSender.nodeKilled(node);
-     
+
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {

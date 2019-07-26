@@ -33,7 +33,7 @@
  *     <em>Read-only.</em>
  * @property {FilterFlags} PICK_OVERLAYS - Include local entities when intersecting. <em>Read-only.</em>
  * @property {FilterFlags} PICK_AVATARS - Include avatars when intersecting. <em>Read-only.</em>
- * @property {FilterFlags} PICK_HUD - Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
+ * @property {FilterFlags} PICK_HUD - Include the HUD surface when intersecting in HMD mode. <em>Read-only.</em>
  * @property {FilterFlags} PICK_PRECISE - Pick against exact meshes. <em>Read-only.</em>
  * @property {FilterFlags} PICK_INCLUDE_INVISIBLE - Include invisible objects when intersecting. <em>Read-only.</em>
  * @property {FilterFlags} PICK_INCLUDE_NONCOLLIDABLE - Include non-collidable objects when intersecting. <em>Read-only.</em>
@@ -43,7 +43,7 @@
  * @property {IntersectionType} INTERSECTED_LOCAL_ENTITY - Intersected a local entity. <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_OVERLAY - Intersected an entity (3D Overlays no longer exist). <em>Read-only.</em>
  * @property {IntersectionType} INTERSECTED_AVATAR - Intersected an avatar. <em>Read-only.</em>
- * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD sphere. <em>Read-only.</em>
+ * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD surface. <em>Read-only.</em>
  */
 class RayPickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

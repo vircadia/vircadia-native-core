@@ -17,7 +17,6 @@
 #include "InterfaceLogging.h"
 #include "Application.h"
 
-const int SafeLanding::SEQUENCE_MODULO = std::numeric_limits<OCTREE_PACKET_SEQUENCE>::max() + 1;
 
 CalculateEntityLoadingPriority SafeLanding::entityLoadingOperatorElevateCollidables = [](const EntityItem& entityItem) {
     const int COLLIDABLE_ENTITY_PRIORITY = 10.0f;
@@ -25,8 +24,8 @@ CalculateEntityLoadingPriority SafeLanding::entityLoadingOperatorElevateCollidab
 };
 
 namespace {
-    template<typename T> bool lessThanWraparound(int a, int b) {
-        constexpr int MAX_T_VALUE = std::numeric_limits<T>::max();
+    template<typename T> bool lessThanWraparound(int32_t a, int32_t b) {
+        constexpr int32_t MAX_T_VALUE = std::numeric_limits<T>::max();
         if (b <= a) {
             b += MAX_T_VALUE;
         }
@@ -34,7 +33,7 @@ namespace {
     }
 }
 
-bool SafeLanding::SequenceLessThan::operator()(const int& a, const int& b) const {
+bool SafeLanding::SequenceLessThan::operator()(const OCTREE_PACKET_SEQUENCE& a, const OCTREE_PACKET_SEQUENCE& b) const {
     return lessThanWraparound<OCTREE_PACKET_SEQUENCE>(a, b);
 }
 
@@ -46,8 +45,8 @@ void SafeLanding::startTracking(QSharedPointer<EntityTreeRenderer> entityTreeRen
             _entityTreeRenderer = entityTreeRenderer;
             _trackedEntities.clear();
             _maxTrackedEntityCount = 0;
-            _initialStart = INVALID_SEQUENCE;
-            _initialEnd = INVALID_SEQUENCE;
+            _sequenceStart = SafeLanding::INVALID_SEQUENCE;
+            _sequenceEnd = SafeLanding::INVALID_SEQUENCE;
             _sequenceNumbers.clear();
             _trackingEntities = true;
             _startTime = usecTimestampNow();
@@ -72,7 +71,7 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
             if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
                 _trackedEntities.emplace(entityID, entity);
 
-                int trackedEntityCount = (int)_trackedEntities.size();
+                int32_t trackedEntityCount = (int32_t)_trackedEntities.size();
                 if (trackedEntityCount > _maxTrackedEntityCount) {
                     _maxTrackedEntityCount = trackedEntityCount;
                     _trackedEntityStabilityCount = 0;
@@ -87,15 +86,15 @@ void SafeLanding::deleteTrackedEntity(const EntityItemID& entityID) {
     _trackedEntities.erase(entityID);
 }
 
-void SafeLanding::finishSequence(int first, int last) {
+void SafeLanding::finishSequence(OCTREE_PACKET_SEQUENCE first, OCTREE_PACKET_SEQUENCE last) {
     Locker lock(_lock);
     if (_trackingEntities) {
-        _initialStart = first;
-        _initialEnd = last;
+        _sequenceStart = first;
+        _sequenceEnd = last;
     }
 }
 
-void SafeLanding::addToSequence(int sequenceNumber) {
+void SafeLanding::addToSequence(OCTREE_PACKET_SEQUENCE sequenceNumber) {
     Locker lock(_lock);
     _sequenceNumbers.insert(sequenceNumber);
 }
@@ -135,14 +134,13 @@ void SafeLanding::updateTracking() {
 
     if (_trackedEntities.empty()) {
         // no more tracked entities --> check sequenceNumbers
-        if (_initialStart != INVALID_SEQUENCE) {
+        if (_sequenceStart != SafeLanding::INVALID_SEQUENCE) {
             bool shouldStop = false;
             {
                 Locker lock(_lock);
-                int sequenceSize = _initialStart <= _initialEnd ? _initialEnd - _initialStart:
-                    _initialEnd + SEQUENCE_MODULO - _initialStart;
-                auto startIter = _sequenceNumbers.find(_initialStart);
-                auto endIter = _sequenceNumbers.find(_initialEnd - 1);
+                auto sequenceSize = _sequenceEnd - _sequenceStart; // this works even in rollover case
+                auto startIter = _sequenceNumbers.find(_sequenceStart);
+                auto endIter = _sequenceNumbers.find(_sequenceEnd - 1);
 
                 bool missingSequenceNumbers = qApp->isMissingSequenceNumbers();
                 shouldStop = (sequenceSize == 0 ||
@@ -159,31 +157,41 @@ void SafeLanding::updateTracking() {
 
 void SafeLanding::stopTracking() {
     Locker lock(_lock);
-    _trackingEntities = false;
-    if (_entityTreeRenderer) {
-        auto entityTree = _entityTreeRenderer->getTree();
-        disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
-            &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
-        disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
-            &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
-        _entityTreeRenderer.reset();
+    if (_trackingEntities) {
+        _trackingEntities = false;
+        if (_entityTreeRenderer) {
+            auto entityTree = _entityTreeRenderer->getTree();
+            disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::addingEntity, this, &SafeLanding::addTrackedEntity);
+            disconnect(std::const_pointer_cast<EntityTree>(entityTree).get(),
+                &EntityTree::deletingEntity, this, &SafeLanding::deleteTrackedEntity);
+            _entityTreeRenderer.reset();
+        }
+        EntityTreeRenderer::setEntityLoadingPriorityFunction(_prevEntityLoadingPriorityOperator);
     }
-    EntityTreeRenderer::setEntityLoadingPriorityFunction(_prevEntityLoadingPriorityOperator);
+}
+
+void SafeLanding::reset() {
+    _trackingEntities = false;
+    _trackedEntities.clear();
+    _maxTrackedEntityCount = 0;
+    _sequenceStart = SafeLanding::INVALID_SEQUENCE;
+    _sequenceEnd = SafeLanding::INVALID_SEQUENCE;
 }
 
 bool SafeLanding::trackingIsComplete() const {
-    return !_trackingEntities && (_initialStart != INVALID_SEQUENCE);
+    return !_trackingEntities && (_sequenceStart != SafeLanding::INVALID_SEQUENCE);
 }
 
 float SafeLanding::loadingProgressPercentage() {
     Locker lock(_lock);
-    static const int MINIMUM_TRACKED_ENTITY_STABILITY_COUNT = 15;
 
     float entityReadyPercentage = 0.0f;
     if (_maxTrackedEntityCount > 0) {
         entityReadyPercentage = ((_maxTrackedEntityCount - _trackedEntities.size()) / (float)_maxTrackedEntityCount);
     }
 
+    constexpr int32_t MINIMUM_TRACKED_ENTITY_STABILITY_COUNT = 15;
     if (_trackedEntityStabilityCount < MINIMUM_TRACKED_ENTITY_STABILITY_COUNT) {
         entityReadyPercentage *= 0.20f;
     }
@@ -203,8 +211,22 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
             if (hasAABox && downloadedCollisionTypes.count(modelEntity->getShapeType()) != 0) {
                 auto space = _entityTreeRenderer->getWorkloadSpace();
                 uint8_t region = space ? space->getRegion(entity->getSpaceIndex()) : (uint8_t)workload::Region::INVALID;
-                bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
-                return (!shouldBePhysical || entity->isInPhysicsSimulation() || modelEntity->computeShapeFailedToLoad());
+
+                // Note: the meanings of the workload regions are:
+                //   R1 = in physics simulation and willing to own simulation
+                //   R2 = in physics simulation but does NOT want to own simulation
+                //   R3 = not in physics simulation but kinematically animated when velocities are non-zero
+                //   R4 = sorted by workload and found to be outside R3
+                //   UNKNOWN = known to workload but not yet sorted
+                //   INVALID = not known to workload
+                // So any entity sorted into R3 or R4 is definitelyNotPhysical
+
+                bool definitelyNotPhysical = region == workload::Region::R3 ||
+                    region == workload::Region::R4 ||
+                    !entity->shouldBePhysical() ||
+                    modelEntity->unableToLoadCollisionShape();
+                bool definitelyPhysical = entity->isInPhysicsSimulation();
+                return definitelyNotPhysical || definitelyPhysical;
             }
         }
     }
@@ -212,20 +234,24 @@ bool SafeLanding::isEntityPhysicsReady(const EntityItemPointer& entity) {
 }
 
 void SafeLanding::debugDumpSequenceIDs() const {
-    int p = -1;
     qCDebug(interfaceapp) << "Sequence set size:" << _sequenceNumbers.size();
-    for (auto s: _sequenceNumbers) {
-        if (p == -1) {
-            p = s;
-            qCDebug(interfaceapp) << "First:" << s;
-        } else {
+
+    auto itr = _sequenceNumbers.begin();
+    OCTREE_PACKET_SEQUENCE p = SafeLanding::INVALID_SEQUENCE;
+    if (itr != _sequenceNumbers.end()) {
+        p = (*itr);
+        qCDebug(interfaceapp) << "First:" << (int32_t)p;
+        ++itr;
+        while (itr != _sequenceNumbers.end()) {
+            OCTREE_PACKET_SEQUENCE s = *itr;
             if (s != p + 1) {
-                qCDebug(interfaceapp) << "Gap from" << p << "to" << s << "(exclusive)";
+                qCDebug(interfaceapp) << "Gap from" << (int32_t)p << "to" << (int32_t)s << "(exclusive)";
                 p = s;
             }
+            ++itr;
         }
-    }
-    if (p != -1) {
-        qCDebug(interfaceapp) << "Last:" << p;
+        if (p != SafeLanding::INVALID_SEQUENCE) {
+            qCDebug(interfaceapp) << "Last:" << p;
+        }
     }
 }

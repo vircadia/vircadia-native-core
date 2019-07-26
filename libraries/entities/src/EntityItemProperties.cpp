@@ -988,8 +988,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
  *     {@link Entities.getJointIndex|getJointIndex}.
  * @property {Vec3[]} jointTranslations=[]] - Joint translations applied to the model; <code>[]</code> if none are applied or 
- *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative 
- *     to each joint's parent.
+ *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Translations are 
+ *     relative to each joint's parent.
  *     <p>Joint translations can be set by {@link Entities.setLocalJointTranslation|setLocalJointTranslation} and similar 
  *     functions, or by setting the value of this property. If you set a joint translation using this property you also need to 
  *     set the corresponding <code>jointTranslationsSet</code> value to <code>true</code>.</p>
@@ -2753,6 +2753,8 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
             ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLight, keyLight, Intensity, intensity);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLight, keylight, Direction, direction);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLight, keyLight, CastShadows, castShadows);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_KEYLIGHT_SHADOW_BIAS, KeyLight, keyLight, ShadowBias, shadowBias, 0.0f, 1.0f);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, KeyLight, keyLight, ShadowMaxDistance, shadowMaxDistance, 1.0f, 250.0f);
         }
         { // Ambient light
             ADD_GROUP_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_INTENSITY, AmbientLight, ambientLight, Intensity, intensity);

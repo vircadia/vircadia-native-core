@@ -78,6 +78,7 @@
 #include <ModelScriptingInterface.h>
 
 #include "Sound.h"
+#include "VisionSqueeze.h"
 
 class GLCanvas;
 class FaceTracker;
@@ -363,6 +364,9 @@ public:
     void forceDisplayName(const QString& displayName);
     void forceLoginWithTokens(const QString& tokens);
     void setConfigFileURL(const QString& fileUrl);
+
+    // used by preferences and HMDScriptingInterface...
+    VisionSqueeze& getVisionSqueeze() { return _visionSqueeze; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -731,6 +735,7 @@ private:
 
     bool _loginDialogPoppedUp{ false };
     bool _desktopRootItemCreated{ false };
+
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
@@ -837,5 +842,7 @@ private:
     bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
     bool _startUpFinished { false };
     bool _overrideEntry { false };
+
+    VisionSqueeze _visionSqueeze;
 };
 #endif // hifi_Application_h

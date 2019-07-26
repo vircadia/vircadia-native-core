@@ -245,7 +245,12 @@ public slots:
     */
     QStringList getPlatformTierNames();
 
-
+    /**jsdoc
+    * Gets whether the current hardware can render using the Deferred method.
+    * @function PlatformInfo.isRenderMethodDeferredCapable
+    * @returns {bool} <code>true</code> if the current hardware can render using the Deferred method; <code>false</code> otherwise. 
+    */
+    bool isRenderMethodDeferredCapable();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h

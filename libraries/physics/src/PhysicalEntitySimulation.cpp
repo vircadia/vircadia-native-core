@@ -49,9 +49,9 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     assert(entity);
     assert(!entity->isDead());
     uint8_t region = _space->getRegion(entity->getSpaceIndex());
-    bool shouldBePhysical = region < workload::Region::R3 && entity->shouldBePhysical();
+    bool maybeShouldBePhysical = (region < workload::Region::R3 || region == workload::Region::UNKNOWN) && entity->shouldBePhysical();
     bool canBeKinematic = region <= workload::Region::R3;
-    if (shouldBePhysical) {
+    if (maybeShouldBePhysical) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
             motionState->setRegion(region);
@@ -326,6 +326,18 @@ void PhysicalEntitySimulation::buildMotionStatesForEntitiesThatNeedThem() {
                     _simpleKinematicEntities.insert(entity);
                 }
             }
+            entityItr = _entitiesToAddToPhysics.erase(entityItr);
+            continue;
+        }
+
+        uint8_t region = _space->getRegion(entity->getSpaceIndex());
+        if (region == workload::Region::UNKNOWN) {
+            // the workload hasn't categorized it yet --> skip for later
+            ++entityItr;
+            continue;
+        }
+        if (region > workload::Region::R2) {
+            // not in physical zone --> remove from list
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
             continue;
         }

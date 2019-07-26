@@ -19,8 +19,8 @@
  *   </thead>
  *   <tbody>
  *     <tr><td><code>"world"</code></td><td>The entity is drawn in the world with everything else.</td></tr>
- *     <tr><td><code>"front"</code></td><td>The entity is drawn on top of the world layer but behind the HUD sphere.</td></tr>
- *     <tr><td><code>"hud"</code></td><td>The entity is drawn on top of other layers and the HUD sphere.</td></tr>
+ *     <tr><td><code>"front"</code></td><td>The entity is drawn on top of the world layer but behind the HUD surface.</td></tr>
+ *     <tr><td><code>"hud"</code></td><td>The entity is drawn on top of other layers and the HUD surface.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {string} Entities.RenderLayer

@@ -62,10 +62,29 @@ class QScriptEngine;
  * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen entity. <code>null</code> if not in HMD mode.
  * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
  *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
- * @property {bool} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
+ * @property {boolean} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
  *     <code>false</code>.
  * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
  * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>
+ *
+ * @property {number} visionSqueezeRatioX=0.0 - The amount of vision squeeze for the x-axis when moving, range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>.
+ * @property {number} visionSqueezeRatioY=0.0 - The amount of vision squeeze for the y-axis when moving, range <code>0.0</code> 
+ *     &ndash; <code>1.0</code>. 
+ * @property {number} visionSqueezeTurningXFactor=0.51 - The additional amount of vision squeeze for the x-axis when turning,
+ *     range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} visionSqueezeTurningYFactor=0.36 - <em>Currently unused.</em>
+ * @property {number} visionSqueezeUnSqueezeDelay=0.2 - The delay in undoing the vision squeeze effect after motion stops, in
+ *     seconds.
+ * @property {number} visionSqueezeUnSqueezeSpeed=3.0 - How quickly the vision squeeze effect fades, once 
+ *     <code>visionSqueezeUnSqueezeDelay</code> has passed.
+ * @property {number} visionSqueezeTransition=0.25 - How tightly vision is squeezed, range <code>0.01</code> &ndash; 
+ *     <code>0.7</code>.
+ * @property {number} visionSqueezePerEye=1 - <code>1</code> if each eye gets a tube to see through, <code>0</code> if the face 
+ *     gets a tube.
+ * @property {number} visionSqueezeGroundPlaneY=0.0 - Adjusts how far below the camera the vision squeeze grid is displayed at.
+ * @property {number} visionSqueezeSpotlightSize=6.0 - The diameter of the circle of vision squeeze grid that is illuminated 
+ *     around the camera.
  */
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
@@ -83,6 +102,17 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(bool miniTabletEnabled READ getMiniTabletEnabled WRITE setMiniTabletEnabled)
     Q_PROPERTY(QVariant playArea READ getPlayAreaRect);
     Q_PROPERTY(QVector<glm::vec3> sensorPositions READ getSensorPositions);
+
+    Q_PROPERTY(float visionSqueezeRatioX READ getVisionSqueezeRatioX WRITE setVisionSqueezeRatioX);
+    Q_PROPERTY(float visionSqueezeRatioY READ getVisionSqueezeRatioY WRITE setVisionSqueezeRatioY);
+    Q_PROPERTY(float visionSqueezeUnSqueezeDelay READ getVisionSqueezeUnSqueezeDelay WRITE setVisionSqueezeUnSqueezeDelay);
+    Q_PROPERTY(float visionSqueezeUnSqueezeSpeed READ getVisionSqueezeUnSqueezeSpeed WRITE setVisionSqueezeUnSqueezeSpeed);
+    Q_PROPERTY(float visionSqueezeTransition READ getVisionSqueezeTransition WRITE setVisionSqueezeTransition);
+    Q_PROPERTY(int visionSqueezePerEye READ getVisionSqueezePerEye WRITE setVisionSqueezePerEye);
+    Q_PROPERTY(float visionSqueezeGroundPlaneY READ getVisionSqueezeGroundPlaneY WRITE setVisionSqueezeGroundPlaneY);
+    Q_PROPERTY(float visionSqueezeSpotlightSize READ getVisionSqueezeSpotlightSize WRITE setVisionSqueezeSpotlightSize);
+    Q_PROPERTY(float visionSqueezeTurningXFactor READ getVisionSqueezeTurningXFactor WRITE setVisionSqueezeTurningXFactor);
+    Q_PROPERTY(float visionSqueezeTurningYFactor READ getVisionSqueezeTurningYFactor WRITE setVisionSqueezeTurningYFactor);
 
 public:
 
@@ -338,6 +368,27 @@ public:
      *     contextual mode, set the world or local position and orientation of the <code>HMD.tabletID</code> overlay.
      */
     Q_INVOKABLE void openTablet(bool contextualMode = false);
+
+    float getVisionSqueezeRatioX() const;
+    float getVisionSqueezeRatioY() const;
+    void setVisionSqueezeRatioX(float value);
+    void setVisionSqueezeRatioY(float value);
+    float getVisionSqueezeUnSqueezeDelay() const;
+    void setVisionSqueezeUnSqueezeDelay(float value);
+    float getVisionSqueezeUnSqueezeSpeed() const;
+    void setVisionSqueezeUnSqueezeSpeed(float value);
+    float getVisionSqueezeTransition() const;
+    void setVisionSqueezeTransition(float value);
+    int getVisionSqueezePerEye() const;
+    void setVisionSqueezePerEye(int value);
+    float getVisionSqueezeGroundPlaneY() const;
+    void setVisionSqueezeGroundPlaneY(float value);
+    float getVisionSqueezeSpotlightSize() const;
+    void setVisionSqueezeSpotlightSize(float value);
+    float getVisionSqueezeTurningXFactor() const;
+    void setVisionSqueezeTurningXFactor(float value);
+    float getVisionSqueezeTurningYFactor() const;
+    void setVisionSqueezeTurningYFactor(float value);
 
 signals:
     /**jsdoc

@@ -431,7 +431,6 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
             constrained = constraint->apply(tipRelativeRotation);
             if (constrained) {
                 tipOrientation = tipParentOrientation * tipRelativeRotation;
-                tipRelativeRotation = tipRelativeRotation;
             }
         }
 

@@ -94,7 +94,7 @@ void AvatarInputs::setShowBubbleTools(bool showBubbleTools) {
         return;
 
     _showBubbleTools = showBubbleTools;
-    showBubbleToolsSetting.set(_showAudioTools);
+    showBubbleToolsSetting.set(_showBubbleTools);
     emit showBubbleToolsChanged(_showBubbleTools);
 }
 
