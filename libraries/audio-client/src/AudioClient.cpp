@@ -1092,9 +1092,6 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 
 #if defined(WEBRTC_ENABLED)
 
-static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * webrtc::AudioProcessing::kMaxNativeSampleRateHz / 1000;
-static const int WEBRTC_CHANNELS_MAX = 2;
-
 static void deinterleaveToFloat(const int16_t* src, float* const* dst, int numFrames, int numChannels) {
     for (int i = 0; i < numFrames; i++) {
         for (int ch = 0; ch < numChannels; ch++) {
@@ -1145,10 +1142,6 @@ void AudioClient::configureWebrtc() {
 // rebuffer into 10ms chunks
 void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate) {
 
-    // TODO: move to AudioClient.h
-    static int16_t _fifo[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX];
-    static int _numFifo = 0;    // numFrames saved in fifo
-
     const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
     const int numChunk = (int)streamConfig.num_frames();
 
@@ -1164,26 +1157,26 @@ void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int
     while (numFrames > 0) {
 
         // number of frames to fill
-        int numFill = std::min(numFrames, numChunk - _numFifo);
+        int numFill = std::min(numFrames, numChunk - _numFifoFarEnd);
 
         // refill fifo
-        memcpy(&_fifo[_numFifo], samples, numFill * numChannels * sizeof(int16_t));
+        memcpy(&_fifoFarEnd[_numFifoFarEnd], samples, numFill * numChannels * sizeof(int16_t));
         samples += numFill * numChannels;
         numFrames -= numFill;
-        _numFifo += numFill;
+        _numFifoFarEnd += numFill;
 
-        if (_numFifo == numChunk) {
+        if (_numFifoFarEnd == numChunk) {
 
             // convert audio format
             float buffer[WEBRTC_CHANNELS_MAX][WEBRTC_FRAMES_MAX];
             float* const buffers[WEBRTC_CHANNELS_MAX] = { buffer[0], buffer[1] };
-            deinterleaveToFloat(_fifo, buffers, numChunk, numChannels);
+            deinterleaveToFloat(_fifoFarEnd, buffers, numChunk, numChannels);
 
             // process one chunk
             if (_apm->kNoError != _apm->ProcessReverseStream(buffers, streamConfig, streamConfig, buffers)) {
                 qCWarning(audioclient) << "WebRTC ProcessReverseStream() returned an ERROR.";
             }
-            _numFifo = 0;
+            _numFifoFarEnd = 0;
         }
     }
 }

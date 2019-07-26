@@ -423,7 +423,14 @@ private:
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
 
 #if defined(WEBRTC_ENABLED)
+    static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * webrtc::AudioProcessing::kMaxNativeSampleRateHz / 1000;
+    static const int WEBRTC_CHANNELS_MAX = 2;
+
     webrtc::AudioProcessing* _apm { nullptr };
+
+    int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
+    int _numFifoFarEnd = 0; // numFrames saved in fifo
+
     void configureWebrtc();
     void processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate);
     void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
