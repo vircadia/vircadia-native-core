@@ -358,6 +358,7 @@ public:
     static const Element COLOR_COMPRESSED_EAC_RED_SIGNED;
     static const Element COLOR_COMPRESSED_EAC_XY;
     static const Element COLOR_COMPRESSED_EAC_XY_SIGNED;
+    static const Element DEPTH24_STENCIL8;
     static const Element VEC2NU8_XY;
     static const Element VEC4F_COLOR_RGBA;
     static const Element VEC2F_UV;
