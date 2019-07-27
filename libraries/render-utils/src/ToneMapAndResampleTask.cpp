@@ -57,18 +57,14 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
     RenderArgs* args = renderContext->args;
     auto sourceFramebuffer = input;
 
-    //auto lightingBuffer = input->getRenderBuffer(0);
+    auto lightingBuffer = input->getRenderBuffer(0);
 
     resampledFrameBuffer = args->_blitFramebuffer;
-/*
-    if (!_pipeline) {
-        init(args);
-    }
 
+/*
     if (!lightingBuffer || !blitFramebuffer) {
         return;
-    }
-    */
+    }*/
 
     if (resampledFrameBuffer != sourceFramebuffer) {
 
@@ -76,7 +72,7 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
             state->setDepthTest(gpu::State::DepthTest(false, false));
-            //blitState->setColorWriteMask(true, true, true, true);
+            state->setColorWriteMask(true, true, true, true);
 
             _pipeline = gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping), state);
             _mirrorPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping_mirrored), state);
@@ -84,7 +80,7 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
 
         const auto bufferSize = resampledFrameBuffer->getSize();
 
-        //auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
+        auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
 
         glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
@@ -98,8 +94,10 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
             batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
 
             // viewport = args->_viewport ??
-            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(bufferSize, viewport));
-            batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));
+            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(srcBufferSize, args->_viewport));
+            batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
+            batch.setResourceTexture(render_utils::slot::texture::ToneMappingColor, lightingBuffer);
+            //batch.setResourceTexture(0, sourceFramebuffer->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
 

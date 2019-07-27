@@ -143,7 +143,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
-#if defined(Q_OS_ANDROID)
+#if !defined(Q_OS_ANDROID)
 
     // Just resolve the msaa
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
@@ -151,8 +151,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     const auto toneMappedBuffer = resolvedFramebuffer;
 #else
-    const auto newResolvedFramebuffer = task.addJob<NewOrDefaultFramebuffer>("MakeResolvingFramebuffer");
-
+    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
 
     // Just resolve the msaa
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
@@ -161,13 +160,12 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
-    const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    //const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
+    //const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
 #endif
 
-    // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
+    const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", resolvedFramebuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
@@ -178,8 +176,8 @@ gpu::FramebufferPointer PreparePrimaryFramebufferMSAA::createFramebuffer(const c
     gpu::FramebufferPointer framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
 
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-  
-    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+
+    auto colorFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10);
     auto colorTexture =
         gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
     framebuffer->setRenderBuffer(0, colorTexture);

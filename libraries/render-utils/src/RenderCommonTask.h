@@ -83,6 +83,17 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class NewFramebuffer {
+public:
+    using Input = glm::uvec2;
+    using Output = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelIO<NewFramebuffer, Input, Output>;
+
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
+};
+
 class NewOrDefaultFramebuffer {
 public:
     using Input = glm::uvec2;
