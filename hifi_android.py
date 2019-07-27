@@ -97,8 +97,7 @@ ANDROID_PACKAGES = {
     },
     'webrtc': {
         'file': 'webrtc-20190626-android.tar.gz',
-        'checksum': '8be046cf27e1fabff8a1029eabbe52c8',
-        'versionId': '8TU1LgZswAgZpBiNYvB5s3ZLwSqNJHuj',
+        'checksum': 'e2dccd3d8efdcba6d428c87ba7fb2a53'
     }
 }
 
