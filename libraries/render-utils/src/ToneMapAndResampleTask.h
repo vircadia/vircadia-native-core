@@ -14,13 +14,18 @@
 #ifndef hifi_render_ToneMapAndResampleTask_h
 #define hifi_render_ToneMapAndResampleTask_h
 
-#include "Engine.h"
+#include "render/Engine.h"
 
-namespace render {
+#include <DependencyManager.h>
+#include <NumericalConstants.h>
+#include <render/Forward.h>
+#include <render/DrawTask.h>
+
+//namespace render {
 
     enum class ToneCurve {
         // Different tone curve available
-            None,
+        None,
         Gamma22,
         Reinhard,
         Filmic,
@@ -110,10 +115,10 @@ namespace render {
         using Output = gpu::FramebufferPointer;
         using Config = ToneMappingConfig;
         //using JobModel = render::Job::ModelIO<ToneMapAndResample, Input, Output, Config>;
-        using JobModel = Job::ModelIO<ToneMapAndResample, Input, gpu::FramebufferPointer, Config>;
+        using JobModel = render::Job::ModelIO<ToneMapAndResample, Input, gpu::FramebufferPointer, Config>;
 
         void configure(const Config& config);
-        void run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer);
+        void run(const render::RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer);
 
     protected:
 
@@ -146,6 +151,6 @@ namespace render {
 
         void init(RenderArgs* args);
     };
-}
+//}
 
 #endif // hifi_render_ResampleTask_h

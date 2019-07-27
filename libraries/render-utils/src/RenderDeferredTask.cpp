@@ -29,7 +29,6 @@
 #include <render/DrawStatus.h>
 #include <render/DrawSceneOctree.h>
 #include <render/BlurTask.h>
-#include <render/ToneMapAndResampleTask.h>
 
 #include "RenderHifi.h"
 #include "render-utils/ShaderConstants.h"
@@ -51,7 +50,7 @@
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
-#include "ToneMappingEffect.h"
+#include "ToneMapAndResampleTask.h"
 #include "SubsurfaceScattering.h"
 #include "DrawHaze.h"
 #include "BloomEffect.h"
@@ -239,8 +238,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = ToneMappingDeferred::Input(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
-    const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    //TODO re-enable last 3 steps
+    //const auto toneMappingInputs = ToneMappingDeferred::Input(lightingFramebuffer, scaledPrimaryFramebuffer).asVarying();
+    //const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
     { // Debug the bounds of the rendered items, still look at the zbuffer

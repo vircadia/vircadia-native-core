@@ -20,7 +20,7 @@
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
 //#include <render/ResampleTask.h>
-#include <render/ToneMapAndResampleTask.h>
+//#include <ToneMapAndResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -29,8 +29,8 @@
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
-#include "ToneMappingEffect.h"
-//#include "ToneMapAndResampleTask.h"
+//#include "ToneMappingEffect.h"
+#include "ToneMapAndResampleTask.h"
 #include "BackgroundStage.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -167,8 +167,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 #endif
 
     // Upscale to finale resolution
-    //const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
-    const auto primaryFramebuffer = task.addJob<render::ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
+    const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
