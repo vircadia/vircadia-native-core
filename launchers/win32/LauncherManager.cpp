@@ -611,11 +611,18 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 }
 
 void LauncherManager::restartNewLauncher() {
+    CString tempPath;
+    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Temp_Directory, tempPath);
+    tempPath += "hql.exe";
+    CString installPath;
+    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, installPath);
+    installPath += LAUNCHER_EXE_FILENAME;
+    CopyFile(installPath, tempPath, false);
     closeLog();
     if (_willContinueUpdating) {
-        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --continueUpdating"));
+        LauncherUtils::launchApplication(tempPath, _T(" --restart --noUpdate --continueUpdating"));
     } else {
-        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --skipSplash"));
+        LauncherUtils::launchApplication(tempPath, _T(" --restart --noUpdate --skipSplash"));
     }    
     Sleep(500);
 }

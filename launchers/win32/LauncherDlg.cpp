@@ -702,13 +702,14 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                     _splashStep = SPLASH_DURATION;
                     setDrawDialog(DrawStep::DrawProcessUpdate);
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 0.0f);
+                } else if (theApp._manager.shouldSkipSplashScreen()) {
+                    theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 1.0f);
+                    setDrawDialog(DrawStep::DrawProcessFinishUpdate);
+                    _splashStep = SPLASH_DURATION;
+                    _showSplash = false;
                 } else {
-                    if (theApp._manager.shouldSkipSplashScreen()) {
-                        _splashStep = SPLASH_DURATION;
-                    } else {
-                        theApp._manager.addToLog(_T("Start splash screen"));
-                        setDrawDialog(DrawStep::DrawLogo);
-                    }
+                    theApp._manager.addToLog(_T("Start splash screen"));
+                    setDrawDialog(DrawStep::DrawLogo);
                 }
             } else if (_splashStep > SPLASH_DURATION && !theApp._manager.needsToWait()) {
                 _showSplash = false;
