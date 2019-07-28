@@ -357,7 +357,7 @@ void CLauncherDlg::drawVoxel(CHwndRenderTarget* pRenderTarget) {
 }
 
 void CLauncherDlg::drawProgress(CHwndRenderTarget* pRenderTarget, float progress, const D2D1::ColorF& color) {
-    auto size = pRenderTarget->GetPixelSize();
+    auto size = pRenderTarget->GetSize();
     if (progress == 0.0f) {
         return;
     } else {
@@ -693,16 +693,19 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                 }
             }
         }
+
+        DrawStep startStep = theApp._manager.getStartScreen();
         if (_showSplash) {
             if (_splashStep == 0) {
                 if (theApp._manager.needsUninstall()) {
                     theApp._manager.addToLog(_T("Waiting to uninstall"));
                     setDrawDialog(DrawStep::DrawProcessUninstall);
-                } else if (theApp._manager.shouldContinueUpdating()) {
-                    _splashStep = SPLASH_DURATION;
+                } else if (startStep == DrawStep::DrawProcessUpdate) {
                     setDrawDialog(DrawStep::DrawProcessUpdate);
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 0.0f);
-                } else if (theApp._manager.shouldSkipSplashScreen()) {
+                } else if (startStep == DrawStep::DrawLoginLogin) {
+                    _splashStep = SPLASH_DURATION;
+                } else if (startStep == DrawStep::DrawProcessFinishUpdate) {
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 1.0f);
                     setDrawDialog(DrawStep::DrawProcessFinishUpdate);
                     _splashStep = SPLASH_DURATION;

@@ -16,22 +16,24 @@
 
 
 LauncherManager::LauncherManager() {
+    int tokenPos = 0;
+    _launcherVersion = CString(LAUNCHER_BUILD_VERSION).Tokenize(_T("-"), tokenPos);
 }
 
 LauncherManager::~LauncherManager() {
 }
 
-void LauncherManager::init(BOOL allowUpdate, BOOL continueUpdating, BOOL skipSplashScreen) {
+void LauncherManager::init(BOOL allowUpdate, CLauncherDlg::DrawStep startScreen) {
     initLog();
-    int tokenPos = 0;
     _updateLauncherAllowed = allowUpdate;
-    _continueUpdating = continueUpdating;
-    _skipSplashScreen = skipSplashScreen;
-    _shouldWait = !skipSplashScreen;
-    if (_continueUpdating) {
+    _startScreen = startScreen;
+    CString msg;
+    msg.Format(_T("Start Screen: %d"), (int)startScreen);
+    addToLog(msg);
+    _shouldWait = _startScreen == CLauncherDlg::DrawStep::DrawLogo;
+    if (_startScreen == CLauncherDlg::DrawStep::DrawProcessUpdate) {
         _progressOffset = CONTINUE_UPDATING_GLOBAL_OFFSET;
     }
-    _launcherVersion = CString(LAUNCHER_BUILD_VERSION).Tokenize(_T("-"), tokenPos);
     addToLog(_T("Launcher is running version: " + _launcherVersion));
     addToLog(_T("Getting most recent builds"));
     getMostRecentBuilds(_latestLauncherURL, _latestLauncherVersion, _latestApplicationURL, _latestVersion);
@@ -432,6 +434,7 @@ void LauncherManager::onMostRecentBuildsReceived(const CString& response, Launch
             addToLog(updatingMsg);
             _shouldUpdateLauncher = TRUE;
             _shouldDownloadLauncher = TRUE;
+            _willLogin = !isInstalled;
             _willContinueUpdating = isInstalled && newInterfaceVersion;
         } else {
             if (_updateLauncherAllowed) {
@@ -611,19 +614,17 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 }
 
 void LauncherManager::restartNewLauncher() {
-    CString tempPath;
-    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Temp_Directory, tempPath);
-    tempPath += "hql.exe";
-    CString installPath;
-    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, installPath);
-    installPath += LAUNCHER_EXE_FILENAME;
-    CopyFile(installPath, tempPath, false);
     closeLog();
+    CLauncherDlg::DrawStep startScreen = CLauncherDlg::DrawStep::DrawProcessFinishUpdate;
     if (_willContinueUpdating) {
-        LauncherUtils::launchApplication(tempPath, _T(" --restart --noUpdate --continueUpdating"));
-    } else {
-        LauncherUtils::launchApplication(tempPath, _T(" --restart --noUpdate --skipSplash"));
+        startScreen = CLauncherDlg::DrawStep::DrawProcessUpdate;
+    } else if (_willLogin) {
+        startScreen = CLauncherDlg::DrawStep::DrawLoginLogin;
     }    
+    CStringW params;
+    params.Format(_T(" --restart --noUpdate --startScreen %d"), (int)startScreen);
+    LPTSTR par = params.GetBuffer();
+    LauncherUtils::launchApplication(_tempLauncherPath, par);
     Sleep(500);
 }
 
