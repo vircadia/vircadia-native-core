@@ -23,7 +23,7 @@ Item {
 
     property var rootConfig: Render.getConfig("")
 
-    Jet.TaskListView {
+    Jet.TaskPropView {
         rootConfig: root.rootConfig
         anchors.fill: root        
     }

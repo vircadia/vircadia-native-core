@@ -73,7 +73,7 @@ Prop.PropGroup {
                 anchors.right:parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 filled: root.jobEnabled
-                fillColor: (root.jobEnabled ? global.colorGreenHighlight : global.colorOrangeAccent)
+                fillColor: (root.jobEnabled ? root.global.colorGreenHighlight : global.colorOrangeAccent)
                 icon: 5
                 
                 MouseArea{
