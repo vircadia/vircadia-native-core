@@ -1957,6 +1957,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     QPointer<HTTPConnection> connectionPtr { connection };
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
+    QString username;
 
     auto getSetting = [this](QString keyPath, QVariant& value) -> bool {
 
@@ -2024,7 +2025,9 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
 
     // all requests below require a cookie to prove authentication so check that first
-    if (!isAuthenticatedRequest(connection, url)) {
+    bool isAuthenticated { false };
+    std::tie(isAuthenticated, username) = isAuthenticatedRequest(connection);
+    if (!isAuthenticated) {
         // this is not an authenticated request
         // return true from the handler since it was handled with a 401 or re-direct to auth
         return true;
@@ -2361,7 +2364,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                 connectionPtr->respond(success ? HTTPConnection::StatusCode200 : HTTPConnection::StatusCode400, docJSON.toJson(),
                                     JSON_MIME_TYPE.toUtf8());
             });
-            _contentManager->recoverFromBackup(deferred, id);
+            _contentManager->recoverFromBackup(deferred, id, username);
             return true;
         }
     } else if (connection->requestOperation() == QNetworkAccessManager::PutOperation) {
@@ -2557,6 +2560,9 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
     int sessionId = sessionIdBytes.toInt();
 
     bool newUpload = itemName == "restore-file" || itemName == "restore-file-chunk-initial" || itemName == "restore-file-chunk-only";
+    bool isAuthenticated;
+    QString username;
+    std::tie(isAuthenticated, username) = isAuthenticatedRequest(connection);
 
     if (filename.endsWith(".zip", Qt::CaseInsensitive)) {
         static const QString TEMPORARY_CONTENT_FILEPATH { QDir::tempPath() + "/hifiUploadContent_XXXXXX.zip" };
@@ -2591,7 +2597,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
                 _pendingContentFiles.erase(sessionId);
             });
 
-            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName(), filename);
+            _contentManager->recoverFromUploadedFile(deferred, _pendingFileContent.fileName(), username, filename);
         }
     } else if (filename.endsWith(".json", Qt::CaseInsensitive)
         || filename.endsWith(".json.gz", Qt::CaseInsensitive)) {
@@ -2604,7 +2610,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
 
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
             // invoke our method to hand the new octree file off to the octree server
-            if (!handleOctreeFileReplacement(_pendingUploadedContent, filename, QString())) {
+            if (!handleOctreeFileReplacement(_pendingUploadedContent, filename, QString(), username)) {
                 connection->respond(HTTPConnection::StatusCode400);
                 return false;
             }
@@ -2680,7 +2686,7 @@ void DomainServer::profileRequestFinished() {
     }
 }
 
-bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url) {
+std::pair<bool, QString>  DomainServer::isAuthenticatedRequest(HTTPConnection* connection) {
 
     static const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
     static const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
@@ -2717,7 +2723,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 
             if (_settingsManager.valueForKeyPath(ADMIN_USERS_CONFIG_KEY).toStringList().contains(profileUsername)) {
                 // this is an authenticated user
-                return true;
+                return { true, profileUsername };
             }
 
             // loop the roles of this user and see if they are in the admin-roles array
@@ -2727,7 +2733,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                 foreach(const QString& userRole, sessionData.getRoles()) {
                     if (adminRolesArray.contains(userRole)) {
                         // this user has a role that allows them to administer the domain-server
-                        return true;
+                        return { true, profileUsername };
                     }
                 }
             }
@@ -2735,7 +2741,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
 
             // the user does not have allowed username or role, return 401
-            return false;
+            return { false, QString() };
         } else {
             static const QByteArray REQUESTED_WITH_HEADER = "X-Requested-With";
             static const QString XML_REQUESTED_WITH = "XMLHttpRequest";
@@ -2764,7 +2770,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             }
 
             // we don't know about this user yet, so they are not yet authenticated
-            return false;
+            return { false, QString() };
         }
     } else if (_settingsManager.valueForKeyPath(BASIC_AUTH_USERNAME_KEY_PATH).isValid()) {
         // config file contains username and password combinations for basic auth
@@ -2793,7 +2799,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                         "" : QCryptographicHash::hash(headerPassword.toUtf8(), QCryptographicHash::Sha256).toHex();
 
                     if (settingsUsername == headerUsername && hexHeaderPassword == settingsPassword) {
-                        return true;
+                        return { true, headerUsername };
                     }
                 }
             }
@@ -2815,11 +2821,11 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
                             HTTPConnection::DefaultContentType, basicAuthHeader);
 
         // not authenticated, bubble up false
-        return false;
+        return { false, QString() };
 
     } else {
         // we don't have an OAuth URL + admin roles/usernames, so all users are authenticated
-        return true;
+        return { true, QString() };
     }
 }
 
@@ -3493,7 +3499,7 @@ void DomainServer::maybeHandleReplacementEntityFile() {
     }
 }
 
-bool DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name) {
+bool DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name, QString username) {
     OctreeUtils::RawEntityData data;
     if (data.readOctreeDataInfoFromData(octreeFile)) {
         data.resetIdAndVersion();
@@ -3514,7 +3520,7 @@ bool DomainServer::handleOctreeFileReplacement(QByteArray octreeFile, QString so
                 { INSTALLED_CONTENT_NAME, name },
                 { INSTALLED_CONTENT_CREATION_TIME, 0 },
                 { INSTALLED_CONTENT_INSTALL_TIME, QDateTime::currentDateTime().currentMSecsSinceEpoch() },
-                { INSTALLED_CONTENT_INSTALLED_BY, "" }
+                { INSTALLED_CONTENT_INSTALLED_BY, username }
             };
 
             QJsonObject jsonObject { { INSTALLED_CONTENT, installed_content } };
@@ -3539,6 +3545,11 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
     qInfo() << "Received request to replace content from a url";
     auto node = DependencyManager::get<LimitedNodeList>()->findNodeWithAddr(message->getSenderSockAddr());
     if (node && node->getCanReplaceContent()) {
+        DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+        QString username;
+        if (nodeData) {
+            username = nodeData->getUsername();
+        }
         // Convert message data into our URL
         QString url(message->getMessage());
         QUrl modelsURL = QUrl(url, QUrl::StrictMode);
@@ -3548,17 +3559,17 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
 
         qDebug() << "Downloading JSON from: " << modelsURL.toString(QUrl::FullyEncoded);
 
-        connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
+        connect(reply, &QNetworkReply::finished, [this, reply, modelsURL, username]() {
             QNetworkReply::NetworkError networkError = reply->error();
             if (networkError == QNetworkReply::NoError) {
                 if (modelsURL.fileName().endsWith(".json.gz")) {
                     QUrlQuery urlQuery(modelsURL.query(QUrl::FullyEncoded));
 
                     QString itemName = urlQuery.queryItemValue(CONTENT_SET_NAME_QUERY_PARAM);
-                    handleOctreeFileReplacement(reply->readAll(), modelsURL.fileName(), itemName);
+                    handleOctreeFileReplacement(reply->readAll(), modelsURL.fileName(), itemName, username);
                 } else if (modelsURL.fileName().endsWith(".zip")) {
                     auto deferred = makePromise("recoverFromUploadedBackup");
-                    _contentManager->recoverFromUploadedBackup(deferred, reply->readAll());
+                    _contentManager->recoverFromUploadedBackup(deferred, reply->readAll(), username);
                 }
             } else {
                 qDebug() << "Error downloading JSON from specified file: " << modelsURL;
@@ -3569,7 +3580,12 @@ void DomainServer::handleDomainContentReplacementFromURLRequest(QSharedPointer<R
 
 void DomainServer::handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message) {
     auto node = DependencyManager::get<NodeList>()->nodeWithLocalID(message->getSourceID());
-    if (node->getCanReplaceContent()) {
-        handleOctreeFileReplacement(message->readAll(), QString(), QString());
+    if (node && node->getCanReplaceContent()) {
+        QString username;
+        DomainServerNodeData* nodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+        if (nodeData) {
+            username = nodeData->getUsername();
+        }
+        handleOctreeFileReplacement(message->readAll(), QString(), QString(), username);
     }
 }
