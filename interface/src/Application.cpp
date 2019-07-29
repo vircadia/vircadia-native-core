@@ -7789,9 +7789,15 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
-void Application::replaceDomainContent(const QString& url) {
+static const QString CONTENT_SET_NAME_QUERY_PARAM = "name";
+
+void Application::replaceDomainContent(const QString& url, const QString& itemName) {
     qCDebug(interfaceapp) << "Attempting to replace domain content";
-    QByteArray urlData(url.toUtf8());
+    QUrl msgUrl(url);
+    QUrlQuery urlQuery(msgUrl.query());
+    urlQuery.addQueryItem(CONTENT_SET_NAME_QUERY_PARAM, itemName);
+    msgUrl.setQuery(urlQuery.query(QUrl::QUrl::FullyEncoded));
+    QByteArray urlData(msgUrl.toString(QUrl::QUrl::FullyEncoded).toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
 
@@ -7825,7 +7831,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    replaceDomainContent(url);
+                    replaceDomainContent(url, QString());
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";
