@@ -1336,29 +1336,231 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 58,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_acknowledge.fbx"
+                                                                                                        },
+                                                                                                        "id": "positiveAcknowledge",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 55,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_headnod.fbx"
+                                                                                                        },
+                                                                                                        "id": "positiveHeadNod",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 78,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_headnodyes.fbx"
+                                                                                                        },
+                                                                                                        "id": "positiveHeadNodYes",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 66,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_logheadnod.fbx"
+                                                                                                        },
+                                                                                                        "id": "positiveLongHeadNod",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 84,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_thisorthat.fbx"
+                                                                                                        },
+                                                                                                        "id": "positiveThisOrThat",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 85,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_thoughtfulheadnod.fbx"
+                                                                                                        },
+                                                                                                        "id": "positiveThoughtfulHeadNod",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 45,
-                                                                                                    "loopFlag": false,
-                                                                                                    "startFrame": 0,
-                                                                                                    "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/emote_agree_acknowledge.fbx"
+                                                                                                    "currentState": "positiveAcknowledge",
+                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "id": "positiveAcknowledge",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "positiveHeadNod",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "positiveHeadNodYes",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "positiveLongHeadNod",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "positiveThisOrThat",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "positiveThoughtfulHeadNod",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 0.33,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ],
+                                                                                                    "triggerRandomSwitch": ""
                                                                                                 },
                                                                                                 "id": "reactionPositive",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 72,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_disagree_annoyedheadshake.fbx"
+                                                                                                        },
+                                                                                                        "id": "negativeAnnoyedHeadshake",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 74,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_disagree_no.fbx"
+                                                                                                        },
+                                                                                                        "id": "negativeNo",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 92,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_disagree_thoughtfulheadshake.fbx"
+                                                                                                        },
+                                                                                                        "id": "negativeThoughtfulHeadshake",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
+                                                                                                    "currentState": "negativeAnnoyedHeadshake",
                                                                                                     "endFrame": 110,
                                                                                                     "loopFlag": false,
+                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                    "randomSwitchTimeMin": 1,
                                                                                                     "startFrame": 0,
-                                                                                                    "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/emote_disagree_defeated.fbx"
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "id": "negativeAnnoyedHeadshake",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "negativeNo",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "negativeThoughtfulHeadshake",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
                                                                                                 },
                                                                                                 "id": "reactionNegative",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
@@ -1439,7 +1641,27 @@
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleOverlay",
-                                                                                                            "var": "reactionPositiveOnDone"
+                                                                                                            "var": "positiveAcknowledgeOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "positiveHeadNodOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "positiveHeadNodYesOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "positiveLongHeadNodOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "positiveThisOrThatOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "positiveThoughtfulHeadNodOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "reactionNegative",
@@ -1471,7 +1693,15 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "idleOverlay",
-                                                                                                            "var": "reactionNegativeOnDone"
+                                                                                                            "var": "negativeAnnoyedHeadshakeOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "negativeNoOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "negativeThoughtfulHeadshakeOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "reactionRaiseHand",
