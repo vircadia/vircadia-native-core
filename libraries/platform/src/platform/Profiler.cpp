@@ -97,8 +97,8 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
 
         // intel integrated graphics
         if (gpuVendor.find(keys::gpu::vendor_Intel) != std::string::npos) {
-            // go mid because GPU
-            tier = Profiler::Tier::MID;
+            // go LOW because Intel GPU
+            tier = Profiler::Tier::LOW;
             return true;
         }
         // AMD gpu

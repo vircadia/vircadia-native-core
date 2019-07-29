@@ -410,8 +410,8 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
                     error = LauncherUtils::ResponseError::ParsingJSON;
                 }
             }
-            onMostRecentBuildsReceived(response, error);
         }
+        onMostRecentBuildsReceived(response, error);
     };
     LauncherUtils::httpCallOnThread(L"HQ Launcher",
                                     L"thunder.highfidelity.com",
