@@ -41,7 +41,6 @@ class InteractiveWindowProxy : public QObject {
     Q_OBJECT
 public:
     InteractiveWindowProxy(){}
-
 public slots:
 
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -52,7 +51,6 @@ signals:
     void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
 };
-
 
 namespace InteractiveWindowEnums {
     Q_NAMESPACE
@@ -325,7 +323,7 @@ protected slots:
 private:
     std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;
     std::shared_ptr<DockWidget> _dockWidget { nullptr };
-    InteractiveWindowProxy *_interactiveWindowProxy{ nullptr };
+    std::unique_ptr<InteractiveWindowProxy, std::function<void(InteractiveWindowProxy*)>> _interactiveWindowProxy;
 };
 
 typedef InteractiveWindow* InteractiveWindowPointer;
