@@ -19,8 +19,6 @@
 #include <gpu/Texture.h>
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
-//#include <render/ResampleTask.h>
-//#include <ToneMapAndResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -29,7 +27,6 @@
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
-//#include "ToneMappingEffect.h"
 #include "ToneMapAndResampleTask.h"
 #include "BackgroundStage.h"
 #include "FramebufferCache.h"
@@ -53,7 +50,7 @@ extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
-    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBufferForward");
     assert(preparePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
 }
@@ -101,7 +98,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
 
     // GPU jobs: Start preparing the main framebuffer
-    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebufferMSAA>("PreparePrimaryBufferForward");
 
     // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -149,7 +146,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
-    const auto toneMappedBuffer = resolvedFramebuffer;
+    //const auto toneMappedBuffer = resolvedFramebuffer;
 #else
     const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
 
@@ -168,7 +165,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", resolvedFramebuffer);
 
     // HUD Layer
-    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 

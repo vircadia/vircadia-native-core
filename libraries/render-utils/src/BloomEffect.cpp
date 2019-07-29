@@ -60,7 +60,8 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
         auto colorTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(inputBuffer->getTexelFormat(), bufferSize.x, bufferSize.y,
                                                 gpu::Texture::SINGLE_MIP, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR_MIP_POINT, gpu::Sampler::WRAP_CLAMP)));
 
-        _outputBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
+        //_outputBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("BloomThreshold"));
+        _outputBuffer = args->_blitFramebuffer;
         _outputBuffer->setRenderBuffer(0, colorTexture);
 
         _parameters.edit()._deltaUV = { 1.0f / bufferSize.x, 1.0f / bufferSize.y };

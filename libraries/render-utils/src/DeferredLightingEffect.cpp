@@ -29,6 +29,9 @@
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 
+#include <iostream>
+#include <sstream>
+
 namespace ru {
     using render_utils::slot::texture::Texture;
     using render_utils::slot::buffer::Buffer;
