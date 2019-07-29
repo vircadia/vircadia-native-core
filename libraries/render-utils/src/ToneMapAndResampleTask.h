@@ -3,7 +3,7 @@
 //  libraries/render-utils/src
 //
 //  Created by Anna Brewer on 7/3/19.
-//  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -59,7 +59,7 @@ public:
     ToneCurve getToneCurve() const { return (ToneCurve)_parametersBuffer.get<Parameters>()._toneCurve; }
 
     // Inputs: lightingFramebuffer, destinationFramebuffer
-    using Input = gpu::FramebufferPointer;
+    using Input = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
     using Output = gpu::FramebufferPointer;
     using Config = ToneMappingConfig;
     using JobModel = render::Job::ModelIO<ToneMapAndResample, Input, Output, Config>;

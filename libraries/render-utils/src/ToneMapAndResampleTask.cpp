@@ -3,7 +3,7 @@
 //  libraries/render-utils/src
 //
 //  Created by Anna Brewer on 7/3/19.
-//  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -61,49 +61,50 @@ void ToneMapAndResample::configure(const Config& config) {
     setToneCurve((ToneCurve)config.curve);
 }
 
-void ToneMapAndResample::run(const RenderContextPointer& renderContext, const Input& input, gpu::FramebufferPointer& resampledFrameBuffer) {
+void ToneMapAndResample::run(const RenderContextPointer& renderContext, const Input& input, Output& output) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
-    auto sourceFramebuffer = input;
 
-    auto lightingBuffer = input->getRenderBuffer(0);
+    auto lightingBuffer = input.get0()->getRenderBuffer(0);
+    auto resampledFramebuffer = input.get1();
 
-    resampledFrameBuffer = args->_blitFramebuffer;
+    if (!resampledFramebuffer) {
+        resampledFramebuffer = args->_blitFramebuffer;
+    }
 
-    if (!lightingBuffer || !resampledFrameBuffer) {
+    if (!lightingBuffer || !resampledFramebuffer) {
         return;
     }
 
-    if (resampledFrameBuffer != sourceFramebuffer) {
-
-        if (!_pipeline) {
-            init();
-        }
-
-        const auto bufferSize = resampledFrameBuffer->getSize();
-
-        auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
-
-        glm::ivec4 destViewport{ 0, 0, bufferSize.x, bufferSize.y };
-
-        gpu::doInBatch("Resample::run", args->_context, [&](gpu::Batch& batch) {
-            batch.enableStereo(false);
-            batch.setFramebuffer(resampledFrameBuffer);
-
-            batch.setViewportTransform(destViewport);
-            batch.setProjectionTransform(glm::mat4());
-            batch.resetViewTransform();
-            batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
-
-            batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(srcBufferSize, args->_viewport));
-            batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
-            batch.setResourceTexture(render_utils::slot::texture::ToneMappingColor, lightingBuffer);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });
-
-        // Set full final viewport
-        args->_viewport = destViewport;
+    if (!_pipeline) {
+        init();
     }
+
+    const auto bufferSize = resampledFramebuffer->getSize();
+
+    auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
+
+    glm::ivec4 destViewport{ 0, 0, bufferSize.x, bufferSize.y };
+
+    gpu::doInBatch("Resample::run", args->_context, [&](gpu::Batch& batch) {
+        batch.enableStereo(false);
+        batch.setFramebuffer(resampledFramebuffer);
+
+        batch.setViewportTransform(destViewport);
+        batch.setProjectionTransform(glm::mat4());
+        batch.resetViewTransform();
+        batch.setPipeline(args->_renderMode == RenderArgs::MIRROR_RENDER_MODE ? _mirrorPipeline : _pipeline);
+
+        batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(srcBufferSize, args->_viewport));
+        batch.setUniformBuffer(render_utils::slot::buffer::ToneMappingParams, _parametersBuffer);
+        batch.setResourceTexture(render_utils::slot::texture::ToneMappingColor, lightingBuffer);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+    });
+
+    // Set full final viewport
+    args->_viewport = destViewport;
+
+    output = resampledFramebuffer;
 }
