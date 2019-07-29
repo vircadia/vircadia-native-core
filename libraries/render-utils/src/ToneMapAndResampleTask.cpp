@@ -29,9 +29,8 @@ ToneMapAndResample::ToneMapAndResample() {
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
-
-void ToneMapAndResample::init(RenderArgs* args) {
-
+/*
+void ToneMapAndResample::init() {
     // shared_ptr to gpu::State
     gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
 
@@ -41,6 +40,7 @@ void ToneMapAndResample::init(RenderArgs* args) {
     _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping), blitState));
     _mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping_mirrored), blitState));
 }
+ */
 
 void ToneMapAndResample::setExposure(float exposure) {
     auto& params = _parametersBuffer.get<Parameters>();
@@ -72,20 +72,26 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
     auto lightingBuffer = input->getRenderBuffer(0);
 
     resampledFrameBuffer = args->_blitFramebuffer;
-
-    if (!lightingBuffer || !resampledFramebuffer) {
+/*
+    if (!lightingBuffer || !resampledFrameBuffer) {
         return;
-    }
+    }*/
 
     if (resampledFrameBuffer != sourceFramebuffer) {
 
         if (!_pipeline) {
-            init(args);
+            gpu::StatePointer blitState = gpu::StatePointer(new gpu::State());
+
+            blitState->setDepthTest(gpu::State::DepthTest(false, false));
+            blitState->setColorWriteMask(true, true, true, true);
+
+            _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping), blitState));
+            _mirrorPipeline = gpu::PipelinePointer(gpu::Pipeline::create(gpu::Shader::createProgram(toneMapping_mirrored), blitState));
         }
 
         const auto bufferSize = resampledFrameBuffer->getSize();
 
-        const auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
+        auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
 
         glm::ivec4 destViewport{ 0, 0, bufferSize.x, bufferSize.y };
 

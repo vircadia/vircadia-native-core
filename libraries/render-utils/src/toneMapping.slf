@@ -44,7 +44,7 @@ layout(location=0) out vec4 outFragColor;
         
 void main(void) {
 <@if HIFI_USE_MIRRORED@>
-    vec4 fragColorRaw = texture(colorMap, vec2(1.0 - varTexCoord0.x, varTexCoord0.y);
+    vec4 fragColorRaw = texture(colorMap, vec2(1.0 - varTexCoord0.x, varTexCoord0.y));
 <@else@>
     vec4 fragColorRaw = texture(colorMap, varTexCoord0);
 <@endif@>

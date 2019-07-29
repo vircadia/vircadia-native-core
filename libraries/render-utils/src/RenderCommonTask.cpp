@@ -154,13 +154,19 @@ void NewFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     glm::uvec2 frameSize(args->_viewport.z, args->_viewport.w);
     output.reset();
 
+    auto destBlitFbo = args->_blitFramebuffer;
+    if (destBlitFbo && destBlitFbo->getSize() == frameSize) {
+        output = destBlitFbo;
+        return;
+    }
+
     // Else use the lodal Framebuffer
     if (_outputFramebuffer && _outputFramebuffer->getSize() != frameSize) {
         _outputFramebuffer.reset();
     }
 
     if (!_outputFramebuffer) {
-        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer.out"));
+        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer2.out"));
         auto colorFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10);
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
         auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
