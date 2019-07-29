@@ -96,7 +96,7 @@ private:
     typedef gpu::BufferView UniformBufferView;
     gpu::BufferView _parametersBuffer;
 
-    void init(RenderArgs* args);
+    void init();
 };
 
 #endif // hifi_ToneMapAndResample_h

@@ -140,22 +140,15 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
-    //const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
+    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
 
-    #if 1
-    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    #else
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
-    #endif
-    
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
-    const auto toneMappedBuffer = resolvedFramebuffer;
 
-    //const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, args->blitFramebuffer).asVarying();
-    const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappedBuffer);
+    const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", resolvedFramebuffer);
 
     // HUD Layer
-    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
