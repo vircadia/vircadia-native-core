@@ -41,7 +41,6 @@ class InteractiveWindowProxy : public QObject {
     Q_OBJECT
 public:
     InteractiveWindowProxy(){}
-    
 public slots:
 
     void emitScriptEvent(const QVariant& scriptMessage);
