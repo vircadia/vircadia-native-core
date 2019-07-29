@@ -73,7 +73,7 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
 
     resampledFrameBuffer = args->_blitFramebuffer;
 
-    if (!lightingBuffer || !blitFramebuffer) {
+    if (!lightingBuffer || !resampledFramebuffer) {
         return;
     }
 
@@ -105,8 +105,6 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
         });
 
         // Set full final viewport
-        args->_viewport = viewport;
-
-        output = blitFramebuffer;
+        args->_viewport = destViewport;
     }
 }

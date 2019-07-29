@@ -140,29 +140,18 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
-#if !defined(Q_OS_ANDROID)
-
-    // Just resolve the msaa
-    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
-
-    //const auto toneMappedBuffer = resolvedFramebuffer;
-#else
     const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer");
 
-    // Just resolve the msaa
+    #if 1
+    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+    #else
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
+    #endif
+    
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
-    // Lighting Buffer ready for tone mapping
-    // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
-    // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    //const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
-    //const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
-
-#endif
-
-    const auto primaryFramebuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", resolvedFramebuffer);
+    //const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, args->blitFramebuffer).asVarying();
+    const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", resolvedFramebuffer);
 
     // HUD Layer
     const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
