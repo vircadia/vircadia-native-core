@@ -137,7 +137,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
     }
     
-   _interactiveWindowProxy= std::unique_ptr<InteractiveWindowProxy, 
+   _interactiveWindowProxy = std::unique_ptr<InteractiveWindowProxy, 
        std::function<void(InteractiveWindowProxy*)>>(new InteractiveWindowProxy, [](InteractiveWindowProxy *p) {
             p->deleteLater();
    });
