@@ -434,8 +434,8 @@ void LauncherManager::onMostRecentBuildsReceived(const CString& response, Launch
             addToLog(updatingMsg);
             _shouldUpdateLauncher = TRUE;
             _shouldDownloadLauncher = TRUE;
-            _willLogin = !isInstalled;
-            _willContinueUpdating = isInstalled && newInterfaceVersion;
+            _keepLoggingIn = !isInstalled;
+            _keepUpdating = isInstalled && newInterfaceVersion;
         } else {
             if (_updateLauncherAllowed) {
                 addToLog(_T("Already running most recent build. Launching interface.exe"));
@@ -616,9 +616,9 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 void LauncherManager::restartNewLauncher() {
     closeLog();
     CLauncherDlg::DrawStep startScreen = CLauncherDlg::DrawStep::DrawProcessFinishUpdate;
-    if (_willContinueUpdating) {
+    if (_keepUpdating) {
         startScreen = CLauncherDlg::DrawStep::DrawProcessUpdate;
-    } else if (_willLogin) {
+    } else if (_keepLoggingIn) {
         startScreen = CLauncherDlg::DrawStep::DrawLoginLogin;
     }    
     CStringW params;

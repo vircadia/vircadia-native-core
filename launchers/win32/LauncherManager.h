@@ -100,7 +100,7 @@ public:
     BOOL needsInstall() const { return _shouldInstall; }
     BOOL needsToWait() const { return _shouldWait; }
     BOOL needsRestartNewLauncher() const { return _shouldRestartNewLauncher; }
-    BOOL willContinueUpdating() const { return _willContinueUpdating; }
+    BOOL willContinueUpdating() const { return _keepUpdating; }
     CLauncherDlg::DrawStep getStartScreen() { return _startScreen; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() const { return _loggedIn; }
@@ -154,8 +154,8 @@ private:
     BOOL _shouldDownloadLauncher { FALSE };
     BOOL _updateLauncherAllowed { TRUE };
     BOOL _shouldRestartNewLauncher { FALSE };
-    BOOL _willLogin { FALSE };
-    BOOL _willContinueUpdating { FALSE };
+    BOOL _keepLoggingIn { FALSE };
+    BOOL _keepUpdating { FALSE };
     CLauncherDlg::DrawStep _startScreen;
     float _progressOffset { 0.0f };
     float _progress { 0.0f };
