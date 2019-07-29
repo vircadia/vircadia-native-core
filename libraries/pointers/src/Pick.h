@@ -31,7 +31,7 @@
  *     <tr><td>INTERSECTED_ENTITY</td><td><code>1</code></td><td>Intersected an entity.</td></tr>
  *     <tr><td>INTERSECTED_LOCAL_ENTITY</td><td><code>2</code></td><td>Intersected a local entity.</td></tr>
  *     <tr><td>INTERSECTED_AVATAR</td><td><code>3</code></td><td>Intersected an avatar.</td></tr>
- *     <tr><td>INTERSECTED_HUD</td><td><code>4</code></td><td>Intersected the HUD sphere.</td></tr>
+ *     <tr><td>INTERSECTED_HUD</td><td><code>4</code></td><td>Intersected the HUD surface.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {number} IntersectionType

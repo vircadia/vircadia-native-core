@@ -362,8 +362,8 @@ Rectangle {
             id: displayModeImage
             source: HMD.active ? "./images/desktopMode.svg" : "./images/vrMode.svg"
             anchors.centerIn: parent
-            width: HMD.active ? 25 : 43
-            height: 22
+            width: HMD.active ? 25 : 26
+            height: HMD.active ? 22 : 14
             visible: false
         }
 

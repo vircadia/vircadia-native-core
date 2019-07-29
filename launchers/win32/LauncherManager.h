@@ -25,6 +25,7 @@ const float DOWNLOAD_APPLICATION_INSTALL_WEIGHT = 0.5f;
 const float EXTRACT_APPLICATION_INSTALL_WEIGHT = 0.2f;
 const float DOWNLOAD_APPLICATION_UPDATE_WEIGHT = 0.75f;
 const float EXTRACT_APPLICATION_UPDATE_WEIGHT = 0.25f;
+const float CONTINUE_UPDATING_GLOBAL_OFFSET = 0.2f;
 
 class LauncherManager
 {
@@ -49,6 +50,7 @@ public:
         ErrorIOFiles
     };
     enum ProcessType {
+        DownloadLauncher = 0,
         DownloadContent,
         DownloadApplication,
         UnzipContent,
@@ -57,7 +59,7 @@ public:
     };
     LauncherManager();
     ~LauncherManager();
-    void init();
+    void init(BOOL allowUpdate, BOOL continueUpdating, BOOL skipSplashScreen);
     BOOL initLog();
     BOOL addToLog(const CString& line);
     void closeLog();
@@ -67,7 +69,8 @@ public:
     BOOL isApplicationInstalled(CString& version, CString& domain,
                                 CString& content, bool& loggedIn);
     LauncherUtils::ResponseError getAccessTokenForCredentials(const CString& username, const CString& password);
-    void getMostRecentBuild(CString& urlOut, CString& versionOut);
+    void getMostRecentBuilds(CString& launcherUrlOut, CString& launcherVersionOut, 
+                             CString& interfaceUrlOut, CString& interfaceVersionOut);
     LauncherUtils::ResponseError readOrganizationJSON(const CString& hash);
     LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain,
                                                 CString& content, bool& loggedIn);
@@ -87,13 +90,19 @@ public:
     const CString& getVersion() const { return _version; }
     BOOL shouldShutDown() const { return _shouldShutdown; }
     BOOL shouldLaunch() const { return _shouldLaunch; }
-    BOOL needsUpdate() { return _shouldUpdate; }
-    BOOL needsUninstall() { return _shouldUninstall; }
-    BOOL needsInstall() { return _shouldInstall; }
-    BOOL needsToWait() { return _shouldWait; }
+    BOOL shouldSkipSplashScreen() const { return _skipSplashScreen; }
+    BOOL needsUpdate() const { return _shouldUpdate; }
+    BOOL needsSelfUpdate() const { return _shouldUpdateLauncher; }
+    BOOL needsSelfDownload() const { return _shouldDownloadLauncher; }
+    BOOL needsUninstall() const { return _shouldUninstall; }
+    BOOL needsInstall() const { return _shouldInstall; }
+    BOOL needsToWait() const { return _shouldWait; }
+    BOOL needsRestartNewLauncher() const { return _shouldRestartNewLauncher; }
+    BOOL shouldContinueUpdating() const { return _continueUpdating; }
+    BOOL willContinueUpdating() const { return _willContinueUpdating; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
-    bool isLoggedIn() { return _loggedIn; }
-    bool hasFailed() { return _hasFailed; }
+    bool isLoggedIn() const { return _loggedIn; }
+    bool hasFailed() const { return _hasFailed; }
     void setFailed(bool hasFailed) { _hasFailed = hasFailed; }
     const CString& getLatestInterfaceURL() const { return _latestApplicationURL; }
     void uninstall() { _shouldUninstall = true; _shouldWait = false; };
@@ -101,19 +110,24 @@ public:
     BOOL downloadFile(ProcessType type, const CString& url, CString& localPath);
     BOOL downloadContent();
     BOOL downloadApplication();
+    BOOL downloadNewLauncher();
     BOOL installContent();
     BOOL extractApplication();
+    void restartNewLauncher();
     void onZipExtracted(ProcessType type, int size);
     void onFileDownloaded(ProcessType type);
-    float getProgress() { return _progress; }
+    float getProgress() const { return _progress; }
     void updateProgress(ProcessType processType, float progress);
     void onCancel();
+    const CString& getLauncherVersion() const { return _launcherVersion; }
 
 private:
     ProcessType _currentProcess { ProcessType::DownloadApplication };
-    void onMostRecentBuildReceived(const CString& response, LauncherUtils::ResponseError error);
+    void onMostRecentBuildsReceived(const CString& response, LauncherUtils::ResponseError error);
     CString _latestApplicationURL;
     CString _latestVersion;
+    CString _latestLauncherURL;
+    CString _latestLauncherVersion;
     CString _contentURL;
     CString _domainURL;
     CString _version;
@@ -121,6 +135,8 @@ private:
     CString _tokensJSON;
     CString _applicationZipPath;
     CString _contentZipPath;
+    CString _launcherVersion;
+    CString _tempLauncherPath;
     bool _loggedIn { false };
     bool _hasFailed { false };
     BOOL _shouldUpdate { FALSE };
@@ -129,6 +145,14 @@ private:
     BOOL _shouldShutdown { FALSE };
     BOOL _shouldLaunch { FALSE };
     BOOL _shouldWait { TRUE };
+    BOOL _shouldUpdateLauncher { FALSE };
+    BOOL _shouldDownloadLauncher { FALSE };
+    BOOL _updateLauncherAllowed { TRUE };
+    BOOL _shouldRestartNewLauncher { FALSE };
+    BOOL _continueUpdating { FALSE };
+    BOOL _willContinueUpdating { FALSE };
+    BOOL _skipSplashScreen { FALSE };
+    float _progressOffset { 0.0f };
     float _progress { 0.0f };
     CStdioFile _logFile;
 };

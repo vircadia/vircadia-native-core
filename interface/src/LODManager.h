@@ -12,6 +12,8 @@
 #ifndef hifi_LODManager_h
 #define hifi_LODManager_h
 
+#include <mutex>
+
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 #include <OctreeConstants.h>
@@ -47,11 +49,6 @@ class AABox;
  * @property {number} presentTime <em>Read-only.</em>
  * @property {number} engineRunTime <em>Read-only.</em>
  * @property {number} gpuTime <em>Read-only.</em>
- * @property {number} avgRenderTime <em>Read-only.</em>
- * @property {number} fps <em>Read-only.</em>
- * @property {number} lodLevel <em>Read-only.</em>
- * @property {number} lodDecreaseFPS <em>Read-only.</em>
- * @property {number} lodIncreaseFPS <em>Read-only.</em>
  */
 
 class LODManager : public QObject, public Dependency {
@@ -240,6 +237,7 @@ signals:
 private:
     LODManager();
 
+    std::mutex _automaticLODLock;
     bool _automaticLODAdjust = true;
 
     float _presentTime{ 0.0f }; // msec

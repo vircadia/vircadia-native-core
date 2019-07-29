@@ -69,6 +69,14 @@ void QmlWindowProxy::parentNativeWindowToMainWindow() {
 #endif
 }
 
+void InteractiveWindowProxy::emitScriptEvent(const QVariant& scriptMessage){
+    emit scriptEventReceived(scriptMessage);
+}
+
+void InteractiveWindowProxy::emitWebEvent(const QVariant& webMessage) {
+    emit webEventReceived(webMessage);
+}
+
 static void qmlWindowProxyDeleter(QmlWindowProxy* qmlWindowProxy) {
     qmlWindowProxy->deleteLater();
 }
@@ -129,6 +137,12 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         presentationMode = (InteractiveWindowPresentationMode) properties[PRESENTATION_MODE_PROPERTY].toInt();
     }
 
+    if (!_interactiveWindowProxy) {
+        _interactiveWindowProxy = new InteractiveWindowProxy();
+        QObject::connect(_interactiveWindowProxy, &InteractiveWindowProxy::webEventReceived, this, &InteractiveWindow::emitWebEvent, Qt::QueuedConnection);
+        QObject::connect(this, &InteractiveWindow::scriptEventReceived, _interactiveWindowProxy, &InteractiveWindowProxy::emitScriptEvent, Qt::QueuedConnection);
+    }
+
     if (properties.contains(DOCKED_PROPERTY) && presentationMode == InteractiveWindowPresentationMode::Native) {
         QVariantMap nativeWindowInfo = properties[DOCKED_PROPERTY].toMap();
         Qt::DockWidgetArea dockArea = Qt::TopDockWidgetArea;
@@ -182,13 +196,17 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                     break;
             }
         }
-
+      
+        
         QObject::connect(quickView.get(), &QQuickView::statusChanged, [&, this] (QQuickView::Status status) {
             if (status == QQuickView::Ready) {
                 QQuickItem* rootItem = _dockWidget->getRootItem();
-                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+                _dockWidget->getQuickView()->rootContext()->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
+                // The qmlToScript method handles the thread-safety of this call. Because the QVariant argument
+                // passed to the sendToScript signal may wrap an externally managed and thread-unsafe QJSValue,
+                // qmlToScript needs to be called directly, so the QJSValue can be immediately converted to a plain QVariant.
                 QObject::connect(rootItem, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)),
-                                 Qt::QueuedConnection);
+                                 Qt::DirectConnection);
                 QObject::connect(rootItem, SIGNAL(keyPressEvent(int, int)), this, SLOT(forwardKeyPressEvent(int, int)),
                                  Qt::QueuedConnection);
                 QObject::connect(rootItem, SIGNAL(keyReleaseEvent(int, int)), this, SLOT(forwardKeyReleaseEvent(int, int)),
@@ -204,7 +222,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         // Build the event bridge and wrapper on the main thread
         offscreenUi->loadInNewContext(CONTENT_WINDOW_QML, [&](QQmlContext* context, QObject* object) {
             _qmlWindowProxy = std::shared_ptr<QmlWindowProxy>(new QmlWindowProxy(object, nullptr), qmlWindowProxyDeleter);
-            context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
+            context->setContextProperty(EVENT_BRIDGE_PROPERTY, _interactiveWindowProxy);
             if (properties.contains(ADDITIONAL_FLAGS_PROPERTY)) {
                 object->setProperty(ADDITIONAL_FLAGS_PROPERTY, properties[ADDITIONAL_FLAGS_PROPERTY].toUInt());
             }
@@ -229,7 +247,10 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                 object->setProperty(VISIBLE_PROPERTY, properties[INTERACTIVE_WINDOW_VISIBLE_PROPERTY].toBool());
             }
 
-            connect(object, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::QueuedConnection);
+            // The qmlToScript method handles the thread-safety of this call. Because the QVariant argument
+            // passed to the sendToScript signal may wrap an externally managed and thread-unsafe QJSValue,
+            // qmlToScript needs to be called directly, so the QJSValue can be immediately converted to a plain QVariant.
+            connect(object, SIGNAL(sendToScript(QVariant)), this, SLOT(qmlToScript(const QVariant&)), Qt::DirectConnection);
             QObject::connect(object, SIGNAL(keyPressEvent(int, int)), this, SLOT(forwardKeyPressEvent(int, int)),
                              Qt::QueuedConnection);
             QObject::connect(object, SIGNAL(keyReleaseEvent(int, int)), this, SLOT(forwardKeyReleaseEvent(int, int)),
@@ -263,6 +284,7 @@ InteractiveWindow::~InteractiveWindow() {
 }
 
 void InteractiveWindow::sendToQml(const QVariant& message) {
+
     // Forward messages received from the script on to QML
     if (_dockWidget) {
         QQuickItem* rootItem = _dockWidget->getRootItem();
@@ -291,6 +313,10 @@ void InteractiveWindow::close() {
         _qmlWindowProxy->deleteLater();
     }
 
+    if (_interactiveWindowProxy) {
+        _interactiveWindowProxy->deleteLater();
+    }
+
     if (_dockWidget) {
         auto window = qApp->getWindow();
         if (QThread::currentThread() != window->thread()) {
@@ -301,6 +327,7 @@ void InteractiveWindow::close() {
     }
     _dockWidget = nullptr;
     _qmlWindowProxy = nullptr;
+    _interactiveWindowProxy = nullptr;
 }
 
 void InteractiveWindow::show() {
@@ -315,13 +342,21 @@ void InteractiveWindow::raise() {
     }
 }
 
-void InteractiveWindow::qmlToScript(const QVariant& message) {
+void InteractiveWindow::qmlToScript(const QVariant& originalMessage) {
+    QVariant message = originalMessage;
     if (message.canConvert<QJSValue>()) {
-        emit fromQml(qvariant_cast<QJSValue>(message).toVariant());
+        message = qvariant_cast<QJSValue>(message).toVariant();
     } else if (message.canConvert<QString>()) {
-        emit fromQml(message.toString());
+        message = message.toString();
     } else {
         qWarning() << "Unsupported message type " << message;
+        return;
+    }
+
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "fromQml", Q_ARG(const QVariant&, message));
+    } else {
+        emit fromQml(message);
     }
 }
 

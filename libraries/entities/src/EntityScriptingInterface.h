@@ -446,7 +446,15 @@ public slots:
     /**jsdoc
      * Gets an entity's script object. In particular, this is useful for accessing a {@link Entities.EntityProperties-Web|Web} 
      * entity's HTML <code>EventBridge</code> script object to exchange messages with the web page script.
-     * <p>Alternatively, you can use {@link Entities.emitScriptEvent} and {@link Entities.webEventReceived} to exchange 
+     * <p>To send a message from an Interface script to a Web entity over its event bridge:</p>
+     * <pre class="prettyprint"><code>var entityObject = Entities.getEntityObject(entityID);
+     * entityObject.emitScriptEvent(message);</code></pre>
+     * <p>To receive a message from a Web entity over its event bridge in an Interface script:</p>
+     * <pre class="prettyprint"><code>var entityObject = Entities.getentityObject(entityID);
+     * entityObject.webEventReceived.connect(function(message) {
+     *     ...
+     * };</code></pre>
+     * <p>Alternatively, you can use {@link Entities.emitScriptEvent} and {@link Entities.webEventReceived} to exchange
      * messages with a Web entity over its event bridge.</p>
      * @function Entities.getEntityObject
      * @param {Uuid} id - The ID of the entity to get the script object for.
@@ -459,7 +467,7 @@ public slots:
      *     <title>HELLO</title>
      * </head>
      * <body>
-     *     <h1>HELLO</h1></h1>
+     *     <h1>HELLO</h1>
      *     <script>
      *         function onScriptEventReceived(message) {
      *             // Message received from the script.
@@ -476,7 +484,7 @@ public slots:
      * </body>
      * </html>
      * 
-     * // Script file.
+     * // Interface script file.
      * var webEntity = Entities.addEntity({
      *     type: "Web",
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
@@ -525,9 +533,12 @@ public slots:
     Q_INVOKABLE bool isAddedEntity(const QUuid& id);
 
     /**jsdoc
-     * Calculates the size of some text in a text entity.
+     * Calculates the size of some text in a {@link Entities.EntityProperties-Text|Text} entity. The entity need not be set 
+     * visible.
+     * <p><strong>Note:</strong> The size of text in a Text entity cannot be calculated immediately after the
+     * entity is created; a short delay is required while the entity finishes being created.</p>
      * @function Entities.textSize
-     * @param {Uuid} id - The ID of the entity to use for calculation.
+     * @param {Uuid} id - The ID of the Text entity to use for calculation.
      * @param {string} text - The string to calculate the size of.
      * @returns {Size} The size of the <code>text</code> in meters if the object is a text entity, otherwise
      *     <code>{ height: 0, width : 0 }</code>.
@@ -1794,7 +1805,7 @@ public slots:
      *     <title>HELLO</title>
      * </head>
      * <body>
-     *     <h1>HELLO</h1></h1>
+     *     <h1>HELLO</h1>
      *     <script>
      *         function onScriptEventReceived(message) {
      *             // Message received from the script.

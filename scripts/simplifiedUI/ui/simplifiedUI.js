@@ -531,21 +531,21 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 
 
 var oldAutomaticLODAdjust;
-var oldLODLevel;
-var DEFAULT_AUTO_LOD_ADJUST = false;
-var DEFAULT_LOD_LEVEL = 0.5;
+var oldLODAngleDeg;
+var SIMPLIFIED_UI_AUTO_LOD_ADJUST = false;
+var SIMPLIFIED_UI_LOD_ANGLE_DEG = 0.5;
 function modifyLODSettings() {
     oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
-    oldLODLevel = LODManager.lodQualityLevel;
+    oldLODAngleDeg = LODManager.lodAngleDeg;
 
-    LODManager.automaticLODAdjust = DEFAULT_AUTO_LOD_ADJUST;
-    LODManager.lodQualityLevel = DEFAULT_LOD_LEVEL;
+    LODManager.automaticLODAdjust = SIMPLIFIED_UI_AUTO_LOD_ADJUST;
+    LODManager.lodAngleDeg = SIMPLIFIED_UI_LOD_ANGLE_DEG;
 }
 
 
 function restoreLODSettings() {
     LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
-    LODManager.lodQualityLevel = oldLODLevel;
+    LODManager.lodAngleDeg = oldLODAngleDeg;
 }
 
 
