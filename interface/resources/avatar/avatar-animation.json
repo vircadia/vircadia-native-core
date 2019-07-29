@@ -1383,7 +1383,7 @@
                                                                                                             "loopFlag": false,
                                                                                                             "startFrame": 1,
                                                                                                             "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/emote_agree_logheadnod.fbx"
+                                                                                                            "url": "qrc:///avatar/animations/emote_agree_longheadnod.fbx"
                                                                                                         },
                                                                                                         "id": "positiveLongHeadNod",
                                                                                                         "type": "clip"
@@ -1520,6 +1520,19 @@
                                                                                                         },
                                                                                                         "id": "negativeThoughtfulHeadshake",
                                                                                                         "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 158,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_disagree_drophead.fbx"
+                                                                                                        },
+                                                                                                        "id": "negativeDropHead",
+                                                                                                        "type": "clip"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -1556,6 +1569,15 @@
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "negativeDropHead",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
                                                                                                         }
                                                                                                     ]
                                                                                                 },
@@ -1564,37 +1586,169 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 378,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 18,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_raisehand01_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "raiseHand01",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 237,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 19,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_raisehand03_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "raiseHand03",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 345,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 32,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_raisehand04_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "raiseHand04",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 300,
-                                                                                                    "loopFlag": true,
-                                                                                                    "startFrame": 18,
-                                                                                                    "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/emote_raisehand01_all.fbx"
+                                                                                                    "currentState": "raiseHand01",
+                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "id": "raiseHand01",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "raiseHand03",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "raiseHand04",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
                                                                                                 },
                                                                                                 "id": "reactionRaiseHand",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 97,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 18,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_clap01_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "applaudClap01",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 237,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 19,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_clap02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "applaudClap02",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 100,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 14,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/emote_clap03_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "applaudClap03",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 84,
-                                                                                                    "loopFlag": true,
-                                                                                                    "startFrame": 20,
-                                                                                                    "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/emote_clap01_all.fbx"
+                                                                                                    "currentState": "applaudClap01",
+                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "id": "applaudClap01",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "applaudClap02",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "applaudClap03",
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
                                                                                                 },
                                                                                                 "id": "reactionApplaud",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 50,
+                                                                                                    "endFrame": 44,
                                                                                                     "loopFlag": true,
-                                                                                                    "startFrame": 20,
+                                                                                                    "startFrame": 22,
                                                                                                     "timeScale": 1,
                                                                                                     "url": "qrc:///avatar/animations/emote_point01_all.fbx"
                                                                                                 },
