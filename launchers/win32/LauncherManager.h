@@ -57,10 +57,18 @@ public:
         UnzipApplication,
         Uninstall
     };
+    enum ContinueActionOnStart {
+        ContinueNone = 0,
+        ContinueLogIn,
+        ContinueUpdate,
+        ContinueFinish
+    };
 
     LauncherManager();
     ~LauncherManager();
-    void init(BOOL allowUpdate, CLauncherDlg::DrawStep startScreen);
+    void init(BOOL allowUpdate, ContinueActionOnStart continueAction);
+    static CString getContinueActionParam(ContinueActionOnStart continueAction);
+    static ContinueActionOnStart getContinueActionFromParam(const CString& param);
     BOOL initLog();
     BOOL addToLog(const CString& line);
     void closeLog();
@@ -101,7 +109,7 @@ public:
     BOOL needsToWait() const { return _shouldWait; }
     BOOL needsRestartNewLauncher() const { return _shouldRestartNewLauncher; }
     BOOL willContinueUpdating() const { return _keepUpdating; }
-    CLauncherDlg::DrawStep getStartScreen() { return _startScreen; }
+    ContinueActionOnStart getContinueAction() { return _continueAction; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() const { return _loggedIn; }
     bool hasFailed() const { return _hasFailed; }
@@ -156,7 +164,7 @@ private:
     BOOL _shouldRestartNewLauncher { FALSE };
     BOOL _keepLoggingIn { FALSE };
     BOOL _keepUpdating { FALSE };
-    CLauncherDlg::DrawStep _startScreen;
+    ContinueActionOnStart _continueAction;
     float _progressOffset { 0.0f };
     float _progress { 0.0f };
     CStdioFile _logFile;

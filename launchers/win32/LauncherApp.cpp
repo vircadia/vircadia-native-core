@@ -42,7 +42,7 @@ BOOL CLauncherApp::InitInstance() {
     bool uninstalling = false;
     bool restarting = false;
     bool noUpdate = false;
-    CLauncherDlg::DrawStep startScreen = CLauncherDlg::DrawStep::DrawLogo;
+    LauncherManager::ContinueActionOnStart continueAction = LauncherManager::ContinueActionOnStart::ContinueNone;
     if (iNumOfArgs > 1) {
         for (int i = 1; i < iNumOfArgs; i++) {
             CString curArg = CString(pArgs[i]);
@@ -52,9 +52,9 @@ BOOL CLauncherApp::InitInstance() {
                 restarting = true;
             } else if (curArg.Compare(_T("--noUpdate")) == 0) {
                 noUpdate = true;
-            } else if (curArg.Compare(_T("--startScreen")) == 0) {
+            } else if (curArg.Compare(_T("--continueAction")) == 0) {
                 if (i + 1 < iNumOfArgs) {
-                    startScreen = (CLauncherDlg::DrawStep)_wtoi(pArgs[i + 1]);
+                    continueAction = LauncherManager::getContinueActionFromParam(pArgs[i + 1]);
                 }
             }
         }
@@ -70,7 +70,7 @@ BOOL CLauncherApp::InitInstance() {
     if (uninstalling) {
         _manager.uninstall();
     } else {
-        _manager.init(!noUpdate, startScreen);
+        _manager.init(!noUpdate, continueAction);
     }   
     if (!_manager.hasFailed() && !_manager.installLauncher()) {
         return FALSE;

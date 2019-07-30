@@ -23,15 +23,15 @@ LauncherManager::LauncherManager() {
 LauncherManager::~LauncherManager() {
 }
 
-void LauncherManager::init(BOOL allowUpdate, CLauncherDlg::DrawStep startScreen) {
+void LauncherManager::init(BOOL allowUpdate, ContinueActionOnStart continueAction) {
     initLog();
     _updateLauncherAllowed = allowUpdate;
-    _startScreen = startScreen;
+    _continueAction = continueAction;
     CString msg;
-    msg.Format(_T("Start Screen: %d"), (int)startScreen);
+    msg.Format(_T("Start Screen: %s"), getContinueActionParam(continueAction));
     addToLog(msg);
-    _shouldWait = _startScreen == CLauncherDlg::DrawStep::DrawLogo;
-    if (_startScreen == CLauncherDlg::DrawStep::DrawProcessUpdate) {
+    _shouldWait = _continueAction == ContinueActionOnStart::ContinueNone;
+    if (_continueAction == ContinueActionOnStart::ContinueUpdate) {
         _progressOffset = CONTINUE_UPDATING_GLOBAL_OFFSET;
     }
     addToLog(_T("Launcher is running version: " + _launcherVersion));
@@ -39,6 +39,32 @@ void LauncherManager::init(BOOL allowUpdate, CLauncherDlg::DrawStep startScreen)
     getMostRecentBuilds(_latestLauncherURL, _latestLauncherVersion, _latestApplicationURL, _latestVersion);
 }
 
+CString LauncherManager::getContinueActionParam(LauncherManager::ContinueActionOnStart continueAction) {
+    switch (continueAction) {
+        case LauncherManager::ContinueActionOnStart::ContinueNone:
+            return _T("");
+        case LauncherManager::ContinueActionOnStart::ContinueLogIn:
+            return _T("LogIn");
+        case LauncherManager::ContinueActionOnStart::ContinueUpdate:
+            return _T("Update");
+        case LauncherManager::ContinueActionOnStart::ContinueFinish:
+            return _T("Finish");
+        default:
+            return _T("");
+    }
+}
+
+LauncherManager::ContinueActionOnStart LauncherManager::getContinueActionFromParam(const CString& param) {
+    if (param.Compare(_T("LogIn")) == 0) {
+        return ContinueActionOnStart::ContinueLogIn;
+    } else if (param.Compare(_T("Update")) == 0) {
+        return ContinueActionOnStart::ContinueUpdate;
+    } else if (param.Compare(_T("Finish")) == 0) {
+        return ContinueActionOnStart::ContinueFinish;
+    } else {
+        return ContinueActionOnStart::ContinueNone;
+    }
+}
 BOOL LauncherManager::initLog() {
     CString logPath;
     auto result = getAndCreatePaths(PathType::Launcher_Directory, logPath);
@@ -614,17 +640,24 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 }
 
 void LauncherManager::restartNewLauncher() {
+    CString tempPath;
+    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Temp_Directory, tempPath);
+    tempPath += "hql.exe";
+    CString installPath;
+    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, installPath);
+    installPath += LAUNCHER_EXE_FILENAME;
+    CopyFile(installPath, tempPath, false);
     closeLog();
-    CLauncherDlg::DrawStep startScreen = CLauncherDlg::DrawStep::DrawProcessFinishUpdate;
+    ContinueActionOnStart continueAction = ContinueActionOnStart::ContinueFinish;
     if (_keepUpdating) {
-        startScreen = CLauncherDlg::DrawStep::DrawProcessUpdate;
+        continueAction = ContinueActionOnStart::ContinueUpdate;
     } else if (_keepLoggingIn) {
-        startScreen = CLauncherDlg::DrawStep::DrawLoginLogin;
+        continueAction = ContinueActionOnStart::ContinueLogIn;
     }    
     CStringW params;
-    params.Format(_T(" --restart --noUpdate --startScreen %d"), (int)startScreen);
+    params.Format(_T(" --restart --noUpdate --continueAction %s"), getContinueActionParam(continueAction));
     LPTSTR par = params.GetBuffer();
-    LauncherUtils::launchApplication(_tempLauncherPath, par);
+    LauncherUtils::launchApplication(tempPath, par);
     Sleep(500);
 }
 

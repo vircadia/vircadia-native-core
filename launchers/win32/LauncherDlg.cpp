@@ -694,18 +694,18 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             }
         }
 
-        DrawStep startStep = theApp._manager.getStartScreen();
+        LauncherManager::ContinueActionOnStart continueAction = theApp._manager.getContinueAction();
         if (_showSplash) {
             if (_splashStep == 0) {
                 if (theApp._manager.needsUninstall()) {
                     theApp._manager.addToLog(_T("Waiting to uninstall"));
                     setDrawDialog(DrawStep::DrawProcessUninstall);
-                } else if (startStep == DrawStep::DrawProcessUpdate) {
+                } else if (continueAction == LauncherManager::ContinueActionOnStart::ContinueUpdate) {
                     setDrawDialog(DrawStep::DrawProcessUpdate);
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 0.0f);
-                } else if (startStep == DrawStep::DrawLoginLogin) {
+                } else if (continueAction == LauncherManager::ContinueActionOnStart::ContinueLogIn) {
                     _splashStep = SPLASH_DURATION;
-                } else if (startStep == DrawStep::DrawProcessFinishUpdate) {
+                } else if (continueAction == LauncherManager::ContinueActionOnStart::ContinueFinish) {
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 1.0f);
                     setDrawDialog(DrawStep::DrawProcessFinishUpdate);
                     _splashStep = SPLASH_DURATION;
