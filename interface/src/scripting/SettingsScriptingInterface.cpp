@@ -11,7 +11,6 @@
 
 #include "SettingsScriptingInterface.h"
 
-#include <QtScript/QScriptContext>
 #include <SettingHandle.h>
 
 SettingsScriptingInterface* SettingsScriptingInterface::getInstance() {
