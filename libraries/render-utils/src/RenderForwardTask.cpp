@@ -145,11 +145,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
-#if defined(Q_OS_ANDROID)
     const auto destFramebuffer = static_cast<gpu::FramebufferPointer>(nullptr);
-#else
-    const auto destFramebuffer = resolvedFramebuffer;
-#endif
 
     const auto toneMappingInputs = ToneMapAndResample::Input(resolvedFramebuffer, destFramebuffer).asVarying();
     const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappingInputs);

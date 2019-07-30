@@ -237,8 +237,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame).asVarying();
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
+    const auto destFramebuffer = static_cast<gpu::FramebufferPointer>(nullptr);
+
     // Lighting Buffer ready for tone mapping
-    const auto toneMappingInputs = lightingFramebuffer;
+    const auto toneMappingInputs = ToneMapAndResample::Input(lightingFramebuffer, destFramebuffer).asVarying();
     const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapAndResample", toneMappingInputs);
 
     // Debugging task is happening in the "over" layer after tone mapping and just before HUD
