@@ -640,13 +640,6 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 }
 
 void LauncherManager::restartNewLauncher() {
-    CString tempPath;
-    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Temp_Directory, tempPath);
-    tempPath += "hql.exe";
-    CString installPath;
-    LauncherManager::getAndCreatePaths(LauncherManager::PathType::Launcher_Directory, installPath);
-    installPath += LAUNCHER_EXE_FILENAME;
-    CopyFile(installPath, tempPath, false);
     closeLog();
     ContinueActionOnStart continueAction = ContinueActionOnStart::ContinueFinish;
     if (_keepUpdating) {
@@ -656,8 +649,7 @@ void LauncherManager::restartNewLauncher() {
     }    
     CStringW params;
     params.Format(_T(" --restart --noUpdate --continueAction %s"), getContinueActionParam(continueAction));
-    LPTSTR par = params.GetBuffer();
-    LauncherUtils::launchApplication(tempPath, par);
+    LauncherUtils::launchApplication(_tempLauncherPath, params.GetBuffer());
     Sleep(500);
 }
 
