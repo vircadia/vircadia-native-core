@@ -148,9 +148,12 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
-void NewFramebuffer::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
+NewFramebuffer::NewFramebuffer(gpu::Element pixelFormat = gpu::Element::COLOR_SRGBA_32) {
+    _pixelFormat = pixelFormat;
+}
+
+void NewFramebuffer::run(const render::RenderContextPointer& renderContext, Output& output) {
     RenderArgs* args = renderContext->args;
-    // auto frameSize = input;
     glm::uvec2 frameSize(args->_viewport.z, args->_viewport.w);
     output.reset();
 
@@ -160,7 +163,7 @@ void NewFramebuffer::run(const render::RenderContextPointer& renderContext, cons
 
     if (!_outputFramebuffer) {
         _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer.out"));
-        auto colorFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10);
+        auto colorFormat = _pixelFormat;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
         auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
         _outputFramebuffer->setRenderBuffer(0, colorTexture);
@@ -189,7 +192,7 @@ void NewOrDefaultFramebuffer::run(const render::RenderContextPointer& renderCont
 
     if (!_outputFramebuffer) {
         _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newOrDefaultFramebuffer.out"));
-        auto colorFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10);
+        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
         auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
         _outputFramebuffer->setRenderBuffer(0, colorTexture);

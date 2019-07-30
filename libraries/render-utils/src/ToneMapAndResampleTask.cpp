@@ -68,13 +68,13 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
     RenderArgs* args = renderContext->args;
 
     auto lightingBuffer = input.get0()->getRenderBuffer(0);
-    auto resampledFramebuffer = input.get1();
+    auto destinationFramebuffer = input.get1();
 
-    if (!resampledFramebuffer) {
-        resampledFramebuffer = args->_blitFramebuffer;
+    if (!destinationFramebuffer) {
+        destinationFramebuffer = args->_blitFramebuffer;
     }
 
-    if (!lightingBuffer || !resampledFramebuffer) {
+    if (!lightingBuffer || !destinationFramebuffer) {
         return;
     }
 
@@ -82,7 +82,7 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
         init();
     }
 
-    const auto bufferSize = resampledFramebuffer->getSize();
+    const auto bufferSize = destinationFramebuffer->getSize();
 
     auto srcBufferSize = glm::ivec2(lightingBuffer->getDimensions());
 
@@ -90,7 +90,7 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
 
     gpu::doInBatch("Resample::run", args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
-        batch.setFramebuffer(resampledFramebuffer);
+        batch.setFramebuffer(destinationFramebuffer);
 
         batch.setViewportTransform(destViewport);
         batch.setProjectionTransform(glm::mat4());
@@ -106,5 +106,5 @@ void ToneMapAndResample::run(const RenderContextPointer& renderContext, const In
     // Set full final viewport
     args->_viewport = destViewport;
 
-    output = resampledFramebuffer;
+    output = destinationFramebuffer;
 }

@@ -85,11 +85,14 @@ public:
 
 class NewFramebuffer {
 public:
-    using Input = glm::uvec2;
     using Output = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelIO<NewFramebuffer, Input, Output>;
+    using JobModel = render::Job::ModelO<NewFramebuffer, Output>;
 
-    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
+    NewFramebuffer(gpu::Element pixelFormat);
+
+    void run(const render::RenderContextPointer& renderContext, Output& output);
+protected:
+    gpu::Element _pixelFormat;
 private:
     gpu::FramebufferPointer _outputFramebuffer;
 };

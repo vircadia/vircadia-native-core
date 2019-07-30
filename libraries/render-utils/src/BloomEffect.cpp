@@ -15,7 +15,6 @@
 #include <shaders/Shaders.h>
 
 #include <render/BlurTask.h>
-#include "ToneMapAndResampleTask.h"
 #include "render-utils/ShaderConstants.h"
 
 #define BLOOM_BLUR_LEVEL_COUNT  3
