@@ -88,7 +88,7 @@ public:
     using Output = gpu::FramebufferPointer;
     using JobModel = render::Job::ModelO<NewFramebuffer, Output>;
 
-    NewFramebuffer(gpu::Element pixelFormat);
+    NewFramebuffer(gpu::Element pixelFormat = gpu::Element::COLOR_SRGBA_32);
 
     void run(const render::RenderContextPointer& renderContext, Output& output);
 protected:

@@ -148,7 +148,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
-NewFramebuffer::NewFramebuffer(gpu::Element pixelFormat = gpu::Element::COLOR_SRGBA_32) {
+NewFramebuffer::NewFramebuffer(gpu::Element pixelFormat) {
     _pixelFormat = pixelFormat;
 }
 
