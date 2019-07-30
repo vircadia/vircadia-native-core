@@ -154,7 +154,6 @@ void NewFramebuffer::run(const render::RenderContextPointer& renderContext, cons
     glm::uvec2 frameSize(args->_viewport.z, args->_viewport.w);
     output.reset();
 
-    // Else use the lodal Framebuffer
     if (_outputFramebuffer && _outputFramebuffer->getSize() != frameSize) {
         _outputFramebuffer.reset();
     }

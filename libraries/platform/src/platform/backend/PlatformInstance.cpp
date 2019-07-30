@@ -104,6 +104,7 @@ void Instance::enumerateNics() {
         }
     }
 }
+
 json Instance::getCPU(int index) {
     assert(index < (int)_cpus.size());
 
@@ -145,7 +146,6 @@ Instance::~Instance() {
         _displays.clear();
     }
 }
-
 
 json Instance::listAllKeys() {
     json allKeys;

@@ -32,6 +32,7 @@ class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
     Q_PROPERTY(int curve MEMBER curve WRITE setCurve);
+
 public:
     ToneMappingConfig() : render::Job::Config(true) {}
 
@@ -41,6 +42,7 @@ public:
 
     float exposure{ 0.0f };
     int curve{ (int)ToneCurve::Gamma22 };
+
 signals:
     void dirty();
 };
@@ -68,7 +70,6 @@ public:
     void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 protected:
-
     static gpu::PipelinePointer _pipeline;
     static gpu::PipelinePointer _mirrorPipeline;
 
@@ -79,7 +80,6 @@ protected:
     gpu::FramebufferPointer getResampledFrameBuffer(const gpu::FramebufferPointer& sourceFramebuffer);
 
 private:
-
     gpu::PipelinePointer _blitLightBuffer;
 
     // Class describing the uniform buffer with all the parameters common to the tone mapping shaders
@@ -93,6 +93,7 @@ private:
 
         Parameters() {}
     };
+
     typedef gpu::BufferView UniformBufferView;
     gpu::BufferView _parametersBuffer;
 
