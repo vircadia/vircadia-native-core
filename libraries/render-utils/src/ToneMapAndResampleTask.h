@@ -30,7 +30,7 @@ enum class ToneCurve {
 
 class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
+    Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
     Q_PROPERTY(int curve MEMBER curve WRITE setCurve);
 public:
     ToneMappingConfig() : render::Job::Config(true) {}
