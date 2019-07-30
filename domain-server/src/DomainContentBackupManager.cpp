@@ -394,7 +394,7 @@ void DomainContentBackupManager::recoverFromUploadedFile(MiniPromise::Promise pr
                 QuaZip uploadedZip { &uploadedFile };
 
                 QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
-                recoverFromBackupZip(backupName, uploadedZip, sourceFilename, username, true);
+                recoverFromBackupZip(backupName, uploadedZip, username, sourceFilename,  true);
 
             }
         }
