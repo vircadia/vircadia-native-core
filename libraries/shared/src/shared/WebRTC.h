@@ -20,8 +20,9 @@
 #  define NOMINMAX 1
 #  define WIN32_LEAN_AND_MEAN 1
 #elif defined(Q_OS_ANDROID)
-#  define WEBRTC_ENABLED 1
-#  define WEBRTC_POSIX 1
+// I don't yet have a working libwebrtc for android
+// #  define WEBRTC_ENABLED 1
+// #  define WEBRTC_POSIX 1
 #elif defined(Q_OS_LINUX)
 #  define WEBRTC_ENABLED 1
 #  define WEBRTC_POSIX 1
