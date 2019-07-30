@@ -277,7 +277,6 @@ public:
      * </ul>
      */
     Q_INVOKABLE QString getContext() const;
-    Q_INVOKABLE QString getTypeAsString() const;
 
     /**jsdoc
      * Checks whether the script is running as an Interface or avatar script.
@@ -635,6 +634,7 @@ public:
 
     void setType(Type type) { _type = type; };
     Type getType() { return _type; };
+    QString getTypeAsString() const;
 
     bool isFinished() const { return _isFinished; } // used by Application and ScriptWidget
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
