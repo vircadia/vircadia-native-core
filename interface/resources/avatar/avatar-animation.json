@@ -1858,6 +1858,10 @@
                                                                                                             "var": "negativeThoughtfulHeadshakeOnDone"
                                                                                                         },
                                                                                                         {
+                                                                                                            "state": "idleOverlay",
+                                                                                                            "var": "negativeDropHeadOnDone"
+                                                                                                        },
+                                                                                                        {
                                                                                                             "state": "reactionRaiseHand",
                                                                                                             "var": "reactionRaiseHandEnabled"
                                                                                                         },
