@@ -137,7 +137,7 @@ signals:
     void finished();
 
 private:
-    AudioInjectorPointer _injector;
+    QWeakPointer<AudioInjector> _injector;
 
     friend QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* const& in);
 };
