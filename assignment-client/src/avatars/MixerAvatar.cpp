@@ -71,7 +71,7 @@ void MixerAvatar::fetchAvatarFST() {
         connect(fstRequest, &ResourceRequest::finished, this, &MixerAvatar::fstRequestComplete);
         fstRequest->send();
     } else {
-        qCDebug(avatars) << "Couldn't create FST request for" << avatarURL;
+        qCDebug(avatars) << "Couldn't create FST request for" << avatarURL << getSessionUUID();
         _verifyState = error;
     }
     _needsIdentityUpdate = true;
@@ -84,7 +84,7 @@ void MixerAvatar::fstRequestComplete() {
         auto result = fstRequest->getResult();
         if (result != ResourceRequest::Success) {
             _verifyState = error;
-            qCDebug(avatars) << "FST request for" << fstRequest->getUrl() << "failed:" << result;
+            qCDebug(avatars) << "FST request for" << fstRequest->getUrl() << "(user " << getSessionUUID() << ") failed:" << result;
         } else {
             _avatarFSTContents = fstRequest->getData();
             _verifyState = receivedFST;
@@ -178,7 +178,8 @@ void MixerAvatar::ownerRequestComplete() {
     } else {
         auto jsonData = QJsonDocument::fromJson(networkReply->readAll())["data"];
         if (!jsonData.isUndefined() && !jsonData.toObject()["message"].isUndefined()) {
-            qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << ":"
+            qCDebug(avatars) << "Owner lookup failed for" << getDisplayName() << "("
+                << getSessionUUID() << ") :"
                 << jsonData.toObject()["message"].toString();
             _verifyState = error;
             _pendingEvent = false;
@@ -221,7 +222,7 @@ void MixerAvatar::processCertifyEvents() {
                 } else {
                     _needsIdentityUpdate = true;
                     _pendingEvent = false;
-                    qCDebug(avatars) << "Avatar" << getDisplayName() << "FAILED static certification";
+                    qCDebug(avatars) << "Avatar" << getDisplayName() << "(" << getSessionUUID() << ") FAILED static certification";
                 }
             } else {  // FST doesn't have a certificate, so noncertified rather than failed:
                 _pendingEvent = false;
@@ -261,6 +262,8 @@ void MixerAvatar::processCertifyEvents() {
                     _pendingEvent = true;
                 } else {
                     _verifyState = error;
+                    qCDebug(avatars) << "Get owner status - couldn't parse response for" << getSessionUUID()
+                        << ":" << _dynamicMarketResponse;
                 }
             } else {
                 qCDebug(avatars) << "Get owner status failed for " << getDisplayName() << _marketplaceIdFromURL <<
@@ -332,7 +335,7 @@ void MixerAvatar::sendOwnerChallenge() {
     nonceHash.addData(nonce);
     _challengeNonceHash = nonceHash.result();
 
-    static constexpr int CHALLENGE_TIMEOUT_MS = 5 * 1000;  // 5 s
+    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
     if (_challengeTimeout) {
         _challengeTimeout->deleteLater();
     }
@@ -344,6 +347,7 @@ void MixerAvatar::sendOwnerChallenge() {
             _pendingEvent = false;
             _verifyState = verificationFailed;
             _needsIdentityUpdate = true;
+            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
         }
     });
     _challengeTimeout->start();

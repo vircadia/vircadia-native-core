@@ -22,6 +22,9 @@
 
 #include <TextureCache.h>
 
+class QOpenGLFramebufferObject;
+class QOpenGLShaderProgram;
+
 class ResourceImageItemRenderer : public QObject, public QQuickFramebufferObject::Renderer {
     Q_OBJECT
 public:
@@ -30,14 +33,16 @@ public:
     void synchronize(QQuickFramebufferObject* item) override;
     void render() override;
 private:
-    bool _ready;
+    bool _ready{ false };
     QString _url;
-    bool _visible;
+    bool _visible{ false };
 
     NetworkTexturePointer _networkTexture;
-    QQuickWindow* _window;
+    QQuickWindow* _window{ nullptr };
     QMutex _fboMutex;
+    uint32_t _vao{ 0 };
     QOpenGLFramebufferObject* _copyFbo { nullptr };
+    QOpenGLShaderProgram* _shader{ nullptr };
     GLsync _fenceSync { 0 };
     QTimer _updateTimer;
 public slots:
