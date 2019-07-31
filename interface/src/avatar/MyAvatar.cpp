@@ -2733,7 +2733,7 @@ void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position;
     glm::quat orientation;
-    if (_characterController.isEnabledAndReady()) {
+    if (_characterController.isEnabledAndReady() && !_characterController.isStuck()) {
         _characterController.getPositionAndOrientation(position, orientation);
     } else {
         position = getWorldPosition();
@@ -2746,7 +2746,7 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
         setWorldVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
         if (_characterController.isStuck()) {
             _physicsSafetyPending = true;
-            _goToPosition = getWorldPosition();
+            _goToPosition = position;
         }
     } else {
         setWorldVelocity(getWorldVelocity() + _characterController.getFollowVelocity());
