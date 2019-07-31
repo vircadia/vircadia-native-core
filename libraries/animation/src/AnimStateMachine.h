@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include "AnimNode.h"
+#include "AnimUtil.h"
 
 // State Machine for transitioning between children AnimNodes
 //
@@ -47,6 +48,7 @@ public:
     enum class InterpType {
         SnapshotBoth = 0,
         SnapshotPrev,
+        EvaluateBoth,
         NumTypes
     };
 
@@ -69,12 +71,13 @@ protected:
             State::Pointer _state;
         };
 
-        State(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType) :
+        State(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType, EasingType easingType) :
             _id(id),
             _childIndex(childIndex),
             _interpTarget(interpTarget),
             _interpDuration(interpDuration),
-            _interpType(interpType) {}
+            _interpType(interpType),
+            _easingType(easingType) {}
 
         void setInterpTargetVar(const QString& interpTargetVar) { _interpTargetVar = interpTargetVar; }
         void setInterpDurationVar(const QString& interpDurationVar) { _interpDurationVar = interpDurationVar; }
@@ -95,6 +98,7 @@ protected:
         float _interpTarget;  // frames
         float _interpDuration; // frames
         InterpType _interpType;
+        EasingType _easingType;
 
         QString _interpTargetVar;
         QString _interpDurationVar;
@@ -135,6 +139,7 @@ protected:
     // interpolation state
     bool _duringInterp = false;
     InterpType _interpType { InterpType::SnapshotPrev };
+    EasingType _easingType { EasingType_Linear };
     float _alphaVel = 0.0f;
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
