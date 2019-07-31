@@ -154,6 +154,7 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
     if (_shape != prevShape) {
         // Internally grabs writeLock
         markDirtyFlags(Simulation::DIRTY_SHAPE);
+        _needsRenderUpdate = true;
     }
 }
 
@@ -165,6 +166,7 @@ bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
 
@@ -231,9 +233,13 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 }
 
 void ShapeEntityItem::setColor(const glm::u8vec3& value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _color != value;
         _color = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 glm::u8vec3 ShapeEntityItem::getColor() const {
@@ -243,9 +249,13 @@ glm::u8vec3 ShapeEntityItem::getColor() const {
 }
 
 void ShapeEntityItem::setAlpha(float alpha) {
+    bool changed;
     withWriteLock([&] {
+        changed = _alpha != alpha;
         _alpha = alpha;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float ShapeEntityItem::getAlpha() const {

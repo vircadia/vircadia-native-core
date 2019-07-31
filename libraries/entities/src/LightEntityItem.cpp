@@ -57,16 +57,12 @@ void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 
 void LightEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     EntityItem::locationChanged(tellPhysics, tellChildren);
-    withWriteLock([&] {
-        _lightPropertiesChanged = true;
-    });
+    _needsRenderUpdate = true;
 }
 
 void LightEntityItem::dimensionsChanged() {
     EntityItem::dimensionsChanged();
-    withWriteLock([&] {
-        _lightPropertiesChanged = true;
-    });
+    _needsRenderUpdate = true;
 }
 
 
@@ -85,13 +81,14 @@ EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& d
 
 void LightEntityItem::setFalloffRadius(float value) {
     value = glm::max(value, 0.0f);
-    if (value == getFalloffRadius()) {
-        return;
-    }
+
+    bool changed;
     withWriteLock([&] {
+        changed = _falloffRadius != value;
         _falloffRadius = value;
-        _lightPropertiesChanged = true;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
@@ -111,9 +108,10 @@ void LightEntityItem::setIsSpotlight(bool value) {
 
     withWriteLock([&] {
         _isSpotlight = value;
-        _lightPropertiesChanged = true;
     });
     setScaledDimensions(newDimensions);
+
+    _needsRenderUpdate = true;
 }
 
 void LightEntityItem::setCutoff(float value) {
@@ -133,10 +131,8 @@ void LightEntityItem::setCutoff(float value) {
         const float width = length * glm::sin(glm::radians(_cutoff));
         setScaledDimensions(glm::vec3(width, width, length));
     }
-    
-    withWriteLock([&] {
-        _lightPropertiesChanged = true;
-    });
+
+    _needsRenderUpdate = true;
 }
 
 bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -222,10 +218,13 @@ glm::u8vec3 LightEntityItem::getColor() const {
 }
 
 void LightEntityItem::setColor(const glm::u8vec3& value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _color != value;
         _color = value;
-        _lightPropertiesChanged = true;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 bool LightEntityItem::getIsSpotlight() const {
@@ -245,10 +244,13 @@ float LightEntityItem::getIntensity() const {
 }
 
 void LightEntityItem::setIntensity(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _intensity != value;
         _intensity = value;
-        _lightPropertiesChanged = true;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float LightEntityItem::getFalloffRadius() const { 
@@ -268,10 +270,13 @@ float LightEntityItem::getExponent() const {
 }
 
 void LightEntityItem::setExponent(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _exponent != value;
         _exponent = value;
-        _lightPropertiesChanged = true;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float LightEntityItem::getCutoff() const { 
@@ -280,10 +285,6 @@ float LightEntityItem::getCutoff() const {
         result = _cutoff;
     });
     return result;
-}
-
-void LightEntityItem::resetLightPropertiesChanged() {
-    withWriteLock([&] { _lightPropertiesChanged = false; });
 }
 
 bool LightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

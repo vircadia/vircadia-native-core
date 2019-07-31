@@ -75,6 +75,7 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
@@ -163,7 +164,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount, 
-                                    OctreeElement::AppendState& appendState) const { 
+                                    OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
 
@@ -250,12 +251,16 @@ bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
 }
 
 void TextEntityItem::setText(const QString& value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _text != value;
         _text = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
-QString TextEntityItem::getText() const { 
+QString TextEntityItem::getText() const {
     QString result;
     withReadLock([&] {
         result = _text;
@@ -263,13 +268,17 @@ QString TextEntityItem::getText() const {
     return result;
 }
 
-void TextEntityItem::setLineHeight(float value) { 
+void TextEntityItem::setLineHeight(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _lineHeight != value;
         _lineHeight = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
-float TextEntityItem::getLineHeight() const { 
+float TextEntityItem::getLineHeight() const {
     float result;
     withReadLock([&] {
         result = _lineHeight;
@@ -278,9 +287,13 @@ float TextEntityItem::getLineHeight() const {
 }
 
 void TextEntityItem::setTextColor(const glm::u8vec3& value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _textColor != value;
         _textColor = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 glm::u8vec3 TextEntityItem::getTextColor() const {
@@ -290,9 +303,13 @@ glm::u8vec3 TextEntityItem::getTextColor() const {
 }
 
 void TextEntityItem::setTextAlpha(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _textAlpha != value;
         _textAlpha = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float TextEntityItem::getTextAlpha() const {
@@ -302,9 +319,13 @@ float TextEntityItem::getTextAlpha() const {
 }
 
 void TextEntityItem::setBackgroundColor(const glm::u8vec3& value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _backgroundColor != value;
         _backgroundColor = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 glm::u8vec3 TextEntityItem::getBackgroundColor() const {
@@ -314,9 +335,13 @@ glm::u8vec3 TextEntityItem::getBackgroundColor() const {
 }
 
 void TextEntityItem::setBackgroundAlpha(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _backgroundAlpha != value;
         _backgroundAlpha = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float TextEntityItem::getBackgroundAlpha() const {
@@ -334,15 +359,23 @@ BillboardMode TextEntityItem::getBillboardMode() const {
 }
 
 void TextEntityItem::setBillboardMode(BillboardMode value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _billboardMode != value;
         _billboardMode = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 void TextEntityItem::setLeftMargin(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _leftMargin != value;
         _leftMargin = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float TextEntityItem::getLeftMargin() const {
@@ -352,9 +385,13 @@ float TextEntityItem::getLeftMargin() const {
 }
 
 void TextEntityItem::setRightMargin(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _rightMargin != value;
         _rightMargin = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float TextEntityItem::getRightMargin() const {
@@ -364,9 +401,13 @@ float TextEntityItem::getRightMargin() const {
 }
 
 void TextEntityItem::setTopMargin(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _topMargin != value;
         _topMargin = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float TextEntityItem::getTopMargin() const {
@@ -376,9 +417,13 @@ float TextEntityItem::getTopMargin() const {
 }
 
 void TextEntityItem::setBottomMargin(float value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _bottomMargin != value;
         _bottomMargin = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float TextEntityItem::getBottomMargin() const {
@@ -388,9 +433,13 @@ float TextEntityItem::getBottomMargin() const {
 }
 
 void TextEntityItem::setUnlit(bool value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _unlit != value;
         _unlit = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 bool TextEntityItem::getUnlit() const {

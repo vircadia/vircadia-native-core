@@ -153,9 +153,13 @@ QString MaterialEntityItem::getMaterialURL() const {
 }
 
 void MaterialEntityItem::setMaterialURL(const QString& materialURL) {
+    bool changed;
     withWriteLock([&] {
+        changed = _materialURL != materialURL;
         _materialURL = materialURL;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 QString MaterialEntityItem::getMaterialData() const {
@@ -165,9 +169,13 @@ QString MaterialEntityItem::getMaterialData() const {
 }
 
 void MaterialEntityItem::setMaterialData(const QString& materialData) {
+    bool changed;
     withWriteLock([&] {
+        changed = _materialData != materialData;
         _materialData = materialData;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 MaterialMappingMode MaterialEntityItem::getMaterialMappingMode() const {
@@ -177,9 +185,12 @@ MaterialMappingMode MaterialEntityItem::getMaterialMappingMode() const {
 }
 
 void MaterialEntityItem::setMaterialMappingMode(MaterialMappingMode mode) {
+    bool changed;
     withWriteLock([&] {
+        changed = _materialMappingMode != mode;
         _materialMappingMode = mode;
     });
+    _needsRenderUpdate |= changed;
     setUnscaledDimensions(_desiredDimensions);
 }
 
@@ -190,9 +201,13 @@ quint16 MaterialEntityItem::getPriority() const {
 }
 
 void MaterialEntityItem::setPriority(quint16 priority) {
+    bool changed;
     withWriteLock([&] {
+        changed = _priority != priority;
         _priority = priority;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 QString MaterialEntityItem::getParentMaterialName() const {
@@ -202,9 +217,13 @@ QString MaterialEntityItem::getParentMaterialName() const {
 }
 
 void MaterialEntityItem::setParentMaterialName(const QString& parentMaterialName) {
+    bool changed;
     withWriteLock([&] {
+        changed = _parentMaterialName != parentMaterialName;
         _parentMaterialName = parentMaterialName;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 glm::vec2 MaterialEntityItem::getMaterialMappingPos() const {
@@ -214,9 +233,13 @@ glm::vec2 MaterialEntityItem::getMaterialMappingPos() const {
 }
 
 void MaterialEntityItem::setMaterialMappingPos(const glm::vec2& materialMappingPos) {
+    bool changed;
     withWriteLock([&] {
+        changed = _materialMappingPos != materialMappingPos;
         _materialMappingPos = materialMappingPos;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 glm::vec2 MaterialEntityItem::getMaterialMappingScale() const {
@@ -226,9 +249,13 @@ glm::vec2 MaterialEntityItem::getMaterialMappingScale() const {
 }
 
 void MaterialEntityItem::setMaterialMappingScale(const glm::vec2& materialMappingScale) {
+    bool changed;
     withWriteLock([&] {
+        changed = _materialMappingScale != materialMappingScale;
         _materialMappingScale = materialMappingScale;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float MaterialEntityItem::getMaterialMappingRot() const {
@@ -238,9 +265,22 @@ float MaterialEntityItem::getMaterialMappingRot() const {
 }
 
 void MaterialEntityItem::setMaterialMappingRot(float materialMappingRot) {
+    bool changed;
     withWriteLock([&] {
+        changed = _materialMappingRot != materialMappingRot;
         _materialMappingRot = materialMappingRot;
     });
+
+    _needsRenderUpdate |= changed;
+}
+
+bool MaterialEntityItem::getMaterialRepeat() const {
+    return _materialRepeat;
+}
+
+void MaterialEntityItem::setMaterialRepeat(bool value) {
+    _needsRenderUpdate |= _materialRepeat != value;
+    _materialRepeat = value;
 }
 
 AACube MaterialEntityItem::calculateInitialQueryAACube(bool& success) {

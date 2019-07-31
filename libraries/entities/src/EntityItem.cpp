@@ -2943,17 +2943,15 @@ bool EntityItem::getVisible() const {
 }
 
 void EntityItem::setVisible(bool value) {
-    bool changed = false;
+    bool changed;
     withWriteLock([&] {
-        if (_visible != value) {
-            changed = true;
-            _visible = value;
-        }
+        changed = _visible != value;
+        _visible = value;
     });
 
+    _needsRenderUpdate |= changed;
     if (changed) {
         bumpAncestorChainRenderableVersion();
-        emit requestRenderUpdate();
     }
 }
 
@@ -2966,17 +2964,13 @@ bool EntityItem::isVisibleInSecondaryCamera() const {
 }
 
 void EntityItem::setIsVisibleInSecondaryCamera(bool value) {
-    bool changed = false;
+    bool changed;
     withWriteLock([&] {
-        if (_isVisibleInSecondaryCamera != value) {
-            changed = true;
-            _isVisibleInSecondaryCamera = value;
-        }
+        changed = _isVisibleInSecondaryCamera != value;
+        _isVisibleInSecondaryCamera = value;
     });
 
-    if (changed) {
-        emit requestRenderUpdate();
-    }
+    _needsRenderUpdate |= changed;
 }
 
 RenderLayer EntityItem::getRenderLayer() const {
@@ -2986,17 +2980,13 @@ RenderLayer EntityItem::getRenderLayer() const {
 }
 
 void EntityItem::setRenderLayer(RenderLayer value) {
-    bool changed = false;
+    bool changed;
     withWriteLock([&] {
-        if (_renderLayer != value) {
-            changed = true;
-            _renderLayer = value;
-        }
+        changed = _renderLayer != value;
+        _renderLayer = value;
     });
 
-    if (changed) {
-        emit requestRenderUpdate();
-    }
+    _needsRenderUpdate |= changed;
 }
 
 PrimitiveMode EntityItem::getPrimitiveMode() const {
@@ -3008,15 +2998,11 @@ PrimitiveMode EntityItem::getPrimitiveMode() const {
 void EntityItem::setPrimitiveMode(PrimitiveMode value) {
     bool changed = false;
     withWriteLock([&] {
-        if (_primitiveMode != value) {
-            changed = true;
-            _primitiveMode = value;
-        }
+        changed = _primitiveMode != value;
+        _primitiveMode = value;
     });
 
-    if (changed) {
-        emit requestRenderUpdate();
-    }
+    _needsRenderUpdate |= changed;
 }
 
 bool EntityItem::getCauterized() const {
@@ -3026,17 +3012,13 @@ bool EntityItem::getCauterized() const {
 }
 
 void EntityItem::setCauterized(bool value) {
-    bool changed = false;
+    bool changed;
     withWriteLock([&] {
-        if (_cauterized != value) {
-            changed = true;
-            _cauterized = value;
-        }
+        changed = _cauterized != value;
+        _cauterized = value;
     });
 
-    if (changed) {
-        emit requestRenderUpdate();
-    }
+    _needsRenderUpdate |= changed;
 }
 
 bool EntityItem::getIgnorePickIntersection() const {
@@ -3060,17 +3042,13 @@ bool EntityItem::getCanCastShadow() const {
 }
 
 void EntityItem::setCanCastShadow(bool value) {
-    bool changed = false;
+    bool changed;
     withWriteLock([&] {
-        if (_canCastShadow != value) {
-            changed = true;
-            _canCastShadow = value;
-        }
+        changed = _canCastShadow != value;
+        _canCastShadow = value;
     });
 
-    if (changed) {
-        emit requestRenderUpdate();
-    }
+    _needsRenderUpdate |= changed;
 }
 
 bool EntityItem::isChildOfMyAvatar() const {

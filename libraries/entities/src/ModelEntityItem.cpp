@@ -49,9 +49,13 @@ const QString ModelEntityItem::getTextures() const {
 }
 
 void ModelEntityItem::setTextures(const QString& textures) {
+    bool changed;
     withWriteLock([&] {
+        changed = _textures != textures;
         _textures = textures;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
@@ -295,6 +299,7 @@ void ModelEntityItem::setModelURL(const QString& url) {
         if (_modelURL != url) {
             _modelURL = url;
             _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _needsRenderUpdate = true;
         }
     });
 }
@@ -575,9 +580,13 @@ bool ModelEntityItem::getRelayParentJoints() const {
 }
 
 void ModelEntityItem::setGroupCulled(bool value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _groupCulled != value;
         _groupCulled = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 bool ModelEntityItem::getGroupCulled() const {

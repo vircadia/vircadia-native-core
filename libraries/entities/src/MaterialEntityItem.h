@@ -55,8 +55,8 @@ public:
     MaterialMappingMode getMaterialMappingMode() const;
     void setMaterialMappingMode(MaterialMappingMode mode);
 
-    bool getMaterialRepeat() const { return _materialRepeat; }
-    void setMaterialRepeat(bool repeat) { _materialRepeat = repeat; }
+    bool getMaterialRepeat() const;
+    void setMaterialRepeat(bool repeat);
 
     quint16 getPriority() const;
     void setPriority(quint16 priority);

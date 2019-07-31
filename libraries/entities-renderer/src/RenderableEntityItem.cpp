@@ -128,12 +128,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {
-    connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
-        _needsRenderUpdate = true;
-        emit requestRenderUpdate();
-    });
-}
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {}
 
 EntityRenderer::~EntityRenderer() {}
 
@@ -349,10 +344,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
 // Returns true if the item needs to have updateInscene called because of internal rendering 
 // changes (animation, fading, etc)
 bool EntityRenderer::needsRenderUpdate() const {
-    if (_needsRenderUpdate) {
-        return true;
-    }
-
     if (isFading()) {
         return true;
     }
@@ -365,6 +356,14 @@ bool EntityRenderer::needsRenderUpdate() const {
 
 // Returns true if the item in question needs to have updateInScene called because of changes in the entity
 bool EntityRenderer::needsRenderUpdateFromEntity(const EntityItemPointer& entity) const {
+    if (entity->needsRenderUpdate()) {
+        return true;
+    }
+
+    if (!entity->isVisuallyReady()) {
+        return true;
+    }
+
     bool success = false;
     auto bound = _entity->getAABox(success);
     if (success && _bound != bound) {
@@ -403,7 +402,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
     withWriteLock([&] {
         auto transparent = isTransparent();
         auto fading = isFading();
-        if (fading || _prevIsTransparent != transparent) {
+        if (fading || _prevIsTransparent != transparent || !entity->isVisuallyReady()) {
             emit requestRenderUpdate();
         }
         if (fading) {
@@ -421,7 +420,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
-        _needsRenderUpdate = false;
+        entity->setNeedsRenderUpdate(false);
     });
 }
 

@@ -53,6 +53,7 @@ bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
@@ -213,9 +214,13 @@ QString ImageEntityItem::getImageURL() const {
 }
 
 void ImageEntityItem::setImageURL(const QString& url) {
+    bool changed;
     withWriteLock([&] {
+        changed = _imageURL != url;
         _imageURL = url;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 bool ImageEntityItem::getEmissive() const {
@@ -227,9 +232,13 @@ bool ImageEntityItem::getEmissive() const {
 }
 
 void ImageEntityItem::setEmissive(bool emissive) {
+    bool changed;
     withWriteLock([&] {
+        changed = _emissive != emissive;
         _emissive = emissive;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 bool ImageEntityItem::getKeepAspectRatio() const {
@@ -241,9 +250,13 @@ bool ImageEntityItem::getKeepAspectRatio() const {
 }
 
 void ImageEntityItem::setKeepAspectRatio(bool keepAspectRatio) {
+    bool changed;
     withWriteLock([&] {
+        changed = _keepAspectRatio != keepAspectRatio;
         _keepAspectRatio = keepAspectRatio;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 BillboardMode ImageEntityItem::getBillboardMode() const {
@@ -255,9 +268,13 @@ BillboardMode ImageEntityItem::getBillboardMode() const {
 }
 
 void ImageEntityItem::setBillboardMode(BillboardMode value) {
+    bool changed;
     withWriteLock([&] {
+        changed = _billboardMode != value;
         _billboardMode = value;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 QRect ImageEntityItem::getSubImage() const {
@@ -269,15 +286,23 @@ QRect ImageEntityItem::getSubImage() const {
 }
 
 void ImageEntityItem::setSubImage(const QRect& subImage) {
+    bool changed;
     withWriteLock([&] {
+        changed = _subImage != subImage;
         _subImage = subImage;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 void ImageEntityItem::setColor(const glm::u8vec3& color) {
+    bool changed;
     withWriteLock([&] {
+        changed = _color != color;
         _color = color;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 glm::u8vec3 ImageEntityItem::getColor() const {
@@ -287,9 +312,13 @@ glm::u8vec3 ImageEntityItem::getColor() const {
 }
 
 void ImageEntityItem::setAlpha(float alpha) {
+    bool changed;
     withWriteLock([&] {
+        changed = _alpha != alpha;
         _alpha = alpha;
     });
+
+    _needsRenderUpdate |= changed;
 }
 
 float ImageEntityItem::getAlpha() const {

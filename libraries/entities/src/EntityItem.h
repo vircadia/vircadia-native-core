@@ -571,8 +571,10 @@ public:
 
     bool stillHasMyGrabAction() const;
 
+    bool needsRenderUpdate() const { return _needsRenderUpdate; }
+    void setNeedsRenderUpdate(bool needsRenderUpdate) { _needsRenderUpdate = needsRenderUpdate; }
+
 signals:
-    void requestRenderUpdate();
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
 
 protected:
@@ -759,6 +761,8 @@ protected:
     GrabPropertyGroup _grabProperties;
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
+
+    mutable bool _needsRenderUpdate { false };
 
 private:
     static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> _getBillboardRotationOperator;
