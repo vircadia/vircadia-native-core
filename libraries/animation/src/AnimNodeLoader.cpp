@@ -112,7 +112,9 @@ static AnimRandomSwitch::InterpType stringToRandomInterpType(const QString& str)
 }
 
 static EasingType stringToEasingType(const QString& str) {
-    if (str == "easeInSine") {
+    if (str == "linear") {
+        return EasingType_Linear;
+    } else if (str == "easeInSine") {
         return EasingType_EaseInSine;
     } else if (str == "easeOutSine") {
         return EasingType_EaseOutSine;
