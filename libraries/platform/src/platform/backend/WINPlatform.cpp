@@ -251,3 +251,9 @@ void WINInstance::enumerateNics() {
     }
 #endif
 }
+
+void WINInstance::enumerateRenderingApis() {
+    Instance::enumerateRenderingApis();
+
+    // TODO imeplement D3D 11/12 queries
+}

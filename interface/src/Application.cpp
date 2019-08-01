@@ -2996,6 +2996,9 @@ void Application::initializeGL() {
         qCWarning(interfaceapp, "Unable to make window context current");
     }
 
+    // Populate the global OpenGL context based on the information for the primary window GL context
+    gl::ContextInfo::get(true);
+
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
     // HACK: re-expose mic and camera to prevent crash on domain-change in chromium's media::FakeAudioInputStream::ReadAudioFromSource()

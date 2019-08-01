@@ -322,3 +322,8 @@ void MACOSInstance::enumerateComputer(){
 
 }
 
+void MACOSInstance::enumerateRenderingApis() {
+    Instance::enumerateRenderingApis();
+
+    // TODO imeplement Metal query
+}

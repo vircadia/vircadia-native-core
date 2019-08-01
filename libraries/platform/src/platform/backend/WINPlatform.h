@@ -20,6 +20,7 @@ namespace platform {
         void enumerateMemory() override;
         void enumerateComputer () override;
         void enumerateNics() override;
+        void enumerateRenderingApis() override;
     };
 }  // namespace platform
 

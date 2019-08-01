@@ -148,6 +148,33 @@ static bool setupPixelFormatSimple(HDC hdc) {
 
 #endif
 
+
+const gl::ContextInfo& gl::ContextInfo::get(bool init) {
+    static gl::ContextInfo INSTANCE;
+    if (init) {
+        static std::once_flag once;
+        std::call_once(once, [&] {
+            INSTANCE.init();
+        });
+    }
+    return INSTANCE;
+}
+
+gl::ContextInfo& gl::ContextInfo::init() {
+    if (glGetString) {
+        version = (const char*)glGetString(GL_VERSION);
+        shadingLanguageVersion = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+        vendor = (const char*)glGetString(GL_VENDOR);
+        renderer = (const char*)glGetString(GL_RENDERER);
+        GLint n = 0;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+        for (GLint i = 0; i < n; ++i) {
+            extensions.emplace_back((const char*)glGetStringi(GL_EXTENSIONS, i));
+        }
+    }
+    return *this;
+}
+
 uint16_t gl::getAvailableVersion() {
     static uint8_t major = 0, minor = 0;
     static std::once_flag once;
@@ -277,20 +304,16 @@ int glVersionToInteger(QString glVersion) {
     return (majorNumber << 16) | minorNumber;
 }
 
-QJsonObject getGLContextData() {
+const QJsonObject& getGLContextData() {
     static QJsonObject result;
     static std::once_flag once;
     std::call_once(once, [] {
-        QString glVersion = QString((const char*)glGetString(GL_VERSION));
-        QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        QString glVendor = QString((const char*) glGetString(GL_VENDOR));
-        QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
-
+        auto contextInfo = gl::ContextInfo::get();
         result = QJsonObject {
-            { "version", glVersion },
-            { "sl_version", glslVersion },
-            { "vendor", glVendor },
-            { "renderer", glRenderer },
+            { "version", contextInfo.version.c_str() },
+            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
+            { "vendor", contextInfo.vendor.c_str() },
+            { "renderer", contextInfo.renderer.c_str() },
         };
     });
     return result;
