@@ -72,7 +72,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    entity::Shape getShape() const { return _shape; }
+    entity::Shape getShape() const;
     void setShape(const entity::Shape& shape);
     void setShape(const QString& shape) { setShape(entity::shapeFromString(shape)); }
 

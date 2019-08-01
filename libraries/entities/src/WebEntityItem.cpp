@@ -229,13 +229,10 @@ bool WebEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, co
 }
 
 void WebEntityItem::setColor(const glm::u8vec3& value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _color != value;
+        _needsRenderUpdate |= _color != value;
         _color = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 glm::u8vec3 WebEntityItem::getColor() const {
@@ -245,13 +242,10 @@ glm::u8vec3 WebEntityItem::getColor() const {
 }
 
 void WebEntityItem::setAlpha(float alpha) {
-    bool changed;
     withWriteLock([&] {
-        changed = _alpha != alpha;
+        _needsRenderUpdate |= _alpha != alpha;
         _alpha = alpha;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 float WebEntityItem::getAlpha() const {
@@ -267,23 +261,17 @@ BillboardMode WebEntityItem::getBillboardMode() const {
 }
 
 void WebEntityItem::setBillboardMode(BillboardMode value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _billboardMode != value;
+        _needsRenderUpdate |= _billboardMode != value;
         _billboardMode = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 void WebEntityItem::setSourceUrl(const QString& value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _sourceUrl != value;
+        _needsRenderUpdate |= _sourceUrl != value;
         _sourceUrl = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 QString WebEntityItem::getSourceUrl() const { 
@@ -293,13 +281,10 @@ QString WebEntityItem::getSourceUrl() const {
 }
 
 void WebEntityItem::setDPI(uint16_t value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _dpi != value;
+        _needsRenderUpdate |= _dpi != value;
         _dpi = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 uint16_t WebEntityItem::getDPI() const {
@@ -318,13 +303,10 @@ void WebEntityItem::setScriptURL(const QString& value) {
 
     auto urlString = newURL.toDisplayString();
 
-    bool changed;
     withWriteLock([&] {
-        changed = _scriptURL != urlString;
+        _needsRenderUpdate |= _scriptURL != urlString;
         _scriptURL = urlString;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 QString WebEntityItem::getScriptURL() const {
@@ -334,13 +316,10 @@ QString WebEntityItem::getScriptURL() const {
 }
 
 void WebEntityItem::setMaxFPS(uint8_t value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _maxFPS != value;
+        _needsRenderUpdate |= _maxFPS != value;
         _maxFPS = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 uint8_t WebEntityItem::getMaxFPS() const {
@@ -350,13 +329,10 @@ uint8_t WebEntityItem::getMaxFPS() const {
 }
 
 void WebEntityItem::setInputMode(const WebInputMode& value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _inputMode != value;
+        _needsRenderUpdate |= _inputMode != value;
         _inputMode = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 WebInputMode WebEntityItem::getInputMode() const {

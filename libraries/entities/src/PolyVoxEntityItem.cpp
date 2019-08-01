@@ -73,13 +73,10 @@ PolyVoxEntityItem::PolyVoxEntityItem(const EntityItemID& entityItemID) : EntityI
 void PolyVoxEntityItem::setVoxelVolumeSize(const glm::vec3& voxelVolumeSize_) {
     auto voxelVolumeSize = glm::clamp(glm::round(voxelVolumeSize_), glm::vec3(1.0f), glm::vec3(MAX_VOXEL_DIMENSION));
 
-    bool changed;
     withWriteLock([&] {
-        changed = _voxelVolumeSize != voxelVolumeSize;
+        _needsRenderUpdate |= _voxelVolumeSize != voxelVolumeSize;
         _voxelVolumeSize = voxelVolumeSize;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 glm::vec3 PolyVoxEntityItem::getVoxelVolumeSize() const {
@@ -226,13 +223,10 @@ QByteArray PolyVoxEntityItem::getVoxelData() const {
 
 
 void PolyVoxEntityItem::setXTextureURL(const QString& xTextureURL) {
-    bool changed;
     withWriteLock([&] {
-        changed = _xTextureURL != xTextureURL;
+        _needsRenderUpdate |= _xTextureURL != xTextureURL;
         _xTextureURL = xTextureURL;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 QString PolyVoxEntityItem::getXTextureURL() const {
@@ -244,13 +238,10 @@ QString PolyVoxEntityItem::getXTextureURL() const {
 }
 
 void PolyVoxEntityItem::setYTextureURL(const QString& yTextureURL) {
-    bool changed;
     withWriteLock([&] {
-        changed = _yTextureURL != yTextureURL;
+        _needsRenderUpdate |= _yTextureURL != yTextureURL;
         _yTextureURL = yTextureURL;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 QString PolyVoxEntityItem::getYTextureURL() const {
@@ -262,13 +253,10 @@ QString PolyVoxEntityItem::getYTextureURL() const {
 }
 
 void PolyVoxEntityItem::setZTextureURL(const QString& zTextureURL) {
-    bool changed;
     withWriteLock([&] {
-        changed = _zTextureURL != zTextureURL;
+        _needsRenderUpdate |= _zTextureURL != zTextureURL;
         _zTextureURL = zTextureURL;
     });
-
-    _needsRenderUpdate |= changed;
 }
 QString PolyVoxEntityItem::getZTextureURL() const {
     QString result;

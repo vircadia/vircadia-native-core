@@ -57,12 +57,16 @@ void LightEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 
 void LightEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     EntityItem::locationChanged(tellPhysics, tellChildren);
-    _needsRenderUpdate = true;
+    withWriteLock([&] {
+        _needsRenderUpdate = true;
+    });
 }
 
 void LightEntityItem::dimensionsChanged() {
     EntityItem::dimensionsChanged();
-    _needsRenderUpdate = true;
+    withWriteLock([&] {
+        _needsRenderUpdate = true;
+    });
 }
 
 
@@ -82,13 +86,10 @@ EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& d
 void LightEntityItem::setFalloffRadius(float value) {
     value = glm::max(value, 0.0f);
 
-    bool changed;
     withWriteLock([&] {
-        changed = _falloffRadius != value;
+        _needsRenderUpdate |= _falloffRadius != value;
         _falloffRadius = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
@@ -107,11 +108,10 @@ void LightEntityItem::setIsSpotlight(bool value) {
     }
 
     withWriteLock([&] {
+        _needsRenderUpdate = true;
         _isSpotlight = value;
     });
     setScaledDimensions(newDimensions);
-
-    _needsRenderUpdate = true;
 }
 
 void LightEntityItem::setCutoff(float value) {
@@ -121,6 +121,7 @@ void LightEntityItem::setCutoff(float value) {
     }
 
     withWriteLock([&] {
+        _needsRenderUpdate = true;
         _cutoff = value;
     });
 
@@ -131,8 +132,6 @@ void LightEntityItem::setCutoff(float value) {
         const float width = length * glm::sin(glm::radians(_cutoff));
         setScaledDimensions(glm::vec3(width, width, length));
     }
-
-    _needsRenderUpdate = true;
 }
 
 bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -218,13 +217,10 @@ glm::u8vec3 LightEntityItem::getColor() const {
 }
 
 void LightEntityItem::setColor(const glm::u8vec3& value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _color != value;
+        _needsRenderUpdate |= _color != value;
         _color = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 bool LightEntityItem::getIsSpotlight() const {
@@ -244,13 +240,10 @@ float LightEntityItem::getIntensity() const {
 }
 
 void LightEntityItem::setIntensity(float value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _intensity != value;
+        _needsRenderUpdate |= _intensity != value;
         _intensity = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 float LightEntityItem::getFalloffRadius() const { 
@@ -270,13 +263,10 @@ float LightEntityItem::getExponent() const {
 }
 
 void LightEntityItem::setExponent(float value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _exponent != value;
+        _needsRenderUpdate |= _exponent != value;
         _exponent = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 float LightEntityItem::getCutoff() const { 

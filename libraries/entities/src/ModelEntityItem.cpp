@@ -49,13 +49,10 @@ const QString ModelEntityItem::getTextures() const {
 }
 
 void ModelEntityItem::setTextures(const QString& textures) {
-    bool changed;
     withWriteLock([&] {
-        changed = _textures != textures;
+        _needsRenderUpdate |= _textures != textures;
         _textures = textures;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
@@ -580,13 +577,10 @@ bool ModelEntityItem::getRelayParentJoints() const {
 }
 
 void ModelEntityItem::setGroupCulled(bool value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _groupCulled != value;
+        _needsRenderUpdate |= _groupCulled != value;
         _groupCulled = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 bool ModelEntityItem::getGroupCulled() const {

@@ -249,16 +249,22 @@ glm::u8vec3 PolyLineEntityItem::getColor() const {
 }
 
 void PolyLineEntityItem::setIsUVModeStretch(bool isUVModeStretch) {
-    _needsRenderUpdate = _isUVModeStretch != isUVModeStretch;
-    _isUVModeStretch = isUVModeStretch;
+    withWriteLock([&] {
+        _needsRenderUpdate = _isUVModeStretch != isUVModeStretch;
+        _isUVModeStretch = isUVModeStretch;
+    });
 }
 
 void PolyLineEntityItem::setGlow(bool glow) {
-    _needsRenderUpdate = _glow != glow;
-    _glow = glow;
+    withWriteLock([&] {
+        _needsRenderUpdate = _glow != glow;
+        _glow = glow;
+    });
 }
 
 void PolyLineEntityItem::setFaceCamera(bool faceCamera) {
-    _needsRenderUpdate = _faceCamera != faceCamera;
-    _faceCamera = faceCamera;
+    withWriteLock([&] {
+        _needsRenderUpdate = _faceCamera != faceCamera;
+        _faceCamera = faceCamera;
+    });
 }

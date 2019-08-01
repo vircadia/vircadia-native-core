@@ -2946,10 +2946,10 @@ void EntityItem::setVisible(bool value) {
     bool changed;
     withWriteLock([&] {
         changed = _visible != value;
+        _needsRenderUpdate |= changed;
         _visible = value;
     });
 
-    _needsRenderUpdate |= changed;
     if (changed) {
         bumpAncestorChainRenderableVersion();
     }
@@ -2964,13 +2964,10 @@ bool EntityItem::isVisibleInSecondaryCamera() const {
 }
 
 void EntityItem::setIsVisibleInSecondaryCamera(bool value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _isVisibleInSecondaryCamera != value;
+        _needsRenderUpdate |= _isVisibleInSecondaryCamera != value;
         _isVisibleInSecondaryCamera = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 RenderLayer EntityItem::getRenderLayer() const {
@@ -2980,13 +2977,10 @@ RenderLayer EntityItem::getRenderLayer() const {
 }
 
 void EntityItem::setRenderLayer(RenderLayer value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _renderLayer != value;
+        _needsRenderUpdate |= _renderLayer != value;
         _renderLayer = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 PrimitiveMode EntityItem::getPrimitiveMode() const {
@@ -2996,13 +2990,10 @@ PrimitiveMode EntityItem::getPrimitiveMode() const {
 }
 
 void EntityItem::setPrimitiveMode(PrimitiveMode value) {
-    bool changed = false;
     withWriteLock([&] {
-        changed = _primitiveMode != value;
+        _needsRenderUpdate |= _primitiveMode != value;
         _primitiveMode = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 bool EntityItem::getCauterized() const {
@@ -3012,13 +3003,10 @@ bool EntityItem::getCauterized() const {
 }
 
 void EntityItem::setCauterized(bool value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _cauterized != value;
+        _needsRenderUpdate |= _cauterized != value;
         _cauterized = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 bool EntityItem::getIgnorePickIntersection() const {
@@ -3042,13 +3030,10 @@ bool EntityItem::getCanCastShadow() const {
 }
 
 void EntityItem::setCanCastShadow(bool value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _canCastShadow != value;
+        _needsRenderUpdate |= _canCastShadow != value;
         _canCastShadow = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 bool EntityItem::isChildOfMyAvatar() const {

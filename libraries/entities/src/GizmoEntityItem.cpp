@@ -185,13 +185,10 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
 }
 
 void GizmoEntityItem::setGizmoType(GizmoType value) {
-    bool changed;
     withWriteLock([&] {
-        changed = _gizmoType != value;
+        _needsRenderUpdate |= _gizmoType != value;
         _gizmoType = value;
     });
-
-    _needsRenderUpdate |= changed;
 }
 
 GizmoType GizmoEntityItem::getGizmoType() const {
