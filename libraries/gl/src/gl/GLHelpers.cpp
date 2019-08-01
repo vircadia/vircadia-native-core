@@ -304,21 +304,6 @@ int glVersionToInteger(QString glVersion) {
     return (majorNumber << 16) | minorNumber;
 }
 
-const QJsonObject& getGLContextData() {
-    static QJsonObject result;
-    static std::once_flag once;
-    std::call_once(once, [] {
-        auto contextInfo = gl::ContextInfo::get();
-        result = QJsonObject {
-            { "version", contextInfo.version.c_str() },
-            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
-            { "vendor", contextInfo.vendor.c_str() },
-            { "renderer", contextInfo.renderer.c_str() },
-        };
-    });
-    return result;
-}
-
 QThread* RENDER_THREAD = nullptr;
 
 bool isRenderThread() {

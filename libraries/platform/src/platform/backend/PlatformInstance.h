@@ -58,7 +58,7 @@ protected:
     std::vector<json>  _gpus;
     std::vector<json>  _displays;
     std::vector<json>  _nics;
-    json  _renderingApis;
+    json  _graphicsApis;
     json  _memory;
     json  _computer;
 

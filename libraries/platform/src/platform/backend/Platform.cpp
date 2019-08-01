@@ -35,7 +35,10 @@ namespace platform { namespace keys {
         const char*  displays = "displays";
         const char*  isMaster = "isMaster";
     }
-    namespace renderingApis {
+    namespace graphicsAPI {
+        const char* name = "name";
+        const char* version = "version";
+
         const char* apiOpenGL = "OpenGL";
         const char* apiVulkan = "Vulkan";
         const char* apiDirect3D11 = "D3D11";
@@ -116,7 +119,7 @@ namespace platform { namespace keys {
 
     const char*  CPUS = "cpus";
     const char*  GPUS = "gpus";
-    const char*  RENDERING_APIS = "renderingApis";
+    const char*  GRAPHICS_APIS = "graphicsAPIS";
     const char*  DISPLAYS = "displays";
     const char*  NICS = "nics";
     const char*  MEMORY = "memory";

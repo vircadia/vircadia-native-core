@@ -127,12 +127,13 @@ void Instance::enumerateRenderingApis() {
     {
         auto& glContextInfo = gl::ContextInfo::get();
         json gl;
-        gl[keys::renderingApis::gl::version] = glContextInfo.version;
-        gl[keys::renderingApis::gl::vendor] = glContextInfo.vendor;
-        gl[keys::renderingApis::gl::renderer] = glContextInfo.renderer;
-        gl[keys::renderingApis::gl::shadingLanguageVersion] = glContextInfo.shadingLanguageVersion;
-        gl[keys::renderingApis::gl::extensions] = glContextInfo.extensions;
-        _renderingApis[keys::renderingApis::apiOpenGL] = gl;
+        gl[keys::graphicsAPI::name] = keys::graphicsAPI::apiOpenGL;
+        gl[keys::graphicsAPI::version] = glContextInfo.version;
+        gl[keys::graphicsAPI::gl::vendor] = glContextInfo.vendor;
+        gl[keys::graphicsAPI::gl::renderer] = glContextInfo.renderer;
+        gl[keys::graphicsAPI::gl::shadingLanguageVersion] = glContextInfo.shadingLanguageVersion;
+        gl[keys::graphicsAPI::gl::extensions] = glContextInfo.extensions;
+        _graphicsApis.push_back(gl);
     }
 
 #if defined(HAVE_VULKAN)
@@ -144,36 +145,37 @@ void Instance::enumerateRenderingApis() {
             if (instancePtr) {
                 json vkinfo;
                 const auto& vkinstance = *instancePtr;
-                vkinfo[keys::renderingApis::vk::version] = vkVersionToString(VK_API_VERSION_1_1);
+                vkinfo[keys::graphicsAPI::name] = keys::graphicsAPI::apiVulkan;
+                vkinfo[keys::graphicsAPI::version] = vkVersionToString(VK_API_VERSION_1_1);
                 for (const auto& physicalDevice : vkinstance.enumeratePhysicalDevices()) {
                     json vkdevice;
                     auto properties = physicalDevice.getProperties();
-                    vkdevice[keys::renderingApis::vk::device::driverVersion] = vkVersionToString(properties.driverVersion);
-                    vkdevice[keys::renderingApis::vk::device::apiVersion] = vkVersionToString(properties.apiVersion);
-                    vkdevice[keys::renderingApis::vk::device::deviceType] = vk::to_string(properties.deviceType);
-                    vkdevice[keys::renderingApis::vk::device::vendor] = properties.vendorID;
-                    vkdevice[keys::renderingApis::vk::device::name] = properties.deviceName;
+                    vkdevice[keys::graphicsAPI::vk::device::driverVersion] = vkVersionToString(properties.driverVersion);
+                    vkdevice[keys::graphicsAPI::vk::device::apiVersion] = vkVersionToString(properties.apiVersion);
+                    vkdevice[keys::graphicsAPI::vk::device::deviceType] = vk::to_string(properties.deviceType);
+                    vkdevice[keys::graphicsAPI::vk::device::vendor] = properties.vendorID;
+                    vkdevice[keys::graphicsAPI::vk::device::name] = properties.deviceName;
                     for (const auto& extensionProperties : physicalDevice.enumerateDeviceExtensionProperties()) {
-                        vkdevice[keys::renderingApis::vk::device::extensions].push_back(extensionProperties.extensionName);
+                        vkdevice[keys::graphicsAPI::vk::device::extensions].push_back(extensionProperties.extensionName);
                     }
 
                     for (const auto& queueFamilyProperties : physicalDevice.getQueueFamilyProperties()) {
                         json vkqueuefamily;
-                        vkqueuefamily[keys::renderingApis::vk::device::queue::flags] = vk::to_string(queueFamilyProperties.queueFlags);
-                        vkqueuefamily[keys::renderingApis::vk::device::queue::count] = queueFamilyProperties.queueCount;
-                        vkdevice[keys::renderingApis::vk::device::queues].push_back(vkqueuefamily);
+                        vkqueuefamily[keys::graphicsAPI::vk::device::queue::flags] = vk::to_string(queueFamilyProperties.queueFlags);
+                        vkqueuefamily[keys::graphicsAPI::vk::device::queue::count] = queueFamilyProperties.queueCount;
+                        vkdevice[keys::graphicsAPI::vk::device::queues].push_back(vkqueuefamily);
                     }
                     auto memoryProperties = physicalDevice.getMemoryProperties();
                     for (uint32_t heapIndex = 0; heapIndex < memoryProperties.memoryHeapCount; ++heapIndex) {
                         json vkmemoryheap;
                         const auto& heap = memoryProperties.memoryHeaps[heapIndex];
-                        vkmemoryheap[keys::renderingApis::vk::device::heap::flags] = vk::to_string(heap.flags);
-                        vkmemoryheap[keys::renderingApis::vk::device::heap::size] = heap.size;
-                        vkdevice[keys::renderingApis::vk::device::heaps].push_back(vkmemoryheap);
+                        vkmemoryheap[keys::graphicsAPI::vk::device::heap::flags] = vk::to_string(heap.flags);
+                        vkmemoryheap[keys::graphicsAPI::vk::device::heap::size] = heap.size;
+                        vkdevice[keys::graphicsAPI::vk::device::heaps].push_back(vkmemoryheap);
                     }
-                    vkinfo[keys::renderingApis::vk::devices].push_back(vkdevice);
+                    vkinfo[keys::graphicsAPI::vk::devices].push_back(vkdevice);
                 }
-                _renderingApis[keys::renderingApis::apiVulkan] = vkinfo;
+                _graphicsApis.push_back(vkinfo);
             }
         } catch (const std::runtime_error&) {
         }
@@ -243,17 +245,13 @@ json Instance::listAllKeys() {
         keys::gpu::driver,
         keys::gpu::displays,
 
-        keys::renderingApis::apiOpenGL,
-        keys::renderingApis::apiVulkan,
-        keys::renderingApis::apiMetal,
-        keys::renderingApis::apiDirect3D11,
-        keys::renderingApis::apiDirect3D12,
+        keys::graphicsAPI::version,
+        keys::graphicsAPI::name,
 
-        keys::renderingApis::gl::version,
-        keys::renderingApis::gl::shadingLanguageVersion,
-        keys::renderingApis::gl::vendor,
-        keys::renderingApis::gl::renderer,
-        keys::renderingApis::gl::extensions,
+        keys::graphicsAPI::gl::shadingLanguageVersion,
+        keys::graphicsAPI::gl::vendor,
+        keys::graphicsAPI::gl::renderer,
+        keys::graphicsAPI::gl::extensions,
 
         keys::display::boundsLeft,
         keys::display::boundsRight,
@@ -276,7 +274,7 @@ json Instance::listAllKeys() {
 
         keys::CPUS,
         keys::GPUS,
-        keys::RENDERING_APIS,
+        keys::GRAPHICS_APIS,
         keys::DISPLAYS,
         keys::MEMORY,
         keys::COMPUTER,
@@ -308,7 +306,7 @@ json Instance::getAll() {
     all[keys::MEMORY] = _memory;
     all[keys::CPUS] = _cpus;
     all[keys::GPUS] = _gpus;
-    all[keys::RENDERING_APIS] = _renderingApis;
+    all[keys::GRAPHICS_APIS] = _graphicsApis;
     all[keys::DISPLAYS] = _displays;
     all[keys::NICS] = _nics;
 

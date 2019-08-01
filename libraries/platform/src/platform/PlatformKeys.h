@@ -34,21 +34,21 @@ namespace platform { namespace keys{
         extern const char*  displays;
         extern const char*  isMaster;
     }
-    namespace renderingApis {
+    namespace graphicsAPI {
+        extern const char* name;
+        extern const char* version;
         extern const char* apiOpenGL;
         extern const char* apiVulkan;
         extern const char* apiDirect3D11;
         extern const char* apiDirect3D12;
         extern const char* apiMetal;
         namespace gl {
-            extern const char* version;
             extern const char* shadingLanguageVersion;
             extern const char* vendor;
             extern const char* renderer;
             extern const char* extensions;
         }
         namespace vk {
-            extern const char* version;
             extern const char* devices;
             namespace device {
                 extern const char* apiVersion;
@@ -115,7 +115,7 @@ namespace platform { namespace keys{
     // Keys for categories used in json returned by getAll()
     extern const char*  CPUS;
     extern const char*  GPUS;
-    extern const char*  RENDERING_APIS;
+    extern const char*  GRAPHICS_APIS;
     extern const char*  DISPLAYS;
     extern const char*  NICS;
     extern const char*  MEMORY;

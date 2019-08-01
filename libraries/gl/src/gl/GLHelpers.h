@@ -29,7 +29,6 @@ class QGLFormat;
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format);
 
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
-const QJsonObject& getGLContextData();
 int glVersionToInteger(QString glVersion);
 
 bool isRenderThread();
