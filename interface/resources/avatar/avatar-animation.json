@@ -586,16 +586,285 @@
                                                                                 "children": [
                                                                                     {
                                                                                         "children": [
+                                                                                            {
+                                                                                                "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 500,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/talk.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedTalk",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 800,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_idle02.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedIdle",
+                                                                                                        "type": "clip"
+                                                                                                    }
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "alpha": 1,
+                                                                                                    "alphaVar": "talkOverlayAlpha",
+                                                                                                    "boneSet": "upperBody"
+                                                                                                },
+                                                                                                "id": "seatedTalkOverlay",
+                                                                                                "type": "overlay"
+                                                                                            },
+                                                                                            {
+                                                                                                "children": [
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "endFrame": 0,
+                                                                                                    "loopFlag": true,
+                                                                                                    "startFrame": 0,
+                                                                                                    "timeScale": 1,
+                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                },
+                                                                                                "id": "seatedReactionPositive",
+                                                                                                "type": "clip"
+                                                                                            },
+                                                                                            {
+                                                                                                "children": [
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "endFrame": 0,
+                                                                                                    "loopFlag": true,
+                                                                                                    "startFrame": 0,
+                                                                                                    "timeScale": 1,
+                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                },
+                                                                                                "id": "seatedReactionNegative",
+                                                                                                "type": "clip"
+                                                                                            },
+                                                                                            {
+                                                                                                "children": [
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "endFrame": 0,
+                                                                                                    "loopFlag": true,
+                                                                                                    "startFrame": 0,
+                                                                                                    "timeScale": 1,
+                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                },
+                                                                                                "id": "seatedReactionRaiseHand",
+                                                                                                "type": "clip"
+                                                                                            },
+                                                                                            {
+                                                                                                "children": [
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "endFrame": 0,
+                                                                                                    "loopFlag": true,
+                                                                                                    "startFrame": 0,
+                                                                                                    "timeScale": 1,
+                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                },
+                                                                                                "id": "seatedReactionApplaud",
+                                                                                                "type": "clip"
+                                                                                            },
+                                                                                            {
+                                                                                                "children": [
+                                                                                                ],
+                                                                                                "data": {
+                                                                                                    "endFrame": 0,
+                                                                                                    "loopFlag": true,
+                                                                                                    "startFrame": 0,
+                                                                                                    "timeScale": 1,
+                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                },
+                                                                                                "id": "seatedReactionPoint",
+                                                                                                "type": "clip"
+                                                                                            }
                                                                                         ],
                                                                                         "data": {
-                                                                                            "endFrame": 350,
-                                                                                            "loopFlag": true,
-                                                                                            "startFrame": 1,
-                                                                                            "timeScale": 1,
-                                                                                            "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                            "currentState": "seatedTalkOverlay",
+                                                                                            "states": [
+                                                                                                {
+                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                    "id": "seatedTalkOverlay",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPositive",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionNegative",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionRaiseHand",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionApplaud",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPoint",
+                                                                                                            "var": "reactionPointEnabled"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "seatedReactionPositive",
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "seatedReactionPositiveOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionNegative",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionRaiseHand",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionApplaud",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPoint",
+                                                                                                            "var": "reactionPointEnabled"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "seatedReactionNegative",
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPositive",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "reactionNegativeOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionRaiseHand",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionApplaud",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPoint",
+                                                                                                            "var": "reactionPointEnabled"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "seatedReactionRaiseHand",
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "seatedReactionNegative",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPositive",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "reactionRaiseHandDisabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionApplaud",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPoint",
+                                                                                                            "var": "reactionPointEnabled"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "seatedReactionApplaud",
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "seatedReactionNegative",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPositive",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionRaiseHand",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "reactionApplaudDisabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPoint",
+                                                                                                            "var": "reactionPointEnabled"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                },
+                                                                                                {
+                                                                                                    "id": "seatedReactionPoint",
+                                                                                                    "interpDuration": 6,
+                                                                                                    "interpTarget": 6,
+                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "transitions": [
+                                                                                                        {
+                                                                                                            "state": "seatedReactionNegative",
+                                                                                                            "var": "reactionNegativeTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionPositive",
+                                                                                                            "var": "reactionPositiveTrigger"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionRaiseHand",
+                                                                                                            "var": "reactionRaiseHandEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedReactionApplaud",
+                                                                                                            "var": "reactionApplaudEnabled"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "reactionPointDisabled"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
                                                                                         },
                                                                                         "id": "seated",
-                                                                                        "type": "clip"
+                                                                                        "type": "stateMachine"
                                                                                     },
                                                                                     {
                                                                                         "children": [
@@ -1328,10 +1597,10 @@
                                                                                                 ],
                                                                                                 "data": {
                                                                                                     "alpha": 1,
-                                                                                                    "alphaVar": "idleOverlayAlpha",
+                                                                                                    "alphaVar": "talkOverlayAlpha",
                                                                                                     "boneSet": "upperBody"
                                                                                                 },
-                                                                                                "id": "idleOverlay",
+                                                                                                "id": "idleTalkOverlay",
                                                                                                 "type": "overlay"
                                                                                             },
                                                                                             {
@@ -1757,12 +2026,13 @@
                                                                                             }
                                                                                         ],
                                                                                         "data": {
-                                                                                            "currentState": "idleOverlay",
+                                                                                            "currentState": "idleTalkOverlay",
                                                                                             "states": [
                                                                                                 {
-                                                                                                    "id": "idleOverlay",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
+                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                    "id": "idleTalkOverlay",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
@@ -1794,27 +2064,27 @@
                                                                                                     "interpType": "snapshotPrev",
                                                                                                     "transitions": [
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveAcknowledgeOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveHeadNodOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveHeadNodYesOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveLongHeadNodOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveThisOrThatOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveThoughtfulHeadNodOnDone"
                                                                                                         },
                                                                                                         {
@@ -1846,19 +2116,19 @@
                                                                                                             "var": "reactionPositiveTrigger"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "negativeAnnoyedHeadshakeOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "negativeNoOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "negativeThoughtfulHeadshakeOnDone"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "negativeDropHeadOnDone"
                                                                                                         },
                                                                                                         {
@@ -1890,7 +2160,7 @@
                                                                                                             "var": "reactionPositiveTrigger"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "reactionRaiseHandDisabled"
                                                                                                         },
                                                                                                         {
@@ -1922,7 +2192,7 @@
                                                                                                             "var": "reactionRaiseHandEnabled"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "reactionApplaudDisabled"
                                                                                                         },
                                                                                                         {
@@ -1954,7 +2224,7 @@
                                                                                                             "var": "reactionApplaudEnabled"
                                                                                                         },
                                                                                                         {
-                                                                                                            "state": "idleOverlay",
+                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "reactionPointDisabled"
                                                                                                         }
                                                                                                     ]
