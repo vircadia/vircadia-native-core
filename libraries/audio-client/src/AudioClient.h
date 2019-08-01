@@ -29,6 +29,7 @@
 #include <AbstractAudioInterface.h>
 #include <AudioEffectOptions.h>
 #include <AudioStreamStats.h>
+#include <shared/WebRTC.h>
 
 #include <DependencyManager.h>
 #include <HifiSockAddr.h>
@@ -215,6 +216,9 @@ public slots:
     void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
 
+    void setAcousticEchoCancellation(bool isAECEnabled, bool emitSignal = true);
+    bool isAcousticEchoCancellationEnabled() const { return _isAECEnabled; }
+
     virtual bool getLocalEcho() override { return _shouldEchoLocally; }
     virtual void setLocalEcho(bool localEcho) override { _shouldEchoLocally = localEcho; }
     virtual void toggleLocalEcho() override { _shouldEchoLocally = !_shouldEchoLocally; }
@@ -256,6 +260,7 @@ signals:
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
     void warnWhenMutedChanged(bool warnWhenMutedEnabled);
+    void acousticEchoCancellationChanged(bool acousticEchoCancellationEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness, bool isClipping);
@@ -377,6 +382,7 @@ private:
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
     bool _warnWhenMuted;
+    bool _isAECEnabled;
 
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
@@ -414,8 +420,22 @@ private:
     // Adds Reverb
     void configureReverb();
     void updateReverbOptions();
-
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
+
+#if defined(WEBRTC_ENABLED)
+    static const int WEBRTC_SAMPLE_RATE_MAX = 96000;
+    static const int WEBRTC_CHANNELS_MAX = 2;
+    static const int WEBRTC_FRAMES_MAX = webrtc::AudioProcessing::kChunkSizeMs * WEBRTC_SAMPLE_RATE_MAX / 1000;
+
+    webrtc::AudioProcessing* _apm { nullptr };
+
+    int16_t _fifoFarEnd[WEBRTC_CHANNELS_MAX * WEBRTC_FRAMES_MAX] {};
+    int _numFifoFarEnd = 0; // numFrames saved in fifo
+
+    void configureWebrtc();
+    void processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate);
+    void processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate);
+#endif
 
     bool switchInputToAudioDevice(const QAudioDeviceInfo inputDeviceInfo, bool isShutdownRequest = false);
     bool switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceInfo, bool isShutdownRequest = false);
