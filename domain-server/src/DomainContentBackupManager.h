@@ -95,9 +95,9 @@ public:
 public slots:
     void getAllBackupsAndStatus(MiniPromise::Promise promise);
     void createManualBackup(MiniPromise::Promise promise, const QString& name);
-    void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
-    void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup);
-    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename, QString sourceFilename);
+    void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName, const QString& username);
+    void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup, QString username);
+    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename, QString username, QString sourceFilename);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
 
 signals:
@@ -119,7 +119,7 @@ protected:
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 
-    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip, const QString& sourceFilename, bool rollingBack = false);
+    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip, const QString& username, const QString& sourceFilename, bool rollingBack = false);
 
 private slots:
     void removeOldConsolidatedBackups();
