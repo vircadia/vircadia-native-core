@@ -244,8 +244,8 @@ glm::uint32 scriptable::ScriptableMeshPart::fillAttribute(const QString& attribu
     return isValid() ? parentMesh->fillAttribute(attributeName, value) : 0;
 }
 
-QVector<glm::uint32> scriptable::ScriptableMeshPart::findNearbyPartVertexIndices(const glm::vec3& origin, float epsilon) const {
-    QSet<glm::uint32> result;
+QVector<unsigned int> scriptable::ScriptableMeshPart::findNearbyPartVertexIndices(const glm::vec3& origin, float epsilon) const {
+    QSet<unsigned int> result;
     if (!isValid()) {
         return result.toList().toVector();
     }
@@ -328,14 +328,14 @@ scriptable::ScriptableMeshPart::ScriptableMeshPart(scriptable::ScriptableMeshPoi
     setObjectName(QString("%1.part[%2]").arg(parentMesh ? parentMesh->objectName() : "").arg(partIndex));
 }
 
-QVector<glm::uint32> scriptable::ScriptableMeshPart::getIndices() const {
+QVector<unsigned int> scriptable::ScriptableMeshPart::getIndices() const {
     if (auto mesh = getMeshPointer()) {
 #ifdef SCRIPTABLE_MESH_DEBUG
         qCDebug(graphics_scripting, "getIndices mesh %p", mesh.get());
 #endif
         return buffer_helpers::bufferToVector<glm::uint32>(mesh->getIndexBuffer());
     }
-    return QVector<glm::uint32>();
+    return QVector<unsigned int>();
 }
 
 bool scriptable::ScriptableMeshPart::setFirstVertexIndex( glm::uint32 vertexIndex) {
@@ -365,11 +365,11 @@ bool scriptable::ScriptableMeshPart::setLastVertexIndex( glm::uint32 vertexIndex
     return true;
 }
 
-bool scriptable::ScriptableMeshPart::setIndices(const QVector<glm::uint32>& indices) {
+bool scriptable::ScriptableMeshPart::setIndices(const QVector<unsigned int>& indices) {
     if (!isValid()) {
         return false;
     }
-    glm::uint32 len = indices.size();
+    unsigned int len = indices.size();
     if (len != getNumIndices()) {
         context()->throwError(QString("setIndices: currently new indicies must be assign 1:1 across old indicies (indicies.size()=%1, numIndices=%2)")
                               .arg(len).arg(getNumIndices()));
@@ -379,14 +379,14 @@ bool scriptable::ScriptableMeshPart::setIndices(const QVector<glm::uint32>& indi
     auto indexBuffer = mesh->getIndexBuffer();
 
     // first loop to validate all indices are valid
-    for (glm::uint32 i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++) {
         if (!isValidIndex(indices.at(i))) {
             return false;
         }
     }
     const auto first = getFirstVertexIndex();
     // now actually apply them
-    for (glm::uint32 i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++) {
         buffer_helpers::setValue(indexBuffer, first + i, indices.at(i));
     }
     return true;
@@ -431,7 +431,7 @@ glm::uint32 scriptable::ScriptableMeshPart::getTopologyLength() const {
     return 0;
 }
 
-QVector<glm::uint32> scriptable::ScriptableMeshPart::getFace(glm::uint32 faceIndex) const {
+QVector<unsigned int> scriptable::ScriptableMeshPart::getFace(unsigned int faceIndex) const {
     switch (getTopology()) {
     case graphics::Mesh::Topology::POINTS:
     case graphics::Mesh::Topology::LINES:
@@ -440,7 +440,7 @@ QVector<glm::uint32> scriptable::ScriptableMeshPart::getFace(glm::uint32 faceInd
         if (faceIndex < getNumFaces()) {
             return getIndices().mid(faceIndex * getTopologyLength(), getTopologyLength());
         }
-    default: return QVector<glm::uint32>();
+    default: return QVector<unsigned int>();
     }
 }
 

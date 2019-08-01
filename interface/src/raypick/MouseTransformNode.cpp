@@ -25,3 +25,9 @@ Transform MouseTransformNode::getTransform() {
 
     return Transform();
 }
+
+QVariantMap MouseTransformNode::toVariantMap() const {
+    QVariantMap map;
+    map["joint"] = "Mouse";
+    return map;
+}

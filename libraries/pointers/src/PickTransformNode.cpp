@@ -24,3 +24,9 @@ Transform PickTransformNode::getTransform() {
 
     return pickManager->getResultTransform(_uid);
 }
+
+QVariantMap PickTransformNode::toVariantMap() const {
+    QVariantMap map;
+    map["parentID"] = _uid;
+    return map;
+}

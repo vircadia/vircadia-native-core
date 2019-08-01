@@ -59,8 +59,8 @@ glm::uint32 scriptable::ScriptableMesh::getNumVertices() const {
     return 0;
 }
 
-QVector<glm::uint32> scriptable::ScriptableMesh::findNearbyVertexIndices(const glm::vec3& origin, float epsilon) const {
-    QVector<glm::uint32> result;
+QVector<unsigned int> scriptable::ScriptableMesh::findNearbyVertexIndices(const glm::vec3& origin, float epsilon) const {
+    QVector<unsigned int> result;
     if (!isValid()) {
         return result;
     }
@@ -74,14 +74,14 @@ QVector<glm::uint32> scriptable::ScriptableMesh::findNearbyVertexIndices(const g
     return result;
 }
 
-QVector<glm::uint32> scriptable::ScriptableMesh::getIndices() const {
+QVector<unsigned int> scriptable::ScriptableMesh::getIndices() const {
     if (auto mesh = getMeshPointer()) {
 #ifdef SCRIPTABLE_MESH_DEBUG
         qCDebug(graphics_scripting, "getIndices mesh %p", mesh.get());
 #endif
         return buffer_helpers::bufferToVector<glm::uint32>(mesh->getIndexBuffer());
     }
-    return QVector<glm::uint32>();
+    return QVector<unsigned int>();
 }
 
 

@@ -22,3 +22,9 @@ Transform MyAvatarHeadTransformNode::getTransform() {
 
     return Transform(ori, scale, pos);
 }
+
+QVariantMap MyAvatarHeadTransformNode::toVariantMap() const {
+    QVariantMap map;
+    map["joint"] = "Avatar";
+    return map;
+}

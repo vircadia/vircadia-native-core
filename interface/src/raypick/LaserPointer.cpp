@@ -47,7 +47,7 @@ PickResultPointer LaserPointer::getPickResultCopy(const PickResultPointer& pickR
 }
 
 QVariantMap LaserPointer::toVariantMap() const {
-    QVariantMap qVariantMap;
+    QVariantMap qVariantMap = Parent::toVariantMap();
 
     QVariantMap qRenderStates;
     for (auto iter = _renderStates.cbegin(); iter != _renderStates.cend(); iter++) {

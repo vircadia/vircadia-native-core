@@ -49,6 +49,7 @@ class CollisionPick : public Pick<CollisionRegion> {
 public:
     CollisionPick(const PickFilter& filter, float maxDistance, bool enabled, bool scaleWithParent, CollisionRegion collisionRegion, PhysicsEnginePointer physicsEngine);
 
+    PickType getType() const override { return PickType::Collision; }
     CollisionRegion getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override {
         return std::make_shared<CollisionPickResult>(pickVariant, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());

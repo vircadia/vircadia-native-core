@@ -12,6 +12,8 @@
 
 #include "SpatiallyNestable.h"
 
+#include "RegisteredMetaTypes.h"
+
 template <typename T>
 class BaseNestableTransformNode : public TransformNode {
 public:
@@ -43,6 +45,21 @@ public:
         jointWorldTransform.setScale(getActualScale(nestable) / _baseScale);
 
         return jointWorldTransform;
+    }
+
+    QVariantMap BaseNestableTransformNode<T>::toVariantMap() const {
+        QVariantMap map;
+    
+        if (!_spatiallyNestable.expired()) {
+            auto nestable = _spatiallyNestable.lock();
+            if (nestable) {
+                map["parentID"] = nestable->getID();
+                map["parentJointIndex"] = _jointIndex;
+                map["baseParentScale"] = vec3toVariant(_baseScale);
+            }
+        }
+
+        return map;
     }
 
     glm::vec3 getActualScale(const std::shared_ptr<T>& nestablePointer) const;

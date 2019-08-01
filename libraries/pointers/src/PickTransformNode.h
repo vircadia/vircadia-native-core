@@ -15,6 +15,7 @@ class PickTransformNode : public TransformNode {
 public:
     PickTransformNode(unsigned int uid);
     Transform getTransform() override;
+    QVariantMap toVariantMap() const override;
 
 protected:
     unsigned int _uid;
