@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 7/11/2018
+//  Created by Sabrina Shanman 2018/07/11
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
