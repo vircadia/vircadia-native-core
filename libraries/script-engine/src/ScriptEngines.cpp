@@ -407,7 +407,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
             _isReloading = true;
             ScriptEngine::Type type = scriptEngine->getType();
 
-            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, isOverrideScript](QString scriptName) {
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, isOverrideScript] (QString scriptName) {
                 reloadScript(scriptName, !isOverrideScript)->setType(type);
             });
         }
