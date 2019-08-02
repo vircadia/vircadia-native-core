@@ -715,8 +715,8 @@
                                                                                                 "children": [
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 0,
-                                                                                                    "loopFlag": true,
+                                                                                                    "endFrame": 30,
+                                                                                                    "loopFlag": false,
                                                                                                     "startFrame": 0,
                                                                                                     "timeScale": 1,
                                                                                                     "url": "qrc:///avatar/animations/sitting_idle.fbx"
@@ -728,8 +728,8 @@
                                                                                                 "children": [
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 0,
-                                                                                                    "loopFlag": true,
+                                                                                                    "endFrame": 30,
+                                                                                                    "loopFlag": false,
                                                                                                     "startFrame": 0,
                                                                                                     "timeScale": 1,
                                                                                                     "url": "qrc:///avatar/animations/sitting_idle.fbx"
@@ -849,7 +849,7 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "seatedTalkOverlay",
-                                                                                                            "var": "reactionNegativeOnDone"
+                                                                                                            "var": "seatedReactionNegativeOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "seatedReactionRaiseHand",
