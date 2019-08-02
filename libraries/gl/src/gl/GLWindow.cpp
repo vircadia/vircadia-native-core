@@ -33,14 +33,12 @@ GLWindow::~GLWindow() {
 bool GLWindow::makeCurrent() {
     bool makeCurrentResult = _context->makeCurrent();
     Q_ASSERT(makeCurrentResult);
-    
-    std::call_once(_reportOnce, []{
-        qCDebug(glLogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-        qCDebug(glLogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qCDebug(glLogging) << "GL Vendor: " << QString((const char*) glGetString(GL_VENDOR));
-        qCDebug(glLogging) << "GL Renderer: " << QString((const char*) glGetString(GL_RENDERER));
-    });
-    
+
+    if (makeCurrentResult) {
+        std::call_once(_reportOnce, []{
+            LOG_GL_CONTEXT_INFO(glLogging, gl::ContextInfo().init());
+        });
+    }
     return makeCurrentResult;
 }
 

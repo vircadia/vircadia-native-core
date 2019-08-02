@@ -326,7 +326,7 @@ public:
     bool isInterstitialMode() const { return _interstitialMode; }
     bool failedToConnectToEntityServer() const { return _failedToConnectToEntityServer; }
 
-    void replaceDomainContent(const QString& url);
+    void replaceDomainContent(const QString& url, const QString& itemName);
 
     void loadAvatarScripts(const QVector<QString>& urls);
     void unloadAvatarScripts();

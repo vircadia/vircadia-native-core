@@ -11,10 +11,51 @@
 #include "ResourceImageItem.h"
 
 #include <gl/Config.h>
-
+#include <gl/GLHelpers.h>
 #include <QOpenGLFramebufferObjectFormat>
+#include <QOpenGLShaderProgram>
 
 #include <plugins/DisplayPlugin.h>
+
+
+static const char* VERTEX_SHADER = R"SHADER(
+#version 450 core
+
+out vec2 vTexCoord;
+
+void main(void) {
+    const float depth = 0.0;
+    const vec4 UNIT_QUAD[4] = vec4[4](
+        vec4(-1.0, -1.0, depth, 1.0),
+        vec4(1.0, -1.0, depth, 1.0),
+        vec4(-1.0, 1.0, depth, 1.0),
+        vec4(1.0, 1.0, depth, 1.0)
+    );
+    vec4 pos = UNIT_QUAD[gl_VertexID];
+
+    gl_Position = pos;
+    vTexCoord = (pos.xy + 1.0) * 0.5;
+}
+)SHADER";
+
+static const char* FRAGMENT_SHADER = R"SHADER(
+#version 450 core
+
+uniform sampler2D sampler;
+
+in vec2 vTexCoord;
+
+out vec4 FragColor;
+
+vec3 color_LinearTosRGB(vec3 lrgb) {
+    return mix(vec3(1.055) * pow(vec3(lrgb), vec3(0.41666)) - vec3(0.055), vec3(lrgb) * vec3(12.92), vec3(lessThan(lrgb, vec3(0.0031308))));
+}
+
+void main() {
+    FragColor = vec4(color_LinearTosRGB(texture(sampler, vTexCoord).rgb), 1.0);
+}
+)SHADER";
+
 
 ResourceImageItem::ResourceImageItem() : QQuickFramebufferObject() {
     auto textureCache = DependencyManager::get<TextureCache>();
@@ -95,16 +136,29 @@ void ResourceImageItemRenderer::render() {
     }
     if (_ready) {
         _fboMutex.lock();
-        _copyFbo->bind();
-        QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
-        // this clears the copyFbo texture
-        // so next frame starts fresh - helps
-        // when aspect ratio changes
-        _copyFbo->takeTexture();
+
+        if (!_shader) {
+            _shader = new QOpenGLShaderProgram();
+            _shader->addCacheableShaderFromSourceCode(QOpenGLShader::Vertex, VERTEX_SHADER);
+            _shader->addCacheableShaderFromSourceCode(QOpenGLShader::Fragment, FRAGMENT_SHADER);
+            _shader->link();
+            glGenVertexArrays(1, &_vao);
+        }
+        framebufferObject()->bind();
+        _shader->bind();
+
+        auto sourceTextureId = _copyFbo->takeTexture();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, sourceTextureId);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glBindVertexArray(_vao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDeleteTextures(1, &sourceTextureId);
+
         _copyFbo->bind();
         _copyFbo->release();
-
         _fboMutex.unlock();
     }
     glFlush();

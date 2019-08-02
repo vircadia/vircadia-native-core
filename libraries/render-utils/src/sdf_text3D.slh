@@ -14,11 +14,16 @@
 <@if not SDF_TEXT3D_SLH@>
 <@def SDF_TEXT3D_SLH@>
 
-LAYOUT(binding=0) uniform sampler2D Font;
+LAYOUT(binding=0) uniform sampler2D fontTexture;
 
 struct TextParams {
     vec4 color;
-    vec4 outline;
+
+    vec3 effectColor;
+    float effectThickness;
+
+    int effect;
+    vec3 spare;
 };
 
 LAYOUT(binding=0) uniform textParamsBuffer {
@@ -29,32 +34,57 @@ LAYOUT(binding=0) uniform textParamsBuffer {
 
 #define TAA_TEXTURE_LOD_BIAS    -3.0
 
-const float interiorCutoff = 0.8;
-const float outlineExpansion = 0.2;
+const float interiorCutoff = 0.5;
 const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
 
-float evalSDF(vec2 texCoord) {
-    // retrieve signed distance
-    float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
-    sdf = mix(sdf, mix(sdf + outlineExpansion, 1.0 - sdf, float(sdf > interiorCutoff)), float(params.outline.x > 0.0));
+vec4 evalSDF(vec2 texCoord, vec4 glyphBounds) {
+    vec3 color = params.color.rgb;
+    float sdf = textureLod(fontTexture, texCoord, TAA_TEXTURE_LOD_BIAS).g;
 
-    // Rely on TAA for anti-aliasing
-    return step(0.5, sdf);
+    // Outline
+    if (params.effect == 1 || params.effect == 2) {
+        float outline = float(sdf < interiorCutoff);
+        color = mix(color, params.effectColor, outline);
+
+        // with or without fill
+        sdf = mix(sdf, 0.0, float(params.effect == 1) * (1.0 - outline));
+
+        const float EPSILON = 0.00001;
+        sdf += mix(0.0, params.effectThickness - EPSILON, outline);
+    } else if (params.effect == 3) { // Shadow
+        // don't sample from outside of our glyph bounds
+        sdf *= mix(1.0, 0.0, float(clamp(texCoord, glyphBounds.xy, glyphBounds.xy + glyphBounds.zw) != texCoord));
+
+        if (sdf < interiorCutoff) {
+            color = params.effectColor;
+            const float DOUBLE_MAX_OFFSET_PIXELS = 20.0; // must match value in Font.cpp
+            // FIXME: TAA_TEXTURE_LOD_BIAS doesn't have any effect because we're only generating one mip, so here we need to use 0, but it should
+            // really match the LOD that we use in the textureLod call below
+            vec2 textureOffset = vec2(params.effectThickness * DOUBLE_MAX_OFFSET_PIXELS) / vec2(textureSize(fontTexture, 0/*int(TAA_TEXTURE_LOD_BIAS)*/));
+            vec2 shadowTexCoords = texCoord - textureOffset;
+            sdf = textureLod(fontTexture, shadowTexCoords, TAA_TEXTURE_LOD_BIAS).g;
+
+            // don't sample from outside of our glyph bounds
+            sdf *= mix(1.0, 0.0, float(clamp(shadowTexCoords, glyphBounds.xy, glyphBounds.xy + glyphBounds.zw) != shadowTexCoords));
+        }
+    }
+
+    return vec4(color, sdf);
 }
 
-float evalSDFSuperSampled(vec2 texCoord) {
+vec4 evalSDFSuperSampled(vec2 texCoord, vec4 glyphBounds) {
     vec2 dxTexCoord = dFdx(texCoord) * 0.5 * taaBias;
     vec2 dyTexCoord = dFdy(texCoord) * 0.5 * taaBias;
 
     // Perform 4x supersampling for anisotropic filtering
-    float a;
-    a = evalSDF(texCoord);
-    a += evalSDF(texCoord + dxTexCoord);
-    a += evalSDF(texCoord + dyTexCoord);
-    a += evalSDF(texCoord + dxTexCoord + dyTexCoord);
-    a *= 0.25;
+    vec4 color;
+    color = evalSDF(texCoord, glyphBounds);
+    color += evalSDF(texCoord + dxTexCoord, glyphBounds);
+    color += evalSDF(texCoord + dyTexCoord, glyphBounds);
+    color += evalSDF(texCoord + dxTexCoord + dyTexCoord, glyphBounds);
+    color *= 0.25;
 
-    return a;
+    return vec4(color.rgb, step(interiorCutoff, color.a));
 }
 
 <@endfunc@>

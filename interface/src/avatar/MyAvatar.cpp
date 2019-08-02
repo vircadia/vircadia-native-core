@@ -6207,3 +6207,51 @@ void MyAvatar::sendPacket(const QUuid& entityID) const {
         });
     }
 }
+
+void MyAvatar::setSitDriveKeysStatus(bool enabled) {
+    const std::vector<DriveKeys> DISABLED_DRIVE_KEYS_DURING_SIT = {
+        DriveKeys::TRANSLATE_X,
+        DriveKeys::TRANSLATE_Y,
+        DriveKeys::TRANSLATE_Z,
+        DriveKeys::STEP_TRANSLATE_X,
+        DriveKeys::STEP_TRANSLATE_Y,
+        DriveKeys::STEP_TRANSLATE_Z
+    };
+    for (auto key : DISABLED_DRIVE_KEYS_DURING_SIT) {
+        if (enabled) {
+            enableDriveKey(key);
+        } else {
+            disableDriveKey(key);
+        }
+    }
+}
+
+void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
+    _characterController.setSeated(true);
+    setCollisionsEnabled(false);    
+    setHMDLeanRecenterEnabled(false);
+    // Disable movement
+    setSitDriveKeysStatus(false);
+    centerBody();
+    int hipIndex = getJointIndex("Hips");
+    clearPinOnJoint(hipIndex);
+    goToLocation(position, true, rotation, false, false);
+    pinJoint(hipIndex, position, rotation);
+}
+
+void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
+    if (_characterController.getSeated()) {
+        clearPinOnJoint(getJointIndex("Hips"));
+        _characterController.setSeated(false);
+        setCollisionsEnabled(true);
+        setHMDLeanRecenterEnabled(true);
+        centerBody();
+        goToLocation(position, true, rotation, false, false);
+        float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
+        QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
+            // Enable movement again
+            setSitDriveKeysStatus(true);
+        });
+    }
+
+}

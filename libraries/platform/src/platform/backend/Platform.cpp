@@ -67,6 +67,45 @@ namespace platform { namespace keys {
         const char*  displays = "displays";
         const char*  isMaster = "isMaster";
     }
+    namespace graphicsAPI {
+        const char* name = "name";
+        const char* version = "version";
+
+        const char* apiOpenGL = "OpenGL";
+        const char* apiVulkan = "Vulkan";
+        const char* apiDirect3D11 = "D3D11";
+        const char* apiDirect3D12 = "D3D12";
+        const char* apiMetal = "Metal";
+
+        namespace gl {
+            const char* shadingLanguageVersion = "shadingLanguageVersion";
+            const char* vendor = "vendor";
+            const char* renderer = "renderer";
+            const char* extensions = "extensions";
+        }
+        namespace vk {
+            const char* devices = "devices";
+            namespace device {
+                const char* apiVersion = "apiVersion";
+                const char* driverVersion = "driverVersion";
+                const char* deviceType = "deviceType";
+                const char* vendor = "vendor";
+                const char* name = "name";
+                const char* formats = "formats";
+                const char* extensions = "extensions";
+                const char* heaps = "heaps";
+                namespace heap {
+                    const char* flags = "flags";
+                    const char* size = "size";
+                }
+                const char* queues = "queues";
+                namespace queue {
+                    const char* flags = "flags";
+                    const char* count = "count";
+                }
+            }
+        }
+    }
 
     /**jsdoc
      * Information on a network card.
@@ -169,6 +208,7 @@ namespace platform { namespace keys {
 
     const char*  CPUS = "cpus";
     const char*  GPUS = "gpus";
+    const char*  GRAPHICS_APIS = "graphicsAPIs";
     const char*  DISPLAYS = "displays";
     const char*  NICS = "nics";
     const char*  MEMORY = "memory";

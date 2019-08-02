@@ -18,5 +18,6 @@ void Glyph::read(QIODevice& in) {
     readStream(in, size);
     readStream(in, offset);
     readStream(in, d);
+    // texSize is divided by the image size later
     texSize = size;
 }

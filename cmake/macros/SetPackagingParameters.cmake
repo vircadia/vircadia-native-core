@@ -131,8 +131,11 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   if (DEPLOY_PACKAGE)
-    # for deployed packages always grab the serverless content
-    set(DOWNLOAD_SERVERLESS_CONTENT ON)
+    # For deployed packages we do not grab the serverless content any longer.
+    # Instead, we deploy just the serverless content that is in the interface/resources/serverless
+    # directory. If we ever move back to delivering serverless via a hosted .zip file,
+    # we can re-enable this.
+    set(DOWNLOAD_SERVERLESS_CONTENT OFF)
   endif ()
 
   if (APPLE)
