@@ -9,8 +9,8 @@
     NSInteger currentVersion;
     @try {
         NSString* interfaceAppPath = [[Launcher.sharedLauncher getAppPath] stringByAppendingString:@"interface.app"];
-        NSError * error = nil;
-        Interface * interface = [[Interface alloc] initWith:interfaceAppPath];
+        NSError* error = nil;
+        Interface* interface = [[Interface alloc] initWith:interfaceAppPath];
         currentVersion = [interface getVersion:&error];
         if (currentVersion == 0 && error != nil) {
             NSLog(@"can't get version from interface, falling back to settings: %@", error);
@@ -24,17 +24,17 @@
 }
 
 - (void) requestLatestBuildInfo {
-    NSMutableURLRequest *request = [NSMutableURLRequest new];
+    NSMutableURLRequest* request = [NSMutableURLRequest new];
     [request setURL:[NSURL URLWithString:@"https://thunder.highfidelity.com/builds/api/tags/latest?format=json"]];
     [request setHTTPMethod:@"GET"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
     // We're using an ephermeral session here to ensure the tags api response is never cached.
-    NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
+    NSURLSession* session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
     NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSLog(@"Latest Build Request error: %@", error);
         NSLog(@"Latest Build Request Data: %@", data);
-         NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
+         NSHTTPURLResponse* ne = (NSHTTPURLResponse *)response;
         NSLog(@"Latest Build Request Response: %ld", [ne statusCode]);
         Launcher* sharedLauncher = [Launcher sharedLauncher];
 
@@ -47,9 +47,9 @@
         NSMutableData* webData = [NSMutableData data];
         [webData appendData:data];
         NSString* jsonString = [[NSString alloc] initWithBytes: [webData mutableBytes] length:[data length] encoding:NSUTF8StringEncoding];
-        NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+        NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
         NSLog(@"Latest Build Request -> json string: %@", jsonString);
-        NSError *jsonError = nil;
+        NSError* jsonError = nil;
         id json = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&jsonError];
 
         if (jsonError) {
@@ -57,9 +57,9 @@
         }
 
         NSFileManager* fileManager = [NSFileManager defaultManager];
-        NSArray *values = [json valueForKey:@"results"];
-        NSDictionary *launcherValues = [json valueForKey:@"launcher"];
-        NSDictionary *value  = [values objectAtIndex:0];
+        NSArray* values = [json valueForKey:@"results"];
+        NSDictionary* launcherValues = [json valueForKey:@"launcher"];
+        NSDictionary* value  = [values objectAtIndex:0];
 
         NSString* launcherVersion = [launcherValues valueForKey:@"version"];
         NSString* launcherUrl = [[launcherValues valueForKey:@"mac"] valueForKey:@"url"];

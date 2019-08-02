@@ -1,8 +1,7 @@
 #import "LauncherCommandlineArgs.h"
 
 @implementation LauncherCommandlineArgs
-+(NSDictionary*) arguments
-{
++(NSDictionary*) arguments {
 
     NSArray* arguments = [[NSProcessInfo processInfo] arguments];
     if (arguments.count < 2)

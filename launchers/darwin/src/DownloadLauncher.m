@@ -4,8 +4,7 @@
 
 @implementation DownloadLauncher
 
-- (void) downloadLauncher:(NSString *)launcherUrl
-{
+- (void) downloadLauncher:(NSString*)launcherUrl {
     NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:launcherUrl]
                                              cachePolicy:NSURLRequestUseProtocolCachePolicy
                                          timeoutInterval:60.0];
@@ -22,20 +21,15 @@
 
 }
 
--(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didResumeAtOffset:(int64_t)fileOffset expectedTotalBytes:(int64_t)expectedTotalBytes {
-    // unused in this example
-}
-
--(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location {
+-(void)URLSession:(NSURLSession*)session downloadTask:(NSURLSessionDownloadTask*)downloadTask didFinishDownloadingToURL:(NSURL*)location {
     NSLog(@"Did finish downloading to url");
-     NSError *error = nil;
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSString *destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
+     NSError* error = nil;
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    NSString* destinationFileName = downloadTask.originalRequest.URL.lastPathComponent;
     NSString* finalFilePath = [[[Launcher sharedLauncher] getDownloadPathForContentAndScripts] stringByAppendingPathComponent:destinationFileName];
     NSURL *destinationURL = [NSURL URLWithString: [finalFilePath stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLFragmentAllowedCharacterSet]] relativeToURL: [NSURL URLWithString:@"file://"]];
     NSLog(@"desintation %@", destinationURL);
-    if([fileManager fileExistsAtPath:[destinationURL path]])
-    {
+    if([fileManager fileExistsAtPath:[destinationURL path]]) {
         [fileManager removeItemAtURL:destinationURL error:nil];
     }
 
@@ -51,21 +45,21 @@
         NSLog(@"Download Launcher: failed to move file to destintation -> error: %@", error);
         [sharedLauncher displayErrorPage];
         return;
-        }
-    NSLog(@"extracting domain content file");
-    BOOL extractionSuccessful = [sharedLauncher extractZipFileAtDestination:[sharedLauncher getDownloadPathForContentAndScripts] :[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:destinationFileName]];
+    }
+    NSLog(@"extracting Launcher file");
+    BOOL extractionSuccessful = [sharedLauncher extractZipFileAtDestination:[sharedLauncher getDownloadPathForContentAndScripts] :[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:@"HQ Launcher.zip"]];
 
     if (!extractionSuccessful) {
         [sharedLauncher displayErrorPage];
         return;
     }
-    NSLog(@"finished extracting content file");
+    NSLog(@"finished extracting Launcher file");
 
 
     [[Launcher sharedLauncher] runAutoupdater];
 }
 
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+- (void)URLSession:(NSURLSession*)session task:(NSURLSessionTask*)task didCompleteWithError:(NSError*)error {
     NSLog(@"completed; error: %@", error);
     if (error) {
         [[Launcher sharedLauncher] displayErrorPage];
