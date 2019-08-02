@@ -521,6 +521,10 @@ private:
     bool _settingsLoaded { false };
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
+    Setting::Handle<float> _avatarGainSetting { QStringList { Audio::AUDIO, "AvatarGain" }, 0.0f };
+    Setting::Handle<float> _injectorGainSetting { QStringList { Audio::AUDIO, "InjectorGain" }, 0.0f };
+    Setting::Handle<float> _localInjectorGainSetting { QStringList { Audio::AUDIO, "LocalInjectorGain" }, 0.0f };
+    Setting::Handle<float> _systemInjectorGainSetting { QStringList { Audio::AUDIO, "SystemInjectorGain" }, 0.0f };
     float _localInjectorGain { 0.0f };      // in dB
     float _systemInjectorGain { 0.0f };     // in dB
     float _pttOutputGainDesktop { 0.0f };   // in dB
