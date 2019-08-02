@@ -39,7 +39,7 @@ bool Instance::enumeratePlatform() {
     enumerateCpus();
     enumerateGpusAndDisplays();
     enumerateNics();
-    enumerateRenderingApis();
+    enumerateGraphicsApis();
     
     // eval the master index for each platform scopes
     updateMasterIndices();
@@ -122,7 +122,7 @@ static std::string vkVersionToString(uint32_t version) {
 #endif
 
 
-void Instance::enumerateRenderingApis() {
+void Instance::enumerateGraphicsApis() {
     // OpenGL rendering API is supported on all platforms
     {
         auto& glContextInfo = gl::ContextInfo::get();

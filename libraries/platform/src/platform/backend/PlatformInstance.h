@@ -44,7 +44,7 @@ public:
     void virtual enumerateNics();
     void virtual enumerateMemory() = 0;
     void virtual enumerateComputer()=0;
-    virtual void enumerateRenderingApis();
+    virtual void enumerateGraphicsApis();
     
     virtual ~Instance();
 
