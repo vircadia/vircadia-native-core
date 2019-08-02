@@ -46,14 +46,12 @@ namespace platform { namespace keys {
         const char* apiMetal = "Metal";
 
         namespace gl {
-            const char* version = "version";
             const char* shadingLanguageVersion = "shadingLanguageVersion";
             const char* vendor = "vendor";
             const char* renderer = "renderer";
             const char* extensions = "extensions";
         }
         namespace vk {
-            const char* version = "version";
             const char* devices = "devices";
             namespace device {
                 const char* apiVersion = "apiVersion";
