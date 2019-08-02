@@ -84,7 +84,7 @@ void ContentSettingsBackupHandler::createBackup(const QString& backupName, QuaZi
     }
 }
 
-std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& sourceFilename) {
+std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename) {
     if (!zip.setCurrentFile(CONTENT_SETTINGS_BACKUP_FILENAME)) {
         QString errorStr("Failed to find " + CONTENT_SETTINGS_BACKUP_FILENAME + " while recovering backup");
         qWarning() << errorStr;
@@ -117,7 +117,7 @@ std::pair<bool, QString> ContentSettingsBackupHandler::recoverBackup(const QStri
         { INSTALLED_CONTENT_NAME, archiveJson[INSTALLED_CONTENT_NAME].toString()},
         { INSTALLED_CONTENT_CREATION_TIME, archiveJson[INSTALLED_CONTENT_CREATION_TIME].toVariant().toLongLong() },
         { INSTALLED_CONTENT_INSTALL_TIME, QDateTime::currentDateTime().currentMSecsSinceEpoch() },
-        { INSTALLED_CONTENT_INSTALLED_BY, "" }
+        { INSTALLED_CONTENT_INSTALLED_BY, username }
     };
 
     jsonObject.insert(INSTALLED_CONTENT, installed_content);
