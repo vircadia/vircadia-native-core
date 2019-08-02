@@ -38,7 +38,7 @@ public:
     void loadBackup(const QString& backupName, QuaZip& zip) override;
     void loadingComplete() override;
     void createBackup(const QString& backupName, QuaZip& zip) override;
-    void recoverBackup(const QString& backupName, QuaZip& zip) override;
+    std::pair<bool, QString> recoverBackup(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename) override;
     void deleteBackup(const QString& backupName) override;
     void consolidateBackup(const QString& backupName, QuaZip& zip) override;
     bool isCorruptedBackup(const QString& backupName) override;

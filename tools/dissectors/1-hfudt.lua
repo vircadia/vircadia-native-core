@@ -167,6 +167,19 @@ local unsourced_packet_types = {
   ["ICEServerHeartbeatACK"] = true
 }
 
+local nonverified_packet_types = {
+    ["NodeJsonStats"] = true,
+    ["EntityQuery"] = true,
+    ["OctreeDataNack"] = true,
+    ["EntityEditNack"] = true,
+    ["DomainListRequest"] = true,
+    ["StopNode"] = true,
+    ["DomainDisconnectRequest"] = true,
+    ["UsernameFromIDRequest"] = true,
+    ["NodeKickRequest"] = true,
+    ["NodeMuteRequest"] = true,
+}
+
 local fragments = {}
 
 local RFC_5389_MAGIC_COOKIE = 0x2112A442
@@ -304,9 +317,11 @@ function p_hfudt.dissector(buf, pinfo, tree)
       subtree:add_le(f_sender_id, sender_id)
       i = i + 2
 
-      -- read HMAC MD5 hash
-      subtree:add(f_hmac_hash, buf(i, 16))
-      i = i + 16
+    if nonverified_packet_types[packet_type_text] == nil then
+        -- read HMAC MD5 hash
+        subtree:add(f_hmac_hash, buf(i, 16))
+        i = i + 16
+        end
     end
 
     local payload_to_dissect = nil

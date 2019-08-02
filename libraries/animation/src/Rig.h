@@ -88,6 +88,8 @@ public:
         AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
         uint8_t secondaryControllerFlags[NumSecondaryControllerTypes];
         bool isTalking;
+        bool reactionEnabledFlags[NUM_AVATAR_REACTIONS];
+        bool reactionTriggers[NUM_AVATAR_REACTIONS];
         HFMJointShapeInfo hipsShapeInfo;
         HFMJointShapeInfo spineShapeInfo;
         HFMJointShapeInfo spine1ShapeInfo;
@@ -107,7 +109,8 @@ public:
         Ground = 0,
         Takeoff,
         InAir,
-        Hover
+        Hover,
+        Seated
     };
 
     Rig();
@@ -268,6 +271,7 @@ protected:
     void updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
                     const AnimPose& leftFootPose, const AnimPose& rightFootPose,
                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
+    void updateReactions(const ControllerParameters& params);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
@@ -336,7 +340,8 @@ protected:
         Move,
         Hover,
         Takeoff,
-        InAir
+        InAir,
+        Seated
     };
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };

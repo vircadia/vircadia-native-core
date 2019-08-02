@@ -30,7 +30,7 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";

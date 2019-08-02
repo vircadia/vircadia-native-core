@@ -53,6 +53,15 @@
                     <rect key="frame" x="68" y="78" width="394" height="20"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                 </progressIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="U3I-TA-xRz">
+                    <rect key="frame" x="380" y="0.0" width="130" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Label" id="8YH-Td-daK">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="138.5" y="154"/>
         </customView>
@@ -60,6 +69,7 @@
             <connections>
                 <outlet property="background" destination="kuY-e2-Hqb" id="CBc-bD-ux7"/>
                 <outlet property="boldStatus" destination="EMF-E4-qLL" id="udm-8B-7lt"/>
+                <outlet property="buildVersion" destination="U3I-TA-xRz" id="HDI-tW-1cC"/>
                 <outlet property="progressView" destination="aEr-fi-fkV" id="OUy-Qp-tiP"/>
                 <outlet property="smallLogo" destination="uh2-4K-n56" id="pYg-hP-nr5"/>
                 <outlet property="smallStatus" destination="BSg-lp-njL" id="ziz-ek-Lq4"/>

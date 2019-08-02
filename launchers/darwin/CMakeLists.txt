@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
 project(HQLauncher)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+include("cmake/macros/SetPackagingParameters.cmake")
 set(src_files
   src/Launcher.h
   src/Launcher.m
@@ -59,43 +60,27 @@ set_target_properties(${this_target} PROPERTIES
 set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-    if (NOT DEFINED ${_RESULT_NAME}) 
-        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
-            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
-        else()
-            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
-        endif()
+  if (NOT DEFINED ${_RESULT_NAME}) 
+    if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+      set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+    else()
+      set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
     endif()
+  endif()
 endfunction()
 
+  set_packaging_parameters()
+
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
-
-set_from_env(XCODE_DEVELOPMENT_TEAM XCODE_DEVELOPMENT_TEAM "")
-if ("${XCODE_DEVELOPMENT_TEAM}" STREQUAL "")
-    message(WARNING "XCODE_DEVELOPMENT_TEAM environmental variable is not set. Not signing build.")
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
-      MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
-    )
-else()
-    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
-      MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
-      XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "HQ Launcher.entitlements"
-      XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Developer ID Application"
-      XCODE_ATTRIBUTE_CODE_SIGN_INJECT_BASE_ENTITLEMENTS NO
-      XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual"
-      XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${XCODE_DEVELOPMENT_TEAM}"
-      XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME YES
-      XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "--timestamp"
-      XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER ""
-    )
-endif()
-
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
+  MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
 if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
     message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 file(GLOB NIB_FILES "nib/*.xib")
 
