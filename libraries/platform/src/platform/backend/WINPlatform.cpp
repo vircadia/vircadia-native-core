@@ -27,7 +27,6 @@
 #include <dxgi1_3.h>
 #pragma comment(lib, "dxgi.lib")
 #include <shellscalingapi.h>
-#pragma comment(lib, "Shcore.lib")
 
 #endif
 
@@ -118,10 +117,19 @@ void WINInstance::enumerateGpusAndDisplays() {
                     // Grab the dpi info for the monitor
                     UINT dpiX{ 0 };
                     UINT dpiY{ 0 };
-                    GetDpiForMonitor(outputDesc.Monitor, MDT_RAW_DPI, &dpiX, &dpiY);
                     UINT dpiXScaled{ 0 };
                     UINT dpiYScaled{ 0 };
-                    GetDpiForMonitor(outputDesc.Monitor, MDT_EFFECTIVE_DPI, &dpiXScaled, &dpiYScaled);
+
+                    // SHCore.dll is not available prior to Windows 8.1
+                    HMODULE SHCoreDLL = LoadLibraryW(L"SHCore.dll");
+                    if (SHCoreDLL) {
+                        auto _GetDpiForMonitor = reinterpret_cast<decltype(GetDpiForMonitor)*>(GetProcAddress(SHCoreDLL, "GetDpiForMonitor"));
+                        if (_GetDpiForMonitor) {
+                            _GetDpiForMonitor(outputDesc.Monitor, MDT_RAW_DPI, &dpiX, &dpiY);
+                            _GetDpiForMonitor(outputDesc.Monitor, MDT_EFFECTIVE_DPI, &dpiXScaled, &dpiYScaled);
+                        }
+                        FreeLibrary(SHCoreDLL);
+                    }
 
                     // Current display mode
                     DEVMODEW devMode;
