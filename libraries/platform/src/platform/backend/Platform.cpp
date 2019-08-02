@@ -117,7 +117,7 @@ namespace platform { namespace keys {
 
     const char*  CPUS = "cpus";
     const char*  GPUS = "gpus";
-    const char*  GRAPHICS_APIS = "graphicsAPIS";
+    const char*  GRAPHICS_APIS = "graphicsAPIs";
     const char*  DISPLAYS = "displays";
     const char*  NICS = "nics";
     const char*  MEMORY = "memory";
