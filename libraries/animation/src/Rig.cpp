@@ -1942,8 +1942,13 @@ void Rig::updateReactions(const ControllerParameters& params) {
             reactionPlaying = idleStateMachine->getCurrentStateID().startsWith("reaction");
         }
 
+        bool isSeated = _state == RigRole::Seated;
         bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
-        if (reactionPlaying && !hipsEnabled) {
+        bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
+        bool hmdMode = hipsEnabled && !hipsEstimated;
+
+        if ((reactionPlaying || isSeated) && !hmdMode) {
+            // TODO: make this smooth.
             // disable head IK while reaction is playing, but only in "desktop" mode.
             _animVars.set("headType", (int)IKTarget::Type::Unknown);
         }

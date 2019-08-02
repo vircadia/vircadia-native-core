@@ -590,29 +590,117 @@
                                                                                                 "children": [
                                                                                                     {
                                                                                                         "children": [
+                                                                                                            {
+                                                                                                                "children": [
+                                                                                                                ],
+                                                                                                                "data": {
+                                                                                                                    "endFrame": 271,
+                                                                                                                    "loopFlag": true,
+                                                                                                                    "startFrame": 1,
+                                                                                                                    "timeScale": 1,
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_talk02.fbx"
+                                                                                                                },
+                                                                                                                "id": "seatedTalk02",
+                                                                                                                "type": "clip"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "children": [
+                                                                                                                ],
+                                                                                                                "data": {
+                                                                                                                    "endFrame": 252,
+                                                                                                                    "loopFlag": true,
+                                                                                                                    "startFrame": 1,
+                                                                                                                    "timeScale": 1,
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_talk03.fbx"
+                                                                                                                },
+                                                                                                                "id": "seatedTalk03",
+                                                                                                                "type": "clip"
+                                                                                                            }
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 500,
-                                                                                                            "loopFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/talk.fbx"
+                                                                                                            "currentState": "seatedTalk02",
+                                                                                                            "randomSwitchTimeMax": 10,
+                                                                                                            "randomSwitchTimeMin": 1,
+                                                                                                            "states": [
+                                                                                                                {
+                                                                                                                    "id": "seatedTalk02",
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
+                                                                                                                    "priority": 1,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": [
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "seatedTalk03",
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
+                                                                                                                    "priority": 1,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": [
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
                                                                                                         },
                                                                                                         "id": "seatedTalk",
-                                                                                                        "type": "clip"
+                                                                                                        "type": "randomSwitchStateMachine"
                                                                                                     },
                                                                                                     {
                                                                                                         "children": [
+                                                                                                            {
+                                                                                                                "children": [
+                                                                                                                ],
+                                                                                                                "data": {
+                                                                                                                    "endFrame": 800,
+                                                                                                                    "loopFlag": true,
+                                                                                                                    "startFrame": 1,
+                                                                                                                    "timeScale": 1,
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                                },
+                                                                                                                "id": "seatedIdle01",
+                                                                                                                "type": "clip"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "children": [
+                                                                                                                ],
+                                                                                                                "data": {
+                                                                                                                    "endFrame": 800,
+                                                                                                                    "loopFlag": true,
+                                                                                                                    "startFrame": 1,
+                                                                                                                    "timeScale": 1,
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                                },
+                                                                                                                "id": "seatedIdle02",
+                                                                                                                "type": "clip"
+                                                                                                            }
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 800,
-                                                                                                            "loopFlag": true,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/sitting_idle02.fbx"
+                                                                                                            "currentState": "seatedIdle01",
+                                                                                                            "randomSwitchTimeMax": 10,
+                                                                                                            "randomSwitchTimeMin": 1,
+                                                                                                            "states": [
+                                                                                                                {
+                                                                                                                    "id": "seatedIdle01",
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
+                                                                                                                    "priority": 1,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": [
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "seatedIdle02",
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
+                                                                                                                    "priority": 1,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": [
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
                                                                                                         },
                                                                                                         "id": "seatedIdle",
-                                                                                                        "type": "clip"
+                                                                                                        "type": "randomSwitchStateMachine"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
