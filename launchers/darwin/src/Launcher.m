@@ -7,6 +7,7 @@
 #import "ProcessScreen.h"
 #import "ErrorViewController.h"
 #import "Settings.h"
+#import "NSTask+NSTaskExecveAdditions.h"
 
 @interface Launcher ()
 
@@ -456,8 +457,6 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
     NSURL *url = [NSURL fileURLWithPath:[workspace fullPathForApplication:[[self getAppPath] stringByAppendingString:@"interface.app/Contents/MacOS/interface"]]];
 
-    NSError *error = nil;
-
     NSString* contentPath = [[self getDownloadPathForContentAndScripts] stringByAppendingString:@"content"];
     NSString* displayName = [ self displayName];
     NSString* scriptsPath = [[self getAppPath] stringByAppendingString:@"interface.app/Contents/Resources/scripts/simplifiedUIBootstrapper.js"];
@@ -484,13 +483,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
                             @"--no-updater",
                             @"--no-launcher", nil];
     }
-    [workspace launchApplicationAtURL:url options:NSWorkspaceLaunchNewInstance configuration:[NSDictionary dictionaryWithObject:arguments forKey:NSWorkspaceLaunchConfigurationArguments] error:&error];
 
-    [NSTimer scheduledTimerWithTimeInterval: 3.0
-                                     target: self
-                                   selector: @selector(exitLauncher:)
-                                   userInfo:nil
-                                    repeats: NO];
+    NSTask *task = [[NSTask alloc] init];
+    task.launchPath = [url path];
+    task.arguments = arguments;
+    [task replaceThisProcess];
 }
 
 - (ProcessState) currentProccessState
@@ -500,15 +497,20 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
 - (void) callLaunchInterface:(NSTimer*) timer
 {
+    NSWindow* mainWindow = [[[NSApplication sharedApplication] windows] objectAtIndex:0];
+
     ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
-    [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
-    [self launchInterface];
-}
-
-
-- (void) exitLauncher:(NSTimer*) timer
-{
-    [NSApp terminate:self];
+    [mainWindow setContentViewController: processScreen];
+    @try
+    {
+        [self launchInterface];
+    }
+    @catch (NSException *exception)
+    {
+        NSLog(@"Caught exception: Name: %@, Reason: %@", exception.name, exception.reason);
+        ErrorViewController* errorViewController = [[ErrorViewController alloc] initWithNibName:@"ErrorScreen" bundle:nil];
+        [mainWindow setContentViewController: errorViewController];
+    }
 }
 
 @end
