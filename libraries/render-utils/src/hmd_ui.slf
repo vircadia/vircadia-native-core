@@ -12,6 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include render-utils/ShaderConstants.h@>
+<@include gpu/Color.slh@>
 
 LAYOUT(binding=0) uniform sampler2D hudTexture;
 
@@ -36,5 +37,5 @@ void main() {
         discard;
     }
 
-    fragColor0 = color;
+    fragColor0 = color_sRGBAToLinear(color);
 }

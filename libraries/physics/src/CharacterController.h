@@ -111,7 +111,8 @@ public:
         Ground = 0,
         Takeoff,
         InAir,
-        Hover
+        Hover,
+        Seated
     };
 
     State getState() const { return _state; }
@@ -131,9 +132,12 @@ public:
 
     void setZoneFlyingAllowed(bool value) { _zoneFlyingAllowed = value; }
     void setComfortFlyingAllowed(bool value) { _comfortFlyingAllowed = value; }
+    void setHoverWhenUnsupported(bool value) { _hoverWhenUnsupported = value; }
     void setCollisionlessAllowed(bool value);
 
     void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
+    void setSeated(bool isSeated) { _isSeated = isSeated;  }
+    bool getSeated() { return _isSeated; }
 
 protected:
 #ifdef DEBUG_STATE_CHANGE
@@ -207,6 +211,7 @@ protected:
     State _state;
     bool _isPushingUp;
     bool _isStuck { false };
+    bool _isSeated { false };
 
     btDynamicsWorld* _dynamicsWorld { nullptr };
     btRigidBody* _rigidBody { nullptr };
@@ -215,6 +220,7 @@ protected:
 
     bool _zoneFlyingAllowed { true };
     bool _comfortFlyingAllowed { true };
+    bool _hoverWhenUnsupported{ true };
     bool _collisionlessAllowed { true };
     bool _collisionless { false };
 

@@ -94,7 +94,7 @@ void makeTestFBXJoints(HFMModel& hfmModel) {
 
 void AnimInverseKinematicsTests::testSingleChain() {
 
-    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, glm::mat4(), glm::mat4(), 0);
 
     HFMModel hfmModel;
     makeTestFBXJoints(hfmModel);

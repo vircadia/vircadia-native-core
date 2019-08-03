@@ -56,7 +56,8 @@ public slots:
     /**jsdoc
      * @function EntityViewer.setKeyholeRadius
      * @param {number} radius
-     * @deprecated Use {@link EntityViewer.setCenterRadius|setCenterRadius} instead.
+     * @deprecated This function is deprecated and will be removed. Use {@link EntityViewer.setCenterRadius|setCenterRadius} 
+     *     instead.
      */
     void setKeyholeRadius(float radius) { _hasViewFrustum = true; _viewFrustum.setCenterRadius(radius); } // TODO: remove this legacy support
 

@@ -20,8 +20,10 @@
 
 #include <TBBHelpers.h>
 #include <NodeList.h>
+#include <shared/QtHelpers.h>
 
 #include "AvatarMixerSlave.h"
+
 
 class AvatarMixerSlavePool;
 
@@ -71,6 +73,10 @@ public:
 
     // iterate over all slaves
     void each(std::function<void(AvatarMixerSlave& slave)> functor);
+
+#ifdef DEBUG_EVENT_QUEUE
+    void AvatarMixerSlavePool::queueStats(QJsonObject& stats);
+#endif
 
     void setNumThreads(int numThreads);
     int numThreads() const { return _numThreads; }

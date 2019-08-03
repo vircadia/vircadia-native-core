@@ -172,7 +172,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         }
 
         if (urlChanged && !usingMaterialData) {
-            _networkMaterial = MaterialCache::instance().getMaterial(_materialURL);
+            _networkMaterial = DependencyManager::get<MaterialCache>()->getMaterial(_materialURL);
             auto onMaterialRequestFinished = [this, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
                 if (success) {
                     deleteMaterial(oldParentID, oldParentMaterialName);
@@ -257,7 +257,7 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap();
-    bool hasLightmap = drawMaterialKey.isLightmapMap();
+    bool hasLightmap = drawMaterialKey.isLightMap();
     bool isUnlit = drawMaterialKey.isUnlit();
     
     ShapeKey::Builder builder;
@@ -270,7 +270,7 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
         builder.withTangents();
     }
     if (hasLightmap) {
-        builder.withLightmap();
+        builder.withLightMap();
     }
     if (isUnlit) {
         builder.withUnlit();
@@ -313,11 +313,9 @@ void MaterialEntityRenderer::doRender(RenderArgs* args) {
 
     batch.setModelTransform(renderTransform);
 
-    if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);
-
-        // bind the material
-        RenderPipelines::bindMaterial(drawMaterial, batch, args->_enableTexturing);
+    drawMaterial->setTextureTransforms(textureTransform, MaterialMappingMode::UV, true);
+    // bind the material
+    if (RenderPipelines::bindMaterial(drawMaterial, batch, args->_renderMode, args->_enableTexturing)) {
         args->_details._materialSwitches++;
     }
 

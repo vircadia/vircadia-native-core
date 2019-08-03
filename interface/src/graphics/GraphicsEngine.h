@@ -44,7 +44,7 @@ public:
     ~GraphicsEngine();
 
     void initializeGPU(GLWidget*);
-    void initializeRender(bool disableDeferred);
+    void initializeRender();
     void startup();
     void shutdown();
 

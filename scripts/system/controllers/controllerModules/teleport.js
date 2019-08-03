@@ -366,7 +366,7 @@ Script.include("/~/system/libraries/controllers.js");
             var offset = _this.pickHeightOffset * capsuleRatio;
 
             _this.teleportHandCollisionPick = Picks.createPick(PickType.Collision, {
-                enabled: true,
+                enabled: false,
                 parentID: Pointers.getPointerProperties(_this.teleportParabolaHandCollisions).renderStates["collision"].end,
                 filter: Picks.PICK_ENTITIES | Picks.PICK_AVATARS,
                 shape: {
@@ -382,7 +382,7 @@ Script.include("/~/system/libraries/controllers.js");
             });
 
             _this.teleportHeadCollisionPick = Picks.createPick(PickType.Collision, {
-                enabled: true,
+                enabled: false,
                 parentID: Pointers.getPointerProperties(_this.teleportParabolaHeadCollisions).renderStates["collision"].end,
                 filter: Picks.PICK_ENTITIES | Picks.PICK_AVATARS,
                 shape: {

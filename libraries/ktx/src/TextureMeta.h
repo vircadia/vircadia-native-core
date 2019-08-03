@@ -19,6 +19,7 @@
 #include "khronos/KHR.h"
 
 extern const QString TEXTURE_META_EXTENSION;
+extern const uint16_t KTX_VERSION;
 
 namespace std {
     template<> struct hash<khronos::gl::texture::InternalFormat> {
@@ -37,6 +38,7 @@ struct TextureMeta {
     QUrl original;
     QUrl uncompressed;
     std::unordered_map<khronos::gl::texture::InternalFormat, QUrl> availableTextureTypes;
+    uint16_t version { 0 };
 };
 
 

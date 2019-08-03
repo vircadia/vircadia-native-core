@@ -17,8 +17,6 @@ public:
 
     glm::uvec2 getRecommendedRenderSize() const override;
     void submitFrame(const gpu::FramePointer& newFrame) override;
-    QImage getScreenshot(float aspectRatio = 0.0f) const override;
-    QImage getSecondaryCameraScreenshot() const override;
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override {};
     void pluginUpdate() override {};
 private:

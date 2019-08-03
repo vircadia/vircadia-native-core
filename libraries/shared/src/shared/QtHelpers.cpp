@@ -13,6 +13,17 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QReadWriteLock>
 
+// Inspecting of the qt event queue depth
+// requres access to private Qt datastructures
+// defined in private Qt headers
+#ifdef DEBUG_EVENT_QUEUE
+#include "../TryLocker.h"
+#define QT_BOOTSTRAPPED
+#include <private/qthread_p.h>
+#include <private/qobject_p.h>
+#undef QT_BOOTSTRAPPED
+#endif // DEBUG_EVENT_QUEUE
+
 #include "../Profile.h"
 Q_LOGGING_CATEGORY(thread_safety, "hifi.thread_safety")
 
@@ -80,6 +91,35 @@ bool blockingInvokeMethod(
     return blockingInvokeMethod(function, obj, member, QGenericReturnArgument(), val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
 }
 
+// Inspecting of the qt event queue
+// requres access to private Qt datastructures
+// Querying the event queue should be done with
+// care as it could lock the threadData->postEventList.mutex
+// The code uses a tryLock to avoid the possability of a
+// deadlock during a call to this code, although that is unlikely
+//
+#ifdef DEBUG_EVENT_QUEUE
+int getEventQueueSize(QThread* thread) {
+    auto threadData = QThreadData::get2(thread);
+    {
+        MutexTryLocker locker(threadData->postEventList.mutex);
+        if (locker.isLocked()) {
+            return threadData->postEventList.size();
+        }
+    }
+    return -1;
+}
 
+void dumpEventQueue(QThread* thread) {
+    auto threadData = QThreadData::get2(thread);
+    QMutexLocker locker(&threadData->postEventList.mutex);
+    qDebug() << "Event list, size =" << threadData->postEventList.size();
+    for (auto& postEvent : threadData->postEventList) {
+        QEvent::Type type = (postEvent.event ? postEvent.event->type() : QEvent::None);
+        qDebug() << "    " << type;
+    }
+}
+
+#endif // DEBUG_EVENT_QUEUE
 
 } }

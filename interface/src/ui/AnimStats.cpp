@@ -94,6 +94,21 @@ void AnimStats::updateStats(bool force) {
     }
     emit walkingTextChanged();
 
+    // print current overrideJointText
+    int overrideJointCount = myAvatar->getOverrideJointCount();
+    _overrideJointText = QString("Override Joint Count: %1").arg(overrideJointCount);
+    emit overrideJointTextChanged();
+
+    // print current flowText
+    bool flowActive = myAvatar->getFlowActive();
+    _flowText = QString("Flow: %1").arg(flowActive ? "enabled" : "disabled");
+    emit flowTextChanged();
+
+    // print current networkGraphText
+    bool networkGraphActive = myAvatar->getNetworkGraphActive();
+    _networkGraphText = QString("Network Graph: %1").arg(networkGraphActive ? "enabled" : "disabled");
+    emit networkGraphTextChanged();
+
     // update animation debug alpha values
     QStringList newAnimAlphaValues;
     qint64 now = usecTimestampNow();
@@ -117,7 +132,7 @@ void AnimStats::updateStats(bool force) {
         if (type == AnimNodeType::Clip) {
 
             // figure out the grayScale color of this line.
-            const float LIT_TIME = 2.0f;
+            const float LIT_TIME = 20.0f;
             const float FADE_OUT_TIME = 1.0f;
             float grayScale = 0.0f;
             float secondsElapsed = (float)(now - _animAlphaValueChangedTimers[key]) / (float)USECS_PER_SECOND;
@@ -161,7 +176,7 @@ void AnimStats::updateStats(bool force) {
         }
 
         // figure out the grayScale color of this line.
-        const float LIT_TIME = 2.0f;
+        const float LIT_TIME = 20.0f;
         const float FADE_OUT_TIME = 0.5f;
         float grayScale = 0.0f;
         float secondsElapsed = (float)(now - _animVarChangedTimers[key]) / (float)USECS_PER_SECOND;

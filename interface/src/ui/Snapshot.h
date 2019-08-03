@@ -38,6 +38,10 @@ private:
 
 
 /**jsdoc
+ * The <code>Snapshot</code> API provides access to the path that snapshots are saved to. This path is that provided in 
+ * Settings &gt; General &gt; Snapshots. Snapshots may be taken using <code>Window</code> API functions such as 
+ * {@link Window.takeSnapshot}.
+ *
  * @namespace Snapshot
  * 
  * @hifi-interface
@@ -64,23 +68,31 @@ public:
 signals:
 
     /**jsdoc
+     * Triggered when the path that snapshots are saved to is changed.
      * @function Snapshot.snapshotLocationSet
-     * @param {string} location
+     * @param {string} location - The new snapshots location.
      * @returns {Signal}
+     * @example <caption>Report when the snapshots location is changed.</caption>
+     * // Run this script then change the snapshots location in Settings > General > Snapshots.
+     * Snapshot.snapshotLocationSet.connect(function (path) {
+     *     print("New snapshot location: " + path);
+     * });
      */
     void snapshotLocationSet(const QString& value);
 
 public slots:
 
     /**jsdoc
+     * Gets the path that snapshots are saved to.
      * @function Snapshot.getSnapshotsLocation
-     * @returns {string}
+     * @returns {string} The path to save snapshots to.
      */
     Q_INVOKABLE QString getSnapshotsLocation();
 
     /**jsdoc
+     * Sets the path that snapshots are saved to.
      * @function Snapshot.setSnapshotsLocation
-     * @param {String} location
+     * @param {String} location - The path to save snapshots to.
      */
     Q_INVOKABLE void setSnapshotsLocation(const QString& location);
 
@@ -97,6 +109,8 @@ private:
     bool _cubemapOutputFormat;
     QTimer _snapshotTimer;
     qint16 _snapshotIndex;
+    bool _waitingOnSnapshot { false };
+    bool _taking360Snapshot { false };
     bool _oldEnabled;
     QVariant _oldAttachedEntityId;
     QVariant _oldOrientation;

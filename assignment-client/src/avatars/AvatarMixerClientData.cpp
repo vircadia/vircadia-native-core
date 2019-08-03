@@ -81,6 +81,10 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
     }
     assert(_packetQueue.empty());
 
+    if (_avatar) {
+        _avatar->processCertifyEvents();
+    }
+
     return packetsProcessed;
 }
 
@@ -155,6 +159,12 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
 void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                                                     const SlaveSharedData& slaveSharedData,
                                                     Node& sendingNode) {
+    // Trying to read more bytes than available, bail
+    if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitVersion))) {
+        qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+        return;
+    }
+
     // pull the trait version from the message
     AvatarTraits::TraitVersion packetTraitVersion;
     message.readPrimitive(&packetTraitVersion);
@@ -164,10 +174,22 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
     while (message.getBytesLeftToRead() > 0) {
         // for each trait in the packet, apply it if the trait version is newer than what we have
 
+        // Trying to read more bytes than available, bail
+        if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitType))) {
+            qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+            return;
+        }
+
         AvatarTraits::TraitType traitType;
         message.readPrimitive(&traitType);
 
         if (AvatarTraits::isSimpleTrait(traitType)) {
+            // Trying to read more bytes than available, bail
+            if (message.getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+                return;
+            }
+
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
 
@@ -179,10 +201,11 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
             if (packetTraitVersion > _lastReceivedTraitVersions[traitType]) {
                 _avatar->processTrait(traitType, message.read(traitSize));
                 _lastReceivedTraitVersions[traitType] = packetTraitVersion;
-
                 if (traitType == AvatarTraits::SkeletonModelURL) {
                     // special handling for skeleton model URL, since we need to make sure it is in the whitelist
                     checkSkeletonURLAgainstWhitelist(slaveSharedData, sendingNode, packetTraitVersion);
+                    // Deferred for UX work. With no PoP check, no need to get the .fst.
+                    _avatar->fetchAvatarFST();
                 }
 
                 anyTraitsChanged = true;
@@ -190,12 +213,14 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                 message.seek(message.getPosition() + traitSize);
             }
         } else {
-            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
-
-            if (message.getBytesLeftToRead() == 0) {
-                qWarning() << "Received an instanced trait with no size from" << message.getSenderSockAddr();
-                break;
+            // Trying to read more bytes than available, bail
+            if (message.getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                       sizeof(AvatarTraits::TraitWireSize))) {
+                qWarning() << "Refusing to process malformed traits packet from" << message.getSenderSockAddr();
+                return;
             }
+
+            AvatarTraits::TraitInstanceID instanceID = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
             AvatarTraits::TraitWireSize traitSize;
             message.readPrimitive(&traitSize);
@@ -401,7 +426,7 @@ void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
     _perNodeSentTraitVersions[nodeLocalID].reset();
     _perNodeAckedTraitVersions[nodeLocalID].reset();
-    for (auto && pendingTraitVersions : _perNodePendingTraitVersions) {
+    for (auto&& pendingTraitVersions : _perNodePendingTraitVersions) {
         pendingTraitVersions.second[nodeLocalID].reset();
     }
 }
@@ -461,4 +486,8 @@ void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLo
     removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
     _perNodeSentTraitVersions.erase(nodeLocalID);
+    _perNodeAckedTraitVersions.erase(nodeLocalID);
+    for (auto&& pendingTraitVersions : _perNodePendingTraitVersions) {
+        pendingTraitVersions.second.erase(nodeLocalID);
+    }
 }

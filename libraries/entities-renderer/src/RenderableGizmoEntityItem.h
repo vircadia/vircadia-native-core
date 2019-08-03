@@ -33,7 +33,7 @@ private:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
-    GizmoType _gizmoType;
+    GizmoType _gizmoType { UNSET_GIZMO_TYPE };
     RingGizmoPropertyGroup _ringProperties;
     PrimitiveMode _prevPrimitiveMode;
 

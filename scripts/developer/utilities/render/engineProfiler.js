@@ -36,7 +36,7 @@
             var qml = Script.resolvePath(QMLAPP_URL);
             window = Desktop.createWindow(Script.resolvePath(QMLAPP_URL), {
                 title: 'Render Engine Profiler',
-                flags: Desktop.ALWAYS_ON_TOP,
+                additionalFlags: Desktop.ALWAYS_ON_TOP,
                 presentationMode: Desktop.PresentationMode.NATIVE,
                 size: {x: 500, y: 100}
             });

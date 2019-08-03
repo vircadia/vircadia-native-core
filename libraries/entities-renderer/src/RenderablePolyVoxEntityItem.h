@@ -72,7 +72,6 @@ public:
     glm::mat4 localToVoxelMatrix() const;
 
     virtual ShapeType getShapeType() const override;
-    virtual bool shouldBePhysical() const override { return !isDead(); }
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& info) override;
 

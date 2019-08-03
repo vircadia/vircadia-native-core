@@ -307,7 +307,7 @@ void AssignmentClient::assignmentCompleted() {
 
     // reset our NodeList by switching back to unassigned and clearing the list
     nodeList->setOwnerType(NodeType::Unassigned);
-    nodeList->reset();
+    nodeList->reset("Assignment completed");
     nodeList->resetNodeInterestSet();
     
     _isAssigned = false;

@@ -31,9 +31,8 @@ static const float INITIAL_BLOOM_THRESHOLD { 0.7f };
 static const float INITIAL_BLOOM_SIZE { 0.9f };
 
 /**jsdoc
- * Bloom is defined by the following properties.
+ * Bloom is defined by the following properties:
  * @typedef {object} Entities.Bloom
- *
  * @property {number} bloomIntensity=0.25 - The intensity of the bloom effect.
  * @property {number} bloomThreshold=0.7 - The threshold for the bloom effect.
  * @property {number} bloomSize=0.9 - The size of the bloom effect.

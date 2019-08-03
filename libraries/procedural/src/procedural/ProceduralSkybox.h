@@ -26,8 +26,8 @@ public:
     bool empty() override;
     void clear() override;
 
-    void render(gpu::Batch& batch, const ViewFrustum& frustum) const override;
-    static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);
+    void render(gpu::Batch& batch, const ViewFrustum& frustum, bool forward) const override;
+    static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox, bool forward);
 
     uint64_t getCreated() const { return _created; }
 

@@ -33,6 +33,7 @@ using namespace udt;
 
 Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
     QObject(parent),
+    _udpSocket(parent),
     _readyReadBackupTimer(new QTimer(this)),
     _shouldChangeSocketOptions(shouldChangeSocketOptions)
 {
@@ -50,6 +51,7 @@ Socket::Socket(QObject* parent, bool shouldChangeSocketOptions) :
 }
 
 void Socket::bind(const QHostAddress& address, quint16 port) {
+
     _udpSocket.bind(address, port);
 
     if (_shouldChangeSocketOptions) {
@@ -59,10 +61,13 @@ void Socket::bind(const QHostAddress& address, quint16 port) {
         auto sd = _udpSocket.socketDescriptor();
         int val = IP_PMTUDISC_DONT;
         setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
-#elif defined(Q_OS_WINDOWS)
+#elif defined(Q_OS_WIN)
         auto sd = _udpSocket.socketDescriptor();
         int val = 0; // false
-        setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, &val, sizeof(val));
+        if (setsockopt(sd, IPPROTO_IP, IP_DONTFRAGMENT, (const char *)&val, sizeof(val))) {
+            auto wsaErr = WSAGetLastError();
+            qCWarning(networking) << "Socket::bind Cannot setsockopt IP_DONTFRAGMENT" << wsaErr;
+        }
 #endif
     }
 }
@@ -72,7 +77,7 @@ void Socket::rebind() {
 }
 
 void Socket::rebind(quint16 localPort) {
-    _udpSocket.close();
+    _udpSocket.abort();
     bind(QHostAddress::AnyIPv4, localPort);
 }
 
@@ -162,15 +167,15 @@ qint64 Socket::writePacket(std::unique_ptr<Packet> packet, const HifiSockAddr& s
 }
 
 qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const HifiSockAddr& sockAddr) {
+
+    if (packetList->getNumPackets() == 0) {
+        qCWarning(networking) << "Trying to send packet list with 0 packets, bailing.";
+        return 0;
+    }
+
     if (packetList->isReliable()) {
         // hand this packetList off to writeReliablePacketList
         // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacketList
-
-        if (packetList->getNumPackets() == 0) {
-            qCWarning(networking) << "Trying to send packet list with 0 packets, bailing.";
-            return 0;
-        }
-
 
         if (QThread::currentThread() != thread()) {
             auto ptr = packetList.release();
@@ -189,7 +194,6 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
     while (!packetList->_packets.empty()) {
         totalBytesSent += writePacket(packetList->takeFront<Packet>(), sockAddr);
     }
-
     return totalBytesSent;
 }
 
@@ -224,17 +228,33 @@ qint64 Socket::writeDatagram(const char* data, qint64 size, const HifiSockAddr& 
 
 qint64 Socket::writeDatagram(const QByteArray& datagram, const HifiSockAddr& sockAddr) {
 
+    // don't attempt to write the datagram if we're unbound.  Just drop it.
+    // _udpSocket.writeDatagram will return an error anyway, but there are
+    // potential crashes in Qt when that happens.
+    if (_udpSocket.state() != QAbstractSocket::BoundState) {
+        qCDebug(networking) << "Attempt to writeDatagram when in unbound state to" << sockAddr;
+        return -1;
+    }
     qint64 bytesWritten = _udpSocket.writeDatagram(datagram, sockAddr.getAddress(), sockAddr.getPort());
-
-    if (bytesWritten < 0) {
-        // when saturating a link this isn't an uncommon message - suppress it so it doesn't bomb the debug
-        HIFI_FCDEBUG(networking(), "Socket::writeDatagram" << _udpSocket.error());
+    int pending = _udpSocket.bytesToWrite();
+    if (bytesWritten < 0 || pending) {
+        int wsaError = 0;
+#ifdef WIN32
+        wsaError = WSAGetLastError();
+#endif
+        qCDebug(networking) << "udt::writeDatagram (" << _udpSocket.state() << sockAddr << ") error - " << wsaError << _udpSocket.error() << "(" << _udpSocket.errorString() << ")"
+            << (pending ? "pending bytes:" : "pending:") << pending;
+#ifdef DEBUG_EVENT_QUEUE
+        int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+        qCDebug(networking) << "Networking queue size - " << nodeListQueueSize << "writing datagram to" << sockAddr;
+#endif // DEBUG_EVENT_QUEUE    
     }
 
     return bytesWritten;
 }
 
 Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreate) {
+    Lock connectionsLock(_connectionsHashMutex);
     auto it = _connectionsHash.find(sockAddr);
 
     if (it == _connectionsHash.end()) {
@@ -245,7 +265,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
 #ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Socket::findOrCreateConnection refusing to create connection for" << sockAddr
                 << "due to connection creation filter";
-#endif
+#endif // UDT_CONNECTION_DEBUG
             return nullptr;
         } else {
             auto congestionControl = _ccFactory->create();
@@ -259,9 +279,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);
 
-#ifdef UDT_CONNECTION_DEBUG
             qCDebug(networking) << "Creating new connection to" << sockAddr;
-#endif
 
             it = _connectionsHash.insert(it, std::make_pair(sockAddr, std::move(connection)));
         }
@@ -276,6 +294,7 @@ void Socket::clearConnections() {
         return;
     }
 
+    Lock connectionsLock(_connectionsHashMutex);
     if (_connectionsHash.size() > 0) {
         // clear all of the current connections in the socket
         qCDebug(networking) << "Clearing all remaining connections in Socket.";
@@ -284,6 +303,7 @@ void Socket::clearConnections() {
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
+    Lock connectionsLock(_connectionsHashMutex);
     auto numErased = _connectionsHash.erase(sockAddr);
 
     if (numErased > 0) {
@@ -334,6 +354,11 @@ void Socket::readPendingDatagrams() {
         if (system_clock::now() > abortTime) {
             // We've been running for too long, stop processing packets for now
             // Once we've processed the event queue, we'll come back to packet processing
+#ifdef DEBUG_EVENT_QUEUE
+            int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+            qCDebug(networking) << "Overran timebox by" << duration_cast<milliseconds>(system_clock::now() - abortTime).count()
+                << "ms; NodeList thread event queue size =" << nodeListQueueSize;
+#endif
             break;
         }
 
@@ -436,6 +461,7 @@ void Socket::readPendingDatagrams() {
 }
 
 void Socket::connectToSendSignal(const HifiSockAddr& destinationAddr, QObject* receiver, const char* slot) {
+    Lock connectionsLock(_connectionsHashMutex);
     auto it = _connectionsHash.find(destinationAddr);
     if (it != _connectionsHash.end()) {
         connect(it->second.get(), SIGNAL(packetSent()), receiver, slot);
@@ -452,6 +478,7 @@ void Socket::setConnectionMaxBandwidth(int maxBandwidth) {
     qInfo() << "Setting socket's maximum bandwith to" << maxBandwidth << "bps. ("
             << _connectionsHash.size() << "live connections)";
     _maxBandwidth = maxBandwidth;
+    Lock connectionsLock(_connectionsHashMutex);
     for (auto& pair : _connectionsHash) {
         auto& connection = pair.second;
         connection->setMaxBandwidth(_maxBandwidth);
@@ -469,6 +496,8 @@ ConnectionStats::Stats Socket::sampleStatsForConnection(const HifiSockAddr& dest
 
 Socket::StatsVector Socket::sampleStatsForAllConnections() {
     StatsVector result;
+    Lock connectionsLock(_connectionsHashMutex);
+
     result.reserve(_connectionsHash.size());
     for (const auto& connectionPair : _connectionsHash) {
         result.emplace_back(connectionPair.first, connectionPair.second->sampleStats());
@@ -479,6 +508,8 @@ Socket::StatsVector Socket::sampleStatsForAllConnections() {
 
 std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
     std::vector<HifiSockAddr> addr;
+    Lock connectionsLock(_connectionsHashMutex);
+
     addr.reserve(_connectionsHash.size());
 
     for (const auto& connectionPair : _connectionsHash) {
@@ -488,12 +519,49 @@ std::vector<HifiSockAddr> Socket::getConnectionSockAddrs() {
 }
 
 void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
-    HIFI_FCDEBUG(networking(), "udt::Socket error - " << socketError);
+    int wsaError = 0;
+#ifdef WIN32
+    wsaError = WSAGetLastError();
+#endif
+    int pending = _udpSocket.bytesToWrite();
+    qCDebug(networking) << "udt::Socket (" << _udpSocket.state() << ") error - " << wsaError << socketError << "(" << _udpSocket.errorString() << ")"
+        << (pending ? "pending bytes:" : "pending:") << pending;
+#ifdef DEBUG_EVENT_QUEUE
+    int nodeListQueueSize = ::hifi::qt::getEventQueueSize(thread());
+    qCDebug(networking) << "Networking queue size - " << nodeListQueueSize;
+#endif // DEBUG_EVENT_QUEUE
 }
 
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
         qCDebug(networking) << "udt::Socket state changed - state is now" << socketState;
+    }
+}
+
+void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress) {
+    {
+        Lock connectionsLock(_connectionsHashMutex);
+        _connectionsHash.erase(currentAddress);
+
+        const auto connectionIter = _connectionsHash.find(previousAddress);
+        if (connectionIter != _connectionsHash.end()) {
+            auto connection = move(connectionIter->second);
+            _connectionsHash.erase(connectionIter);
+            connection->setDestinationAddress(currentAddress);
+            _connectionsHash[currentAddress] = move(connection);
+        }
+    }
+
+    {
+        Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
+        _unreliableSequenceNumbers.erase(currentAddress);
+
+        const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
+        if (sequenceNumbersIter != _unreliableSequenceNumbers.end()) {
+            auto sequenceNumbers = sequenceNumbersIter->second;
+            _unreliableSequenceNumbers.erase(sequenceNumbersIter);
+            _unreliableSequenceNumbers[currentAddress] = sequenceNumbers;
+        }
     }
 }
 

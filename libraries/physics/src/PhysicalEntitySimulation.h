@@ -13,6 +13,8 @@
 #define hifi_PhysicalEntitySimulation_h
 
 #include <stdint.h>
+#include <map>
+#include <set>
 
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
@@ -70,7 +72,7 @@ protected: // only called by EntitySimulation
     virtual void updateEntitiesInternal(uint64_t now) override;
     virtual void addEntityInternal(EntityItemPointer entity) override;
     virtual void removeEntityInternal(EntityItemPointer entity) override;
-    virtual void changeEntityInternal(EntityItemPointer entity) override;
+    void processChangedEntity(const EntityItemPointer& entity) override;
     virtual void clearEntitiesInternal() override;
 
     void removeOwnershipData(EntityMotionState* motionState);
@@ -78,13 +80,10 @@ protected: // only called by EntitySimulation
 
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
+    void removeDeadEntities();
 
-    const VectorOfMotionStates& getObjectsToRemoveFromPhysics();
-    void deleteObjectsRemovedFromPhysics();
-
-    void getObjectsToAddToPhysics(VectorOfMotionStates& result);
-    void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
-    void getObjectsToChange(VectorOfMotionStates& result);
+    void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
+    void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
 
     void handleDeactivatedMotionStates(const VectorOfMotionStates& motionStates);
     void handleChangedMotionStates(const VectorOfMotionStates& motionStates);
@@ -98,15 +97,24 @@ public:
     void sendOwnedUpdates(uint32_t numSubsteps);
 
 private:
-    SetOfEntities _entitiesToAddToPhysics;
+    void buildMotionStatesForEntitiesThatNeedThem();
+
+    class ShapeRequest {
+    public:
+        ShapeRequest() { }
+        ShapeRequest(const EntityItemPointer& e) : entity(e) { }
+        bool operator<(const ShapeRequest& other) const { return entity.get() < other.entity.get(); }
+        bool operator==(const ShapeRequest& other) const { return entity.get() == other.entity.get(); }
+        EntityItemPointer entity { nullptr };
+        mutable uint64_t shapeHash { 0 };
+    };
+    SetOfEntities _entitiesToAddToPhysics; // we could also call this: _entitiesThatNeedMotionStates
     SetOfEntities _entitiesToRemoveFromPhysics;
-
-    VectorOfMotionStates _objectsToDelete;
-
-    SetOfEntityMotionStates _incomingChanges; // EntityMotionStates that have changed from external sources
-                                              // and need their RigidBodies updated
-
+    SetOfEntityMotionStates _incomingChanges; // EntityMotionStates changed by external events
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
+
+    using ShapeRequests = std::set<ShapeRequest>;
+    ShapeRequests _shapeRequests;
 
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
@@ -114,9 +122,11 @@ private:
     VectorOfEntityMotionStates _owned;
     VectorOfEntityMotionStates _bids;
     SetOfEntities _deadAvatarEntities;
+    std::vector<EntityItemPointer> _entitiesToDeleteLater;
     workload::SpacePointer _space;
     uint64_t _nextBidExpiry;
     uint32_t _lastStepSendPackets { 0 };
+    uint32_t _lastWorkDeliveryCount { 0 };
 };
 
 

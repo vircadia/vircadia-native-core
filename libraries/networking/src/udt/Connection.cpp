@@ -114,6 +114,7 @@ SendQueue& Connection::getSendQueue() {
         QObject::connect(_sendQueue.get(), &SendQueue::packetRetransmitted, this, &Connection::recordRetransmission);
         QObject::connect(_sendQueue.get(), &SendQueue::queueInactive, this, &Connection::queueInactive);
         QObject::connect(_sendQueue.get(), &SendQueue::timeout, this, &Connection::queueTimeout);
+        QObject::connect(this, &Connection::destinationAddressChange, _sendQueue.get(), &SendQueue::updateDestinationAddress);
 
         
         // set defaults on the send queue from our congestion control object and estimatedTimeout()
@@ -484,4 +485,11 @@ std::unique_ptr<Packet> PendingReceivedMessage::removeNextPacket() {
         return p;
     }
     return std::unique_ptr<Packet>();
+}
+
+void Connection::setDestinationAddress(const HifiSockAddr& destination) {
+    if (_destination != destination) {
+        _destination = destination;
+        emit destinationAddressChange(destination);
+    }
 }

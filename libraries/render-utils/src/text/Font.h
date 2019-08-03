@@ -46,10 +46,9 @@ public:
     // Render string to batch
     void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str,
         const glm::vec4& color, EffectType effectType, 
-        const glm::vec2& origin, const glm::vec2& bound, bool layered);
+        const glm::vec2& origin, const glm::vec2& bound, bool unlit, bool forward);
 
     static Pointer load(const QString& family);
-
 
 private:
     static Pointer load(QIODevice& fontFile);
@@ -77,15 +76,11 @@ private:
     float _descent = 0.0f;
     float _spaceWidth = 0.0f;
 
-    bool _initialized = false;
-
-    // gpu structures
-    gpu::PipelinePointer _pipeline;
-    gpu::PipelinePointer _layeredPipeline;
-    gpu::PipelinePointer _transparentPipeline;
     gpu::TexturePointer _texture;
-    gpu::Stream::FormatPointer _format;
     gpu::BufferStreamPointer _stream;
+
+    static std::map<std::tuple<bool, bool, bool>, gpu::PipelinePointer> _pipelines;
+    static gpu::Stream::FormatPointer _format;
 };
 
 #endif

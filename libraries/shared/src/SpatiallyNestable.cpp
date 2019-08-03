@@ -68,19 +68,28 @@ const QUuid SpatiallyNestable::getParentID() const {
 
 void SpatiallyNestable::setParentID(const QUuid& parentID) {
     bumpAncestorChainRenderableVersion();
+    bool success = false;
+    auto parent = getParentPointer(success);
+    bool parentChanged = false;
     _idLock.withWriteLock([&] {
         if (_parentID != parentID) {
+            parentChanged = true;
             _parentID = parentID;
             _parentKnowsMe = false;
         }
     });
 
+    if (parentChanged && success && parent) {
+        parent->recalculateChildCauterization();
+    }
+
     if (!_parentKnowsMe) {
-        bool success = false;
-        auto parent = getParentPointer(success);
+        success = false;
+        parent = getParentPointer(success);
         if (success && parent) {
             bumpAncestorChainRenderableVersion();
             parent->updateQueryAACube();
+            parent->recalculateChildCauterization();
         }
     }
 }
@@ -175,8 +184,9 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
     _parentJointIndex = parentJointIndex;
-    auto parent = _parent.lock();
-    if (parent) {
+    bool success = false;
+    auto parent = getParentPointer(success);
+    if (success && parent) {
         parent->recalculateChildCauterization();
     }
 }
@@ -748,7 +758,11 @@ const Transform SpatiallyNestable::getTransform() const {
     bool success;
     Transform result = getTransform(success);
     if (!success) {
-        qCDebug(shared) << "getTransform failed for" << getID();
+        // There is a known issue related to child entities not being deleted
+        // when their parent is removed. This has the side-effect that the
+        // logs will be spammed with the following message. Until this is
+        // fixed, this log message will be suppressed.
+        //qCDebug(shared) << "getTransform failed for" << getID();
     }
     return result;
 }
@@ -1334,7 +1348,20 @@ SpatiallyNestablePointer SpatiallyNestable::findByID(QUuid id, bool& success) {
     return parentWP.lock();
 }
 
-
+/**jsdoc
+ * <p>An in-world item may be one of the following types:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"entity"</code></td><td>The item is an entity.</td></tr>
+ *     <tr><td><code>"avatar"</code></td><td>The item is an avatar.</td></tr>
+ *     <tr><td><code>"unknown"</code></td><td>The item cannot be found.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Entities.NestableType
+ */
 QString SpatiallyNestable::nestableTypeToString(NestableType nestableType) {
     switch(nestableType) {
         case NestableType::Entity:

@@ -466,31 +466,20 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
 void DomainContentBackupManager::removeOldBackupVersions(const BackupRule& rule) {
     QDir backupDir { _backupDirectory };
     if (backupDir.exists() && rule.maxBackupVersions > 0) {
-        qCDebug(domain_server) << "Rolling old backup versions for rule" << rule.name;
 
         auto matchingFiles =
                 backupDir.entryInfoList({ AUTOMATIC_BACKUP_PREFIX + rule.extensionFormat + "*.zip" }, QDir::Files | QDir::NoSymLinks, QDir::Name);
 
         int backupsToDelete = matchingFiles.length() - rule.maxBackupVersions;
-        if (backupsToDelete <= 0) {
-            qCDebug(domain_server) << "Found" << matchingFiles.length() << "backups, no backups need to be deleted";
-        } else {
-            qCDebug(domain_server) << "Found" << matchingFiles.length() << "backups, deleting " << backupsToDelete << "backup(s)";
+        if (backupsToDelete > 0) {
             for (int i = 0; i < backupsToDelete; ++i) {
                 auto fileInfo = matchingFiles[i].absoluteFilePath();
                 QFile backupFile(fileInfo);
-                if (backupFile.remove()) {
-                    qCDebug(domain_server) << "Removed old backup: " << backupFile.fileName();
-                } else {
+                if (!backupFile.remove()) {
                     qCDebug(domain_server) << "Failed to remove old backup: " << backupFile.fileName();
                 }
             }
-            qCDebug(domain_server) << "Done removing old backup versions";
         }
-    } else {
-        qCDebug(domain_server) << "Rolling backups for rule" << rule.name << "."
-                                << " Max Rolled Backup Versions less than 1 [" << rule.maxBackupVersions << "]."
-                                << " No need to roll backups";
     }
 }
 
@@ -501,13 +490,7 @@ void DomainContentBackupManager::backup() {
     for (BackupRule& rule : _backupRules) {
         auto secondsSinceLastBackup = nowSeconds - rule.lastBackupSeconds;
 
-        qCDebug(domain_server) << "Checking [" << rule.name << "] - Time since last backup [" << secondsSinceLastBackup
-                                << "] "
-                                << "compared to backup interval [" << rule.intervalSeconds << "]...";
-
         if (secondsSinceLastBackup > rule.intervalSeconds) {
-            qCDebug(domain_server) << "Time since last backup [" << secondsSinceLastBackup << "] for rule [" << rule.name
-                                    << "] exceeds backup interval [" << rule.intervalSeconds << "] doing backup now...";
 
             bool success;
             QString path;
@@ -517,13 +500,9 @@ void DomainContentBackupManager::backup() {
                 continue;
             }
 
-            qDebug() << "Created backup: " << path;
-
             rule.lastBackupSeconds = nowSeconds;
 
             removeOldBackupVersions(rule);
-        } else {
-            qCDebug(domain_server) << "Backup not needed for this rule [" << rule.name << "]...";
         }
     }
 }

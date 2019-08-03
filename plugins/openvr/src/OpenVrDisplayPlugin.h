@@ -13,6 +13,8 @@
 
 #include <display-plugins/hmd/HmdDisplayPlugin.h>
 
+#include <graphics/Geometry.h>
+
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
 namespace gl {
@@ -67,6 +69,13 @@ public:
 
     QRectF getPlayAreaRect() override;
 
+    virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::MESH; }
+    virtual StencilMaskMeshOperator getStencilMaskMeshOperator() override;
+
+    virtual void updateParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
+                                  int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
+                                  float visionSqueezeSpotlightSize) override;
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
@@ -94,4 +103,14 @@ private:
     bool _asyncReprojectionActive { false };
 
     bool _hmdMounted { false };
+
+    std::array<graphics::MeshPointer, 2> _stencilMeshes;
+    bool _stencilMeshesInitialized { false };
+
+    float _visionSqueezeX;
+    float _visionSqueezeY;
+    float _visionSqueezeTransition;
+    int _visionSqueezePerEye;
+    float _visionSqueezeGroundPlaneY;
+    float _visionSqueezeSpotlightSize;
 };

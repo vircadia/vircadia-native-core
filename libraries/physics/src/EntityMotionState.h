@@ -12,6 +12,7 @@
 #ifndef hifi_EntityMotionState_h
 #define hifi_EntityMotionState_h
 
+#include <EntityItem.h>
 #include <EntityTypes.h>
 #include <AACube.h>
 #include <workload/Region.h>
@@ -38,7 +39,6 @@ public:
 
     void handleDeactivation();
     virtual void handleEasyChanges(uint32_t& flags) override;
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
     /// \return PhysicsMotionType based on params set in EntityItem
     virtual PhysicsMotionType computePhysicsMotionType() const override;
@@ -55,8 +55,8 @@ public:
     void sendBid(OctreeEditPacketSender* packetSender, uint32_t step);
     void sendUpdate(OctreeEditPacketSender* packetSender, uint32_t step);
 
-    virtual uint32_t getIncomingDirtyFlags() override;
-    virtual void clearIncomingDirtyFlags() override;
+    virtual uint32_t getIncomingDirtyFlags() const override;
+    virtual void clearIncomingDirtyFlags(uint32_t mask = DIRTY_PHYSICS_FLAGS) override;
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }
@@ -84,6 +84,7 @@ public:
     void measureBodyAcceleration();
 
     virtual QString getName() const override;
+    ShapeType getShapeType() const override { return _entity->getShapeType(); }
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
@@ -99,6 +100,8 @@ public:
     void saveKinematicState(btScalar timeStep) override;
 
 protected:
+    void setRigidBody(btRigidBody* body) override;
+
     uint8_t computeFinalBidPriority() const;
     void updateSendVelocities();
     uint64_t getNextBidExpiry() const { return _nextBidExpiry; }
@@ -112,12 +115,8 @@ protected:
 
     void clearObjectVelocities() const;
 
-    #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
-    bool entityTreeIsLocked() const;
-    #endif
-
-    bool isReadyToComputeShape() const override;
-    const btCollisionShape* computeNewShape() override;
+    bool isInPhysicsSimulation() const { return _body != nullptr; }
+    bool shouldBeInPhysicsSimulation() const;
     void setMotionType(PhysicsMotionType motionType) override;
 
     // EntityMotionState keeps a SharedPointer to its EntityItem which is only set in the CTOR

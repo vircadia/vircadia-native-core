@@ -233,16 +233,19 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const P
 
     // If we just started triggering and we haven't moved too much, don't update intersection and pos2D
     TriggerState& state = hover ? _latestState : _states[button];
-    float sensorToWorldScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
-    float deadspotSquared = TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED * sensorToWorldScale * sensorToWorldScale;
-    bool withinDeadspot = usecTimestampNow() - state.triggerStartTime < POINTER_MOVE_DELAY && glm::distance2(pos2D, state.triggerPos2D) < deadspotSquared;
-    if ((state.triggering || state.wasTriggering) && !state.deadspotExpired && withinDeadspot) {
-        pos2D = state.triggerPos2D;
-        intersection = state.intersection;
-        surfaceNormal = state.surfaceNormal;
-    }
-    if (!withinDeadspot) {
-        state.deadspotExpired = true;
+    auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    if (avatar) {
+        float sensorToWorldScale = avatar->getSensorToWorldScale();
+        float deadspotSquared = TOUCH_PRESS_TO_MOVE_DEADSPOT_SQUARED * sensorToWorldScale * sensorToWorldScale;
+        bool withinDeadspot = usecTimestampNow() - state.triggerStartTime < POINTER_MOVE_DELAY && glm::distance2(pos2D, state.triggerPos2D) < deadspotSquared;
+        if ((state.triggering || state.wasTriggering) && !state.deadspotExpired && withinDeadspot) {
+            pos2D = state.triggerPos2D;
+            intersection = state.intersection;
+            surfaceNormal = state.surfaceNormal;
+        }
+        if (!withinDeadspot) {
+            state.deadspotExpired = true;
+        }
     }
 
     return PointerEvent(pos2D, intersection, surfaceNormal, direction);

@@ -41,8 +41,14 @@ QVariant readBinaryArray(QDataStream& in, int& position) {
     quint32 compressedLength;
 
     in >> arrayLength;
+    if (arrayLength > std::numeric_limits<int>::max() / sizeof(T)) { // Upcoming byte containers are limited to max signed int
+        throw QString("FBX file most likely corrupt: binary data exceeds data limits");
+    }
     in >> encoding;
     in >> compressedLength;
+    if (compressedLength > std::numeric_limits<int>::max() / sizeof(T)) { // Upcoming byte containers are limited to max signed int
+        throw QString("FBX file most likely corrupt: compressed binary data exceeds data limits");
+    }
     position += sizeof(quint32) * 3;
 
     QVector<T> values;
@@ -379,7 +385,6 @@ FBXNode FBXSerializer::parseFBX(QIODevice* device) {
     quint32 fileVersion;
     in >> fileVersion;
     position += sizeof(fileVersion);
-    qCDebug(modelformat) << "fileVersion:" << fileVersion;
     bool has64BitPositions = (fileVersion >= FBX_VERSION_2016);
 
     // parse the top-level node

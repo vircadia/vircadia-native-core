@@ -549,38 +549,28 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
     // grab the stream from the ring buffer
     AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd->getLastPopOutput();
 
-    // stereo sources are not passed through HRTF
     if (streamToAdd->isStereo()) {
 
-        // apply the avatar gain adjustment
-        gain *= mixableStream.hrtf->getGainAdjustment();
+        streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO);
 
-        const float scale = 1 / 32768.0f; // int16_t to float
-
-        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-            _mixSamples[2*i+0] += (float)streamPopOutput[2*i+0] * gain * scale;
-            _mixSamples[2*i+1] += (float)streamPopOutput[2*i+1] * gain * scale;
-        }
+        // stereo sources are not passed through HRTF
+        mixableStream.hrtf->mixStereo(_bufferSamples, _mixSamples, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++stats.manualStereoMixes;
     } else if (isEcho) {
+
+        streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
         // echo sources are not passed through HRTF
-
-        const float scale = 1/32768.0f; // int16_t to float
-
-        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-            float sample = (float)streamPopOutput[i] * gain * scale;
-            _mixSamples[2*i+0] += sample;
-            _mixSamples[2*i+1] += sample;
-        }
+        mixableStream.hrtf->mixMono(_bufferSamples, _mixSamples, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         ++stats.manualEchoMixes;
     } else {
+
         streamPopOutput.readSamples(_bufferSamples, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
         mixableStream.hrtf->render(_bufferSamples, _mixSamples, HRTF_DATASET_INDEX, azimuth, distance, gain,
                                    AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
         ++stats.hrtfRenders;
     }
 }

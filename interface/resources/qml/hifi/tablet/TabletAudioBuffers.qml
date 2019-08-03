@@ -24,7 +24,8 @@ StackView {
     signal sendToScript(var message);
 
     function pushSource(path) {
-        profileRoot.push(Qt.resolvedUrl(path));
+        var item = Qt.createComponent(Qt.resolvedUrl(path));
+        profileRoot.push(item);
     }
 
     function popSource() {

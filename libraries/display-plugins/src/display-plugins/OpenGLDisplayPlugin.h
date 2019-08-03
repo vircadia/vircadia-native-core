@@ -23,24 +23,29 @@
 
 #include <gpu/Batch.h>
 
-namespace gpu {
-    namespace gl {
-        class GLBackend;
-    }
-}
+namespace gpu { namespace gl {
+class GLBackend;
+}}  // namespace gpu::gl
+
+class RefreshRateController;
 
 class OpenGLDisplayPlugin : public DisplayPlugin {
     Q_OBJECT
     Q_PROPERTY(float hudAlpha MEMBER _hudAlpha)
     using Parent = DisplayPlugin;
+
 protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
+
 public:
     ~OpenGLDisplayPlugin();
     // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
+
+    static std::function<void(int)> getRefreshRateOperator();
+
     bool activate() override final;
     void deactivate() override final;
     bool startStandBySession() override final;
@@ -50,18 +55,12 @@ public:
     void captureFrame(const std::string& outputName) const override;
     void submitFrame(const gpu::FramePointer& newFrame) override;
 
-    glm::uvec2 getRecommendedRenderSize() const override {
-        return getSurfacePixels();
-    }
+    glm::uvec2 getRecommendedRenderSize() const override { return getSurfacePixels(); }
 
-    glm::uvec2 getRecommendedUiSize() const override {
-        return getSurfaceSize();
-    }
+    glm::uvec2 getRecommendedUiSize() const override { return getSurfaceSize(); }
 
     virtual bool setDisplayTexture(const QString& name) override;
     virtual bool onDisplayTextureReset() { return false; };
-    QImage getScreenshot(float aspectRatio = 0.0f) const override;
-    QImage getSecondaryCameraScreenshot() const override;
 
     float presentRate() const override;
 
@@ -81,7 +80,10 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
-    void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
+    void copyTextureToQuickFramebuffer(NetworkTexturePointer source,
+                                       QOpenGLFramebufferObject* target,
+                                       GLsync* fenceSync) override;
 
 protected:
     friend class PresentThread;
@@ -98,10 +100,10 @@ protected:
 
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
+    virtual void setupCompositeScenePipeline(gpu::Batch& batch);
     virtual void compositeScene();
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
     virtual void compositePointer();
-    virtual void compositeExtra() {};
+    virtual void compositeExtra(){};
 
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
@@ -118,20 +120,27 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
-    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& fbo);
-    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor);
+    void renderFromTexture(gpu::Batch& batch,
+                           const gpu::TexturePointer& texture,
+                           const glm::ivec4& viewport,
+                           const glm::ivec4& scissor,
+                           const gpu::FramebufferPointer& fbo);
+    void renderFromTexture(gpu::Batch& batch,
+                           const gpu::TexturePointer& texture,
+                           const glm::ivec4& viewport,
+                           const glm::ivec4& scissor);
     virtual void updateFrameData();
     virtual glm::mat4 getViewCorrection() { return glm::mat4(); }
 
     void withOtherThreadContext(std::function<void()> f) const;
 
-    void present();
+    void present(const std::shared_ptr<RefreshRateController>& refreshRateController);
     virtual void swapBuffers();
     ivec4 eyeViewport(Eye eye) const;
 
     void render(std::function<void(gpu::Batch& batch)> f);
 
-    bool _vsyncEnabled { true };
+    bool _vsyncEnabled{ true };
     QThread* _presentThread{ nullptr };
     std::queue<gpu::FramePointer> _newFrameQueue;
     RateCounter<200> _droppedFrameRate;
@@ -140,17 +149,21 @@ protected:
     RateCounter<200> _renderRate;
 
     gpu::FramePointer _currentFrame;
-    gpu::Frame* _lastFrame { nullptr };
+    gpu::Frame* _lastFrame{ nullptr };
     mat4 _prevRenderView;
     gpu::FramebufferPointer _compositeFramebuffer;
     gpu::PipelinePointer _hudPipeline;
     gpu::PipelinePointer _mirrorHUDPipeline;
     gpu::ShaderPointer _mirrorHUDPS;
-    gpu::PipelinePointer _simplePipeline;
-    gpu::PipelinePointer _presentPipeline;
+    gpu::PipelinePointer _drawTexturePipeline;
+    gpu::PipelinePointer _drawTextureSqueezePipeline;
+    gpu::PipelinePointer _linearToSRGBPipeline;
+    gpu::PipelinePointer _SRGBToLinearPipeline;
     gpu::PipelinePointer _cursorPipeline;
     gpu::TexturePointer _displayTexture{};
-    float _compositeHUDAlpha { 1.0f };
+    float _compositeHUDAlpha{ 1.0f };
+
+    virtual gpu::PipelinePointer getRenderTexturePipeline();
 
     struct CursorData {
         QImage image;
@@ -160,19 +173,19 @@ protected:
     };
 
     std::map<uint16_t, CursorData> _cursorsData;
-    bool _lockCurrentTexture { false };
+    bool _lockCurrentTexture{ false };
 
     void assertNotPresentThread() const;
     void assertIsPresentThread() const;
 
-    template<typename F>
+    template <typename F>
     void withPresentThreadLock(F f) const {
         assertIsPresentThread();
         Lock lock(_presentMutex);
         f();
     }
 
-    template<typename F>
+    template <typename F>
     void withNonPresentThreadLock(F f) const {
         assertNotPresentThread();
         Lock lock(_presentMutex);
@@ -185,5 +198,7 @@ protected:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
-};
 
+    QImage getScreenshot(float aspectRatio);
+    QImage getSecondaryCameraScreenshot();
+};

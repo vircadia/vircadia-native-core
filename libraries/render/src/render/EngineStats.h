@@ -56,7 +56,7 @@ namespace render {
 
         Q_PROPERTY(quint32 frameTextureCount MEMBER frameTextureCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameTextureRate MEMBER frameTextureRate NOTIFY dirty)
-        Q_PROPERTY(quint32 frameTextureMemoryUsage MEMBER frameTextureMemoryUsage NOTIFY dirty)
+        Q_PROPERTY(quint64 frameTextureMemoryUsage MEMBER frameTextureMemoryUsage NOTIFY dirty)
 
         Q_PROPERTY(quint32 frameSetPipelineCount MEMBER frameSetPipelineCount NOTIFY dirty)
         Q_PROPERTY(quint32 frameSetInputFormatCount MEMBER frameSetInputFormatCount NOTIFY dirty)
@@ -96,7 +96,7 @@ namespace render {
 
         quint32 frameTextureCount{ 0 };
         quint32 frameTextureRate{ 0 };
-        qint64 frameTextureMemoryUsage{ 0 };
+        quint64 frameTextureMemoryUsage{ 0 };
 
         quint32 frameSetPipelineCount{ 0 };
 

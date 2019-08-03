@@ -37,7 +37,6 @@ ContextMetricCount Texture::_textureCPUCount;
 ContextMetricSize Texture::_textureCPUMemSize;
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
-
 #define MIN_CORES_FOR_INCREMENTAL_TEXTURES 5
 bool recommendedSparseTextures = (QThread::idealThreadCount() >= MIN_CORES_FOR_INCREMENTAL_TEXTURES);
 

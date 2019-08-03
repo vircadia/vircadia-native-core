@@ -18,9 +18,6 @@
 #include <QPushButton>
 #include <QStandardPaths>
 
-static const QString AVATAR_HEAD_AND_BODY_STRING = "Avatar Body with Head";
-static const QString ENTITY_MODEL_STRING = "Entity Model";
-
 ModelSelector::ModelSelector() {
     QFormLayout* form = new QFormLayout(this);
     

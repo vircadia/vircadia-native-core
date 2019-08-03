@@ -132,6 +132,14 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(notUpdatedAvatarCount, avatarManager->getNumAvatarsNotUpdated());
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE_FLOAT(renderrate, qApp->getRenderLoopRate(), 0.1f);
+    RefreshRateManager& refreshRateManager = qApp->getRefreshRateManager();
+    std::string refreshRateMode = RefreshRateManager::refreshRateProfileToString(refreshRateManager.getRefreshRateProfile());
+    std::string refreshRateRegime = RefreshRateManager::refreshRateRegimeToString(refreshRateManager.getRefreshRateRegime());
+    std::string uxMode = RefreshRateManager::uxModeToString(refreshRateManager.getUXMode());
+    STAT_UPDATE(refreshRateMode, QString::fromStdString(refreshRateMode));
+    STAT_UPDATE(refreshRateRegime, QString::fromStdString(refreshRateRegime));
+    STAT_UPDATE(uxMode, QString::fromStdString(uxMode));
+    STAT_UPDATE(refreshRateTarget, refreshRateManager.getActiveRefreshRate());
     if (qApp->getActiveDisplayPlugin()) {
         auto displayPlugin = qApp->getActiveDisplayPlugin();
         auto stats = displayPlugin->getHardwareStats();
@@ -171,6 +179,11 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(packetOutCount, nodeList->getOutboundPPS());
     STAT_UPDATE_FLOAT(mbpsIn, nodeList->getInboundKbps() / 1000.0f, 0.01f);
     STAT_UPDATE_FLOAT(mbpsOut, nodeList->getOutboundKbps() / 1000.0f, 0.01f);
+
+#ifdef DEBUG_EVENT_QUEUE
+    STAT_UPDATE(mainThreadQueueDepth, ::hifi::qt::getEventQueueSize(QThread::currentThread()));
+    STAT_UPDATE(nodeListThreadQueueDepth, ::hifi::qt::getEventQueueSize(nodeList->thread()));
+#endif
 
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
@@ -364,7 +377,7 @@ void Stats::updateStats(bool force) {
     auto displayPlugin = qApp->getActiveDisplayPlugin();
     if (displayPlugin) {
         QVector2D dims(displayPlugin->getRecommendedRenderSize().x, displayPlugin->getRecommendedRenderSize().y);
-        dims *= displayPlugin->getRenderResolutionScale();
+        dims *= qApp->getRenderResolutionScale();
         STAT_UPDATE(gpuFrameSize, dims);
         STAT_UPDATE(gpuFrameTimePerPixel, (float)(gpuContext->getFrameTimerGPUAverage()*1000000.0 / double(dims.x()*dims.y())));
     }
@@ -403,6 +416,8 @@ void Stats::updateStats(bool force) {
     gpuContext->getFrameStats(gpuFrameStats);
 
     STAT_UPDATE(drawcalls, gpuFrameStats._DSNumDrawcalls);
+    STAT_UPDATE(lodTargetFramerate, DependencyManager::get<LODManager>()->getLODTargetFPS());
+    STAT_UPDATE(lodAngle, DependencyManager::get<LODManager>()->getLODAngleDeg());
 
 
     // Incoming packets

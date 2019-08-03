@@ -17,6 +17,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonValue>
+#include <shared/QtHelpers.h>
 
 #include <LogHandler.h>
 #include <NetworkAccessManager.h>
@@ -268,6 +269,13 @@ void AudioMixer::sendStatsPacket() {
     if (_numStatFrames == 0) {
         return;
     }
+
+#ifdef DEBUG_EVENT_QUEUE
+    QJsonObject qtStats;
+
+    _slavePool.queueStats(qtStats);
+    statsObject["audio_thread_event_queue"] = qtStats;
+#endif
 
     // general stats
     statsObject["useDynamicJitterBuffers"] = _numStaticJitterFrames == DISABLE_STATIC_JITTER_FRAMES;
@@ -588,8 +596,8 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
         // check the payload to see if we have asked for dynamicJitterBuffer support
         const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
         bool enableDynamicJitterBuffer = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-        if (enableDynamicJitterBuffer) {
-            qCDebug(audio) << "Enabling dynamic jitter buffers.";
+        if (!enableDynamicJitterBuffer) {
+            qCDebug(audio) << "Disabling dynamic jitter buffers.";
 
             bool ok;
             const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
@@ -599,7 +607,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             }
             qCDebug(audio) << "Static desired jitter buffer frames:" << _numStaticJitterFrames;
         } else {
-            qCDebug(audio) << "Disabling dynamic jitter buffers.";
+            qCDebug(audio) << "Enabling dynamic jitter buffers.";
             _numStaticJitterFrames = DISABLE_STATIC_JITTER_FRAMES;
         }
 

@@ -62,8 +62,8 @@
  * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
  *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
  * @property {string} skeletonModelURL - The avatar's FST file.
- * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
- *     <strong>Deprecated:</strong> Use avatar entities instead.
+ * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments. 
+ *     <p class="important">Deprecated: This property is deprecated and will be removed. Use avatar entities instead.</p>
  * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
  * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
  * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the
@@ -74,7 +74,8 @@
  *     avatar. <em>Read-only.</em>
  * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
  *     size in the virtual world. <em>Read-only.</em>
- * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
+ * @property {boolean} hasPriority - <code>true</code> if the avatar is in a "hero" zone, <code>false</code> if it isn't.
+ *     <em>Read-only.</em>
  *
  * @example <caption>Create a scriptable avatar.</caption>
  * (function () {
@@ -138,7 +139,10 @@ public:
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
 
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    /**jsdoc
+     * @comment Uses the base class's JSDoc.
+     */
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     /**jsdoc
      * @comment Uses the base class's JSDoc.

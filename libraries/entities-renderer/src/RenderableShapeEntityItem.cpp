@@ -30,14 +30,11 @@ using namespace render::entities;
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
 
-static_assert(shader::render_utils::program::simple != 0, "Validate simple program exists");
-static_assert(shader::render_utils::program::simple_transparent != 0, "Validate simple transparent program exists");
-
 ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple);
+    _procedural._vertexSource = gpu::Shader::getVertexShaderSource(shader::render_utils::vertex::simple_procedural);
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
-    _procedural._opaqueFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple);
-    _procedural._transparentFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple_transparent);
+    _procedural._opaqueFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple_procedural);
+    _procedural._transparentFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple_procedural_translucent);
 
     // TODO: move into Procedural.cpp
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
@@ -70,7 +67,7 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
-    if (_color != entity->getColor()) {
+    if (_color != toGlm(entity->getColor())) {
         return true;
     }
     if (_alpha != entity->getAlpha()) {
@@ -130,12 +127,12 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         }
     });
 
-    glm::u8vec3 color = entity->getColor();
+    glm::vec3 color = toGlm(entity->getColor());
     float alpha = entity->getAlpha();
     if (_color != color || _alpha != alpha) {
         _color = color;
         _alpha = alpha;
-        _material->setAlbedo(toGlm(_color));
+        _material->setAlbedo(color);
         _material->setOpacity(_alpha);
 
         auto materials = _materials.find("0");
@@ -197,7 +194,7 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
 
         bool isTranslucent = drawMaterialKey.isTranslucent();
         bool hasTangents = drawMaterialKey.isNormalMap();
-        bool hasLightmap = drawMaterialKey.isLightmapMap();
+        bool hasLightmap = drawMaterialKey.isLightMap();
         bool isUnlit = drawMaterialKey.isUnlit();
 
         ShapeKey::Builder builder;
@@ -210,7 +207,7 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
             builder.withTangents();
         }
         if (hasLightmap) {
-            builder.withLightmap();
+            builder.withLightMap();
         }
         if (isUnlit) {
             builder.withUnlit();
@@ -270,6 +267,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         }
     });
 
+    if (outColor.a == 0.0f) {
+        return;
+    }
+
     if (proceduralRender) {
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
@@ -279,20 +280,15 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     } else if (!useMaterialPipeline(materials)) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        render::ShapePipelinePointer pipeline;
-        if (renderLayer == RenderLayer::WORLD) {
-            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-        } else {
-            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
-        }
+        render::ShapePipelinePointer pipeline = geometryCache->getShapePipelinePointer(outColor.a < 1.0f, false,
+            renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     } else {
-        if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-            RenderPipelines::bindMaterials(materials, batch, args->_enableTexturing);
+        if (RenderPipelines::bindMaterials(materials, batch, args->_renderMode, args->_enableTexturing)) {
             args->_details._materialSwitches++;
         }
 

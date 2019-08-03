@@ -126,6 +126,9 @@ public:
 
     void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
+    bool isCauterized() const { return _cauterized; }
+    void setCauterized(bool value, const render::ScenePointer& scene);
+
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;
 
@@ -344,7 +347,7 @@ public:
     const QMap<render::ItemID, render::PayloadPointer>& getRenderItems() const { return _modelMeshRenderItemsMap; }
     BlendShapeOperator getModelBlendshapeOperator() const { return _modelBlendshapeOperator; }
 
-    void renderDebugMeshBoxes(gpu::Batch& batch);
+    void renderDebugMeshBoxes(gpu::Batch& batch, bool forward);
 
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
@@ -360,8 +363,6 @@ public:
     void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
     void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
 
-    std::unordered_map<int, QVector<BlendshapeOffset>> _blendshapeOffsets;
-
 public slots:
     void loadURLFinished(bool success);
 
@@ -376,6 +377,7 @@ protected:
 
     std::unordered_map<unsigned int, quint16> _priorityMap; // only used for materialMapping
     std::unordered_map<unsigned int, std::vector<graphics::MaterialLayer>> _materialMapping; // generated during applyMaterialMapping
+    std::mutex _materialMappingMutex;
     void applyMaterialMapping();
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
@@ -424,7 +426,6 @@ protected:
     void setScaleInternal(const glm::vec3& scale);
     void snapToRegistrationPoint();
 
-    void computeMeshPartLocalBounds();
     virtual void updateRig(float deltaTime, glm::mat4 parentTransform);
 
     /// Allow sub classes to force invalidating the bboxes
@@ -443,7 +444,6 @@ protected:
     QVector<float> _blendshapeCoefficients;
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber { 0 };
-    bool _blendshapeOffsetsInitialized { false };
 
     mutable QMutex _mutex{ QMutex::Recursive };
 
@@ -502,10 +502,9 @@ protected:
     //               For this to work, a Meta RI must exists and knows about the RIs of this Model.
     //  
     render::ItemKey _renderItemKeyGlobalFlags;
+    bool _cauterized { false };
 
     bool shouldInvalidatePayloadShapeKey(int meshIndex);
-
-    void initializeBlendshapes(const HFMMesh& mesh, int index);
 
 private:
     float _loadingPriority { 0.0f };

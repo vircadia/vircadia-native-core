@@ -231,6 +231,8 @@ public:
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
+    bool shouldBePhysical() const override { return false; }
+
     void setColor(const glm::u8vec3& value);
     glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
 

@@ -8,7 +8,7 @@
 macro(TARGET_BREAKPAD)
     if (ANDROID)
         set(INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/breakpad)
-        set(BREAKPAD_INCLUDE_DIRS "${INSTALL_DIR}/include" CACHE TYPE INTERNAL)
+        set(BREAKPAD_INCLUDE_DIRS "${INSTALL_DIR}/include" CACHE STRING INTERNAL)
         set(LIB_DIR ${INSTALL_DIR}/lib)
         list(APPEND BREAKPAD_LIBRARIES ${LIB_DIR}/libbreakpad_client.a)
         target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${BREAKPAD_INCLUDE_DIRS})

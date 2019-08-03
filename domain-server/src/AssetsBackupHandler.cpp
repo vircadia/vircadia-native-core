@@ -276,7 +276,6 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
         return;
     }
     _backups.emplace_back(backupName, mappings, false);
-    qDebug() << "Created asset backup:" << backupName;
 }
 
 void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {

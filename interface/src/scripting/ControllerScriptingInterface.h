@@ -26,18 +26,20 @@ class ScriptEngine;
 
 
 /**jsdoc
- * The Controller API provides facilities to interact with computer and controller hardware.
+ * The <code>Controller</code> API provides facilities to interact with computer and controller hardware.
  *
- * <h5>Functions</h5>
+ * <h3>Facilities</h3>
  *
- * <p>Properties</p>
+ * <h4>Properties</h4>
+ * <p>Get <code>Controller</code> property trees.</p>
  * <ul>
  *   <li>{@link Controller.getActions|getActions}</li>
  *   <li>{@link Controller.getHardware|getHardware}</li>
  *   <li>{@link Controller.getStandard|getStandard}</li>
  * </ul>
  *
- * <p>Mappings</p>
+ * <h4>Mappings</h4>
+ * <p>Create and enable or disable <code>Controller</code> mappings.</p>
  * <ul>
  *   <li>{@link Controller.disableMapping|disableMapping}</li>
  *   <li>{@link Controller.enableMapping|enableMapping}</li>
@@ -46,7 +48,8 @@ class ScriptEngine;
  *   <li>{@link Controller.parseMapping|parseMapping}</li>
  * </ul>
  *
- * <p>Input, Hardware, and Action Reflection</p>
+ * <h4>Input, Hardware, and Action Reflection</h4>
+ * <p>Information on the devices and actions available.</p>
  * <ul>
  *   <li>{@link Controller.findAction|findAction}</li>
  *   <li>{@link Controller.findDevice|findDevice}</li>
@@ -55,16 +58,20 @@ class ScriptEngine;
  *   <li>{@link Controller.getAvailableInputs|getAvailableInputs}</li>
  *   <li>{@link Controller.getDeviceName|getDeviceName}</li>
  *   <li>{@link Controller.getDeviceNames|getDeviceNames}</li>
+ *   <li>{@link Controller.getRunningInputDevices|getRunningInputDevices}</li>
  * </ul>
  *
- * <p>Input, Hardware, and Action Events</p>
+ * <h4>Input, Hardware, and Action Signals</h4>
+ * <p>Notifications of device and action events.</p>
  * <ul>
  *   <li>{@link Controller.actionEvent|actionEvent}</li>
  *   <li>{@link Controller.hardwareChanged|hardwareChanged}</li>
+ *   <li>{@link Controller.inputDeviceRunningChanged|inputDeviceRunningChanged}</li>
  *   <li>{@link Controller.inputEvent|inputEvent}</li>
  * </ul>
  *
- * <p>Mouse, Keyboard, and Touch Events</p>
+ * <h4>Mouse, Keyboard, and Touch Signals</h4>
+ * <p>Notifications of mouse, keyboard, and touch events.</p>
  * <ul>
  *   <li>{@link Controller.keyPressEvent|keyPressEvent}</li>
  *   <li>{@link Controller.keyReleaseEvent|keyReleaseEvent}</li>
@@ -78,29 +85,32 @@ class ScriptEngine;
  *   <li>{@link Controller.wheelEvent|wheelEvent}</li>
  * </ul>
  *
- * <p>Control Capturing</p>
+ * <h4>Control Capturing</h4>
+ * <p>Disable and enable the processing of mouse and touch events.</p>
  * <ul>
  *   <li>{@link Controller.captureMouseEvents|captureMouseEvents}</li>
- *   <li>{@link Controller.captureTouchEvents|captureTouchEvents}</li>
  *   <li>{@link Controller.captureWheelEvents|captureWheelEvents}</li>
+ *   <li>{@link Controller.captureTouchEvents|captureTouchEvents}</li>
  *   <li>{@link Controller.releaseMouseEvents|releaseMouseEvents}</li>
- *   <li>{@link Controller.releaseTouchEvents|releaseTouchEvents}</li>
  *   <li>{@link Controller.releaseWheelEvents|releaseWheelEvents}</li>
+ *   <li>{@link Controller.releaseTouchEvents|releaseTouchEvents}</li>
  * </ul>
  *
- * <p>Action Capturing</p>
+ * <h4>Action Capturing</h4>
+ * <p>Disable and enable controller actions.</p>
  * <ul>
  *   <li>{@link Controller.captureActionEvents|captureActionEvents}</li>
- *   <li>{@link Controller.captureEntityClickEvents|captureEntityClickEvents}</li>
- *   <li>{@link Controller.captureJoystick|captureJoystick}</li>
  *   <li>{@link Controller.captureKeyEvents|captureKeyEvents}</li>
+ *   <li>{@link Controller.captureJoystick|captureJoystick}</li>
+ *   <li>{@link Controller.captureEntityClickEvents|captureEntityClickEvents}</li>
  *   <li>{@link Controller.releaseActionEvents|releaseActionEvents}</li>
- *   <li>{@link Controller.releaseEntityClickEvents|releaseEntityClickEvents}</li>
- *   <li>{@link Controller.releaseJoystick|releaseJoystick}</li>
  *   <li>{@link Controller.releaseKeyEvents|releaseKeyEvents}</li>
+ *   <li>{@link Controller.releaseJoystick|releaseJoystick}</li>
+ *   <li>{@link Controller.releaseEntityClickEvents|releaseEntityClickEvents}</li>
  * </ul>
  *
- * <p>Controller and Action Values</p>
+ * <h4>Controller and Action Values</h4>
+ * <p>Get the current value of controller outputs and actions.</p>
  * <ul>
  *   <li>{@link Controller.getValue|getValue}</li>
  *   <li>{@link Controller.getAxisValue|getAxisValue}</li>
@@ -108,7 +118,8 @@ class ScriptEngine;
  *   <li>{@link Controller.getActionValue|getActionValue}</li>
  * </ul>
  *
- * <p>Haptics</p>
+ * <h4>Haptics</h4>
+ * <p>Trigger haptic pulses.</p>
  * <ul>
  *   <li>{@link Controller.triggerHapticPulse|triggerHapticPulse}</li>
  *   <li>{@link Controller.triggerHapticPulseOnDevice|triggerHapticPulseOnDevice}</li>
@@ -116,20 +127,23 @@ class ScriptEngine;
  *   <li>{@link Controller.triggerShortHapticPulseOnDevice|triggerShortHapticPulseOnDevice}</li>
  * </ul>
  *
- * <p>Display Information</p>
+ * <h4>Display Information</h4>
+ * <p>Get information on the display.</p>
  * <ul>
  *   <li>{@link Controller.getViewportDimensions|getViewportDimensions}</li>
  *   <li>{@link Controller.getRecommendedHUDRect|getRecommendedHUDRect}</li>
  * </ul>
  *
- * <p>Virtual Game Pad</p>
+ * <h4>Virtual Game Pad</h4>
+ * <p>Use the virtual game pad which is available on some devices.</p>
  * <ul>
  *   <li>{@link Controller.setVPadEnabled|setVPadEnabled}</li>
  *   <li>{@link Controller.setVPadHidden|setVPadHidden}</li>
  *   <li>{@link Controller.setVPadExtraBottomMargin|setVPadExtraBottomMargin}</li>
  * </ul>
  *
- * <p>Input Recordings</p>
+ * <h4>Input Recordings</h4>
+ * <p>Create and play input recordings.</p>
  * <ul>
  *   <li>{@link Controller.startInputRecording|startInputRecording}</li>
  *   <li>{@link Controller.stopInputRecording|stopInputRecording}</li>
@@ -140,10 +154,10 @@ class ScriptEngine;
  *   <li>{@link Controller.stopInputPlayback|stopInputPlayback}</li>
  * </ul>
  *
- * <h5>Entity Methods:</h5>
+ * <h3>Entity Methods</h3>
  *
  * <p>The default scripts implement hand controller actions that use {@link Entities.callEntityMethod} to call entity script 
- * methods, if present in the entity being interacted with.</p>
+ * methods, if present, in the entity being interacted with.</p>
  *
  * <table>
  *   <thead>
@@ -203,7 +217,7 @@ class ScriptEngine;
  *
  * @property {Controller.Actions} Actions - Predefined actions on Interface and the user's avatar. These can be used as end
  *     points in a {@link RouteObject} mapping. A synonym for <code>Controller.Hardware.Actions</code>.
- *     <em>Read-only.</em><br />
+ *     <em>Read-only.</em><br /><br />
  *     Default mappings are provided from the <code>Controller.Hardware.Keyboard</code> and <code>Controller.Standard</code> to 
  *     actions in 
  *     <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/keyboardMouse.json">
@@ -217,7 +231,7 @@ class ScriptEngine;
  *     controller outputs. <em>Read-only.</em>
  *
  * @property {Controller.Standard} Standard - Standard controller outputs that can be mapped to <code>Actions</code> or 
- *     functions in a {@link RouteObject} mapping. <em>Read-only.</em><br />
+ *     functions in a {@link RouteObject} mapping. <em>Read-only.</em><br /><br />
  *     Each hardware device has a mapping from its outputs to <code>Controller.Standard</code> items, specified in a JSON file. 
  *     For example, <a href="https://github.com/highfidelity/hifi/blob/master/interface/resources/controllers/leapmotion.json">
  *     leapmotion.json</a> and 
@@ -253,7 +267,7 @@ public:
 public slots:
 
     /**jsdoc
-     * Disable default Interface actions for a particular key event.
+     * Disables default Interface actions for a particular key event.
      * @function Controller.captureKeyEvents
      * @param {KeyEvent} event - Details of the key event to be captured. The <code>key</code> property must be specified. The 
      *     <code>text</code> property is ignored. The other properties default to <code>false</code>.
@@ -272,7 +286,7 @@ public slots:
     virtual void captureKeyEvents(const KeyEvent& event);
 
     /**jsdoc
-     * Re-enable default Interface actions for a particular key event that has been disabled using 
+     * Re-enables default Interface actions for a particular key event that has been disabled using 
      * {@link Controller.captureKeyEvents|captureKeyEvents}.
      * @function Controller.releaseKeyEvents
      * @param {KeyEvent} event - Details of the key event to release from capture. The <code>key</code> property must be 
@@ -281,24 +295,24 @@ public slots:
     virtual void releaseKeyEvents(const KeyEvent& event);
 
     /**jsdoc
-     * Disable default Interface actions for a joystick.
+     * Disables default Interface actions for a joystick.
      * @function Controller.captureJoystick
      * @param {number} joystickID - The integer ID of the joystick.
-     * @deprecated This function no longer has any effect.
+     * @deprecated This function is deprecated and will be removed. It no longer has any effect.
      */
     virtual void captureJoystick(int joystickIndex);
 
     /**jsdoc
-     * Re-enable default Interface actions for a joystick that has been disabled using 
+     * Re-enables default Interface actions for a joystick that has been disabled using 
      * {@link Controller.captureJoystick|captureJoystick}.
      * @function Controller.releaseJoystick
      * @param {number} joystickID - The integer ID of the joystick.
-     * @deprecated This function no longer has any effect.
+     * @deprecated This function is deprecated and will be removed. It no longer has any effect.
      */
     virtual void releaseJoystick(int joystickIndex);
 
     /**jsdoc
-     * Disable {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities.
+     * Disables {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities.
      * @function Controller.captureEntityClickEvents
      * @example <caption>Disable entity click events for a short period.</caption>
      * Entities.mousePressOnEntity.connect(function (entityID, event) {
@@ -316,7 +330,7 @@ public slots:
     virtual void captureEntityClickEvents();
 
     /**jsdoc
-     * Re-enable {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities that were 
+     * Re-enables {@link Entities.mousePressOnEntity} and {@link Entities.mouseDoublePressOnEntity} events on entities that were 
      * disabled using {@link Controller.captureEntityClickEvents|captureEntityClickEvents}.
      * @function Controller.releaseEntityClickEvents
      */
@@ -324,14 +338,14 @@ public slots:
 
 
     /**jsdoc
-     * Get the dimensions of the Interface window's interior if in desktop mode or the HUD surface if in HMD mode.
+     * Gets the dimensions of the Interface window's interior if in desktop mode or the HUD surface if in HMD mode.
      * @function Controller.getViewportDimensions
      * @returns {Vec2} The dimensions of the Interface window interior if in desktop mode or HUD surface if in HMD mode.
      */
     virtual glm::vec2 getViewportDimensions() const;
 
     /**jsdoc
-     * Get the recommended area to position UI on the HUD surface if in HMD mode or Interface's window interior if in desktop 
+     * Gets the recommended area to position UI on the HUD surface if in HMD mode or Interface's window interior if in desktop 
      * mode.
      * @function Controller.getRecommendedHUDRect
      * @returns {Rect} The recommended area in which to position UI.

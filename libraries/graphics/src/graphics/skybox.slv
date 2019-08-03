@@ -1,8 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//  skybox.vert
-//  vertex shader
 //
 //  Created by Sam Gateau on 5/5/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -12,7 +11,6 @@
 //
 
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 layout(location=0) out vec3 _normal;

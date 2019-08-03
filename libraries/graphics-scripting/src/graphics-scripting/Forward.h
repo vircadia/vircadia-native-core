@@ -57,7 +57,7 @@ namespace scriptable {
      * @property {string} normalMap
      * @property {string} bumpMap
      * @property {string} occlusionMap
-     * @property {string} lightmapMap
+     * @property {string} lightMap
      * @property {string} scatteringMap
      * @property {Mat4|string} texCoordTransform0
      * @property {Mat4|string} texCoordTransform1
@@ -91,7 +91,7 @@ namespace scriptable {
         QString normalMap;
         QString bumpMap;
         QString occlusionMap;
-        QString lightmapMap;
+        QString lightMap;
         QString scatteringMap;
         std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texCoordTransforms;
 

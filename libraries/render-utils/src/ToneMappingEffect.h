@@ -82,12 +82,13 @@ signals:
 class ToneMappingDeferred {
 public:
     // Inputs: lightingFramebuffer, destinationFramebuffer
-    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Input = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Output = gpu::FramebufferPointer;
     using Config = ToneMappingConfig;
-    using JobModel = render::Job::ModelI<ToneMappingDeferred, Inputs, Config>;
+    using JobModel = render::Job::ModelIO<ToneMappingDeferred, Input, Output, Config>;
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
     ToneMappingEffect _toneMappingEffect;
 };

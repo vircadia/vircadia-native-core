@@ -188,18 +188,20 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
 void DomainBaker::addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef) {
     QString cleanURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
     auto idx = cleanURL.lastIndexOf('.');
-    auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
+    auto extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
         // grab a clean version of the URL without a query or fragment
         QUrl textureURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+        TextureKey key = { textureURL, type };
 
         // setup a texture baker for this URL, as long as we aren't baking a texture already
-        if (!_textureBakers.contains(textureURL)) {
+        if (!_textureBakers.contains(key)) {
+            auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
             // setup a baker for this texture
             QSharedPointer<TextureBaker> textureBaker {
-                new TextureBaker(textureURL, type, _contentOutputPath),
+                new TextureBaker(textureURL, type, _contentOutputPath, baseTextureFileName),
                 &TextureBaker::deleteLater
             };
 
@@ -207,7 +209,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
             connect(textureBaker.data(), &TextureBaker::finished, this, &DomainBaker::handleFinishedTextureBaker);
 
             // insert it into our bakers hash so we hold a strong pointer to it
-            _textureBakers.insert(textureURL, textureBaker);
+            _textureBakers.insert(key, textureBaker);
 
             // move the baker to a worker thread and kickoff the bake
             textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
@@ -219,7 +221,8 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
         // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
         // to the baked version once the baker is complete
-        _entitiesNeedingRewrite.insert(textureURL, { property, jsonRef });
+        // it doesn't really matter what this key is as long as it's consistent
+        _entitiesNeedingRewrite.insert(textureURL.toDisplayString() + "^" + QString::number(type), { property, jsonRef });
     } else {
         qDebug() << "Texture extension not supported: " << extension;
     }
@@ -257,7 +260,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, co
     _entitiesNeedingRewrite.insert(scriptURL, { property, jsonRef });
 }
 
-void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef) {
+void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef, QUrl destinationPath) {
     // grab a clean version of the URL without a query or fragment
     QString materialData;
     if (isURL) {
@@ -271,7 +274,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(materialData, isURL, _contentOutputPath),
+            new MaterialBaker(materialData, isURL, _contentOutputPath, destinationPath),
             &MaterialBaker::deleteLater
         };
 
@@ -386,13 +389,13 @@ void DomainBaker::enumerateEntities() {
             if (entity.contains(AMBIENT_LIGHT_KEY)) {
                 auto ambientLight = entity[AMBIENT_LIGHT_KEY].toObject();
                 if (ambientLight.contains(AMBIENT_URL_KEY)) {
-                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(AMBIENT_LIGHT_KEY + "." + AMBIENT_URL_KEY, ambientLight[AMBIENT_URL_KEY].toString(), image::TextureUsage::AMBIENT_TEXTURE, *it);
                 }
             }
             if (entity.contains(SKYBOX_KEY)) {
                 auto skybox = entity[SKYBOX_KEY].toObject();
                 if (skybox.contains(SKYBOX_URL_KEY)) {
-                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::CUBE_TEXTURE, *it);
+                    addTextureBaker(SKYBOX_KEY + "." + SKYBOX_URL_KEY, skybox[SKYBOX_URL_KEY].toString(), image::TextureUsage::SKY_TEXTURE, *it);
                 }
             }
 
@@ -409,13 +412,16 @@ void DomainBaker::enumerateEntities() {
 
             // Materials
             if (entity.contains(MATERIAL_URL_KEY)) {
-                addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
+                QString materialURL = entity[MATERIAL_URL_KEY].toString();
+                if (!materialURL.startsWith("materialData")) {
+                    addMaterialBaker(MATERIAL_URL_KEY, materialURL, true, *it);
+                }
             }
             // FIXME: Disabled for now because relative texture URLs are not supported for embedded materials in material entities
             //        We need to make texture URLs absolute in this particular case only, keeping in mind that FSTBaker also uses embedded materials
             /*
             if (entity.contains(MATERIAL_DATA_KEY)) {
-                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
+                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it, _destinationPath);
             }
             */
         }
@@ -500,9 +506,11 @@ void DomainBaker::handleFinishedTextureBaker() {
     auto baker = qobject_cast<TextureBaker*>(sender());
 
     if (baker) {
+        QUrl rewriteKey = baker->getTextureURL().toDisplayString() + "^" + QString::number(baker->getTextureType());
+
         if (!baker->hasErrors()) {
             // this TextureBaker is done and everything went according to plan
-            qDebug() << "Re-writing entity references to" << baker->getTextureURL();
+            qDebug() << "Re-writing entity references to" << baker->getTextureURL() << "with usage" << baker->getTextureType();
 
             // setup a new URL using the prefix we were passed
             auto relativeTextureFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getMetaTextureFileName());
@@ -513,7 +521,7 @@ void DomainBaker::handleFinishedTextureBaker() {
 
             // enumerate the QJsonRef values for the URL of this texture from our multi hash of
             // entity objects needing a URL re-write
-            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(baker->getTextureURL())) {
+            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(rewriteKey)) {
                 QString property = propertyEntityPair.first;
                 // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
                 auto entity = propertyEntityPair.second.toObject();
@@ -557,10 +565,10 @@ void DomainBaker::handleFinishedTextureBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-        _entitiesNeedingRewrite.remove(baker->getTextureURL());
+        _entitiesNeedingRewrite.remove(rewriteKey);
 
         // drop our shared pointer to this baker so that it gets cleaned up
-        _textureBakers.remove(baker->getTextureURL());
+        _textureBakers.remove({ baker->getTextureURL(), baker->getTextureType() });
 
         // emit progress to tell listeners how many textures we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);

@@ -199,6 +199,8 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
+    std::vector<AvatarSkeletonTrait::UnpackedJointData> getSkeletonDefaultData();
+
     /**jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.
      * <p>For information on the joint hierarchy used, see
@@ -337,7 +339,7 @@ public:
      */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    Q_INVOKABLE virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void updateDisplayNameAlpha(bool showDisplayName);
@@ -439,7 +441,7 @@ public:
     /**jsdoc
      * Gets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.getParentID
-     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid|Uuid.NULL} if not parented.
+     * @returns {Uuid} The ID of the entity or avatar that the avatar is parented to. {@link Uuid(0)|Uuid.NULL} if not parented.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
@@ -448,7 +450,7 @@ public:
      * Sets the ID of the entity of avatar that the avatar is parented to.
      * @function MyAvatar.setParentID
      * @param {Uuid} parentID - The ID of the entity or avatar that the avatar should be parented to. Set to 
-     *    {@link Uuid|Uuid.NULL} to unparent.
+     *    {@link Uuid(0)|Uuid.NULL} to unparent.
      */
     // This calls through to the SpatiallyNestable versions, but is here to expose these to JavaScript.
     Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
@@ -501,8 +503,8 @@ public:
 
     /**jsdoc
      * @function MyAvatar.getSimulationRate
-     * @param {string} [rateName=""] - Rate name.
-     * @returns {number} Simulation rate.
+     * @param {AvatarSimulationRate} [rateName=""] - Rate name.
+     * @returns {number} Simulation rate in Hz.
      * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE float getSimulationRate(const QString& rateName = QString("")) const;
@@ -521,6 +523,7 @@ public:
 
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::Transaction& transaction, KillAvatarReason reason);
+    render::Transition::Type getLastFadeRequested() const;
 
     // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
@@ -692,13 +695,14 @@ protected:
     glm::vec3 getDisplayNamePosition() const;
 
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition, bool forward) const;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene(const render::ScenePointer& scene);
 
     virtual void updatePalms();
 
     render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
+    render::Transition::Type _lastFadeRequested { render::Transition::Type::NONE }; // Used for sanity checking
 
     ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };

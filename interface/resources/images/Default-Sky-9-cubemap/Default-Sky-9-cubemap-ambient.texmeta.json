@@ -1,0 +1,9 @@
+{
+    "compressed": {
+        "COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT": "Default-Sky-9-cubemap-ambient_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT.ktx",
+        "COMPRESSED_SRGB8_ETC2": "Default-Sky-9-cubemap-ambient_COMPRESSED_SRGB8_ETC2.ktx"
+    },
+    "original": "Default-Sky-9-cubemap-ambient.jpg",
+    "uncompressed": "Default-Sky-9-cubemap-ambient.ktx",
+    "version": 1
+}

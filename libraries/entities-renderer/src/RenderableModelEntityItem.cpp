@@ -282,27 +282,26 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
+    _collisionGeometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
 }
 
-bool RenderableModelEntityItem::computeShapeFailedToLoad() {
-    if (!_compoundShapeResource) {
+bool RenderableModelEntityItem::unableToLoadCollisionShape() {
+    if (!_collisionGeometryResource) {
         fetchCollisionGeometryResource();
     }
-
-    return (_compoundShapeResource && _compoundShapeResource->isFailed());
+    return (_collisionGeometryResource && _collisionGeometryResource->isFailed());
 }
 
 void RenderableModelEntityItem::setShapeType(ShapeType type) {
     ModelEntityItem::setShapeType(type);
     auto shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
-        if (!_compoundShapeResource && !getCollisionShapeURL().isEmpty()) {
+        if (!_collisionGeometryResource && !getCollisionShapeURL().isEmpty()) {
             fetchCollisionGeometryResource();
         }
-    } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
+    } else if (_collisionGeometryResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
-        _compoundShapeResource.reset();
+        _collisionGeometryResource.reset();
     }
 }
 
@@ -333,11 +332,11 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
         }
 
         if (model->isLoaded()) {
-            if (!shapeURL.isEmpty() && !_compoundShapeResource) {
+            if (!shapeURL.isEmpty() && !_collisionGeometryResource) {
                 const_cast<RenderableModelEntityItem*>(this)->fetchCollisionGeometryResource();
             }
 
-            if (_compoundShapeResource && _compoundShapeResource->isLoaded()) {
+            if (_collisionGeometryResource && _collisionGeometryResource->isLoaded()) {
                 // we have both URLs AND both geometries AND they are both fully loaded.
                 if (_needsInitialSimulation) {
                     // the _model's offset will be wrong until _needsInitialSimulation is false
@@ -361,13 +360,23 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
+
+    auto model = getModel();
+    if (!model || !model->isLoaded()) {
+        type = SHAPE_TYPE_NONE;
+    }
+
     if (type == SHAPE_TYPE_COMPOUND) {
+        if (!_collisionGeometryResource || !_collisionGeometryResource->isLoaded()) {
+            return;
+        }
+
         updateModelBounds();
 
         // should never fall in here when collision model not fully loaded
         // TODO: assert that all geometries exist and are loaded
-        //assert(_model && _model->isLoaded() && _compoundShapeResource && _compoundShapeResource->isLoaded());
-        const HFMModel& collisionGeometry = _compoundShapeResource->getHFMModel();
+        //assert(_model && _model->isLoaded() && _collisionGeometryResource && _collisionGeometryResource->isLoaded());
+        const HFMModel& collisionGeometry = _collisionGeometryResource->getHFMModel();
 
         ShapeInfo::PointCollection& pointCollection = shapeInfo.getPointCollection();
         pointCollection.clear();
@@ -442,10 +451,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
-        auto model = getModel();
-        // assert we never fall in here when model not fully loaded
-        assert(model && model->isLoaded());
-
         glm::vec3 dimensions = getScaledDimensions();
         glm::vec3 scaleToFit = dimensions / model->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
@@ -461,7 +466,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         adjustShapeInfoByRegistration(shapeInfo);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
         updateModelBounds();
-        auto model = getModel();
         // assert we never fall in here when model not fully loaded
         assert(model && model->isLoaded());
         model->updateGeometry();
@@ -494,7 +498,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
 
         std::vector<std::shared_ptr<const graphics::Mesh>> meshes;
         if (type == SHAPE_TYPE_SIMPLE_COMPOUND) {
-            auto& hfmMeshes = _compoundShapeResource->getHFMModel().meshes;
+            auto& hfmMeshes = _collisionGeometryResource->getHFMModel().meshes;
             meshes.reserve(hfmMeshes.size());
             for (auto& hfmMesh : hfmMeshes) {
                 meshes.push_back(hfmMesh._mesh);
@@ -722,10 +726,10 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
-    if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
+    if (EntityItem::contains(point) && model && _collisionGeometryResource && _collisionGeometryResource->isLoaded()) {
         glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
         glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
-        return _compoundShapeResource->getHFMModel().convexHullContains(hfmPoint);
+        return _collisionGeometryResource->getHFMModel().convexHullContains(hfmPoint);
     }
 
     return false;
@@ -735,13 +739,15 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
     auto model = getModel();
     // If we have a model, make sure it hasn't failed to download.
     // If it has, we'll report back that we shouldn't be physical so that physics aren't held waiting for us to be ready.
-    if (model && (getShapeType() == SHAPE_TYPE_COMPOUND || getShapeType() == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
-        return false;
-    } else if (model && getShapeType() != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
-        return false;
-    } else {
-        return ModelEntityItem::shouldBePhysical();
+    ShapeType shapeType = getShapeType();
+    if (model) {
+        if ((shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) && model->didCollisionGeometryRequestFail()) {
+            return false;
+        } else if (shapeType != SHAPE_TYPE_NONE && model->didVisualGeometryRequestFail()) {
+            return false;
+        }
     }
+    return !isDead() && shapeType != SHAPE_TYPE_NONE && !isLocalEntity() && QUrl(_modelURL).isValid();
 }
 
 int RenderableModelEntityItem::getJointParent(int index) const {
@@ -1066,14 +1072,7 @@ ItemKey ModelEntityRenderer::getKey() {
     return _itemKey;
 }
 
-render::hifi::Tag ModelEntityRenderer::getTagMask() const {
-    // Default behavior for model is to not be visible in main view if cauterized (aka parented to the avatar's neck joint)
-    return _cauterized ?
-        (_isVisibleInSecondaryCamera ? render::hifi::TAG_SECONDARY_VIEW : render::hifi::TAG_NONE) :
-        Parent::getTagMask(); // calculate which views to be shown in
-}
-
-uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
+uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     if (_model) {
         auto metaSubItems = _model->fetchRenderItemIDs();
         subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
@@ -1409,6 +1408,10 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         model->setVisibleInScene(_visible, scene);
     }
 
+    if (model->isCauterized() != _cauterized) {
+        model->setCauterized(_cauterized, scene);
+    }
+
     render::hifi::Tag tagMask = getTagMask();
     if (model->getTagMask() != tagMask) {
         model->setTagMask(tagMask, scene);
@@ -1515,7 +1518,8 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
     static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
     gpu::Batch& batch = *args->_batch;
     batch.setModelTransform(getModelTransform()); // we want to include the scale as well
-    DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->renderWireCubeInstance(args, batch, greenColor, geometryCache->getShapePipelinePointer(false, false, args->_renderMethod == Args::RenderMethod::FORWARD));
 
 #if WANT_EXTRA_DEBUGGING
     ModelPointer model;
@@ -1523,7 +1527,7 @@ void ModelEntityRenderer::doRender(RenderArgs* args) {
         model = _model;
     });
     if (model) {
-        model->renderDebugMeshBoxes(batch);
+        model->renderDebugMeshBoxes(batch, args->_renderMethod == Args::RenderMethod::FORWARD);
     }
 #endif
 }

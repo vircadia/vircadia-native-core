@@ -220,6 +220,10 @@ void GL45Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
+// (NOTE: it seems to work now, but for posterity:) DSA ARB does not work on AMD, so use EXT
+// unless EXT is not available on the driver
+#define AMD_CUBE_MAP_EXT_WORKAROUND 0
+
 Size GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     Size amountCopied = sourceSize;
     if (GL_TEXTURE_2D == _target) {
@@ -267,22 +271,26 @@ Size GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SIGNED_R11_EAC:
             case GL_COMPRESSED_RG11_EAC:
             case GL_COMPRESSED_SIGNED_RG11_EAC:
+#if AMD_CUBE_MAP_EXT_WORKAROUND
                 if (glCompressedTextureSubImage2DEXT) {
                     auto target = GLTexture::CUBE_FACE_LAYOUT[face];
                     glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                                      static_cast<GLsizei>(sourceSize), sourcePointer);
-                } else {
+                } else
+#endif
+                {
                     glCompressedTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, internalFormat,
                                                   static_cast<GLsizei>(sourceSize), sourcePointer);
                 }
                 break;
             default:
-                // DSA ARB does not work on AMD, so use EXT
-                // unless EXT is not available on the driver
+#if AMD_CUBE_MAP_EXT_WORKAROUND
                 if (glTextureSubImage2DEXT) {
                     auto target = GLTexture::CUBE_FACE_LAYOUT[face];
                     glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
-                } else {
+                } else
+#endif
+                {
                     glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
                 }
                 break;

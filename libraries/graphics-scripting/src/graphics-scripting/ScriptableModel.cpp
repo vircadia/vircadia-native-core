@@ -39,7 +39,7 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     normalMap = material.normalMap;
     bumpMap = material.bumpMap;
     occlusionMap = material.occlusionMap;
-    lightmapMap = material.lightmapMap;
+    lightMap = material.lightMap;
     scatteringMap = material.scatteringMap;
 
     defaultFallthrough = material.defaultFallthrough;
@@ -110,9 +110,9 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
             occlusionMap = map->getTextureSource()->getUrl().toString();
         }
 
-        map = material->getTextureMap(graphics::Material::MapChannel::LIGHTMAP_MAP);
+        map = material->getTextureMap(graphics::Material::MapChannel::LIGHT_MAP);
         if (map && map->getTextureSource()) {
-            lightmapMap = map->getTextureSource()->getUrl().toString();
+            lightMap = map->getTextureSource()->getUrl().toString();
         }
 
         map = material->getTextureMap(graphics::Material::MapChannel::SCATTERING_MAP);

@@ -21,6 +21,7 @@
 #include "BakeWidget.h"
 
 class QLineEdit;
+class QCheckBox;
 
 class SkyboxBakeWidget : public BakeWidget {
     Q_OBJECT
@@ -42,9 +43,12 @@ private:
 
     QLineEdit* _selectionLineEdit;
     QLineEdit* _outputDirLineEdit;
+    QCheckBox* _ambientMapBox;
 
     Setting::Handle<QString> _exportDirectory;
     Setting::Handle<QString> _selectionStartDirectory;
+
+    void addBaker(TextureBaker* baker, const QDir& outputDir);
 };
 
 #endif // hifi_SkyboxBakeWidget_h

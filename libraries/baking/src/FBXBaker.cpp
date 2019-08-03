@@ -31,7 +31,6 @@
 #include <FBXWriter.h>
 
 #include "ModelBakingLoggingCategory.h"
-#include "TextureBaker.h"
 
 FBXBaker::FBXBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
         ModelBaker(inputModelURL, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {

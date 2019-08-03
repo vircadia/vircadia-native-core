@@ -46,6 +46,7 @@ bool OctreeEditPacketSender::serversExist() const {
 void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, std::unique_ptr<NLPacket> packet) {
 
     bool wantDebug = false;
+    QMutexLocker lock(&_packetsQueueLock);
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType()
@@ -324,6 +325,8 @@ bool OctreeEditPacketSender::process() {
 void OctreeEditPacketSender::processNackPacket(ReceivedMessage& message, SharedNodePointer sendingNode) {
     // parse sending node from packet, retrieve packet history for that node
 
+    QMutexLocker lock(&_packetsQueueLock);
+
     // if packet history doesn't exist for the sender node (somehow), bail
     if (_sentPacketHistories.count(sendingNode->getUUID()) == 0) {
         return;
@@ -345,7 +348,7 @@ void OctreeEditPacketSender::processNackPacket(ReceivedMessage& message, SharedN
 }
 
 void OctreeEditPacketSender::nodeKilled(SharedNodePointer node) {
-    // TODO: add locks
+    QMutexLocker lock(&_packetsQueueLock);
     QUuid nodeUUID = node->getUUID();
     _pendingEditPackets.erase(nodeUUID);
     _outgoingSequenceNumbers.erase(nodeUUID);

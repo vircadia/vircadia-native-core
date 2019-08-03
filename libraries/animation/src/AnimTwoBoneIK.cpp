@@ -128,7 +128,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     if (triggersOut.hasKey(endEffectorPositionVar)) {
         targetPose.trans() = triggersOut.lookupRigToGeometry(endEffectorPositionVar, tipPose.trans());
-    } else if (animVars.hasKey(endEffectorRotationVar)) {
+    } else if (animVars.hasKey(endEffectorPositionVar)) {
         targetPose.trans() = animVars.lookupRigToGeometry(endEffectorPositionVar, tipPose.trans());
     }
 
@@ -147,9 +147,11 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     // http://mathworld.wolfram.com/Circle-CircleIntersection.html
     float midAngle = 0.0f;
-    if (d < r0 + r1) {
+    if ((d < r0 + r1) && (d > 0.0f) && (r0 > 0.0f) && (r1 > 0.0f)) {
         float y = sqrtf((-d + r1 - r0) * (-d - r1 + r0) * (-d + r1 + r0) * (d + r1 + r0)) / (2.0f * d);
-        midAngle = PI - (acosf(y / r0) + acosf(y / r1));
+        float yR0Quotient = glm::clamp(y / r0, -1.0f, 1.0f);
+        float yR1Quotient = glm::clamp(y / r1, -1.0f, 1.0f);
+        midAngle = PI - (acosf(yR0Quotient) + acosf(yR1Quotient));
     }
 
     // compute midJoint rotation

@@ -3,6 +3,9 @@ import QtQuick 2.5
 StateImage {
     id: button
 
+    // NOTE: These properties form part of the "TabletButtonProxy.ButtonProperties" type.
+    // Keep the type's JSDoc up to date with any changes.
+
     property color defaultCaptionColor: "#ffffff"
     property color captionColor: defaultCaptionColor
 

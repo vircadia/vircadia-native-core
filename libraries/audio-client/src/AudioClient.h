@@ -241,8 +241,10 @@ public slots:
     void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
+
     void setLocalInjectorGain(float gain) { _localInjectorGain = gain; };
     void setSystemInjectorGain(float gain) { _systemInjectorGain = gain; };
+    void setOutputGain(float gain) { _outputGain = gain; };
 
     void outputNotify();
 
@@ -338,6 +340,7 @@ private:
     QIODevice* _inputDevice;
     int _numInputCallbackBytes;
     QAudioOutput* _audioOutput;
+    std::atomic<bool> _audioOutputInitialized { false };
     QAudioFormat _desiredOutputFormat;
     QAudioFormat _outputFormat;
     int _outputFrameSize;
@@ -387,6 +390,7 @@ private:
     AudioSRC* _inputToNetworkResampler;
     AudioSRC* _networkToOutputResampler;
     AudioSRC* _localToOutputResampler;
+    AudioSRC* _loopbackResampler;
 
     // for network audio (used by network audio thread)
     int16_t _networkScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
@@ -395,6 +399,8 @@ private:
     int _outputPeriod { 0 };
     float* _outputMixBuffer { NULL };
     int16_t* _outputScratchBuffer { NULL };
+    std::atomic<float> _outputGain { 1.0f };
+    float _lastOutputGain { 1.0f };
 
     // for local audio (used by audio injectors thread)
     std::atomic<float> _localInjectorGain { 1.0f };

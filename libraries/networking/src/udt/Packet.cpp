@@ -171,6 +171,7 @@ void Packet::copyMembers(const Packet& other) {
     _packetPosition = other._packetPosition;
     _messageNumber = other._messageNumber;
     _messagePartNumber = other._messagePartNumber;
+    _receiveTime = other._receiveTime;
 }
 
 void Packet::readHeader() const {

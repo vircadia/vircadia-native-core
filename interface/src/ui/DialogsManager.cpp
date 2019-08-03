@@ -156,10 +156,10 @@ void DialogsManager::hmdTools(bool showTools) {
         }
         _hmdToolsDialog->show();
         _hmdToolsDialog->raise();
+        qApp->getWindow()->activateWindow();
     } else {
         hmdToolsClosed();
     }
-    qApp->getWindow()->activateWindow();
 }
 
 void DialogsManager::hmdToolsClosed() {

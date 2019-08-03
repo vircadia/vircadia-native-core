@@ -30,6 +30,18 @@
 
 class HashKey {
 public:
+    class Hasher {
+    public:
+        Hasher() {}
+        void hashUint64(uint64_t data);
+        void hashFloat(float data);
+        void hashVec3(const glm::vec3& data);
+        uint64_t getHash64() const { return _hash; }
+    private:
+        uint64_t _hash { 0 };
+        uint8_t _hashCount { 0 };
+    };
+
     static float getNumQuantizedValuesPerMeter();
 
     HashKey() {}
@@ -39,16 +51,9 @@ public:
     bool equals(const HashKey& other) const { return _hash == other._hash; }
     int32_t getHash() const { return (int32_t)((uint32_t)_hash); }
 
-    // These methods for accumulating a hash.
-    void hashUint64(uint64_t data);
-    void hashFloat(float data);
-    void hashVec3(const glm::vec3& data);
-
     uint64_t getHash64() const { return _hash; }
-
 private:
     uint64_t _hash { 0 };
-    uint8_t _hashCount { 0 };
 };
 
 #endif // hifi_HashKey_h

@@ -43,15 +43,6 @@ static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.Loc
 using namespace std::chrono_literals;
 static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
 
-const std::set<NodeType_t> SOLO_NODE_TYPES = {
-    NodeType::AvatarMixer,
-    NodeType::AudioMixer,
-    NodeType::AssetServer,
-    NodeType::EntityServer,
-    NodeType::MessagesMixer,
-    NodeType::EntityScriptServer
-};
-
 LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     _nodeSocket(this),
     _packetReceiver(new PacketReceiver(this))
@@ -196,6 +187,10 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
     if (originalPermissions.can(NodePermissions::Permission::canReplaceDomainContent) !=
         newPermissions.can(NodePermissions::Permission::canReplaceDomainContent)) {
         emit canReplaceContentChanged(_permissions.can(NodePermissions::Permission::canReplaceDomainContent));
+    }
+    if (originalPermissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData) !=
+        newPermissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData)) {
+        emit canGetAndSetPrivateUserDataChanged(_permissions.can(NodePermissions::Permission::canGetAndSetPrivateUserData));
     }
 }
 
@@ -414,6 +409,16 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
 
+    if (_dropOutgoingNodeTraffic) {
+        auto destinationNode = findNodeWithAddr(sockAddr);
+
+        // findNodeWithAddr returns null for the address of the domain server
+        if (!destinationNode.isNull()) {
+            // This only suppresses individual unreliable packets, not unreliable packet lists
+            return ERROR_SENDING_PACKET_BYTES;
+        }
+    }
+
     fillPacketHeader(packet, hmacAuth);
 
     return _nodeSocket.writePacket(packet, sockAddr);
@@ -442,7 +447,21 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
 
         return size;
     } else {
-        return sendUnreliablePacket(*packet, sockAddr, hmacAuth);
+        auto size = sendUnreliablePacket(*packet, sockAddr, hmacAuth);
+        if (size < 0) {
+            auto now = usecTimestampNow();
+            if (now - _sendErrorStatsTime > ERROR_STATS_PERIOD_US) {
+                _sendErrorStatsTime = now;
+                eachNode([now](const SharedNodePointer& node) {
+                    qCDebug(networking) << "Stats for " << node->getPublicSocket() << "\n"
+                        << "    Last Heard Microstamp: " << node->getLastHeardMicrostamp() << " (" << (now - node->getLastHeardMicrostamp()) << "usec ago)\n"
+                        << "    Outbound Kbps: " << node->getOutboundKbps() << "\n"
+                        << "    Inbound Kbps: " << node->getInboundKbps() << "\n"
+                        << "    Ping: " << node->getPingMs();
+                });
+            }
+        }
+        return size;
     }
 }
 
@@ -565,7 +584,7 @@ SharedNodePointer LimitedNodeList::nodeWithLocalID(Node::LocalID localID) const 
     return idIter == _localIDMap.cend() ? nullptr : idIter->second;
 }
 
-void LimitedNodeList::eraseAllNodes() {
+void LimitedNodeList::eraseAllNodes(QString reason) {
     std::vector<SharedNodePointer> killedNodes;
 
     {
@@ -574,7 +593,7 @@ void LimitedNodeList::eraseAllNodes() {
         QWriteLocker writeLocker(&_nodeMutex);
 
         if (_nodeHash.size() > 0) {
-            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList.";
+            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList:" << reason;
 
             killedNodes.reserve(_nodeHash.size());
             for (auto& pair : _nodeHash) {
@@ -592,8 +611,8 @@ void LimitedNodeList::eraseAllNodes() {
     _delayedNodeAdds.clear();
 }
 
-void LimitedNodeList::reset() {
-    eraseAllNodes();
+void LimitedNodeList::reset(QString reason) {
+    eraseAllNodes(reason);
 
     // we need to make sure any socket connections are gone so wait on that here
     _nodeSocket.clearConnections();
@@ -626,6 +645,7 @@ void LimitedNodeList::processKillNode(ReceivedMessage& message) {
 }
 
 void LimitedNodeList::handleNodeKill(const SharedNodePointer& node, ConnectionID nextConnectionID) {
+    _nodeDisconnectTimestamp = usecTimestampNow();
     qCDebug(networking) << "Killed" << *node;
     node->stopPingTimer();
     emit nodeKilled(node);
@@ -734,6 +754,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
         emit nodeSocketUpdated(weakPtr);
     });
+    connect(newNodePointer.data(), &NetworkPeer::socketUpdated, &_nodeSocket, &udt::Socket::handleRemoteAddressChange);
 
     return newNodePointer;
 }
@@ -865,6 +886,8 @@ void LimitedNodeList::removeSilentNodes() {
 
     QSet<SharedNodePointer> killedNodes;
 
+    auto startedAt = usecTimestampNow();
+
     eachNodeHashIterator([&](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
@@ -885,6 +908,15 @@ void LimitedNodeList::removeSilentNodes() {
     });
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
+        auto now = usecTimestampNow();
+        qCDebug(networking_ice) << "Removing silent node" << *killedNode << "\n"
+            << "    Now: " << now << "\n"
+            << "    Started at: " << startedAt << " (" << (now - startedAt) << "us ago)\n"
+            << "    Last Heard Microstamp: " << killedNode->getLastHeardMicrostamp() << " (" << (now - killedNode->getLastHeardMicrostamp()) << "us ago)\n"
+            << "    Forced Never Silent: " << killedNode->isForcedNeverSilent() << "\n"
+            << "    Inbound PPS: " << killedNode->getInboundPPS() << "\n"
+            << "    Inbound Kbps: " << killedNode->getInboundKbps() << "\n"
+            << "    Ping: " << killedNode->getPingMs();
         handleNodeKill(killedNode);
     }
 }
@@ -968,7 +1000,7 @@ void LimitedNodeList::sendSTUNRequest() {
         const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
 
         if (!_hasCompletedInitialSTUN) {
-            qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
+            qCDebug(networking) << "Sending initial stun request to" << STUN_SERVER_HOSTNAME;
 
             if (_numInitialSTUNRequests > NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL) {
                 // we're still trying to do our initial STUN we're over the fail threshold
@@ -1057,11 +1089,13 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
     if (parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
 
         if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
-            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-
-            qCDebug(networking, "New public socket received from STUN server is %s:%hu",
+            qCDebug(networking, "New public socket received from STUN server is %s:%hu (was %s:%hu)",
+                    newPublicAddress.toString().toStdString().c_str(),
+                    newPublicPort,
                     _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                     _publicSockAddr.getPort());
+
+            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
             if (!_hasCompletedInitialSTUN) {
                 // if we're here we have definitely completed our initial STUN sequence
@@ -1157,7 +1191,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
 
     // We now setup a timer here to fire every so often to check that our IP address has not changed.
     // Or, if we failed - if will check if we can eventually get a public socket
-    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 10 * 1000;
 
     QTimer* stunOccasionalTimer = new QTimer { this };
     connect(stunOccasionalTimer, &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
@@ -1215,15 +1249,22 @@ void LimitedNodeList::errorTestingLocalSocket() {
 }
 
 void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
-    if (sockAddr != _localSockAddr) {
+    if (sockAddr.getAddress() != _localSockAddr.getAddress()) {
 
         if (_localSockAddr.isNull()) {
             qCInfo(networking) << "Local socket is" << sockAddr;
+            _localSockAddr = sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
+            _localSockAddr = sockAddr;
+            if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
+                reset("local socket change");
+                _nodeSocket.rebind(0);
+                _localSockAddr.setPort(_nodeSocket.localPort());
+                qCInfo(networking) << "Local port changed to" << _localSockAddr.getPort();
+            }
         }
 
-        _localSockAddr = sockAddr;
         emit localSockAddrChanged(_localSockAddr);
     }
 }
@@ -1265,7 +1306,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSoc
 
         iceDataStream << peerID;
 
-        qCDebug(networking) << "Sending packet to ICE server to request connection info for peer with ID"
+        qCDebug(networking_ice) << "Sending packet to ICE server to request connection info for peer with ID"
             << uuidStringWithoutCurlyBraces(peerID);
     }
 

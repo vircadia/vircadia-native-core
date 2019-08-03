@@ -45,6 +45,7 @@ int AvatarAudioStream::parseStreamProperties(PacketType type, const QByteArray& 
                                            : AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
             // restart the codec
             if (_codec) {
+                QMutexLocker lock(&_decoderMutex);
                 if (_decoder) {
                     _codec->releaseDecoder(_decoder);
                 }

@@ -122,22 +122,22 @@ void PickManager::update() {
     // FIXME: give each type its own expiry
     // Each type will update at least one pick, regardless of the expiry
     {
-        PROFILE_RANGE(picks, "StylusPicks");
+        PROFILE_RANGE_EX(picks, "StylusPicks", 0xffff0000, (uint64_t)_totalPickCounts[PickQuery::Stylus]);
         PerformanceTimer perfTimer("StylusPicks");
         _updatedPickCounts[PickQuery::Stylus] = _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
     }
     {
-        PROFILE_RANGE(picks, "RayPicks");
+        PROFILE_RANGE_EX(picks, "RayPicks", 0xffff0000, (uint64_t)_totalPickCounts[PickQuery::Ray]);
         PerformanceTimer perfTimer("RayPicks");
         _updatedPickCounts[PickQuery::Ray] = _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
     }
     {
-        PROFILE_RANGE(picks, "ParabolaPick");
-        PerformanceTimer perfTimer("ParabolaPick");
+        PROFILE_RANGE_EX(picks, "ParabolaPicks", 0xffff0000, (uint64_t)_totalPickCounts[PickQuery::Parabola]);
+        PerformanceTimer perfTimer("ParabolaPicks");
         _updatedPickCounts[PickQuery::Parabola] = _parabolaPickCacheOptimizer.update(cachedPicks[PickQuery::Parabola], _nextPickToUpdate[PickQuery::Parabola], expiry, shouldPickHUD);
     }
     {
-        PROFILE_RANGE(picks, "CollisoinPicks");
+        PROFILE_RANGE_EX(picks, "CollisionPicks", 0xffff0000, (uint64_t)_totalPickCounts[PickQuery::Collision]);
         PerformanceTimer perfTimer("CollisionPicks");
         _updatedPickCounts[PickQuery::Collision] = _collisionPickCacheOptimizer.update(cachedPicks[PickQuery::Collision], _nextPickToUpdate[PickQuery::Collision], expiry, false);
     }

@@ -17,6 +17,8 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 
+#include "TransitionStage.h"
+
 #include <gpu/Context.h>
 
 #include <shaders/Shaders.h>
@@ -26,7 +28,7 @@
 using namespace render;
 
 void DrawStatusConfig::dirtyHelper() {
-    _isEnabled = showNetwork || showDisplay;
+    _isEnabled = showNetwork || showDisplay || showFade;
     emit dirty();
 }
 
@@ -79,6 +81,7 @@ const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
 void DrawStatus::configure(const Config& config) {
     _showDisplay = config.showDisplay;
     _showNetwork = config.showNetwork;
+    _showFade = config.showFade;
 }
 
 void DrawStatus::run(const RenderContextPointer& renderContext, const Input& input) {
@@ -96,40 +99,102 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
     int nbItems = 0;
     render::ItemBounds itemBounds;
     std::vector<std::pair<glm::ivec4, glm::ivec4>> itemStatus;
-    {
-        for (size_t i = 0; i < inItems.size(); ++i) {
-            const auto& item = inItems[i];
-            if (!item.bound.isInvalid()) {
-                if (!item.bound.isNull()) {
-                    itemBounds.emplace_back(render::ItemBound(item.id, item.bound));
-                } else {
-                    itemBounds.emplace_back(item.id, AABox(item.bound.getCorner(), 0.1f));
-                }
 
-                auto& itemScene = scene->getItem(item.id);
+    for (size_t i = 0; i < inItems.size(); ++i) {
+        const auto& item = inItems[i];
+        if (!item.bound.isInvalid()) {
+            if (!item.bound.isNull()) {
+                itemBounds.emplace_back(render::ItemBound(item.id, item.bound));
+            } else {
+                itemBounds.emplace_back(item.id, AABox(item.bound.getCorner(), 0.1f));
+            }
 
-                auto itemStatusPointer = itemScene.getStatus();
-                if (itemStatusPointer) {
-                    itemStatus.push_back(std::pair<glm::ivec4, glm::ivec4>());
-                    // Query the current status values, this is where the statusGetter lambda get called
-                    auto&& currentStatusValues = itemStatusPointer->getCurrentValues();
-                    int valueNum = 0;
-                    for (int vec4Num = 0; vec4Num < NUM_STATUS_VEC4_PER_ITEM; vec4Num++) {
-                        auto& value = (vec4Num ? itemStatus[nbItems].first : itemStatus[nbItems].second);
-                        value = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
-                        for (int component = 0; component < VEC4_LENGTH; component++) {
-                            valueNum = vec4Num * VEC4_LENGTH + component;
-                            if (valueNum < (int)currentStatusValues.size()) {
-                                value[component] = currentStatusValues[valueNum].getPackedData();
+            auto& itemScene = scene->getItem(item.id);
+
+            if (_showNetwork || _showFade) {
+                const static auto invalid = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
+                itemStatus.emplace_back(invalid, invalid);
+                int vec4Num = 0;
+                int vec4Component = 0;
+
+                if (_showNetwork) {
+                    auto itemStatusPointer = itemScene.getStatus();
+                    if (itemStatusPointer) {
+                        // Query the current status values, this is where the statusGetter lambda get called
+                        auto&& currentStatusValues = itemStatusPointer->getCurrentValues();
+                        for (const auto& statusValue : currentStatusValues) {
+                            if (vec4Num == NUM_STATUS_VEC4_PER_ITEM) {
+                                // Ran out of space
+                                break;
+                            }
+
+                            auto& value = (vec4Num == 0 ? itemStatus[nbItems].first : itemStatus[nbItems].second);
+                            value[vec4Component] = statusValue.getPackedData();
+
+                            ++vec4Component;
+                            if (vec4Component == VEC4_LENGTH) {
+                                vec4Component = 0;
+                                ++vec4Num;
                             }
                         }
                     }
-                } else {
-                    auto invalid = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
-                    itemStatus.emplace_back(invalid, invalid);
                 }
-                nbItems++;
+
+                if (_showFade && vec4Num != NUM_STATUS_VEC4_PER_ITEM) {
+                    auto& value = (vec4Num == 0 ? itemStatus[nbItems].first : itemStatus[nbItems].second);
+
+                    Item::Status::Value status;
+                    auto transitionID = itemScene.getTransitionId();
+                    if (transitionID != INVALID_INDEX) {
+                        // We have a transition. Show this icon.
+                        status.setScale(1.0f);
+                        // Is this a valid transition ID according to FadeJob?
+                        auto transitionStage = scene->getStage<TransitionStage>(TransitionStage::getName());
+                        if (transitionStage) {
+                            if (transitionStage->isTransitionUsed(transitionID)) {
+                                // Valid, active transition
+                                status.setColor(Item::Status::Value::CYAN);
+                            } else {
+                                // Render item has a defined transition ID, but it's unallocated and isn't being processed
+                                status.setColor(Item::Status::Value::RED);
+                            }
+                            // Set icon based on transition type
+                            auto& transition = transitionStage->getTransition(transitionID);
+                            switch (transition.eventType) {
+                            case Transition::Type::USER_ENTER_DOMAIN:
+                                status.setIcon((unsigned char)Item::Status::Icon::USER_TRANSITION_IN);
+                                break;
+                            case Transition::Type::USER_LEAVE_DOMAIN:
+                                status.setIcon((unsigned char)Item::Status::Icon::USER_TRANSITION_OUT);
+                                break;
+                            case Transition::ELEMENT_ENTER_DOMAIN:
+                                status.setIcon((unsigned char)Item::Status::Icon::GENERIC_TRANSITION_IN);
+                                break;
+                            case Transition::ELEMENT_LEAVE_DOMAIN:
+                                status.setIcon((unsigned char)Item::Status::Icon::GENERIC_TRANSITION_OUT);
+                                break;
+                            default:
+                                status.setIcon((unsigned char)Item::Status::Icon::GENERIC_TRANSITION);
+                                break;
+                            }
+                        } else {
+                            // No way to determine transition
+                            status.setScale(0.0f);
+                        }
+                    } else {
+                        status.setScale(0.0f);
+                    }
+                    value[vec4Component] = status.getPackedData();
+
+                    ++vec4Component;
+                    if (vec4Component == VEC4_LENGTH) {
+                        vec4Component = 0;
+                        ++vec4Num;
+                    }
+                }
             }
+
+            nbItems++;
         }
     }
 
@@ -169,7 +234,7 @@ void DrawStatus::run(const RenderContextPointer& renderContext, const Input& inp
 
         batch.setPipeline(getDrawItemStatusPipeline());
 
-        if (_showNetwork) {
+        if (_showNetwork || _showFade) {
             if (!_instanceBuffer) {
                 _instanceBuffer = std::make_shared<gpu::Buffer>();
             }

@@ -22,16 +22,16 @@
 namespace entity {
 
     /**jsdoc
-     * <p>A <code>Shape</code>, <code>Box</code>, or <code>Sphere</code> {@link Entities.EntityType|EntityType} may display as 
-     * one of the following geometrical shapes:</p>
+     * <p>A <code>"Shape"</code>, <code>"Box"</code>, or <code>"Sphere"</code> {@link Entities.EntityType|EntityType} may 
+     * display as one of the following geometrical shapes:</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Dimensions</th><th>Notes</th></tr>
      *   </thead>
      *   <tbody>
      *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></tr>
-     *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Cone"</code></td><td>3D</td><td></td></tr>
+     *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Cylinder"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Dodecahedron"</code></td><td>3D</td><td></td></tr>
      *     <tr><td><code>"Hexagon"</code></td><td>3D</td><td>A hexagonal prism.</td></tr>

@@ -30,7 +30,7 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -482,7 +482,7 @@ void AddressManager::goToAddressFromObject(const QVariantMap& dataObject, const 
                 } else {
                     QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
 
-                    qCDebug(networking) << "Possible domain change required to connect to domain with ID" << domainID
+                    qCDebug(networking_ice) << "Possible domain change required to connect to domain with ID" << domainID
                         << "via ice-server at" << iceServerAddress;
 
                     emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);

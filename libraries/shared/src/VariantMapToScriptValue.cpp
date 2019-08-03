@@ -44,7 +44,7 @@ QScriptValue variantToScriptValue(QVariant& qValue, QScriptEngine& scriptEngine)
             if (qValue.canConvert<float>()) {
                 return qValue.toFloat();
             }
-            qCDebug(shared) << "unhandled QScript type" << qValue.type();
+            //qCDebug(shared) << "unhandled QScript type" << qValue.type();
             break;
     }
 

@@ -38,6 +38,18 @@ public:
     glm::vec3 intersection { NAN };
     glm::vec3 surfaceNormal { NAN };
 
+    /**jsdoc
+     * An intersection result for a stylus pick.
+     *
+     * @typedef {object} StylusPickResult
+     * @property {number} type - The intersection type.
+     * @property {boolean} intersects - <code>true</code> if there's a valid intersection, <code>false</code> if there isn't.
+     * @property {Uuid} objectID - The ID of the intersected object. <code>null</code> for invalid intersections.
+     * @property {number} distance - The distance to the intersection point from the stylus tip.
+     * @property {Vec3} intersection - The intersection point in world coordinates.
+     * @property {Vec3} surfaceNormal - The surface normal at the intersected point.
+     * @property {StylusTip} stylusTip - The stylus tip at the time of the result. Valid even if there is no intersection.
+     */
     virtual QVariantMap toVariantMap() const override {
         QVariantMap toReturn;
         toReturn["type"] = type;

@@ -33,8 +33,6 @@
 // but are readjusted afterwards
 #define SHADOW_FRUSTUM_NEAR 1.0f
 #define SHADOW_FRUSTUM_FAR  500.0f
-static const unsigned int SHADOW_CASCADE_COUNT{ 4 };
-static const float SHADOW_MAX_DISTANCE{ 40.0f };
 
 using namespace render;
 
@@ -57,11 +55,6 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
         auto fadeEffect = DependencyManager::get<FadeEffect>();
         initZPassPipelines(*shapePlumber, state, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     }
-
-    // FIXME: calling this here before the zones/lights are drawn during the deferred/forward passes means we're actually using the frames from the previous draw
-    // Fetch the current frame stacks from all the stages
-    // Starting with the Light Frame  genreated in previous tasks
-
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", input);
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Output>(1);
     const auto shadowFrame = setupOutput.getN<RenderShadowSetup::Output>(3);
@@ -94,12 +87,12 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
 #endif
     };
 
-    render::VaryingArray<AABox,4> cascadeSceneBBoxes;
+    CascadeBoxes cascadeSceneBBoxes;
 
     for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
         char jobName[64];
         sprintf(jobName, "ShadowCascadeSetup%d", i);
-        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, shadowFrame, i, tagBits, tagMask);
+        const auto cascadeSetupOutput = task.addJob<RenderShadowCascadeSetup>(jobName, shadowFrame, i, shadowCasterReceiverFilter);
         const auto shadowFilter = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(0);
         auto antiFrustum = render::Varying(ViewFrustumPointer());
         cascadeFrustums[i] = cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(1);
@@ -322,25 +315,45 @@ RenderShadowSetup::RenderShadowSetup() :
     _shadowFrameCache = std::make_shared<LightStage::ShadowFrame>();
 }
 
-void RenderShadowSetup::configure(const Config& configuration) {
-    setConstantBias(0, configuration.constantBias0);
-    setSlopeBias(0, configuration.slopeBias0);
-#if SHADOW_CASCADE_MAX_COUNT>1
-    setConstantBias(1, configuration.constantBias1);
-    setSlopeBias(1, configuration.slopeBias1);
-    setConstantBias(2, configuration.constantBias2);
-    setSlopeBias(2, configuration.slopeBias2);
-    setConstantBias(3, configuration.constantBias3);
-    setSlopeBias(3, configuration.slopeBias3);
-#endif
+void RenderShadowSetup::configure(const Config& config) {
+    constantBias0 = config.constantBias0;
+    constantBias1 = config.constantBias1;
+    constantBias2 = config.constantBias2;
+    constantBias3 = config.constantBias3;
+    slopeBias0 = config.slopeBias0;
+    slopeBias1 = config.slopeBias1;
+    slopeBias2 = config.slopeBias2;
+    slopeBias3 = config.slopeBias3;
+    biasInput = config.biasInput;
+    maxDistance = config.maxDistance;
+}
+
+void RenderShadowSetup::calculateBiases(float biasInput) {
+    const std::array<float, SHADOW_CASCADE_MAX_COUNT> CONSTANT_CASCADE_SCALE = {{ 0.01f, 0.01f, 0.015f, 0.02f }};
+    const float SLOPE_BIAS_SCALE = 0.005f;
+
+    for (int i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
+        auto& cascade = _globalShadowObject->getCascade(i);
+
+        // Constant bias is dependent on the depth precision
+        float cascadeDepth = cascade.getMaxDistance() - cascade.getMinDistance();
+        float constantBias = CONSTANT_CASCADE_SCALE[i] * biasInput / cascadeDepth;
+        setConstantBias(i, constantBias);
+
+        // Slope bias is dependent on the texel size
+        float cascadeWidth = cascade.getFrustum()->getWidth();
+        float cascadeHeight = cascade.getFrustum()->getHeight();
+        float cascadeTexelMaxDim = glm::max(cascadeWidth, cascadeHeight) / LightStage::Shadow::MAP_SIZE; // TODO: variable cascade resolution
+        setSlopeBias(i, cascadeTexelMaxDim * constantBias / SLOPE_BIAS_SCALE);
+    }
 }
 
 void RenderShadowSetup::setConstantBias(int cascadeIndex, float value) {
-    _bias[cascadeIndex]._constant = value * value * value * 0.004f;
+    _bias[cascadeIndex]._constant = value;
 }
 
 void RenderShadowSetup::setSlopeBias(int cascadeIndex, float value) {
-    _bias[cascadeIndex]._slope = value * value * value * 0.01f;
+    _bias[cascadeIndex]._slope = value;
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
@@ -371,27 +384,42 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     output.edit2() = _cameraFrustum;
 
     if (!_globalShadowObject) {
-        _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), SHADOW_MAX_DISTANCE, SHADOW_CASCADE_COUNT);
+        _globalShadowObject = std::make_shared<LightStage::Shadow>(currentKeyLight, SHADOW_CASCADE_MAX_COUNT);
     }
-
     _globalShadowObject->setLight(currentKeyLight);
     _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
-    auto& firstCascade = _globalShadowObject->getCascade(0);
-    auto& firstCascadeFrustum = firstCascade.getFrustum();
-    unsigned int cascadeIndex;
+    // Update our biases and maxDistance from the light or config
+    _globalShadowObject->setMaxDistance(maxDistance > 0.0f ? maxDistance : currentKeyLight->getShadowsMaxDistance());
 
     // Adjust each cascade frustum
-    for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+    for (unsigned int cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
+    }
+
+    calculateBiases(biasInput > 0.0f ? biasInput : currentKeyLight->getShadowBias());
+
+    std::array<float, SHADOW_CASCADE_MAX_COUNT> constantBiases = {{ constantBias0, constantBias1, constantBias2, constantBias3 }};
+    std::array<float, SHADOW_CASCADE_MAX_COUNT> slopeBiases = {{ slopeBias0, slopeBias1, slopeBias2, slopeBias3 }};
+    for (unsigned int cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+        float constantBias = constantBiases[cascadeIndex];
+        if (constantBias > 0.0f) {
+            setConstantBias(cascadeIndex, constantBias);
+        }
+        float slopeBias = slopeBiases[cascadeIndex];
+        if (slopeBias > 0.0f) {
+            setSlopeBias(cascadeIndex, slopeBias);
+        }
+
         auto& bias = _bias[cascadeIndex];
-        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
-                                                SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
-                                                bias._constant, bias._slope);
+        _globalShadowObject->setKeylightCascadeBias(cascadeIndex, bias._constant, bias._slope);
     }
 
     _shadowFrameCache->pushShadow(_globalShadowObject);
 
     // Now adjust coarse frustum bounds
+    auto& firstCascade = _globalShadowObject->getCascade(0);
+    auto& firstCascadeFrustum = firstCascade.getFrustum();
     auto frustumPosition = firstCascadeFrustum->getPosition();
     auto farTopLeft = firstCascadeFrustum->getFarTopLeft() - frustumPosition;
     auto farBottomRight = firstCascadeFrustum->getFarBottomRight() - frustumPosition;
@@ -403,7 +431,7 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     auto near = firstCascadeFrustum->getNearClip();
     auto far = firstCascadeFrustum->getFarClip();
 
-    for (cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+    for (unsigned int cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
         auto& cascadeFrustum = _globalShadowObject->getCascade(cascadeIndex).getFrustum();
 
         farTopLeft = cascadeFrustum->getFarTopLeft() - frustumPosition;
@@ -452,8 +480,7 @@ void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderCon
         const auto globalShadow = shadowFrame->_objects[0];
 
         if (globalShadow && _cascadeIndex < globalShadow->getCascadeCount()) {
-            // Second item filter is to filter items to keep in shadow frustum computation (here we need to keep shadow receivers)
-            output.edit0() = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(_tagBits, _tagMask);
+            output.edit0() = _filter;
 
             // Set the keylight render args
             auto& cascade = globalShadow->getCascade(_cascadeIndex);
@@ -551,7 +578,6 @@ void CullShadowBounds::run(const render::RenderContextPointer& renderContext, co
         assert(lightStage);
         const auto globalLightDir = currentKeyLight->getDirection();
         auto castersFilter = render::ItemFilter::Builder(filter).withShadowCaster().build();
-        const auto& receiversFilter = filter;
 
         for (auto& inItems : inShapes) {
             auto key = inItems.first;
@@ -570,7 +596,7 @@ void CullShadowBounds::run(const render::RenderContextPointer& renderContext, co
                         if (castersFilter.test(shapeKey)) {
                             outItems->second.emplace_back(item);
                             outBounds += item.bound;
-                        } else if (receiversFilter.test(shapeKey)) {
+                        } else {
                             // Receivers are not rendered but they still increase the bounds of the shadow scene
                             // although only in the direction of the light direction so as to have a correct far
                             // distance without decreasing the near distance.
@@ -585,7 +611,7 @@ void CullShadowBounds::run(const render::RenderContextPointer& renderContext, co
                         if (castersFilter.test(shapeKey)) {
                             outItems->second.emplace_back(item);
                             outBounds += item.bound;
-                        } else if (receiversFilter.test(shapeKey)) {
+                        } else {
                             // Receivers are not rendered but they still increase the bounds of the shadow scene
                             // although only in the direction of the light direction so as to have a correct far
                             // distance without decreasing the near distance.

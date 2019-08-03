@@ -83,6 +83,7 @@ public:
     bool isShadowEnabled() const;
 
     UniformBufferView getParametersBuffer() const { return _parametersBuffer; }
+    gpu::TexturePointer getAmbientFresnelLUT() const { return _ambientFresnelLUT; }
 
 protected:
 
@@ -126,6 +127,7 @@ protected:
         Parameters() {}
     };
     UniformBufferView _parametersBuffer;
+    static gpu::TexturePointer _ambientFresnelLUT;
 };
 
 using LightingModelPointer = std::shared_ptr<LightingModel>;

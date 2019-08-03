@@ -270,6 +270,9 @@ Item {
                         text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
+                        text: "LOD Target: " + root.lodTargetFramerate + " Hz Angle: " + root.lodAngle + " deg"
+                    }
+                    StatText {
                         text: "Drawcalls: " + root.drawcalls
                     }
                     StatText {

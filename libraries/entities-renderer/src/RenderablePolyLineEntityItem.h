@@ -37,7 +37,7 @@ protected:
     virtual ShapeKey getShapeKey() override;
     virtual void doRender(RenderArgs* args) override;
 
-    void buildPipeline();
+    static void buildPipelines();
     void updateGeometry();
     void updateData();
 
@@ -51,15 +51,14 @@ protected:
     float _textureAspectRatio { 1.0f };
     bool _textureLoaded { false };
 
-    bool _isUVModeStretch;
-    bool _faceCamera;
-    bool _glow;
+    bool _isUVModeStretch { false };
+    bool _faceCamera { false };
+    bool _glow { false };
 
-    size_t _numVertices;
+    size_t _numVertices { 0 };
     gpu::BufferPointer _polylineDataBuffer;
     gpu::BufferPointer _polylineGeometryBuffer;
-    static gpu::PipelinePointer _pipeline;
-    static gpu::PipelinePointer _glowPipeline;
+    static std::map<std::pair<render::Args::RenderMethod, bool>, gpu::PipelinePointer> _pipelines;
 };
 
 } } // namespace 

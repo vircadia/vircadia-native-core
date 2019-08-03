@@ -18,15 +18,11 @@
 #include <QtNetwork/QNetworkReply>
 
 #include "Baker.h"
-#include "TextureBaker.h"
 #include "ModelBaker.h"
 #include "ModelBakingLoggingCategory.h"
 
-#include <gpu/Texture.h> 
-
 #include <FBX.h>
 
-using TextureBakerThreadGetter = std::function<QThread*()>;
 
 class FBXBaker : public ModelBaker {
     Q_OBJECT

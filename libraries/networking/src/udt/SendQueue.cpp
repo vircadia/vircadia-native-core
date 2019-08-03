@@ -557,3 +557,7 @@ void SendQueue::deactivate() {
 bool SendQueue::isFlowWindowFull() const {
     return seqlen(SequenceNumber { (uint32_t) _lastACKSequenceNumber }, _currentSequenceNumber)  > _flowWindowSize;
 }
+
+void SendQueue::updateDestinationAddress(HifiSockAddr newAddress) {
+    _destination = newAddress;
+}

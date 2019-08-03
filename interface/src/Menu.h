@@ -33,6 +33,7 @@ namespace MenuOption {
     const QString AnimDebugDrawBaseOfSupport = "Debug Draw Base of Support";
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
+    const QString AnimDebugDrawOtherSkeletons = "Debug Draw Other Skeletons";
     const QString AskToResetSettings = "Ask To Reset Settings on Start";
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
@@ -53,7 +54,6 @@ namespace MenuOption {
     const QString BookmarkAvatarEntities = "Bookmark Avatar Entities";
     const QString BookmarkLocation = "Bookmark Location";
     const QString CalibrateCamera = "Calibrate Camera";
-    const QString CameraEntityMode = "Entity Mode";
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString ClearDiskCache = "Clear Disk Cache";
@@ -120,7 +120,6 @@ namespace MenuOption {
     const QString Help = "Help...";
     const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
-    const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
     const QString LastLocation = "Last Location";
     const QString LoadScript = "Open and Run Script File...";
@@ -169,12 +168,6 @@ namespace MenuOption {
     const QString RenderMaxTexture4096MB = "4096 MB";
     const QString RenderMaxTexture6144MB = "6144 MB";
     const QString RenderMaxTexture8192MB = "8192 MB";
-    const QString RenderResolution = "Scale Resolution";
-    const QString RenderResolutionOne = "1";
-    const QString RenderResolutionTwoThird = "2/3";
-    const QString RenderResolutionHalf = "1/2";
-    const QString RenderResolutionThird = "1/3";
-    const QString RenderResolutionQuarter = "1/4";
     const QString RenderSensorToWorldMatrix = "Show SensorToWorld Matrix";
     const QString RenderIKTargets = "Show IK Targets";
     const QString RenderIKConstraints = "Show IK Constraints";
@@ -229,6 +222,7 @@ namespace MenuOption {
     const QString NotificationSoundsTablet = "play_notification_sounds_tablet";
     const QString ForceCoarsePicking = "Force Coarse Picking";
     const QString ComputeBlendshapes = "Compute Blendshapes";
+    const QString HighlightTransitions = "Highlight Transitions";
 }
 
 #endif // hifi_Menu_h

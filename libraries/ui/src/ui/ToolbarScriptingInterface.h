@@ -150,6 +150,9 @@ public:
      * @returns {ToolbarProxy}
      */
     Q_INVOKABLE ToolbarProxy* getToolbar(const QString& toolbarId);
+
+signals:
+    void toolbarVisibleChanged(bool isVisible, QString toolbarName);
 };
 
 

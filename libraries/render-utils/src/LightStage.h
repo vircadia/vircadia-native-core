@@ -74,14 +74,15 @@ public:
                                      float left, float right, float bottom, float top, float viewMaxShadowDistance) const;
         };
 
-        Shadow(graphics::LightPointer light, float maxDistance, unsigned int cascadeCount = 1);
+        Shadow(graphics::LightPointer light, unsigned int cascadeCount = 1);
 
         void setLight(graphics::LightPointer light);
 
         void setKeylightFrustum(const ViewFrustum& viewFrustum,
                                 float nearDepth = 1.0f, float farDepth = 1000.0f);
         void setKeylightCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& viewFrustum,
-                                float nearDepth = 1.0f, float farDepth = 1000.0f, float fixedBias = 0.005f, float slopeBias = 0.005f);
+                                float nearDepth = 1.0f, float farDepth = 1000.0f);
+        void setKeylightCascadeBias(unsigned int cascadeIndex, float constantBias, float slopeBias);
         void setCascadeFrustum(unsigned int cascadeIndex, const ViewFrustum& shadowFrustum);
 
         const UniformBufferView& getBuffer() const { return _schemaBuffer; }
@@ -104,15 +105,13 @@ public:
         };
     protected:
 
-
         using Cascades = std::vector<Cascade>;
 
         static const glm::mat4 _biasMatrix;
 
         graphics::LightPointer _light;
-        float _maxDistance;
+        float _maxDistance{ 0.0f };
         Cascades _cascades;
-
 
         UniformBufferView _schemaBuffer = nullptr;
     };

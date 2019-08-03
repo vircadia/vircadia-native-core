@@ -88,7 +88,7 @@ private:
     //     emissive, albedo
     //   urls to textures:
     //     emissiveMap, albedoMap (set opacityMap = albedoMap for transparency), metallicMap or specularMap, roughnessMap or glossMap,
-    //     normalMap or bumpMap, occlusionMap, lightmapMap (broken, FIXME), scatteringMap (only works if normal mapped)
+    //     normalMap or bumpMap, occlusionMap, lightMap (broken, FIXME), scatteringMap (only works if normal mapped)
     QString _materialURL;
     // Type of material.  "uv" or "projected".
     MaterialMappingMode _materialMappingMode { UV };

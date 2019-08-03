@@ -85,7 +85,9 @@ void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     _entitiesThatNeedSimulationOwner.remove(entity);
 }
 
-void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
+void SimpleEntitySimulation::processChangedEntity(const EntityItemPointer& entity) {
+    EntitySimulation::processChangedEntity(entity);
+
     uint32_t flags = entity->getDirtyFlags();
     if ((flags & Simulation::DIRTY_SIMULATOR_ID) || (flags & Simulation::DIRTY_VELOCITIES)) {
         if (entity->getSimulatorID().isNull()) {

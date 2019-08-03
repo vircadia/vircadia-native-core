@@ -227,6 +227,7 @@ namespace controller {
     }
 
     QObject* ScriptingInterface::loadMapping(const QString& jsonUrl) {
+        // FIXME: Implement. https://highfidelity.manuscript.com/f/cases/14188/Implement-Controller-loadMappping
         return nullptr;
     }
 

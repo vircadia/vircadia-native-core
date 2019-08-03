@@ -291,6 +291,7 @@ public:
 class Model {
 public:
     using Pointer = std::shared_ptr<Model>;
+    using ConstPointer = std::shared_ptr<const Model>;
 
     QString originalURL;
     QString author;

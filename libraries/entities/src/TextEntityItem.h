@@ -97,6 +97,9 @@ public:
     float getBottomMargin() const;
     void setBottomMargin(float value);
 
+    bool getUnlit() const;
+    void setUnlit(bool value);
+
     PulsePropertyGroup getPulseProperties() const;
 
 private:
@@ -113,6 +116,7 @@ private:
     float _rightMargin;
     float _topMargin;
     float _bottomMargin;
+    bool _unlit;
 };
 
 #endif // hifi_TextEntityItem_h

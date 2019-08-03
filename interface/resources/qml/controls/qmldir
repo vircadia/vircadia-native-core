@@ -1,0 +1,25 @@
+module controls
+Button 1.0 Button.qml
+ButtonAwesome 1.0 ButtonAwesome.qml
+CheckBox 1.0 CheckBox.qml
+ComboBox 1.0 ComboBox.qml
+FlickableWebViewCore 1.0 FlickableWebViewCore.qml
+FontAwesome 1.0 FontAwesome.qml
+Player 1.0 Player.qml
+RadioButton 1.0 RadioButton.qml
+Slider 1.0 Slider.qml
+Spacer 1.0 Spacer.qml
+SpinBox 1.0 SpinBox.qml
+TabletWebButton 1.0 TabletWebButton.qml
+TabletWebScreen 1.0 TabletWebScreen.qml
+TabletWebView 1.0 TabletWebView.qml
+Text 1.0 Text.qml
+TextAndSlider 1.0 TextAndSlider.qml
+TextAndSpinBox 1.0 TextAndSpinBox.qml
+TextArea 1.0 TextArea.qml
+TextEdit 1.0 TextEdit.qml
+TextField 1.0 TextField.qml
+TextHeader 1.0 TextHeader.qml
+TextInput 1.0 TextInput.qml
+TextInputAndButton 1.0 TextInputAndButton.qml
+WebView 1.0 WebView.qml

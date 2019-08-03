@@ -64,7 +64,7 @@ public slots:
 
 signals:
     void killNode(SharedNodePointer node);
-    void connectedNode(SharedNodePointer node);
+    void connectedNode(SharedNodePointer node, quint64 requestReceiveTime);
 
 public slots:
     void updateNodePermissions();

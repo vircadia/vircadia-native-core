@@ -57,6 +57,37 @@ void buildObjectIntersectionsMap(IntersectionType intersectionType, const std::v
     }
 }
 
+/**jsdoc
+ * An intersection result for a collision pick.
+ *
+ * @typedef {object} CollisionPickResult
+ * @property {boolean} intersects - <code>true</code> if there is at least one intersection, <code>false</code> if there isn't.
+ * @property {IntersectingObject[]} intersectingObjects - All objects which intersect with the <code>collisionRegion</code>.
+ * @property {CollisionRegion} collisionRegion - The collision region that was used. Valid even if there was no intersection.
+ */
+
+/**jsdoc
+ * Information about a {@link CollisionPick}'s intersection with an object.
+ *
+ * @typedef {object} IntersectingObject
+ * @property {Uuid} id - The ID of the object.
+ * @property {IntersectionType} type - The type of the object, either <code>1</code> for INTERSECTED_ENTITY or <code>3</code> 
+ *     for INTERSECTED_AVATAR.
+ * @property {CollisionContact[]} collisionContacts - Information on the penetration between the pick and the object.
+ */
+
+/**jsdoc
+ * A pair of points that represents part of an overlap between a {@link CollisionPick} and an object in the physics engine. 
+ * Points which are further apart represent deeper overlap.
+ *
+ * @typedef {object} CollisionContact
+ * @property {Vec3} pointOnPick - A point representing a penetration of the object's surface into the volume of the pick, in 
+ *     world coordinates.
+ * @property {Vec3} pointOnObject - A point representing a penetration of the pick's surface into the volume of the object, in 
+ *     world coordinates.
+ * @property {Vec3} normalOnPick - The normal vector pointing away from the pick, representing the direction of collision.
+ */
+
 QVariantMap CollisionPickResult::toVariantMap() const {
     QVariantMap variantMap;
 

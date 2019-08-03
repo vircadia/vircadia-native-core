@@ -12,6 +12,7 @@
 
 #ifdef Q_OS_WIN
 #include <string>
+#include <nlohmann/json.hpp>
 
 //#include <atlbase.h>
 //#include <Wbemidl.h>
@@ -21,10 +22,14 @@
 
 #elif defined(Q_OS_MAC)
 #include <OpenGL/OpenGL.h>
+#include <sstream>
+#include <QString>
+#include <qstringlist.h>
+
 #endif
 
-#include <QtCore/QtGlobal>
 
+#include <QtCore/QtGlobal>
 #include "SharedLogging.h"
 
 GPUIdent GPUIdent::_instance {};
@@ -42,6 +47,7 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     GLint rendererInfoCount;
     CGLError err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &rendererInfoCount);
     GLint j, numRenderers = 0, deviceVRAM, bestVRAM = 0;
+    int bestGPUid = 0;
     err = CGLQueryRendererInfo(cglDisplayMask, &rendererInfo, &numRenderers);
     if (0 == err) {
         // Iterate over all of them and use the figure for the one with the most VRAM,
@@ -50,11 +56,35 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
         for (j = 0; j < numRenderers; j++) {
             CGLDescribeRenderer(rendererInfo, j, kCGLRPVideoMemoryMegabytes, &deviceVRAM);
             if (deviceVRAM > bestVRAM) {
+                bestGPUid = j;
                 bestVRAM = deviceVRAM;
                 _isValid = true;
             }
         }
     }
+ 
+    //get gpu name
+    FILE* stream = popen("system_profiler SPDisplaysDataType | grep Chipset", "r");
+    
+    std::ostringstream hostStream;
+    while (!feof(stream) && !ferror(stream)) {
+        char buf[128];
+        int bytesRead = fread(buf, 1, 128, stream);
+        hostStream.write(buf, bytesRead);
+    }
+    
+    QString result = QString::fromStdString(hostStream.str());
+    QStringList parts = result.split('\n');
+    std::string name;
+    
+    for (int i = 0; i < parts.size(); ++i) {
+        if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
+            _name=parts[i];
+        } else if (i == bestGPUid) {
+            _name=parts[i];
+        }
+    }
+
     _dedicatedMemoryMB = bestVRAM;
     CGLDestroyRendererInfo(rendererInfo);
 
@@ -250,6 +280,23 @@ GPUIdent* GPUIdent::ensureQuery(const QString& vendor, const QString& renderer) 
     */
 
     if (!validAdapterList.empty()) {
+        for (auto outy = adapterToOutputs.begin(); outy != adapterToOutputs.end(); ++outy) {
+
+            AdapterEntry entry = *outy;
+            for (auto test = entry.second.begin(); test != entry.second.end(); ++test) {
+                std::wstring wDeviceName(test->DeviceName);
+                std::string deviceName(wDeviceName.begin(), wDeviceName.end());
+
+                nlohmann::json output = {};
+                output["model"] = deviceName;
+                output["coordinatesleft"] = test->DesktopCoordinates.left;
+                output["coordinatesright"] = test->DesktopCoordinates.right;
+                output["coordinatestop"] = test->DesktopCoordinates.top;
+                output["coordinatesbottom"] = test->DesktopCoordinates.bottom;
+                _output.push_back(output);
+            }
+        }
+
         auto& adapterEntry = adapterToOutputs[validAdapterList.front()];
 
         std::wstring wDescription(adapterEntry.first.first.Description);

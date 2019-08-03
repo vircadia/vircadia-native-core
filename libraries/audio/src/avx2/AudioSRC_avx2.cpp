@@ -34,15 +34,26 @@ int AudioSRC::multirateFilter1_AVX2(const float* input0, float* output0, int inp
             const float* c0 = &_polyphaseFilter[_numTaps * _phase];
 
             __m256 acc0 = _mm256_setzero_ps();
+            __m256 acc1 = _mm256_setzero_ps();
 
-            for (int j = 0; j < _numTaps; j += 8) {
+            int j = 0;
+            for (; j < _numTaps - 15; j += 16) {    // unrolled x 2
 
                 //float coef = c0[j];
-                __m256 coef0 = _mm256_loadu_ps(&c0[j]);
+                __m256 coef0 = _mm256_loadu_ps(&c0[j + 0]);
+                __m256 coef1 = _mm256_loadu_ps(&c0[j + 8]);
 
                 //acc += input[i + j] * coef;
+                acc0 = _mm256_fmadd_ps(_mm256_loadu_ps(&input0[i + j + 0]), coef0, acc0);
+                acc1 = _mm256_fmadd_ps(_mm256_loadu_ps(&input0[i + j + 8]), coef1, acc1);
+            }
+            if (j < _numTaps) {
+
+                __m256 coef0 = _mm256_loadu_ps(&c0[j]);
+
                 acc0 = _mm256_fmadd_ps(_mm256_loadu_ps(&input0[i + j]), coef0, acc0);
             }
+            acc0 = _mm256_add_ps(acc0, acc1);
 
             // horizontal sum
             acc0 = _mm256_hadd_ps(acc0, acc0);
@@ -73,19 +84,36 @@ int AudioSRC::multirateFilter1_AVX2(const float* input0, float* output0, int inp
             const float* c1 = &_polyphaseFilter[_numTaps * (phase + 1)];
 
             __m256 acc0 = _mm256_setzero_ps();
+            __m256 acc1 = _mm256_setzero_ps();
             __m256 frac = _mm256_broadcast_ss(&ftmp);
 
-            for (int j = 0; j < _numTaps; j += 8) {
+            int j = 0;
+            for (; j < _numTaps - 15; j += 16) {    // unrolled x 2
 
                 //float coef = c0[j] + frac * (c1[j] - c0[j]);
+                __m256 coef0 = _mm256_loadu_ps(&c0[j + 0]);
+                __m256 coef1 = _mm256_loadu_ps(&c1[j + 0]);
+                __m256 coef2 = _mm256_loadu_ps(&c0[j + 8]);
+                __m256 coef3 = _mm256_loadu_ps(&c1[j + 8]);
+                coef1 = _mm256_sub_ps(coef1, coef0);
+                coef3 = _mm256_sub_ps(coef3, coef2);
+                coef0 = _mm256_fmadd_ps(coef1, frac, coef0);
+                coef2 = _mm256_fmadd_ps(coef3, frac, coef2);
+
+                //acc += input[i + j] * coef;
+                acc0 = _mm256_fmadd_ps(_mm256_loadu_ps(&input0[i + j + 0]), coef0, acc0);
+                acc1 = _mm256_fmadd_ps(_mm256_loadu_ps(&input0[i + j + 8]), coef2, acc1);
+            }
+            if (j < _numTaps) {
+
                 __m256 coef0 = _mm256_loadu_ps(&c0[j]);
                 __m256 coef1 = _mm256_loadu_ps(&c1[j]);
                 coef1 = _mm256_sub_ps(coef1, coef0);
                 coef0 = _mm256_fmadd_ps(coef1, frac, coef0);
 
-                //acc += input[i + j] * coef;
                 acc0 = _mm256_fmadd_ps(_mm256_loadu_ps(&input0[i + j]), coef0, acc0);
             }
+            acc0 = _mm256_add_ps(acc0, acc1);
 
             // horizontal sum
             acc0 = _mm256_hadd_ps(acc0, acc0);

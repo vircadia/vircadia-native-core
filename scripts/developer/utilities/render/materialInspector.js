@@ -109,7 +109,9 @@ function mouseReleaseEvent(event) {
 }
 
 function killWindow() {
-    setWindow(undefined);
+    activeWindow = undefined;
+
+ //   setWindow(undefined);
 }
 
 function toQml(message) {
@@ -138,14 +140,14 @@ function setSelectedObject(id, type) {
 function setWindow(window) {
     if (activeWindow !== undefined) {
         setSelectedObject(Uuid.NULL, "");
-        activeWindow.closed.disconnect(killWindow);
+       // activeWindow.closed.disconnect(killWindow);
         activeWindow.fromQml.disconnect(fromQml);
         Controller.mousePressEvent.disconnect(mousePressEvent);
         Controller.mouseReleaseEvent.disconnect(mouseReleaseEvent);
         activeWindow.close();
     }
     if (window !== undefined) {
-        window.closed.connect(killWindow);
+       // window.closed.connect(killWindow);
         window.fromQml.connect(fromQml);
         Controller.mousePressEvent.connect(mousePressEvent);
         Controller.mouseReleaseEvent.connect(mouseReleaseEvent);

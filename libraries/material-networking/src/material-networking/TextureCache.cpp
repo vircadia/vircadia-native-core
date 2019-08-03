@@ -64,6 +64,32 @@ const std::string TextureCache::KTX_DIRNAME{ "ktx_cache" };
 #endif
 const std::string TextureCache::KTX_EXT { "ktx" };
 
+/**jsdoc
+ * <p>The views that may be visible on the PC display.</p>
+ * <table>
+ *   <thead>
+ *     <tr>
+ *       <th>Value</th>
+ *       <th>View Displayed</th>
+ *     </tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr>
+ *       <td><code>""</code></td>
+ *       <td>Normal view.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>"resource://hmdPreviewFrame"</code></td>
+ *       <td>HMD preview.</td>
+ *     </tr>
+ *     <tr>
+ *       <td><code>"resource://spectatorCameraFrame"</code></td>
+ *       <td>Entity camera view.</td>
+ *     </tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Window.DisplayTexture
+ */
 static const QString RESOURCE_SCHEME = "resource";
 static const QUrl SPECTATOR_CAMERA_FRAME_URL("resource://spectatorCameraFrame");
 static const QUrl HMD_PREVIEW_FRAME_URL("resource://hmdPreviewFrame");
@@ -224,9 +250,13 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
         return getResourceTexture(url);
     }
     auto modifiedUrl = url;
-    if (type == image::TextureUsage::CUBE_TEXTURE) {
+    if (type == image::TextureUsage::SKY_TEXTURE) {
         QUrlQuery query { url.query() };
         query.addQueryItem("skybox", "");
+        modifiedUrl.setQuery(query.toString());
+    } else if (type == image::TextureUsage::AMBIENT_TEXTURE) {
+        QUrlQuery query{ url.query() };
+        query.addQueryItem("ambient", "");
         modifiedUrl.setQuery(query.toString());
     }
     TextureExtra extra = { type, content, maxNumPixels, sourceChannel };
@@ -283,7 +313,8 @@ gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
         case image::TextureUsage::BUMP_TEXTURE:
         case image::TextureUsage::SPECULAR_TEXTURE:
         case image::TextureUsage::GLOSS_TEXTURE:
-        case image::TextureUsage::CUBE_TEXTURE:
+        case image::TextureUsage::SKY_TEXTURE:
+        case image::TextureUsage::AMBIENT_TEXTURE:
         case image::TextureUsage::STRICT_TEXTURE:
         default:
             break;
@@ -306,13 +337,13 @@ gpu::BackendTarget getBackendTarget() {
 }
 
 /// Returns a texture version of an image file
-gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type, QVariantMap options) {
+gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::TextureUsage::Type type) {
     QImage image = QImage(path);
     if (image.isNull()) {
         qCWarning(networking) << "Unable to load required resource texture" << path;
         return nullptr;
     }
-    auto loader = image::TextureUsage::getTextureLoaderForType(type, options);
+    auto loader = image::TextureUsage::getTextureLoaderForType(type);
 
 #ifdef USE_GLES
     constexpr bool shouldCompress = true;
@@ -408,7 +439,7 @@ void NetworkTexture::setExtra(void* extra) {
 
     _shouldFailOnRedirect = _currentlyLoadingResourceType != ResourceType::KTX;
 
-    if (_type == image::TextureUsage::CUBE_TEXTURE) {
+    if (_type == image::TextureUsage::SKY_TEXTURE) {
         setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
     } else if (_currentlyLoadingResourceType == ResourceType::KTX) {
         setLoadPriority(this, HIGH_MIPS_LOAD_PRIORITY);

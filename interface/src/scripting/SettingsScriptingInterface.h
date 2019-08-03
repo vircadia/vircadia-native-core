@@ -16,7 +16,8 @@
 #include <QString>
 
 /**jsdoc
- * The Settings API provides a facility to store and retrieve values that persist between Interface runs.
+ * The <code>Settings</code> API provides a facility to store and retrieve values that persist between Interface runs.
+ *
  * @namespace Settings
  *
  * @hifi-interface
@@ -33,7 +34,7 @@ public:
 public slots:
 
     /**jsdoc
-     * Retrieve the value from a named setting.
+     * Retrieves the value from a named setting.
      * @function Settings.getValue
      * @param {string} key - The name of the setting.
      * @param {string|number|boolean|object} [defaultValue=""] - The value to return if the setting doesn't exist.
@@ -50,8 +51,8 @@ public slots:
     QVariant getValue(const QString& setting, const QVariant& defaultValue);
 
     /**jsdoc
-     * Store a value in a named setting. If the setting already exists its value is overwritten, otherwise a new setting is 
-     * created. If the value is set to <code>null</code> or <code>undefined</code>, the setting is deleted.
+     * Stores a value in a named setting. If the setting already exists, its value is overwritten. If the value is 
+     * <code>null</code> or <code>undefined</code>, the setting is deleted.
      * @function Settings.setValue
      * @param {string} key - The name of the setting. Be sure to use a unique name if creating a new setting.
      * @param {string|number|boolean|object|undefined} value - The value to store in the setting. If <code>null</code> or 

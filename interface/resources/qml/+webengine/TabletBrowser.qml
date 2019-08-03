@@ -14,7 +14,6 @@ Item {
     HifiStyles.HifiConstants { id: hifistyles }
 
     height: 600
-    property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
     property alias url: webview.url
 
     property bool canGoBack: webview.canGoBack
@@ -28,6 +27,10 @@ Item {
 
     function setProfile(profile) {
         webview.profile = profile;
+    }
+
+    onUrlChanged: {
+        permissionPopupBackground.visible = false;
     }
 
     WebEngineView {
@@ -84,7 +87,14 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
+            if (permissionPopupBackground.visible === true) {
+                console.log("Browser engine requested a new permission, but user is already being presented with a different permission request. Aborting request for new permission...");
+                return;
+            }
+            permissionPopupBackground.securityOrigin = securityOrigin;
+            permissionPopupBackground.feature = feature;
+
+            permissionPopupBackground.visible = true;
         }
 
         onLoadingChanged: {
@@ -120,6 +130,13 @@ Item {
                 addressBar.forceActiveFocus()
             }
             break;
+        }
+    }
+
+    HifiControls.PermissionPopupBackground {
+        id: permissionPopupBackground
+        onSendPermission: {
+            webview.grantFeaturePermission(securityOrigin, feature, shouldGivePermission);
         }
     }
 }

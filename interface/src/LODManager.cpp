@@ -54,6 +54,7 @@ void LODManager::setRenderTimes(float presentTime, float engineRunTime, float ba
 }
 
 void LODManager::autoAdjustLOD(float realTimeDelta) {
+    std::lock_guard<std::mutex> { _automaticLODLock };
  
     // The "render time" is the worse of:
     // - engineRunTime: Time spent in the render thread in the engine producing the gpu::Frame N
@@ -235,6 +236,7 @@ void LODManager::resetLODAdjust() {
 }
 
 void LODManager::setAutomaticLODAdjust(bool value) {
+    std::lock_guard<std::mutex> { _automaticLODLock };
     _automaticLODAdjust = value;
     emit autoLODChanged();
 }
@@ -351,10 +353,29 @@ float LODManager::getHMDLODTargetFPS() const {
 }
 
 float LODManager::getLODTargetFPS() const {
-    if (qApp->isHMDMode()) {
-        return getHMDLODTargetFPS();
+
+    // Use the current refresh rate as the recommended rate target used to cap the LOD manager control value.
+    // When focused, Use the Focus Inactive as the targget LOD to void abrupt changes from the lod controller.
+    auto& refreshRateManager = qApp->getRefreshRateManager();
+    auto refreshRateRegime = refreshRateManager.getRefreshRateRegime();
+    auto refreshRateProfile = refreshRateManager.getRefreshRateProfile();
+    auto refreshRateUXMode = refreshRateManager.getUXMode();
+    auto refreshRateFPS = refreshRateManager.getActiveRefreshRate();
+    if (refreshRateRegime == RefreshRateManager::RefreshRateRegime::FOCUS_ACTIVE) {
+        refreshRateFPS = refreshRateManager.queryRefreshRateTarget(refreshRateProfile, RefreshRateManager::RefreshRateRegime::FOCUS_INACTIVE, refreshRateUXMode);
     }
-    return getDesktopLODTargetFPS();
+
+    auto lodTargetFPS = getDesktopLODTargetFPS();
+    if (qApp->isHMDMode()) {
+        lodTargetFPS = getHMDLODTargetFPS();
+    }
+    
+    // if RefreshRate is slower than LOD target then it becomes the true LOD target
+    if (lodTargetFPS > refreshRateFPS) {
+        return refreshRateFPS;
+    } else {
+        return lodTargetFPS;
+    }
 }
 
 void LODManager::setWorldDetailQuality(float quality) {
@@ -406,7 +427,6 @@ float LODManager::getWorldDetailQuality() const {
 
     return HIGH;
 }
-
 
 void LODManager::setLODQualityLevel(float quality) {
     _lodQualityLevel = quality;

@@ -827,7 +827,12 @@ EntityItemID EntityTree::evalRayIntersection(const glm::vec3& origin, const glm:
                                     PickFilter searchFilter, OctreeElementPointer& element, float& distance,
                                     BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
                                     Octree::lockType lockType, bool* accurateResult) {
-    RayArgs args = { origin, direction, 1.0f / direction, entityIdsToInclude, entityIdsToDiscard,
+
+    // calculate dirReciprocal like this rather than with glm's scalar / vec3 template to avoid NaNs.
+    vec3 dirReciprocal = glm::vec3(direction.x == 0.0f ? 0.0f : 1.0f / direction.x,
+                                   direction.y == 0.0f ? 0.0f : 1.0f / direction.y,
+                                   direction.z == 0.0f ? 0.0f : 1.0f / direction.z);
+    RayArgs args = { origin, direction, dirReciprocal, entityIdsToInclude, entityIdsToDiscard,
             searchFilter, element, distance, face, surfaceNormal, extraInfo, EntityItemID() };
     distance = FLT_MAX;
 
@@ -1283,6 +1288,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         if (index >= 0) {
             QString changeHint = properties.getUserData();
             changedProperties[index] = QString("userData:") + changeHint;
+        }
+    }
+
+    if (properties.privateUserDataChanged()) {
+        int index = changedProperties.indexOf("privateUserData");
+        if (index >= 0) {
+            QString changeHint = properties.getPrivateUserData();
+            changedProperties[index] = QString("privateUserData:") + changeHint;
         }
     }
 
@@ -1772,6 +1785,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
             bool suppressDisallowedClientScript = false;
             bool suppressDisallowedServerScript = false;
+            bool suppressDisallowedPrivateUserData = false;
             bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
@@ -1860,7 +1874,22 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         }
                     }
                 }
+            }
 
+            if (!properties.getPrivateUserData().isEmpty() && validEditPacket && !senderNode->getCanGetAndSetPrivateUserData()) {
+                if (wantEditLogging()) {
+                    qCDebug(entities) << "User [" << senderNode->getUUID()
+                        << "] is attempting to set private user data but user isn't allowed; edit rejected...";
+                }
+
+                // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                if (isAdd) {
+                    QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                    _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                    validEditPacket = false;
+                } else {
+                    suppressDisallowedPrivateUserData = true;
+                }
             }
 
             if (!isClone) {
@@ -1913,6 +1942,11 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                     if (suppressDisallowedServerScript) {
                         bumpTimestamp(properties);
                         properties.setServerScripts(existingEntity->getServerScripts());
+                    }
+
+                    if (suppressDisallowedPrivateUserData) {
+                        bumpTimestamp(properties);
+                        properties.setPrivateUserData(existingEntity->getPrivateUserData());
                     }
 
                     // if the EntityItem exists, then update it
@@ -2079,7 +2113,6 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
 }
 
 void EntityTree::fixupNeedsParentFixups() {
-    PROFILE_RANGE(simulation_physics, "FixupParents");
     MovingEntitiesOperator moveOperator;
     QVector<EntityItemWeakPointer> entitiesToFixup;
     {
@@ -2088,15 +2121,27 @@ void EntityTree::fixupNeedsParentFixups() {
         _needsParentFixup.clear();
     }
 
+    std::unordered_set<QUuid> seenEntityIds;
     QMutableVectorIterator<EntityItemWeakPointer> iter(entitiesToFixup);
     while (iter.hasNext()) {
-        EntityItemWeakPointer entityWP = iter.next();
+        const auto& entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
         if (!entity) {
             // entity was deleted before we found its parent
             iter.remove();
             continue;
         }
+
+        const auto id = entity->getID();
+        // BUGZ-771 some entities seem to never be removed by the below logic and further seem to accumulate dupes within the _needsParentFixup list
+        // This block ensures that duplicates are removed from entitiesToFixup before it's re-appended to _needsParentFixup
+        if (0 != seenEntityIds.count(id)) {
+            // Entity was duplicated inside entitiesToFixup
+            iter.remove();
+            continue;
+        }
+
+        seenEntityIds.insert(id);
 
         entity->requiresRecalcBoxes();
         bool queryAACubeSuccess { false };
@@ -2189,11 +2234,19 @@ void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
     _needsParentFixup.append(entity);
 }
 
+void EntityTree::preUpdate() {
+    withWriteLock([&] {
+        fixupNeedsParentFixups();
+        if (_simulation) {
+            _simulation->processChangedEntities();
+        }
+    });
+}
+
 void EntityTree::update(bool simulate) {
     PROFILE_RANGE(simulation_physics, "UpdateTree");
     PerformanceTimer perfTimer("updateTree");
     withWriteLock([&] {
-        fixupNeedsParentFixups();
         if (simulate && _simulation) {
             _simulation->updateEntities();
             {

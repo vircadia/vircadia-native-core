@@ -173,8 +173,16 @@ void GeometryReader::run() {
                 hfmModel->scripts.push_back(script.toString());
             }
         }
+
+        // Do processing on the model
+        baker::Baker modelBaker(hfmModel, _mapping.second, _mapping.first);
+        modelBaker.run();
+
+        auto processedHFMModel = modelBaker.getHFMModel();
+        auto materialMapping = modelBaker.getMaterialMapping();
+
         QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(HFMModel::Pointer, hfmModel), Q_ARG(GeometryMappingPair, _mapping));
+                Q_ARG(HFMModel::Pointer, processedHFMModel), Q_ARG(MaterialMapping, materialMapping));
     } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
@@ -308,14 +316,10 @@ void GeometryResource::setExtra(void* extra) {
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
 
-void GeometryResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
-    // Do processing on the model
-    baker::Baker modelBaker(hfmModel, mapping.second, mapping.first);
-    modelBaker.run();
-
+void GeometryResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const MaterialMapping& materialMapping) {
     // Assume ownership of the processed HFMModel
-    _hfmModel = modelBaker.getHFMModel();
-    _materialMapping = modelBaker.getMaterialMapping();
+    _hfmModel = hfmModel;
+    _materialMapping = materialMapping;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
@@ -538,5 +542,3 @@ void GeometryResourceWatcher::resourceRefreshed() {
     // FIXME: Model is not set up to handle a refresh
     // _instance.reset();
 }
-
-#include "ModelCache.moc"

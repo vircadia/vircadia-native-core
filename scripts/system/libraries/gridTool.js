@@ -25,7 +25,8 @@ Grid = function() {
         color: gridColor,
         alpha: gridAlpha,
         minorGridEvery: minorGridEvery,
-        majorGridEvery: majorGridEvery
+        majorGridEvery: majorGridEvery,
+        ignorePickIntersection: true
     });
 
     that.visible = false;

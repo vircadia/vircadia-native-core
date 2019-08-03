@@ -98,6 +98,7 @@ public:
     bool isPassword() const;
     void setPassword(bool password);
     void enableRightMallet();
+    void scaleKeyboard(float sensorToWorldScale);
     void enableLeftMallet();
     void disableRightMallet();
     void disableLeftMallet();
@@ -122,7 +123,6 @@ public slots:
     void handleTriggerContinue(const QUuid& id, const PointerEvent& event);
     void handleHoverBegin(const QUuid& id, const PointerEvent& event);
     void handleHoverEnd(const QUuid& id, const PointerEvent& event);
-    void scaleKeyboard(float sensorToWorldScale);
 
 private:
     struct Anchor {
@@ -180,11 +180,7 @@ private:
     mutable ReadWriteLockable _preferMalletsOverLasersSettingLock;
     mutable ReadWriteLockable _ignoreItemsLock;
 
-#ifdef Q_OS_ANDROID
-    Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", false };
-#else
     Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", true };
-#endif
 
     QString _typedCharacters;
     TextDisplay _textDisplay;

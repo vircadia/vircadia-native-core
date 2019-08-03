@@ -10,7 +10,16 @@
 
 #include "CPUIdent.h"
 
-#ifdef Q_OS_WIN
+#include <QtCore/QtGlobal>
+#include <string.h>
+
+#include "CPUDetect.h"
+void getCPUID(uint32_t* p, uint32_t eax) {
+    cpuidex((int*) p, (int) eax, 0);
+}
+void getCPUIDEX(uint32_t* p, uint32_t eax, uint32_t ecx) {
+    cpuidex((int*) p, (int) eax, (int) ecx);
+}
 
 const CPUIdent::CPUIdent_Internal CPUIdent::CPU_Rep;
 
@@ -72,4 +81,70 @@ std::vector<CPUIdent::Feature> CPUIdent::getAllFeatures() {
     return features;
 };
 
-#endif
+
+CPUIdent::CPUIdent_Internal::CPUIdent_Internal() {
+    //int cpuInfo[4] = {-1};
+    uint32_t cpui[4];
+
+    // Calling __cpuid with 0x0 as the function_id argument
+    // gets the number of the highest valid function ID.
+    getCPUID(cpui, 0);
+    nIds_ = cpui[0];
+
+    // Capture vendor string
+    char vendor[0x20];
+    memset(vendor, 0, sizeof(vendor));
+    getCPUIDEX(cpui, 0, 0);
+    *reinterpret_cast<int*>(vendor) = cpui[1];
+    *reinterpret_cast<int*>(vendor + 4) = cpui[3];
+    *reinterpret_cast<int*>(vendor + 8) = cpui[2];
+    vendor_ = vendor;
+    if (vendor_ == "GenuineIntel") {
+        isIntel_ = true;
+    }
+    else if (vendor_ == "AuthenticAMD") {
+        isAMD_ = true;
+    }
+
+    // load bitset with flags for function 0x00000001
+    if (nIds_ >= 1) {
+        getCPUIDEX(cpui, 1, 0);
+        f_1_ECX_ = cpui[2];
+        f_1_EDX_ = cpui[3];
+    }
+
+    // load bitset with flags for function 0x00000007
+    if (nIds_ >= 7) {
+        getCPUIDEX(cpui, 7, 0);
+        f_7_EBX_ = cpui[1];
+        f_7_ECX_ = cpui[2];
+    }
+
+    // Calling __cpuid with 0x80000000 as the function_id argument
+    // gets the number of the highest valid extended ID.
+    getCPUID(cpui, 0x80000000);
+    nExIds_ = cpui[0];
+
+    char brand[0x40];
+    memset(brand, 0, sizeof(brand));
+
+    // load bitset with flags for function 0x80000001
+    if (nExIds_ >= 0x80000001) {
+        getCPUIDEX(cpui, 0x80000001, 0);
+        f_81_ECX_ = cpui[2];
+        f_81_EDX_ = cpui[3];
+    }
+
+    // Interpret CPU brand string if reported
+    if (nExIds_ >= 0x80000004) {
+        getCPUIDEX(cpui, 0x80000002, 0);
+        memcpy(brand, cpui, sizeof(cpui));
+        getCPUIDEX(cpui, 0x80000003, 0);
+        memcpy(brand + 16, cpui, sizeof(cpui));
+        getCPUIDEX(cpui, 0x80000004, 0);
+        memcpy(brand + 32, cpui, sizeof(cpui));
+        brand_ = brand;
+    }
+}
+
+

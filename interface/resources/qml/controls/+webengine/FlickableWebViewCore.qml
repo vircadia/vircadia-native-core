@@ -5,6 +5,7 @@ import QtWebChannel 1.0
 import QtQuick.Controls 2.2
 
 import stylesUit 1.0 as StylesUIt
+import controlsUit 1.0 as ControlsUit
 
 Item {
     id: flick
@@ -27,6 +28,10 @@ Item {
     property bool interactive: false
 
     property bool blurOnCtrlShift: true
+
+    onUrlChanged: {
+        permissionPopupBackground.visible = false;
+    }
 
     StylesUIt.HifiConstants {
         id: hifi
@@ -141,7 +146,15 @@ Item {
         }
 
         onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
+            if (permissionPopupBackground.visible === true) {
+                console.log("Browser engine requested a new permission, but user is already being presented with a different permission request. Aborting request for new permission...");
+                return;
+            }
+
+            permissionPopupBackground.securityOrigin = securityOrigin;
+            permissionPopupBackground.feature = feature;
+
+            permissionPopupBackground.visible = true;
         }
 
         //disable popup
@@ -186,4 +199,12 @@ Item {
             webViewCore.focus = false; 
         }
     }
+
+    ControlsUit.PermissionPopupBackground {
+        id: permissionPopupBackground
+        onSendPermission: {
+            webViewCore.grantFeaturePermission(securityOrigin, feature, shouldGivePermission);
+        }
+    }
+
 }

@@ -23,43 +23,36 @@ FocusScope {
     objectName: "LoginDialog"
     visible: true
 
+    HifiStylesUit.HifiConstants { id: hifi }
+
     anchors.fill: parent
-    width: parent.width
-    height: parent.height
 
-    property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    readonly property bool isTablet: true
+    readonly property bool isOverlay: false
 
-    property bool isHMD: HMD.active
-    property bool gotoPreviousApp: false;
-
+    property string iconText: hifi.glyphs.avatar
+    property int iconSize: 35
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
     property bool isPassword: false
 
-    readonly property bool isTablet: true
-    readonly property bool isOverlay: false
-    property alias text: loginKeyboard.mirroredText
-
-    property int titleWidth: 0
     property alias bannerWidth: banner.width
     property alias bannerHeight: banner.height
-    property string iconText: hifi.glyphs.avatar
-    property int iconSize: 35
 
-    property var pane: QtObject {
-        property real width: root.width
-        property real height: root.height
-    }
+    property int titleWidth: 0
 
-    function tryDestroy() {
-        tabletProxy.gotoHomeScreen();
-    }
+    property bool isHMD: HMD.active
 
-    MouseArea {
-        width: root.width
-        height: root.height
-    }
+    // TABLET SPECIFIC PROPERTIES START //
+    property alias text: loginKeyboard.mirroredText
+
+    width: parent.width
+    height: parent.height
+
+    property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system")
+
+    property bool gotoPreviousApp: false
 
     property bool keyboardOverride: true
 
@@ -70,7 +63,20 @@ FocusScope {
     property alias loginDialog: loginDialog
     property alias hifi: hifi
 
-    HifiStylesUit.HifiConstants { id: hifi }
+    property var pane: QtObject {
+        property real width: root.width
+        property real height: root.height
+    }
+
+    MouseArea {
+        width: root.width
+        height: root.height
+    }
+    // TABLET SPECIFIC PROPERTIES END //
+
+    function tryDestroy() {
+            tabletProxy.gotoHomeScreen();
+    }
 
     Timer {
         id: keyboardTimer
@@ -102,6 +108,15 @@ FocusScope {
         anchors.fill: parent
     }
 
+    Rectangle {
+        z: -6
+        id: opaqueRect
+        height: parent.height
+        width: parent.width
+        opacity: 0.65
+        color: "black"
+    }
+
     Item {
         z: -5
         id: bannerContainer
@@ -117,15 +132,6 @@ FocusScope {
             source: "../../images/high-fidelity-banner.svg"
             horizontalAlignment: Image.AlignHCenter
         }
-    }
-
-    Rectangle {
-        z: -6
-        id: opaqueRect
-        height: parent.height
-        width: parent.width
-        opacity: 0.65
-        color: "black"
     }
 
     HifiControlsUit.Keyboard {

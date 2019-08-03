@@ -91,10 +91,11 @@ def parse_args():
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force-bootstrap', action='store_true')
     parser.add_argument('--force-build', action='store_true')
+    parser.add_argument('--release-type', type=str, default="DEV", help="DEV, PR, or PRODUCTION")
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
-    parser.add_argument('--ci-build', action='store_true')
+    parser.add_argument('--ci-build', action='store_true', default=os.getenv('CI_BUILD') is not None)
     if True:
         args = parser.parse_args()
     else:
@@ -113,7 +114,7 @@ def main():
     args = parse_args()
 
     if args.ci_build:
-        logging.basicConfig(datefmt='%s', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
+        logging.basicConfig(datefmt='%H:%M:%S', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
 
     logger.info('sha=%s' % headSha())
     logger.info('start')

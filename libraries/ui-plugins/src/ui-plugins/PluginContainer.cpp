@@ -72,6 +72,11 @@ struct MenuCache {
         }
         flushCache(menu);
         MenuWrapper* parentItem = menu->getMenu(path);
+        if (!parentItem) {
+            qWarning() << "Attempted to add item to non-existent path " << path;
+            return;
+        }
+
         QAction* action = menu->addActionToQMenuAndActionHash(parentItem, name);
         if (!groupName.isEmpty()) {
             QActionGroup* group{ nullptr };

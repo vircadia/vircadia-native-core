@@ -14,8 +14,9 @@
 
 #include <QtCore/QtGlobal>
 
+//Disabling dde due to random crashes with closing the socket on macos. all the accompanying code is wrapped with the ifdef HAVE_DDE. uncomment the define below to enable
 #if defined(Q_OS_WIN) || defined(Q_OS_OSX)
-    #define HAVE_DDE
+    //#define HAVE_DDE
 #endif
 
 #include <QProcess>

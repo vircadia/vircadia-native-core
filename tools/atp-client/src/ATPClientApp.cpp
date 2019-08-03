@@ -394,7 +394,7 @@ void ATPClientApp::finish(int exitCode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // send the domain a disconnect packet, force stoppage of domain-server check-ins
-    nodeList->getDomainHandler().disconnect();
+    nodeList->getDomainHandler().disconnect("Finishing");
     nodeList->setIsShuttingDown(true);
 
     // tell the packet receiver we're shutting down, so it can drop packets

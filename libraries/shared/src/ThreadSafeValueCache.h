@@ -52,6 +52,11 @@ public:
         _valid = false;
     }
 
+    bool isValid() const {
+        std::lock_guard<std::mutex> guard(_mutex);
+        return _valid;
+    }
+
 private:
     mutable std::mutex _mutex;
     T _value;

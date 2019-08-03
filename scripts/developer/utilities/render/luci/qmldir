@@ -1,0 +1,11 @@
+
+ShadingModel 1.0 ShadingModel.qml
+ToneMapping 1.0 ToneMapping.qml
+BoundingBoxes 1.0 BoundingBoxes.qml
+Framebuffer 1.0 Framebuffer.qml
+Antialiasing 1.0 Antialiasing.qml
+Culling 1.0 Culling.qml
+
+Platform 1.0 Platform.qml
+RenderSettings 1.0 RenderSettings.qml
+PerformanceSettings 1.0 PerformanceSettings.qml

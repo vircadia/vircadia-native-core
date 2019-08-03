@@ -19,6 +19,8 @@ class TextRenderer3D;
 
 namespace render { namespace entities {
 
+class TextPayload;
+
 class TextEntityRenderer : public TypedEntityRenderer<TextEntityItem> {
     using Parent = TypedEntityRenderer<TextEntityItem>;
     using Pointer = std::shared_ptr<TextEntityRenderer>;
@@ -30,8 +32,14 @@ public:
 
 protected:
     bool isTransparent() const override;
+    bool isTextTransparent() const;
     Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
+    ItemKey getKey() override;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
+
+    void onAddToSceneTyped(const TypedEntityPointer& entity) override;
+    void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
 
 private:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
@@ -39,7 +47,6 @@ private:
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
-    int _geometryID{ 0 };
     std::shared_ptr<TextRenderer3D> _textRenderer;
 
     PulsePropertyGroup _pulseProperties;
@@ -50,6 +57,7 @@ private:
     float _textAlpha;
     glm::vec3 _backgroundColor;
     float _backgroundAlpha;
+    bool _unlit;
 
     float _leftMargin;
     float _rightMargin;
@@ -58,8 +66,44 @@ private:
 
     BillboardMode _billboardMode;
     glm::vec3 _dimensions;
+
+    int _geometryID { 0 };
+
+    std::shared_ptr<TextPayload> _textPayload;
+    render::ItemID _textRenderID;
+    void updateTextRenderItem() const;
+
+    friend class render::entities::TextPayload;
+};
+
+class TextPayload {
+public:
+    TextPayload() = default;
+    TextPayload(const QUuid& entityID, const std::weak_ptr<TextRenderer3D>& textRenderer);
+    ~TextPayload();
+
+    typedef render::Payload<TextPayload> Payload;
+    typedef Payload::DataPointer Pointer;
+
+    ItemKey getKey() const;
+    Item::Bound getBound() const;
+    ShapeKey getShapeKey() const;
+    void render(RenderArgs* args);
+
+protected:
+    QUuid _entityID;
+    std::weak_ptr<TextRenderer3D> _textRenderer;
+
+    int _geometryID { 0 };
 };
 
 } }
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const entities::TextPayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const entities::TextPayload::Pointer& payload);
+    template <> const ShapeKey shapeGetShapeKey(const entities::TextPayload::Pointer& payload);
+    template <> void payloadRender(const entities::TextPayload::Pointer& payload, RenderArgs* args);
+}
 
 #endif // hifi_RenderableTextEntityItem_h

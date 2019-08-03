@@ -224,6 +224,7 @@ void Model::updateRenderItems() {
 
         PrimitiveMode primitiveMode = self->getPrimitiveMode();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
+        bool cauterized = self->isCauterized();
 
         render::Transaction transaction;
         for (int i = 0; i < (int) self->_modelMeshRenderItemIDs.size(); i++) {
@@ -237,11 +238,13 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags, cauterized](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
+                    data.computeAdjustedLocalBound(meshState.clusterDualQuaternions);
                 } else {
                     data.updateClusterBuffer(meshState.clusterMatrices);
+                    data.computeAdjustedLocalBound(meshState.clusterMatrices);
                 }
 
                 Transform renderTransform = modelTransform;
@@ -261,6 +264,7 @@ void Model::updateRenderItems() {
                 }
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
+                data.setCauterized(cauterized);
                 data.updateKey(renderItemKeyGlobalFlags);
                 data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
@@ -310,10 +314,8 @@ bool Model::updateGeometry() {
             state.clusterDualQuaternions.resize(mesh.clusters.size());
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.push_back(state);
-            initializeBlendshapes(mesh, i);
             i++;
         }
-        _blendshapeOffsetsInitialized = true;
         needFullUpdate = true;
         emit rigReady();
     }
@@ -442,6 +444,19 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             }
         }
 
+        /**jsdoc
+         * A submesh intersection point.
+         * @typedef {object} SubmeshIntersection
+         * @property {Vec3} worldIntersectionPoint - The intersection point in world coordinates.
+         * @property {Vec3} meshIntersectionPoint - The intersection point in model coordinates.
+         * @property {number} partIndex - The index of the intersected mesh part within the submesh.
+         * @property {number} shapeID - The index of the mesh part within the model.
+         * @property {number} subMeshIndex - The index of the intersected submesh within the model.
+         * @property {string} subMeshName - The name of the intersected submesh.
+         * @property {Triangle} subMeshTriangleWorld - The vertices of the intersected mesh part triangle in world coordinates.
+         * @property {Vec3} subMeshNormal - The normal of the intersected mesh part triangle in model coordinates.
+         * @property {Triangle} subMeshTriangle - The vertices of the intersected mesh part triangle in model coordinates.
+         */
         if (intersectedSomething) {
             distance = bestDistance;
             face = bestFace;
@@ -759,11 +774,14 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
                 auto& materialName = _modelMeshMaterialNames[shapeID];
                 result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
 
-                auto mappedMaterialIter = _materialMapping.find(shapeID);
-                if (mappedMaterialIter != _materialMapping.end()) {
-                    auto mappedMaterials = mappedMaterialIter->second;
-                    for (auto& mappedMaterial : mappedMaterials) {
-                        result.appendMaterial(mappedMaterial, shapeID, materialName);
+                {
+                    std::unique_lock<std::mutex> lock(_materialMappingMutex);
+                    auto mappedMaterialIter = _materialMapping.find(shapeID);
+                    if (mappedMaterialIter != _materialMapping.end()) {
+                        auto mappedMaterials = mappedMaterialIter->second;
+                        for (auto& mappedMaterial : mappedMaterials) {
+                            result.appendMaterial(mappedMaterial, shapeID, materialName);
+                        }
                     }
                 }
                 shapeID++;
@@ -922,6 +940,23 @@ bool Model::isGroupCulled() const {
     return _renderItemKeyGlobalFlags.isSubMetaCulled();
 }
 
+void Model::setCauterized(bool cauterized, const render::ScenePointer& scene) {
+    if (Model::isCauterized() != cauterized) {
+        _cauterized = cauterized;
+        if (!scene) {
+            _needsFixupInScene = true;
+            return;
+        }
+        render::Transaction transaction;
+        foreach (auto item, _modelMeshRenderItemsMap.keys()) {
+            transaction.updateItem<ModelMeshPartPayload>(item, [cauterized](ModelMeshPartPayload& data) {
+                data.setCauterized(cauterized);
+            });
+        }
+        scene->enqueueTransaction(transaction);
+    }
+}
+
 const render::ItemKey Model::getRenderItemKeyGlobalFlags() const {
     return _renderItemKeyGlobalFlags;
 }
@@ -985,9 +1020,6 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItemShapes.clear();
     _priorityMap.clear();
 
-    _blendshapeOffsets.clear();
-    _blendshapeOffsetsInitialized = false;
-
     _addedToScene = false;
 
     _renderInfoVertexCount = 0;
@@ -996,7 +1028,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _renderInfoHasTransparent = false;
 }
 
-void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
+void Model::renderDebugMeshBoxes(gpu::Batch& batch, bool forward) {
     int colorNdx = 0;
     _mutex.lock();
 
@@ -1005,7 +1037,7 @@ void Model::renderDebugMeshBoxes(gpu::Batch& batch) {
     Transform meshToWorld(meshToWorldMatrix);
     batch.setModelTransform(meshToWorld);
 
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true, true, forward);
 
     for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
         for (auto &partTriangleSet : meshTriangleSets) {
@@ -1335,8 +1367,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
         // update the world space transforms for all joints
         glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
         updateRig(deltaTime, parentTransform);
-
-        computeMeshPartLocalBounds();
     }
 }
 
@@ -1345,17 +1375,6 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     glm::mat4 rigToWorldTransform = createMatFromQuatAndPos(getRotation(), getTranslation());
     _rig.updateAnimations(deltaTime, parentTransform, rigToWorldTransform);
-}
-
-void Model::computeMeshPartLocalBounds() {
-    for (auto& part : _modelMeshRenderItems) {
-        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        if (_useDualQuaternionSkinning) {
-            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
-        } else {
-            part->computeAdjustedLocalBound(state.clusterMatrices);
-        }
-    }
 }
 
 // virtual
@@ -1391,7 +1410,7 @@ void Model::updateClusterMatrices() {
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
-    if (_blendshapeOffsetsInitialized && modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+    if (modelBlender->shouldComputeBlendshapes() && hfmModel.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
         _blendedBlendshapeCoefficients = _blendshapeCoefficients;
         modelBlender->noteRequiresBlend(getThisPointer());
     }
@@ -1399,8 +1418,6 @@ void Model::updateClusterMatrices() {
 
 void Model::deleteGeometry() {
     _deleteGeometryCounter++;
-    _blendshapeOffsets.clear();
-    _blendshapeOffsetsInitialized = false;
     _meshStates.clear();
     _rig.destroyAnimGraph();
     _blendedBlendshapeCoefficients.clear();
@@ -1460,7 +1477,6 @@ void Model::createRenderItemSet() {
     // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     int shapeID = 0;
     uint32_t numMeshes = (uint32_t)meshes.size();
-    auto& hfmModel = getHFMModel();
     for (uint32_t i = 0; i < numMeshes; i++) {
         const auto& mesh = meshes.at(i);
         if (!mesh) {
@@ -1470,7 +1486,6 @@ void Model::createRenderItemSet() {
         // Create the render payloads
         int numParts = (int)mesh->getNumParts();
         for (int partIndex = 0; partIndex < numParts; partIndex++) {
-            initializeBlendshapes(hfmModel.meshes[i], i);
             _modelMeshRenderItems << std::make_shared<ModelMeshPartPayload>(shared_from_this(), i, partIndex, shapeID, transform, offset);
             auto material = getGeometry()->getShapeMaterial(shapeID);
             _modelMeshMaterialNames.push_back(material ? material->getName() : "");
@@ -1478,7 +1493,6 @@ void Model::createRenderItemSet() {
             shapeID++;
         }
     }
-    _blendshapeOffsetsInitialized = true;
 }
 
 bool Model::isRenderable() const {
@@ -1537,6 +1551,13 @@ void Model::applyMaterialMapping() {
     auto renderItemsKey = _renderItemKeyGlobalFlags;
     PrimitiveMode primitiveMode = getPrimitiveMode();
     bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+    auto modelMeshRenderItemIDs = _modelMeshRenderItemIDs;
+    auto modelMeshRenderItemShapes = _modelMeshRenderItemShapes;
+    std::unordered_map<int, bool> shouldInvalidatePayloadShapeKeyMap;
+
+    for (auto& shape : _modelMeshRenderItemShapes) {
+        shouldInvalidatePayloadShapeKeyMap[shape.meshIndex] = shouldInvalidatePayloadShapeKey(shape.meshIndex);
+    }
 
     auto& materialMapping = getMaterialMapping();
     for (auto& mapping : materialMapping) {
@@ -1556,8 +1577,11 @@ void Model::applyMaterialMapping() {
             priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
-            if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
+        std::weak_ptr<Model> weakSelf = shared_from_this();
+        auto materialLoaded = [networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning,
+                modelMeshRenderItemIDs, modelMeshRenderItemShapes, shouldInvalidatePayloadShapeKeyMap, weakSelf]() {
+            std::shared_ptr<Model> self = weakSelf.lock();
+            if (!self || networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
             render::Transaction transaction;
@@ -1579,12 +1603,15 @@ void Model::applyMaterialMapping() {
                 }
             }
             for (auto shapeID : shapeIDs) {
-                if (shapeID < _modelMeshRenderItemIDs.size()) {
-                    auto itemID = _modelMeshRenderItemIDs[shapeID];
-                    auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
-                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+                if (shapeID < modelMeshRenderItemIDs.size()) {
+                    auto itemID = modelMeshRenderItemIDs[shapeID];
+                    auto meshIndex = modelMeshRenderItemShapes[shapeID].meshIndex;
+                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKeyMap.at(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
-                    _materialMapping[shapeID].push_back(material);
+                    {
+                        std::unique_lock<std::mutex> lock(self->_materialMappingMutex);
+                        self->_materialMapping[shapeID].push_back(material);
+                    }
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                         data.addMaterial(material);
@@ -1664,10 +1691,7 @@ public:
     }
 };
 
-
-using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked);
-
-void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
+static void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
     float len = glm::compMax(glm::abs(unpacked.positionOffset));
     glm::vec3 normalizedPos(unpacked.positionOffset);
     if (len > 0.0f) {
@@ -1684,123 +1708,141 @@ void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& pac
     );
 }
 
+static void packBlendshapeOffsets_ref(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
+    for (int i = 0; i < size; ++i) {
+        packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
+        ++unpacked;
+        ++packed;
+    }
+}
+
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+//
+// Runtime CPU dispatch
+//
+#include <CPUDetect.h>
+
+void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int size);
+
+static void packBlendshapeOffsets(BlendshapeOffsetUnpacked* unpacked, BlendshapeOffsetPacked* packed, int size) {
+    static bool _cpuSupportsAVX2 = cpuSupportsAVX2();
+    if (_cpuSupportsAVX2) {
+        static_assert(sizeof(BlendshapeOffsetUnpacked) == 9 * sizeof(float), "struct BlendshapeOffsetUnpacked size doesn't match.");
+        static_assert(sizeof(BlendshapeOffsetPacked) == 4 * sizeof(uint32_t), "struct BlendshapeOffsetPacked size doesn't match.");
+        packBlendshapeOffsets_AVX2((float(*)[9])unpacked, (uint32_t(*)[4])packed, size);
+    } else {
+        packBlendshapeOffsets_ref(unpacked, packed, size);
+    }
+}
+
+#else   // portable reference code
+static auto& packBlendshapeOffsets = packBlendshapeOffsets_ref;
+#endif
+
 class Blender : public QRunnable {
 public:
 
-    Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients);
+    Blender(ModelPointer model, HFMModel::ConstPointer hfmModel, int blendNumber, const QVector<float>& blendshapeCoefficients);
 
     virtual void run() override;
 
 private:
-
     ModelPointer _model;
+    HFMModel::ConstPointer _hfmModel;
     int _blendNumber;
-    Geometry::WeakPointer _geometry;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(ModelPointer model, int blendNumber, const Geometry::WeakPointer& geometry, const QVector<float>& blendshapeCoefficients) :
+Blender::Blender(ModelPointer model, HFMModel::ConstPointer hfmModel, int blendNumber, const QVector<float>& blendshapeCoefficients) :
     _model(model),
+    _hfmModel(hfmModel),
     _blendNumber(blendNumber),
-    _geometry(geometry),
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
 
 void Blender::run() {
-    QVector<BlendshapeOffset> blendshapeOffsets;
-    QVector<int> blendedMeshSizes;
-    if (_model && _model->isLoaded()) {
-        DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
-        int offset = 0;
-        auto meshes = _model->getHFMModel().meshes;
-        int meshIndex = 0;
-        foreach(const HFMMesh& mesh, meshes) {
-            auto modelMeshBlendshapeOffsets = _model->_blendshapeOffsets.find(meshIndex++);
-            if (mesh.blendshapes.isEmpty() || modelMeshBlendshapeOffsets == _model->_blendshapeOffsets.end()) {
-                // Not blendshaped or not initialized
-                blendedMeshSizes.push_back(0);
-                continue;
-            }
-
-            if (mesh.vertices.size() != modelMeshBlendshapeOffsets->second.size()) {
-                // Mesh sizes don't match.  Something has gone wrong
-                blendedMeshSizes.push_back(0);
-                continue;
-            }
-
-            blendshapeOffsets += modelMeshBlendshapeOffsets->second;
-            BlendshapeOffset* meshBlendshapeOffsets = blendshapeOffsets.data() + offset;
-            int numVertices = modelMeshBlendshapeOffsets->second.size();
-            blendedMeshSizes.push_back(numVertices);
-            offset += numVertices;
-            std::vector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets(modelMeshBlendshapeOffsets->second.size());
-
-            const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-            for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
-                float vertexCoefficient = _blendshapeCoefficients.at(i);
-                const float EPSILON = 0.0001f;
-                if (vertexCoefficient < EPSILON) {
-                    continue;
-                }
-
-                float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
-                const HFMBlendshape& blendshape = mesh.blendshapes.at(i);
-
-                tbb::parallel_for(tbb::blocked_range<int>(0, blendshape.indices.size()), [&](const tbb::blocked_range<int>& range) {
-                    for (auto j = range.begin(); j < range.end(); j++) {
-                        int index = blendshape.indices.at(j);
-
-                        auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
-                        currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
-
-                        currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
-                        if (j < blendshape.tangents.size()) {
-                            currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
-                        }
-                    }
-                });
-            }
-
-            // Blendshape offsets are generrated, now let's pack it on its way to gpu
-            tbb::parallel_for(tbb::blocked_range<int>(0, (int) unpackedBlendshapeOffsets.size()), [&](const tbb::blocked_range<int>& range) {
-                auto unpacked = unpackedBlendshapeOffsets.data() + range.begin();
-                auto packed = meshBlendshapeOffsets + range.begin();
-                for (auto j = range.begin(); j < range.end(); j++) {
-                    packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10((*packed).packedPosNorTan, (*unpacked));
-
-                    unpacked++;
-                    packed++;
-                }
-            });
+    DETAILED_PROFILE_RANGE_EX(simulation_animation, __FUNCTION__, 0xFFFF0000, 0, { { "url", _model->getURL().toString() } });
+    int numBlendshapeOffsets = 0;  // number of offsets required for all meshes.
+    int maxBlendshapeOffsets = 0;  // number of offsets in the largest mesh.
+    int numMeshes = 0;  // number of meshes in this model.
+    for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
+        numMeshes++;
+        if (meshIter->blendshapes.isEmpty()) {
+            continue;
         }
+        int numVertsInMesh = meshIter->vertices.size();
+        numBlendshapeOffsets += numVertsInMesh;
+        maxBlendshapeOffsets = std::max(maxBlendshapeOffsets, numVertsInMesh);
     }
+
+    // allocate the required sizes
+    QVector<int> blendedMeshSizes;
+    blendedMeshSizes.reserve(numMeshes);
+
+    QVector<BlendshapeOffset> packedBlendshapeOffsets;
+    packedBlendshapeOffsets.resize(numBlendshapeOffsets);
+
+    QVector<BlendshapeOffsetUnpacked> unpackedBlendshapeOffsets;
+    unpackedBlendshapeOffsets.resize(maxBlendshapeOffsets);    // reuse for all meshes
+
+    int offset = 0;
+    for (auto meshIter = _hfmModel->meshes.cbegin(); meshIter != _hfmModel->meshes.cend(); ++meshIter) {
+        if (meshIter->blendshapes.isEmpty()) {
+            blendedMeshSizes.push_back(0);
+            continue;
+        }
+        int numVertsInMesh = meshIter->vertices.size();
+        blendedMeshSizes.push_back(numVertsInMesh);
+
+        // initialize offsets to zero
+        memset(unpackedBlendshapeOffsets.data(), 0, numVertsInMesh * sizeof(BlendshapeOffsetUnpacked));
+
+        // for each blendshape in this mesh, accumulate the offsets into unpackedBlendshapeOffsets.
+        const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+        for (int i = 0, n = qMin(_blendshapeCoefficients.size(), meshIter->blendshapes.size()); i < n; i++) {
+            float vertexCoefficient = _blendshapeCoefficients.at(i);
+            const float EPSILON = 0.0001f;
+            if (vertexCoefficient < EPSILON) {
+                continue;
+            }
+
+            float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
+            const HFMBlendshape& blendshape = meshIter->blendshapes.at(i);
+            for (int j = 0; j < blendshape.indices.size(); ++j) {
+                int index = blendshape.indices.at(j);
+
+                auto& currentBlendshapeOffset = unpackedBlendshapeOffsets[index];
+                currentBlendshapeOffset.positionOffset += blendshape.vertices.at(j) * vertexCoefficient;
+                currentBlendshapeOffset.normalOffset += blendshape.normals.at(j) * normalCoefficient;
+                if (j < blendshape.tangents.size()) {
+                    currentBlendshapeOffset.tangentOffset += blendshape.tangents.at(j) * normalCoefficient;
+                }
+            }
+        }
+
+        // convert unpackedBlendshapeOffsets into packedBlendshapeOffsets for the gpu.
+        auto unpacked = unpackedBlendshapeOffsets.data();
+        auto packed = packedBlendshapeOffsets.data() + offset;
+        packBlendshapeOffsets(unpacked, packed, numVertsInMesh);
+
+        offset += numVertsInMesh;
+    }
+    Q_ASSERT(offset == numBlendshapeOffsets);
+
     // post the result to the ModelBlender, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(DependencyManager::get<ModelBlender>().data(), "setBlendedVertices",
-        Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber), Q_ARG(QVector<BlendshapeOffset>, blendshapeOffsets), Q_ARG(QVector<int>, blendedMeshSizes));
+                              Q_ARG(ModelPointer, _model), Q_ARG(int, _blendNumber),
+                              Q_ARG(QVector<BlendshapeOffset>, packedBlendshapeOffsets),
+                              Q_ARG(QVector<int>, blendedMeshSizes));
 }
 
 bool Model::maybeStartBlender() {
     if (isLoaded()) {
-        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), ++_blendNumber, _renderGeometry, _blendshapeCoefficients));
+        QThreadPool::globalInstance()->start(new Blender(getThisPointer(), getGeometry()->getConstHFMModelPointer(),
+                                                         ++_blendNumber, _blendshapeCoefficients));
         return true;
     }
     return false;
-}
-
-void Model::initializeBlendshapes(const HFMMesh& mesh, int index) {
-    if (mesh.blendshapes.empty()) {
-        // mesh doesn't have blendshape, did we allocate one though ?
-        if (_blendshapeOffsets.find(index) != _blendshapeOffsets.end()) {
-            qWarning() << "Mesh does not have Blendshape yet the blendshapeOffsets are allocated ?";
-        }
-        return;
-    }
-    // Mesh has blendshape, let s allocate the local buffer if not done yet
-    if (_blendshapeOffsets.find(index) == _blendshapeOffsets.end()) {
-        QVector<BlendshapeOffset> blendshapeOffset;
-        blendshapeOffset.fill(BlendshapeOffset(), mesh.vertices.size());
-        _blendshapeOffsets[index] = blendshapeOffset;
-    }
 }
 
 ModelBlender::ModelBlender() :

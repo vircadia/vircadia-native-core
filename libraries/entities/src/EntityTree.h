@@ -109,9 +109,10 @@ public:
 
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
 
-    virtual void update() override { update(true); }
-
-    void update(bool simulate);
+    // Why preUpdate() and update()?
+    // Because sometimes we need to do stuff between the two.
+    void preUpdate() override;
+    void update(bool simulate = true) override;
 
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);

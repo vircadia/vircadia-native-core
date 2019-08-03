@@ -110,6 +110,10 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
 
     EntityPropertyFlags requestedProperties = propertiesCopy.getChangedProperties();
 
+    if (!nodeList->getThisNodeCanGetAndSetPrivateUserData() && requestedProperties.getHasProperty(PROP_PRIVATE_USER_DATA)) {
+        requestedProperties -= PROP_PRIVATE_USER_DATA;
+    }
+
     while (encodeResult == OctreeElement::PARTIAL) {
         encodeResult = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut, requestedProperties, didntFitProperties);
 

@@ -14,6 +14,7 @@
 #include <OffscreenQmlElement.h>
 #include <AudioIOStats.h>
 #include <render/Args.h>
+#include <shared/QtHelpers.h>
 
 #define STATS_PROPERTY(type, name, initialValue) \
     Q_PROPERTY(type name READ name NOTIFY name##Changed) \
@@ -108,6 +109,8 @@ private: \
  * @property {number} shadowRendered - <em>Read-only.</em>
  * @property {string} sendingMode - <em>Read-only.</em>
  * @property {string} packetStats - <em>Read-only.</em>
+ * @property {number} lodAngle - <em>Read-only.</em>
+ * @property {number} lodTargetFramerate - <em>Read-only.</em>
  * @property {string} lodStatus - <em>Read-only.</em>
  * @property {string} timingStats - <em>Read-only.</em>
  * @property {string} gameUpdateStats - <em>Read-only.</em>
@@ -179,6 +182,7 @@ private: \
  * @property {Vec3} rayPicksUpdated - <em>Read-only.</em>
  * @property {Vec3} parabolaPicksUpdated - <em>Read-only.</em>
  * @property {Vec3} collisionPicksUpdated - <em>Read-only.</em>
+ * @property {bool} eventQueueDebuggingOn - <em>Read-only.</em>
  */
 // Properties from x onwards are QQuickItem properties.
 
@@ -206,6 +210,10 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(float, presentdroprate, 0)
     STATS_PROPERTY(int, gameLoopRate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
+    STATS_PROPERTY(int, refreshRateTarget, 0)
+    STATS_PROPERTY(QString, refreshRateMode, QString())
+    STATS_PROPERTY(QString, refreshRateRegime, QString())
+    STATS_PROPERTY(QString, uxMode, QString())
     STATS_PROPERTY(int, heroAvatarCount, 0)
     STATS_PROPERTY(int, physicsObjectCount, 0)
     STATS_PROPERTY(int, updatedAvatarCount, 0)
@@ -254,7 +262,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, processing, 0)
     STATS_PROPERTY(int, processingPending, 0)
     STATS_PROPERTY(int, triangles, 0)
-    STATS_PROPERTY(int, drawcalls, 0)
+    STATS_PROPERTY(quint32 , drawcalls, 0)
     STATS_PROPERTY(int, materialSwitches, 0)
     STATS_PROPERTY(int, itemConsidered, 0)
     STATS_PROPERTY(int, itemOutOfView, 0)
@@ -266,6 +274,8 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, shadowRendered, 0)
     STATS_PROPERTY(QString, sendingMode, QString())
     STATS_PROPERTY(QString, packetStats, QString())
+    STATS_PROPERTY(int, lodAngle, 0)
+    STATS_PROPERTY(int, lodTargetFramerate, 0)
     STATS_PROPERTY(QString, lodStatus, QString())
     STATS_PROPERTY(QString, timingStats, QString())
     STATS_PROPERTY(QString, gameUpdateStats, QString())
@@ -307,6 +317,15 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(QVector3D, rayPicksUpdated, QVector3D(0, 0, 0))
     STATS_PROPERTY(QVector3D, parabolaPicksUpdated, QVector3D(0, 0, 0))
     STATS_PROPERTY(QVector3D, collisionPicksUpdated, QVector3D(0, 0, 0))
+
+    STATS_PROPERTY(int, mainThreadQueueDepth, -1);
+    STATS_PROPERTY(int, nodeListThreadQueueDepth, -1);
+
+#ifdef DEBUG_EVENT_QUEUE
+    STATS_PROPERTY(bool, eventQueueDebuggingOn, true)
+#else
+    STATS_PROPERTY(bool, eventQueueDebuggingOn, false)
+#endif // DEBUG_EVENT_QUEUE
 
 public:
     static Stats* getInstance();
@@ -844,6 +863,20 @@ signals:
     void packetStatsChanged();
 
     /**jsdoc
+     * Triggered when the value of the <code>lodAngle</code> property changes.
+     * @function Stats.lodAngleChanged
+     * @returns {Signal}
+     */
+    void lodAngleChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>lodTargetFramerate</code> property changes.
+     * @function Stats.lodTargetFramerateChanged
+     * @returns {Signal}
+     */
+    void lodTargetFramerateChanged();
+
+    /**jsdoc
      * Triggered when the value of the <code>lodStatus</code> property changes.
      * @function Stats.lodStatusChanged
      * @returns {Signal}
@@ -1066,6 +1099,15 @@ signals:
      * @returns {Signal}
      */
     void decimatedTextureCountChanged();
+
+
+    void refreshRateTargetChanged();
+
+    void refreshRateModeChanged();
+
+    void refreshRateRegimeChanged();
+
+    void uxModeChanged();
 
     // QQuickItem signals.
 
@@ -1343,6 +1385,27 @@ signals:
      * @returns {Signal}
      */
     void collisionPicksUpdatedChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>eventQueueDebuggingOn</code> property changes.
+     * @function Stats.eventQueueDebuggingOn
+     * @returns {Signal}
+     */
+    void eventQueueDebuggingOnChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>nodeListThreadQueueDepth</code> property changes.
+     * @function Stats.nodeListThreadQueueDepth
+     * @returns {Signal}
+     */
+    void nodeListThreadQueueDepthChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>nodeListThreadQueueDepth</code> property changes.
+     * @function Stats.nodeListThreadQueueDepth
+     * @returns {Signal}
+     */
+    void mainThreadQueueDepthChanged();
 
 private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process

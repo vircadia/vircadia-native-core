@@ -11,6 +11,7 @@
 
 #include <gpu/Pipeline.h>
 #include "LightStage.h"
+#include "HazeStage.h"
 #include "LightingModel.h"
 
 class BeginGPURangeTimer {
@@ -60,7 +61,7 @@ protected:
 
 class DrawLayered3D {
 public:
-    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
+    using Inputs = render::VaryingSet4<render::ItemBounds, LightingModelPointer, HazeStage::FramePointer, glm::vec2>;
     using Config = DrawLayered3DConfig;
     using JobModel = render::Job::ModelI<DrawLayered3D, Inputs, Config>;
 
@@ -75,16 +76,6 @@ protected:
     bool _opaquePass { true };
 };
 
-class CompositeHUD {
-public:
-    // IF specified the input Framebuffer is actively set by the batch of this job before calling the HUDOperator.
-    // If not, the current Framebuffer is left unchanged.
-    //using Inputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelI<CompositeHUD, gpu::FramebufferPointer>;
-
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs);
-};
-
 class Blit {
 public:
     using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
@@ -92,6 +83,16 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class NewOrDefaultFramebuffer {
+public:
+    using Input = glm::uvec2;
+    using Output = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelIO<NewOrDefaultFramebuffer, Input, Output>;
+
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
+};
 
 class ResolveFramebuffer {
 public:
@@ -101,18 +102,6 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
 };
-
-class ResolveNewFramebuffer {
-public:
-    using Inputs = gpu::FramebufferPointer;
-    using Outputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelIO<ResolveNewFramebuffer, Inputs, Outputs>;
-
-    void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
-private:
-    gpu::FramebufferPointer _outputFramebuffer;
-};
-
 
 class ExtractFrustums {
 public:
@@ -135,6 +124,18 @@ public:
     using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+};
+
+class SetRenderMethod {
+public:
+    using JobModel = render::Job::Model<SetRenderMethod>;
+
+    SetRenderMethod(render::Args::RenderMethod method) : _method(method) {}
+
+    void run(const render::RenderContextPointer& renderContext) { renderContext->args->_renderMethod = _method; }
+
+protected:
+    render::Args::RenderMethod _method;
 };
 
 #endif // hifi_RenderDeferredTask_h

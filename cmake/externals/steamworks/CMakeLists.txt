@@ -21,7 +21,7 @@ set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
 ExternalProject_Get_Property(${EXTERNAL_NAME} SOURCE_DIR)
 
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/public CACHE TYPE INTERNAL)
+set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${SOURCE_DIR}/public CACHE STRING INTERNAL)
 
 if (WIN32)
 
@@ -36,12 +36,12 @@ if (WIN32)
     set(${EXTERNAL_NAME_UPPER}_DLL_PATH ${ARCH_DIR})
     set(${EXTERNAL_NAME_UPPER}_LIB_PATH ${ARCH_DIR})
 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE "${${EXTERNAL_NAME_UPPER}_LIB_PATH}/steam_api${ARCH_SUFFIX}.lib" CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE "${${EXTERNAL_NAME_UPPER}_LIB_PATH}/steam_api${ARCH_SUFFIX}.lib" CACHE STRING INTERNAL)
     add_paths_to_fixup_libs("${${EXTERNAL_NAME_UPPER}_DLL_PATH}")
 
 elseif(APPLE)
 
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/redistributable_bin/osx32/libsteam_api.dylib CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/redistributable_bin/osx32/libsteam_api.dylib CACHE STRING INTERNAL)
 
     set(_STEAMWORKS_LIB_DIR "${SOURCE_DIR}/redistributable_bin/osx32")
     ExternalProject_Add_Step(
@@ -57,6 +57,6 @@ elseif(APPLE)
 elseif(NOT ANDROID)
 
     # FIXME need to account for different architectures
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/redistributable_bin/linux64/libsteam_api.so CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${SOURCE_DIR}/redistributable_bin/linux64/libsteam_api.so CACHE STRING INTERNAL)
 
 endif()

@@ -396,6 +396,13 @@ void OpenVrDisplayPlugin::init() {
     _lastGoodHMDPose.m[2][2] = 1.0f;
     _lastGoodHMDPose.m[2][3] = 0.0f;
 
+    // Different HMDs end up showing the squeezed-vision egg as different sizes.  These values
+    // attempt to make them appear the same.
+    _visionSqueezeDeviceLowX = 0.8f;
+    _visionSqueezeDeviceHighX = 0.98f;
+    _visionSqueezeDeviceLowY = 0.8f;
+    _visionSqueezeDeviceHighY = 0.9f;
+
     emit deviceConnected(getName());
 }
 
@@ -651,6 +658,11 @@ void OpenVrDisplayPlugin::hmdPresent() {
     if (_threadedSubmit) {
         _submitThread->waitForPresent();
     } else {
+
+        _visionSqueezeParametersBuffer.edit<VisionSqueezeParameters>()._leftProjection = _eyeProjections[0];
+        _visionSqueezeParametersBuffer.edit<VisionSqueezeParameters>()._rightProjection = _eyeProjections[1];
+        _visionSqueezeParametersBuffer.edit<VisionSqueezeParameters>()._hmdSensorMatrix = _currentPresentFrameInfo.presentPose;
+
         GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
         vr::Texture_t vrTexture{ (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
@@ -783,4 +795,60 @@ QRectF OpenVrDisplayPlugin::getPlayAreaRect() {
     glm::vec2 dimensions = glm::vec2(maxXZ.x - minXZ.x, maxXZ.z - minXZ.z);
 
     return QRectF(center.x, center.y, dimensions.x, dimensions.y);
+}
+
+DisplayPlugin::StencilMaskMeshOperator OpenVrDisplayPlugin::getStencilMaskMeshOperator() {
+    if (_system) {
+        if (!_stencilMeshesInitialized) {
+            _stencilMeshesInitialized = true;
+            for (auto eye : VR_EYES) {
+                vr::HiddenAreaMesh_t stencilMesh = _system->GetHiddenAreaMesh(eye);
+                if (stencilMesh.pVertexData && stencilMesh.unTriangleCount > 0) {
+                    std::vector<glm::vec3> vertices;
+                    std::vector<uint32_t> indices;
+
+                    const int NUM_INDICES_PER_TRIANGLE = 3;
+                    int numIndices = stencilMesh.unTriangleCount * NUM_INDICES_PER_TRIANGLE;
+                    vertices.reserve(numIndices);
+                    indices.reserve(numIndices);
+                    for (int i = 0; i < numIndices; i++) {
+                        vr::HmdVector2_t vertex2D = stencilMesh.pVertexData[i];
+                        // We need the vertices in clip space
+                        vertices.emplace_back(vertex2D.v[0] - (1.0f - (float)eye), 2.0f * vertex2D.v[1] - 1.0f, 0.0f);
+                        indices.push_back(i);
+                    }
+
+                    _stencilMeshes[eye] = graphics::Mesh::createIndexedTriangles_P3F((uint32_t)vertices.size(), (uint32_t)indices.size(), vertices.data(), indices.data());
+                } else {
+                    _stencilMeshesInitialized = false;
+                }
+            }
+        }
+
+        if (_stencilMeshesInitialized) {
+            return [&](gpu::Batch& batch) {
+                for (auto& mesh : _stencilMeshes) {
+                    batch.setIndexBuffer(mesh->getIndexBuffer());
+                    batch.setInputFormat((mesh->getVertexFormat()));
+                    batch.setInputStream(0, mesh->getVertexStream());
+
+                    // Draw
+                    auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
+                    batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+                }
+            };
+        }
+    }
+    return nullptr;
+}
+
+void OpenVrDisplayPlugin::updateParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
+                                           int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
+                                           float visionSqueezeSpotlightSize) {
+    _visionSqueezeX = visionSqueezeX;
+    _visionSqueezeY = visionSqueezeY;
+    _visionSqueezeTransition = visionSqueezeTransition;
+    _visionSqueezePerEye = visionSqueezePerEye;
+    _visionSqueezeGroundPlaneY = visionSqueezeGroundPlaneY;
+    _visionSqueezeSpotlightSize = visionSqueezeSpotlightSize;
 }

@@ -28,14 +28,19 @@ class EntityTreeElementExtraEncodeData;
 class ReadBitstreamToTreeParams;
 
 /**jsdoc
- * A key light is defined by the following properties.
+ * A key light is defined by the following properties:
  * @typedef {object} Entities.KeyLight
  * @property {Color} color=255,255,255 - The color of the light.
  * @property {number} intensity=1 - The intensity of the light.
  * @property {Vec3} direction=0,-1,0 - The direction the light is shining.
- * @property {boolean} castShadows=false - If <code>true</code> then shadows are cast. Shadows are cast by avatars, plus 
- *     {@link Entities.EntityType|Model} and {@link Entities.EntityType|Shape} entities that have their 
+ * @property {boolean} castShadows=false - <code>true</code> if shadows are cast, <code>false</code> if they aren't. Shadows 
+ *     are cast by avatars, plus {@link Entities.EntityProperties-Model|Model} and 
+ *     {@link Entities.EntityProperties-Shape|Shape} entities that have their 
  *     <code>{@link Entities.EntityProperties|canCastShadow}</code> property set to <code>true</code>.
+ * @property {number} shadowBias=0.5 - The bias of the shadows cast by the light.  Use this to fine-tune your shadows to your scene
+ *     to prevent shadow acne and peter panning.  In the range <code>0.0</code> &ndash; <code>1.0</code>.
+ * @property {number} shadowMaxDistance=40.0 - The max distance from your view at which shadows will be computed.  Higher values will
+ *     cover more of your scene, but with less precision.  In the range <code>1.0</code> &ndash; <code>250.0</code>.
  */
 class KeyLightPropertyGroup : public PropertyGroup {
 public:
@@ -89,11 +94,15 @@ public:
     static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
     static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
     static const bool DEFAULT_KEYLIGHT_CAST_SHADOWS;
+    static const float DEFAULT_KEYLIGHT_SHADOW_BIAS;
+    static const float DEFAULT_KEYLIGHT_SHADOW_MAX_DISTANCE;
 
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, Color, color, glm::u8vec3, DEFAULT_KEYLIGHT_COLOR);
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, Intensity, intensity, float, DEFAULT_KEYLIGHT_INTENSITY);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, Direction, direction, glm::vec3, DEFAULT_KEYLIGHT_DIRECTION);
     DEFINE_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, CastShadows, castShadows, bool, DEFAULT_KEYLIGHT_CAST_SHADOWS);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_SHADOW_BIAS, ShadowBias, shadowBias, float, DEFAULT_KEYLIGHT_SHADOW_BIAS);
+    DEFINE_PROPERTY(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, ShadowMaxDistance, shadowMaxDistance, float, DEFAULT_KEYLIGHT_SHADOW_MAX_DISTANCE);
 };
 
 #endif // hifi_KeyLightPropertyGroup_h

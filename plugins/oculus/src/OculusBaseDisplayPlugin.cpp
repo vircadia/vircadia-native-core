@@ -227,3 +227,66 @@ QVector<glm::vec3> OculusBaseDisplayPlugin::getSensorPositions() {
 
     return result;
 }
+
+DisplayPlugin::StencilMaskMeshOperator OculusBaseDisplayPlugin::getStencilMaskMeshOperator() {
+    if (_session) {
+        if (!_stencilMeshesInitialized) {
+            _stencilMeshesInitialized = true;
+            ovr::for_each_eye([&](ovrEyeType eye) {
+                ovrFovStencilDesc stencilDesc = {
+                    ovrFovStencil_HiddenArea, 0, eye,
+                    _eyeRenderDescs[eye].Fov, _eyeRenderDescs[eye].HmdToEyePose.Orientation
+                };
+                // First we get the size of the buffer we need
+                ovrFovStencilMeshBuffer buffer = { 0, 0, nullptr, 0, 0, nullptr };
+                ovrResult result = ovr_GetFovStencil(_session, &stencilDesc, &buffer);
+                if (!OVR_SUCCESS(result)) {
+                    _stencilMeshesInitialized = false;
+                    return;
+                }
+
+                std::vector<ovrVector2f> ovrVertices(buffer.UsedVertexCount);
+                std::vector<uint16_t> ovrIndices(buffer.UsedIndexCount);
+
+                // Now we populate the actual buffer
+                buffer = { (int)ovrVertices.size(), 0, ovrVertices.data(), (int)ovrIndices.size(), 0, ovrIndices.data() };
+                result = ovr_GetFovStencil(_session, &stencilDesc, &buffer);
+
+                if (!OVR_SUCCESS(result)) {
+                    _stencilMeshesInitialized = false;
+                    return;
+                }
+
+                std::vector<glm::vec3> vertices;
+                vertices.reserve(ovrVertices.size());
+                for (auto& ovrVertex : ovrVertices) {
+                    // We need the vertices in clip space
+                    vertices.emplace_back(ovrVertex.x - (1.0f - (float)eye),  2.0f * ovrVertex.y - 1.0f, 0.0f);
+                }
+
+                std::vector<uint32_t> indices;
+                indices.reserve(ovrIndices.size());
+                for (auto& ovrIndex : ovrIndices) {
+                    indices.push_back(ovrIndex);
+                }
+
+                _stencilMeshes[eye] = graphics::Mesh::createIndexedTriangles_P3F((uint32_t)vertices.size(), (uint32_t)indices.size(), vertices.data(), indices.data());
+            });
+        }
+
+        if (_stencilMeshesInitialized) {
+            return [&](gpu::Batch& batch) {
+                for (auto& mesh : _stencilMeshes) {
+                    batch.setIndexBuffer(mesh->getIndexBuffer());
+                    batch.setInputFormat((mesh->getVertexFormat()));
+                    batch.setInputStream(0, mesh->getVertexStream());
+
+                    // Draw
+                    auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
+                    batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+                }
+            };
+        }
+    }
+    return nullptr;
+}

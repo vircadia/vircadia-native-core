@@ -41,8 +41,8 @@ private:
     quint16 _priority;
     QUuid _parentID;
 
-    MaterialMappingMode _materialMappingMode;
-    bool _materialRepeat;
+    MaterialMappingMode _materialMappingMode { UNSET_MATERIAL_MAPPING_MODE };
+    bool _materialRepeat { false };
     glm::vec2 _materialMappingPos;
     glm::vec2 _materialMappingScale;
     float _materialMappingRot;

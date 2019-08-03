@@ -270,6 +270,9 @@ enum class EntityVersion : PacketVersion {
     DisableWebMedia,
     ParticleShapeType,
     ParticleShapeTypeDeadlockFix,
+    PrivateUserData,
+    TextUnlit,
+    ShadowBiasAndDistance,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
@@ -332,7 +335,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarTraitsAck,
     FasterAvatarEntities,
     SendMaxTranslationDimension,
-    FBXJointOrderChange
+    FBXJointOrderChange,
+    HandControllerSection,
+    SendVerificationFailed
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
@@ -341,7 +346,11 @@ enum class DomainConnectRequestVersion : PacketVersion {
     HasProtocolVersions,
     HasMACAddress,
     HasMachineFingerprint,
-    AlwaysHasMachineFingerprint
+    AlwaysHasMachineFingerprint,
+    HasTimestamp,
+    HasReason,
+    HasSystemInfo,
+    HasCompressedSystemInfo
 };
 
 enum class DomainConnectionDeniedVersion : PacketVersion {
@@ -360,7 +369,9 @@ enum class DomainListVersion : PacketVersion {
     PermissionsGrid,
     GetUsernameFromUUIDSupport,
     GetMachineFingerprintFromUUIDSupport,
-    AuthenticationOptional
+    AuthenticationOptional,
+    HasTimestamp,
+    HasConnectReason
 };
 
 enum class AudioVersion : PacketVersion {

@@ -38,6 +38,6 @@ var hoop = Entities.addEntity({
         grabbableKey: {
             grabbable: false
         }
-    })
+    }),
     compoundShapeURL: hoopCollisionHullURL
 });

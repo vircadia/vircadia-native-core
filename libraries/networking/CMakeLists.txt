@@ -1,6 +1,6 @@
 set(TARGET_NAME networking)
 setup_hifi_library(Network)
-link_hifi_libraries(shared)
+link_hifi_libraries(shared platform)
 
 target_openssl()
 target_tbb()

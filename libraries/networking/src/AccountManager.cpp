@@ -86,17 +86,20 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     qRegisterMetaType<AccountManagerAuth::Type>();
+    connect(this, &AccountManager::loginComplete, this, &AccountManager::uploadPublicKey);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 const QString ACCOUNT_MANAGER_REQUESTED_SCOPE = "owner";
 
 void AccountManager::logout() {
+
     // a logout means we want to delete the DataServerAccountInfo we currently have for this URL, in-memory and in file
     _accountInfo = DataServerAccountInfo();
 
     // remove this account from the account settings file
     removeAccountFromFile();
+    saveLoginStatus(false);
 
     emit logoutComplete();
     // the username has changed to blank
@@ -650,6 +653,39 @@ void AccountManager::refreshAccessToken() {
     }
 }
 
+void AccountManager::setAccessTokens(const QString& response) {
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(response.toUtf8());
+    const QJsonObject& rootObject = jsonResponse.object();
+
+    if (!rootObject.contains("error")) {
+        // construct an OAuthAccessToken from the json object
+
+        if (!rootObject.contains("access_token") || !rootObject.contains("expires_in")
+            || !rootObject.contains("token_type")) {
+            // TODO: error handling - malformed token response
+            qCDebug(networking) << "Received a response for password grant that is missing one or more expected values.";
+        } else {
+            // clear the path from the response URL so we have the right root URL for this access token
+            QUrl rootURL = rootObject.contains("url") ? rootObject["url"].toString() : _authURL;
+            rootURL.setPath("");
+
+            qCDebug(networking) << "Storing an account with access-token for" << qPrintable(rootURL.toString());
+
+            _accountInfo = DataServerAccountInfo();
+            _accountInfo.setAccessTokenFromJSON(rootObject);
+            emit loginComplete(rootURL);
+
+            persistAccountToFile();
+            saveLoginStatus(true);
+            requestProfile();
+        }
+    } else {
+        // TODO: error handling
+        qCDebug(networking) << "Error in response for password grant -" << rootObject["error_description"].toString();
+        emit loginFailed();
+    }
+}
+
 void AccountManager::requestAccessTokenFinished() {
     QNetworkReply* requestReply = reinterpret_cast<QNetworkReply*>(sender());
 
@@ -803,18 +839,30 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair, this,
             &AccountManager::handleKeypairGenerationError);
 
-        qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair.";
+        static constexpr int RSA_THREAD_PRIORITY = 1;
+        qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair, priority"
+            << RSA_THREAD_PRIORITY << "- QThreadPool::maxThreadCount =" << QThreadPool::globalInstance()->maxThreadCount();
         // Start on Qt's global thread pool.
-        QThreadPool::globalInstance()->start(keypairGenerator);
+        QThreadPool::globalInstance()->start(keypairGenerator, RSA_THREAD_PRIORITY);
     }
 }
 
 void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey) {
 
-    qCDebug(networking) << "Generated 2048-bit RSA keypair. Uploading public key now.";
+    qCDebug(networking) << "Generated 2048-bit RSA keypair.";
 
     // hold the private key to later set our metaverse API account info if upload succeeds
+    _pendingPublicKey = publicKey;
     _pendingPrivateKey = privateKey;
+    uploadPublicKey();
+}
+
+void AccountManager::uploadPublicKey() {
+    if (_pendingPrivateKey.isEmpty()) {
+        return;
+    }
+
+    qCDebug(networking) << "Attempting upload of public key";
 
     // upload the public key so data-web has an up-to-date key
     const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
@@ -836,7 +884,7 @@ void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray pr
 
     publicKeyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
                         QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
-    publicKeyPart.setBody(publicKey);
+    publicKeyPart.setBody(_pendingPublicKey);
     requestMultiPart->append(publicKeyPart);
 
     // Currently broken? We don't have the temporary domain key.
@@ -865,6 +913,7 @@ void AccountManager::publicKeyUploadSucceeded(QNetworkReply* reply) {
 
     // public key upload complete - store the matching private key and persist the account to settings
     _accountInfo.setPrivateKey(_pendingPrivateKey);
+    _pendingPublicKey.clear();
     _pendingPrivateKey.clear();
     persistAccountToFile();
 
@@ -880,9 +929,6 @@ void AccountManager::publicKeyUploadFailed(QNetworkReply* reply) {
 
     // we aren't waiting for a response any longer
     _isWaitingForKeypairResponse = false;
-
-    // clear our pending private key
-    _pendingPrivateKey.clear();
 }
 
 void AccountManager::handleKeypairGenerationError() {
@@ -894,4 +940,39 @@ void AccountManager::handleKeypairGenerationError() {
 
 void AccountManager::setLimitedCommerce(bool isLimited) {
     _limitedCommerce = isLimited;
+}
+
+void AccountManager::saveLoginStatus(bool isLoggedIn) {
+    if (!_configFileURL.isEmpty()) {
+        QFile configFile(_configFileURL);
+        configFile.open(QIODevice::ReadOnly | QIODevice::Text);
+        QJsonParseError error;
+        QJsonDocument jsonDocument = QJsonDocument::fromJson(configFile.readAll(), &error);
+        configFile.close();
+        QString launcherPath;
+        if (error.error == QJsonParseError::NoError) {
+            QJsonObject rootObject = jsonDocument.object();
+            if (rootObject.contains("launcherPath")) {
+                launcherPath = rootObject["launcherPath"].toString();
+            }
+            if (rootObject.contains("loggedIn")) {
+                rootObject["loggedIn"] = isLoggedIn;
+            }
+            jsonDocument = QJsonDocument(rootObject);
+
+        }
+        configFile.open(QFile::WriteOnly | QFile::Text | QFile::Truncate);
+        configFile.write(jsonDocument.toJson());
+        configFile.close();
+        if (!isLoggedIn && !launcherPath.isEmpty()) {
+            QProcess launcher;
+            launcher.setProgram(launcherPath);
+            launcher.startDetached();
+            QMetaObject::invokeMethod(qApp, "quit", Qt::QueuedConnection);
+        }
+    }
+}
+
+bool AccountManager::hasKeyPair() const {
+    return _accountInfo.hasPrivateKey();
 }

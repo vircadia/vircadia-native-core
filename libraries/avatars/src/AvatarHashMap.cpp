@@ -23,6 +23,8 @@
 
 #include "Profile.h"
 
+static const QString VERIFY_FAIL_MODEL { "/meshes/verifyFailed.fst" };
+
 void AvatarReplicas::addReplica(const QUuid& parentID, AvatarSharedPointer replica) {
     if (parentID == QUuid()) {
         return;
@@ -278,6 +280,10 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
         return avatar;
     } else {
+        // Shouldn't happen if mixer functioning correctly - debugging for BUGZ-781:
+        qCDebug(avatars) << "Discarding received avatar data" << sessionUUID << (sessionUUID == _lastOwnerSessionUUID ? "(is self)" : "")
+            << "isIgnoringNode = " << nodeList->isIgnoringNode(sessionUUID);
+
         // create a dummy AvatarData class to throw this data on the ground
         AvatarData dummyData;
         int bytesRead = dummyData.parseDataFromBuffer(byteArray);
@@ -324,6 +330,10 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
             bool displayNameChanged = false;
             // In this case, the "sendingNode" is the Avatar Mixer.
             avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
+            if (avatar->isCertifyFailed() && identityUUID != EMPTY) {
+                qCDebug(avatars) << "Avatar" << avatar->getSessionDisplayName() << "marked as VERIFY-FAILED";
+                avatar->setSkeletonModelURL(PathUtils::resourcesUrl(VERIFY_FAIL_MODEL));
+            }
             _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
         }
     }
@@ -331,6 +341,12 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     AvatarTraits::TraitMessageSequence seq;
+
+    // Trying to read more bytes than available, bail
+    if (message->getBytesLeftToRead() < (qint64)sizeof(AvatarTraits::TraitMessageSequence)) {
+        qWarning() << "Malformed bulk trait packet, bailling";
+        return;
+    }
 
     message->readPrimitive(&seq);
 
@@ -344,7 +360,14 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
     }
 
-    while (message->getBytesLeftToRead()) {
+    while (message->getBytesLeftToRead() > 0) {
+        // Trying to read more bytes than available, bail
+        if (message->getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                   sizeof(AvatarTraits::TraitType))) {
+            qWarning() << "Malformed bulk trait packet, bailling";
+            return;
+        }
+
         // read the avatar ID to figure out which avatar this is for
         auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -360,6 +383,12 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
         auto& lastProcessedVersions = _processedTraitVersions[avatarID];
 
         while (traitType != AvatarTraits::NullTrait && message->getBytesLeftToRead() > 0) {
+            // Trying to read more bytes than available, bail
+            if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitVersion))) {
+                qWarning() << "Malformed bulk trait packet, bailling";
+                return;
+            }
+
             AvatarTraits::TraitVersion packetTraitVersion;
             message->readPrimitive(&packetTraitVersion);
 
@@ -367,7 +396,19 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
             bool skipBinaryTrait = false;
 
             if (AvatarTraits::isSimpleTrait(traitType)) {
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < qint64(sizeof(AvatarTraits::TraitWireSize))) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
+
                 message->readPrimitive(&traitBinarySize);
+
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < traitBinarySize) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
 
                 // check if this trait version is newer than what we already have for this avatar
                 if (packetTraitVersion > lastProcessedVersions[traitType]) {
@@ -379,10 +420,23 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
                     skipBinaryTrait = true;
                 }
             } else {
+                // Trying to read more bytes than available, bail
+                if (message->getBytesLeftToRead() < qint64(NUM_BYTES_RFC4122_UUID +
+                                                           sizeof(AvatarTraits::TraitWireSize))) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
+
                 AvatarTraits::TraitInstanceID traitInstanceID =
                     QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
                 message->readPrimitive(&traitBinarySize);
+
+                // Trying to read more bytes than available, bail
+                if (traitBinarySize < -1 || message->getBytesLeftToRead() < traitBinarySize) {
+                    qWarning() << "Malformed bulk trait packet, bailling";
+                    return;
+                }
 
                 auto& processedInstanceVersion = lastProcessedVersions.getInstanceValueRef(traitType, traitInstanceID);
                 if (packetTraitVersion > processedInstanceVersion) {

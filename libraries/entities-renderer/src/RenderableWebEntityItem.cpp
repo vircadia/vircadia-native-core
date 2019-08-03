@@ -7,6 +7,7 @@
 //
 
 #include "RenderableWebEntityItem.h"
+#include <atomic>
 
 #include <QtCore/QTimer>
 #include <QtGui/QOpenGLContext>
@@ -46,7 +47,7 @@ static uint64_t MAX_NO_RENDER_INTERVAL = 30 * USECS_PER_SECOND;
 static uint8_t YOUTUBE_MAX_FPS = 30;
 
 // Don't allow more than 20 concurrent web views
-static uint32_t _currentWebCount { 0 };
+static std::atomic<uint32_t> _currentWebCount(0);
 static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 
 static QTouchDevice _touchDevice;
@@ -314,12 +315,19 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     glm::vec4 color;
     Transform transform;
+    bool forward;
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         transform = _renderTransform;
+        forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
     });
+
+    if (color.a == 0.0f) {
+        return;
+    }
+
     batch.setResourceTexture(0, _texture);
 
     transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
@@ -327,7 +335,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
 
     // Turn off jitter for these entities
     batch.pushProjectionJitter();
-    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, color.a < OPAQUE_ALPHA_THRESHOLD);
+    DependencyManager::get<GeometryCache>()->bindWebBrowserProgram(batch, color.a < OPAQUE_ALPHA_THRESHOLD, forward);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, color, _geometryId);
     batch.popProjectionJitter();
     batch.setResourceTexture(0, nullptr);
@@ -356,16 +364,15 @@ void WebEntityRenderer::buildWebSurface(const EntityItemPointer& entity, const Q
 
 void WebEntityRenderer::destroyWebSurface() {
     QSharedPointer<OffscreenQmlSurface> webSurface;
-    ContentType contentType = ContentType::NoContent;
     withWriteLock([&] {
         webSurface.swap(_webSurface);
-        _contentType = contentType;
-    });
+        _contentType = ContentType::NoContent;
 
-    if (webSurface) {
-        --_currentWebCount;
-        WebEntityRenderer::releaseWebSurface(webSurface, _cachedWebSurface, _connections);
-    }
+        if (webSurface) {
+            --_currentWebCount;
+            WebEntityRenderer::releaseWebSurface(webSurface, _cachedWebSurface, _connections);
+        }
+    });
 }
 
 glm::vec2 WebEntityRenderer::getWindowSize(const TypedEntityPointer& entity) const {

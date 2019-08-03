@@ -16,6 +16,13 @@
 #include <QString>
 #include <QUrl>
 
+/**jsdoc
+ * Information about a resource request.
+ * @typedef {object} ResourceRequestObserver.ResourceRequest
+ * @property {string} url - The URL of the resource request.
+ * @property {number} callerId - An ID identifying the request.
+ * @property {string} extra - Extra information about the request.
+ */
 void ResourceRequestObserver::update(const QUrl& requestUrl,
     const qint64 callerId,
     const QString& extra) {

@@ -8,7 +8,7 @@
 macro(TARGET_BULLET)
     if (ANDROID)
         set(INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/bullet)
-        set(BULLET_INCLUDE_DIRS "${INSTALL_DIR}/include/bullet" CACHE TYPE INTERNAL)
+        set(BULLET_INCLUDE_DIRS "${INSTALL_DIR}/include/bullet" CACHE STRING INTERNAL)
 
         set(LIB_DIR ${INSTALL_DIR}/lib)
         list(APPEND BULLET_LIBRARIES ${LIB_DIR}/libBulletDynamics.a)

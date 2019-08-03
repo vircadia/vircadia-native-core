@@ -910,6 +910,9 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         });
         _layerIndex = 0;
         addIncludeItemsToMallets();
+
+        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+        scaleKeyboard(myAvatar->getSensorToWorldScale());
     });
 
     request->send();

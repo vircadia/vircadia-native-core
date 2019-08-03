@@ -27,16 +27,17 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/marketplaces/marketplaces.js",
     "system/notifications.js",
     "system/commerce/wallet.js",
-    "system/edit.js",
+    "system/create/edit.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
     "system/emote.js",
     "system/miniTablet.js",
-    "system/audioMuteOverlay.js"
+    "system/audioMuteOverlay.js",
+    "system/keyboardShortcuts/keyboardShortcuts.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
-    "system/controllers/controllerScripts.js",
+    "system/controllers/controllerScripts.js"
     //"system/chat.js"
 ];
 
