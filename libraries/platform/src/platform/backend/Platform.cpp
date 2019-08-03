@@ -17,6 +17,7 @@
  * @property {PlatformInfo.CPUDescription[]} cpus - Information on the computer's CPUs.
  * @property {PlatformInfo.DisplayDescription[]} displays - Information on the computer's displays.
  * @property {PlatformInfo.GPUDescription[]} gpus - Information on the computer's GPUs.
+ * @property {PlatformInfo.GraphicsAPIDescription[]} graphicsAPIs - Information on the computer's  graphics APIs.
  * @property {PlatformInfo.MemoryDescription} memory - Information on the computers memory.
  * @property {PlatformInfo.NICDescription} nics - Information on the computers network cards.
  */
@@ -67,6 +68,45 @@ namespace platform { namespace keys {
         const char*  displays = "displays";
         const char*  isMaster = "isMaster";
     }
+    
+    /**jsdoc
+     * Information on a graphics API.
+     * @typedef {object} PlatformInfo.GraphicsAPIDescription
+     * @property {string} name - The name of the graphics API.
+     * @property {string} version - The version of the graphics API.
+     *
+     * @property {string} [renderer] - If an OpenGL API, then the graphics card that performs the rendering.
+     * @property {string} [vendor] - If an OpenGL API, then the OpenGL vendor.
+     * @property {string} [shadingLanguageVersion] - If an OpenGL API, then the shading language version.
+     * @property {string[]} [extensions] - If an OpenGL API, then the list of OpenGL extensions supported.
+     *
+     * @property {PlatformInfo.VulkanAPIDescription[]} [devices] - If a Vulkan API, then the devices provided in the API.
+     */
+    /**jsdoc
+     * Information on a Vulkan graphics API.
+     * @typedef {object} PlatformInfo.VulkanAPIDescription
+     * @property {string} 
+     * @property {string} driverVersion - The driver version.
+     * @property {string} apiVersion - The API version.
+     * @property {string} deviceType - The device type.
+     * @property {string} vendor - The device vendor.
+     * @property {string} name - The device name.
+     * @property {string[]} extensions - The list of Vulkan extensions supported.
+     * @property {PlatformInfo.VulkanQueueDescription[]} queues - The Vulkan queues available.
+     * @property {PlatformInfo.VulkanHeapDescription[]} heaps - The Vulkan heaps available.
+     */
+    /**jsdoc
+     * Information on a Vulkan queue.
+     * @typedef {object} PlatformInfo.VulkanQueueDescription
+     * @property {string} flags - The Vulkan queue flags.
+     * @property {number} count - The queue count.
+     */
+    /**jsdoc
+     * Information on a Vulkan heap.
+     * @typedef {object} PlatformInfo.VulkanHeapDescription
+     * @property {string} flags - The Vulkan heap flags.
+     * @property {number} size - The heap size.
+     */
     namespace graphicsAPI {
         const char* name = "name";
         const char* version = "version";
