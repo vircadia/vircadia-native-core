@@ -24,6 +24,9 @@ Rectangle {
     property int hoveredWidth: 480
     property int requestedWidth
 
+    property bool overEmoteButton: false
+    property bool overEmojiButton: false
+
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);
     }
@@ -38,16 +41,24 @@ Rectangle {
     }
 
     MouseArea {
+        id: emoteMouseArea
         anchors.fill: parent
         hoverEnabled: enabled
+        propagateComposedEvents: true;
         onEntered: {
+            console.log("in mouseArea 1");
             Tablet.playSound(TabletEnums.ButtonHover);
             root.requestedWidth = root.hoveredWidth;
+            emojiMouseArea.hoverEnabled = true;
+            root.overEmoteButton = true;
         }
         onExited: {
+            console.log("MOUSE 1 EXIT");
+            root.overEmoteButton = false;
             Tablet.playSound(TabletEnums.ButtonClick);
             root.requestedWidth = root.originalWidth;
         }
+        z: 2
     }
 
     Rectangle {
@@ -69,6 +80,7 @@ Rectangle {
             size: 26
             color: simplifiedUI.colors.text.almostWhite
         }
+
     }
 
     Rectangle {
@@ -87,6 +99,48 @@ Rectangle {
             size: 20
             color: simplifiedUI.colors.text.black
         }
+
+        Rectangle {
+            id: emojiButtonBackground
+            z: 3
+            width: root.originalWidth
+            height: parent.height
+            anchors.right: parent.right
+            color: simplifiedUI.colors.darkBackground
+
+            HifiStylesUit.GraphikRegular {
+                id: emojiButton
+                text: "😊"
+                z: 3
+                anchors.fill: parent
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.rightMargin: 1
+                anchors.verticalCenterOffset: -2
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.almostWhite
+            }
+            MouseArea {
+                id: emojiMouseArea
+                anchors.fill: parent
+                hoverEnabled: false
+                propagateComposedEvents: true;
+                z: 4
+                onClicked: {
+                    console.log("GOT THE CLICK");
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "toggleEmojiApp"
+                    });
+                }
+                onEntered: {
+                    console.log("OVER EMOJI BUTTON");
+                }
+            }
+        }
+
+
+
     }
 
     function fromScript(message) {

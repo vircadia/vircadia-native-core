@@ -15,7 +15,7 @@
 
 // START CONFIG OPTIONS
 var DOCKED_QML_SUPPORTED = true;
-var SHOW_PROTOTYPE_EMOTE_APP = false;
+var SHOW_PROTOTYPE_EMOTE_APP = true;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -187,6 +187,77 @@ function toggleSettingsApp() {
     settingsAppWindow.closed.connect(onSettingsAppClosed);
 }
 
+var EMOJI_APP_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/emojiApp/EmojiApp.qml";
+var EMOJI_APP_WINDOW_TITLE = "Emoji";
+var EMOJI_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var EMOJI_APP_WIDTH_PX = 480;
+var EMOJI_APP_HEIGHT_PX = 615;
+var EMOJI_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00001000 | // Qt::WindowTitleHint
+    0x00002000 | // Qt::WindowSystemMenuHint
+    0x08000000 | // Qt::WindowCloseButtonHint
+    0x00008000 | // Qt::WindowMaximizeButtonHint
+    0x00004000; // Qt::WindowMinimizeButtonHint
+var emojiAppWindow = false;
+function toggleEmojiApp() {
+    console.log("IN TOGGLE EMOJI APP \n\n\n\n");
+    if (emojiAppWindow) {
+        emojiAppWindow.close();
+        // This really shouldn't be necessary.
+        // This signal really should automatically be called by the signal handler set up below.
+        // But fixing that requires an engine change, so this workaround will do.
+        onEmojiAppClosed();
+        return;
+    }
+
+    emojiAppWindow = Desktop.createWindow(EMOJI_APP_QML_PATH, {
+        title: EMOJI_APP_WINDOW_TITLE,
+        presentationMode: EMOJI_APP_PRESENTATION_MODE,
+        size: {
+            x: EMOJI_APP_WIDTH_PX,
+            y: EMOJI_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - EMOJI_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - EMOJI_APP_HEIGHT_PX / 2)
+        },
+        overrideFlags: EMOJI_APP_WINDOW_FLAGS
+    });
+
+    emojiAppWindow.fromQml.connect(onMessageFromEmojiApp);
+    emojiAppWindow.closed.connect(onEmojiAppClosed);
+}
+
+function onEmojiAppClosed() {
+    if (emojiAppWindow) {
+        emojiAppWindow.fromQml.disconnect(onMessageFromEmojiApp);
+        emojiAppWindow.closed.disconnect(onEmojiAppClosed);
+    }
+    emojiAppWindow = false;
+}
+
+var EMOJI_APP_MESSAGE_SOURCE = "EmojiApp.qml";
+function onMessageFromEmojiApp(message) {
+    if (message.source !== EMOJI_APP_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "selectedEmoji":
+            selectedEmoji();
+            break;
+            
+        default:
+            console.log("Unrecognized message from " + SETTINGS_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+
+}
+
+function selectedEmoji() {
+    console.log("\n\n\n RUNNING TESTS \n\n\n\n");
+}
+
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
         return;
@@ -206,7 +277,11 @@ function onMessageFromEmoteAppBar(message) {
     }
 
     switch (message.method) {
-            
+        case "toggleEmojiApp": 
+            console.log("CALLING TOGGLE EMOJI APP")
+            toggleEmojiApp();
+            break;
+
         default:
             console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
@@ -361,6 +436,7 @@ function sendLocalStatusToQml() {
 
 var TOP_BAR_MESSAGE_SOURCE = "SimplifiedTopBar.qml";
 function onMessageFromTopBar(message) {
+    console.log("\n\n FROM MESSAGE!")
     if (message.source !== TOP_BAR_MESSAGE_SOURCE) {
         return;
     }
@@ -427,7 +503,7 @@ function loadSimplifiedTopBar() {
         };
     } else {
         windowProps.position = {
-            x: Window.x,
+            x: 500,
             y: Window.y
         };
     }
