@@ -222,7 +222,7 @@ float easingFunc(float alpha, EasingType type) {
     case EasingType_EaseOutSine:
         return sinf(alpha * PI_OVER_TWO);
     case EasingType_EaseInOutSine:
-        return 0.5f * (1.0f - cos(alpha * PI));
+        return 0.5f * (1.0f - cosf(alpha * PI));
     case EasingType_EaseInQuad:
         return alpha * alpha;
     case EasingType_EaseOutQuad:
@@ -282,7 +282,7 @@ float easingFunc(float alpha, EasingType type) {
     case EasingType_EaseInOutExpo:
         if (alpha == 0.0f || alpha == 1.0f)
             return alpha;
-        else if (alpha < 0.5) {
+        else if (alpha < 0.5f) {
             return 0.5f * powf(2.0f, (20.0f * alpha) - 10.0f);
         } else {
             return -0.5f * powf(2.0f, (-20.0f * alpha) + 10.0f) + 1.0f;
