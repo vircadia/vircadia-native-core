@@ -47,7 +47,7 @@
         return;
     }
     NSLog(@"extracting Launcher file");
-    BOOL extractionSuccessful = [sharedLauncher extractZipFileAtDestination:[sharedLauncher getDownloadPathForContentAndScripts] :[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:@"HQ Launcher.zip"]];
+    BOOL extractionSuccessful = [sharedLauncher extractZipFileAtDestination:[sharedLauncher getDownloadPathForContentAndScripts] :[[sharedLauncher getDownloadPathForContentAndScripts] stringByAppendingString:destinationFileName]];
 
     if (!extractionSuccessful) {
         [sharedLauncher displayErrorPage];
