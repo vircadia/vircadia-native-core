@@ -352,6 +352,7 @@ void ScriptEngines::saveScripts() {
     // the scripts that the user expects to be there when launched without the
     // --scripts override.
     if (_defaultScriptsLocationOverridden) {
+        runningScriptsHandle.set(QVariantList{ DEFAULT_SCRIPTS_LOCATION });
         return;
     }
 
