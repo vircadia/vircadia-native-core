@@ -55,10 +55,9 @@ namespace scriptable {
         bool isValid() const { auto mesh = getMeshPointer(); return mesh && partIndex < mesh->getNumParts(); }
 
     public slots:
-        // Functions exposed to scripts need to use QVector<unsigned int> instead of QVector<glm::uint32> as a workaround to QScriptEngine meta types
-        QVector<unsigned int> getIndices() const;
-        bool setIndices(const QVector<unsigned int>& indices);
-        QVector<unsigned int> findNearbyPartVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
+        QVector<glm::uint32> getIndices() const;
+        bool setIndices(const QVector<glm::uint32>& indices);
+        QVector<glm::uint32> findNearbyPartVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
         QVariantList queryVertexAttributes(QVariant selector) const;
         QVariantMap getVertexAttributes(glm::uint32 vertexIndex) const;
         bool setVertexAttributes(glm::uint32 vertexIndex, const QVariantMap& attributeValues);
@@ -66,7 +65,7 @@ namespace scriptable {
         QVariant getVertexProperty(glm::uint32 vertexIndex, const QString& attributeName) const;
         bool setVertexProperty(glm::uint32 vertexIndex, const QString& attributeName, const QVariant& attributeValues);
 
-        QVector<unsigned int> getFace(glm::uint32 faceIndex) const;
+        QVector<glm::uint32> getFace(glm::uint32 faceIndex) const;
 
         QVariantMap scaleToFit(float unitScale);
         QVariantMap translate(const glm::vec3& translation);

@@ -83,9 +83,8 @@ namespace scriptable {
 
     public slots:
         const scriptable::ScriptableModelPointer getParentModel() const { return qobject_cast<scriptable::ScriptableModel*>(model); }
-        // Functions exposed to scripts need to use QVector<unsigned int> instead of QVector<glm::uint32> as a workaround to QScriptEngine meta types
-        QVector<unsigned int> getIndices() const;
-        QVector<unsigned int> findNearbyVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
+        QVector<glm::uint32> getIndices() const;
+        QVector<glm::uint32> findNearbyVertexIndices(const glm::vec3& origin, float epsilon = 1e-6) const;
 
         glm::uint32 addAttribute(const QString& attributeName, const QVariant& defaultValue = QVariant());
         glm::uint32 fillAttribute(const QString& attributeName, const QVariant& value);
