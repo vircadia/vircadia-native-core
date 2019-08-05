@@ -20,6 +20,8 @@ set(src_files
   src/DownloadInterface.m
   src/DownloadDomainContent.h
   src/DownloadDomainContent.m
+  src/DownloadLauncher.h
+  src/DownloadLauncher.m
   src/DownloadScripts.h
   src/DownloadScripts.m
   src/CredentialsRequest.h
@@ -34,6 +36,8 @@ set(src_files
   src/Interface.m
   src/ErrorViewController.h
   src/ErrorViewController.m
+  src/LauncherCommandlineArgs.h
+  src/LauncherCommandlineArgs.m
   src/Settings.h
   src/Settings.m
   src/LaunchInterface.h
@@ -46,6 +50,9 @@ set(src_files
   nib/LoginScreen.xib
   nib/ProcessScreen.xib
   nib/DisplayNameScreen.xib)
+
+set(updater_src_files
+  src/updater/main.m)
 
 set(APP_NAME "HQ Launcher")
 
@@ -72,6 +79,7 @@ endfunction()
   set_packaging_parameters()
 
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+add_executable("updater" ${updater_src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
   MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
@@ -101,6 +109,10 @@ endforeach()
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND updater
+  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
 
 install(
   TARGETS HQLauncher
