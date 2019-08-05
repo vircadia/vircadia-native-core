@@ -231,8 +231,7 @@ float easingFunc(float alpha, EasingType type) {
         return (alpha < 0.5f) ? (2.0f * alpha * alpha) : ((-2.0f * alpha * alpha) + (4.0f * alpha) - 1.0f);
     case EasingType_EaseInCubic:
         return alpha * alpha * alpha;
-    case EasingType_EaseOutCubic:
-        {
+    case EasingType_EaseOutCubic: {
             float temp = alpha - 1.0f;
             return temp * temp * temp + 1.0f;
         }
@@ -243,15 +242,12 @@ float easingFunc(float alpha, EasingType type) {
             float temp = ((2.0f * alpha) - 2.0f);
             return 0.5f * temp * temp * temp + 1.0f;
         }
-        break;
     case EasingType_EaseInQuart:
         return alpha * alpha * alpha * alpha;
-    case EasingType_EaseOutQuart:
-        {
+    case EasingType_EaseOutQuart: {
             float temp = alpha - 1.0f;
             return temp * temp * temp * (1.0f - alpha) + 1.0f;
         }
-        break;
     case EasingType_EaseInOutQuart:
         if (alpha < 0.5f) {
             return 8.0f * alpha * alpha * alpha * alpha;
@@ -259,11 +255,9 @@ float easingFunc(float alpha, EasingType type) {
             float temp = alpha - 1.0f;
             return -8.0f * temp * temp * temp * temp + 1.0f;
         }
-        break;
     case EasingType_EaseInQuint:
         return alpha * alpha * alpha * alpha * alpha;
-    case EasingType_EaseOutQuint:
-        {
+    case EasingType_EaseOutQuint: {
             float temp = (alpha - 1.0f);
             return temp * temp * temp * temp * temp + 1.0f;
         }
@@ -274,7 +268,6 @@ float easingFunc(float alpha, EasingType type) {
             float temp = ((2.0f * alpha) - 2.0f);
             return 0.5f * temp * temp * temp * temp * temp + 1.0f;
         }
-        break;
     case EasingType_EaseInExpo:
         return (alpha == 0.0f) ? alpha : powf(2.0f, 10.0f * (alpha - 1.0f));
     case EasingType_EaseOutExpo:
@@ -287,7 +280,6 @@ float easingFunc(float alpha, EasingType type) {
         } else {
             return -0.5f * powf(2.0f, (-20.0f * alpha) + 10.0f) + 1.0f;
         }
-        break;
     case EasingType_EaseInCirc:
         return 1.0f - sqrtf(1.0f - (alpha * alpha));
     case EasingType_EaseOutCirc:
@@ -298,7 +290,6 @@ float easingFunc(float alpha, EasingType type) {
         } else {
             return 0.5f * (sqrtf(-((2.0f * alpha) - 3.0f) * ((2.0f * alpha) - 1.0f)) + 1.0f);
         }
-        break;
     default:
         return alpha;
     }
