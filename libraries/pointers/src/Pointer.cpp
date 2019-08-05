@@ -53,8 +53,12 @@ QVariantMap Pointer::toVariantMap() const {
     return qVariantMap;
 }
 
+void Pointer::setScriptParameters(const QVariantMap& scriptParameters) {
+    _scriptParameters = scriptParameters;
+}
+
 QVariantMap Pointer::getScriptParameters() const {
-    return DependencyManager::get<PickManager>()->getPickScriptParameters(_pickUID);
+    return _scriptParameters;
 }
 
 void Pointer::setPrecisionPicking(bool precisionPicking) {

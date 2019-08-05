@@ -52,6 +52,7 @@ public:
     virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) = 0;
     
     virtual QVariantMap toVariantMap() const;
+    virtual void setScriptParameters(const QVariantMap& scriptParameters);
     virtual QVariantMap getScriptParameters() const;
 
     virtual void setPrecisionPicking(bool precisionPicking);
@@ -85,6 +86,9 @@ protected:
     const unsigned int _pickUID;
     bool _enabled;
     bool _hover;
+
+    // The parameters used to create this pointer when created through a script
+    QVariantMap _scriptParameters;
 
     virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) = 0;
 

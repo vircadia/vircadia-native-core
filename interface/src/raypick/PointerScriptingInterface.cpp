@@ -62,6 +62,8 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
 
     propertyMap["type"] = (int)type;
 
+    pointer->setScriptParameters(propertyMap);
+
     return DependencyManager::get<PointerManager>()->addPointer(pointer);
 }
 
