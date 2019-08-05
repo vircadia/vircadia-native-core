@@ -47,7 +47,7 @@ public:
         return jointWorldTransform;
     }
 
-    QVariantMap BaseNestableTransformNode<T>::toVariantMap() const {
+    QVariantMap toVariantMap() const {
         QVariantMap map;
     
         if (!_spatiallyNestable.expired()) {
