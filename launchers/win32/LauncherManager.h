@@ -11,6 +11,7 @@
 #pragma once
 
 #include "LauncherUtils.h"
+#include "LauncherDlg.h"
 
 const CString DIRECTORY_NAME_APP = _T("HQ");
 const CString DIRECTORY_NAME_DOWNLOADS = _T("downloads");
@@ -27,8 +28,7 @@ const float DOWNLOAD_APPLICATION_UPDATE_WEIGHT = 0.75f;
 const float EXTRACT_APPLICATION_UPDATE_WEIGHT = 0.25f;
 const float CONTINUE_UPDATING_GLOBAL_OFFSET = 0.2f;
 
-class LauncherManager
-{
+class LauncherManager {
 public:
     enum PathType {
         Running_Path = 0,
@@ -57,22 +57,33 @@ public:
         UnzipApplication,
         Uninstall
     };
+    enum ContinueActionOnStart {
+        ContinueNone = 0,
+        ContinueLogIn,
+        ContinueUpdate,
+        ContinueFinish
+    };
+
     LauncherManager();
     ~LauncherManager();
-    void init(BOOL allowUpdate, BOOL continueUpdating, BOOL skipSplashScreen);
+    void init(BOOL allowUpdate, ContinueActionOnStart continueAction);
+    static CString getContinueActionParam(ContinueActionOnStart continueAction);
+    static ContinueActionOnStart getContinueActionFromParam(const CString& param);
     BOOL initLog();
     BOOL addToLog(const CString& line);
     void closeLog();
     void saveErrorLog();
     BOOL getAndCreatePaths(PathType type, CString& outPath);
     BOOL getInstalledVersion(const CString& path, CString& version);
-    BOOL isApplicationInstalled(CString& version, CString& domain,
+    BOOL isApplicationInstalled(CString& version, CString& domain, 
                                 CString& content, bool& loggedIn);
     LauncherUtils::ResponseError getAccessTokenForCredentials(const CString& username, const CString& password);
-    void getMostRecentBuilds(CString& launcherUrlOut, CString& launcherVersionOut, 
-                             CString& interfaceUrlOut, CString& interfaceVersionOut);
+    void getMostRecentBuilds(CString& launcherUrlOut,
+                             CString& launcherVersionOut,
+                             CString& interfaceUrlOut,
+                             CString& interfaceVersionOut);
     LauncherUtils::ResponseError readOrganizationJSON(const CString& hash);
-    LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain,
+    LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain, 
                                                 CString& content, bool& loggedIn);
     BOOL createConfigJSON();
     BOOL createApplicationRegistryKeys(int size);
@@ -90,7 +101,6 @@ public:
     const CString& getVersion() const { return _version; }
     BOOL shouldShutDown() const { return _shouldShutdown; }
     BOOL shouldLaunch() const { return _shouldLaunch; }
-    BOOL shouldSkipSplashScreen() const { return _skipSplashScreen; }
     BOOL needsUpdate() const { return _shouldUpdate; }
     BOOL needsSelfUpdate() const { return _shouldUpdateLauncher; }
     BOOL needsSelfDownload() const { return _shouldDownloadLauncher; }
@@ -98,14 +108,17 @@ public:
     BOOL needsInstall() const { return _shouldInstall; }
     BOOL needsToWait() const { return _shouldWait; }
     BOOL needsRestartNewLauncher() const { return _shouldRestartNewLauncher; }
-    BOOL shouldContinueUpdating() const { return _continueUpdating; }
-    BOOL willContinueUpdating() const { return _willContinueUpdating; }
+    BOOL willContinueUpdating() const { return _keepUpdating; }
+    ContinueActionOnStart getContinueAction() { return _continueAction; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
     bool isLoggedIn() const { return _loggedIn; }
     bool hasFailed() const { return _hasFailed; }
     void setFailed(bool hasFailed) { _hasFailed = hasFailed; }
     const CString& getLatestInterfaceURL() const { return _latestApplicationURL; }
-    void uninstall() { _shouldUninstall = true; _shouldWait = false; };
+    void uninstall() {
+        _shouldUninstall = true;
+        _shouldWait = false;
+    };
 
     BOOL downloadFile(ProcessType type, const CString& url, CString& localPath);
     BOOL downloadContent();
@@ -149,11 +162,10 @@ private:
     BOOL _shouldDownloadLauncher { FALSE };
     BOOL _updateLauncherAllowed { TRUE };
     BOOL _shouldRestartNewLauncher { FALSE };
-    BOOL _continueUpdating { FALSE };
-    BOOL _willContinueUpdating { FALSE };
-    BOOL _skipSplashScreen { FALSE };
+    BOOL _keepLoggingIn { FALSE };
+    BOOL _keepUpdating { FALSE };
+    ContinueActionOnStart _continueAction;
     float _progressOffset { 0.0f };
     float _progress { 0.0f };
     CStdioFile _logFile;
 };
-

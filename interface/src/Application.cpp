@@ -1225,8 +1225,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     bool isStore = property(hifi::properties::OCULUS_STORE).toBool();
-
-    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore || property(hifi::properties::STEAM).toBool());
 
     updateHeartbeat();
 
@@ -1659,7 +1659,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
         static const QString TESTER = "HIFI_TESTER";
         auto gpuIdent = GPUIdent::getInstance();
-        auto glContextData = getGLContextData();
+        auto glContextData = gl::ContextInfo::get();
         QJsonObject properties = {
             { "version", applicationVersion() },
             { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) || isTester },
@@ -1676,11 +1676,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             { "gpu_name", gpuIdent->getName() },
             { "gpu_driver", gpuIdent->getDriver() },
             { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
-            { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
-            { "gl_version", glContextData["version"] },
-            { "gl_vender", glContextData["vendor"] },
-            { "gl_sl_version", glContextData["sl_version"] },
-            { "gl_renderer", glContextData["renderer"] },
+            { "gl_version_int", glVersionToInteger(glContextData.version.c_str()) },
+            { "gl_version", glContextData.version.c_str() },
+            { "gl_vender", glContextData.vendor.c_str() },
+            { "gl_sl_version", glContextData.shadingLanguageVersion.c_str() },
+            { "gl_renderer", glContextData.renderer.c_str() },
             { "ideal_thread_count", QThread::idealThreadCount() }
         };
         auto macVersion = QSysInfo::macVersion();
@@ -2282,8 +2282,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
 
-        auto glInfo = getGLContextData();
-        properties["gl_info"] = glInfo;
+        auto contextInfo = gl::ContextInfo::get();
+        properties["gl_info"] = QJsonObject{
+            { "version", contextInfo.version.c_str() },
+            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
+            { "vendor", contextInfo.vendor.c_str() },
+            { "renderer", contextInfo.renderer.c_str() },
+        };
         properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemSize());
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize());
         properties["gpu_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerGPUAverage());
@@ -2995,6 +3000,9 @@ void Application::initializeGL() {
     if (!_glWidget->makeCurrent()) {
         qCWarning(interfaceapp, "Unable to make window context current");
     }
+
+    // Populate the global OpenGL context based on the information for the primary window GL context
+    gl::ContextInfo::get(true);
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
@@ -7789,9 +7797,15 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
-void Application::replaceDomainContent(const QString& url) {
+static const QString CONTENT_SET_NAME_QUERY_PARAM = "name";
+
+void Application::replaceDomainContent(const QString& url, const QString& itemName) {
     qCDebug(interfaceapp) << "Attempting to replace domain content";
-    QByteArray urlData(url.toUtf8());
+    QUrl msgUrl(url);
+    QUrlQuery urlQuery(msgUrl.query());
+    urlQuery.addQueryItem(CONTENT_SET_NAME_QUERY_PARAM, itemName);
+    msgUrl.setQuery(urlQuery.query(QUrl::QUrl::FullyEncoded));
+    QByteArray urlData(msgUrl.toString(QUrl::QUrl::FullyEncoded).toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
 
@@ -7825,7 +7839,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    replaceDomainContent(url);
+                    replaceDomainContent(url, QString());
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";

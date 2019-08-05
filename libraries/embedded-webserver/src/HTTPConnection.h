@@ -45,6 +45,7 @@ class HTTPConnection : public QObject {
 
 public:
     static const char* StatusCode200;
+    static const char* StatusCode204;
     static const char* StatusCode301;
     static const char* StatusCode302;
     static const char* StatusCode400;

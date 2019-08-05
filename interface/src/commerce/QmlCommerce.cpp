@@ -259,7 +259,7 @@ void QmlCommerce::authorizeAssetTransfer(const QString& couponID,
     ledger->authorizeAssetTransfer(key, couponID, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
+void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID, const QString& itemName) {
     if (!certificateID.isEmpty()) {
         auto ledger = DependencyManager::get<Ledger>();
         ledger->updateLocation(
@@ -267,7 +267,7 @@ void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& cert
             DependencyManager::get<AddressManager>()->getPlaceName(),
             true);
     }
-    qApp->replaceDomainContent(itemHref);
+    qApp->replaceDomainContent(itemHref, itemName);
     QJsonObject messageProperties = {
         { "status", "SuccessfulRequestToReplaceContent" },
         { "content_set_url", itemHref } };

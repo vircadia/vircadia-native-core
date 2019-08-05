@@ -29,7 +29,7 @@ public:
     void createBackup(const QString& backupName, QuaZip& zip) override;
 
     // Recover from a full backup
-    void recoverBackup(const QString& backupName, QuaZip& zip) override;
+    std::pair<bool, QString> recoverBackup(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename) override;
 
     // Delete a skeleton backup
     void deleteBackup(const QString& backupName) override {}
