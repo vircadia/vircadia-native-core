@@ -10,8 +10,17 @@
 #include "PlatformInstance.h"
 #include <QNetworkInterface>
 
+#include <gl/GLHelpers.h>
 #include "../PlatformKeys.h"
 #include "../Profiler.h"
+
+// For testing the vulkan dump
+//#define HAVE_VULKAN 1
+//#pragma comment(lib, "C:\\VulkanSDK\\1.1.101.0\\Lib\\vulkan-1.lib")
+
+#ifdef HAVE_VULKAN
+#include <vulkan/vulkan.hpp>
+#endif
 
 using namespace platform;
 
@@ -30,6 +39,7 @@ bool Instance::enumeratePlatform() {
     enumerateCpus();
     enumerateGpusAndDisplays();
     enumerateNics();
+    enumerateGraphicsApis();
     
     // eval the master index for each platform scopes
     updateMasterIndices();
@@ -105,6 +115,74 @@ void Instance::enumerateNics() {
     }
 }
 
+#if defined(HAVE_VULKAN)
+static std::string vkVersionToString(uint32_t version) {
+    return QString("%1.%2.%3").arg(VK_VERSION_MAJOR(version)).arg(VK_VERSION_MINOR(version)).arg(VK_VERSION_PATCH(version)).toStdString();
+}
+#endif
+
+
+void Instance::enumerateGraphicsApis() {
+    // OpenGL rendering API is supported on all platforms
+    {
+        auto& glContextInfo = gl::ContextInfo::get();
+        json gl;
+        gl[keys::graphicsAPI::name] = keys::graphicsAPI::apiOpenGL;
+        gl[keys::graphicsAPI::version] = glContextInfo.version;
+        gl[keys::graphicsAPI::gl::vendor] = glContextInfo.vendor;
+        gl[keys::graphicsAPI::gl::renderer] = glContextInfo.renderer;
+        gl[keys::graphicsAPI::gl::shadingLanguageVersion] = glContextInfo.shadingLanguageVersion;
+        gl[keys::graphicsAPI::gl::extensions] = glContextInfo.extensions;
+        _graphicsApis.push_back(gl);
+    }
+
+#if defined(HAVE_VULKAN)
+    // Vulkan rendering API is supported on all platforms (sort of)
+    {
+        try {
+            vk::ApplicationInfo appInfo{ "Interface", 1, "Luci", 1, VK_API_VERSION_1_1 };
+            auto instancePtr = vk::createInstanceUnique({ {},  &appInfo });
+            if (instancePtr) {
+                json vkinfo;
+                const auto& vkinstance = *instancePtr;
+                vkinfo[keys::graphicsAPI::name] = keys::graphicsAPI::apiVulkan;
+                vkinfo[keys::graphicsAPI::version] = vkVersionToString(VK_API_VERSION_1_1);
+                for (const auto& physicalDevice : vkinstance.enumeratePhysicalDevices()) {
+                    json vkdevice;
+                    auto properties = physicalDevice.getProperties();
+                    vkdevice[keys::graphicsAPI::vk::device::driverVersion] = vkVersionToString(properties.driverVersion);
+                    vkdevice[keys::graphicsAPI::vk::device::apiVersion] = vkVersionToString(properties.apiVersion);
+                    vkdevice[keys::graphicsAPI::vk::device::deviceType] = vk::to_string(properties.deviceType);
+                    vkdevice[keys::graphicsAPI::vk::device::vendor] = properties.vendorID;
+                    vkdevice[keys::graphicsAPI::vk::device::name] = properties.deviceName;
+                    for (const auto& extensionProperties : physicalDevice.enumerateDeviceExtensionProperties()) {
+                        vkdevice[keys::graphicsAPI::vk::device::extensions].push_back(extensionProperties.extensionName);
+                    }
+
+                    for (const auto& queueFamilyProperties : physicalDevice.getQueueFamilyProperties()) {
+                        json vkqueuefamily;
+                        vkqueuefamily[keys::graphicsAPI::vk::device::queue::flags] = vk::to_string(queueFamilyProperties.queueFlags);
+                        vkqueuefamily[keys::graphicsAPI::vk::device::queue::count] = queueFamilyProperties.queueCount;
+                        vkdevice[keys::graphicsAPI::vk::device::queues].push_back(vkqueuefamily);
+                    }
+                    auto memoryProperties = physicalDevice.getMemoryProperties();
+                    for (uint32_t heapIndex = 0; heapIndex < memoryProperties.memoryHeapCount; ++heapIndex) {
+                        json vkmemoryheap;
+                        const auto& heap = memoryProperties.memoryHeaps[heapIndex];
+                        vkmemoryheap[keys::graphicsAPI::vk::device::heap::flags] = vk::to_string(heap.flags);
+                        vkmemoryheap[keys::graphicsAPI::vk::device::heap::size] = heap.size;
+                        vkdevice[keys::graphicsAPI::vk::device::heaps].push_back(vkmemoryheap);
+                    }
+                    vkinfo[keys::graphicsAPI::vk::devices].push_back(vkdevice);
+                }
+                _graphicsApis.push_back(vkinfo);
+            }
+        } catch (const std::runtime_error&) {
+        }
+    }
+#endif
+}
+
 json Instance::getCPU(int index) {
     assert(index < (int)_cpus.size());
 
@@ -166,6 +244,14 @@ json Instance::listAllKeys() {
         keys::gpu::driver,
         keys::gpu::displays,
 
+        keys::graphicsAPI::version,
+        keys::graphicsAPI::name,
+
+        keys::graphicsAPI::gl::shadingLanguageVersion,
+        keys::graphicsAPI::gl::vendor,
+        keys::graphicsAPI::gl::renderer,
+        keys::graphicsAPI::gl::extensions,
+
         keys::display::boundsLeft,
         keys::display::boundsRight,
         keys::display::boundsTop,
@@ -187,6 +273,7 @@ json Instance::listAllKeys() {
 
         keys::CPUS,
         keys::GPUS,
+        keys::GRAPHICS_APIS,
         keys::DISPLAYS,
         keys::MEMORY,
         keys::COMPUTER,
@@ -218,6 +305,7 @@ json Instance::getAll() {
     all[keys::MEMORY] = _memory;
     all[keys::CPUS] = _cpus;
     all[keys::GPUS] = _gpus;
+    all[keys::GRAPHICS_APIS] = _graphicsApis;
     all[keys::DISPLAYS] = _displays;
     all[keys::NICS] = _nics;
 

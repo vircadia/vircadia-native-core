@@ -264,7 +264,19 @@ void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     }
 
     auto rootContext = engine->rootContext();
-    rootContext->setContextProperty("GL", ::getGLContextData());
+
+    static QJsonObject QML_GL_INFO;
+    static std::once_flag once_gl_info;
+    std::call_once(once_gl_info, [] {
+        const auto& contextInfo = gl::ContextInfo::get();
+        QML_GL_INFO = QJsonObject {
+            { "version", contextInfo.version.c_str() },
+            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
+            { "vendor", contextInfo.vendor.c_str() },
+            { "renderer", contextInfo.renderer.c_str() },
+        };
+    });
+    rootContext->setContextProperty("GL", QML_GL_INFO);
     rootContext->setContextProperty("urlHandler", new UrlHandler(rootContext));
     rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
     rootContext->setContextProperty("ApplicationInterface", qApp);

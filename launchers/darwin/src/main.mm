@@ -1,5 +1,6 @@
 #import "Launcher.h"
 #import "Settings.h"
+#import "LauncherCommandlineArgs.h"
 
 void redirectLogToDocuments()
 {
