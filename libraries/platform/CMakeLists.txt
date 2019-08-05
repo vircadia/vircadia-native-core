@@ -1,7 +1,7 @@
 set(TARGET_NAME platform)
 
 setup_hifi_library()
-link_hifi_libraries(shared)
+link_hifi_libraries(shared gl)
 
 GroupSources("src")
 target_json()
@@ -15,4 +15,4 @@ if (APPLE)
 
 elseif(WIN32)
     target_link_libraries(${TARGET_NAME} Iphlpapi.lib)
-endif ()
+endif()

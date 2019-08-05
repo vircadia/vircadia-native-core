@@ -130,12 +130,12 @@ $(document).ready(function(){
     html += "<td class='data'><strong>File Name</strong></td>";
     html += "<td class='data'><strong>Created</strong></td>";
     html += "<td class='data'><strong>Installed</strong></td>";
-    //html += "<td class='data'><strong>Installed By</strong></td></tr>";
+    html += "<td class='data'><strong>Installed By</strong></td></tr>";
     html += "<tr><td class='data' id='" + INSTALLED_CONTENT_NAME_ID + "'/>";
     html += "<td class='data' id='" + INSTALLED_CONTENT_FILENAME_ID + "'/>";
     html += "<td class='data' id='" + INSTALLED_CONTENT_CREATED_ID + "'/>";
     html += "<td class='data' id='" + INSTALLED_CONTENT_INSTALLED_ID + "'/>";
-    //html += "<td class='data' id='" + INSTALLED_CONTENT_INSTALLED_BY_ID + "'/></tr>";
+    html += "<td class='data' id='" + INSTALLED_CONTENT_INSTALLED_BY_ID + "'/></tr>";
     html += "</tbody></table>";
     $('#' + Settings.INSTALLED_CONTENT + ' .panel-body').html(html);
   }
@@ -379,7 +379,7 @@ $(document).ready(function(){
       $('#' + INSTALLED_CONTENT_FILENAME_ID).text(data.installed_content.filename);
       $('#' + INSTALLED_CONTENT_CREATED_ID).text(data.installed_content.creation_time ? moment(data.installed_content.creation_time).format('lll') : "");
       $('#' + INSTALLED_CONTENT_INSTALLED_ID).text(data.installed_content.install_time ? moment(data.installed_content.install_time).format('lll') : "");
-      //$('#' + INSTALLED_CONTENT_INSTALLED_BY_ID).text(data.installed_content.installed_by);
+      $('#' + INSTALLED_CONTENT_INSTALLED_BY_ID).text(data.installed_content.installed_by);
 
       // update the progress bars for current restore status
       if (data.status.isRecovering) {

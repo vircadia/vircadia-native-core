@@ -29,6 +29,7 @@ const glm::u8vec3 TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
 const float TextEntityItem::DEFAULT_TEXT_ALPHA = 1.0f;
 const glm::u8vec3 TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
 const float TextEntityItem::DEFAULT_MARGIN = 0.0f;
+const float TextEntityItem::DEFAULT_TEXT_EFFECT_THICKNESS = 0.2f;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new TextEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
@@ -65,6 +66,10 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(topMargin, getTopMargin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(bottomMargin, getBottomMargin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(unlit, getUnlit);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(font, getFont);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textEffect, getTextEffect);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textEffectColor, getTextEffectColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textEffectThickness, getTextEffectThickness);
     return properties;
 }
 
@@ -90,6 +95,10 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(topMargin, setTopMargin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(bottomMargin, setBottomMargin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(unlit, setUnlit);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(font, setFont);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffect, setTextEffect);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffectColor, setTextEffectColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textEffectThickness, setTextEffectThickness);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -133,6 +142,10 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_TOP_MARGIN, float, setTopMargin);
     READ_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, float, setBottomMargin);
     READ_ENTITY_PROPERTY(PROP_UNLIT, bool, setUnlit);
+    READ_ENTITY_PROPERTY(PROP_FONT, QString, setFont);
+    READ_ENTITY_PROPERTY(PROP_TEXT_EFFECT, TextEffect, setTextEffect);
+    READ_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, glm::u8vec3, setTextEffectColor);
+    READ_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, float, setTextEffectThickness);
 
     return bytesRead;
 }
@@ -154,6 +167,10 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_TOP_MARGIN;
     requestedProperties += PROP_BOTTOM_MARGIN;
     requestedProperties += PROP_UNLIT;
+    requestedProperties += PROP_FONT;
+    requestedProperties += PROP_TEXT_EFFECT;
+    requestedProperties += PROP_TEXT_EFFECT_COLOR;
+    requestedProperties += PROP_TEXT_EFFECT_THICKNESS;
 
     return requestedProperties;
 }
@@ -185,6 +202,10 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, getTopMargin());
     APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, getBottomMargin());
     APPEND_ENTITY_PROPERTY(PROP_UNLIT, getUnlit());
+    APPEND_ENTITY_PROPERTY(PROP_FONT, getFont());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT, (uint32_t)getTextEffect());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, getTextEffectColor());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, getTextEffectThickness());
 }
 
 glm::vec3 TextEntityItem::getRaycastDimensions() const {
@@ -258,11 +279,9 @@ void TextEntityItem::setText(const QString& value) {
 }
 
 QString TextEntityItem::getText() const {
-    QString result;
-    withReadLock([&] {
-        result = _text;
+    return resultWithReadLock<QString>([&] {
+        return _text;
     });
-    return result;
 }
 
 void TextEntityItem::setLineHeight(float value) {
@@ -409,6 +428,58 @@ void TextEntityItem::setUnlit(bool value) {
 bool TextEntityItem::getUnlit() const {
     return resultWithReadLock<bool>([&] {
         return _unlit;
+    });
+}
+
+void TextEntityItem::setFont(const QString& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _font != value;
+        _font = value;
+    });
+}
+
+QString TextEntityItem::getFont() const {
+    return resultWithReadLock<QString>([&] {
+        return _font;
+    });
+}
+
+void TextEntityItem::setTextEffect(TextEffect value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _effect != value;
+        _effect = value;
+    });
+}
+
+TextEffect TextEntityItem::getTextEffect() const {
+    return resultWithReadLock<TextEffect>([&] {
+        return _effect;
+    });
+}
+
+void TextEntityItem::setTextEffectColor(const glm::u8vec3& value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _effectColor != value;
+        _effectColor = value;
+    });
+}
+
+glm::u8vec3 TextEntityItem::getTextEffectColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _effectColor;
+    });
+}
+
+void TextEntityItem::setTextEffectThickness(float value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _effectThickness != value;
+        _effectThickness = value;
+    });
+}
+
+float TextEntityItem::getTextEffectThickness() const {
+    return resultWithReadLock<float>([&] {
+        return _effectThickness;
     });
 }
 
