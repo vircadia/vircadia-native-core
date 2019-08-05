@@ -17,9 +17,9 @@
  * @property {PlatformInfo.CPUDescription[]} cpus - Information on the computer's CPUs.
  * @property {PlatformInfo.DisplayDescription[]} displays - Information on the computer's displays.
  * @property {PlatformInfo.GPUDescription[]} gpus - Information on the computer's GPUs.
- * @property {PlatformInfo.GraphicsAPIDescription[]} graphicsAPIs - Information on the computer's  graphics APIs.
- * @property {PlatformInfo.MemoryDescription} memory - Information on the computers memory.
- * @property {PlatformInfo.NICDescription} nics - Information on the computers network cards.
+ * @property {PlatformInfo.GraphicsAPIDescription[]} graphicsAPIs - Information on the computer's graphics APIs.
+ * @property {PlatformInfo.MemoryDescription} memory - Information on the computer's memory.
+ * @property {PlatformInfo.NICDescription} nics - Information on the computer's network cards.
  */
 namespace platform { namespace keys {
     const char*  UNKNOWN = "UNKNOWN";
