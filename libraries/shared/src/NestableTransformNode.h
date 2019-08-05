@@ -49,14 +49,12 @@ public:
 
     QVariantMap toVariantMap() const {
         QVariantMap map;
-    
-        if (!_spatiallyNestable.expired()) {
-            auto nestable = _spatiallyNestable.lock();
-            if (nestable) {
-                map["parentID"] = nestable->getID();
-                map["parentJointIndex"] = _jointIndex;
-                map["baseParentScale"] = vec3toVariant(_baseScale);
-            }
+
+        auto nestable = _spatiallyNestable.lock();
+        if (nestable) {
+            map["parentID"] = nestable->getID();
+            map["parentJointIndex"] = _jointIndex;
+            map["baseParentScale"] = vec3toVariant(_baseScale);
         }
 
         return map;
