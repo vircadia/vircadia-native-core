@@ -400,8 +400,8 @@ QVariantMap PickScriptingInterface::getPickScriptParameters(unsigned int uid) co
     return DependencyManager::get<PickManager>()->getPickScriptParameters(uid);
 }
 
-QVector<unsigned int> PickScriptingInterface::getCreatedPicks() const {
-    return DependencyManager::get<PickManager>()->getCreatedPicks();
+QVector<unsigned int> PickScriptingInterface::getPicks() const {
+    return DependencyManager::get<PickManager>()->getPicks();
 }
 
 QVariantMap PickScriptingInterface::getPrevPickResult(unsigned int uid) {

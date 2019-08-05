@@ -65,7 +65,7 @@ QVariantMap PickManager::getPickScriptParameters(unsigned int uid) const {
     return QVariantMap();
 }
 
-QVector<unsigned int> PickManager::getCreatedPicks() const {
+QVector<unsigned int> PickManager::getPicks() const {
     QVector<unsigned int> picks;
     withReadLock([&] {
         for (auto typeIt = _picks.cbegin(); typeIt != _picks.cend(); ++typeIt) {

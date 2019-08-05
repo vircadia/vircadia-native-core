@@ -173,10 +173,10 @@ public:
 
     /**jsdoc
     * Gets all pointers which currently exist, including disabled pointers.
-    * @function Pointers.getCreatedPointers
+    * @function Pointers.getPointers
     * @returns {number[]} pointers - The IDs of the pointers.
     */
-    Q_INVOKABLE QVector<unsigned int> getCreatedPointers() const;
+    Q_INVOKABLE QVector<unsigned int> getPointers() const;
 
     /**jsdoc
      * Edits a render state of a {@link Pointers.RayPointerProperties|ray} or 

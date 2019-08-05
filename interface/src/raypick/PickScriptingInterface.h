@@ -164,10 +164,10 @@ public:
 
     /**jsdoc
      * Gets all picks which currently exist, including disabled picks.
-     * @function Picks.getCreatedPicks
+     * @function Picks.getPicks
      * @returns {number[]} picks - The IDs of the picks.
      */
-    Q_INVOKABLE QVector<unsigned int> getCreatedPicks() const;
+    Q_INVOKABLE QVector<unsigned int> getPicks() const;
 
     /**jsdoc
      * Gets the most recent result from a pick. A pick continues to be updated ready to return a result, as long as it is 

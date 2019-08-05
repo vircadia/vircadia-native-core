@@ -62,7 +62,7 @@ bool PointerManager::isPointerEnabled(unsigned int uid) const {
     return false;
 }
 
-QVector<unsigned int> PointerManager::getCreatedPointers() const {
+QVector<unsigned int> PointerManager::getPointers() const {
     QVector<unsigned int> pointers;
     withReadLock([&] {
         for (auto it = _pointers.cbegin(); it != _pointers.cend(); ++it) {

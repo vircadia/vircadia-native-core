@@ -32,7 +32,7 @@ public:
     void enablePick(unsigned int uid) const;
     void disablePick(unsigned int uid) const;
     bool isPickEnabled(unsigned int uid) const;
-    QVector<unsigned int> getCreatedPicks() const;
+    QVector<unsigned int> getPicks() const;
 
     PickResultPointer getPrevPickResult(unsigned int uid) const;
     // The actual current properties of the pick

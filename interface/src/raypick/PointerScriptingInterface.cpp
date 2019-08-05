@@ -69,8 +69,8 @@ bool PointerScriptingInterface::isPointerEnabled(unsigned int uid) const {
     return DependencyManager::get<PointerManager>()->isPointerEnabled(uid);
 }
 
-QVector<unsigned int> PointerScriptingInterface::getCreatedPointers() const {
-    return DependencyManager::get<PointerManager>()->getCreatedPointers();
+QVector<unsigned int> PointerScriptingInterface::getPointers() const {
+    return DependencyManager::get<PointerManager>()->getPointers();
 }
 
 QVariantMap PointerScriptingInterface::getPointerProperties(unsigned int uid) const {

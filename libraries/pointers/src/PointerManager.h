@@ -28,7 +28,7 @@ public:
     void enablePointer(unsigned int uid) const;
     void disablePointer(unsigned int uid) const;
     bool isPointerEnabled(unsigned int uid) const;
-    QVector<unsigned int> getCreatedPointers() const;
+    QVector<unsigned int> getPointers() const;
 
     void setRenderState(unsigned int uid, const std::string& renderState) const;
     void editRenderState(unsigned int uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
