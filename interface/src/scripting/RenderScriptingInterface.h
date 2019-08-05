@@ -25,8 +25,8 @@
  *
  * @property {Render.RenderMethod} renderMethod - The render method being used.
  * @property {boolean} shadowsEnabled - <code>true</code> if shadows are enabled, <code>false</code> if they're disabled.
- * @property {boolean} ambientOcclusionEnabled - {boolean} <code>true</code> if ambient occlusion is enabled, 
- *     <code>false</code> if it's disabled.
+ * @property {boolean} ambientOcclusionEnabled - <code>true</code> if ambient occlusion is enabled, <code>false</code> if it's 
+ *     disabled.
  * @property {boolean} antialiasingEnabled - <code>true</code> if anti-aliasing is enabled, <code>false</code> if it's disabled.
  * @property {number} viewportResolutionScale - The view port resolution scale, <code>&gt; 0.0</code>.
  */
