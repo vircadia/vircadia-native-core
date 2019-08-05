@@ -170,26 +170,20 @@ static void channelDownmix(int16_t* source, int16_t* dest, int numSamples) {
     }
 }
 
-static float computeLoudness(int16_t* samples, int numSamples, int numChannels, bool& isClipping) {
+static bool detectClipping(int16_t* samples, int numSamples, int numChannels) {
 
     const int32_t CLIPPING_THRESHOLD = 32392;   // -0.1 dBFS
-    const int32_t CLIPPING_DETECTION = 3;       // consecutive samples over threshold
+    const int CLIPPING_DETECTION = 3;           // consecutive samples over threshold
 
-    float scale = numSamples ? 1.0f / numSamples : 0.0f;
-
-    int32_t loudness = 0;
-    isClipping = false;
+    bool isClipping = false;
 
     if (numChannels == 2) {
-        int32_t oversLeft = 0;
-        int32_t oversRight = 0;
+        int oversLeft = 0;
+        int oversRight = 0;
 
         for (int i = 0; i < numSamples/2; i++) {
             int32_t left = std::abs((int32_t)samples[2*i+0]);
             int32_t right = std::abs((int32_t)samples[2*i+1]);
-
-            loudness += left;
-            loudness += right;
 
             if (left > CLIPPING_THRESHOLD) {
                 isClipping |= (++oversLeft >= CLIPPING_DETECTION);
@@ -203,12 +197,10 @@ static float computeLoudness(int16_t* samples, int numSamples, int numChannels, 
             }
         }
     } else {
-        int32_t overs = 0;
+        int overs = 0;
 
         for (int i = 0; i < numSamples; i++) {
             int32_t sample = std::abs((int32_t)samples[i]);
-
-            loudness += sample;
 
             if (sample > CLIPPING_THRESHOLD) {
                 isClipping |= (++overs >= CLIPPING_DETECTION);
@@ -218,6 +210,17 @@ static float computeLoudness(int16_t* samples, int numSamples, int numChannels, 
         }
     }
 
+    return isClipping;
+}
+
+static float computeLoudness(int16_t* samples, int numSamples) {
+
+    float scale = numSamples ? 1.0f / numSamples : 0.0f;
+
+    int32_t loudness = 0;
+    for (int i = 0; i < numSamples; i++) {
+        loudness += std::abs((int32_t)samples[i]);
+    }
     return (float)loudness * scale;
 }
 
@@ -1393,6 +1396,15 @@ void AudioClient::handleMicAudioInput() {
 
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
 
+        // detect clipping on the raw input
+        bool isClipping = detectClipping(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount());
+        if (isClipping) {
+            _timeSinceLastClip = 0.0f;
+        } else if (_timeSinceLastClip >= 0.0f) {
+            _timeSinceLastClip += AudioConstants::NETWORK_FRAME_SECS;
+        }
+        isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);   // 2 second hold time
+
 #if defined(WEBRTC_ENABLED)
         if (_isAECEnabled) {
             processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
@@ -1400,23 +1412,13 @@ void AudioClient::handleMicAudioInput() {
         }
 #endif
 
-        // detect loudness and clipping on the raw input
-        bool isClipping = false;
-        float loudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
+        float loudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired);
         _lastRawInputLoudness = loudness;
 
         // envelope detection
         float tc = (loudness > _lastSmoothedRawInputLoudness) ? 0.378f : 0.967f;  // 10ms attack, 300ms release @ 100Hz
         loudness += tc * (_lastSmoothedRawInputLoudness - loudness);
         _lastSmoothedRawInputLoudness = loudness;
-
-        // clipping indicator
-        if (isClipping) {
-            _timeSinceLastClip = 0.0f;
-        } else if (_timeSinceLastClip >= 0.0f) {
-            _timeSinceLastClip += AudioConstants::NETWORK_FRAME_SECS;
-        }
-        isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);   // 2 second hold time
 
         emit inputLoudnessChanged(_lastSmoothedRawInputLoudness, isClipping);
 
