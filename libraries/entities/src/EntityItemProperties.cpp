@@ -1311,7 +1311,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     by the key light and local lights.
  * @property {string} font="" - The font to render the text with. It can be one of the following: <code>"Courier"</code,
  *     <code>"Inconsolata"</code>, <code>"Roboto"</code>, <code>"Timeless"</code>, or a path to a .sdff file.
- * @property {TextEffect} textEffect="none" - The effect that is applied to the text.
+ * @property {Entities.TextEffect} textEffect="none" - The effect that is applied to the text.
  * @property {Color} textEffectColor=255,255,255 - The color of the effect.
  * @property {number} textEffectThickness=0.2 - The magnitude of the text effect, range <code>0.0</code> &ndash; <code>0.5</code>.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
