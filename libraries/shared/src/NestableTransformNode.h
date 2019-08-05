@@ -47,7 +47,7 @@ public:
         return jointWorldTransform;
     }
 
-    QVariantMap toVariantMap() const {
+    QVariantMap toVariantMap() const override {
         QVariantMap map;
 
         auto nestable = _spatiallyNestable.lock();
