@@ -597,10 +597,16 @@ bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QStr
 
 
 // attempt to use the native sample rate and channel count
-bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
-                                QAudioFormat& audioFormat) {
+bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice, QAudioFormat& audioFormat) {
 
     audioFormat = audioDevice.preferredFormat();
+
+    // converting to/from this rate must produce an integral number of samples
+    if ((audioFormat.sampleRate() <= 0) ||
+        (audioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0)) {
+        qCWarning(audioclient) << "The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
+        return false;
+    }
 
     audioFormat.setCodec("audio/pcm");
     audioFormat.setSampleSize(16);
@@ -609,12 +615,17 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 
     if (!audioDevice.isFormatSupported(audioFormat)) {
         qCWarning(audioclient) << "The native format is" << audioFormat << "but isFormatSupported() failed.";
-        return false;
-    }
-    // converting to/from this rate must produce an integral number of samples
-    if (audioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0) {
-        qCWarning(audioclient) << "The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
-        return false;
+
+        // attempt the native sample rate, with channels forced to 2
+        audioFormat.setChannelCount(2);
+        if (!audioDevice.isFormatSupported(audioFormat)) {
+
+            // attempt the native sample rate, with channels forced to 1
+            audioFormat.setChannelCount(1);
+            if (!audioDevice.isFormatSupported(audioFormat)) {
+                return false;
+            }
+        }
     }
     return true;
 }
