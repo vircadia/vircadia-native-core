@@ -668,9 +668,9 @@
                                                                                                                     "loopFlag": true,
                                                                                                                     "startFrame": 1,
                                                                                                                     "timeScale": 1,
-                                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_idle03.fbx"
                                                                                                                 },
-                                                                                                                "id": "seatedIdle02",
+                                                                                                                "id": "seatedIdle03",
                                                                                                                 "type": "clip"
                                                                                                             }
                                                                                                         ],
@@ -689,7 +689,7 @@
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
-                                                                                                                    "id": "seatedIdle02",
+                                                                                                                    "id": "seatedIdle03",
                                                                                                                     "interpDuration": 6,
                                                                                                                     "interpTarget": 6,
                                                                                                                     "priority": 1,
@@ -1749,19 +1749,6 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 84,
-                                                                                                            "loopFlag": false,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/emote_agree_thisorthat.fbx"
-                                                                                                        },
-                                                                                                        "id": "positiveThisOrThat",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
                                                                                                             "endFrame": 85,
                                                                                                             "loopFlag": false,
                                                                                                             "startFrame": 1,
@@ -1814,15 +1801,6 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
-                                                                                                            "id": "positiveThisOrThat",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
-                                                                                                            "priority": 1,
-                                                                                                            "resume": false,
-                                                                                                            "transitions": [
-                                                                                                            ]
-                                                                                                        },
-                                                                                                        {
                                                                                                             "id": "positiveThoughtfulHeadNod",
                                                                                                             "interpDuration": 6,
                                                                                                             "interpTarget": 6,
@@ -1850,19 +1828,6 @@
                                                                                                             "url": "qrc:///avatar/animations/emote_disagree_annoyedheadshake.fbx"
                                                                                                         },
                                                                                                         "id": "negativeAnnoyedHeadshake",
-                                                                                                        "type": "clip"
-                                                                                                    },
-                                                                                                    {
-                                                                                                        "children": [
-                                                                                                        ],
-                                                                                                        "data": {
-                                                                                                            "endFrame": 74,
-                                                                                                            "loopFlag": false,
-                                                                                                            "startFrame": 1,
-                                                                                                            "timeScale": 1,
-                                                                                                            "url": "qrc:///avatar/animations/emote_disagree_no.fbx"
-                                                                                                        },
-                                                                                                        "id": "negativeNo",
                                                                                                         "type": "clip"
                                                                                                     },
                                                                                                     {
@@ -1902,15 +1867,6 @@
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "negativeAnnoyedHeadshake",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
-                                                                                                            "priority": 1,
-                                                                                                            "resume": false,
-                                                                                                            "transitions": [
-                                                                                                            ]
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "id": "negativeNo",
                                                                                                             "interpDuration": 6,
                                                                                                             "interpTarget": 6,
                                                                                                             "priority": 1,
@@ -2169,10 +2125,6 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "idleTalkOverlay",
-                                                                                                            "var": "positiveThisOrThatOnDone"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "idleTalkOverlay",
                                                                                                             "var": "positiveThoughtfulHeadNodOnDone"
                                                                                                         },
                                                                                                         {
@@ -2206,10 +2158,6 @@
                                                                                                         {
                                                                                                             "state": "idleTalkOverlay",
                                                                                                             "var": "negativeAnnoyedHeadshakeOnDone"
-                                                                                                        },
-                                                                                                        {
-                                                                                                            "state": "idleTalkOverlay",
-                                                                                                            "var": "negativeNoOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "idleTalkOverlay",
