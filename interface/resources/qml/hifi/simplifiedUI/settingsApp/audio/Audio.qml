@@ -222,6 +222,17 @@ Flickable {
                         }
                     }
                 }
+
+                SimplifiedControls.Switch {
+                    id: acousticEchoCancellationSwitch
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
+                    labelTextOn: "Acoustic Echo Cancellation"
+                    checked: AudioScriptingInterface.acousticEchoCancellation
+                    onClicked: {
+                        AudioScriptingInterface.acousticEchoCancellation = !AudioScriptingInterface.acousticEchoCancellation;
+                    }
+                }
             }
         }
 

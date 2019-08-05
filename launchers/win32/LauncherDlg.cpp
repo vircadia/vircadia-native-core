@@ -357,7 +357,7 @@ void CLauncherDlg::drawVoxel(CHwndRenderTarget* pRenderTarget) {
 }
 
 void CLauncherDlg::drawProgress(CHwndRenderTarget* pRenderTarget, float progress, const D2D1::ColorF& color) {
-    auto size = pRenderTarget->GetPixelSize();
+    auto size = pRenderTarget->GetSize();
     if (progress == 0.0f) {
         return;
     } else {
@@ -693,22 +693,26 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
                 }
             }
         }
+
+        LauncherManager::ContinueActionOnStart continueAction = theApp._manager.getContinueAction();
         if (_showSplash) {
             if (_splashStep == 0) {
                 if (theApp._manager.needsUninstall()) {
                     theApp._manager.addToLog(_T("Waiting to uninstall"));
                     setDrawDialog(DrawStep::DrawProcessUninstall);
-                } else if (theApp._manager.shouldContinueUpdating()) {
-                    _splashStep = SPLASH_DURATION;
+                } else if (continueAction == LauncherManager::ContinueActionOnStart::ContinueUpdate) {
                     setDrawDialog(DrawStep::DrawProcessUpdate);
                     theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 0.0f);
+                } else if (continueAction == LauncherManager::ContinueActionOnStart::ContinueLogIn) {
+                    _splashStep = SPLASH_DURATION;
+                } else if (continueAction == LauncherManager::ContinueActionOnStart::ContinueFinish) {
+                    theApp._manager.updateProgress(LauncherManager::ProcessType::Uninstall, 1.0f);
+                    setDrawDialog(DrawStep::DrawProcessFinishUpdate);
+                    _splashStep = SPLASH_DURATION;
+                    _showSplash = false;
                 } else {
-                    if (theApp._manager.shouldSkipSplashScreen()) {
-                        _splashStep = SPLASH_DURATION;
-                    } else {
-                        theApp._manager.addToLog(_T("Start splash screen"));
-                        setDrawDialog(DrawStep::DrawLogo);
-                    }
+                    theApp._manager.addToLog(_T("Start splash screen"));
+                    setDrawDialog(DrawStep::DrawLogo);
                 }
             } else if (_splashStep > SPLASH_DURATION && !theApp._manager.needsToWait()) {
                 _showSplash = false;

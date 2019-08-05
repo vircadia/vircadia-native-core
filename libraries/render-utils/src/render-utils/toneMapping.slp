@@ -1,1 +1,2 @@
 VERTEX gpu::vertex::DrawViewportQuadTransformTexcoord
+DEFINES mirrored:f
