@@ -30,6 +30,13 @@
 static bool flipNormalsMyAvatarVsBackfacingTriangles(btManifoldPoint& cp,
         const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
         const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
+    // This callback is designed to help MyAvatar escape entrapment inside mesh geometry.
+    // It is only activated when MyAvatar is flying because it can cause problems when MyAvatar
+    // is walking along the ground.
+    // When active it applies to ALL contact points, however we only expect it to "do interesting
+    // stuff on MyAvatar's physics.
+    // Note: we're taking advantage of the fact: MyAvatar's collisionObject always shows up as colObj0
+    // because it is added to physics first.
     if (colObj1Wrap->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
         auto triShape = static_cast<const btTriangleShape*>(colObj1Wrap->getCollisionShape());
         const btVector3* v = triShape->m_vertices1;
@@ -42,6 +49,25 @@ static bool flipNormalsMyAvatarVsBackfacingTriangles(btManifoldPoint& cp,
         }
     }
     // return value is currently ignored but to be future-proof: return false when not modifying friction
+    return false;
+}
+
+// a list of sub-callbacks
+std::vector<PhysicsEngine::ContactAddedCallback> _contactAddedCallbacks;
+
+// a callback that calls each sub-callback in the list
+// if one returns 'true' --> break and return
+bool globalContactAddedCallback(btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
+    // call each callback
+    for (auto cb : _contactAddedCallbacks) {
+        if (cb(cp, colObj0Wrap, partId0, index0, colObj1Wrap, partId1, index1)) {
+            // a return value of 'true' indicates the contact has been disabled
+            // in which case there is no need to process other callbacks
+            return true;
+        }
+    }
     return false;
 }
 
@@ -875,9 +901,36 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
 void PhysicsEngine::enableGlobalContactAddedCallback(bool enabled) {
 	if (enabled) {
         // register contact filter to help MyAvatar pass through backfacing triangles
-        gContactAddedCallback = flipNormalsMyAvatarVsBackfacingTriangles;
+        addContactAddedCallback(flipNormalsMyAvatarVsBackfacingTriangles);
 	} else {
         // deregister contact filter
+        removeContactAddedCallback(flipNormalsMyAvatarVsBackfacingTriangles);
+    }
+}
+
+void PhysicsEngine::addContactAddedCallback(PhysicsEngine::ContactAddedCallback newCb) {
+    for (auto cb : _contactAddedCallbacks) {
+        if (cb == newCb) {
+            // newCb is already in the list
+            return;
+        }
+    }
+    _contactAddedCallbacks.push_back(newCb);
+    gContactAddedCallback = globalContactAddedCallback;
+}
+
+void PhysicsEngine::removeContactAddedCallback(PhysicsEngine::ContactAddedCallback cb) {
+    uint32_t numCallbacks = _contactAddedCallbacks.size();
+    for (uint32_t i = 0; i < numCallbacks; ++i) {
+        if (_contactAddedCallbacks[i] == cb) {
+            // found it --> remove it
+            _contactAddedCallbacks[i] = _contactAddedCallbacks[numCallbacks - 1];
+            _contactAddedCallbacks.pop_back();
+            numCallbacks--;
+            break;
+        }
+    }
+    if (numCallbacks == 0) {
         gContactAddedCallback = nullptr;
     }
 }

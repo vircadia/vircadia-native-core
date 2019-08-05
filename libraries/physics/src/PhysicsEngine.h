@@ -74,6 +74,10 @@ using CollisionEvents = std::vector<Collision>;
 
 class PhysicsEngine {
 public:
+    using ContactAddedCallback = bool (*)(btManifoldPoint& cp,
+            const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+            const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1);
+
     class Transaction {
     public:
         void clear() {
@@ -151,6 +155,8 @@ public:
     std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC, float threshold = 0.0f) const;
 
     void enableGlobalContactAddedCallback(bool enabled);
+    void addContactAddedCallback(ContactAddedCallback cb);
+    void removeContactAddedCallback(ContactAddedCallback cb);
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
