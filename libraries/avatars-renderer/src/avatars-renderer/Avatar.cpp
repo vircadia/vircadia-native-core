@@ -598,26 +598,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     }
 }
 
-enum TextRendererType {
-    CHAT,
-    DISPLAYNAME
-};
-
-static TextRenderer3D* textRenderer(TextRendererType type) {
-    static TextRenderer3D* chatRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, -1,
-        false, SHADOW_EFFECT);
-    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY);
-
-    switch(type) {
-    case CHAT:
-        return chatRenderer;
-    case DISPLAYNAME:
-        return displayNameRenderer;
-    }
-
-    return displayNameRenderer;
-}
-
 void Avatar::metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                     const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs) {
     render::Transaction transaction;
@@ -1050,7 +1030,6 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
         || (glm::dot(view.getDirection(), getDisplayNamePosition() - view.getPosition()) <= CLIP_DISTANCE)) {
         return;
     }
-    auto renderer = textRenderer(DISPLAYNAME);
 
     // optionally render timing stats for this avatar with the display name
     QString renderedDisplayName = _displayName;
@@ -1065,7 +1044,8 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
     }
 
     // Compute display name extent/position offset
-    const glm::vec2 extent = renderer->computeExtent(renderedDisplayName);
+    static TextRenderer3D* displayNameRenderer = TextRenderer3D::getInstance(ROBOTO_FONT_FAMILY);
+    const glm::vec2 extent = displayNameRenderer->computeExtent(renderedDisplayName);
     if (!glm::any(glm::isCompNull(extent, EPSILON))) {
         const QRect nameDynamicRect = QRect(0, 0, (int)extent.x, (int)extent.y);
         const int text_x = -nameDynamicRect.width() / 2;
@@ -1104,11 +1084,11 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const
         QByteArray nameUTF8 = renderedDisplayName.toLocal8Bit();
 
         // Render text slightly in front to avoid z-fighting
-        textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * renderer->getFontSize()));
+        textTransform.postTranslate(glm::vec3(0.0f, 0.0f, SLIGHTLY_IN_FRONT * displayNameRenderer->getFontSize()));
         batch.setModelTransform(textTransform);
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderText");
-            renderer->draw(batch, text_x, -text_y, nameUTF8.data(), textColor, glm::vec2(-1.0f), true, forward);
+            displayNameRenderer->draw(batch, text_x, -text_y, glm::vec2(-1.0f), nameUTF8.data(), textColor, true, forward);
         }
     }
 }

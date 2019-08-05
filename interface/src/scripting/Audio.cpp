@@ -213,6 +213,11 @@ void Audio::setPTTHMD(bool enabled) {
 }
 
 void Audio::saveData() {
+    _avatarGainSetting.set(getAvatarGain());
+    _injectorGainSetting.set(getInjectorGain());
+    _localInjectorGainSetting.set(getLocalInjectorGain());
+    _systemInjectorGainSetting.set(getSystemInjectorGain());
+
     _mutedDesktopSetting.set(getMutedDesktop());
     _mutedHMDSetting.set(getMutedHMD());
     _pttDesktopSetting.set(getPTTDesktop());
@@ -220,6 +225,11 @@ void Audio::saveData() {
 }
 
 void Audio::loadData() {
+    setAvatarGain(_avatarGainSetting.get());
+    setInjectorGain(_injectorGainSetting.get());
+    setLocalInjectorGain(_localInjectorGainSetting.get());
+    setSystemInjectorGain(_systemInjectorGainSetting.get());
+
     setMutedDesktop(_mutedDesktopSetting.get());
     setMutedHMD(_mutedHMDSetting.get());
     setPTTDesktop(_pttDesktopSetting.get());

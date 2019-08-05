@@ -78,7 +78,7 @@ public:
     bool accurate { true };
     QUuid entityID;
     float distance { 0.0f };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
@@ -94,7 +94,7 @@ public:
     QUuid entityID;
     float distance { 0.0f };
     float parabolicDistance { 0.0f };
-    BoxFace face;
+    BoxFace face { UNKNOWN_FACE };
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;

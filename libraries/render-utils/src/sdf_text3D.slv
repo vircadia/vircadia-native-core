@@ -23,19 +23,28 @@
     layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 <@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+layout(location=RENDER_UTILS_ATTR_FADE1) flat out vec4 _glyphBounds; // we're reusing the fade texcoord locations here
 
 void main() {
     _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
-    _color = color_sRGBAToLinear(params.color);
+    _glyphBounds = inTexCoord1;
+
+    vec4 position = inPosition;
+    // if we're in shadow mode, we need to move each subsequent quad slightly forward so it doesn't z-fight
+    // with the shadows of the letters before it
+    if (params.effect == 3) { // Shadow
+        const int VERTICES_PER_QUAD = 4; // must match value in Font.cpp
+        const float EPSILON = 0.001;
+        position.z += float(gl_VertexID / VERTICES_PER_QUAD) * EPSILON;
+    }
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
 <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
-    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
+    <$transformModelToEyeAndClipPos(cam, obj, position, _positionES, gl_Position)$>
 <@else@>
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToClipPos(cam, obj, position, gl_Position)$>
 <@endif@>
 
     const vec3 normal = vec3(0, 0, 1);

@@ -19,6 +19,7 @@ namespace platform {
         void enumerateGpusAndDisplays() override;
         void enumerateMemory() override;
         void enumerateComputer() override;
+        void enumerateGraphicsApis() override;
     };
 
 }  // namespace platform
