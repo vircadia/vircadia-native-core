@@ -106,13 +106,17 @@ static const float AVATAR_WALK_SPEED_SCALAR = 1.0f;
 static const float AVATAR_DESKTOP_SPRINT_SPEED_SCALAR = 3.0f;
 static const float AVATAR_HMD_SPRINT_SPEED_SCALAR = 2.0f;
 
-enum AvatarReaction {
+enum AvatarTriggerReaction {
     AVATAR_REACTION_POSITIVE = 0,
     AVATAR_REACTION_NEGATIVE,
+    NUM_AVATAR_TRIGGER_REACTIONS
+};
+
+enum AvatarBeginEndReaction {
     AVATAR_REACTION_RAISE_HAND,
     AVATAR_REACTION_APPLAUD,
     AVATAR_REACTION_POINT,
-    NUM_AVATAR_REACTIONS
+    NUM_AVATAR_BEGIN_END_REACTIONS
 };
 
 #endif // hifi_AvatarConstants_h
