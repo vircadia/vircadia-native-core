@@ -101,6 +101,8 @@ private:
     static int flagAlwaysOnTop() { return AlwaysOnTop; }
     static int flagCloseButtonHides() { return CloseButtonHides; }
 
+    Q_INVOKABLE InteractiveWindowPointer createWindowOnThread(const QString& sourceUrl, const QVariantMap& properties, QThread* targetThread);
+
     static QVariantMap getDockArea();
 
     Q_INVOKABLE static QVariantMap getPresentationMode();

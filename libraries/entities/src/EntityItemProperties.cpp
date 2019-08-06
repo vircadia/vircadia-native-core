@@ -299,6 +299,24 @@ void EntityItemProperties::setAvatarPriorityFromString(const QString& mode) {
     }
 }
 
+inline void addTextEffect(QHash<QString, TextEffect>& lookup, TextEffect effect) { lookup[TextEffectHelpers::getNameForTextEffect(effect)] = effect; }
+const QHash<QString, TextEffect> stringToTextEffectLookup = [] {
+    QHash<QString, TextEffect> toReturn;
+    addTextEffect(toReturn, TextEffect::NO_EFFECT);
+    addTextEffect(toReturn, TextEffect::OUTLINE_EFFECT);
+    addTextEffect(toReturn, TextEffect::OUTLINE_WITH_FILL_EFFECT);
+    addTextEffect(toReturn, TextEffect::SHADOW_EFFECT);
+    return toReturn;
+}();
+QString EntityItemProperties::getTextEffectAsString() const { return TextEffectHelpers::getNameForTextEffect(_textEffect); }
+void EntityItemProperties::setTextEffectFromString(const QString& effect) {
+    auto textEffectItr = stringToTextEffectLookup.find(effect.toLower());
+    if (textEffectItr != stringToTextEffectLookup.end()) {
+        _textEffect = textEffectItr.value();
+        _textEffectChanged = true;
+    }
+}
+
 QString getCollisionGroupAsString(uint16_t group) {
     switch (group) {
         case USER_COLLISION_GROUP_DYNAMIC:
@@ -528,6 +546,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_TOP_MARGIN, topMargin);
     CHECK_PROPERTY_CHANGE(PROP_BOTTOM_MARGIN, bottomMargin);
     CHECK_PROPERTY_CHANGE(PROP_UNLIT, unlit);
+    CHECK_PROPERTY_CHANGE(PROP_FONT, font);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT, textEffect);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT_COLOR, textEffectColor);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_EFFECT_THICKNESS, textEffectThickness);
 
     // Zone
     changedProperties += _keyLight.getChangedProperties();
@@ -988,8 +1010,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
  *     {@link Entities.getJointIndex|getJointIndex}.
  * @property {Vec3[]} jointTranslations=[]] - Joint translations applied to the model; <code>[]</code> if none are applied or 
- *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative 
- *     to each joint's parent.
+ *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Translations are 
+ *     relative to each joint's parent.
  *     <p>Joint translations can be set by {@link Entities.setLocalJointTranslation|setLocalJointTranslation} and similar 
  *     functions, or by setting the value of this property. If you set a joint translation using this property you also need to 
  *     set the corresponding <code>jointTranslationsSet</code> value to <code>true</code>.</p>
@@ -1287,6 +1309,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
  * @property {boolean} unlit=false - <code>true</code> if the entity should be unaffected by lighting.  Otherwise, the text
  *     is lit by the keylight and local lights.
+ * @property {string} font="" - The text is rendered with this font.  Can be one of the following: <code>Courier</code,
+ *     <code>Inconsolata</code>, <code>Roboto</code>, <code>Timeless</code>, or a path to a .sdff file.
+ * @property {TextEffect} textEffect="none" - The effect that is applied to the text.
+ * @property {Color} textEffectColor=255,255,255 - The color of the effect.
+ * @property {number} textEffectThickness=0.2 - The magnitude of the text effect, range <code>0.0</code> &ndash; <code>0.5</code>.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.
  * @property {boolean} faceCamera - <code>true</code> if <code>billboardMode</code> is <code>"yaw"</code>, <code>false</code> 
  *     if it isn't. Setting this property to <code>false</code> sets the <code>billboardMode</code> to <code>"none"</code>.
@@ -1727,6 +1754,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TOP_MARGIN, topMargin);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BOTTOM_MARGIN, bottomMargin);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_UNLIT, unlit);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FONT, font);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_TEXT_EFFECT, textEffect, getTextEffectAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_TEXT_EFFECT_COLOR, textEffectColor, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT_EFFECT_THICKNESS, textEffectThickness);
     }
 
     // Zones only
@@ -2103,6 +2134,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(topMargin, float, setTopMargin);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(bottomMargin, float, setBottomMargin);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(unlit, bool, setUnlit);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(font, QString, setFont);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(textEffect, TextEffect);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textEffectColor, u8vec3Color, setTextEffectColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textEffectThickness, float, setTextEffectThickness);
 
     // Zone
     _keyLight.copyFromScriptValue(object, _defaultSettings);
@@ -2387,6 +2422,10 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(topMargin);
     COPY_PROPERTY_IF_CHANGED(bottomMargin);
     COPY_PROPERTY_IF_CHANGED(unlit);
+    COPY_PROPERTY_IF_CHANGED(font);
+    COPY_PROPERTY_IF_CHANGED(textEffect);
+    COPY_PROPERTY_IF_CHANGED(textEffectColor);
+    COPY_PROPERTY_IF_CHANGED(textEffectThickness);
 
     // Zone
     _keyLight.merge(other._keyLight);
@@ -2746,6 +2785,10 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_TOP_MARGIN, TopMargin, topMargin, float);
         ADD_PROPERTY_TO_MAP(PROP_BOTTOM_MARGIN, BottomMargin, bottomMargin, float);
         ADD_PROPERTY_TO_MAP(PROP_UNLIT, Unlit, unlit, bool);
+        ADD_PROPERTY_TO_MAP(PROP_FONT, Font, font, QString);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_EFFECT, TextEffect, textEffect, TextEffect);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_EFFECT_COLOR, TextEffectColor, textEffectColor, u8vec3Color);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_TEXT_EFFECT_THICKNESS, TextEffectThickness, textEffectThickness, float, 0.0, 0.5);
 
         // Zone
         { // Keylight
@@ -2753,6 +2796,8 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
             ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLight, keyLight, Intensity, intensity);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLight, keylight, Direction, direction);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLight, keyLight, CastShadows, castShadows);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_KEYLIGHT_SHADOW_BIAS, KeyLight, keyLight, ShadowBias, shadowBias, 0.0f, 1.0f);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_KEYLIGHT_SHADOW_MAX_DISTANCE, KeyLight, keyLight, ShadowMaxDistance, shadowMaxDistance, 1.0f, 250.0f);
         }
         { // Ambient light
             ADD_GROUP_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_INTENSITY, AmbientLight, ambientLight, Intensity, intensity);
@@ -3176,6 +3221,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, properties.getTopMargin());
                 APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, properties.getBottomMargin());
                 APPEND_ENTITY_PROPERTY(PROP_UNLIT, properties.getUnlit());
+                APPEND_ENTITY_PROPERTY(PROP_FONT, properties.getFont());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT, (uint32_t)properties.getTextEffect());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_COLOR, properties.getTextEffectColor());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_EFFECT_THICKNESS, properties.getTextEffectThickness());
             }
 
             if (properties.getType() == EntityTypes::Zone) {
@@ -3655,6 +3704,10 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TOP_MARGIN, float, setTopMargin);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BOTTOM_MARGIN, float, setBottomMargin);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_UNLIT, bool, setUnlit);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FONT, QString, setFont);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT, TextEffect, setTextEffect);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT_COLOR, u8vec3Color, setTextEffectColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_EFFECT_THICKNESS, float, setTextEffectThickness);
     }
 
     if (properties.getType() == EntityTypes::Zone) {
@@ -4048,6 +4101,10 @@ void EntityItemProperties::markAllChanged() {
     _topMarginChanged = true;
     _bottomMarginChanged = true;
     _unlitChanged = true;
+    _fontChanged = true;
+    _textEffectChanged = true;
+    _textEffectColorChanged = true;
+    _textEffectThicknessChanged = true;
 
     // Zone
     _keyLight.markAllChanged();
@@ -4639,6 +4696,18 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (unlitChanged()) {
         out += "unlit";
+    }
+    if (fontChanged()) {
+        out += "font";
+    }
+    if (textEffectChanged()) {
+        out += "textEffect";
+    }
+    if (textEffectColorChanged()) {
+        out += "textEffectColor";
+    }
+    if (textEffectThicknessChanged()) {
+        out += "textEffectThickness";
     }
 
     // Zone

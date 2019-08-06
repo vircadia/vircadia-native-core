@@ -257,6 +257,10 @@ extern "C" {
 }
 #endif
 
+#ifdef Q_OS_MAC
+#include "MacHelper.h"
+#endif
+
 #if defined(Q_OS_ANDROID)
 #include <android/log.h>
 #include "AndroidHelper.h"
@@ -960,6 +964,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+#ifdef Q_OS_MAC
+    DependencyManager::set<MacHelper>();
+#endif
 
     QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
     if (!setBookmarkValue.isEmpty()) {
@@ -1218,8 +1225,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
 
     bool isStore = property(hifi::properties::OCULUS_STORE).toBool();
-
-    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore || property(hifi::properties::STEAM).toBool());
 
     updateHeartbeat();
 
@@ -1652,7 +1659,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
         static const QString TESTER = "HIFI_TESTER";
         auto gpuIdent = GPUIdent::getInstance();
-        auto glContextData = getGLContextData();
+        auto glContextData = gl::ContextInfo::get();
         QJsonObject properties = {
             { "version", applicationVersion() },
             { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) || isTester },
@@ -1669,11 +1676,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             { "gpu_name", gpuIdent->getName() },
             { "gpu_driver", gpuIdent->getDriver() },
             { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
-            { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
-            { "gl_version", glContextData["version"] },
-            { "gl_vender", glContextData["vendor"] },
-            { "gl_sl_version", glContextData["sl_version"] },
-            { "gl_renderer", glContextData["renderer"] },
+            { "gl_version_int", glVersionToInteger(glContextData.version.c_str()) },
+            { "gl_version", glContextData.version.c_str() },
+            { "gl_vender", glContextData.vendor.c_str() },
+            { "gl_sl_version", glContextData.shadingLanguageVersion.c_str() },
+            { "gl_renderer", glContextData.renderer.c_str() },
             { "ideal_thread_count", QThread::idealThreadCount() }
         };
         auto macVersion = QSysInfo::macVersion();
@@ -2275,8 +2282,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
 
-        auto glInfo = getGLContextData();
-        properties["gl_info"] = glInfo;
+        auto contextInfo = gl::ContextInfo::get();
+        properties["gl_info"] = QJsonObject{
+            { "version", contextInfo.version.c_str() },
+            { "sl_version", contextInfo.shadingLanguageVersion.c_str() },
+            { "vendor", contextInfo.vendor.c_str() },
+            { "renderer", contextInfo.renderer.c_str() },
+        };
         properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemSize());
         properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize());
         properties["gpu_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerGPUAverage());
@@ -2810,13 +2822,14 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
-
+    
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
     _snapshotSoundInjector = nullptr;
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
+    AudioInjector::setLocalAudioInterface(nullptr);
     DependencyManager::destroy<AudioClient>();
     DependencyManager::destroy<AudioScriptingInterface>();
 
@@ -2856,6 +2869,9 @@ Application::~Application() {
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
+#ifdef Q_OS_MAC
+    DependencyManager::destroy<MacHelper>();
+#endif
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
@@ -2984,6 +3000,9 @@ void Application::initializeGL() {
     if (!_glWidget->makeCurrent()) {
         qCWarning(interfaceapp, "Unable to make window context current");
     }
+
+    // Populate the global OpenGL context based on the information for the primary window GL context
+    gl::ContextInfo::get(true);
 
 #if !defined(DISABLE_QML)
     QStringList chromiumFlags;
@@ -5976,6 +5995,7 @@ void Application::resetPhysicsReadyInformation() {
     _gpuTextureMemSizeStabilityCount = 0;
     _gpuTextureMemSizeAtLastCheck = 0;
     _physicsEnabled = false;
+    _octreeProcessor.stopSafeLanding();
 }
 
 void Application::reloadResourceCaches() {
@@ -6235,6 +6255,7 @@ void Application::tryToEnablePhysics() {
         // We keep physics disabled until we've received a full scene and everything near the avatar in that
         // scene is ready to compute its collision shape.
         if (getMyAvatar()->isReadyForPhysics()) {
+            _octreeProcessor.resetSafeLanding();
             _physicsEnabled = true;
             setIsInterstitialMode(false);
             getMyAvatar()->updateMotionBehaviorFromMenu();
@@ -6758,6 +6779,12 @@ void Application::update(float deltaTime) {
     if (!getActiveDisplayPlugin()->isActive()) {
         getMain3DScene()->processTransactionQueue();
     }
+
+    // decide if the sensorToWorldMatrix is changing in a way that warrents squeezing the edges of the view down
+    if (getActiveDisplayPlugin()->isHmd()) {
+        PerformanceTimer perfTimer("squeezeVision");
+        _visionSqueeze.updateVisionSqueeze(myAvatar->getSensorToWorldMatrix(), deltaTime);
+    }
 }
 
 void Application::updateRenderArgs(float deltaTime) {
@@ -6964,13 +6991,16 @@ int Application::sendNackPackets() {
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType) {
-
     if (!_settingsLoaded) {
         return; // bail early if settings are not loaded
     }
 
     const bool isModifiedQuery = !_physicsEnabled;
     if (isModifiedQuery) {
+        if (!_octreeProcessor.safeLandingIsActive()) {
+            // don't send the octreeQuery until SafeLanding knows it has started
+            return;
+        }
         // Create modified view that is a simple sphere.
         bool interstitialModeEnabled = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
 
@@ -7193,7 +7223,6 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
 
 void Application::domainURLChanged(QUrl domainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
     setIsServerlessMode(domainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadServerlessDomain(domainURL);
@@ -7203,7 +7232,6 @@ void Application::domainURLChanged(QUrl domainURL) {
 
 void Application::goToErrorDomainURL(QUrl errorDomainURL) {
     // disable physics until we have enough information about our new location to not cause craziness.
-    resetPhysicsReadyInformation();
     setIsServerlessMode(errorDomainURL.scheme() != URL_SCHEME_HIFI);
     if (isServerlessMode()) {
         loadErrorDomain(errorDomainURL);
@@ -7220,12 +7248,12 @@ void Application::resettingDomain() {
 void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::EntityServer) {
         if (_failedToConnectToEntityServer && !_entityServerConnectionTimer.isActive()) {
-            _failedToConnectToEntityServer = false;
             _octreeProcessor.stopSafeLanding();
-            _octreeProcessor.startSafeLanding();
+            _failedToConnectToEntityServer = false;
         } else if (_entityServerConnectionTimer.isActive()) {
             _entityServerConnectionTimer.stop();
         }
+        _octreeProcessor.startSafeLanding();
         _entityServerConnectionTimer.setInterval(ENTITY_SERVER_CONNECTION_TIMEOUT);
         _entityServerConnectionTimer.start();
     }
@@ -7300,7 +7328,7 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _entityEditSender.nodeKilled(node);
-     
+
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {
@@ -7769,9 +7797,15 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
     return true;
 }
 
-void Application::replaceDomainContent(const QString& url) {
+static const QString CONTENT_SET_NAME_QUERY_PARAM = "name";
+
+void Application::replaceDomainContent(const QString& url, const QString& itemName) {
     qCDebug(interfaceapp) << "Attempting to replace domain content";
-    QByteArray urlData(url.toUtf8());
+    QUrl msgUrl(url);
+    QUrlQuery urlQuery(msgUrl.query());
+    urlQuery.addQueryItem(CONTENT_SET_NAME_QUERY_PARAM, itemName);
+    msgUrl.setQuery(urlQuery.query(QUrl::QUrl::FullyEncoded));
+    QByteArray urlData(msgUrl.toString(QUrl::QUrl::FullyEncoded).toUtf8());
     auto limitedNodeList = DependencyManager::get<NodeList>();
     const auto& domainHandler = limitedNodeList->getDomainHandler();
 
@@ -7805,7 +7839,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 QString details;
                 if (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes) {
                     // Given confirmation, send request to domain server to replace content
-                    replaceDomainContent(url);
+                    replaceDomainContent(url, QString());
                     details = "SuccessfulRequestToReplaceContent";
                 } else {
                     details = "UserDeclinedToReplaceContent";

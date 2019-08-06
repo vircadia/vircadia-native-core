@@ -28,6 +28,7 @@ public:
     void startSafeLanding();
     void updateSafeLanding();
     void stopSafeLanding();
+    void resetSafeLanding();
     bool safeLandingIsActive() const;
     bool safeLandingIsComplete() const;
 
@@ -43,6 +44,7 @@ private slots:
     void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
+    OCTREE_PACKET_SEQUENCE _safeLandingSequenceStart { SafeLanding::INVALID_SEQUENCE };
     std::unique_ptr<SafeLanding> _safeLanding;
 };
 #endif  // hifi_OctreePacketProcessor_h

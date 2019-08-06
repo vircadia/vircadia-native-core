@@ -1292,7 +1292,7 @@ public:
      *     jointName: "Head",
      *     translation: {"x": 0, "y": 0.25, "z": 0},
      *     rotation: {"x": 0, "y": 0, "z": 0, "w": 1},
-     *     scale: 1,
+     *     scale: 0.01,
      *     isSoft: false
      * };
      *

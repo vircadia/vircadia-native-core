@@ -401,13 +401,14 @@ void ScriptEngines::stopAllScripts(bool restart) {
             continue;
         }
 
+        bool isOverrideScript = it.key().toString().compare(this->_defaultScriptsOverride.toString());
         // queue user scripts if restarting
-        if (restart && scriptEngine->isUserLoaded()) {
+        if (restart && (scriptEngine->isUserLoaded() || isOverrideScript)) {
             _isReloading = true;
             ScriptEngine::Type type = scriptEngine->getType();
 
-            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type] (QString scriptName) {
-                reloadScript(scriptName, true)->setType(type);
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, isOverrideScript] (QString scriptName) {
+                reloadScript(scriptName, !isOverrideScript)->setType(type);
             });
         }
 
@@ -475,7 +476,8 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),
             Q_ARG(bool, activateMainWindow),
-            Q_ARG(bool, reload));
+            Q_ARG(bool, reload),
+            Q_ARG(bool, quitWhenFinished));
         return result;
     }
     QUrl scriptUrl;

@@ -44,10 +44,10 @@ using namespace render;
 static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePointer& program);
 
 void DeferredLightingEffect::init() {
-    loadLightProgram(shader::render_utils::program::directional_ambient_light, false, _directionalAmbientSphereLight);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light_ambient, false, _directionalAmbientSphereLight);
     loadLightProgram(shader::render_utils::program::directional_skybox_light, false, _directionalSkyboxLight);
 
-    loadLightProgram(shader::render_utils::program::directional_ambient_light_shadow, false, _directionalAmbientSphereLightShadow);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light_ambient_shadow, false, _directionalAmbientSphereLightShadow);
     loadLightProgram(shader::render_utils::program::directional_skybox_light_shadow, false, _directionalSkyboxLightShadow);
 
     loadLightProgram(shader::render_utils::program::local_lights_shading, true, _localLight);

@@ -148,9 +148,30 @@ def signBuild(executablePath):
         ])
 
 
+def zipDarwinLauncher():
+    launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
+    launcherBuildPath = os.path.join(BUILD_PATH, 'launcher')
+
+    archiveName = computeArchiveName('HQ Launcher')
+
+    cpackCommand = [
+        'cpack',
+        '-G', 'ZIP',
+        '-D', "CPACK_PACKAGE_FILE_NAME={}".format(archiveName),
+        '-D', "CPACK_INCLUDE_TOPLEVEL_DIRECTORY=OFF"
+    ]
+    print("Create ZIP version of installer archive")
+    print(cpackCommand)
+    hifi_utils.executeSubprocess(cpackCommand, folder=launcherBuildPath)
+    launcherZipDestFile = os.path.join(BUILD_PATH, "{}.zip".format(archiveName))
+    launcherZipSourceFile = os.path.join(launcherBuildPath, "{}.zip".format(archiveName))
+    print("Moving {} to {}".format(launcherZipSourceFile, launcherZipDestFile))
+    shutil.move(launcherZipSourceFile, launcherZipDestFile)
+
+
 def buildLightLauncher():
     launcherSourcePath = os.path.join(SOURCE_PATH, 'launchers', sys.platform)
-    launcherBuildPath = os.path.join(BUILD_PATH, 'launcher') 
+    launcherBuildPath = os.path.join(BUILD_PATH, 'launcher')
     if not os.path.exists(launcherBuildPath):
         os.makedirs(launcherBuildPath)
     # configure launcher build
@@ -169,12 +190,13 @@ def buildLightLauncher():
     if sys.platform == 'win32':
         buildTarget = 'ALL_BUILD'
     hifi_utils.executeSubprocess([
-            'cmake', 
+            'cmake',
             '--build', launcherBuildPath,
-            '--config', 'Release', 
+            '--config', 'Release',
             '--target', buildTarget
         ], folder=launcherBuildPath)
     if sys.platform == 'darwin':
+        zipDarwinLauncher()
         launcherDestFile = os.path.join(BUILD_PATH, "{}.dmg".format(computeArchiveName('Launcher')))
         launcherSourceFile = os.path.join(launcherBuildPath, "HQ Launcher.dmg")
     elif sys.platform == 'win32':

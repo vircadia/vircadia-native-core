@@ -117,9 +117,10 @@ void GLBackend::init() {
     static std::once_flag once;
     std::call_once(once, [] {
 
-
-        QString vendor{ (const char*)glGetString(GL_VENDOR) };
-        QString renderer{ (const char*)glGetString(GL_RENDERER) };
+        ::gl::ContextInfo contextInfo;
+        contextInfo.init();
+        QString vendor { contextInfo.vendor.c_str() };
+        QString renderer { contextInfo.renderer.c_str() };
 
         // Textures
         GL_GET_INTEGER(MAX_TEXTURE_IMAGE_UNITS);
@@ -131,10 +132,7 @@ void GLBackend::init() {
         GL_GET_INTEGER(MAX_UNIFORM_BLOCK_SIZE);
         GL_GET_INTEGER(UNIFORM_BUFFER_OFFSET_ALIGNMENT);
 
-        qCDebug(gpugllogging) << "GL Version: " << QString((const char*) glGetString(GL_VERSION));
-        qCDebug(gpugllogging) << "GL Shader Language Version: " << QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        qCDebug(gpugllogging) << "GL Vendor: " << vendor;
-        qCDebug(gpugllogging) << "GL Renderer: " << renderer;
+        LOG_GL_CONTEXT_INFO(gpugllogging, contextInfo);
         GPUIdent* gpu = GPUIdent::getInstance(vendor, renderer); 
         // From here on, GPUIdent::getInstance()->getMumble() should efficiently give the same answers.
         qCDebug(gpugllogging) << "GPU:";

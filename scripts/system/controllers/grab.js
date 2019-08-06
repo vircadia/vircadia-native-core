@@ -221,6 +221,20 @@ function Grabber() {
     });
 }
 
+Grabber.prototype.setPicksAndPointersEnabled = function(enabled) {
+    if (enabled) {
+        Picks.enablePick(this.mouseRayOverlays);
+        Pointers.enablePointer(this.mouseRayEntities);
+    } else {
+        Picks.disablePick(this.mouseRayOverlays);
+        Pointers.disablePointer(this.mouseRayEntities);
+    }
+}
+
+Grabber.prototype.displayModeChanged = function(isHMDMode) {
+    this.setPicksAndPointersEnabled(!isHMDMode);
+}
+
 Grabber.prototype.computeNewGrabPlane = function() {
     if (!this.isGrabbing) {
         return;
@@ -488,6 +502,10 @@ Grabber.prototype.cleanup = function() {
 
 var grabber = new Grabber();
 
+function displayModeChanged(isHMDMode) {
+    grabber.displayModeChanged(isHMDMode);
+}
+
 function pressEvent(event) {
     grabber.pressEvent(event);
 }
@@ -517,6 +535,7 @@ Controller.mouseMoveEvent.connect(moveEvent);
 Controller.mouseReleaseEvent.connect(releaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
+HMD.displayModeChanged.connect(displayModeChanged);
 Script.scriptEnding.connect(cleanup);
 
 }()); // END LOCAL_SCOPE

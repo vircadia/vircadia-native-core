@@ -82,39 +82,22 @@ std::vector<CPUIdent::Feature> CPUIdent::getAllFeatures() {
 };
 
 
-CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
-        : nIds_{ 0 },
-        nExIds_{ 0 },
-        isIntel_{ false },
-        isAMD_{ false },
-        f_1_ECX_{ 0 },
-        f_1_EDX_{ 0 },
-        f_7_EBX_{ 0 },
-        f_7_ECX_{ 0 },
-        f_81_ECX_{ 0 },
-        f_81_EDX_{ 0 },
-        data_{},
-        extdata_{}
-    {
+CPUIdent::CPUIdent_Internal::CPUIdent_Internal() {
     //int cpuInfo[4] = {-1};
-    std::array<uint32_t, 4> cpui;
+    uint32_t cpui[4];
 
     // Calling __cpuid with 0x0 as the function_id argument
     // gets the number of the highest valid function ID.
-    getCPUID(cpui.data(), 0);
+    getCPUID(cpui, 0);
     nIds_ = cpui[0];
-
-    for (uint32_t i = 0; i <= nIds_; ++i) {
-        getCPUIDEX(cpui.data(), i, 0);
-        data_.push_back(cpui);
-    }
 
     // Capture vendor string
     char vendor[0x20];
     memset(vendor, 0, sizeof(vendor));
-    *reinterpret_cast<int*>(vendor) = data_[0][1];
-    *reinterpret_cast<int*>(vendor + 4) = data_[0][3];
-    *reinterpret_cast<int*>(vendor + 8) = data_[0][2];
+    getCPUIDEX(cpui, 0, 0);
+    *reinterpret_cast<int*>(vendor) = cpui[1];
+    *reinterpret_cast<int*>(vendor + 4) = cpui[3];
+    *reinterpret_cast<int*>(vendor + 8) = cpui[2];
     vendor_ = vendor;
     if (vendor_ == "GenuineIntel") {
         isIntel_ = true;
@@ -125,40 +108,41 @@ CPUIdent::CPUIdent_Internal::CPUIdent_Internal()
 
     // load bitset with flags for function 0x00000001
     if (nIds_ >= 1) {
-        f_1_ECX_ = data_[1][2];
-        f_1_EDX_ = data_[1][3];
+        getCPUIDEX(cpui, 1, 0);
+        f_1_ECX_ = cpui[2];
+        f_1_EDX_ = cpui[3];
     }
 
     // load bitset with flags for function 0x00000007
     if (nIds_ >= 7) {
-        f_7_EBX_ = data_[7][1];
-        f_7_ECX_ = data_[7][2];
+        getCPUIDEX(cpui, 7, 0);
+        f_7_EBX_ = cpui[1];
+        f_7_ECX_ = cpui[2];
     }
 
     // Calling __cpuid with 0x80000000 as the function_id argument
     // gets the number of the highest valid extended ID.
-    getCPUID(cpui.data(), 0x80000000);
+    getCPUID(cpui, 0x80000000);
     nExIds_ = cpui[0];
 
     char brand[0x40];
     memset(brand, 0, sizeof(brand));
 
-    for (uint32_t i = 0x80000000; i <= nExIds_; ++i) {
-        getCPUIDEX(cpui.data(), i, 0);
-        extdata_.push_back(cpui);
-    }
-
     // load bitset with flags for function 0x80000001
     if (nExIds_ >= 0x80000001) {
-        f_81_ECX_ = extdata_[1][2];
-        f_81_EDX_ = extdata_[1][3];
+        getCPUIDEX(cpui, 0x80000001, 0);
+        f_81_ECX_ = cpui[2];
+        f_81_EDX_ = cpui[3];
     }
 
     // Interpret CPU brand string if reported
     if (nExIds_ >= 0x80000004) {
-        memcpy(brand, extdata_[2].data(), sizeof(cpui));
-        memcpy(brand + 16, extdata_[3].data(), sizeof(cpui));
-        memcpy(brand + 32, extdata_[4].data(), sizeof(cpui));
+        getCPUIDEX(cpui, 0x80000002, 0);
+        memcpy(brand, cpui, sizeof(cpui));
+        getCPUIDEX(cpui, 0x80000003, 0);
+        memcpy(brand + 16, cpui, sizeof(cpui));
+        getCPUIDEX(cpui, 0x80000004, 0);
+        memcpy(brand + 32, cpui, sizeof(cpui));
         brand_ = brand;
     }
 }

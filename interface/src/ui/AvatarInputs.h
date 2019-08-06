@@ -24,18 +24,31 @@ class AvatarInputs : public QObject {
     HIFI_QML_DECL
 
     /**jsdoc 
-     * API to help manage your Avatar's input
+     * The <code>AvatarInputs</code> API provides facilities to manage user inputs.
+     *
      * @namespace AvatarInputs
      *
      * @hifi-interface
      * @hifi-client-entity
      * @hifi-avatar
      *
-     * @property {boolean} cameraEnabled <em>Read-only.</em>
-     * @property {boolean} cameraMuted <em>Read-only.</em>
-     * @property {boolean} isHMD <em>Read-only.</em>
-     * @property {boolean} showAudioTools
-     * @property {boolean} showBubbleTools
+     * @property {boolean} cameraEnabled - <code>true</code> if webcam face tracking is enabled, <code>false</code> if it is 
+     *     disabled.
+     *     <em>Read-only.</em>
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {boolean} cameraMuted - <code>true</code> if webcam face tracking is muted (temporarily disabled), 
+     *     <code>false</code> it if isn't.
+     *     <em>Read-only.</em>
+     *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
+     * @property {boolean} ignoreRadiusEnabled - <code>true</code> if the privacy shield is enabled, <code>false</code> if it
+     *     is disabled.
+     *     <em>Read-only.</em>
+     * @property {boolean} isHMD - <code>true</code> if the display mode is HMD, <code>false</code> if it isn't. 
+     *     <em>Read-only.</em>
+     * @property {boolean} showAudioTools - <code>true</code> if the microphone mute button and audio level meter are shown, 
+     *     <code>false</code> if they are hidden.
+     * @property {boolean} showBubbleTools - <code>true</code> if the privacy shield UI button is shown, <code>false</code> if 
+     *     it is hidden.
      */
 
     AI_PROPERTY(bool, cameraEnabled, false)
@@ -51,9 +64,10 @@ public:
     static AvatarInputs* getInstance();
 
     /**jsdoc
+     * Converts non-linear audio loudness to a linear audio level.
      * @function AvatarInputs.loudnessToAudioLevel
-     * @param {number} loudness
-     * @returns {number}
+     * @param {number} loudness - The non-linear audio loudness.
+     * @returns {number} The linear audio level.
      */
     Q_INVOKABLE float loudnessToAudioLevel(float loudness);
 
@@ -67,76 +81,96 @@ public:
 public slots:
 
     /**jsdoc
+     * Sets whether or not the microphone mute button and audio level meter is shown.
      * @function AvatarInputs.setShowAudioTools
-     * @param {boolean} showAudioTools
+     * @param {boolean} showAudioTools - <code>true</code> to show the microphone mute button and audio level meter, 
+     *     <code>false</code> to hide it.
      */
     void setShowAudioTools(bool showAudioTools);
 
     /**jsdoc
+     * Sets whether or not the privacy shield button is shown.
      * @function AvatarInputs.setShowBubbleTools
-     * @param {boolean} showBubbleTools
+     * @param {boolean} showBubbleTools - <code>true</code> to show the privacy shield button, <code>false</code> to hide it.
      */
     void setShowBubbleTools(bool showBubbleTools);
 
 signals:
 
     /**jsdoc
+     * Triggered when webcam face tracking is enabled or disabled.
+     * @deprecated This signal is deprecated and will be removed.
      * @function AvatarInputs.cameraEnabledChanged
      * @returns {Signal}
      */
     void cameraEnabledChanged();
 
     /**jsdoc
+     * Triggered when webcam face tracking is muted (temporarily disabled) or unmuted.
+     * @deprecated This signal is deprecated and will be removed.
      * @function AvatarInputs.cameraMutedChanged
      * @returns {Signal}
      */
     void cameraMutedChanged();
 
     /**jsdoc
+     * Triggered when the display mode changes between desktop and HMD.
      * @function AvatarInputs.isHMDChanged
      * @returns {Signal}
      */
-
     void isHMDChanged();
 
     /**jsdoc
+     * Triggered when the visibility of the microphone mute button and audio level meter changes.
      * @function AvatarInputs.showAudioToolsChanged
-     * @param {boolean} show
+     * @param {boolean} show - <code>true</code> if the microphone mute button and audio level meter are shown, 
+     *     <code>false</code> if they are is hidden.
      * @returns {Signal}
      */
     void showAudioToolsChanged(bool show);
 
     /**jsdoc
+     * Triggered when the visibility of the privacy shield button changes.
      * @function AvatarInputs.showBubbleToolsChanged
-     * @param {boolean} show
+     * @param {boolean} show - <code>true</code> if the privacy shield UI button is shown, <code>false</code> if 
+     *     it is hidden.
      * @returns {Signal}
      */
     void showBubbleToolsChanged(bool show);
 
     /**jsdoc
+     * Triggered when another user enters the privacy shield.
      * @function AvatarInputs.avatarEnteredIgnoreRadius
-     * @param {QUuid} avatarID
+     * @param {QUuid} avatarID - The session ID of the user that entered the privacy shield.
      * @returns {Signal}
-    */
+     * @example <caption>Report when a user enters the privacy shield.</caption>
+     * AvatarInputs.avatarEnteredIgnoreRadius.connect(function(avatarID) {
+     *     print("User entered the privacy shield: " + avatarID);
+     * };
+     */
     void avatarEnteredIgnoreRadius(QUuid avatarID);
 
     /**jsdoc
+     * Triggered when another user leaves the privacy shield.
+     * <p><strong>Note:</strong> Currently doesn't work.</p>
      * @function AvatarInputs.avatarLeftIgnoreRadius
-     * @param {QUuid} avatarID
+     * @param {QUuid} avatarID - The session ID of the user that exited the privacy shield.
      * @returns {Signal}
-    */
+     * @deprecated This signal is deprecated and will be removed.
+     */
     void avatarLeftIgnoreRadius(QUuid avatarID);
 
     /**jsdoc
+     * Triggered when the privacy shield is enabled or disabled.
      * @function AvatarInputs.ignoreRadiusEnabledChanged
-     * @param {boolean} enabled
+     * @param {boolean} enabled - <code>true</code> if the privacy shield is enabled, <code>false</code> if it is disabled.
      * @returns {Signal}
      */
     void ignoreRadiusEnabledChanged(bool enabled);
 
     /**jsdoc
+     * Triggered when another user enters the privacy shield.
      * @function AvatarInputs.enteredIgnoreRadiusChanged
-     * @param {boolean} enabled
      * @returns {Signal}
      */
     void enteredIgnoreRadiusChanged();
@@ -144,11 +178,14 @@ signals:
 protected:
 
     /**jsdoc
+     * Resets sensors, audio, avatar animations, and the avatar rig.
      * @function AvatarInputs.resetSensors
      */
     Q_INVOKABLE void resetSensors();
 
     /**jsdoc
+     * Toggles the muting (temporary disablement) of webcam face tracking on/off.
+     * <p class="important">Deprecated: This function is deprecated and will be removed.</p>
      * @function AvatarInputs.toggleCameraMute
      */
     Q_INVOKABLE void toggleCameraMute();

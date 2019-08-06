@@ -9,18 +9,10 @@
 #include "QmlOverlay.h"
 
 #include <QQuickItem>
+#include <QThread>
 
 #include <DependencyManager.h>
-#include <GeometryCache.h>
-#include <GLMHelpers.h>
 #include <OffscreenUi.h>
-#include <RegisteredMetaTypes.h>
-#include <SharedUtil.h>
-#include <TextureCache.h>
-#include <ViewFrustum.h>
-
-#include "Application.h"
-#include "text/FontFamilies.h"
 
 QmlOverlay::QmlOverlay(const QUrl& url) {
     buildQmlElement(url);

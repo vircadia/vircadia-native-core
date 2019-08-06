@@ -67,6 +67,11 @@ private:
     BillboardMode _billboardMode;
     glm::vec3 _dimensions;
 
+    QString _font { "" };
+    TextEffect _effect { TextEffect::NO_EFFECT };
+    glm::vec3 _effectColor { 0 };
+    float _effectThickness { 0.0f };
+
     int _geometryID { 0 };
 
     std::shared_ptr<TextPayload> _textPayload;

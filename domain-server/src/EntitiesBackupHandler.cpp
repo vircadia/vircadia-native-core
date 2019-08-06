@@ -57,36 +57,41 @@ void EntitiesBackupHandler::createBackup(const QString& backupName, QuaZip& zip)
     }
 }
 
-void EntitiesBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
+std::pair<bool, QString> EntitiesBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename) {
     if (!zip.setCurrentFile(ENTITIES_BACKUP_FILENAME)) {
-        qWarning() << "Failed to find" << ENTITIES_BACKUP_FILENAME << "while recovering backup";
-        return;
+        QString errorStr("Failed to find " + ENTITIES_BACKUP_FILENAME + " while recovering backup");
+        qWarning() << errorStr;
+        return { false, errorStr };
     }
     QuaZipFile zipFile { &zip };
     if (!zipFile.open(QIODevice::ReadOnly)) {
-        qCritical() << "Failed to open" << ENTITIES_BACKUP_FILENAME << "in backup";
-        return;
+        QString errorStr("Failed to open " + ENTITIES_BACKUP_FILENAME + " in backup");
+        qCritical() << errorStr;
+        return { false, errorStr };
     }
     auto rawData = zipFile.readAll();
 
     zipFile.close();
 
+    if (zipFile.getZipError() != UNZ_OK) {
+        QString errorStr("Failed to unzip " + ENTITIES_BACKUP_FILENAME + ": " + zipFile.getZipError());
+        qCritical() << errorStr;
+        return { false, errorStr };
+    }
+
     OctreeUtils::RawEntityData data;
     if (!data.readOctreeDataInfoFromData(rawData)) {
-        qCritical() << "Unable to parse octree data during backup recovery";
-        return;
+        QString errorStr("Unable to parse octree data during backup recovery");
+        qCritical() << errorStr;
+        return { false, errorStr };
     }
 
     data.resetIdAndVersion();
-
-    if (zipFile.getZipError() != UNZ_OK) {
-        qCritical().nospace() << "Failed to unzip " << ENTITIES_BACKUP_FILENAME << ": " << zipFile.getZipError();
-        return;
-    }
 
     QFile entitiesFile { _entitiesReplacementFilePath };
 
     if (entitiesFile.open(QIODevice::WriteOnly)) {
         entitiesFile.write(data.toGzippedByteArray());
     }
+    return { true, QString() };
 }

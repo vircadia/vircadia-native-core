@@ -609,7 +609,7 @@ Rectangle {
                             }
                             lightboxPopup.button2text = "CONFIRM";
                             lightboxPopup.button2method = function() {
-                                Commerce.replaceContentSet(msg.itemHref, msg.certID);
+                                Commerce.replaceContentSet(msg.itemHref, msg.certID, msg.itemName);
                                 lightboxPopup.visible = false;
                             };
                             lightboxPopup.visible = true;
