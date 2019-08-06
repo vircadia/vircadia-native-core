@@ -65,8 +65,8 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeSc
 }
 
 float getPerspectiveAccuracyAngleTan(float octreeSizeScale, int boundaryLevelAdjust) {
-    const float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
+    const float maxScale = sqrtf(3.0f) * 0.5f; //(float)TREE_SCALE;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) /* / OCTREE_TO_MESH_RATIO*/;
     return (maxScale / visibleDistanceAtMaxScale);
 }
 

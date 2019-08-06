@@ -93,7 +93,7 @@ void LodToolsDialog::updateAutomaticLODAdjust() {
 
 void LodToolsDialog::sizeScaleValueChanged(int value) {
     auto lodManager = DependencyManager::get<LODManager>();
-    float realValue = value * TREE_SCALE;
+    float realValue = value /** TREE_SCALE*/;
     lodManager->setOctreeSizeScale(realValue);
     
     _feedback->setText(lodManager->getLODFeedbackText());

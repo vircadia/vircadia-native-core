@@ -175,6 +175,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 
 float LODManager::getLODAngleHalfTan() const {
     return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
+
 }
 float LODManager::getLODAngle() const {
     return 2.0f * atanf(getLODAngleHalfTan());
@@ -184,9 +185,9 @@ float LODManager::getLODAngleDeg() const {
 }
 
 void LODManager::setLODAngleDeg(float lodAngle) {
-    auto newSolidAngle = std::max(0.5f, std::min(lodAngle, 90.f));
-    auto halTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
-    auto octreeSizeScale = TREE_SCALE * OCTREE_TO_MESH_RATIO / halTan;
+    auto newSolidAngle = std::max(0.001f, std::min(lodAngle, 90.f));
+    auto halfTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
+    auto octreeSizeScale = /*TREE_SCALE *  OCTREE_TO_MESH_RATIO */ (sqrtf(3.0f) * 0.5f) / halfTan;
     setOctreeSizeScale(octreeSizeScale);
 }
 
@@ -294,7 +295,8 @@ QString LODManager::getLODFeedbackText() {
     }
     // distance feedback
     float octreeSizeScale = getOctreeSizeScale();
-    float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+ //   float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
+    float relativeToDefault = octreeSizeScale / MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
     int relativeToTwentyTwenty = 20 / relativeToDefault;
 
     QString result;
