@@ -32,6 +32,7 @@ AvatarInputs* AvatarInputs::getInstance() {
 
 AvatarInputs::AvatarInputs(QObject* parent) : QObject(parent) {
     _showAudioTools = showAudioToolsSetting.get();
+    _showBubbleTools = showBubbleToolsSetting.get();
     auto nodeList = DependencyManager::get<NodeList>();
     auto usersScriptingInterface = DependencyManager::get<UsersScriptingInterface>();
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &AvatarInputs::ignoreRadiusEnabledChanged);

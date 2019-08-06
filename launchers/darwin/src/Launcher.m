@@ -3,6 +3,7 @@
 #import "SplashScreen.h"
 #import "LoginScreen.h"
 #import "DisplayNameScreen.h"
+#import "LauncherCommandlineArgs.h"
 #import "ProcessScreen.h"
 #import "ErrorViewController.h"
 #import "Settings.h"
@@ -32,6 +33,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         self.username = [[NSString alloc] initWithString:@"Default Property Value"];
         self.downloadInterface = [DownloadInterface alloc];
         self.downloadDomainContent = [DownloadDomainContent alloc];
+        self.downloadLauncher = [DownloadLauncher alloc];
         self.credentialsRequest = [CredentialsRequest alloc];
         self.latestBuildRequest = [LatestBuildRequest alloc];
         self.organizationRequest = [OrganizationRequest alloc];
@@ -362,26 +364,42 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: loginScreen];
 }
 
-- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl
+- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl :(BOOL) newLauncherAvailable :(NSString*) launcherUrl
 {
-    self.shouldDownloadInterface = shouldDownload;
-    self.interfaceDownloadUrl = downloadUrl;
-    self.latestBuildRequestFinished = TRUE;
-    if ([self isLoadedIn]) {
-        Launcher* sharedLauncher = [Launcher sharedLauncher];
-        [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
-        if (shouldDownload) {
-            ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
-            [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
-            [self startUpdateProgressIndicatorTimer];
-            [self.downloadInterface downloadInterface: downloadUrl];
-            return;
-        }
-        [self interfaceFinishedDownloading];
+    NSDictionary* launcherArguments = [LauncherCommandlineArgs arguments];
+    if (newLauncherAvailable && ![launcherArguments valueForKey: @"--noUpdate"]) {
+        [self.downloadLauncher downloadLauncher: launcherUrl];
     } else {
-        [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
-        [self showLoginScreen];
+        self.shouldDownloadInterface = shouldDownload;
+        self.interfaceDownloadUrl = downloadUrl;
+        self.latestBuildRequestFinished = TRUE;
+        if ([self isLoadedIn]) {
+            Launcher* sharedLauncher = [Launcher sharedLauncher];
+            [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
+            if (shouldDownload) {
+                ProcessScreen* processScreen = [[ProcessScreen alloc] initWithNibName:@"ProcessScreen" bundle:nil];
+                [[[[NSApplication sharedApplication] windows] objectAtIndex:0] setContentViewController: processScreen];
+                [self startUpdateProgressIndicatorTimer];
+                [self.downloadInterface downloadInterface: downloadUrl];
+                return;
+            }
+            [self interfaceFinishedDownloading];
+        } else {
+            [[NSApplication sharedApplication] activateIgnoringOtherApps:TRUE];
+            [self showLoginScreen];
+        }
     }
+}
+
+-(void)runAutoupdater
+{
+    NSTask* task = [[NSTask alloc] init]; 
+    NSString* newLauncher =  [[[Launcher sharedLauncher] getDownloadPathForContentAndScripts] stringByAppendingPathComponent: @"HQ Launcher.app"];
+    task.launchPath = [newLauncher stringByAppendingString:@"/Contents/Resources/updater"];
+    task.arguments = @[[[NSBundle mainBundle] bundlePath], newLauncher];
+    [task launch];
+
+    [NSApp terminate:self];
 }
 
 -(void)onSplashScreenTimerFinished:(NSTimer *)timer
