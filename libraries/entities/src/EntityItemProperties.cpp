@@ -980,8 +980,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     value is specified then the model is automatically sized to its 
  *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
  * @property {string} modelURL="" - The URL of the glTF, FBX, or OBJ model. glTF models may be in JSON or binary format 
- * (".gltf" or ".glb" URLs respectively). Baked FBX models' URLs end in ".baked.fbx". Model files may also be compressed in GZ 
- * format, in which case the URL ends in ".gz".
+ *     (".gltf" or ".glb" URLs respectively). Baked models' URLs have ".baked" before the file type. Model files may also be 
+ *     compressed in GZ format, in which case the URL ends in ".gz".
  * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
