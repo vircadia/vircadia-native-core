@@ -117,8 +117,7 @@ const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
 const int HAS_HERO_PRIORITY = 12; // 13th bit  (be scared)
 
 /**jsdoc
- * <p>The pointing state of the hands is specified by the following values:
- </p>
+ * <p>The pointing state of the hands is specified by the following values:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th>
