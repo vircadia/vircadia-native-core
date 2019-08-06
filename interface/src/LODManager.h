@@ -59,6 +59,7 @@ class LODManager : public QObject, public Dependency {
 
         Q_PROPERTY(float lodQualityLevel READ getLODQualityLevel WRITE setLODQualityLevel NOTIFY lodQualityLevelChanged)
 
+        // Deprecated
         Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust NOTIFY autoLODChanged)
 
         Q_PROPERTY(float presentTime READ getPresentTime)
@@ -138,24 +139,28 @@ public:
     /**jsdoc
      * @function LODManager.setOctreeSizeScale
      * @param {number} sizeScale
+     * @deprecated This function is deprecated and will be removed. Use the {@link LODManager.lodAngleDeg} property instead.
      */
     Q_INVOKABLE void setOctreeSizeScale(float sizeScale);
 
     /**jsdoc
      * @function LODManager.getOctreeSizeScale
      * @returns {number}
+     * @deprecated This function is deprecated and will be removed. Use the {@link LODManager.lodAngleDeg} property instead.
      */
     Q_INVOKABLE float getOctreeSizeScale() const;
 
     /**jsdoc
      * @function LODManager.setBoundaryLevelAdjust
      * @param {number} boundaryLevelAdjust
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
 
     /**jsdoc
      * @function LODManager.getBoundaryLevelAdjust
      * @returns {number}
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
