@@ -51,11 +51,14 @@ Rectangle {
     Component.onCompleted: {
         root.forceActiveFocus();
         /*
+            MILAD NOTE:
             The emoji list we have is a node transformed list of all the UTF emojis with meta info.
             To cut down on the list, this is a good place to start as they will be 90% of the emojis anyone would
             want to use.
 
-            After we cut
+            To save some space, we should probably remove any images from the current ones that aren't the below emojis.
+            Let's make a separate ticket for this as this is going to need a little work in the current node app. Not much 
+            but I didn't want to focus on it for this sprint.
         */
         EmojiList.emojiList
             .filter( emoji => {
@@ -173,7 +176,7 @@ Rectangle {
                                     anchors.fill: parent
                                     onEntered: {
                                         grid.currentIndex = index
-                                        // don't allow a hover image change of the main emoji image
+                                        // don't allow a hover image change of the main emoji image 
                                         if (root.isSelected) {
                                             return;
                                         }
