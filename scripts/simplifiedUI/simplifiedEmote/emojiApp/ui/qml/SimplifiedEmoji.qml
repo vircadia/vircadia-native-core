@@ -59,6 +59,10 @@ Rectangle {
             To save some space, we should probably remove any images from the current ones that aren't the below emojis.
             Let's make a separate ticket for this as this is going to need a little work in the current node app. Not much 
             but I didn't want to focus on it for this sprint.
+
+            I can also prune that large emoji json as well to have only the ones we want listed.  That can be added to that 
+            ticket as well.  This is something I can probably knock out on the plane to Italy becaues I don't want those large
+            files to be in the repo or loading that big config.json file. 
         */
         EmojiList.emojiList
             .filter( emoji => {
