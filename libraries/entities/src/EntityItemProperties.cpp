@@ -980,8 +980,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     value is specified then the model is automatically sized to its 
  *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
  * @property {string} modelURL="" - The URL of the glTF, FBX, or OBJ model. glTF models may be in JSON or binary format 
- * (".gltf" or ".glb" URLs respectively). Baked FBX models' URLs end in ".baked.fbx". Model files may also be compressed in GZ 
- * format, in which case the URL ends in ".gz".
+ *     (".gltf" or ".glb" URLs respectively). Baked models' URLs have ".baked" before the file type. Model files may also be 
+ *     compressed in GZ format, in which case the URL ends in ".gz".
  * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
@@ -1307,11 +1307,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} rightMargin=0.0 - The right margin, in meters.
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
- * @property {boolean} unlit=false - <code>true</code> if the entity should be unaffected by lighting.  Otherwise, the text
- *     is lit by the keylight and local lights.
- * @property {string} font="" - The text is rendered with this font.  Can be one of the following: <code>Courier</code,
- *     <code>Inconsolata</code>, <code>Roboto</code>, <code>Timeless</code>, or a path to a .sdff file.
- * @property {TextEffect} textEffect="none" - The effect that is applied to the text.
+ * @property {boolean} unlit=false - <code>true</code> if the entity is unaffected by lighting, <code>false</code> if it is lit 
+ *     by the key light and local lights.
+ * @property {string} font="" - The font to render the text with. It can be one of the following: <code>"Courier"</code,
+ *     <code>"Inconsolata"</code>, <code>"Roboto"</code>, <code>"Timeless"</code>, or a path to a .sdff file.
+ * @property {Entities.TextEffect} textEffect="none" - The effect that is applied to the text.
  * @property {Color} textEffectColor=255,255,255 - The color of the effect.
  * @property {number} textEffectThickness=0.2 - The magnitude of the text effect, range <code>0.0</code> &ndash; <code>0.5</code>.
  * @property {BillboardMode} billboardMode="none" - Whether the entity is billboarded to face the camera.

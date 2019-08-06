@@ -50,8 +50,10 @@ bool operator!=(const AnimationPropertyGroup& a, const AnimationPropertyGroup& b
 /**jsdoc
  * An animation is configured by the following properties:
  * @typedef {object} Entities.AnimationProperties
- * @property {string} url="" - The URL of the FBX file that has the animation.
- * @property {boolean} allowTranslation=true - <code>true</code> to enable translations contained in the animation to be 
+ * @property {string} url="" - The URL of the glTF or FBX file that has the animation. glTF files may be in JSON or binary 
+ *     format (".gltf" or ".glb" URLs respectively).
+ *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
+ * @property {boolean} allowTranslation=true - <code>true</code> to enable translations contained in the animation to be
  *     played, <code>false</code> to disable translations.
  * @property {number} fps=30 - The speed in frames/s that the animation is played at.
  * @property {number} firstFrame=0 - The first frame to play in the animation.
