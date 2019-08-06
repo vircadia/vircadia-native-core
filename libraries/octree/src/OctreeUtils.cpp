@@ -18,17 +18,17 @@
 #include <AABox.h>
 #include <AACube.h>
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
-    return voxelSizeScale / powf(2.0f, renderLevel);
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float visibilityDistance) {
+    return visibilityDistance / powf(2.0f, renderLevel);
 }
 
-float getPerspectiveAccuracyAngleTan(float visibilityDistance, int boundaryLevelAdjust) {
+float getPerspectiveAccuracyHalfAngleTan(float visibilityDistance, int boundaryLevelAdjust) {
     float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, visibilityDistance);
-    return UNIT_ELEMENT_MAX_EXTENT / visibleDistanceAtMaxScale; // TODO: consider renaming this function to half tangent because we're taking into account a factor of 1/2
+    return UNIT_ELEMENT_MAX_EXTENT / visibleDistanceAtMaxScale;
 }
 
-float getPerspectiveAccuracyAngle(float visibilityDistance, int boundaryLevelAdjust) {
-    return atan(getPerspectiveAccuracyAngleTan(visibilityDistance, boundaryLevelAdjust));
+float getPerspectiveAccuracyHalfAngle(float visibilityDistance, int boundaryLevelAdjust) {
+    return atan(getPerspectiveAccuracyHalfAngleTan(visibilityDistance, boundaryLevelAdjust));
 }
 
 float getOrthographicAccuracySize(float visibilityDistance, int boundaryLevelAdjust) {

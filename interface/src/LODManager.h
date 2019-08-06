@@ -201,7 +201,7 @@ public:
 
     float getLODAngleDeg() const;
     void setLODAngleDeg(float lodAngle);
-    float getLODAngleHalfTan() const;
+    float getLODHalfAngleTan() const;
     float getLODAngle() const;
     float getVisibilityDistance() const;
     void setVisibilityDistance(float distance);

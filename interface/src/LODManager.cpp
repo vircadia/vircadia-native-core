@@ -173,12 +173,12 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     }
 }
 
-float LODManager::getLODAngleHalfTan() const {
-    return getPerspectiveAccuracyAngleTan(_visibilityDistance, _boundaryLevelAdjust);
+float LODManager::getLODHalfAngleTan() const {
+    return getPerspectiveAccuracyHalfAngleTan(_visibilityDistance, _boundaryLevelAdjust);
 
 }
 float LODManager::getLODAngle() const {
-    return 2.0f * atanf(getLODAngleHalfTan());
+    return 2.0f * atanf(getLODHalfAngleTan());
 }
 float LODManager::getLODAngleDeg() const {
     return glm::degrees(getLODAngle());
