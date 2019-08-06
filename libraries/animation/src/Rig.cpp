@@ -29,6 +29,7 @@
 #include "AnimInverseKinematics.h"
 #include "AnimOverlay.h"
 #include "AnimSkeleton.h"
+#include "AnimStateMachine.h"
 #include "AnimUtil.h"
 #include "AvatarConstants.h"
 #include "IKTarget.h"
@@ -1906,28 +1907,7 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabl
 
 void Rig::updateReactions(const ControllerParameters& params) {
 
-    // enable/disable animVars
-    bool enabled = params.reactionEnabledFlags[AVATAR_REACTION_POSITIVE];
-    _animVars.set("reactionPositiveEnabled", enabled);
-    _animVars.set("reactionPositiveDisabled", !enabled);
-
-    enabled = params.reactionEnabledFlags[AVATAR_REACTION_NEGATIVE];
-    _animVars.set("reactionNegativeEnabled", enabled);
-    _animVars.set("reactionNegativeDisabled", !enabled);
-
-    enabled = params.reactionEnabledFlags[AVATAR_REACTION_RAISE_HAND];
-    _animVars.set("reactionRaiseHandEnabled", enabled);
-    _animVars.set("reactionRaiseHandDisabled", !enabled);
-
-    enabled = params.reactionEnabledFlags[AVATAR_REACTION_APPLAUD];
-    _animVars.set("reactionApplaudEnabled", enabled);
-    _animVars.set("reactionApplaudDisabled", !enabled);
-
-    enabled = params.reactionEnabledFlags[AVATAR_REACTION_POINT];
-    _animVars.set("reactionPointEnabled", enabled);
-    _animVars.set("reactionPointDisabled", !enabled);
-
-    // trigger animVars
+    // trigger reactions
     if (params.reactionTriggers[AVATAR_REACTION_POSITIVE]) {
         _animVars.set("reactionPositiveTrigger", true);
     } else {
@@ -1940,22 +1920,38 @@ void Rig::updateReactions(const ControllerParameters& params) {
         _animVars.set("reactionNegativeTrigger", false);
     }
 
-    if (params.reactionTriggers[AVATAR_REACTION_RAISE_HAND]) {
-        _animVars.set("reactionRaiseHandTrigger", true);
-    } else {
-        _animVars.set("reactionRaiseHandTrigger", false);
-    }
+    // begin end reactions
+    bool enabled = params.reactionEnabledFlags[AVATAR_REACTION_RAISE_HAND];
+    _animVars.set("reactionRaiseHandEnabled", enabled);
+    _animVars.set("reactionRaiseHandDisabled", !enabled);
 
-    if (params.reactionTriggers[AVATAR_REACTION_APPLAUD]) {
-        _animVars.set("reactionApplaudTrigger", true);
-    } else {
-        _animVars.set("reactionApplaudTrigger", false);
-    }
+    enabled = params.reactionEnabledFlags[AVATAR_REACTION_APPLAUD];
+    _animVars.set("reactionApplaudEnabled", enabled);
+    _animVars.set("reactionApplaudDisabled", !enabled);
 
-    if (params.reactionTriggers[AVATAR_REACTION_POINT]) {
-        _animVars.set("reactionPointTrigger", true);
-    } else {
-        _animVars.set("reactionPointTrigger", false);
+    enabled = params.reactionEnabledFlags[AVATAR_REACTION_POINT];
+    _animVars.set("reactionPointEnabled", enabled);
+    _animVars.set("reactionPointDisabled", !enabled);
+
+    // determine if we should ramp off IK
+    if (_enableInverseKinematics) {
+        bool reactionPlaying = false;
+        std::shared_ptr<AnimStateMachine> mainStateMachine = std::dynamic_pointer_cast<AnimStateMachine>(_animNode->findByName("mainStateMachine"));
+        std::shared_ptr<AnimStateMachine> idleStateMachine = std::dynamic_pointer_cast<AnimStateMachine>(_animNode->findByName("idle"));
+        if (mainStateMachine && mainStateMachine->getCurrentStateID() == "idle" && idleStateMachine) {
+            reactionPlaying = idleStateMachine->getCurrentStateID().startsWith("reaction");
+        }
+
+        bool isSeated = _state == RigRole::Seated;
+        bool hipsEnabled = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Enabled;
+        bool hipsEstimated = params.primaryControllerFlags[PrimaryControllerType_Hips] & (uint8_t)ControllerFlags::Estimated;
+        bool hmdMode = hipsEnabled && !hipsEstimated;
+
+        if ((reactionPlaying || isSeated) && !hmdMode) {
+            // TODO: make this smooth.
+            // disable head IK while reaction is playing, but only in "desktop" mode.
+            _animVars.set("headType", (int)IKTarget::Type::Unknown);
+        }
     }
 }
 
@@ -2115,9 +2111,9 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
                 _talkIdleInterpTime = 1.0f;
             }
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
-            _animVars.set("idleOverlayAlpha", easeOutInValue);
+            _animVars.set("talkOverlayAlpha", easeOutInValue);
         } else {
-            _animVars.set("idleOverlayAlpha", 1.0f);
+            _animVars.set("talkOverlayAlpha", 1.0f);
         }
     } else {
         if (_talkIdleInterpTime < 1.0f) {
@@ -2127,9 +2123,9 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             }
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
             float talkAlpha = 1.0f - easeOutInValue;
-            _animVars.set("idleOverlayAlpha", talkAlpha);
+            _animVars.set("talkOverlayAlpha", talkAlpha);
         } else {
-            _animVars.set("idleOverlayAlpha", 0.0f);
+            _animVars.set("talkOverlayAlpha", 0.0f);
         }
     }
 
