@@ -27,11 +27,8 @@ Rectangle {
 
     HifiConstants { id: hifi }
 
-    readonly property real treeScale: 32768; // ~20 miles.. This is the number of meters of the 0.0 to 1.0 voxel universe
-    readonly property real halfTreeScale: treeScale / 2;
-
-    // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
-    readonly property real defaultOctreeSizeScale: treeScale * 400.0
+    // This controls the LOD. Larger number will make smaller objects visible at greater distance.
+    readonly property real defaultMaxVisibilityDistance: 400.0
 
     Column {
         anchors.margins: 10
@@ -89,10 +86,10 @@ Rectangle {
             anchors.right: parent.right
             minimumValue: 5
             maximumValue: 2000
-            value: LODManager.getOctreeSizeScale() / treeScale
+            value: defaultMaxVisibilityDistance
             tickmarksEnabled: false
             onValueChanged: {
-                LODManager.setOctreeSizeScale(value * treeScale);
+                LODManager.setVisibilityDistanceForUnitElement(value);
                 whatYouCanSeeLabel.text = LODManager.getLODFeedbackText()
             }
         }
@@ -106,7 +103,7 @@ Rectangle {
             colorScheme: root.colorScheme
             height: 30
             onClicked: {
-                slider.value = defaultOctreeSizeScale/treeScale
+                slider.value = defaultMaxVisibilityDistance
                 adjustCheckbox.checked = false
                 LODManager.setAutomaticLODAdjust(adjustCheckbox.checked);
             }

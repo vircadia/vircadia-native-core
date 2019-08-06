@@ -145,7 +145,7 @@ public:
      * @function LODManager.getOctreeSizeScale
      * @returns {number}
      */
-    Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
+    Q_INVOKABLE float getOctreeSizeScale() const;
 
     /**jsdoc
      * @function LODManager.setBoundaryLevelAdjust
@@ -198,6 +198,8 @@ public:
     void setLODAngleDeg(float lodAngle);
     float getLODAngleHalfTan() const;
     float getLODAngle() const;
+    float getVisibilityDistance() const;
+    void setVisibilityDistance(float distance);
 
     float getPidKp() const;
     float getPidKi() const;
@@ -254,7 +256,7 @@ private:
     float _desktopTargetFPS { LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_DESKTOP_FPS };
     float _hmdTargetFPS { LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS };
 
-    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    float _visibilityDistance = DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
     int _boundaryLevelAdjust = 0;
 
     glm::vec4 _pidCoefs{ 1.0f, 0.0f, 0.0f, 1.0f }; // Kp, Ki, Kd, Kv

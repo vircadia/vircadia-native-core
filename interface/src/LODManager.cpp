@@ -94,7 +94,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     }
 
     // Previous values for output
-    float oldOctreeSizeScale = getOctreeSizeScale();
+    float oldVisibilityDistance = getVisibilityDistance();
     float oldLODAngle = getLODAngleDeg();
 
     // Target fps is slightly overshooted by 5hz
@@ -165,7 +165,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     // And now add the output of the controller to the LODAngle where we will guarantee it is in the proper range
     setLODAngleDeg(oldLODAngle + output);
 
-    if (oldOctreeSizeScale != _octreeSizeScale) {
+    if (oldVisibilityDistance != _visibilityDistance) {
         auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
         if (lodToolsDialog) {
             lodToolsDialog->reloadSliders();
@@ -174,7 +174,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 }
 
 float LODManager::getLODAngleHalfTan() const {
-    return getPerspectiveAccuracyAngleTan(_octreeSizeScale, _boundaryLevelAdjust);
+    return getPerspectiveAccuracyAngleTan(_visibilityDistance, _boundaryLevelAdjust);
 
 }
 float LODManager::getLODAngle() const {
@@ -184,11 +184,19 @@ float LODManager::getLODAngleDeg() const {
     return glm::degrees(getLODAngle());
 }
 
+float LODManager::getVisibilityDistance() const {
+    return _visibilityDistance;
+}
+
+void LODManager::setVisibilityDistance(float distance) {
+    _visibilityDistance = distance;
+}
+
 void LODManager::setLODAngleDeg(float lodAngle) {
     auto newSolidAngle = std::max(0.001f, std::min(lodAngle, 90.f));
     auto halfTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
-    auto octreeSizeScale = /*TREE_SCALE *  OCTREE_TO_MESH_RATIO */ (sqrtf(3.0f) * 0.5f) / halfTan;
-    setOctreeSizeScale(octreeSizeScale);
+    auto visibilityDistance = UNIT_ELEMENT_MAX_EXTENT / halfTan;
+    setVisibilityDistance(visibilityDistance);
 }
 
 void LODManager::setSmoothScale(float t) {
@@ -268,7 +276,11 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
 };
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
-    _octreeSizeScale = sizeScale;
+    setVisibilityDistance(sizeScale / TREE_SCALE);
+}
+
+float LODManager::getOctreeSizeScale() const {
+    return getVisibilityDistance() * TREE_SCALE;
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
@@ -294,9 +306,8 @@ QString LODManager::getLODFeedbackText() {
     } break;
     }
     // distance feedback
-    float octreeSizeScale = getOctreeSizeScale();
- //   float relativeToDefault = octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE;
-    float relativeToDefault = octreeSizeScale / MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
+    float visibilityDistance = getVisibilityDistance();
+    float relativeToDefault = visibilityDistance / DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
     int relativeToTwentyTwenty = 20 / relativeToDefault;
 
     QString result;
