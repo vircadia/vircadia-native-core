@@ -15,7 +15,6 @@
 
 // START CONFIG OPTIONS
 var DOCKED_QML_SUPPORTED = true;
-var SHOW_PROTOTYPE_EMOTE_APP = true;
 var TOOLBAR_NAME = "com.highfidelity.interface.toolbar.system";
 var DEFAULT_SCRIPTS_PATH_PREFIX = ScriptDiscoveryService.defaultScriptsPath + "/";
 // END CONFIG OPTIONS
@@ -116,21 +115,34 @@ function toggleAvatarApp() {
 
 
 function handleAvatarNametagMode(newAvatarNametagMode) {
-    simplifiedNametag.handleAvatarNametagMode(newAvatarNametagMode);
+    nametag.handleAvatarNametagMode(newAvatarNametagMode);
+}
+
+function handleEmoteIndicatorVisible(newEmoteIndicatorVisible) {
+    emote.handleEmoteIndicatorVisible(newEmoteIndicatorVisible);
 }
 
 
 var SETTINGS_APP_MESSAGE_SOURCE = "SettingsApp.qml";
 function onMessageFromSettingsApp(message) {
+    console.log("message from settings app", message);
     if (message.source !== SETTINGS_APP_MESSAGE_SOURCE) {
         return;
     }
 
     switch (message.method) {
+        /* 
+            MILAD NOTE:
+            These two call an update methon on the module apis because I can't get a signal from Settings.QML to the emoji.js without it being a module like
+            nametag.  
+        */
         case "handleAvatarNametagMode":
             handleAvatarNametagMode(message.avatarNametagMode);
             break;
-            
+        case "emoteIndicatorVisible":
+            console.log("Got to emote indicator visible");
+            handleEmoteIndicatorVisible(message.emoteIndicatorVisible);   
+            break;
         default:
             console.log("Unrecognized message from " + SETTINGS_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
@@ -185,148 +197,6 @@ function toggleSettingsApp() {
 
     settingsAppWindow.fromQml.connect(onMessageFromSettingsApp);
     settingsAppWindow.closed.connect(onSettingsAppClosed);
-}
-
-var EMOJI_APP_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/emojiApp/EmojiApp.qml";
-var EMOJI_APP_WINDOW_TITLE = "Emoji";
-var EMOJI_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
-var EMOJI_APP_WIDTH_PX = 480;
-var EMOJI_APP_HEIGHT_PX = 615;
-var EMOJI_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
-    0x00001000 | // Qt::WindowTitleHint
-    0x00002000 | // Qt::WindowSystemMenuHint
-    0x08000000 | // Qt::WindowCloseButtonHint
-    0x00008000 | // Qt::WindowMaximizeButtonHint
-    0x00004000; // Qt::WindowMinimizeButtonHint
-var emojiAppWindow = false;
-function toggleEmojiApp() {
-    console.log("IN TOGGLE EMOJI APP \n\n\n\n");
-    if (emojiAppWindow) {
-        emojiAppWindow.close();
-        // This really shouldn't be necessary.
-        // This signal really should automatically be called by the signal handler set up below.
-        // But fixing that requires an engine change, so this workaround will do.
-        onEmojiAppClosed();
-        return;
-    }
-
-    emojiAppWindow = Desktop.createWindow(EMOJI_APP_QML_PATH, {
-        title: EMOJI_APP_WINDOW_TITLE,
-        presentationMode: EMOJI_APP_PRESENTATION_MODE,
-        size: {
-            x: EMOJI_APP_WIDTH_PX,
-            y: EMOJI_APP_HEIGHT_PX
-        },
-        position: {
-            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - EMOJI_APP_WIDTH_PX / 2),
-            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - EMOJI_APP_HEIGHT_PX / 2)
-        },
-        overrideFlags: EMOJI_APP_WINDOW_FLAGS
-    });
-
-    emojiAppWindow.fromQml.connect(onMessageFromEmojiApp);
-    emojiAppWindow.closed.connect(onEmojiAppClosed);
-}
-
-function onEmojiAppClosed() {
-    if (emojiAppWindow) {
-        emojiAppWindow.fromQml.disconnect(onMessageFromEmojiApp);
-        emojiAppWindow.closed.disconnect(onEmojiAppClosed);
-    }
-    emojiAppWindow = false;
-}
-
-var EMOJI_APP_MESSAGE_SOURCE = "EmojiApp.qml";
-function onMessageFromEmojiApp(message) {
-    if (message.source !== EMOJI_APP_MESSAGE_SOURCE) {
-        return;
-    }
-
-    switch (message.method) {
-        case "selectedEmoji":
-            selectedEmoji();
-            break;
-            
-        default:
-            console.log("Unrecognized message from " + SETTINGS_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
-            break;
-    }
-
-}
-
-function selectedEmoji() {
-    console.log("\n\n\n RUNNING TESTS \n\n\n\n");
-}
-
-function updateEmoteAppBarPosition() {
-    if (!emoteAppBarWindow) {
-        return;
-    }
-
-    emoteAppBarWindow.position = {
-        x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
-        y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
-    };
-}
-
-
-var EMOTE_APP_BAR_MESSAGE_SOURCE = "EmoteAppBar.qml";
-function onMessageFromEmoteAppBar(message) {
-    if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
-        return;
-    }
-
-    switch (message.method) {
-        case "toggleEmojiApp": 
-            console.log("CALLING TOGGLE EMOJI APP")
-            toggleEmojiApp();
-            break;
-
-        default:
-            console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
-            break;
-    }
-}
-
-
-function onEmoteAppBarClosed() {
-    if (emoteAppBarWindow) {
-        emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
-        emoteAppBarWindow.closed.disconnect(onEmoteAppClosed);
-    }
-    emoteAppBarWindow = false;
-}
-
-
-var EMOTE_APP_BAR_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/emoteApp/bar/EmoteAppBar.qml";
-var EMOTE_APP_BAR_WINDOW_TITLE = "Emote";
-var EMOTE_APP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
-var EMOTE_APP_BAR_WIDTH_PX = 48;
-var EMOTE_APP_BAR_HEIGHT_PX = 48;
-var EMOTE_APP_BAR_LEFT_MARGIN = 48;
-var EMOTE_APP_BAR_BOTTOM_MARGIN = 48;
-var EMOTE_APP_BAR_WINDOW_FLAGS = 0x00000001 | // Qt::Window
-    0x00000800 | // Qt::FramelessWindowHint
-    0x40000000 | // Qt::NoDropShadowWindowHint
-    0x00200000; // Qt::WindowDoesNotAcceptFocus
-var emoteAppBarWindow = false;
-function showEmoteAppBar() {
-    emoteAppBarWindow = Desktop.createWindow(EMOTE_APP_BAR_QML_PATH, {
-        title: EMOTE_APP_BAR_WINDOW_TITLE,
-        presentationMode: EMOTE_APP_BAR_PRESENTATION_MODE,
-        size: {
-            x: EMOTE_APP_BAR_WIDTH_PX,
-            y: EMOTE_APP_BAR_HEIGHT_PX
-        },
-        position: {
-            x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
-            y: Window.y + Window.innerHeight - EMOTE_APP_BAR_BOTTOM_MARGIN
-        },
-        overrideFlags: EMOTE_APP_BAR_WINDOW_FLAGS
-    });
-
-    emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
-    emoteAppBarWindow.closed.connect(onEmoteAppBarClosed);
 }
 
 
@@ -576,8 +446,6 @@ function onGeometryChanged(rect) {
             "y": rect.y
         };
     }
-
-    updateEmoteAppBarPosition();
 }
 
 function onDisplayModeChanged(isHMDMode) {
@@ -625,9 +493,12 @@ function restoreLODSettings() {
 }
 
 
-var simplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
+var SimplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
 var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
+var SimplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
 var si;
+var nametag;
+var emote;
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -646,11 +517,17 @@ function startup() {
 
     loadSimplifiedTopBar();
 
-    simplifiedNametag.create();
     si = new SimplifiedStatusIndicator({
         statusChanged: onStatusChanged
     });
     si.startup();
+    
+    nametag = new SimplifiedNametag();
+    nametag.startup();
+
+    emote = new SimplifiedEmote();
+    emote.startup();
+
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
@@ -666,10 +543,6 @@ function startup() {
     AvatarInputs.showAudioTools = false;
     oldShowBubbleTools = AvatarInputs.showBubbleTools;
     AvatarInputs.showBubbleTools = false;
-
-    if (SHOW_PROTOTYPE_EMOTE_APP) {
-        showEmoteAppBar();
-    }
 }
 
 
@@ -699,15 +572,12 @@ function shutdown() {
         settingsAppWindow.close();
     }
 
-    if (emoteAppBarWindow) {
-        emoteAppBarWindow.close();
-    }
-
     maybeDeleteInputDeviceMutedOverlay();
     maybeDeleteOutputDeviceMutedOverlay();
 
-    simplifiedNametag.destroy();
+    nametag.unload();
     si.unload();
+    emote.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);

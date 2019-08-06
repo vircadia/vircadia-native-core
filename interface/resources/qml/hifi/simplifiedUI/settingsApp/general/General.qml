@@ -18,6 +18,7 @@ import PerformanceEnums 1.0
 
 Flickable {
     property string avatarNametagMode: Settings.getValue("simplifiedNametag/avatarNametagMode", "on")
+    property bool emoteIndicatorVisible: true;
     id: root
     contentWidth: parent.width
     contentHeight: generalColumnLayout.height
@@ -25,6 +26,10 @@ Flickable {
 
     onAvatarNametagModeChanged: {
         sendNameTagInfo({method: 'handleAvatarNametagMode', avatarNametagMode: root.avatarNametagMode, source: "SettingsApp.qml"});
+    }
+
+    onEmoteIndicatorVisible: {
+        sendEmoteVisible({method: 'emoteIndicatorVisible', emoteIndicatorVisible: root.emoteIndicatorVisible, source: "SettingsApp.qml"})
     }
 
     onVisibleChanged: {
@@ -197,18 +202,60 @@ Flickable {
                     }
                 }
                 
-              Connections {
-                    target: Camera
+                Connections {
+                        target: Camera
 
-                    onModeUpdated: {
-                        if (Camera.mode === "first person") {
-                            firstPerson.checked = true
-                        } else if (Camera.mode === "third person") {
-                            thirdPerson.checked = true
+                        onModeUpdated: {
+                            if (Camera.mode === "first person") {
+                                firstPerson.checked = true
+                            } else if (Camera.mode === "third person") {
+                                thirdPerson.checked = true
+                            }
                         }
-                    }
-              }
+                }
             }
+        }
+
+        ColumnLayout {
+            id: emoteContainer
+            Layout.preferredWidth: parent.width
+            spacing: 0
+            ColumnLayout {
+                id: emoteRadioButtonGroup
+                Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
+
+                HifiStylesUit.GraphikSemiBold {
+                    id: emoteTitle
+                    text: "Emote"
+                    Layout.maximumWidth: parent.width
+                    height: paintedHeight
+                    size: 22
+                    color: simplifiedUI.colors.text.white
+                }
+
+
+                SimplifiedControls.RadioButton {
+                    id: emoteOn
+                    text: "Emote On"
+                    checked: root.emoteIndicatorVisible
+                    onClicked: {
+                        root.emoteIndicatorVisible = !root.emoteIndicatorVisible;
+                    }
+                }
+
+                SimplifiedControls.RadioButton {
+                    id: emoteOff
+                    text: "Emote Off"
+                    checked: !root.emoteIndicatorVisible
+                    onClicked: {
+                        root.emoteIndicatorVisible = !root.emoteIndicatorVisible;
+                    }
+                }
+
+            }
+
+        
         }
 
         ColumnLayout {
@@ -248,4 +295,5 @@ Flickable {
     }
 
     signal sendNameTagInfo(var message);
+    signal sendEmoteVisible(var message);
 }
