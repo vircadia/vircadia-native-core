@@ -31,7 +31,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         bool currentStateHasPriority = false;
         std::vector<RandomSwitchState::Pointer> randomStatesToConsider;
         float totalPriorities = 0.0f;
-        for (int i = 0; i < _randomStates.size(); i++) {
+        for (size_t i = 0; i < _randomStates.size(); i++) {
             auto randState = _randomStates[i];
             if (randState->getPriority() > 0.0f) {
                 bool isRepeatingClip = _children[randState->getChildIndex()]->getID() == _lastPlayedState;
@@ -46,7 +46,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         // get a random number and decide which motion to choose.
         float dice = randFloatInRange(0.0f, 1.0f);
         float lowerBound = 0.0f;
-        for (int i = 0; i < randomStatesToConsider.size(); i++) {
+        for (size_t i = 0; i < randomStatesToConsider.size(); i++) {
             auto randState = randomStatesToConsider[i];
             float upperBound = lowerBound + (randState->getPriority() / totalPriorities);
             if ((dice > lowerBound) && (dice < upperBound)) {
