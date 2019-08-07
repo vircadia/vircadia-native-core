@@ -16,27 +16,55 @@
 
 
 LauncherManager::LauncherManager() {
+    int tokenPos = 0;
+    _launcherVersion = CString(LAUNCHER_BUILD_VERSION).Tokenize(_T("-"), tokenPos);
 }
 
 LauncherManager::~LauncherManager() {
 }
 
-void LauncherManager::init(BOOL allowUpdate, BOOL continueUpdating, BOOL skipSplashScreen) {
+void LauncherManager::init(BOOL allowUpdate, ContinueActionOnStart continueAction) {
     initLog();
-    int tokenPos = 0;
     _updateLauncherAllowed = allowUpdate;
-    _continueUpdating = continueUpdating;
-    _skipSplashScreen = skipSplashScreen;
-    _shouldWait = !skipSplashScreen;
-    if (_continueUpdating) {
+    _continueAction = continueAction;
+    CString msg;
+    msg.Format(_T("Start Screen: %s"), getContinueActionParam(continueAction));
+    addToLog(msg);
+    _shouldWait = _continueAction == ContinueActionOnStart::ContinueNone;
+    if (_continueAction == ContinueActionOnStart::ContinueUpdate) {
         _progressOffset = CONTINUE_UPDATING_GLOBAL_OFFSET;
     }
-    _launcherVersion = CString(LAUNCHER_BUILD_VERSION).Tokenize(_T("-"), tokenPos);
     addToLog(_T("Launcher is running version: " + _launcherVersion));
     addToLog(_T("Getting most recent builds"));
     getMostRecentBuilds(_latestLauncherURL, _latestLauncherVersion, _latestApplicationURL, _latestVersion);
 }
 
+CString LauncherManager::getContinueActionParam(LauncherManager::ContinueActionOnStart continueAction) {
+    switch (continueAction) {
+        case LauncherManager::ContinueActionOnStart::ContinueNone:
+            return _T("");
+        case LauncherManager::ContinueActionOnStart::ContinueLogIn:
+            return _T("LogIn");
+        case LauncherManager::ContinueActionOnStart::ContinueUpdate:
+            return _T("Update");
+        case LauncherManager::ContinueActionOnStart::ContinueFinish:
+            return _T("Finish");
+        default:
+            return _T("");
+    }
+}
+
+LauncherManager::ContinueActionOnStart LauncherManager::getContinueActionFromParam(const CString& param) {
+    if (param.Compare(_T("LogIn")) == 0) {
+        return ContinueActionOnStart::ContinueLogIn;
+    } else if (param.Compare(_T("Update")) == 0) {
+        return ContinueActionOnStart::ContinueUpdate;
+    } else if (param.Compare(_T("Finish")) == 0) {
+        return ContinueActionOnStart::ContinueFinish;
+    } else {
+        return ContinueActionOnStart::ContinueNone;
+    }
+}
 BOOL LauncherManager::initLog() {
     CString logPath;
     auto result = getAndCreatePaths(PathType::Launcher_Directory, logPath);
@@ -80,7 +108,7 @@ void LauncherManager::saveErrorLog() {
     }
 }
 
-BOOL LauncherManager::installLauncher() {
+void LauncherManager::tryToInstallLauncher(BOOL retry) {
     CString appPath;
     BOOL result = getAndCreatePaths(PathType::Running_Path, appPath);
     if (!result) {
@@ -98,26 +126,49 @@ BOOL LauncherManager::installLauncher() {
         if (!_shouldUninstall) {
             // The installer is not running on the desired location and has to be installed
             // Kill of running before self-copy
-            addToLog(_T("Installing Launcher."));
+            addToLog(_T("Trying to install launcher."));
             int launcherPID = -1;
             if (LauncherUtils::isProcessRunning(LAUNCHER_EXE_FILENAME, launcherPID)) {
                 if (!LauncherUtils::shutdownProcess(launcherPID, 0)) {
                     addToLog(_T("Error shutting down the Launcher"));
                 }
             }
-            CopyFile(appPath, instalationPath, FALSE);
+            const int LAUNCHER_INSTALL_RETRYS = 10;
+            const int WAIT_BETWEEN_RETRYS_MS = 10;
+            int installTrys = retry ? LAUNCHER_INSTALL_RETRYS : 0;
+            for (int i = 0; i <= installTrys; i++) {
+                _retryLauncherInstall = !CopyFile(appPath, instalationPath, FALSE);
+                if (!_retryLauncherInstall) {
+                    addToLog(_T("Launcher installed successfully."));
+                    break;
+                } else if (i < installTrys) {
+                    CString msg;
+                    msg.Format(_T("Installing launcher try: %d"), i);
+                    addToLog(msg);
+                    Sleep(WAIT_BETWEEN_RETRYS_MS);
+                } else if (installTrys > 0) {
+                    addToLog(_T("Error installing launcher."));
+                    _retryLauncherInstall = false;
+                    _hasFailed = true;
+                } else {
+                    addToLog(_T("Old launcher is still running. Install could not be completed."));
+                }
+            }
         }
     } else if (_shouldUninstall) {
         addToLog(_T("Launching Uninstall mode."));
         CString tempPath;
         if (getAndCreatePaths(PathType::Temp_Directory, tempPath)) {
             tempPath += _T("\\HQ_uninstaller_tmp.exe");
-            CopyFile(instalationPath, tempPath, false);
-            LauncherUtils::launchApplication(tempPath, _T(" --uninstall"));
-            exit(0);
+            if (!CopyFile(instalationPath, tempPath, false)) {
+                addToLog(_T("Error copying uninstaller to tmp directory."));
+                _hasFailed = true;
+            } else {
+                LauncherUtils::launchApplication(tempPath, _T(" --uninstall"));
+                exit(0);
+            }
         }
     }
-    return TRUE;
 }
 
 BOOL LauncherManager::restartLauncher() {
@@ -432,7 +483,8 @@ void LauncherManager::onMostRecentBuildsReceived(const CString& response, Launch
             addToLog(updatingMsg);
             _shouldUpdateLauncher = TRUE;
             _shouldDownloadLauncher = TRUE;
-            _willContinueUpdating = isInstalled && newInterfaceVersion;
+            _keepLoggingIn = !isInstalled;
+            _keepUpdating = isInstalled && newInterfaceVersion;
         } else {
             if (_updateLauncherAllowed) {
                 addToLog(_T("Already running most recent build. Launching interface.exe"));
@@ -612,11 +664,15 @@ void LauncherManager::onFileDownloaded(ProcessType type) {
 
 void LauncherManager::restartNewLauncher() {
     closeLog();
-    if (_willContinueUpdating) {
-        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --continueUpdating"));
-    } else {
-        LauncherUtils::launchApplication(_tempLauncherPath, _T(" --restart --noUpdate --skipSplash"));
+    ContinueActionOnStart continueAction = ContinueActionOnStart::ContinueFinish;
+    if (_keepUpdating) {
+        continueAction = ContinueActionOnStart::ContinueUpdate;
+    } else if (_keepLoggingIn) {
+        continueAction = ContinueActionOnStart::ContinueLogIn;
     }    
+    CStringW params;
+    params.Format(_T(" --restart --noUpdate --continueAction %s"), getContinueActionParam(continueAction));
+    LauncherUtils::launchApplication(_tempLauncherPath, params.GetBuffer());
     Sleep(500);
 }
 

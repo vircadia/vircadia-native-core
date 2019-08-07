@@ -2,6 +2,7 @@
 #import "DownloadInterface.h"
 #import "CredentialsRequest.h"
 #import "DownloadDomainContent.h"
+#import "DownloadLauncher.h"
 #import "LatestBuildRequest.h"
 #import "OrganizationRequest.h"
 #import "DownloadScripts.h"
@@ -44,6 +45,7 @@ struct LatestBuildInfo {
 @property (nonatomic, retain) DownloadInterface* downloadInterface;
 @property (nonatomic, retain) CredentialsRequest* credentialsRequest;
 @property (nonatomic, retain) DownloadDomainContent* downloadDomainContent;
+@property (nonatomic, retain) DownloadLauncher* downloadLauncher;
 @property (nonatomic, retain) DownloadScripts* downloadScripts;
 @property (nonatomic, retain) LatestBuildRequest* latestBuildRequest;
 @property (nonatomic, retain) OrganizationRequest* organizationRequest;
@@ -74,11 +76,12 @@ struct LatestBuildInfo {
 - (void) showLoginScreen;
 - (void) restart;
 - (NSString*) getLauncherPath;
+- (void) runAutoupdater;
 - (ProcessState) currentProccessState;
 - (void) setCurrentProcessState:(ProcessState) aProcessState;
 - (void) setLoginErrorState:(LoginError) aLoginError;
 - (LoginError) getLoginErrorState;
-- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl;
+- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl :(BOOL) newLauncherAvailable :(NSString*) launcherUrl;
 - (void) interfaceFinishedDownloading;
 - (NSString*) getDownloadPathForContentAndScripts;
 - (void) launchInterface;

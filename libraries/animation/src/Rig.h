@@ -88,8 +88,8 @@ public:
         AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
         uint8_t secondaryControllerFlags[NumSecondaryControllerTypes];
         bool isTalking;
-        bool reactionEnabledFlags[NUM_AVATAR_REACTIONS];
-        bool reactionTriggers[NUM_AVATAR_REACTIONS];
+        bool reactionEnabledFlags[NUM_AVATAR_BEGIN_END_REACTIONS];
+        bool reactionTriggers[NUM_AVATAR_TRIGGER_REACTIONS];
         HFMJointShapeInfo hipsShapeInfo;
         HFMJointShapeInfo spineShapeInfo;
         HFMJointShapeInfo spine1ShapeInfo;

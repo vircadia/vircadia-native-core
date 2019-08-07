@@ -36,29 +36,29 @@
     layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 <@endif@>
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
-layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
+layout(location=RENDER_UTILS_ATTR_FADE1) flat in vec4 _glyphBounds; // we're reusing the fade texcoord locations here
 
 void main() {
-    float alpha = evalSDFSuperSampled(_texCoord0);
+    vec4 color = evalSDFSuperSampled(_texCoord0, _glyphBounds);
 
 <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
-    alpha *= _color.a;
-    if (alpha <= 0.0) {
+    color.a *= params.color.a;
+    if (color.a <= 0.0) {
         discard;
     }
 <@endif@>
 
 <@if HIFI_USE_UNLIT@>
     <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
-        _fragColor0 = vec4(_color.rgb * isUnlitEnabled(), alpha);
+        _fragColor0 = vec4(color.rgb * isUnlitEnabled(), color.a);
     <@else@>
         packDeferredFragmentUnlit(
             normalize(_normalWS),
-            alpha,
-            _color.rgb);
+            color.a,
+            color.rgb);
     <@endif@>
 <@else@>
     <@if HIFI_USE_TRANSLUCENT or HIFI_USE_FORWARD@>
@@ -72,12 +72,12 @@ void main() {
                 DEFAULT_OCCLUSION,
                 fragPosition,
                 normalize(_normalWS),
-                _color.rgb,
+                color.rgb,
                 DEFAULT_FRESNEL,
                 DEFAULT_METALLIC,
                 DEFAULT_EMISSIVE,
-                DEFAULT_ROUGHNESS, alpha),
-                alpha);
+                DEFAULT_ROUGHNESS, color.a),
+                color.a);
         <@else@>
             _fragColor0 = vec4(evalSkyboxGlobalColor(
                 cam._viewInverse,
@@ -85,17 +85,17 @@ void main() {
                 DEFAULT_OCCLUSION,
                 fragPosition,
                 normalize(_normalWS),
-                _color.rgb,
+                color.rgb,
                 DEFAULT_FRESNEL,
                 DEFAULT_METALLIC,
                 DEFAULT_ROUGHNESS),
-                alpha);
+                color.a);
         <@endif@>
     <@else@>
         packDeferredFragment(
             normalize(_normalWS),
-            alpha,
-            _color.rgb,
+            color.a,
+            color.rgb,
             DEFAULT_ROUGHNESS,
             DEFAULT_METALLIC,
             DEFAULT_EMISSIVE,

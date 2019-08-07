@@ -184,7 +184,7 @@ Flickable {
                 wrapMode: Text.Wrap
                 
                 Component.onCompleted: {
-                    var gpu = JSON.parse(PlatformInfo.getGPU(0));
+                    var gpu = JSON.parse(PlatformInfo.getGPU(PlatformInfo.getMasterGPU()));
                     var gpuModel = gpu.model;
                     if (gpuModel.length === 0) {
                         gpuModel = "Unknown";
@@ -313,7 +313,7 @@ Flickable {
         textToCopy += "# CPU Cores: " + PlatformInfo.getNumLogicalCores() + "\n";
         textToCopy += "RAM: " + PlatformInfo.getTotalSystemMemoryMB() + " MB\n";
         
-        var gpu = JSON.parse(PlatformInfo.getGPU(0));
+        var gpu = JSON.parse(PlatformInfo.getGPU(PlatformInfo.getMasterGPU()));
         var gpuModel = gpu.model;
         if (gpuModel.length === 0) {
             gpuModel = "Unknown";

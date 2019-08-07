@@ -44,6 +44,7 @@ public:
     void virtual enumerateNics();
     void virtual enumerateMemory() = 0;
     void virtual enumerateComputer()=0;
+    virtual void enumerateGraphicsApis();
     
     virtual ~Instance();
 
@@ -57,6 +58,7 @@ protected:
     std::vector<json>  _gpus;
     std::vector<json>  _displays;
     std::vector<json>  _nics;
+    json  _graphicsApis;
     json  _memory;
     json  _computer;
 

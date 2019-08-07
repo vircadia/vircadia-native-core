@@ -352,6 +352,7 @@ void ScriptEngines::saveScripts() {
     // the scripts that the user expects to be there when launched without the
     // --scripts override.
     if (_defaultScriptsLocationOverridden) {
+        runningScriptsHandle.set(QVariantList{ DEFAULT_SCRIPTS_LOCATION });
         return;
     }
 
@@ -401,13 +402,14 @@ void ScriptEngines::stopAllScripts(bool restart) {
             continue;
         }
 
+        bool isOverrideScript = it.key().toString().compare(this->_defaultScriptsOverride.toString());
         // queue user scripts if restarting
-        if (restart && scriptEngine->isUserLoaded()) {
+        if (restart && (scriptEngine->isUserLoaded() || isOverrideScript)) {
             _isReloading = true;
             ScriptEngine::Type type = scriptEngine->getType();
 
-            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type] (QString scriptName) {
-                reloadScript(scriptName, true)->setType(type);
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, isOverrideScript] (QString scriptName) {
+                reloadScript(scriptName, !isOverrideScript)->setType(type);
             });
         }
 

@@ -609,8 +609,10 @@ public:
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
      * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.overrideAnimation
-     * @param {string} url - The URL to the animation file. Animation files need to be FBX format, but only need to contain the 
-     * avatar skeleton and animation data.
+     * @param {string} url - The URL to the animation file. Animation files may be in glTF or FBX format, but only need to 
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     *     respectively).
+     *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
      * @param {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
      * @param {number} firstFrame - The frame to start the animation at.
@@ -630,8 +632,10 @@ public:
      * Use {@link MyAvatar.restoreHandAnimation} to restore the default poses.
      * @function MyAvatar.overrideHandAnimation
      * @param isLeft {boolean} <code>true</code> to override the left hand, <code>false</code> to override the right hand.
-     * @param {string} url - The URL of the animation file. Animation files need to be FBX format, but only need to contain the
-     * avatar skeleton and animation data.
+     * @param {string} url - The URL of the animation file. Animation files need to be in glTF or FBX format, but only need to 
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     *     respectively).
+     *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
      * @param {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
      * @param {number} firstFrame - The frame to start the animation at.
@@ -702,19 +706,22 @@ public:
      * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily 
      * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or 
      * <code>"walkFwd"</code>. To get the full list of roles, use {@ link MyAvatar.getAnimationRoles}.
-     * For each role, the avatar-animation.json defines when the animation is used, the animation clip (FBX) used, and how 
-     * animations are blended together with procedural data (such as look at vectors, hand sensors etc.).
-     * <code>overrideRoleAnimation()</code> is used to change the animation clip (FBX) associated with a specified animation 
-     * role. To end the role animation and restore the default, use {@link MyAvatar.restoreRoleAnimation}.</p>
-     * <p>Note: Hand roles only affect the hand. Other 'main' roles, like 'idleStand', 'idleTalk', 'takeoffStand' are full body.</p>
+     * For each role, the avatar-animation.json defines when the animation is used, the animation clip (glTF or FBX) used, and 
+     * how animations are blended together with procedural data (such as look at vectors, hand sensors etc.).
+     * <code>overrideRoleAnimation()</code> is used to change the animation clip (glTF or FBX) associated with a specified 
+     * animation role. To end the role animation and restore the default, use {@link MyAvatar.restoreRoleAnimation}.</p>
+     * <p>Note: Hand roles only affect the hand. Other "main" roles, like "idleStand", "idleTalk", and "takeoffStand", are full 
+     * body.</p>
      * <p>Note: When using pre-built animation data, it's critical that the joint orientation of the source animation and target
      * rig are equivalent, since the animation data applies absolute values onto the joints. If the orientations are different,
      * the avatar will move in unpredictable ways. For more information about avatar joint orientation standards, see 
      * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
      * @function MyAvatar.overrideRoleAnimation
      * @param {string} role - The animation role to override
-     * @param {string} url - The URL to the animation file. Animation files need to be in FBX format, but only need to contain 
-     *     the avatar skeleton and animation data.
+     * @param {string} url - The URL to the animation file. Animation files need to be in glTF or FBX format, but only need to 
+     *     contain the avatar skeleton and animation data. glTF models may be in JSON or binary format (".gltf" or ".glb" URLs 
+     *     respectively).
+     *     <p><strong>Warning:</strong> glTF animations currently do not always animate correctly.</p>
      * @param {number} fps - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
      * @param {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
      * @param {number} firstFrame - The frame the animation should start at.
@@ -739,9 +746,9 @@ public:
      * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily 
      * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or 
      * <code>"walkFwd"</code>. To get the full list of roles, use {@link MyAvatar.getAnimationRoles}. For each role,
-     * the avatar-animation.json defines when the animation is used, the animation clip (FBX) used, and how animations are 
-     * blended together with procedural data (such as look-at vectors, hand sensors etc.). You can change the animation clip 
-     * (FBX) associated with a specified animation role using {@link MyAvatar.overrideRoleAnimation}.
+     * the avatar-animation.json defines when the animation is used, the animation clip (glTF or FBX) used, and how animations 
+     * are blended together with procedural data (such as look-at vectors, hand sensors etc.). You can change the animation 
+     * clip (glTF or FBX) associated with a specified animation role using {@link MyAvatar.overrideRoleAnimation}.
      * <code>restoreRoleAnimation()</code> is used to restore a specified animation role's default animation clip. If you have 
      * not specified an override animation for the specified role, this function has no effect.
      * @function MyAvatar.restoreRoleAnimation
@@ -2042,17 +2049,19 @@ public slots:
     void setEnableDebugDrawDefaultPose(bool isEnabled);
 
     /**jsdoc
-     * Displays animation debug graphics.  By default it shows the animation poses used for rendering.
-     * However, the property MyAvatar.setDebugDrawAnimPoseName can be used to draw a specific animation node.
+     * Displays animation debug graphics. By default, the animation poses used for rendering are displayed. However, 
+     * {@link MyAvatar.setDebugDrawAnimPoseName} can be used to set a specific animation node to display.
      * @function MyAvatar.setEnableDebugDrawAnimPose
      * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
      */
     void setEnableDebugDrawAnimPose(bool isEnabled);
 
     /**jsdoc
-     * If set it determines which animation debug graphics to draw, when MyAvatar.setEnableDebugDrawAnimPose is set to true.
+     * Sets the animation node to display when animation debug graphics are enabled with 
+     * {@link MyAvatar.setEnableDebugDrawAnimPose}.
      * @function MyAvatar.setDebugDrawAnimPoseName
-     * @param {boolean} enabled - <code>true</code> to show the debug graphics, <code>false</code> to hide.
+     * @param {string} poseName - The name of the animation node to display debug graphics for. Use <code>""</code> to reset to 
+     *     default.
      */
     void setDebugDrawAnimPoseName(QString poseName);
 
@@ -2213,13 +2222,23 @@ public slots:
     virtual void setModelScale(float scale) override;
 
     /**jsdoc
-     * MyAvatar.getReactions
+     * MyAvatar.getTriggerReactions
+     * Returns a list of reactions names that can be triggered using MyAvatar.triggerReaction().
      * @returns {string[]} Array of reaction names.
      */
-    QStringList getReactions() const;
+    QStringList getTriggerReactions() const;
+
+
+    /**jsdoc
+     * MyAvatar.getBeginReactions
+     * Returns a list of reactions names that can be enabled using MyAvatar.beginReaction() and MyAvatar.endReaction().
+     * @returns {string[]} Array of reaction names.
+     */
+    QStringList getBeginEndReactions() const;
 
     /**jsdoc
      * MyAvatar.triggerReaction
+     * Plays the given reaction on the avatar, once the reaction is complete it will automatically complete.  Only reaction names returned from MyAvatar.getTriggerReactions() are available.
      * @param {string} reactionName - reaction name
      * @returns {bool} false if the given reaction is not supported.
      */
@@ -2227,6 +2246,9 @@ public slots:
 
     /**jsdoc
      * MyAvatar.beginReaction
+     * Plays the given reaction on the avatar.  The avatar will continue to play the reaction until stopped via the MyAvatar.endReaction() call or superseeded by another reaction.
+     * Only reaction names returned from MyAvatar.getBeginEndReactions() are available.
+     * NOTE: the caller is responsible for calling the corresponding MyAvatar.endReaction(), otherwise the avatar might become stuck in the reaction forever.
      * @param {string} reactionName - reaction name
      * @returns {bool} false if the given reaction is not supported.
      */
@@ -2234,6 +2256,7 @@ public slots:
 
     /**jsdoc
      * MyAvatar.endReaction
+     * Used to stop a given reaction that was started via MyAvatar.beginReaction().
      * @param {string} reactionName - reaction name
      * @returns {bool} false if the given reaction is not supported.
      */
@@ -2872,8 +2895,9 @@ private:
     QScriptEngine* _scriptEngine { nullptr };
     bool _needToSaveAvatarEntitySettings { false };
 
-    int _reactionEnabledRefCounts[NUM_AVATAR_REACTIONS] { 0, 0, 0, 0, 0 };
-    bool _reactionTriggers[NUM_AVATAR_REACTIONS] { false, false, false, false, false };
+    bool _reactionTriggers[NUM_AVATAR_TRIGGER_REACTIONS] { false, false };
+    int _reactionEnabledRefCounts[NUM_AVATAR_BEGIN_END_REACTIONS] { 0, 0, 0 };
+
     mutable std::mutex _reactionLock;
 };
 

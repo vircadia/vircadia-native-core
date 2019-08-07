@@ -211,3 +211,86 @@ bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose
         return true;
     }
 }
+
+// See https://easings.net/en# for a graphical visualiztion of easing types.
+float easingFunc(float alpha, EasingType type) {
+    switch (type) {
+    case EasingType_Linear:
+        return alpha;
+    case EasingType_EaseInSine:
+        return sinf((alpha - 1.0f) * PI_OVER_TWO) + 1.0f;
+    case EasingType_EaseOutSine:
+        return sinf(alpha * PI_OVER_TWO);
+    case EasingType_EaseInOutSine:
+        return 0.5f * (1.0f - cosf(alpha * PI));
+    case EasingType_EaseInQuad:
+        return alpha * alpha;
+    case EasingType_EaseOutQuad:
+        return -(alpha * (alpha - 2.0f));
+    case EasingType_EaseInOutQuad:
+        return (alpha < 0.5f) ? (2.0f * alpha * alpha) : ((-2.0f * alpha * alpha) + (4.0f * alpha) - 1.0f);
+    case EasingType_EaseInCubic:
+        return alpha * alpha * alpha;
+    case EasingType_EaseOutCubic: {
+            float temp = alpha - 1.0f;
+            return temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInOutCubic:
+        if (alpha < 0.5f) {
+            return 4.0f * alpha * alpha * alpha;
+        } else {
+            float temp = ((2.0f * alpha) - 2.0f);
+            return 0.5f * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInQuart:
+        return alpha * alpha * alpha * alpha;
+    case EasingType_EaseOutQuart: {
+            float temp = alpha - 1.0f;
+            return temp * temp * temp * (1.0f - alpha) + 1.0f;
+        }
+    case EasingType_EaseInOutQuart:
+        if (alpha < 0.5f) {
+            return 8.0f * alpha * alpha * alpha * alpha;
+        } else {
+            float temp = alpha - 1.0f;
+            return -8.0f * temp * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInQuint:
+        return alpha * alpha * alpha * alpha * alpha;
+    case EasingType_EaseOutQuint: {
+            float temp = (alpha - 1.0f);
+            return temp * temp * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInOutQuint:
+        if (alpha < 0.5f) {
+            return 16.0f * alpha * alpha * alpha * alpha * alpha;
+        } else {
+            float temp = ((2.0f * alpha) - 2.0f);
+            return 0.5f * temp * temp * temp * temp * temp + 1.0f;
+        }
+    case EasingType_EaseInExpo:
+        return (alpha == 0.0f) ? alpha : powf(2.0f, 10.0f * (alpha - 1.0f));
+    case EasingType_EaseOutExpo:
+        return (alpha == 1.0f) ? alpha : 1.0f - powf(2.0f, -10.0f * alpha);
+    case EasingType_EaseInOutExpo:
+        if (alpha == 0.0f || alpha == 1.0f)
+            return alpha;
+        else if (alpha < 0.5f) {
+            return 0.5f * powf(2.0f, (20.0f * alpha) - 10.0f);
+        } else {
+            return -0.5f * powf(2.0f, (-20.0f * alpha) + 10.0f) + 1.0f;
+        }
+    case EasingType_EaseInCirc:
+        return 1.0f - sqrtf(1.0f - (alpha * alpha));
+    case EasingType_EaseOutCirc:
+        return sqrtf((2.0f - alpha) * alpha);
+    case EasingType_EaseInOutCirc:
+        if (alpha < 0.5f) {
+            return 0.5f * (1.0f - sqrtf(1.0f - 4.0f * (alpha * alpha)));
+        } else {
+            return 0.5f * (sqrtf(-((2.0f * alpha) - 3.0f) * ((2.0f * alpha) - 1.0f)) + 1.0f);
+        }
+    default:
+        return alpha;
+    }
+}

@@ -194,8 +194,8 @@ private:
     void onAvatarEnteredIgnoreRadius();
     void onAvatarLeftIgnoreRadius();
     float _trailingAudioLoudness{ 0 };
-    bool _showAudioTools { false };
-    bool _showBubbleTools{ false };
+    bool _showAudioTools { true };
+    bool _showBubbleTools{ true };
 };
 
 #endif // hifi_AvatarInputs_h

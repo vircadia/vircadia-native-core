@@ -83,6 +83,20 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class NewFramebuffer {
+public:
+    using Output = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelO<NewFramebuffer, Output>;
+
+    NewFramebuffer(gpu::Element pixelFormat = gpu::Element::COLOR_SRGBA_32);
+
+    void run(const render::RenderContextPointer& renderContext, Output& output);
+protected:
+    gpu::Element _pixelFormat;
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
+};
+
 class NewOrDefaultFramebuffer {
 public:
     using Input = glm::uvec2;

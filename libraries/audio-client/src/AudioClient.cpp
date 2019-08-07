@@ -24,7 +24,7 @@
 #endif
 
 #ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
 #include <windows.h>
 #include <Mmsystem.h>
 #include <mmdeviceapi.h>
@@ -286,6 +286,7 @@ AudioClient::AudioClient() :
     _shouldEchoLocally(false),
     _shouldEchoToServer(false),
     _isNoiseGateEnabled(true),
+    _isAECEnabled(true),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
     _inputToNetworkResampler(NULL),
@@ -302,6 +303,7 @@ AudioClient::AudioClient() :
     _isHeadsetPluggedIn(false),
 #endif
     _orientationGetter(DEFAULT_ORIENTATION_GETTER) {
+
     // avoid putting a lock in the device callback
     assert(_localSamplesAvailable.is_lock_free());
 
@@ -352,6 +354,10 @@ AudioClient::AudioClient() :
     _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_MSECS);
 
     configureReverb();
+
+#if defined(WEBRTC_ENABLED)
+    configureWebrtc();
+#endif
 
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
@@ -591,10 +597,16 @@ bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QStr
 
 
 // attempt to use the native sample rate and channel count
-bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
-                                QAudioFormat& audioFormat) {
+bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice, QAudioFormat& audioFormat) {
 
     audioFormat = audioDevice.preferredFormat();
+
+    // converting to/from this rate must produce an integral number of samples
+    if ((audioFormat.sampleRate() <= 0) ||
+        (audioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0)) {
+        qCWarning(audioclient) << "The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
+        return false;
+    }
 
     audioFormat.setCodec("audio/pcm");
     audioFormat.setSampleSize(16);
@@ -603,12 +615,17 @@ bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
 
     if (!audioDevice.isFormatSupported(audioFormat)) {
         qCWarning(audioclient) << "The native format is" << audioFormat << "but isFormatSupported() failed.";
-        return false;
-    }
-    // converting to/from this rate must produce an integral number of samples
-    if (audioFormat.sampleRate() * AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL % AudioConstants::SAMPLE_RATE != 0) {
-        qCWarning(audioclient) << "The native sample rate [" << audioFormat.sampleRate() << "] is not supported.";
-        return false;
+
+        // attempt the native sample rate, with channels forced to 2
+        audioFormat.setChannelCount(2);
+        if (!audioDevice.isFormatSupported(audioFormat)) {
+
+            // attempt the native sample rate, with channels forced to 1
+            audioFormat.setChannelCount(1);
+            if (!audioDevice.isFormatSupported(audioFormat)) {
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -1084,6 +1101,131 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
+#if defined(WEBRTC_ENABLED)
+
+static void deinterleaveToFloat(const int16_t* src, float* const* dst, int numFrames, int numChannels) {
+    for (int i = 0; i < numFrames; i++) {
+        for (int ch = 0; ch < numChannels; ch++) {
+            float f = *src++;
+            f *= (1/32768.0f);  // scale
+            dst[ch][i] = f;     // deinterleave
+        }
+    }
+}
+
+static void interleaveToInt16(const float* const* src, int16_t* dst, int numFrames, int numChannels) {
+    for (int i = 0; i < numFrames; i++) {
+        for (int ch = 0; ch < numChannels; ch++) {
+            float f = src[ch][i];
+            f *= 32768.0f;                                  // scale
+            f += (f < 0.0f) ? -0.5f : 0.5f;                 // round
+            f = std::max(std::min(f, 32767.0f), -32768.0f); // saturate
+            *dst++ = (int16_t)f;                            // interleave
+        }
+    }
+}
+
+void AudioClient::configureWebrtc() {
+    _apm = webrtc::AudioProcessingBuilder().Create();
+
+    webrtc::AudioProcessing::Config config;
+
+    config.pre_amplifier.enabled = false;
+    config.high_pass_filter.enabled = false;
+    config.echo_canceller.enabled = true;
+    config.echo_canceller.mobile_mode = false;
+    config.echo_canceller.use_legacy_aec = false;
+    config.noise_suppression.enabled = false;
+    config.noise_suppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kModerate;
+    config.voice_detection.enabled = false;
+    config.gain_controller1.enabled = false;
+    config.gain_controller2.enabled = false;
+    config.gain_controller2.fixed_digital.gain_db = 0.0f;
+    config.gain_controller2.adaptive_digital.enabled = false;
+    config.residual_echo_detector.enabled = true;
+    config.level_estimation.enabled = false;
+
+    _apm->ApplyConfig(config);
+}
+
+// rebuffer into 10ms chunks
+void AudioClient::processWebrtcFarEnd(const int16_t* samples, int numFrames, int numChannels, int sampleRate) {
+
+    const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
+    const int numChunk = (int)streamConfig.num_frames();
+
+    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "output sample rate.";
+        return;
+    }
+    if (numChannels > WEBRTC_CHANNELS_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "output channels.";
+        return;
+    }
+
+    while (numFrames > 0) {
+
+        // number of frames to fill
+        int numFill = std::min(numFrames, numChunk - _numFifoFarEnd);
+
+        // refill fifo
+        memcpy(&_fifoFarEnd[_numFifoFarEnd], samples, numFill * numChannels * sizeof(int16_t));
+        samples += numFill * numChannels;
+        numFrames -= numFill;
+        _numFifoFarEnd += numFill;
+
+        if (_numFifoFarEnd == numChunk) {
+
+            // convert audio format
+            float buffer[WEBRTC_CHANNELS_MAX][WEBRTC_FRAMES_MAX];
+            float* const buffers[WEBRTC_CHANNELS_MAX] = { buffer[0], buffer[1] };
+            deinterleaveToFloat(_fifoFarEnd, buffers, numChunk, numChannels);
+
+            // process one chunk
+            int error = _apm->ProcessReverseStream(buffers, streamConfig, streamConfig, buffers);
+            if (error != _apm->kNoError) {
+                qCWarning(audioclient) << "WebRTC ProcessReverseStream() returned ERROR:" << error;
+            }
+            _numFifoFarEnd = 0;
+        }
+    }
+}
+
+void AudioClient::processWebrtcNearEnd(int16_t* samples, int numFrames, int numChannels, int sampleRate) {
+
+    const webrtc::StreamConfig streamConfig = webrtc::StreamConfig(sampleRate, numChannels);
+    const int numChunk = (int)streamConfig.num_frames();
+
+    if (sampleRate > WEBRTC_SAMPLE_RATE_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << sampleRate << "input sample rate.";
+        return;
+    }
+    if (numChannels > WEBRTC_CHANNELS_MAX) {
+        qCWarning(audioclient) << "WebRTC does not support" << numChannels << "input channels.";
+        return;
+    }
+    if (numFrames != numChunk) {
+        qCWarning(audioclient) << "WebRTC requires exactly 10ms of input.";
+        return;
+    }
+
+    // convert audio format
+    float buffer[WEBRTC_CHANNELS_MAX][WEBRTC_FRAMES_MAX];
+    float* const buffers[WEBRTC_CHANNELS_MAX] = { buffer[0], buffer[1] };
+    deinterleaveToFloat(samples, buffers, numFrames, numChannels);
+
+    // process one chunk
+    int error = _apm->ProcessStream(buffers, streamConfig, streamConfig, buffers);
+    if (error != _apm->kNoError) {
+        qCWarning(audioclient) << "WebRTC ProcessStream() returned ERROR:" << error;
+    } else {
+        // modify samples in-place
+        interleaveToInt16(buffers, samples, numFrames, numChannels);
+    }
+}
+
+#endif // WEBRTC_ENABLED
+
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
@@ -1261,6 +1403,13 @@ void AudioClient::handleMicAudioInput() {
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
 
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+
+#if defined(WEBRTC_ENABLED)
+        if (_isAECEnabled) {
+            processWebrtcNearEnd(inputAudioSamples.get(), inputSamplesRequired / _inputFormat.channelCount(),
+                                 _inputFormat.channelCount(), _inputFormat.sampleRate());
+        }
+#endif
 
         // detect loudness and clipping on the raw input
         bool isClipping = false;
@@ -1570,6 +1719,15 @@ void AudioClient::setWarnWhenMuted(bool enable, bool emitSignal) {
         _warnWhenMuted = enable;
         if (emitSignal) {
             emit warnWhenMutedChanged(_warnWhenMuted);
+        }
+    }
+}
+
+void AudioClient::setAcousticEchoCancellation(bool enable, bool emitSignal) {
+    if (_isAECEnabled != enable) {
+        _isAECEnabled = enable;
+        if (emitSignal) {
+            emit acousticEchoCancellationChanged(_isAECEnabled);
         }
     }
 }
@@ -2107,15 +2265,16 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
         return maxSize;
     }
 
-    // samples requested from OUTPUT_CHANNEL_COUNT
+    // max samples requested from OUTPUT_CHANNEL_COUNT
     int deviceChannelCount = _audio->_outputFormat.channelCount();
-    int samplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
+    int maxSamplesRequested = (int)(maxSize / AudioConstants::SAMPLE_SIZE) * OUTPUT_CHANNEL_COUNT / deviceChannelCount;
     // restrict samplesRequested to the size of our mix/scratch buffers
-    samplesRequested = std::min(samplesRequested, _audio->_outputPeriod);
+    maxSamplesRequested = std::min(maxSamplesRequested, _audio->_outputPeriod);
 
     int16_t* scratchBuffer = _audio->_outputScratchBuffer;
     float* mixBuffer = _audio->_outputMixBuffer;
 
+    int samplesRequested = maxSamplesRequested;
     int networkSamplesPopped;
     if ((networkSamplesPopped = _receivedAudioStream.popSamples(samplesRequested, false)) > 0) {
         qCDebug(audiostream, "Read %d samples from buffer (%d available, %d requested)", networkSamplesPopped, _receivedAudioStream.getSamplesAvailable(), samplesRequested);
@@ -2160,45 +2319,45 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     });
 
     int samplesPopped = std::max(networkSamplesPopped, injectorSamplesPopped);
-    int framesPopped = samplesPopped / AudioConstants::STEREO;
-    int bytesWritten;
-    if (samplesPopped > 0) {
-
-        // apply output gain
-        float newGain = _audio->_outputGain.load(std::memory_order_acquire);
-        float oldGain = _audio->_lastOutputGain;
-        _audio->_lastOutputGain = newGain;
-
-        applyGainSmoothing<OUTPUT_CHANNEL_COUNT>(mixBuffer, framesPopped, oldGain, newGain);
-
-        if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
-            // limit the audio
-            _audio->_audioLimiter.render(mixBuffer, (int16_t*)data, framesPopped);
-        } else {
-            _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
-
-            // upmix or downmix to deviceChannelCount
-            if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
-                int extraChannels = deviceChannelCount - OUTPUT_CHANNEL_COUNT;
-                channelUpmix(scratchBuffer, (int16_t*)data, samplesPopped, extraChannels);
-            } else {
-                channelDownmix(scratchBuffer, (int16_t*)data, samplesPopped);
-            }
-        }
-
-        bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
-        assert(bytesWritten <= maxSize);
-
-    } else {
-        // nothing on network, don't grab anything from injectors, and just return 0s
-        memset(data, 0, maxSize);
-        bytesWritten = maxSize;
+    if (samplesPopped == 0) {
+        // nothing on network, don't grab anything from injectors, and fill with silence
+        samplesPopped = maxSamplesRequested;
+        memset(mixBuffer, 0, samplesPopped * sizeof(float));
     }
+    int framesPopped = samplesPopped / OUTPUT_CHANNEL_COUNT;
+
+    // apply output gain
+    float newGain = _audio->_outputGain.load(std::memory_order_acquire);
+    float oldGain = _audio->_lastOutputGain;
+    _audio->_lastOutputGain = newGain;
+
+    applyGainSmoothing<OUTPUT_CHANNEL_COUNT>(mixBuffer, framesPopped, oldGain, newGain);
+
+    // limit the audio
+    _audio->_audioLimiter.render(mixBuffer, scratchBuffer, framesPopped);
+
+#if defined(WEBRTC_ENABLED)
+    if (_audio->_isAECEnabled) {
+        _audio->processWebrtcFarEnd(scratchBuffer, framesPopped, OUTPUT_CHANNEL_COUNT, _audio->_outputFormat.sampleRate());
+    }
+#endif
+
+    // if required, upmix or downmix to deviceChannelCount
+    if (deviceChannelCount == OUTPUT_CHANNEL_COUNT) {
+        memcpy(data, scratchBuffer, samplesPopped * AudioConstants::SAMPLE_SIZE);
+    } else if (deviceChannelCount > OUTPUT_CHANNEL_COUNT) {
+        int extraChannels = deviceChannelCount - OUTPUT_CHANNEL_COUNT;
+        channelUpmix(scratchBuffer, (int16_t*)data, samplesPopped, extraChannels);
+    } else {
+        channelDownmix(scratchBuffer, (int16_t*)data, samplesPopped);
+    }
+    int bytesWritten = framesPopped * AudioConstants::SAMPLE_SIZE * deviceChannelCount;
+    assert(bytesWritten <= maxSize);
 
     // send output buffer for recording
     if (_audio->_isRecording) {
         Lock lock(_recordMutex);
-        _audio->_audioFileWav.addRawAudioChunk(reinterpret_cast<char*>(scratchBuffer), bytesWritten);
+        _audio->_audioFileWav.addRawAudioChunk(data, bytesWritten);
     }
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();

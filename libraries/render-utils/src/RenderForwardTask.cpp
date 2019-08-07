@@ -19,7 +19,6 @@
 #include <gpu/Texture.h>
 #include <graphics/ShaderConstants.h>
 #include <render/ShapePipeline.h>
-#include <render/ResampleTask.h>
 
 #include <render/FilterTask.h>
 
@@ -28,7 +27,7 @@
 #include "StencilMaskPass.h"
 #include "ZoneRenderer.h"
 #include "FadeEffect.h"
-#include "ToneMappingEffect.h"
+#include "ToneMapAndResampleTask.h"
 #include "BackgroundStage.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
@@ -51,7 +50,7 @@ extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
-    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
+    auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBufferForward");
     assert(preparePrimaryBufferConfig);
     preparePrimaryBufferConfig->setResolutionScale(config.resolutionScale);
 }
@@ -99,7 +98,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
 
     // GPU jobs: Start preparing the main framebuffer
-    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebufferMSAA>("PreparePrimaryBuffer");
+    const auto scaledPrimaryFramebuffer = task.addJob<PreparePrimaryFramebufferMSAA>("PreparePrimaryBufferForward");
 
     // Prepare deferred, generate the shared Deferred Frame Transform. Only valid with the scaled frame buffer
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
@@ -141,34 +140,17 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
-#if defined(Q_OS_ANDROID)
+    const auto newResolvedFramebuffer = task.addJob<NewFramebuffer>("MakeResolvingFramebuffer", gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10));
 
-    // Just resolve the msaa
-    const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
-
-    const auto toneMappedBuffer = resolvedFramebuffer;
-#else
-    const auto newResolvedFramebuffer = task.addJob<NewOrDefaultFramebuffer>("MakeResolvingFramebuffer");
-
-
-    // Just resolve the msaa
     const auto resolveInputs = ResolveFramebuffer::Inputs(scaledPrimaryFramebuffer, newResolvedFramebuffer).asVarying();
     const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
 
-    // Lighting Buffer ready for tone mapping
-    // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
-    // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Input(resolvedFramebuffer, resolvedFramebuffer).asVarying();
-    const auto toneMappedBuffer = task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    const auto destFramebuffer = static_cast<gpu::FramebufferPointer>(nullptr);
 
-#endif
-
-    // Upscale to finale resolution
-    const auto primaryFramebuffer = task.addJob<render::UpsampleToBlitFramebuffer>("PrimaryBufferUpscale", toneMappedBuffer);
-
+    const auto toneMappingInputs = ToneMapAndResample::Input(resolvedFramebuffer, destFramebuffer).asVarying();
+    const auto toneMappedBuffer = task.addJob<ToneMapAndResample>("ToneMapping", toneMappingInputs);
     // HUD Layer
-    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(primaryFramebuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
+    const auto renderHUDLayerInputs = RenderHUDLayerTask::Input(toneMappedBuffer, lightingModel, hudOpaque, hudTransparent, hazeFrame).asVarying();
     task.addJob<RenderHUDLayerTask>("RenderHUDLayer", renderHUDLayerInputs);
 }
 
@@ -176,8 +158,8 @@ gpu::FramebufferPointer PreparePrimaryFramebufferMSAA::createFramebuffer(const c
     gpu::FramebufferPointer framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create(name));
 
     auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-  
-    auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+
+    auto colorFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::R11G11B10);
     auto colorTexture =
         gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
     framebuffer->setRenderBuffer(0, colorTexture);

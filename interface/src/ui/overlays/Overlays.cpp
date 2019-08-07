@@ -1740,7 +1740,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     parented to if <code>parentID</code> is set. Use 65535 or -1 to parent to the parent's position and orientation rather
  *     than a joint.
  *
- * @property {string} url - The URL of the FBX or OBJ model used for the overlay.
+ * @property {string} url - The URL of the glTF, FBX, or OBJ model used for the overlay. glTF models may be in JSON or binary 
+ *     format (".gltf" or ".glb" URLs respectively). Baked models' URLs have ".baked" before the file type. Model files may 
+ *     also be compressed in GZ format, in which case the URL ends in ".gz".
  * @property {number} loadPriority=0.0 - The priority for loading and displaying the overlay. Overlays with higher values load
  *     first. <em>Currently not used.</em>
  * @property {Object.<string, string>|string} textures - Texture name, URL pairs used when rendering the model in place of the 
