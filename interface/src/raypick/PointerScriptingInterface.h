@@ -161,13 +161,13 @@ public:
     Q_INVOKABLE void removePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
 
     /**jsdoc
-    * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick,
-    * if the pick was created through a script.
-    * Note that these properties do not reflect the current state of the pick.
-    * See {@link Picks.getPickProperties}.
-    * @function Picks.getPickScriptParameters
-    * @param {number} id - The ID of the pick.
-    * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} User-provided properties, per the pick <code>type</code>.
+    * Gets the parameters that were passed in to {@link Pointers.createPointer} to create the pointer,
+    * if the pointer was created through a script.
+    * Note that these properties do not reflect the current state of the pointer.
+    * See {@link Pointers.getPointerProperties}.
+    * @function Pointers.getPointerScriptParameters
+    * @param {number} id - The ID of the pointer.
+    * @returns {Pointers.RayPointerProperties|Picks.ParabolaPointerProperties|Picks.StylusPointerProperties} User-provided properties, per the pointer <code>type</code>.
     */
     Q_INVOKABLE QVariantMap getPointerScriptParameters(unsigned int uid) const;
 
