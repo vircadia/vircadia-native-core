@@ -99,7 +99,7 @@ PickFilter getPickFilter(unsigned int filter) {
  * @property {Vec3} [dirOffset] - Synonym for <code>direction</code>.
  * @property {Quat} [orientation] - Alternative property for specifying <code>direction</code>. The value is applied to the 
  *     default <code>direction</code> value.
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties}. A ray pick's type is {@link PickType.Ray}.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A ray pick's type is {@link PickType.Ray}.
  * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale (usually an avatar or an entity).
  *     Its value is the original scale of the parent at the moment the pick was created, and is used to scale the pointer which owns this pick, if any.
  */
@@ -170,7 +170,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildRayPick(const QVariantMa
  *     means no maximum.
  * @property {Vec3} [tipOffset=0,0.095,0] - The position of the stylus tip relative to the hand position at default avatar 
  *     scale.
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties}. A stylus pick's type is {@link PickType.Stylus}.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A stylus pick's type is {@link PickType.Stylus}.
  */
 std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVariantMap& propMap) {
     bilateral::Side side = bilateral::Side::Invalid;
@@ -245,7 +245,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildStylusPick(const QVarian
  *     with the avatar or other parent.
  * @property {boolean} [scaleWithAvatar=true] - Synonym for <code>scalewithParent</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed.</p>
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties}. A parabola pick's type is {@link PickType.Parabola}.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A parabola pick's type is {@link PickType.Parabola}.
  * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale (usually an avatar or an entity).
  *     Its value is the original scale of the parent at the moment the pick was created, and is used to rescale the pick, and/or the pointer which owns this pick, if any.
  */
@@ -344,7 +344,7 @@ std::shared_ptr<PickQuery> PickScriptingInterface::buildParabolaPick(const QVari
  *     the collision region. The depth is in world coordinates but scales with the parent if defined.
  * @property {CollisionMask} [collisionGroup=8] - The type of objects the collision region collides as. Objects whose collision
  *     masks overlap with the region's collision group are considered to be colliding with the region.
- * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties}. A collision pick's type is {@link PickType.Collision}.
+ * @property {PickType} pickType - The type of pick when getting these properties from {@link Picks.getPickProperties} or {@link Picks.getPickScriptParameters}. A collision pick's type is {@link PickType.Collision}.
  * @property {Vec3} baseScale - Returned from {@link Picks.getPickProperties} when the pick has a parent with varying scale (usually an avatar or an entity).
  *     Its value is the original scale of the parent at the moment the pick was created, and is used to rescale the pick, and/or the pointer which owns this pick, if any.
  */
