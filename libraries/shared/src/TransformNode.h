@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 8/14/2018
+//  Created by Sabrina Shanman 2018/08/14
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -8,6 +8,8 @@
 #ifndef hifi_TransformNode_h
 #define hifi_TransformNode_h
 
+#include <QVariant>
+
 #include "Transform.h"
 
 class TransformNode {
@@ -15,6 +17,7 @@ public:
     virtual ~TransformNode() = default;
 
     virtual Transform getTransform() = 0;
+    virtual QVariantMap toVariantMap() const = 0;
 };
 
 #endif // hifi_TransformNode_h

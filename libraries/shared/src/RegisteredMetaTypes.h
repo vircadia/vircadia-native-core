@@ -37,6 +37,8 @@ Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(glm::mat4)
 Q_DECLARE_METATYPE(QVector<float>)
+Q_DECLARE_METATYPE(unsigned int)
+Q_DECLARE_METATYPE(QVector<unsigned int>)
 Q_DECLARE_METATYPE(AACube)
 Q_DECLARE_METATYPE(std::function<void()>);
 Q_DECLARE_METATYPE(std::function<QVariant()>);

@@ -297,10 +297,6 @@ MeshPointer GraphicsScriptingInterface::getMeshPointer(scriptable::ScriptableMes
 
 namespace {
     QVector<int> metaTypeIds{
-        qRegisterMetaType<glm::uint32>("uint32"),
-        qRegisterMetaType<glm::uint32>("glm::uint32"),
-        qRegisterMetaType<QVector<glm::uint32>>(),
-        qRegisterMetaType<QVector<glm::uint32>>("QVector<uint32>"),
         qRegisterMetaType<scriptable::ScriptableMeshes>(),
         qRegisterMetaType<scriptable::ScriptableMeshes>("ScriptableMeshes"),
         qRegisterMetaType<scriptable::ScriptableMeshes>("scriptable::ScriptableMeshes"),
@@ -532,7 +528,6 @@ namespace scriptable {
 }
 
 void GraphicsScriptingInterface::registerMetaTypes(QScriptEngine* engine) {
-    qScriptRegisterSequenceMetaType<QVector<glm::uint32>>(engine);
     qScriptRegisterSequenceMetaType<QVector<scriptable::ScriptableMaterialLayer>>(engine);
 
     scriptable::registerQPointerMetaType<scriptable::ScriptableModel>(engine);

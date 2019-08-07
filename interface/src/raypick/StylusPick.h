@@ -72,6 +72,7 @@ class StylusPick : public Pick<StylusTip> {
 public:
     StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled, const glm::vec3& tipOffset);
 
+    PickType getType() const override { return PickType::Stylus; }
     StylusTip getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override;
     PickResultPointer getEntityIntersection(const StylusTip& pick) override;

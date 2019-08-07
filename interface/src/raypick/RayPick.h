@@ -88,6 +88,8 @@ public:
         Pick(PickRay(position, direction), filter, maxDistance, enabled) {
     }
 
+    PickType getType() const override { return PickType::Ray; }
+
     PickRay getMathematicalPick() const override;
 
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<RayPickResult>(pickVariant); }
