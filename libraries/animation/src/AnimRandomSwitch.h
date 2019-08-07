@@ -143,7 +143,6 @@ protected:
     void setTransitionVar(const QString& transitionVar) { _transitionVar = transitionVar; }
     void setTriggerTimeMin(float triggerTimeMin) { _triggerTimeMin = triggerTimeMin; }
     void setTriggerTimeMax(float triggerTimeMax) { _triggerTimeMax = triggerTimeMax; }
-    void addToPrioritySum(float priority) { _totalPriorities += priority; }
 
     void addState(RandomSwitchState::Pointer randomState);
 
@@ -164,7 +163,6 @@ protected:
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
     AnimPoseVec _nextPoses;
-    float _totalPriorities { 0.0f };
 
     RandomSwitchState::Pointer _currentState;
     RandomSwitchState::Pointer _previousState;
@@ -179,6 +177,7 @@ protected:
     float _randomSwitchTimeMin { 10.0f };
     float _randomSwitchTimeMax { 20.0f };
     float _randomSwitchTime { 0.0f };
+    QString _lastPlayedState;
 
 private:
     // no copies
