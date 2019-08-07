@@ -30,6 +30,8 @@ source_group("UI Files" FILES ${QT_UI_FILES})
 # have qt5 wrap them and generate the appropriate header files
 qt5_wrap_ui(QT_UI_HEADERS "${QT_UI_FILES}")
 
+setup_memory_debugger()
+
 # add them to the nitpick source files
 set(NITPICK_SRCS ${NITPICK_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
