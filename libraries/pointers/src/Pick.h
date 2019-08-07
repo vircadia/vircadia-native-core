@@ -173,7 +173,7 @@ public:
     virtual QVariantMap toVariantMap() const {
         QVariantMap properties;
 
-        properties["type"] = (int)getType();
+        properties["pickType"] = (int)getType();
         properties["enabled"] = isEnabled();
         properties["filter"] = (unsigned int)getFilter()._flags.to_ulong();
         properties["maxDistance"] = getMaxDistance();

@@ -30,6 +30,10 @@ ParabolaPointer::ParabolaPointer(const QVariant& rayProps, const RenderStateMap&
 {
 }
 
+PickQuery::PickType ParabolaPointer::getType() const {
+    return PickQuery::PickType::Parabola;
+}
+
 PickResultPointer ParabolaPointer::getPickResultCopy(const PickResultPointer& pickResult) const {
     auto parabolaPickResult = std::dynamic_pointer_cast<ParabolaPickResult>(pickResult);
     if (!parabolaPickResult) {

@@ -47,6 +47,7 @@ PickResultPointer Pointer::getPrevPickResult() {
 QVariantMap Pointer::toVariantMap() const {
     QVariantMap qVariantMap = DependencyManager::get<PickManager>()->getPickProperties(_pickUID);
 
+    qVariantMap["pointerType"] = getType();
     qVariantMap["pickID"] = _pickUID;
     qVariantMap["hover"] = _hover;
 

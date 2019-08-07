@@ -60,7 +60,7 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
         return PointerEvent::INVALID_POINTER_ID;
     }
 
-    propertyMap["type"] = (int)type;
+    propertyMap["pointerType"] = (int)type;
 
     pointer->setScriptParameters(propertyMap);
 
@@ -89,6 +89,7 @@ QVariantMap PointerScriptingInterface::getPointerScriptParameters(unsigned int u
  * @property {Pointers.StylusPointerModel} [model] - Override some or all of the default stylus model properties.
  * @property {boolean} [hover=false] - <code>true</code> if the pointer generates {@link Entities} hover events, 
  *     <code>false</code> if it doesn't.
+ * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties}. A stylus pointer's type is {@link PickType.Stylus}.
  * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
  * @see {@link Picks.StylusPickProperties} for additional properties from the underlying stylus pick.
  */
@@ -207,6 +208,7 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildStylus(const QVariant& 
  *     <code>false</code> if it doesn't.
  * @property {Pointers.Trigger[]} [triggers=[]] - A list of ways that a {@link Controller} action or function should trigger 
  *     events on the entity or overlay currently intersected.
+ * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties}. A laser pointer's type is {@link PickType.Ray}.
  * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
  * @see {@link Picks.RayPickProperties} for additional properties from the underlying ray pick.
  */
@@ -399,6 +401,7 @@ std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVar
  *     <code>false</code> if it doesn't.
  * @property {Pointers.Trigger[]} [triggers=[]] - A list of ways that a {@link Controller} action or function should trigger
  *     events on the entity or overlay currently intersected.
+ * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties}. A parabola pointer's type is {@link PickType.Parabola}.
  * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
  * @see {@link Picks.ParabolaPickProperties} for additional properties from the underlying parabola pick.
  */

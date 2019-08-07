@@ -43,6 +43,10 @@ StylusPointer::~StylusPointer() {
     }
 }
 
+PickQuery::PickType StylusPointer::getType() const {
+    return PickQuery::PickType::Stylus;
+}
+
 QUuid StylusPointer::buildStylus(const QVariantMap& properties) {
     // FIXME: we have to keep using the Overlays interface here, because existing scripts use overlay properties to define pointers
     QVariantMap propertiesMap;

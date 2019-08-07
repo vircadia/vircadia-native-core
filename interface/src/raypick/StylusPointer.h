@@ -23,6 +23,8 @@ public:
                   const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions);
     ~StylusPointer();
 
+    PickQuery::PickType getType() const override;
+
     void updateVisuals(const PickResultPointer& pickResult) override;
 
     // Styluses have three render states:

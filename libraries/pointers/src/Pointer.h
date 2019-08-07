@@ -46,6 +46,7 @@ public:
     virtual void enable();
     virtual void disable();
     virtual bool isEnabled();
+    virtual PickQuery::PickType getType() const = 0;
     virtual PickResultPointer getPrevPickResult();
 
     virtual void setRenderState(const std::string& state) = 0;
