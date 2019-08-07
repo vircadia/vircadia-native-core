@@ -352,7 +352,7 @@ Rectangle {
     Item {
         id: hmdButtonContainer
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: settingsButtonContainer.left
+        anchors.right: helpButtonContainer.left
         anchors.rightMargin: 8
         width: 48
         height: width
@@ -412,6 +412,48 @@ Rectangle {
                         return;
                     }
                 }
+            }
+        }
+    }
+
+
+    Item {
+        id: helpButtonContainer
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.right: settingsButtonContainer.left
+        anchors.rightMargin: 3
+        width: 36
+        height: width
+
+        Image {
+            id: helpButtonImage
+            source: "./images/settings.svg"
+            anchors.centerIn: parent
+            width: 22
+            height: 22
+            visible: false
+        }
+
+        ColorOverlay {
+            opacity: helpButtonMouseArea.containsMouse ? 1.0 : 0.7
+            anchors.fill: helpButtonImage
+            source: helpButtonImage
+            color: simplifiedUI.colors.text.white
+        }
+
+        MouseArea {
+            id: helpButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                sendToScript({
+                    "source": "SimplifiedTopBar.qml",
+                    "method": "toggleHelpApp"
+                });
             }
         }
     }

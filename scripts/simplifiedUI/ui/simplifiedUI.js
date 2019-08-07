@@ -187,6 +187,71 @@ function toggleSettingsApp() {
     settingsAppWindow.closed.connect(onSettingsAppClosed);
 }
 
+
+var HELP_APP_MESSAGE_SOURCE = "HelpApp.qml";
+function onMessageFromHelpApp(message) {
+    if (message.source !== HELP_APP_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+            
+        default:
+            console.log("Unrecognized message from " + HELP_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
+
+function onHelpAppClosed() {
+    if (helpAppWindow) {
+        helpAppWindow.fromQml.disconnect(onMessageFromHelpApp);
+        helpAppWindow.closed.disconnect(onHelpAppClosed);
+    }
+    helpAppWindow = false;
+}
+
+
+var HELP_APP_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/helpApp/HelpApp.qml";
+var HELP_APP_WINDOW_TITLE = "Help";
+var HELP_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var HELP_APP_WIDTH_PX = 480;
+var HELP_APP_HEIGHT_PX = 615;
+var HELP_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00001000 | // Qt::WindowTitleHint
+    0x00002000 | // Qt::WindowSystemMenuHint
+    0x08000000 | // Qt::WindowCloseButtonHint
+    0x00008000 | // Qt::WindowMaximizeButtonHint
+    0x00004000; // Qt::WindowMinimizeButtonHint
+var helpAppWindow = false;
+function toggleHelpApp() {
+    if (helpAppWindow) {
+        helpAppWindow.close();
+        // This really shouldn't be necessary.
+        // This signal really should automatically be called by the signal handler set up below.
+        // But fixing that requires an engine change, so this workaround will do.
+        onHelpAppClosed();
+        return;
+    }
+
+    helpAppWindow = Desktop.createWindow(HELP_APP_QML_PATH, {
+        title: HELP_APP_WINDOW_TITLE,
+        presentationMode: HELP_APP_PRESENTATION_MODE,
+        size: {
+            x: HELP_APP_WIDTH_PX,
+            y: HELP_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - HELP_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - HELP_APP_HEIGHT_PX / 2)
+        },
+        overrideFlags: HELP_APP_WINDOW_FLAGS
+    });
+
+    helpAppWindow.fromQml.connect(onMessageFromHelpApp);
+    helpAppWindow.closed.connect(onHelpAppClosed);
+}
+
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
         return;
@@ -372,6 +437,10 @@ function onMessageFromTopBar(message) {
 
         case "toggleSettingsApp":
             toggleSettingsApp();
+            break;
+
+        case "toggleHelpApp":
+            toggleHelpApp();
             break;
 
         case "setOutputMuted":
