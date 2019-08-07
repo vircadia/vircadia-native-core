@@ -656,7 +656,6 @@ BOOL CLauncherDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
 
-
     if (theApp._manager.hasFailed() && _drawStep != DrawStep::DrawError) {
         theApp._manager.saveErrorLog();
         prepareProcess(DrawStep::DrawError);
@@ -756,6 +755,9 @@ void CLauncherDlg::OnTimer(UINT_PTR nIDEvent) {
             }
             _applicationWND = theApp._manager.launchApplication();
         }
+    }
+    if (theApp._manager.needsToSelfInstall()) {
+        theApp._manager.tryToInstallLauncher(TRUE);
     }
 }
 

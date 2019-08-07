@@ -92,7 +92,7 @@ public:
     BOOL deleteShortcuts();
     HWND launchApplication();
     BOOL uninstallApplication();
-    BOOL installLauncher();
+    void tryToInstallLauncher(BOOL retry = FALSE);
     BOOL restartLauncher();
 
     //  getters
@@ -108,6 +108,7 @@ public:
     BOOL needsInstall() const { return _shouldInstall; }
     BOOL needsToWait() const { return _shouldWait; }
     BOOL needsRestartNewLauncher() const { return _shouldRestartNewLauncher; }
+    BOOL needsToSelfInstall() const { return _retryLauncherInstall; }
     BOOL willContinueUpdating() const { return _keepUpdating; }
     ContinueActionOnStart getContinueAction() { return _continueAction; }
     void setDisplayName(const CString& displayName) { _displayName = displayName; }
@@ -164,6 +165,7 @@ private:
     BOOL _shouldRestartNewLauncher { FALSE };
     BOOL _keepLoggingIn { FALSE };
     BOOL _keepUpdating { FALSE };
+    BOOL _retryLauncherInstall { FALSE };
     ContinueActionOnStart _continueAction;
     float _progressOffset { 0.0f };
     float _progress { 0.0f };
