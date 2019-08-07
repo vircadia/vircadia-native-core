@@ -128,10 +128,37 @@ protected:
     bool _snapshotValid { false };
 };
 
-
 // returns true if the given point lies inside of the k-dop, specified by shapeInfo & shapePose.
 // if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
 // such that it lies on the surface of the kdop.
 bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const HFMJointShapeInfo& shapeInfo, glm::vec3& displacementOut);
+
+enum EasingType {
+    EasingType_Linear,
+    EasingType_EaseInSine,
+    EasingType_EaseOutSine,
+    EasingType_EaseInOutSine,
+    EasingType_EaseInQuad,
+    EasingType_EaseOutQuad,
+    EasingType_EaseInOutQuad,
+    EasingType_EaseInCubic,
+    EasingType_EaseOutCubic,
+    EasingType_EaseInOutCubic,
+    EasingType_EaseInQuart,
+    EasingType_EaseOutQuart,
+    EasingType_EaseInOutQuart,
+    EasingType_EaseInQuint,
+    EasingType_EaseOutQuint,
+    EasingType_EaseInOutQuint,
+    EasingType_EaseInExpo,
+    EasingType_EaseOutExpo,
+    EasingType_EaseInOutExpo,
+    EasingType_EaseInCirc,
+    EasingType_EaseOutCirc,
+    EasingType_EaseInOutCirc,
+    EasingType_NumTypes
+};
+
+float easingFunc(float alpha, EasingType type);
 
 #endif

@@ -13,6 +13,7 @@
 #include <shared/QtHelpers.h>
 
 #include "Application.h"
+#include "PickManager.h"
 #include "LaserPointer.h"
 #include "StylusPointer.h"
 #include "ParabolaPointer.h"
@@ -38,16 +39,48 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
         return result;
     }
 
+    QVariantMap propertyMap = properties.toMap();
+
+    std::shared_ptr<Pointer> pointer;
     switch (type) {
         case PickQuery::PickType::Ray:
-            return createLaserPointer(properties);
+            pointer = buildLaserPointer(propertyMap);
+            break;
         case PickQuery::PickType::Stylus:
-            return createStylus(properties);
+            pointer = buildStylus(propertyMap);
+            break;
         case PickQuery::PickType::Parabola:
-            return createParabolaPointer(properties);
+            pointer = buildParabolaPointer(propertyMap);
+            break;
         default:
-            return PointerEvent::INVALID_POINTER_ID;
+            break;
     }
+
+    if (!pointer) {
+        return PointerEvent::INVALID_POINTER_ID;
+    }
+
+    propertyMap["pointerType"] = (int)type;
+
+    pointer->setScriptParameters(propertyMap);
+
+    return DependencyManager::get<PointerManager>()->addPointer(pointer);
+}
+
+bool PointerScriptingInterface::isPointerEnabled(unsigned int uid) const {
+    return DependencyManager::get<PointerManager>()->isPointerEnabled(uid);
+}
+
+QVector<unsigned int> PointerScriptingInterface::getPointers() const {
+    return DependencyManager::get<PointerManager>()->getPointers();
+}
+
+QVariantMap PointerScriptingInterface::getPointerProperties(unsigned int uid) const {
+    return DependencyManager::get<PointerManager>()->getPointerProperties(uid);
+}
+
+QVariantMap PointerScriptingInterface::getPointerScriptParameters(unsigned int uid) const {
+    return DependencyManager::get<PointerManager>()->getPointerScriptParameters(uid);
 }
 
 /**jsdoc
@@ -56,6 +89,8 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  * @property {Pointers.StylusPointerModel} [model] - Override some or all of the default stylus model properties.
  * @property {boolean} [hover=false] - <code>true</code> if the pointer generates {@link Entities} hover events, 
  *     <code>false</code> if it doesn't.
+ * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties} or {@link Pointers.getPointerScriptParameters}. A stylus pointer's type is {@link PickType.Stylus}.
+ * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
  * @see {@link Picks.StylusPickProperties} for additional properties from the underlying stylus pick.
  */
 /**jsdoc
@@ -67,7 +102,7 @@ unsigned int PointerScriptingInterface::createPointer(const PickQuery::PickType&
  *     offset.
  * @property {Quat} [rotationOffset] - The rotation offset of the model from the hand, to override the default rotation offset.
  */
-unsigned int PointerScriptingInterface::createStylus(const QVariant& properties) const {
+std::shared_ptr<Pointer> PointerScriptingInterface::buildStylus(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
 
     bool hover = false;
@@ -100,8 +135,7 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
         }
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<StylusPointer>(properties, StylusPointer::buildStylus(propertyMap), hover, enabled, modelPositionOffset,
-                                                                                                modelRotationOffset, modelDimensions));
+    return std::make_shared<StylusPointer>(properties, StylusPointer::buildStylus(propertyMap), hover, enabled, modelPositionOffset, modelRotationOffset, modelDimensions);
 }
 
 /**jsdoc
@@ -174,9 +208,11 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
  *     <code>false</code> if it doesn't.
  * @property {Pointers.Trigger[]} [triggers=[]] - A list of ways that a {@link Controller} action or function should trigger 
  *     events on the entity or overlay currently intersected.
+ * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties} or {@link Pointers.getPointerScriptParameters}. A laser pointer's type is {@link PickType.Ray}.
+ * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
  * @see {@link Picks.RayPickProperties} for additional properties from the underlying ray pick.
  */
-unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
+std::shared_ptr<Pointer> PointerScriptingInterface::buildLaserPointer(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
 
 #if defined (Q_OS_ANDROID)
@@ -185,7 +221,7 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         QString jointName = propertyMap["joint"].toString();
         const QString MOUSE_JOINT = "Mouse";
         if (jointName == MOUSE_JOINT) {
-            return PointerEvent::INVALID_POINTER_ID;
+            return nullptr;
         }
     }
 #endif
@@ -283,9 +319,9 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
         }
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                               faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd,
-                                                                                               distanceScaleEnd, scaleWithParent, enabled));
+    return std::make_shared<LaserPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
+                                          faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd,
+                                          distanceScaleEnd, scaleWithParent, enabled);
 }
 
 /**jsdoc
@@ -365,9 +401,11 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
  *     <code>false</code> if it doesn't.
  * @property {Pointers.Trigger[]} [triggers=[]] - A list of ways that a {@link Controller} action or function should trigger
  *     events on the entity or overlay currently intersected.
+ * @property {PickType} pointerType - The type of pointer when getting these properties from {@link Pointers.getPointerProperties} or {@link Pointers.getPointerScriptParameters}. A parabola pointer's type is {@link PickType.Parabola}.
+ * @property {number} [pickID] - Returned from {@link Pointers.getPointerProperties}. The ID of the pick created alongside this pointer.
  * @see {@link Picks.ParabolaPickProperties} for additional properties from the underlying parabola pick.
  */
-unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& properties) const {
+std::shared_ptr<Pointer> PointerScriptingInterface::buildParabolaPointer(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
 
     bool faceAvatar = false;
@@ -463,9 +501,9 @@ unsigned int PointerScriptingInterface::createParabolaPointer(const QVariant& pr
         }
     }
 
-    return DependencyManager::get<PointerManager>()->addPointer(std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
-                                                                                                  faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd, distanceScaleEnd,
-                                                                                                  scaleWithParent, enabled));
+    return std::make_shared<ParabolaPointer>(properties, renderStates, defaultRenderStates, hover, triggers,
+                                             faceAvatar, followNormal, followNormalStrength, centerEndY, lockEnd, distanceScaleEnd,
+                                             scaleWithParent, enabled);
 }
 
 void PointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {
@@ -496,8 +534,4 @@ QVariantMap PointerScriptingInterface::getPrevPickResult(unsigned int uid) const
         result = pickResult->toVariantMap();
     }
     return result;
-}
-
-QVariantMap PointerScriptingInterface::getPointerProperties(unsigned int uid) const {
-    return DependencyManager::get<PointerManager>()->getPointerProperties(uid);
 }

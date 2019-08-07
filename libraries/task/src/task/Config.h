@@ -121,14 +121,14 @@ public:
     virtual void setPresetList(const QJsonObject& object);
 
     /**jsdoc
-     * @function Render.toJSON
+     * @function Workload.toJSON
      * @returns {string}
      */
     // This must be named toJSON to integrate with the global scripting JSON object
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
 
     /**jsdoc
-     * @function Render.load
+     * @function Workload.load
      * @param {object} map
      */
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
@@ -181,25 +181,25 @@ public:
     
     // Describe the node graph data connections of the associated Job/Task
     /**jsdoc
-     * @function Render.isTask
+     * @function Workload.isTask
      * @returns {boolean}
      */
     //Q_INVOKABLE virtual bool isTask() const { return false; }
 
     /**jsdoc
-     * @function Render.getSubConfigs
+     * @function Workload.getSubConfigs
      * @returns {object[]}
      */
   //  Q_INVOKABLE virtual QObjectList getSubConfigs() const { return QObjectList(); }
 
     /**jsdoc
-     * @function Render.getNumSubs
+     * @function Workload.getNumSubs
      * @returns {number}
      */
    // Q_INVOKABLE virtual int getNumSubs() const { return 0; }
 
     /**jsdoc
-     * @function Render.getSubConfig
+     * @function Workload.getSubConfig
      * @param {number} index
      * @returns {object}
      */
@@ -216,32 +216,32 @@ public:
 public slots:
 
     /**jsdoc
-     * @function Render.load
+     * @function Workload.load
      * @param {object} map
      */
     void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
 
     /**jsdoc
-     * @function Render.refresh
+     * @function Workload.refresh
      */
     void refresh();
 
 signals:
 
     /**jsdoc
-     * @function Render.loaded
+     * @function Workload.loaded
      * @returns {Signal}
      */
     void loaded();
 
     /**jsdoc
-     * @function Render.newStats
+     * @function Workload.newStats
      * @returns {Signal}
      */
     void newStats();
 
     /**jsdoc
-     * @function Render.dirtyEnabled
+     * @function Workload.dirtyEnabled
      * @returns {Signal}
      */
     void dirtyEnabled();
@@ -253,7 +253,7 @@ using QConfigPointer = std::shared_ptr<JobConfig>;
 
 #ifdef SPECIALIZE_CONFIG
 /**jsdoc
- * @namespace Render
+ * @namespace Workload
  *
  * @hifi-interface
  * @hifi-client-entity
@@ -272,7 +272,7 @@ public:
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
     /**jsdoc
-     * @function Render.getConfig
+     * @function Workload.getConfig
      * @param {string} name
      * @returns {object}
      */
