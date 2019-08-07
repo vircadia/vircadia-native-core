@@ -57,7 +57,7 @@ XMLHttpRequestClass::~XMLHttpRequestClass() {
 }
 
 QScriptValue XMLHttpRequestClass::constructor(QScriptContext* context, QScriptEngine* engine) {
-    return engine->newQObject(new XMLHttpRequestClass(engine));
+    return engine->newQObject(new XMLHttpRequestClass(engine), QScriptEngine::ScriptOwnership);
 }
 
 QScriptValue XMLHttpRequestClass::getStatus() const {
