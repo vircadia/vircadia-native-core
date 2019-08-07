@@ -2322,7 +2322,7 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 16,
+                                                                                                                    "endFrame": 14,
                                                                                                                     "loopFlag": false,
                                                                                                                     "startFrame": 1,
                                                                                                                     "timeScale": 1,
@@ -2335,9 +2335,9 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 118,
+                                                                                                                    "endFrame": 78,
                                                                                                                     "loopFlag": true,
-                                                                                                                    "startFrame": 16,
+                                                                                                                    "startFrame": 14,
                                                                                                                     "timeScale": 1,
                                                                                                                     "url": "qrc:///avatar/animations/emote_clap02_all.fbx"
                                                                                                                 },
@@ -2348,9 +2348,9 @@
                                                                                                                 "children": [
                                                                                                                 ],
                                                                                                                 "data": {
-                                                                                                                    "endFrame": 170,
+                                                                                                                    "endFrame": 115,
                                                                                                                     "loopFlag": false,
-                                                                                                                    "startFrame": 118,
+                                                                                                                    "startFrame": 78,
                                                                                                                     "timeScale": 1,
                                                                                                                     "url": "qrc:///avatar/animations/emote_clap02_all.fbx"
                                                                                                                 },
