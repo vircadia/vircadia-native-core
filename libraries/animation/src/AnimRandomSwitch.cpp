@@ -44,14 +44,12 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
             }
         }
         if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1) {
-            _duringInterp = false;
-            switchRandomState(animVars, context, desiredState, _duringInterp);
+            switchRandomState(animVars, context, desiredState, false);
         } else {
             // firing a random switch, be sure that we aren't completing a previously triggered transition
             if (currentStateHasPriority) {
                 if (desiredState->getID() != _currentState->getID()) {
-                    _duringInterp = true;
-                    switchRandomState(animVars, context, desiredState, _duringInterp);
+                    switchRandomState(animVars, context, desiredState, true);
                 } else {
                     _duringInterp = false;
                 }
@@ -66,8 +64,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         // evaluate currentState transitions
         auto transitionState = evaluateTransitions(animVars);
         if (transitionState != _currentState) {
-            _duringInterp = true;
-            switchRandomState(animVars, context, transitionState, _duringInterp);
+            switchRandomState(animVars, context, transitionState, true);
             _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
             _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
         }
@@ -159,6 +156,9 @@ void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const A
     auto nextStateNode = _children[desiredState->getChildIndex()];
     if (shouldInterp) {
 
+        bool interpActive = _duringInterp;
+        _duringInterp = true;
+
         const float FRAMES_PER_SECOND = 30.0f;
 
         auto prevStateNode = _children[_currentState->getChildIndex()];
@@ -182,12 +182,20 @@ void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const A
             }
             _nextPoses = nextStateNode->evaluate(animVars, context, dt, triggers);
         } else if (_interpType == InterpType::SnapshotPrev) {
-            // snapshot previoius pose
+            // snapshot previous pose
             _prevPoses = _poses;
             // no need to evaluate _nextPoses we will do it dynamically during the interp,
             // however we need to set the current frame.
             if (!desiredState->getResume()) {
                 nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+            }
+        } else if (_interpType == InterpType::EvaluateBoth) {
+            // need to set current frame in destination branch.
+            nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+            if (interpActive) {
+                // snapshot previous pose
+                _prevPoses = _poses;
+                _interpType = InterpType::SnapshotPrev;
             }
         } else {
             assert(false);
