@@ -117,7 +117,8 @@ public:
         Stylus,
         Parabola,
         Collision,
-        NUM_PICK_TYPES
+        NUM_PICK_TYPES,
+        INVALID_PICK_TYPE = -1
     };
     Q_ENUM(PickType)
 
@@ -134,6 +135,7 @@ public:
     PickFilter getFilter() const;
     float getMaxDistance() const;
     bool isEnabled() const;
+    virtual PickType getType() const = 0;
 
     void setPrecisionPicking(bool precisionPicking);
 
@@ -168,6 +170,27 @@ public:
     void setIgnoreItems(const QVector<QUuid>& items);
     void setIncludeItems(const QVector<QUuid>& items);
 
+    virtual QVariantMap toVariantMap() const {
+        QVariantMap properties;
+
+        properties["pickType"] = (int)getType();
+        properties["enabled"] = isEnabled();
+        properties["filter"] = (unsigned int)getFilter()._flags.to_ulong();
+        properties["maxDistance"] = getMaxDistance();
+
+        if (parentTransform) {
+            auto transformNodeProperties = parentTransform->toVariantMap();
+            for (auto it = transformNodeProperties.cbegin(); it != transformNodeProperties.cend(); ++it) {
+                properties[it.key()] = it.value();
+            }
+        }
+
+        return properties;
+    }
+
+    void setScriptParameters(const QVariantMap& parameters);
+    QVariantMap getScriptParameters() const;
+
     virtual bool isLeftHand() const { return _jointState == JOINT_STATE_LEFT_HAND; }
     virtual bool isRightHand() const { return _jointState == JOINT_STATE_RIGHT_HAND; }
     virtual bool isMouse() const { return _jointState == JOINT_STATE_MOUSE; }
@@ -187,6 +210,9 @@ private:
     QVector<QUuid> _ignoreItems;
     QVector<QUuid> _includeItems;
 
+    // The parameters used to create this pick when created through a script
+    QVariantMap _scriptParameters;
+
     JointState _jointState { JOINT_STATE_NONE };
 };
 Q_DECLARE_METATYPE(PickQuery::PickType)
@@ -202,6 +228,17 @@ public:
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 
+    QVariantMap toVariantMap() const override {
+        QVariantMap properties = PickQuery::toVariantMap();
+
+        const QVariantMap mathPickProperties = _mathPick.toVariantMap();
+        for (auto it = mathPickProperties.cbegin(); it != mathPickProperties.cend(); ++it) {
+            properties[it.key()] = it.value();
+        }
+
+        return properties;
+    }
+    
 protected:
     T _mathPick;
 };

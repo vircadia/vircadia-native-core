@@ -82,7 +82,7 @@ bool OctreeQueryNode::shouldSuppressDuplicatePacket() {
 void OctreeQueryNode::init() {
     _myPacketType = getMyPacketType();
 
-    _octreePacket = NLPacket::create(getMyPacketType());
+    _octreePacket = NLPacket::create(getMyPacketType(), -1, true);
 
     resetOctreePacket(); // don't bump sequence
 }

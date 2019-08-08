@@ -26,6 +26,8 @@
 #include <QtScript/QScriptValueIterator>
 #include <QJsonDocument>
 
+int uint32MetaTypeId = qRegisterMetaType<glm::uint32>("uint32");
+int glmUint32MetaTypeId = qRegisterMetaType<glm::uint32>("glm::uint32");
 int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int u8vec3MetaTypeId = qRegisterMetaType<u8vec3>();
 int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
@@ -33,6 +35,7 @@ int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 int qVectorVec3MetaTypeId = qRegisterMetaType<QVector<glm::vec3>>();
 int qVectorQuatMetaTypeId = qRegisterMetaType<QVector<glm::quat>>();
 int qVectorBoolMetaTypeId = qRegisterMetaType<QVector<bool>>();
+int qVectorGLMUint32MetaTypeId = qRegisterMetaType<QVector<unsigned int>>("QVector<glm::uint32>");
 int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
@@ -67,6 +70,8 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
 
     qScriptRegisterMetaType(engine, stencilMaskModeToScriptValue, stencilMaskModeFromScriptValue);
+
+    qScriptRegisterSequenceMetaType<QVector<unsigned int>>(engine);
 }
 
 QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
