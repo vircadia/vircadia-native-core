@@ -154,9 +154,11 @@ public:
     // See PhysicsCollisionGroups.h for mask flags.
     std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC, float threshold = 0.0f) const;
 
-    void enableGlobalContactAddedCallback(bool enabled);
     void addContactAddedCallback(ContactAddedCallback cb);
     void removeContactAddedCallback(ContactAddedCallback cb);
+
+    btDiscreteDynamicsWorld* getDynamicsWorld() const { return _dynamicsWorld; }
+    void removeContacts(ObjectMotionState* motionState);
 
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
@@ -164,8 +166,6 @@ private:
 
     /// \brief bump any objects that touch this one, then remove contact info
     void bumpAndPruneContacts(ObjectMotionState* motionState);
-
-    void removeContacts(ObjectMotionState* motionState);
 
     void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
 

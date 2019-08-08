@@ -6282,11 +6282,13 @@ void Application::tryToEnablePhysics() {
         // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
         // We keep physics disabled until we've received a full scene and everything near the avatar in that
         // scene is ready to compute its collision shape.
-        if (getMyAvatar()->isReadyForPhysics()) {
+        auto myAvatar = getMyAvatar();
+        if (myAvatar->isReadyForPhysics()) {
+            myAvatar->getCharacterController()->setPhysicsEngine(_physicsEngine);
             _octreeProcessor.resetSafeLanding();
             _physicsEnabled = true;
             setIsInterstitialMode(false);
-            getMyAvatar()->updateMotionBehaviorFromMenu();
+            myAvatar->updateMotionBehaviorFromMenu();
         }
     }
 }
@@ -6577,7 +6579,7 @@ void Application::update(float deltaTime) {
                 avatarManager->handleProcessedPhysicsTransaction(transaction);
 
                 myAvatar->prepareForPhysicsSimulation();
-                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+                myAvatar->getCharacterController()->preSimulation();
             }
         }
 
@@ -6630,6 +6632,7 @@ void Application::update(float deltaTime) {
 
                         {
                             PROFILE_RANGE(simulation_physics, "MyAvatar");
+                            myAvatar->getCharacterController()->postSimulation();
                             myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
                         }
 

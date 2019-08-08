@@ -11,14 +11,136 @@
 
 #include "CharacterController.h"
 
-#include <NumericalConstants.h>
 #include <AvatarConstants.h>
+#include <NumericalConstants.h>
+#include <PhysicsCollisionGroups.h>
 
 #include "ObjectMotionState.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
+static bool _flippedThisFrame = false;
+
+// Note: flipBackfaceTriangleNormals is registered as a sub-callback to Bullet's gContactAddedCallback feature
+// when we detect MyAvatar is "stuck".  It will reverse the triangles on the backface of mesh shapes, unless it thinks
+// the old normal would be better at extracting MyAvatar out along its UP direction.
+bool flipBackfaceTriangleNormals(btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
+    static int32_t numCalls = 0;
+    ++numCalls;
+    // This callback is ONLY called on objects with btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK flag
+    // and the flagged object will always be sorted to Obj0.  Hence the "other" is always Obj1.
+    const btCollisionObject* other = colObj1Wrap->m_collisionObject;
+
+    if (other->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+        // access the meshInterface
+        auto meshShape = static_cast<const btBvhTriangleMeshShape*>(other->getCollisionShape());
+        const btStridingMeshInterface* meshInterface = meshShape->getMeshInterface();
+
+        // figure out about how to navigate meshInterface
+        const uint8_t* vertexBase;
+        int32_t numverts;
+        PHY_ScalarType vertexType;
+        int32_t vertexStride;
+        const uint8_t* indexBase;
+        int32_t indexStride;
+        int32_t numFaces;
+        PHY_ScalarType indicesType;
+        int32_t subPart = colObj1Wrap->m_partId;
+        // NOTE: all arguments are being passed by reference except the bases (passed by pointer) and subPart (true input)
+        meshInterface->getLockedReadOnlyVertexIndexBase(&vertexBase, numverts, vertexType, vertexStride, &indexBase, indexStride, numFaces, indicesType, subPart);
+
+        // fetch the triangle vertices
+        int32_t triangleIndex = colObj1Wrap->m_index;
+        assert(vertexType == PHY_FLOAT); // all mesh vertex data is float...
+        // ...but indicesType can vary
+        btVector3 triangleVertex[3];
+        switch (indicesType) {
+            case PHY_INTEGER: {
+                uint32_t* triangleIndices = (uint32_t*)(indexBase + triangleIndex * indexStride);
+                float* triangleBase;
+                triangleBase = (float*)(vertexBase + triangleIndices[0] * vertexStride);
+                triangleVertex[0].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+                triangleBase = (float*)(vertexBase + triangleIndices[1] * vertexStride);
+                triangleVertex[1].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+                triangleBase = (float*)(vertexBase + triangleIndices[2] * vertexStride);
+                triangleVertex[2].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+            }
+            break;
+            case PHY_SHORT: {
+                uint16_t* triangleIndices = (uint16_t*)(indexBase + triangleIndex * indexStride);
+                float* triangleBase;
+                triangleBase = (float*)(vertexBase + triangleIndices[0] * vertexStride);
+                triangleVertex[0].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+                triangleBase = (float*)(vertexBase + triangleIndices[1] * vertexStride);
+                triangleVertex[1].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+                triangleBase = (float*)(vertexBase + triangleIndices[2] * vertexStride);
+                triangleVertex[2].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+            }
+            break;
+            case PHY_UCHAR: {
+                uint8_t* triangleIndices = (uint8_t*)(indexBase + triangleIndex * indexStride);
+                float* triangleBase;
+                triangleBase = (float*)(vertexBase + triangleIndices[0] * vertexStride);
+                triangleVertex[0].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+                triangleBase = (float*)(vertexBase + triangleIndices[1] * vertexStride);
+                triangleVertex[1].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+                triangleBase = (float*)(vertexBase + triangleIndices[2] * vertexStride);
+                triangleVertex[2].setValue(triangleBase[0], triangleBase[1], triangleBase[2]);
+            }
+            break;
+            default:
+                return false;
+        }
+
+        // compute faceNormal
+        btVector3 meshScaling = meshInterface->getScaling();
+        triangleVertex[0] *= meshScaling;
+        triangleVertex[1] *= meshScaling;
+        triangleVertex[2] *= meshScaling;
+        btVector3 faceNormal = other->getWorldTransform().getBasis() * btCross(triangleVertex[1] - triangleVertex[0], triangleVertex[2] - triangleVertex[0]);
+        float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
+        if (nDotF <= 0.0f && faceNormal.length2() > EPSILON) {
+            faceNormal.normalize();
+            // flip the contact normal to be aligned with the face normal...
+            // ...but only if old normal does NOT point along obj0's UP
+            // (because we're "stuck" and UP is the likely path out)
+            btVector3 up = colObj0Wrap->m_collisionObject->getWorldTransform().getBasis() * LOCAL_UP_AXIS;
+            if (cp.m_normalWorldOnB.dot(up) <= 0.0f) {
+                nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
+                cp.m_normalWorldOnB -= 2.0f * nDotF * faceNormal;
+                _flippedThisFrame = true;
+            }
+            // Note: if we're flipping normals it means the "Are we stuck?" logic is concluding "Yes, we are".
+            // But when we flip the normals it typically causes the ContactManifold to discard the modified ManifoldPoint
+            // which in turn causes the "Are we stuck?" logic to incorrectly conclude "No, we are not".
+            // So we set '_flippedThisFrame = true' here and use it later to stay in "stuck" state until flipping stops
+        }
+    }
+
+    // KEEP THIS: in case we add support for concave shapes which delegate to temporary btTriangleShapes (such as btHeightfieldTerrainShape)
+    //else if (other->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
+    //    auto triShape = static_cast<const btTriangleShape*>(other->getCollisionShape());
+    //    const btVector3* v = triShape->m_vertices1;
+    //    btVector3 faceNormal = other->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
+    //    float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
+    //    if (nDotF <= 0.0f && faceNormal.length2() > EPSILON) {
+    //        faceNormal.normalize();
+    //        // flip the contact normal to be aligned with the face normal
+    //        cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
+    //    }
+    //}
+    // KEEP THIS
+
+    // NOTE: this ManifoldPoint is a candidate and hasn't been accepted yet into the final ContactManifold yet.
+    // So when we modify its parameters we can convince Bullet to discard it.
+    //
+    // by our own convention:
+    // return true when this ManifoldPoint has been modified in a way that would disable it
+    return false;
+};
 
 #ifdef DEBUG_STATE_CHANGE
 #define SET_STATE(desiredState, reason) setState(desiredState, reason)
@@ -92,64 +214,70 @@ CharacterController::~CharacterController() {
 }
 
 bool CharacterController::needsRemoval() const {
-    return ((_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION) == PENDING_FLAG_REMOVE_FROM_SIMULATION);
+    return (_physicsEngine && (_pendingFlags & PENDING_FLAG_REMOVE_FROM_SIMULATION) == PENDING_FLAG_REMOVE_FROM_SIMULATION);
 }
 
 bool CharacterController::needsAddition() const {
-    return ((_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION) == PENDING_FLAG_ADD_TO_SIMULATION);
+    return (_physicsEngine && (_pendingFlags & PENDING_FLAG_ADD_TO_SIMULATION) == PENDING_FLAG_ADD_TO_SIMULATION);
 }
 
-void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
-    if (_dynamicsWorld != world) {
-        // remove from old world
-        if (_dynamicsWorld) {
-            if (_rigidBody) {
-                _dynamicsWorld->removeRigidBody(_rigidBody);
-                _dynamicsWorld->removeAction(this);
-            }
-            _dynamicsWorld = nullptr;
-        }
-        int32_t collisionMask = computeCollisionMask();
-        int32_t collisionGroup = BULLET_COLLISION_GROUP_MY_AVATAR; 
+void CharacterController::removeFromWorld() {
+    if (_inWorld) {
         if (_rigidBody) {
-            updateMassProperties();
+            _physicsEngine->getDynamicsWorld()->removeRigidBody(_rigidBody);
+            _physicsEngine->getDynamicsWorld()->removeAction(this);
         }
-        if (world && _rigidBody) {
-            // add to new world
-            _dynamicsWorld = world;
-            _pendingFlags &= ~PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, collisionMask); 
-            _dynamicsWorld->addAction(this);
-            // restore gravity settings because adding an object to the world overwrites its gravity setting
-            _rigidBody->setGravity(_currentGravity * _currentUp);
-            // set flag to enable custom contactAddedCallback
-            _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
-
-            // enable CCD
-            _rigidBody->setCcdSweptSphereRadius(_radius);
-            _rigidBody->setCcdMotionThreshold(_radius);
-
-            btCollisionShape* shape = _rigidBody->getCollisionShape();
-            assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
-            _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
-        }
-        _ghost.setCollisionGroupAndMask(collisionGroup, collisionMask & (~ collisionGroup)); 
-        _ghost.setCollisionWorld(_dynamicsWorld);
-        _ghost.setRadiusAndHalfHeight(_radius, _halfHeight);
-        if (_rigidBody) {
-            _ghost.setWorldTransform(_rigidBody->getWorldTransform());
-        }
+        _inWorld = false;
     }
-    if (_dynamicsWorld) {
-        if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
-            // shouldn't fall in here, but if we do make sure both ADD and REMOVE bits are still set
-            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION | 
-                             PENDING_FLAG_ADD_DETAILED_TO_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
-        } else {
-            _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
-        }
+    _pendingFlags &= ~PENDING_FLAG_REMOVE_FROM_SIMULATION;
+}
+
+void CharacterController::addToWorld() {
+    if (!_rigidBody) {
+        return;
+    }
+    if (_inWorld) {
+        _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
+        return;
+    }
+    btDiscreteDynamicsWorld* world = _physicsEngine->getDynamicsWorld();
+    int32_t collisionMask = computeCollisionMask();
+    int32_t collisionGroup = BULLET_COLLISION_GROUP_MY_AVATAR;
+
+    updateMassProperties();
+    _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
+
+    // add to new world
+    _pendingFlags &= ~PENDING_FLAG_JUMP;
+    world->addRigidBody(_rigidBody, collisionGroup, collisionMask);
+    world->addAction(this);
+    _inWorld = true;
+
+    // restore gravity settings because adding an object to the world overwrites its gravity setting
+    _rigidBody->setGravity(_currentGravity * _currentUp);
+    // set flag to enable custom contactAddedCallback
+    _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+
+    // enable CCD
+    _rigidBody->setCcdSweptSphereRadius(_radius);
+    _rigidBody->setCcdMotionThreshold(_radius);
+
+    btCollisionShape* shape = _rigidBody->getCollisionShape();
+    assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
+    _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
+
+    _ghost.setCollisionGroupAndMask(collisionGroup, collisionMask & (~ collisionGroup));
+    _ghost.setCollisionWorld(world);
+    _ghost.setRadiusAndHalfHeight(_radius, _halfHeight);
+    if (_rigidBody) {
+        _ghost.setWorldTransform(_rigidBody->getWorldTransform());
+    }
+    if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
+        // shouldn't fall in here, but if we do make sure both ADD and REMOVE bits are still set
+        _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION |
+                         PENDING_FLAG_ADD_DETAILED_TO_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
     } else {
-        _pendingFlags &= ~PENDING_FLAG_REMOVE_FROM_SIMULATION;
+        _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
     }
 }
 
@@ -159,10 +287,13 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     btDispatcher* dispatcher = collisionWorld->getDispatcher();
     int numManifolds = dispatcher->getNumManifolds();
     bool hasFloor = false;
-    bool isStuck = false;
+    bool probablyStuck = _isStuck && _flippedThisFrame;
 
     btTransform rotation = _rigidBody->getWorldTransform();
     rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f)); // clear translation part
+
+    float deepestDistance = 0.0f;
+    float strongestImpulse = 0.0f;
 
     for (int i = 0; i < numManifolds; i++) {
         btPersistentManifold* contactManifold = dispatcher->getManifoldByIndexInternal(i);
@@ -170,6 +301,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
             bool characterIsFirst = _rigidBody == contactManifold->getBody0();
             int numContacts = contactManifold->getNumContacts();
             int stepContactIndex = -1;
+            bool stepValid = true;
             float highestStep = _minStepHeight;
             for (int j = 0; j < numContacts; j++) {
                 // check for "floor"
@@ -177,28 +309,24 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
-                // If there's non-trivial penetration with a big impulse for several steps, we're probably stuck.
-                // Note it here in the controller, and let MyAvatar figure out what to do about it.
-                const float STUCK_PENETRATION = -0.05f; // always negative into the object.
-                const float STUCK_IMPULSE = 500.0f;
-                const int STUCK_LIFETIME = 3;
-                if ((contact.getDistance() < STUCK_PENETRATION) && (contact.getAppliedImpulse() > STUCK_IMPULSE) && (contact.getLifeTime() > STUCK_LIFETIME)) {
-                    isStuck = true; // latch on
+
+                float distance = contact.getDistance();
+                if (distance < deepestDistance) {
+                    deepestDistance = distance;
                 }
+                float impulse = contact.getAppliedImpulse();
+                if (impulse > strongestImpulse) {
+                    strongestImpulse = impulse;
+                }
+
                 if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > _minFloorNormalDotUp) {
                     hasFloor = true;
-                    if (!pushing && isStuck) {
-                        // we're not pushing against anything and we're stuck so we can early exit
-                        // (all we need to know is that there is a floor)
-                        break;
-                    }
                 }
-                if (pushing && _targetVelocity.dot(normal) < 0.0f) {
+                if (stepValid && pushing && _targetVelocity.dot(normal) < 0.0f) {
                     // remember highest step obstacle
                     if (!_stepUpEnabled || hitHeight > _maxStepHeight) {
                         // this manifold is invalidated by point that is too high
-                        stepContactIndex = -1;
-                        break;
+                        stepValid = false;
                     } else if (hitHeight > highestStep && normal.dot(_targetVelocity) < 0.0f ) {
                         highestStep = hitHeight;
                         stepContactIndex = j;
@@ -206,7 +334,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                     }
                 }
             }
-            if (stepContactIndex > -1 && highestStep > _stepHeight) {
+            if (stepValid && stepContactIndex > -1 && highestStep > _stepHeight) {
                 // remember step info for later
                 btManifoldPoint& contact = contactManifold->getContactPoint(stepContactIndex);
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
@@ -214,13 +342,37 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                 _stepHeight = highestStep;
                 _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
             }
-            if (hasFloor && isStuck && !(pushing && _stepUpEnabled)) {
-                // early exit since all we need to know is that we're on a floor
-                break;
-            }
         }
     }
-    _isStuck = isStuck;
+
+    // If there's deep penetration and big impulse we're probably stuck.
+    const float STUCK_PENETRATION = -0.05f; // always negative into the object.
+    const float STUCK_IMPULSE = 500.0f;
+    probablyStuck = probablyStuck || (deepestDistance < STUCK_PENETRATION && strongestImpulse > STUCK_IMPULSE);
+
+    if (_isStuck != probablyStuck) {
+        ++_stuckTransitionCount;
+        if (_stuckTransitionCount == NUM_FRAMES_FOR_STUCK_TRANSITION) {
+            // we've been in this "probablyStuck" state for several consecutive frames
+            // --> make it official by changing state
+            _isStuck = probablyStuck;
+            // start _numStuckFrames at NUM_FRAMES_FOR_SAFE_LANDING_RETRY so SafeLanding tries to help immediately
+            _numStuckFrames = NUM_FRAMES_FOR_SAFE_LANDING_RETRY;
+            _stuckTransitionCount = 0;
+            if (_isStuck) {
+                _physicsEngine->addContactAddedCallback(flipBackfaceTriangleNormals);
+            } else {
+                _physicsEngine->removeContactAddedCallback(flipBackfaceTriangleNormals);
+                _flippedThisFrame = false;
+            }
+        }
+    } else {
+        _stuckTransitionCount = 0;
+        if (_isStuck) {
+            ++_numStuckFrames;
+            _flippedThisFrame = false;
+        }
+    }
     return hasFloor;
 }
 
@@ -452,7 +604,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
         _minStepHeight = DEFAULT_MIN_STEP_HEIGHT_FACTOR * (_halfHeight + _radius);
         _maxStepHeight = DEFAULT_MAX_STEP_HEIGHT_FACTOR * (_halfHeight + _radius);
 
-        if (_dynamicsWorld) {
+        if (_physicsEngine) {
             // must REMOVE from world prior to shape update
             _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
         }
@@ -467,6 +619,15 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
         // update CCD with new _radius
         _rigidBody->setCcdSweptSphereRadius(_radius);
         _rigidBody->setCcdMotionThreshold(_radius);
+    }
+}
+
+void CharacterController::setPhysicsEngine(const PhysicsEnginePointer& engine) {
+    if (!_physicsEngine && engine) {
+        // ATM there is only one PhysicsEngine: it is a singleton, and we are taking advantage
+        // of that assumption here.  If we ever introduce more and allow for this backpointer
+        // to change then we'll have to overhaul this method.
+        _physicsEngine = engine;
     }
 }
 
@@ -681,7 +842,7 @@ void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {
 }
 
 void CharacterController::updateState() {
-    if (!_dynamicsWorld) {
+    if (!_physicsEngine) {
         return;
     }
     if (_pendingFlags & PENDING_FLAG_RECOMPUTE_FLYING) {
@@ -712,7 +873,7 @@ void CharacterController::updateState() {
 
     ClosestNotMe rayCallback(_rigidBody);
     rayCallback.m_closestHitFraction = 1.0f;
-    _dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
+    _physicsEngine->getDynamicsWorld()->rayTest(rayStart, rayEnd, rayCallback);
     bool rayHasHit = rayCallback.hasHit();
     quint64 now = usecTimestampNow();
     if (rayHasHit) {
@@ -829,6 +990,21 @@ void CharacterController::updateState() {
 }
 
 void CharacterController::preSimulation() {
+    if (needsRemoval()) {
+        removeFromWorld();
+
+        // We must remove any existing contacts for the avatar so that any new contacts will have
+        // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet
+        // have a MotionState so we pass nullptr to removeContacts().
+        if (_physicsEngine) {
+            _physicsEngine->removeContacts(nullptr);
+        }
+    }
+    updateShapeIfNecessary();
+    if (needsAddition()) {
+        addToWorld();
+    }
+
     if (_rigidBody) {
         // slam body transform and remember velocity
         _rigidBody->setWorldTransform(btTransform(btTransform(_rotation, _position)));

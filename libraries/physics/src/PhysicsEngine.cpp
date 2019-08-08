@@ -27,31 +27,6 @@
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
-static bool flipNormalsMyAvatarVsBackfacingTriangles(btManifoldPoint& cp,
-        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
-        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
-    // This callback is designed to help MyAvatar escape entrapment inside mesh geometry.
-    // It is only activated when MyAvatar is flying because it can cause problems when MyAvatar
-    // is walking along the ground.
-    // When active it applies to ALL contact points, however we only expect it to "do interesting
-    // stuff on MyAvatar's physics.
-    // Note: we're taking advantage of the fact: MyAvatar's collisionObject always shows up as colObj0
-    // because it is added to physics first.
-    if (colObj1Wrap->getCollisionShape()->getShapeType() == TRIANGLE_SHAPE_PROXYTYPE) {
-        auto triShape = static_cast<const btTriangleShape*>(colObj1Wrap->getCollisionShape());
-        const btVector3* v = triShape->m_vertices1;
-        btVector3 faceNormal = colObj1Wrap->getWorldTransform().getBasis() * btCross(v[1] - v[0], v[2] - v[0]);
-        float nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
-        if (nDotF <= 0.0f && faceNormal.length2() > EPSILON) {
-            faceNormal.normalize();
-            // flip the contact normal to be aligned with the face normal
-            cp.m_normalWorldOnB += -2.0f * nDotF * faceNormal;
-        }
-    }
-    // return value is currently ignored but to be future-proof: return false when not modifying friction
-    return false;
-}
-
 // a list of sub-callbacks
 std::vector<PhysicsEngine::ContactAddedCallback> _contactAddedCallbacks;
 
@@ -63,11 +38,15 @@ bool globalContactAddedCallback(btManifoldPoint& cp,
     // call each callback
     for (auto cb : _contactAddedCallbacks) {
         if (cb(cp, colObj0Wrap, partId0, index0, colObj1Wrap, partId1, index1)) {
-            // a return value of 'true' indicates the contact has been disabled
+            // Not a Bullet convention, but one we are using for sub-callbacks:
+            // a return value of 'true' indicates the contact has been "disabled"
             // in which case there is no need to process other callbacks
-            return true;
+            break;
         }
     }
+    // by Bullet convention for its gContactAddedCallback feature:
+    // the return value is currently ignored but to be future-proof:
+    // return true when friction has been modified
     return false;
 }
 
@@ -77,9 +56,7 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
 }
 
 PhysicsEngine::~PhysicsEngine() {
-    if (_myAvatarController) {
-        _myAvatarController->setDynamicsWorld(nullptr);
-    }
+    _myAvatarController = nullptr;
     delete _collisionConfig;
     delete _collisionDispatcher;
     delete _broadphaseFilter;
@@ -361,27 +338,6 @@ void PhysicsEngine::stepSimulation() {
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
 
-    if (_myAvatarController) {
-        DETAILED_PROFILE_RANGE(simulation_physics, "avatarController");
-        BT_PROFILE("avatarController");
-        // TODO: move this stuff outside and in front of stepSimulation, because
-        // the updateShapeIfNecessary() call needs info from MyAvatar and should
-        // be done on the main thread during the pre-simulation stuff
-        if (_myAvatarController->needsRemoval()) {
-            _myAvatarController->setDynamicsWorld(nullptr);
-
-            // We must remove any existing contacts for the avatar so that any new contacts will have
-            // valid data.  MyAvatar's RigidBody is the ONLY one in the simulation that does not yet
-            // have a MotionState so we pass nullptr to removeContacts().
-            removeContacts(nullptr);
-        }
-        _myAvatarController->updateShapeIfNecessary();
-        if (_myAvatarController->needsAddition()) {
-            _myAvatarController->setDynamicsWorld(_dynamicsWorld);
-        }
-        _myAvatarController->preSimulation();
-    }
-
     auto onSubStep = [this]() {
         this->updateContactMap();
         this->doOwnershipInfectionForConstraints();
@@ -390,15 +346,11 @@ void PhysicsEngine::stepSimulation() {
     int numSubsteps = _dynamicsWorld->stepSimulationWithSubstepCallback(timeStep, PHYSICS_ENGINE_MAX_NUM_SUBSTEPS,
                                                                         PHYSICS_ENGINE_FIXED_SUBSTEP, onSubStep);
     if (numSubsteps > 0) {
-        BT_PROFILE("postSimulation");
-        if (_myAvatarController) {
-            _myAvatarController->postSimulation();
-        }
         _hasOutgoingChanges = true;
-    }
-
-    if (_physicsDebugDraw->getDebugMode()) {
-        _dynamicsWorld->debugDrawWorld();
+        if (_physicsDebugDraw->getDebugMode()) {
+            BT_PROFILE("debugDrawWorld");
+            _dynamicsWorld->debugDrawWorld();
+        }
     }
 }
 
@@ -760,15 +712,8 @@ void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
 }
 
 void PhysicsEngine::setCharacterController(CharacterController* character) {
-    if (_myAvatarController != character) {
-        if (_myAvatarController) {
-            // remove the character from the DynamicsWorld immediately
-            _myAvatarController->setDynamicsWorld(nullptr);
-            _myAvatarController = nullptr;
-        }
-        // the character will be added to the DynamicsWorld later
-        _myAvatarController = character;
-    }
+    assert(!_myAvatarCharacterController);
+    _myAvatarController = character;
 }
 
 EntityDynamicPointer PhysicsEngine::getDynamicByID(const QUuid& dynamicID) const {
@@ -895,16 +840,6 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
         _physicsDebugDraw->setDebugMode(mode | btIDebugDraw::DBG_DrawConstraintLimits);
     } else {
         _physicsDebugDraw->setDebugMode(mode & ~btIDebugDraw::DBG_DrawConstraintLimits);
-    }
-}
-
-void PhysicsEngine::enableGlobalContactAddedCallback(bool enabled) {
-	if (enabled) {
-        // register contact filter to help MyAvatar pass through backfacing triangles
-        addContactAddedCallback(flipNormalsMyAvatarVsBackfacingTriangles);
-	} else {
-        // deregister contact filter
-        removeContactAddedCallback(flipNormalsMyAvatarVsBackfacingTriangles);
     }
 }
 
