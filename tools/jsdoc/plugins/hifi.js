@@ -56,6 +56,7 @@ exports.handlers = {
             '../../libraries/networking/src',
             '../../libraries/octree/src',
             '../../libraries/physics/src',
+            '../../libraries/platform/src/platform/backend',
             '../../libraries/plugins/src/plugins',
             '../../libraries/pointers/src',
             '../../libraries/render-utils/src',

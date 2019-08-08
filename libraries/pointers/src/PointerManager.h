@@ -27,10 +27,17 @@ public:
     void removePointer(unsigned int uid);
     void enablePointer(unsigned int uid) const;
     void disablePointer(unsigned int uid) const;
+    bool isPointerEnabled(unsigned int uid) const;
+    QVector<unsigned int> getPointers() const;
+
     void setRenderState(unsigned int uid, const std::string& renderState) const;
     void editRenderState(unsigned int uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) const;
+
     PickResultPointer getPrevPickResult(unsigned int uid) const;
+    // The actual current properties of the pointer
     QVariantMap getPointerProperties(unsigned int uid) const;
+    // The properties that were passed in to create the pointer (may be empty if the pointer was created by invoking the constructor)
+    QVariantMap getPointerScriptParameters(unsigned int uid) const;
 
     void setPrecisionPicking(unsigned int uid, bool precisionPicking) const;
     void setIgnoreItems(unsigned int uid, const QVector<QUuid>& ignoreEntities) const;

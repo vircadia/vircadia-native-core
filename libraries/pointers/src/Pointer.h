@@ -45,12 +45,16 @@ public:
 
     virtual void enable();
     virtual void disable();
+    virtual bool isEnabled();
+    virtual PickQuery::PickType getType() const = 0;
     virtual PickResultPointer getPrevPickResult();
 
     virtual void setRenderState(const std::string& state) = 0;
     virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) = 0;
     
-    virtual QVariantMap toVariantMap() const = 0;
+    virtual QVariantMap toVariantMap() const;
+    virtual void setScriptParameters(const QVariantMap& scriptParameters);
+    virtual QVariantMap getScriptParameters() const;
 
     virtual void setPrecisionPicking(bool precisionPicking);
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
@@ -83,6 +87,9 @@ protected:
     const unsigned int _pickUID;
     bool _enabled;
     bool _hover;
+
+    // The parameters used to create this pointer when created through a script
+    QVariantMap _scriptParameters;
 
     virtual PointerEvent buildPointerEvent(const PickedObject& target, const PickResultPointer& pickResult, const std::string& button = "", bool hover = true) = 0;
 

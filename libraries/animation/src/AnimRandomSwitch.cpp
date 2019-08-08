@@ -27,21 +27,34 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
     AnimRandomSwitch::RandomSwitchState::Pointer desiredState = _currentState;
     if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
 
-        // get a random number and decide which motion to choose.
+        // filter states different to the last random state and with priorities.
         bool currentStateHasPriority = false;
-        float dice = randFloatInRange(0.0f, 1.0f);
-        float lowerBound = 0.0f;
-        for (const RandomSwitchState::Pointer& randState : _randomStates) {
+        std::vector<RandomSwitchState::Pointer> randomStatesToConsider;
+        randomStatesToConsider.reserve(_randomStates.size());
+        float totalPriorities = 0.0f;
+        for (size_t i = 0; i < _randomStates.size(); i++) {
+            auto randState = _randomStates[i];
             if (randState->getPriority() > 0.0f) {
-                float upperBound = lowerBound + (randState->getPriority() / _totalPriorities);
-                if ((dice > lowerBound) && (dice < upperBound)) {
-                    desiredState = randState;
+                bool isRepeatingClip = _children[randState->getChildIndex()]->getID() == _lastPlayedState;
+                if (!isRepeatingClip) {
+                    randomStatesToConsider.push_back(randState);
+                    totalPriorities += randState->getPriority();
                 }
-                lowerBound = upperBound;
-
                 // this indicates if the curent state is one that can be selected randomly, or is one that was transitioned to by the random duration timer.
                 currentStateHasPriority = currentStateHasPriority || (_currentState == randState);
             }
+        }
+        // get a random number and decide which motion to choose.
+        float dice = randFloatInRange(0.0f, 1.0f);
+        float lowerBound = 0.0f;
+        for (size_t i = 0; i < randomStatesToConsider.size(); i++) {
+            auto randState = randomStatesToConsider[i];
+            float upperBound = lowerBound + (randState->getPriority() / totalPriorities);
+            if ((dice > lowerBound) && (dice < upperBound)) {
+                desiredState = randState;
+                break;
+            }
+            lowerBound = upperBound;
         }
         if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1) {
             switchRandomState(animVars, context, desiredState, false);
@@ -152,8 +165,8 @@ void AnimRandomSwitch::addState(RandomSwitchState::Pointer randomState) {
 }
 
 void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp) {
-
     auto nextStateNode = _children[desiredState->getChildIndex()];
+    _lastPlayedState = nextStateNode->getID();
     if (shouldInterp) {
 
         bool interpActive = _duringInterp;

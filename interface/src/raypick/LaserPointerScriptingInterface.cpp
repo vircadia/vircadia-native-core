@@ -23,7 +23,7 @@ void LaserPointerScriptingInterface::setIncludeItems(unsigned int uid, const QSc
 }
 
 unsigned int LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
-    return DependencyManager::get<PointerScriptingInterface>()->createLaserPointer(properties);
+    return DependencyManager::get<PointerScriptingInterface>()->createPointer(PickQuery::PickType::Ray, properties);
 }
 
 void LaserPointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) const {

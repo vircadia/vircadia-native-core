@@ -72,9 +72,7 @@ BOOL CLauncherApp::InitInstance() {
     } else {
         _manager.init(!noUpdate, continueAction);
     }   
-    if (!_manager.hasFailed() && !_manager.installLauncher()) {
-        return FALSE;
-    }
+    _manager.tryToInstallLauncher();
     installFont(IDR_FONT_REGULAR);
     installFont(IDR_FONT_BOLD);
     CWinApp::InitInstance();

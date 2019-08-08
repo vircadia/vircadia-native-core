@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 8/22/2018
+//  Created by Sabrina Shanman 2018/08/22
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -15,6 +15,7 @@ class PickTransformNode : public TransformNode {
 public:
     PickTransformNode(unsigned int uid);
     Transform getTransform() override;
+    QVariantMap toVariantMap() const override;
 
 protected:
     unsigned int _uid;
