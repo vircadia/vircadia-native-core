@@ -168,9 +168,7 @@ void AnimRandomSwitch::addState(RandomSwitchState::Pointer randomState) {
 
 void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp) {
     auto nextStateNode = _children[desiredState->getChildIndex()];
-    if (nextStateNode->getType() == AnimNodeType::Clip) {
-        _lastPlayedState = nextStateNode->getID();
-    }
+    _lastPlayedState = nextStateNode->getID();
     if (shouldInterp) {
 
         const float FRAMES_PER_SECOND = 30.0f;
