@@ -38,8 +38,6 @@ public:
 
     virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::MESH; }
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() override;
-    // Attempt to reserve two threads.
-    int getRequiredThreadCount() const override { return 2; }
 
 protected:
     void customizeContext() override;
