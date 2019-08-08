@@ -955,16 +955,97 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 12,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 0,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaudIntro",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 76,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 12,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaudLoop",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 99,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 76,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaudOutro",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 0,
-                                                                                                    "loopFlag": true,
-                                                                                                    "startFrame": 0,
-                                                                                                    "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                    "currentState": "seatedReactionApplaudIntro",
+                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaudIntro",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaudLoop",
+                                                                                                                    "var": "seatedReactionApplaudIntroOnDone"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "seatedReactionApplaudLoop",
+                                                                                                            "interpDuration": 5,
+                                                                                                            "interpTarget": 5,
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaudOutro",
+                                                                                                                    "var": "reactionApplaudDisabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "seatedReactionApplaudOutro",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaudLoop",
+                                                                                                                    "var": "reactionApplaudEnabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ],
+                                                                                                    "triggerRandomSwitch": ""
                                                                                                 },
                                                                                                 "id": "seatedReactionApplaud",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
