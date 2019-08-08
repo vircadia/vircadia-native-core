@@ -30,6 +30,7 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         // filter states different to the last random state and with priorities.
         bool currentStateHasPriority = false;
         std::vector<RandomSwitchState::Pointer> randomStatesToConsider;
+        randomStatesToConsider.reserve(_randomStates.size());
         float totalPriorities = 0.0f;
         for (size_t i = 0; i < _randomStates.size(); i++) {
             auto randState = _randomStates[i];
