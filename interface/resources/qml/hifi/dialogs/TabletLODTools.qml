@@ -29,6 +29,12 @@ Rectangle {
 
     // This controls the LOD. Larger number will make smaller objects visible at greater distance.
     readonly property real defaultMaxVisibilityDistance: 400.0
+    readonly property real unitElementMaxExtent: Math.sqrt(3.0) * 0.5
+    
+    function lodAngleDegToVisibilityDistance(var lodAngleDeg) {
+        var lodAngleRadians = lodAngleDeg * Math.PI / 180.0;
+        return unitElementMaxExtent / tan(lodAngleRadians);
+    }
 
     Column {
         anchors.margins: 10
@@ -89,7 +95,7 @@ Rectangle {
             value: defaultMaxVisibilityDistance
             tickmarksEnabled: false
             onValueChanged: {
-                LODManager.setVisibilityDistanceForUnitElement(value);
+                LODManager.setLODAngleDeg(lodAngleDegToVisibilityDistance(value));
                 whatYouCanSeeLabel.text = LODManager.getLODFeedbackText()
             }
         }
