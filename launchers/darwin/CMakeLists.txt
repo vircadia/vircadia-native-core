@@ -43,6 +43,8 @@ set(src_files
   src/LaunchInterface.h
   src/CustomUI.h
   src/CustomUI.m
+  src/NSTask+NSTaskExecveAdditions.h
+  src/NSTask+NSTaskExecveAdditions.m
   src/main.mm
   nib/Window.xib
   nib/SplashScreen.xib
