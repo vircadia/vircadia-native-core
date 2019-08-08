@@ -861,16 +861,97 @@
                                                                                             },
                                                                                             {
                                                                                                 "children": [
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 32,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 0,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_raisehand_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionRaiseHandIntro",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 345,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 32,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_raisehand_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionRaiseHandLoop",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 400,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 345,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_raisehand_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionRaiseHandOutro",
+                                                                                                        "type": "clip"
+                                                                                                    }
                                                                                                 ],
                                                                                                 "data": {
-                                                                                                    "endFrame": 0,
-                                                                                                    "loopFlag": true,
-                                                                                                    "startFrame": 0,
-                                                                                                    "timeScale": 1,
-                                                                                                    "url": "qrc:///avatar/animations/sitting_idle.fbx"
+                                                                                                    "currentState": "seatedReactionRaiseHandIntro",
+                                                                                                    "randomSwitchTimeMax": 10,
+                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                    "states": [
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionRaiseHandIntro",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionRaiseHandLoop",
+                                                                                                                    "var": "seatedReactionRaiseHandIntroOnDone"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "seatedReactionRaiseHandLoop",
+                                                                                                            "interpDuration": 5,
+                                                                                                            "interpTarget": 5,
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionRaiseHandOutro",
+                                                                                                                    "var": "reactionRaiseHandDisabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "seatedReactionRaiseHandOutro",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionRaiseHandLoop",
+                                                                                                                    "var": "reactionRaiseHandEnabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ],
+                                                                                                    "triggerRandomSwitch": ""
                                                                                                 },
                                                                                                 "id": "seatedReactionRaiseHand",
-                                                                                                "type": "clip"
+                                                                                                "type": "randomSwitchStateMachine"
                                                                                             },
                                                                                             {
                                                                                                 "children": [
