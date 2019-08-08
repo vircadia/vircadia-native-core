@@ -311,7 +311,9 @@ QString LODManager::getLODFeedbackText() {
     int relativeToTwentyTwenty = 20 / relativeToDefault;
 
     QString result;
-    if (relativeToDefault > 1.01f) {
+    if (relativeToTwentyTwenty < 1) {
+        result = QString("%2 times further than average vision%3").arg(relativeToDefault, 0, 'f', 3).arg(granularityFeedback);
+    } else if (relativeToDefault > 1.01f) {
         result = QString("20:%1 or %2 times further than average vision%3").arg(relativeToTwentyTwenty).arg(relativeToDefault, 0, 'f', 2).arg(granularityFeedback);
     } else if (relativeToDefault > 0.99f) {
         result = QString("20:20 or the default distance for average vision%1").arg(granularityFeedback);
