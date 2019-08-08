@@ -31,6 +31,15 @@ float getPerspectiveAccuracyHalfAngle(float visibilityDistance, int boundaryLeve
     return atan(getPerspectiveAccuracyHalfAngleTan(visibilityDistance, boundaryLevelAdjust));
 }
 
+float getVisibilityDistanceFromHalfAngle(float halfAngle) {
+    float halfAngleTan = tan(halfAngle);
+    return UNIT_ELEMENT_MAX_EXTENT / halfAngleTan;
+}
+
+float getHalfAngleFromVisibilityDistance(float visibilityDistance) {
+    return UNIT_ELEMENT_MAX_EXTENT / visibilityDistance;
+}
+
 float getOrthographicAccuracySize(float visibilityDistance, int boundaryLevelAdjust) {
     // Smallest visible element is 1cm
     const float smallestSize = 0.01f;

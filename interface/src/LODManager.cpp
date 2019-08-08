@@ -12,7 +12,6 @@
 #include "LODManager.h"
 
 #include <SettingHandle.h>
-#include <OctreeUtils.h>
 #include <Util.h>
 #include <shared/GlobalAppProperties.h>
 
@@ -165,7 +164,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
     // And now add the output of the controller to the LODAngle where we will guarantee it is in the proper range
     setLODAngleDeg(oldLODAngle + output);
 
-    if (oldVisibilityDistance != _visibilityDistance) {
+    if (oldLODAngle != getLODAngleDeg()) {
         auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
         if (lodToolsDialog) {
             lodToolsDialog->reloadSliders();
@@ -174,22 +173,26 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 }
 
 float LODManager::getLODHalfAngleTan() const {
-    return getPerspectiveAccuracyHalfAngleTan(_visibilityDistance, _boundaryLevelAdjust);
+    return tan(_lodHalfAngle);
 
 }
 float LODManager::getLODAngle() const {
-    return 2.0f * atanf(getLODHalfAngleTan());
+    return 2.0f * _lodHalfAngle;
 }
 float LODManager::getLODAngleDeg() const {
     return glm::degrees(getLODAngle());
 }
 
 float LODManager::getVisibilityDistance() const {
-    return _visibilityDistance;
+    float systemDistance = getVisibilityDistanceFromHalfAngle(_lodHalfAngle);
+    // Maintain behavior with deprecated _boundaryLevelAdjust property
+    return systemDistance * powf(2.0f, _boundaryLevelAdjust);
 }
 
 void LODManager::setVisibilityDistance(float distance) {
-    _visibilityDistance = distance;
+    // Maintain behavior with deprecated _boundaryLevelAdjust property
+    float userDistance = distance / powf(2.0f, _boundaryLevelAdjust);
+    _lodHalfAngle = getHalfAngleFromVisibilityDistance(userDistance);
 }
 
 void LODManager::setLODAngleDeg(float lodAngle) {

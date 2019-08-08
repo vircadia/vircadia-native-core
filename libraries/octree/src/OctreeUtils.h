@@ -24,6 +24,8 @@ float boundaryDistanceForRenderLevel(unsigned int renderLevel, float visibilityD
 
 float getPerspectiveAccuracyHalfAngleTan(float visibilityDistance, int boundaryLevelAdjust);
 float getPerspectiveAccuracyHalfAngle(float visibilityDistance, int boundaryLevelAdjust);
+float getVisibilityDistanceFromHalfAngle(float halfAngle);
+float getHalfAngleFromVisibilityDistance(float visibilityDistance);
 float getOrthographicAccuracySize(float visibilityDistance, int boundaryLevelAdjust);
 
 // MIN_ELEMENT_ANGULAR_DIAMETER = angular diameter of 1x1x1m cube at 400m = sqrt(3) / 400 = 0.0043301 radians ~= 0.25 degrees
