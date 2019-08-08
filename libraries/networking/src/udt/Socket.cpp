@@ -337,9 +337,12 @@ void Socket::checkForReadyReadBackup() {
 
 
         // drop all of the pending datagrams on the floor
+        int droppedCount = 0;
         while (_udpSocket.hasPendingDatagrams()) {
             _udpSocket.readDatagram(nullptr, 0);
+            ++droppedCount;
         }
+        qCDebug(networking) << "Flushed" << droppedCount << "Packets";
     }
 }
 
