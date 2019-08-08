@@ -37,7 +37,8 @@ float getVisibilityDistanceFromHalfAngle(float halfAngle) {
 }
 
 float getHalfAngleFromVisibilityDistance(float visibilityDistance) {
-    return UNIT_ELEMENT_MAX_EXTENT / visibilityDistance;
+    float halfAngleTan = UNIT_ELEMENT_MAX_EXTENT / visibilityDistance;
+    return atan(halfAngleTan);
 }
 
 float getOrthographicAccuracySize(float visibilityDistance, int boundaryLevelAdjust) {

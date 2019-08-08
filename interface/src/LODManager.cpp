@@ -92,8 +92,7 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
         return;
     }
 
-    // Previous values for output
-    float oldVisibilityDistance = getVisibilityDistance();
+    // Previous value for output
     float oldLODAngle = getLODAngleDeg();
 
     // Target fps is slightly overshooted by 5hz
@@ -174,7 +173,6 @@ void LODManager::autoAdjustLOD(float realTimeDelta) {
 
 float LODManager::getLODHalfAngleTan() const {
     return tan(_lodHalfAngle);
-
 }
 float LODManager::getLODAngle() const {
     return 2.0f * _lodHalfAngle;
@@ -196,10 +194,9 @@ void LODManager::setVisibilityDistance(float distance) {
 }
 
 void LODManager::setLODAngleDeg(float lodAngle) {
-    auto newSolidAngle = std::max(0.001f, std::min(lodAngle, 90.f));
-    auto halfTan = glm::tan(glm::radians(newSolidAngle * 0.5f));
-    auto visibilityDistance = UNIT_ELEMENT_MAX_EXTENT / halfTan;
-    setVisibilityDistance(visibilityDistance);
+    auto newLODAngleDeg = std::max(0.001f, std::min(lodAngle, 90.f));
+    auto newLODHalfAngle = glm::radians(newLODAngleDeg * 0.5);
+    _lodHalfAngle = newLODHalfAngle;
 }
 
 void LODManager::setSmoothScale(float t) {
