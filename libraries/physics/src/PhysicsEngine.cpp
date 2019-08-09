@@ -855,8 +855,8 @@ void PhysicsEngine::addContactAddedCallback(PhysicsEngine::ContactAddedCallback 
 }
 
 void PhysicsEngine::removeContactAddedCallback(PhysicsEngine::ContactAddedCallback cb) {
-    uint32_t numCallbacks = _contactAddedCallbacks.size();
-    for (uint32_t i = 0; i < numCallbacks; ++i) {
+    int32_t numCallbacks = _contactAddedCallbacks.size();
+    for (int32_t i = 0; i < numCallbacks; ++i) {
         if (_contactAddedCallbacks[i] == cb) {
             // found it --> remove it
             _contactAddedCallbacks[i] = _contactAddedCallbacks[numCallbacks - 1];
