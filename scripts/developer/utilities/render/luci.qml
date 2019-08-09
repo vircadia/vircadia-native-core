@@ -69,7 +69,7 @@ Rectangle {
                     Culling {}
                 }
             }
-            Prop.PropFolderPanel {
+       /*     Prop.PropFolderPanel {
                 label: "Tools"
                 panelFrameData: Component {
                     Row {
@@ -87,7 +87,7 @@ Rectangle {
                         }
                     }
                 }
-            }
+            }*/
       /*      Jet.TaskPropView {
                 id: "le"
                 jobPath: ""
