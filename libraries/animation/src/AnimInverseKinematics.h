@@ -148,6 +148,7 @@ protected:
     void clearConstraints();
     void initConstraints();
     void initLimitCenterPoses();
+    float getInterpolationAlpha(float timer);
 
     // no copies
     AnimInverseKinematics(const AnimInverseKinematics&) = delete;
@@ -181,6 +182,7 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
+    std::map<int, glm::quat> _rotationOnlyIKRotations;
 
     std::map<int, AnimPose> _secondaryTargetsInRigFrame;
 
