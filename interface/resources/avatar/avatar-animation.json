@@ -615,6 +615,19 @@
                                                                                                                 },
                                                                                                                 "id": "seatedTalk03",
                                                                                                                 "type": "clip"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "children": [
+                                                                                                                ],
+                                                                                                                "data": {
+                                                                                                                    "endFrame": 442,
+                                                                                                                    "loopFlag": true,
+                                                                                                                    "startFrame": 0,
+                                                                                                                    "timeScale": 1,
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_talk04.fbx"
+                                                                                                                },
+                                                                                                                "id": "seatedTalk04",
+                                                                                                                "type": "clip"
                                                                                                             }
                                                                                                         ],
                                                                                                         "data": {
@@ -633,6 +646,15 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "seatedTalk03",
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
+                                                                                                                    "priority": 1,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": [
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "id": "seatedTalk04",
                                                                                                                     "interpDuration": 6,
                                                                                                                     "interpTarget": 6,
                                                                                                                     "priority": 1,
