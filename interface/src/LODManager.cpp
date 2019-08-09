@@ -195,7 +195,7 @@ void LODManager::setVisibilityDistance(float distance) {
 
 void LODManager::setLODAngleDeg(float lodAngle) {
     auto newLODAngleDeg = std::max(0.001f, std::min(lodAngle, 90.f));
-    auto newLODHalfAngle = glm::radians(newLODAngleDeg * 0.5);
+    auto newLODHalfAngle = glm::radians(newLODAngleDeg * 0.5f);
     _lodHalfAngle = newLODHalfAngle;
 }
 
