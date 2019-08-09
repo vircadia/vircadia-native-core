@@ -213,6 +213,12 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
     }
 }
 
+float AnimInverseKinematics::getInterpolationAlpha(float timer) {
+    float alpha = (JOINT_CHAIN_INTERP_TIME - timer) / JOINT_CHAIN_INTERP_TIME;
+    alpha = 1.0f - powf(2.0f, -10.0f * alpha);
+    return alpha;
+}
+
 void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<IKTarget>& targets, float dt, JointChainInfoVec& jointChainInfoVec) {
     // compute absolute poses that correspond to relative target poses
     AnimPoseVec absolutePoses;
@@ -226,6 +232,8 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
     for (auto& accumulator : _translationAccumulators) {
         accumulator.clearAndClean();
     }
+
+    std::map<int, int> targetToChainMap;
 
     float maxError = 0.0f;
     int numLoops = 0;
@@ -248,17 +256,13 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                 break;
             }
         }
-
+        
         // on last iteration, interpolate jointChains, if necessary
         if (numLoops == MAX_IK_LOOPS) {
             for (size_t i = 0; i < _prevJointChainInfoVec.size(); i++) {
+                targetToChainMap.insert(std::pair<int, int>(_prevJointChainInfoVec[i].target.getIndex(), (int)i));
                 if (_prevJointChainInfoVec[i].timer > 0.0f) {
-
-                    float alpha = (JOINT_CHAIN_INTERP_TIME - _prevJointChainInfoVec[i].timer) / JOINT_CHAIN_INTERP_TIME;
-
-                    // ease in expo
-                    alpha = 1.0f - powf(2.0f, -10.0f * alpha);
-
+                    float alpha = getInterpolationAlpha(_prevJointChainInfoVec[i].timer);
                     size_t chainSize = std::min(_prevJointChainInfoVec[i].jointInfoVec.size(), jointChainInfoVec[i].jointInfoVec.size());
 
                     if (jointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown) {
@@ -336,22 +340,47 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
     for (auto& target: targets) {
         int tipIndex = target.getIndex();
         int parentIndex = (tipIndex >= 0) ? _skeleton->getParentIndex(tipIndex) : -1;
-
+        int chainIndex = targetToChainMap[tipIndex];
+        bool needsInterpolation = _prevJointChainInfoVec[chainIndex].timer > 0.0f;
+        float alpha = needsInterpolation ? getInterpolationAlpha(_prevJointChainInfoVec[chainIndex].timer) : 0.0f;
         // update rotationOnly targets that don't lie on the ik chain of other ik targets.
-        if (parentIndex != -1 && !_rotationAccumulators[tipIndex].isDirty() && target.getType() == IKTarget::Type::RotationOnly) {
-            const glm::quat& targetRotation = target.getRotation();
-            // compute tip's new parent-relative rotation
-            // Q = Qp * q   -->   q' = Qp^ * Q
-            glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot()) * targetRotation;
-            RotationConstraint* constraint = getConstraint(tipIndex);
-            if (constraint) {
-                constraint->apply(newRelativeRotation);
-                // TODO: ATM the final rotation target just fails but we need to provide
-                // feedback to the IK system so that it can adjust the bones up the skeleton
-                // to help this rotation target get met.
+        if (parentIndex != -1 && !_rotationAccumulators[tipIndex].isDirty() && 
+            (target.getType() == IKTarget::Type::RotationOnly || target.getType() == IKTarget::Type::Unknown)) {
+            if (target.getType() == IKTarget::Type::RotationOnly) {
+                const glm::quat& targetRotation = target.getRotation();
+                // compute tip's new parent-relative rotation
+                // Q = Qp * q   -->   q' = Qp^ * Q
+                glm::quat newRelativeRotation = glm::inverse(absolutePoses[parentIndex].rot()) * targetRotation;
+                RotationConstraint* constraint = getConstraint(tipIndex);
+                if (constraint) {
+                    constraint->apply(newRelativeRotation);
+                    // TODO: ATM the final rotation target just fails but we need to provide
+                    // feedback to the IK system so that it can adjust the bones up the skeleton
+                    // to help this rotation target get met.
+                }
+                if (needsInterpolation) {
+                    _relativePoses[tipIndex].rot() = safeMix(_relativePoses[tipIndex].rot(), newRelativeRotation, alpha);
+                } else {
+                    _relativePoses[tipIndex].rot() = newRelativeRotation;
+                    // Add last known rotations to interpolate from
+                    if (_rotationOnlyIKRotations.find(tipIndex) == _rotationOnlyIKRotations.end()) {
+                        _rotationOnlyIKRotations.insert(std::pair<int, glm::quat>(tipIndex, newRelativeRotation));
+                    } else {
+                        _rotationOnlyIKRotations[tipIndex] = newRelativeRotation;
+                    }
+                }
+                absolutePoses[tipIndex].rot() = targetRotation;
+            } else {
+                bool rotationSnapshotExist = _rotationOnlyIKRotations.find(tipIndex) != _rotationOnlyIKRotations.end();
+                if (needsInterpolation) {
+                    if (rotationSnapshotExist) {
+                        glm::quat lastKnownRotation = _rotationOnlyIKRotations[tipIndex];
+                        _relativePoses[tipIndex].rot() = safeMix(_relativePoses[tipIndex].rot(), lastKnownRotation, (1 - alpha));
+                    }
+                } else if (rotationSnapshotExist) {
+                    _rotationOnlyIKRotations.erase(tipIndex);
+                }
             }
-            _relativePoses[tipIndex].rot() = newRelativeRotation;
-            absolutePoses[tipIndex].rot() = targetRotation;
         }
     }
 
@@ -928,6 +957,10 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                         (jointChainInfoVec[i].target.getType() != _prevJointChainInfoVec[i].target.getType() ||
                          jointChainInfoVec[i].target.getPoleVectorEnabled() != _prevJointChainInfoVec[i].target.getPoleVectorEnabled())) {
                         _prevJointChainInfoVec[i].timer = JOINT_CHAIN_INTERP_TIME;
+                        // Clear the rotations when the target is known
+                        if (jointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown) {
+                            _rotationOnlyIKRotations.erase(jointChainInfoVec[i].target.getIndex());
+                        }
                     }
                 }
             }
