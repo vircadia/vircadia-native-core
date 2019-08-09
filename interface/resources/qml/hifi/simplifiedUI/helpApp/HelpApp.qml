@@ -14,6 +14,7 @@ import "../simplifiedConstants" as SimplifiedConstants
 import "../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
 import "./controls" as HelpControls
+import "./faq" as HelpFAQ
 import "./about" as HelpAbout
 
 Rectangle {
@@ -47,6 +48,10 @@ Rectangle {
             ListElement {
                 tabTitle: "Controls"
                 tabViewName: "controlsTabView"
+            }
+            ListElement {
+                tabTitle: "FAQ"
+                tabViewName: "faqTabView"
             }
             ListElement {
                 tabTitle: "About"
@@ -125,6 +130,12 @@ Rectangle {
             anchors.fill: parent
         }
 
+        HelpFAQ.HelpFAQ {
+            id: faqTabViewContainer
+            visible: activeTabView === "faqTabView"
+            anchors.fill: parent
+        }
+
         HelpAbout.HelpAbout {
             id: aboutTabViewContainer
             visible: activeTabView === "aboutTabView"
@@ -133,8 +144,10 @@ Rectangle {
 
         SimplifiedControls.VerticalScrollBar {
             parent: {
-                if (activeTabView === "generalTabView") {
-                    controlsTabViewContainers
+                if (activeTabView === "controlsTabView") {
+                    controlsTabViewContainer
+                } else if (activeTabView === "faqTabView") {
+                    faqTabViewContainer
                 } else if (activeTabView === "aboutTabView") {
                     aboutTabViewContainer
                 }
