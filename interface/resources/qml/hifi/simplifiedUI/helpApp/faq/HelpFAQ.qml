@@ -13,7 +13,6 @@ import QtQuick.Controls 2.3
 import "../../simplifiedConstants" as SimplifiedConstants
 import "../../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
-import controlsUit 1.0 as HifiControlsUit
 import QtQuick.Layouts 1.3
 import PerformanceEnums 1.0
 
@@ -21,7 +20,7 @@ Item {
     id: root
     width: parent.width
     height: parent.height
-    
+
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -50,8 +49,6 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: 26
         anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 16
         spacing: 0
 
         HifiStylesUit.GraphikSemiBold {
@@ -63,11 +60,26 @@ Item {
             color: simplifiedUI.colors.text.white
         }
 
-        HifiControlsUit.WebView {
-            url: "https://www.highfidelity.com/knowledge"
+        HifiStylesUit.GraphikRegular {
+            text: "You can find our frequently asked questions here:"
             Layout.preferredWidth: parent.width
-            Layout.fillHeight: true
-            Layout.topMargin: 16
+            Layout.preferredHeight: paintedHeight
+            Layout.topMargin: 8
+            size: 18
+            wrapMode: Text.Wrap
+            color: simplifiedUI.colors.text.white
+        }
+
+        SimplifiedControls.Button {
+            Layout.topMargin: 8
+            width: 200
+            height: 32
+            text: "VIEW FAQ"
+            temporaryText: "Viewing!"
+
+            onClicked: {
+                Qt.openUrlExternally("https://www.highfidelity.com/knowledge");
+            }
         }
     }
 }
