@@ -39,6 +39,10 @@ module.exports = {
                 if (error) {
                     response = { statusCode: httpRequest.status };
                 }
+
+                // Break circular reference to httpRequest so the engine can garbage collect it.
+                httpRequest.onreadystatechange = null;
+
                 callback(error, response, optionalCallbackParameter);
             }
         };
