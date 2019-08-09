@@ -60,7 +60,6 @@ class LODManager : public QObject, public Dependency {
 
         Q_PROPERTY(float lodQualityLevel READ getLODQualityLevel WRITE setLODQualityLevel NOTIFY lodQualityLevelChanged)
 
-        // Deprecated
         Q_PROPERTY(bool automaticLODAdjust READ getAutomaticLODAdjust WRITE setAutomaticLODAdjust NOTIFY autoLODChanged)
 
         Q_PROPERTY(float presentTime READ getPresentTime)
