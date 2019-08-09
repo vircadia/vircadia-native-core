@@ -362,12 +362,12 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                     _relativePoses[tipIndex].rot() = safeMix(_relativePoses[tipIndex].rot(), newRelativeRotation, alpha);
                 } else {
                     _relativePoses[tipIndex].rot() = newRelativeRotation;
-                    // Add last known rotations to interpolate from
-                    if (_rotationOnlyIKRotations.find(tipIndex) == _rotationOnlyIKRotations.end()) {
-                        _rotationOnlyIKRotations.insert(std::pair<int, glm::quat>(tipIndex, newRelativeRotation));
-                    } else {
-                        _rotationOnlyIKRotations[tipIndex] = newRelativeRotation;
-                    }
+                }
+                // Add last known rotations to interpolate from
+                if (_rotationOnlyIKRotations.find(tipIndex) == _rotationOnlyIKRotations.end()) {
+                    _rotationOnlyIKRotations.insert(std::pair<int, glm::quat>(tipIndex, _relativePoses[tipIndex].rot()));
+                } else {
+                    _rotationOnlyIKRotations[tipIndex] = _relativePoses[tipIndex].rot();
                 }
                 absolutePoses[tipIndex].rot() = targetRotation;
             } else {
