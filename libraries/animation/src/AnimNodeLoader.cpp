@@ -943,9 +943,6 @@ bool processRandomSwitchStateMachineNode(AnimNode::Pointer node, const QJsonObje
         }
 
         auto randomStatePtr = std::make_shared<AnimRandomSwitch::RandomSwitchState>(id, iter->second, interpTarget, interpDuration, interpTypeEnum, easingTypeEnum, priority, resume);
-        if (priority > 0.0f) {
-            smNode->addToPrioritySum(priority);
-        }
         assert(randomStatePtr);
 
         if (!interpTargetVar.isEmpty()) {

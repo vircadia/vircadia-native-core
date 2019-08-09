@@ -53,6 +53,8 @@ public:
     void updateVisionSqueezeParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
                                        int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
                                        float visionSqueezeSpotlightSize);
+    // Attempt to reserve two threads.
+    int getRequiredThreadCount() const override { return 2; }
 
 signals:
     void hmdMountedChanged();
