@@ -31,9 +31,10 @@ Rectangle {
     readonly property real defaultMaxVisibilityDistance: 400.0
     readonly property real unitElementMaxExtent: Math.sqrt(3.0) * 0.5
     
-    function lodAngleDegToVisibilityDistance(var lodAngleDeg) {
-        var lodAngleRadians = lodAngleDeg * Math.PI / 180.0;
-        return unitElementMaxExtent / tan(lodAngleRadians);
+    function visibilityDistanceToLODAngleDeg(visibilityDistance) {
+        var lodHalfAngle = Math.atan(unitElementMaxExtent / visibilityDistance);
+        var lodAngle = lodHalfAngle * 2.0;
+        return lodAngle * 180.0 / Math.PI;
     }
 
     Column {
@@ -74,7 +75,7 @@ Rectangle {
                 id: adjustCheckbox
                 boxSize: 20
                 anchors.verticalCenter: parent.verticalCenter
-                onCheckedChanged: LODManager.setAutomaticLODAdjust(!checked);
+                onCheckedChanged: LODManager.setAutomaticLODAdjust(!adjustCheckbox.checked);
             }
         }
 
@@ -95,7 +96,7 @@ Rectangle {
             value: defaultMaxVisibilityDistance
             tickmarksEnabled: false
             onValueChanged: {
-                LODManager.setLODAngleDeg(lodAngleDegToVisibilityDistance(value));
+                LODManager.lodAngleDeg = visibilityDistanceToLODAngleDeg(slider.value);
                 whatYouCanSeeLabel.text = LODManager.getLODFeedbackText()
             }
         }
