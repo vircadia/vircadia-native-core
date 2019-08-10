@@ -18,6 +18,8 @@ import controlsUit 1.0 as HifiControls
 import "../configSlider"
 import "../../lib/plotperf"
 
+import "../../lib/prop" as Prop
+
     
 Column{
     HifiConstants { id: hifi; }
@@ -28,7 +30,14 @@ Column{
     anchors.right: parent.right 
 
     spacing: 10
-    
+     Prop.PropScalar {
+        label: "MSAA"
+        object: Render.getConfig("RenderMainView.PreparePrimaryBufferForward")
+        property: "numSamples"
+        min: 1
+        max: 4
+        integral: true
+    }
     Row {
         spacing: 10
         id: fxaaOnOff

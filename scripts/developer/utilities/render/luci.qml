@@ -34,6 +34,14 @@ Rectangle {
         Column {
             width: parent.width
             Prop.PropFolderPanel {
+                label: "Render Settings"
+                isUnfold: false
+                panelFrameData: Component {
+                    RenderSettings {
+                    }
+                }
+            }
+            Prop.PropFolderPanel {
                 label: "Shading Model"
                 panelFrameData: Component {
                     ShadingModel {}
@@ -69,7 +77,7 @@ Rectangle {
                     Culling {}
                 }
             }
-       /*     Prop.PropFolderPanel {
+            Prop.PropFolderPanel {
                 label: "Tools"
                 panelFrameData: Component {
                     Row {
@@ -87,7 +95,7 @@ Rectangle {
                         }
                     }
                 }
-            }*/
+            }
       /*      Jet.TaskPropView {
                 id: "le"
                 jobPath: ""
