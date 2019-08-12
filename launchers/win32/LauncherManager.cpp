@@ -745,7 +745,7 @@ BOOL LauncherManager::installContent() {
         }
         else {
             addToLog(_T("Error decompressing content zip file."));
-            setFailed(_hasFailed);
+            setFailed(true);
         }
     };
     std::function<void(float)> onProgress = [&](float progress) {
@@ -785,7 +785,7 @@ BOOL LauncherManager::downloadFile(ProcessType type, const CString& url, CString
                 } else {
                     addToLog(_T("Error downloading application."));
                 }
-                setFailed(_hasFailed);
+                setFailed(true);
             }
         };
         std::function<void(float)> onProgress = [&, type](float progress) {
