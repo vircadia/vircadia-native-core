@@ -2740,7 +2740,8 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
         position = getWorldPosition();
         orientation = getWorldOrientation();
         if (_characterController.needsSafeLandingSupport() && !_goToPending) {
-            _goToPending = true;
+            _characterController.resetStuckCounter();
+            _physicsSafetyPending = true;
             _goToSafe = true;
             _goToPosition = position;
         }

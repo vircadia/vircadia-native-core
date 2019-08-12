@@ -37,8 +37,8 @@ const uint32_t PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION = 1U << 7;
 
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
-const uint32_t NUM_FRAMES_FOR_STUCK_TRANSITION = 6; // mainloop frames
-const uint32_t NUM_FRAMES_FOR_SAFE_LANDING_RETRY = 40; // mainloop frames
+const uint32_t NUM_SUBSTEPS_FOR_STUCK_TRANSITION = 6; // physics substeps
+const uint32_t NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY = 40; // physics substeps
 
 class btRigidBody;
 class btCollisionWorld;
@@ -144,6 +144,8 @@ public:
     void setSeated(bool isSeated) { _isSeated = isSeated;  }
     bool getSeated() { return _isSeated; }
 
+    void resetStuckCounter() { _numStuckSubsteps = 0; }
+
 protected:
 #ifdef DEBUG_STATE_CHANGE
     void setState(State state, const char* reason);
@@ -223,7 +225,7 @@ protected:
     uint32_t _pendingFlags { 0 };
     uint32_t _previousFlags { 0 };
     uint32_t _stuckTransitionCount { 0 };
-    uint32_t _numStuckFrames { 0 };
+    uint32_t _numStuckSubsteps { 0 };
 
     bool _inWorld { false };
     bool _zoneFlyingAllowed { true };

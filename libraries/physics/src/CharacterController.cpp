@@ -348,16 +348,19 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     // If there's deep penetration and big impulse we're probably stuck.
     const float STUCK_PENETRATION = -0.05f; // always negative into the object.
     const float STUCK_IMPULSE = 500.0f;
-    probablyStuck = probablyStuck || (deepestDistance < STUCK_PENETRATION && strongestImpulse > STUCK_IMPULSE);
+    probablyStuck = probablyStuck
+        || deepestDistance < 2.0f * STUCK_PENETRATION
+        || strongestImpulse > 2.0f * STUCK_IMPULSE
+        || (deepestDistance < STUCK_PENETRATION && strongestImpulse > STUCK_IMPULSE);
 
     if (_isStuck != probablyStuck) {
         ++_stuckTransitionCount;
-        if (_stuckTransitionCount == NUM_FRAMES_FOR_STUCK_TRANSITION) {
+        if (_stuckTransitionCount > NUM_SUBSTEPS_FOR_STUCK_TRANSITION) {
             // we've been in this "probablyStuck" state for several consecutive frames
             // --> make it official by changing state
             _isStuck = probablyStuck;
-            // start _numStuckFrames at NUM_FRAMES_FOR_SAFE_LANDING_RETRY so SafeLanding tries to help immediately
-            _numStuckFrames = NUM_FRAMES_FOR_SAFE_LANDING_RETRY;
+            // start _numStuckSubsteps at NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY so SafeLanding tries to help immediately
+            _numStuckSubsteps = NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY;
             _stuckTransitionCount = 0;
             if (_isStuck) {
                 _physicsEngine->addContactAddedCallback(flipBackfaceTriangleNormals);
@@ -369,7 +372,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     } else {
         _stuckTransitionCount = 0;
         if (_isStuck) {
-            ++_numStuckFrames;
+            ++_numStuckSubsteps;
             _flippedThisFrame = false;
         }
     }
@@ -795,6 +798,8 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
 }
 
 void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
+    btVector3 currentVelocity = velocity;
+
     if (velocity.length2() < MIN_TARGET_SPEED_SQUARED) {
         velocity = btVector3(0.0f, 0.0f, 0.0f);
     }
@@ -833,6 +838,14 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     // Note the differences between these two variables:
     // _targetVelocity = ideal final velocity according to input
     // velocity = real final velocity after motors are applied to current velocity
+
+    bool gettingStuck = !_isStuck && _stuckTransitionCount > 1 && _state == State::Hover;
+    if (gettingStuck && velocity.length2() > currentVelocity.length2()) {
+        // we are probably trying to fly fast into a mesh obstacle
+        // which is causing us to tickle the "stuck" detection code
+        // so we average our new velocity with currentVeocity to prevent a "safe landing" response
+        velocity = 0.5f * (velocity + currentVelocity);
+    }
 }
 
 void CharacterController::computeNewVelocity(btScalar dt, glm::vec3& velocity) {

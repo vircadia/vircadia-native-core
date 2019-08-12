@@ -224,7 +224,7 @@ void MyCharacterController::handleChangedCollisionMask() {
 }
 
 bool MyCharacterController::needsSafeLandingSupport() const {
-    return _isStuck && 0 == (_numStuckFrames % NUM_FRAMES_FOR_SAFE_LANDING_RETRY);
+    return _isStuck && _numStuckSubsteps >= NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY;
 }
 
 btConvexHullShape* MyCharacterController::computeShape() const {
