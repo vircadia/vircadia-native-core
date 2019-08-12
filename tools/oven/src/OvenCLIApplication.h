@@ -21,7 +21,14 @@ class OvenCLIApplication : public QCoreApplication, public Oven {
 public:
     OvenCLIApplication(int argc, char* argv[]);
 
+    static void parseCommandLine(int argc, char* argv[]);
+
     static OvenCLIApplication* instance() { return dynamic_cast<OvenCLIApplication*>(QCoreApplication::instance()); }
+
+private:
+    static QUrl _inputUrlParameter;
+    static QUrl _outputUrlParameter;
+    static QString _typeParameter;
 };
 
 #endif // hifi_OvenCLIApplication_h
