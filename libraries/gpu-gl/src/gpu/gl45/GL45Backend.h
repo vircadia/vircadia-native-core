@@ -33,6 +33,7 @@ class GL45Backend : public GLBackend {
     friend class Context;
 
 public:
+    static const GLint RESOURCE_TRANSFER_TEX_UNIT { 32 };
     static GLint MAX_COMBINED_SHADER_STORAGE_BLOCKS;
     static GLint MAX_UNIFORM_LOCATIONS;
 #if GPU_BINDLESS_TEXTURES
