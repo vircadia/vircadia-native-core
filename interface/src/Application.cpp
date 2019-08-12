@@ -4418,8 +4418,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isMeta) {
                     auto dialogsManager = DependencyManager::get<DialogsManager>();
                     dialogsManager->toggleAddressBar();
-                } else if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 }
                 break;
 
