@@ -14,12 +14,14 @@ namespace gpu { namespace gl {
 
 class GLTexelFormat {
 public:
-    GLenum internalFormat;
-    GLenum format;
-    GLenum type;
+    GLenum internalFormat{ GL_RGBA8 };
+    GLenum format{ GL_RGBA };
+    GLenum type{ GL_UNSIGNED_BYTE };
 
     GLTexelFormat(GLenum glinternalFormat, GLenum glformat, GLenum gltype) : internalFormat(glinternalFormat), format(glformat), type(gltype) {}
     GLTexelFormat(GLenum glinternalFormat) : internalFormat(glinternalFormat) {}
+
+    static bool isCompressed(GLenum glinternalFormat);
 
     bool isCompressed() const;
 
