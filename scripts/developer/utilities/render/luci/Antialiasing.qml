@@ -35,7 +35,7 @@ Column{
         object: Render.getConfig("RenderMainView.PreparePrimaryBufferForward")
         property: "numSamples"
         min: 1
-        max: 4
+        max: 32
         integral: true
     }
     Row {

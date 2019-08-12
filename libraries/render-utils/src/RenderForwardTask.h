@@ -46,18 +46,10 @@ class PreparePrimaryFramebufferMSAAConfig : public render::Job::Config {
     Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples)
 public:
     float getResolutionScale() const { return resolutionScale; }
-    void setResolutionScale(float scale) {
-        const float SCALE_RANGE_MIN = 0.1f;
-        const float SCALE_RANGE_MAX = 2.0f;
-        resolutionScale = std::max(SCALE_RANGE_MIN, std::min(SCALE_RANGE_MAX, scale));
-        //emit dirty();
-    }
+    void setResolutionScale(float scale);
 
     int getNumSamples() const { return numSamples; }
-    void setNumSamples(int num) {
-        numSamples = std::max(1, std::min(32, num));
-        emit dirty();
-    }
+    void setNumSamples(int num);
 
 signals:
     void dirty();
