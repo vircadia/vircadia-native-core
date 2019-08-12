@@ -12,10 +12,10 @@
 
 #include <QtCore/QObject>
 
-#ifdef WIN32
+#if defined(Q_OS_WIN) || defined(Q_OS_LINUX)
 // Enable event queue debugging
 #define DEBUG_EVENT_QUEUE
-#endif // WIN32
+#endif
 
 namespace hifi { namespace qt {
 void addBlockingForbiddenThread(const QString& name, QThread* thread = nullptr);
