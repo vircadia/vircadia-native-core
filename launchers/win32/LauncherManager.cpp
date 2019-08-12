@@ -445,7 +445,7 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     CString response;
     CString url = _T("/organizations/") + hash + _T(".json");
     LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(getHttpUserAgent(),
-                                                                     L"orgs.highfidelity.com", url,
+                                                                     true, L"orgs.highfidelity.com", url,
                                                                      contentTypeJson, CStringA(), 
                                                                      response, false);
     if (error != LauncherUtils::ResponseError::NoError) {
@@ -500,9 +500,29 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
         }
         onMostRecentBuildsReceived(response, error);
     };
+
+    bool useHTTPS{ true };
+
+    CString domainName;
+    if (domainName.GetEnvironmentVariable(L"HQ_LAUNCHER_BUILDS_DOMAIN")) {
+        addToLog(_T("Using overridden builds domain: ") + domainName);
+        useHTTPS = false;
+    } else {
+        domainName = L"thunder.highfidelity.com";
+    }
+
+    CString pathName;
+    if (pathName.GetEnvironmentVariable(L"HQ_LAUNCHER_BUILDS_PATH")) {
+        addToLog(_T("Using overridden builds path: ") + pathName);
+        useHTTPS = false;
+    } else {
+        pathName = L"/builds/api/tags/latest?format=json";
+    }
+
     LauncherUtils::httpCallOnThread(getHttpUserAgent(),
-                                    L"thunder.highfidelity.com",
-                                    L"/builds/api/tags/latest?format=json",
+                                    useHTTPS,
+                                    domainName,
+                                    pathName,
                                     contentTypeJson, CStringA(), false, httpCallback);
 }
 
@@ -567,6 +587,7 @@ LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const
     CString contentTypeText = L"content-type:application/x-www-form-urlencoded";
     CString response;
     LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(getHttpUserAgent(),
+                                                                     true,
                                                                      L"metaverse.highfidelity.com", 
                                                                      L"/oauth/token",
                                                                      contentTypeText, post, 
