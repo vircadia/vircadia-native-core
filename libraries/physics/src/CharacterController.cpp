@@ -18,13 +18,58 @@
 #include "ObjectMotionState.h"
 #include "PhysicsHelpers.h"
 #include "PhysicsLogging.h"
+#include "TemporaryPairwiseCollisionFilter.h"
+
+const float STUCK_PENETRATION = -0.05f; // always negative into the object.
+const float STUCK_IMPULSE = 500.0f;
+
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
-static bool _flippedThisFrame = false;
+static bool _appliedStuckRecoveryStrategy = false;
+
+static TemporaryPairwiseCollisionFilter _pairwiseFilter;
+
+// Note: applyPairwiseFilter is registered as a sub-callback to Bullet's gContactAddedCallback feature
+// when we detect MyAvatar is "stuck".  It will disable new ManifoldPoints between MyAvatar and mesh objects with
+// which it has deep penetration, and will continue disabling new contact until new contacts stop happening
+// (no overlap).  If MyAvatar is not trying to move its velocity is defaulted to "up", to help it escape overlap.
+bool applyPairwiseFilter(btManifoldPoint& cp,
+        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
+        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
+    static int32_t numCalls = 0;
+    ++numCalls;
+    // This callback is ONLY called on objects with btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK flag
+    // and the flagged object will always be sorted to Obj0.  Hence the "other" is always Obj1.
+    const btCollisionObject* other = colObj1Wrap->m_collisionObject;
+
+    if (_pairwiseFilter.isFiltered(other)) {
+        _pairwiseFilter.incrementEntry(other);
+        // disable contact point by setting distance too large and normal to zero
+        cp.setDistance(1.0e6f);
+        cp.m_normalWorldOnB.setValue(0.0f, 0.0f, 0.0f);
+        _appliedStuckRecoveryStrategy = true;
+        return false;
+    }
+
+    if (other->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE) {
+        if ( cp.getDistance() < 2.0f * STUCK_PENETRATION ||
+                cp.getAppliedImpulse() > 2.0f * STUCK_IMPULSE ||
+                (cp.getDistance() < STUCK_PENETRATION && cp.getAppliedImpulse() > STUCK_IMPULSE)) {
+            _pairwiseFilter.incrementEntry(other);
+            // disable contact point by setting distance too large and normal to zero
+            cp.setDistance(1.0e6f);
+            cp.m_normalWorldOnB.setValue(0.0f, 0.0f, 0.0f);
+            _appliedStuckRecoveryStrategy = true;
+        }
+    }
+    return false;
+}
 
 // Note: flipBackfaceTriangleNormals is registered as a sub-callback to Bullet's gContactAddedCallback feature
 // when we detect MyAvatar is "stuck".  It will reverse the triangles on the backface of mesh shapes, unless it thinks
 // the old normal would be better at extracting MyAvatar out along its UP direction.
+//
+// KEEP THIS: flipBackfaceTriangleNormals is NOT USED, but KEEP THIS implemenation in case we want to use it.
 bool flipBackfaceTriangleNormals(btManifoldPoint& cp,
         const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
         const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
@@ -111,12 +156,13 @@ bool flipBackfaceTriangleNormals(btManifoldPoint& cp,
             if (cp.m_normalWorldOnB.dot(up) <= 0.0f) {
                 nDotF = btDot(faceNormal, cp.m_normalWorldOnB);
                 cp.m_normalWorldOnB -= 2.0f * nDotF * faceNormal;
-                _flippedThisFrame = true;
+                _appliedStuckRecoveryStrategy = true;
             }
             // Note: if we're flipping normals it means the "Are we stuck?" logic is concluding "Yes, we are".
             // But when we flip the normals it typically causes the ContactManifold to discard the modified ManifoldPoint
             // which in turn causes the "Are we stuck?" logic to incorrectly conclude "No, we are not".
-            // So we set '_flippedThisFrame = true' here and use it later to stay in "stuck" state until flipping stops
+            // So we set '_appliedStuckRecoveryStrategy = true' here and use it later to stay in "stuck" state
+            // until flipping stops
         }
     }
 
@@ -140,7 +186,7 @@ bool flipBackfaceTriangleNormals(btManifoldPoint& cp,
     // by our own convention:
     // return true when this ManifoldPoint has been modified in a way that would disable it
     return false;
-};
+}
 
 #ifdef DEBUG_STATE_CHANGE
 #define SET_STATE(desiredState, reason) setState(desiredState, reason)
@@ -287,7 +333,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     btDispatcher* dispatcher = collisionWorld->getDispatcher();
     int numManifolds = dispatcher->getNumManifolds();
     bool hasFloor = false;
-    bool probablyStuck = _isStuck && _flippedThisFrame;
+    bool probablyStuck = _isStuck && _appliedStuckRecoveryStrategy;
 
     btTransform rotation = _rigidBody->getWorldTransform();
     rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f)); // clear translation part
@@ -346,8 +392,6 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     }
 
     // If there's deep penetration and big impulse we're probably stuck.
-    const float STUCK_PENETRATION = -0.05f; // always negative into the object.
-    const float STUCK_IMPULSE = 500.0f;
     probablyStuck = probablyStuck
         || deepestDistance < 2.0f * STUCK_PENETRATION
         || strongestImpulse > 2.0f * STUCK_IMPULSE
@@ -356,24 +400,27 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     if (_isStuck != probablyStuck) {
         ++_stuckTransitionCount;
         if (_stuckTransitionCount > NUM_SUBSTEPS_FOR_STUCK_TRANSITION) {
-            // we've been in this "probablyStuck" state for several consecutive frames
+            // we've been in this "probablyStuck" state for several consecutive substeps
             // --> make it official by changing state
             _isStuck = probablyStuck;
-            // start _numStuckSubsteps at NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY so SafeLanding tries to help immediately
+            // init _numStuckSubsteps at NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY so SafeLanding tries to help immediately
             _numStuckSubsteps = NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY;
             _stuckTransitionCount = 0;
             if (_isStuck) {
-                _physicsEngine->addContactAddedCallback(flipBackfaceTriangleNormals);
+                _physicsEngine->addContactAddedCallback(applyPairwiseFilter);
+                _pairwiseFilter.incrementStepCount();
             } else {
-                _physicsEngine->removeContactAddedCallback(flipBackfaceTriangleNormals);
-                _flippedThisFrame = false;
+                _physicsEngine->removeContactAddedCallback(applyPairwiseFilter);
+                _appliedStuckRecoveryStrategy = false;
+                _pairwiseFilter.clearAllEntries();
             }
+            updateCurrentGravity();
         }
     } else {
         _stuckTransitionCount = 0;
         if (_isStuck) {
             ++_numStuckSubsteps;
-            _flippedThisFrame = false;
+            _appliedStuckRecoveryStrategy = false;
         }
     }
     return hasFloor;
@@ -549,7 +596,7 @@ static const char* stateToStr(CharacterController::State state) {
 
 void CharacterController::updateCurrentGravity() {
     int32_t collisionMask = computeCollisionMask();
-    if (_state == State::Hover || collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS) {
+    if (_state == State::Hover || collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS || _isStuck) {
         _currentGravity = 0.0f;
     } else {
         _currentGravity = _gravity;
@@ -831,6 +878,12 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     if (velocity.length2() < MIN_TARGET_SPEED_SQUARED) {
         velocity = btVector3(0.0f, 0.0f, 0.0f);
     }
+    if (_isStuck && _targetVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+        // we're stuck, but not trying to move --> move UP by default
+        // in the hopes we'll get unstuck
+        const float STUCK_EXTRACTION_SPEED = 1.0f;
+        velocity = STUCK_EXTRACTION_SPEED * _currentUp;
+    }
 
     // 'thrust' is applied at the very end
     _targetVelocity += dt * _linearAcceleration;
@@ -1032,6 +1085,11 @@ void CharacterController::preSimulation() {
     _followTime = 0.0f;
     _followLinearDisplacement = btVector3(0, 0, 0);
     _followAngularDisplacement = btQuaternion::getIdentity();
+
+    if (_isStuck) {
+        _pairwiseFilter.expireOldEntries();
+        _pairwiseFilter.incrementStepCount();
+    }
 }
 
 void CharacterController::postSimulation() {
