@@ -306,6 +306,7 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         float distance = glm::length(axis);
         float correntionRatio = radiusRatio * (spheres[j]._radius / maxAverageRadius);
         float radius = (correntionRatio < 0.8f * radiusRatio ? 0.8f * radiusRatio : correntionRatio) * spheres[j]._radius;
+        maxRadius = radius > maxRadius ? radius : maxRadius;
         if (sphereCount > 3) {
             distance = contractionRatio * distance;
         }
@@ -317,15 +318,28 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         }
     }
     // Collapse spheres if too close
-    if (sphereCount == 2) {
-        int maxRadiusIndex = spheres[0]._radius > spheres[1]._radius ? 0 : 1;
-        if (glm::length(spheres[0]._position - spheres[1]._position) < 0.2f * spheres[maxRadiusIndex]._radius) {
-            SphereShapeData newSphere;
-            newSphere._position = 0.5f * (spheres[0]._position + spheres[1]._position);
-            newSphere._radius = spheres[maxRadiusIndex]._radius;
-            spheres.clear();
-            spheres.push_back(newSphere);
+    if (sphereCount > 1) {
+        bool collapsed = false;
+        for (size_t i = 0; i < spheres.size() - 1; i++) {
+            for (size_t j = i + 1; j < spheres.size(); j++) {
+                if (i != j) {
+                    int maxRadiusIndex = spheres[i]._radius > spheres[j]._radius ? i : j;
+                    if (glm::length(spheres[i]._position - spheres[j]._position) < 0.2f * spheres[maxRadiusIndex]._radius) {
+                        SphereShapeData newSphere;
+                        newSphere._position = _midPoint;
+                        newSphere._radius = maxRadius;
+                        spheres.clear();
+                        spheres.push_back(newSphere);
+                        collapsed = true;
+                        break;
+                    }
+                }
+            }
+            if (collapsed) {
+                break;
+            }
         }
+
     }
 }
 
