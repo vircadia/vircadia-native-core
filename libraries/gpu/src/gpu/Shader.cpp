@@ -64,6 +64,25 @@ Shader::Reflection Shader::getReflection(shader::Dialect dialect, shader::Varian
     return _source.getReflection(dialect, variant);
 }
 
+
+Shader::Reflection Shader::getReflection() const {
+
+    // FOr sake of convenience i would like to be able to use a  "default" dialect that represents the reflection
+    // of the source of the shader
+    // What i really want, is a reflection that is designed for the gpu lib interface but we don;t have that yet (glsl45 is the closest to that)
+    // Until we have an implementation for this, we will return such default reflection from the one available and platform specific
+    
+#if defined(USE_GLES)
+    auto defaultDialect = shader::Dialect::glsl310es;
+#elif defined(Q_OS_MAC)
+    // Mac only supports 4.1
+    auto defaultDialect = shader::Dialect::glsl410;
+#else
+    auto defaultDialect = shader::Dialect::glsl450;
+#endif
+    return getReflection(defaultDialect, shader::Variant::Mono);
+}
+
 Shader::~Shader()
 {
 }

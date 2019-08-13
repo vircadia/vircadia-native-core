@@ -86,7 +86,7 @@ void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
         BatchSetter batchSetter, ItemSetter itemSetter) {
     ShapeKey key{ filter._flags };
-    auto reflection = program->getReflection(shader::Dialect::glsl450, shader::Variant::Mono);
+    auto reflection = program->getReflection();
     auto locations = std::make_shared<Locations>();
     locations->albedoTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialAlbedo);
     locations->roughnessTextureUnit = reflection.validTexture(graphics::slot::texture::MaterialRoughness);
