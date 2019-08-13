@@ -268,7 +268,7 @@ void Procedural::prepare(gpu::Batch& batch,
         int customSlot = procedural::slot::uniform::Custom;
         for (const auto& key : _data.uniforms.keys()) {
             std::string uniformName = key.toLocal8Bit().data();
-            fragmentSource.reflection.uniforms[uniformName] = customSlot;
+          //  fragmentSource.reflection.uniforms[uniformName] = customSlot;
             ++customSlot;
         }
 

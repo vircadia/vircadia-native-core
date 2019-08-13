@@ -131,7 +131,6 @@ Source::Pointer Source::loadSource(uint32_t shaderId) {
     for (const auto& dialect : dialects) {
         result->dialectSources[dialect] = loadDialectSource(dialect, shaderId);
     }
-    result->reflection = result->dialectSources[DEFAULT_DIALECT].variantSources[Variant::Mono].reflection;
     return result;
 }
 
@@ -140,7 +139,6 @@ Source& Source::operator=(const Source& other) {
     name = other.name;
     dialectSources = other.dialectSources;
     replacements = other.replacements;
-    reflection = other.reflection;
     return *this;
 }
 

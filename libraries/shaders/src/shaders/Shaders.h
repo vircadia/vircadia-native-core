@@ -140,9 +140,6 @@ struct Source {
     // The name of the shader file, with extension, i.e. DrawColor.frag
     std::string name;
 
-    // Generic reflection, copied from the 450 dialect / mono variant
-    Reflection reflection;
-
     // Map of platforms to their specific shaders
     std::unordered_map<Dialect, DialectSource, EnumClassHash> dialectSources;
 
