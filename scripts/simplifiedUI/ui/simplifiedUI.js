@@ -372,7 +372,7 @@ function loadSimplifiedTopBar() {
         };
     } else {
         windowProps.position = {
-            x: 500,
+            x: Window.x,
             y: Window.y
         };
     }

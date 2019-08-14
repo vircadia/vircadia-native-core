@@ -52,7 +52,6 @@ Rectangle {
         onEntered: {
             Tablet.playSound(TabletEnums.ButtonHover);
             root.requestedWidth = root.hoveredWidth;
-            emoteButtonsRepeater.ItemAt(buttonsModel.count -1).buttonMouseArea.hoverEnabled = true;
         }
         onExited: {
             Tablet.playSound(TabletEnums.ButtonClick);
@@ -88,12 +87,11 @@ Rectangle {
         The main container of the actual buttons
     */
 
-    Rectangle {
+    Row {
         id: drawerContainer
         z: 1
-        color: simplifiedUI.colors.white
         anchors.top: parent.top
-        anchors.right: parent.right
+        leftPadding: root.originalWidth
         height: parent.height
         width: root.hoveredWidth
 
