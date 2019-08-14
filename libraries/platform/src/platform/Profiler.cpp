@@ -65,7 +65,6 @@ bool filterOnComputerMACOS(const platform::json& computer, Profiler::Tier& tier)
     auto gpu = platform::getGPU(platform::getMasterGPU());
     if (gpu.count(keys::gpu::vendor)) {
         std::string gpuVendor = gpu[keys::gpu::vendor].get<std::string>();
-        std::string gpuModel = gpu[keys::gpu::model].get<std::string>();
         
         // intel integrated graphics
         if (gpuVendor.find(keys::gpu::vendor_Intel) != std::string::npos) {
