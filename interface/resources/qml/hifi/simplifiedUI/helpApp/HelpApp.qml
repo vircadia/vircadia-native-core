@@ -34,6 +34,16 @@ Rectangle {
     }
 
 
+    onActiveTabViewChanged: {
+        for (var i = 0; i < tabListModel.count; i++) {
+            if (tabListModel.get(i).tabViewName === activeTabView) {
+                tabListView.currentIndex = i;
+                return;
+            }
+        }
+    }
+
+
     Rectangle {
         id: tabContainer
         anchors.top: parent.top
@@ -108,7 +118,6 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        tabListView.currentIndex = index;
                         root.activeTabView = model.tabViewName;
                     }
                 }
@@ -134,6 +143,10 @@ Rectangle {
             id: faqTabViewContainer
             visible: activeTabView === "faqTabView"
             anchors.fill: parent
+
+            onSendToScript: {
+                root.sendToScript(message);
+            }
         }
 
         HelpAbout.HelpAbout {

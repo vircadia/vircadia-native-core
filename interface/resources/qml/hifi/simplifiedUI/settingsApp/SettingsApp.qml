@@ -49,6 +49,15 @@ Rectangle {
         }
     }
 
+    onActiveTabViewChanged: {
+        for (var i = 0; i < tabListModel.count; i++) {
+            if (tabListModel.get(i).tabViewName === activeTabView) {
+                tabListView.currentIndex = i;
+                return;
+            }
+        }
+    }
+
     Component.onCompleted: {
         root.forceActiveFocus();
     }
@@ -138,7 +147,6 @@ Rectangle {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        tabListView.currentIndex = index;
                         root.activeTabView = model.tabViewName;
                     }
                 }
@@ -207,7 +215,24 @@ Rectangle {
 
 
     function fromScript(message) {
+        if (message.source !== "simplifiedUI.js") {
+            return;
+        }
+
         switch (message.method) {
+            case "goToSettingsTab":
+                var tabToGoTo = message.data.settingsTab;
+                switch (tabToGoTo) {
+                    case "audio":
+                        activeTabView = "audioTabView";
+                        break;
+
+                    default:
+                        console.log("A message was sent to the Settings window to change tabs, but an invalid tab was specified.");
+                        break;
+                }
+                break;
+
             default:
                 console.log('SettingsApp.qml: Unrecognized message from JS');
                 break;

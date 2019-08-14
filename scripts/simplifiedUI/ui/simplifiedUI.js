@@ -188,6 +188,21 @@ function toggleSettingsApp() {
 }
 
 
+function handleGoToAudioSettings() {
+    if (!settingsAppWindow) {
+        toggleSettingsApp();
+    }
+
+    settingsAppWindow.sendToQml({
+        "source": "simplifiedUI.js",
+        "method": "goToSettingsTab",
+        "data": {
+            "settingsTab": "audio"
+        }
+    });
+}
+
+
 var HELP_APP_MESSAGE_SOURCE = "HelpApp.qml";
 function onMessageFromHelpApp(message) {
     if (message.source !== HELP_APP_MESSAGE_SOURCE) {
@@ -195,7 +210,10 @@ function onMessageFromHelpApp(message) {
     }
 
     switch (message.method) {
-            
+        case "goToAudioSettings":
+            handleGoToAudioSettings();
+            break;
+
         default:
             console.log("Unrecognized message from " + HELP_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;

@@ -61,7 +61,7 @@ Item {
         }
 
         HifiStylesUit.GraphikRegular {
-            text: "You can find our frequently asked questions here:"
+            text: "You can find answers to all of our frequently asked questions by clicking the button below."
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: paintedHeight
             Layout.topMargin: 8
@@ -81,5 +81,40 @@ Item {
                 Qt.openUrlExternally("https://www.highfidelity.com/knowledge");
             }
         }
+
+        HifiStylesUit.GraphikSemiBold {
+            text: "Having problems with your audio?"
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: paintedHeight
+            Layout.topMargin: 32
+            size: 16
+            color: simplifiedUI.colors.text.white
+        }
+
+        HifiStylesUit.GraphikRegular {
+            text: "Quickly check your audio configuration and make changes to resolve any audio input/output issues."
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: paintedHeight
+            Layout.topMargin: 4
+            size: 18
+            wrapMode: Text.Wrap
+            color: simplifiedUI.colors.text.white
+        }
+
+        SimplifiedControls.Button {
+            Layout.topMargin: 8
+            width: 200
+            height: 32
+            text: "TEST YOUR AUDIO"
+
+            onClicked: {
+                root.sendToScript({
+                    "source": "HelpApp.qml",
+                    "method": "goToAudioSettings"
+                });
+            }
+        }
     }
+
+    signal sendToScript(var message);
 }
