@@ -80,8 +80,7 @@ public:
 
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
-    void setCPURunTime(const std::chrono::nanoseconds& runtime) { 
-        /*std::static_pointer_cast<Config>*/(_config)->setCPURunTime(runtime); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { (_config)->setCPURunTime(runtime); }
 
     QConfigPointer _config;
 protected:
@@ -95,9 +94,6 @@ template <class T, class C> void jobConfigure(T& data, const C& configuration) {
 template<class T> void jobConfigure(T&, const JobConfig&) {
     // nop, as the default JobConfig was used, so the data does not need a configure method
 }
-/*template<class T> void jobConfigure(T&, const TaskConfig&) {
-    // nop, as the default TaskConfig was used, so the data does not need a configure method
-}*/
 
 template <class T, class JC> void jobRun(T& data, const JC& jobContext, const JobNoIO& input, JobNoIO& output) {
     data.run(jobContext);
@@ -296,9 +292,6 @@ public:
                 TimeProfiler probe("build::" + model->getName());
                 model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
             }
-            // Recreate the Config to use the templated type
-          //  model->createConfiguration();
-          //  model->applyConfiguration();
 
             return model;
         }
@@ -439,9 +432,6 @@ public:
                 TimeProfiler probe("build::" + model->getName());
                 model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
             }
-            // Recreate the Config to use the templated type
-          //  model->createConfiguration();
-          //  model->applyConfiguration();
 
             return model;
         }
