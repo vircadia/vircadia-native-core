@@ -146,13 +146,13 @@ Rectangle {
         }
     }
 
+
     Item {
         id: tabViewContainers
         anchors.top: tabContainer.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-
 
         GeneralSettings.General {
             id: generalTabViewContainer
@@ -161,8 +161,10 @@ Rectangle {
             onSendNameTagInfo: {
                 sendToScript(message);
             }
+            onSendEmoteVisible: {
+                sendToScript(message);
+            }
         }
-        
 
         AudioSettings.Audio {
             id: audioTabViewContainer

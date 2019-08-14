@@ -1,5 +1,4 @@
 //
-//  User Inspector
 //  entityMaker.js
 //  Created by Milad Nazeri on 2019-02-19
 //  Copyright 2019 High Fidelity, Inc.

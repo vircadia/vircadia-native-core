@@ -10,11 +10,9 @@
 
 import QtQuick 2.12
 import QtQuick.Controls 2.4
+import QtGraphicalEffects 1.12
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
-/*
-    See note in SimplifiedEmoteIndicator about import question
-*/
 import "qrc:////qml//hifi//simplifiedUI//simplifiedConstants" as SimplifiedConstants
 import "../../resources/modules/emojiList.js" as EmojiList
 import "./ProgressCircle"
@@ -98,13 +96,26 @@ Rectangle {
             anchors.centerIn: parent
             source: ""
             fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+
+        Image {
+            id: mainEmojiLowOpacity
+            width: 180
+            height: 180
+            anchors.centerIn: parent
+            source: mainEmojiImage.source
+            opacity: 0.5
+            fillMode: Image.PreserveAspectFit
+            visible: true
         }
 
         // The overlay used during the pie timeout
         ProgressCircle {
+            property int arcChangeSize: 15
             id: progressCircle
-            anchors.centerIn: parent
-            size: 180
+            anchors.centerIn: mainEmojiImage
+            size: mainEmojiImage.width * 2
             opacity: 0.5
             colorCircle: "#FFFFFF"
             colorBackground: "#E6E6E6"
@@ -112,17 +123,32 @@ Rectangle {
             isPie: true
             arcBegin: 0
             arcEnd: 0
+            visible: false
+        }
+
+        OpacityMask {
+            anchors.fill: mainEmojiImage
+            source: mainEmojiImage
+            maskSource: progressCircle
+        }
+
+         Timer {
+            id: arcTimer
+            interval: 5000
+            repeat: true
+            running: false
+            onTriggered: {
+                progressCircle.arcEnd = ((progressCircle.arcEnd - progressCircle.arcChangeSize) > 0) ? (progressCircle.arcEnd - progressCircle.arcChangeSize) : 0;
+            }
         }
     }
 
-    // The bottom half of the app. We might want to do something about the set height to be more responsive
-    // Zach question probably.  
     Rectangle {
         id: emojiIconListContainer
         anchors.top: emojiIndicatorContainer.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 415
+        anchors.bottom: parent.bottom
         clip: true
         color: simplifiedUI.colors.darkBackground
 
@@ -188,7 +214,6 @@ Rectangle {
                                         root.currentCode = mainModel.get(index).code.utf;
                                     }
                                     onClicked: {
-                                        console.log("GOT THE CLICK on emoji");
                                         sendToScript({
                                             "source": "SimplifiedEmoji.qml",
                                             "method": "selectedEmoji",
@@ -233,13 +258,21 @@ Rectangle {
         }
 
         switch(message.method) {
-            case "updateArchEnd":
-                progressCircle.arcEnd = message.data.archEnd;
+            case "beginCountdownTimer":
+                var degreesInCircle = 360;
+                progressCircle.arcEnd = degreesInCircle;
+                arcTimer.interval = message.data.interval;
+                progressCircle.arcChangeSize = degreesInCircle / (message.data.duration / arcTimer.interval);
+                arcTimer.start();
+                root.isSelected = true;
             break;
-            case "isSelected":
-                root.isSelected = message.data.isSelected
+            case "clearCountdownTimer":
+                progressCircle.arcEnd = 0;
+                arcTimer.stop();
+                root.isSelected = false;
+            break;
             default:
-                console.log("Message not recoganized from simplifiedEmoji.js");
+                console.log("Message not recognized from simplifiedEmoji.js", JSON.stringify(message));
         }
     }
 }

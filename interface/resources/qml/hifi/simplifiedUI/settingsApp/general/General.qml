@@ -28,10 +28,6 @@ Flickable {
         sendNameTagInfo({method: 'handleAvatarNametagMode', avatarNametagMode: root.avatarNametagMode, source: "SettingsApp.qml"});
     }
 
-    onEmoteIndicatorVisible: {
-        sendEmoteVisible({method: 'emoteIndicatorVisible', emoteIndicatorVisible: root.emoteIndicatorVisible, source: "SettingsApp.qml"})
-    }
-
     onVisibleChanged: {
         if (visible) {
             root.contentX = 0;
@@ -112,6 +108,40 @@ Flickable {
                     checked: root.avatarNametagMode === "on"
                     onClicked: {
                         root.avatarNametagMode = "on"
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            id: emoteContainer
+            Layout.preferredWidth: parent.width
+            spacing: 0
+
+            HifiStylesUit.GraphikSemiBold {
+                    id: emoteTitle
+                    text: "Emote UI"
+                    Layout.maximumWidth: parent.width
+                    height: paintedHeight
+                    size: 22
+                    color: simplifiedUI.colors.text.white
+                }
+
+            ColumnLayout {
+                id: emoteSwitchGroup
+                Layout.preferredWidth: parent.width
+                Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+
+                SimplifiedControls.Switch {
+                    id: emoteSwitch
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
+                    labelTextOn: "Show Emote UI"
+                    checked: root.emoteIndicatorVisible
+                    onClicked: {
+                        root.emoteIndicatorVisible = !root.emoteIndicatorVisible;
+                        sendEmoteVisible({method: 'handleEmoteIndicatorVisible', emoteIndicatorVisible: root.emoteIndicatorVisible, source: "SettingsApp.qml"});
+                        console.log("emoteSwitch clicked. Emote UI is ", root.emoteIndicatorVisible);
                     }
                 }
             }
@@ -202,60 +232,18 @@ Flickable {
                     }
                 }
                 
-                Connections {
-                        target: Camera
+              Connections {
+                    target: Camera
 
-                        onModeUpdated: {
-                            if (Camera.mode === "first person") {
-                                firstPerson.checked = true
-                            } else if (Camera.mode === "third person") {
-                                thirdPerson.checked = true
-                            }
+                    onModeUpdated: {
+                        if (Camera.mode === "first person") {
+                            firstPerson.checked = true
+                        } else if (Camera.mode === "third person") {
+                            thirdPerson.checked = true
                         }
-                }
-            }
-        }
-
-        ColumnLayout {
-            id: emoteContainer
-            Layout.preferredWidth: parent.width
-            spacing: 0
-            ColumnLayout {
-                id: emoteRadioButtonGroup
-                Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
-                spacing: simplifiedUI.margins.settings.spacingBetweenRadiobuttons
-
-                HifiStylesUit.GraphikSemiBold {
-                    id: emoteTitle
-                    text: "Emote"
-                    Layout.maximumWidth: parent.width
-                    height: paintedHeight
-                    size: 22
-                    color: simplifiedUI.colors.text.white
-                }
-
-
-                SimplifiedControls.RadioButton {
-                    id: emoteOn
-                    text: "Emote On"
-                    checked: root.emoteIndicatorVisible
-                    onClicked: {
-                        root.emoteIndicatorVisible = !root.emoteIndicatorVisible;
                     }
                 }
-
-                SimplifiedControls.RadioButton {
-                    id: emoteOff
-                    text: "Emote Off"
-                    checked: !root.emoteIndicatorVisible
-                    onClicked: {
-                        root.emoteIndicatorVisible = !root.emoteIndicatorVisible;
-                    }
-                }
-
             }
-
-        
         }
 
         ColumnLayout {

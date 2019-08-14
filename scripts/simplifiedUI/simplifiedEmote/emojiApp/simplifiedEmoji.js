@@ -1,7 +1,6 @@
 /*
 
-    Avimoji
-    avimoji_app.js
+    simplifiedEmoji.js
     Created by Milad Nazeri on 2019-04-25
     Copyright 2019 High Fidelity, Inc.
 
@@ -23,10 +22,8 @@ var EasingFunctions = Script.require("./resources/modules/easing.js?");
 // The information needed to properly use the sprite sheets and get the general information
 // about the emojis
 var emojiList = Script.require("./resources/modules/emojiList.js?" + Date.now());
-// The location to find where the individual emoji icons are
-var CONFIG = Script.require("./resources/config.json?" + Date.now());
-// Where to load the images from taken from the Config above
-var imageURLBase = Script.resolvePath(CONFIG.baseImagesURL);
+var imageURLBase = Script.resolvePath("https://hifi-content.s3.amazonaws.com/milad/ROLC/mnt/d/ROLC_High-Fidelity/02_Organize/O_Projects/Repos/hifi-content/Prototyping/emojis/");
+// alternate url: ./resources/images/emojis/png1024/
 
 
 // #endregion
@@ -52,7 +49,7 @@ var UTF_CODE = 0;
 var soundUrl = Script.resolvePath('./resources/sounds/emojiPopSound.wav');
 var popSound = SoundCache.getSound(soundUrl);
 var injector;
-var DEFAULT_VOLUME = 0.0003;
+var DEFAULT_VOLUME = 0.01;
 var local = false;
 function playSound(sound, volume, position, localOnly) {
     sound = sound || popSound;
@@ -92,43 +89,38 @@ function maybeClearTimeoutDelete() {
 
 
 // Start the delete process and handle the right animation path for turning off
-var DEFAULT_TIMEOUT_MS = 5000;
+var TOTAL_EMOJI_DURATION_MS = 7000;
 var defaultTimeout = null;
 function startTimeoutDelete() {
     defaultTimeout = Script.setTimeout(function () {
         // This is called to start the shrink animation and also where the deleting happens when that is done
         maybePlayPop("off");
-        countDownTimer = Script.setInterval(countDownTimerHandler, COUNT_DOWN_INTERVAL_MS);
         selectedEmoji = null;
-    }, DEFAULT_TIMEOUT_MS);
+    }, TOTAL_EMOJI_DURATION_MS - POP_ANIMATION_OUT_DURATION_MS);
 }
 
 
 // The QML has a property called archEnd on the pie chart that controls how much pie is showing
 var COUNT_DOWN_INTERVAL_MS = 100;
-var countDownTimer = null;
-function countDownTimerHandler() {
-    currentArch += ARCH_END_PER_ANIMATION_STEP;
+function beginCountDownTimer() {
     _this._avimojiQMLWindow.sendToQml({
         "source": "simplifiedEmoji.js",
-        "method": "updateArchEnd",
+        "method": "beginCountdownTimer",
         "data": {
-            "archEnd": currentArch
+            "interval": COUNT_DOWN_INTERVAL_MS,
+            "duration": TOTAL_EMOJI_DURATION_MS
         }
     });
     
 }
 
 
-function maybeClearCountDownTimerHandler() {
-    if (countDownTimer) {
-        Script.clearTimeout(countDownTimer);
+function clearCountDownTimerHandler() {
+    if (_this._avimojiQMLWindow) {
         _this._avimojiQMLWindow.sendToQml({
             "source": "simplifiedEmoji.js",
-            "method": "updateArchEnd",
-            "data": {
-                "archEnd": 0
-            }
+            "method": "clearCountdownTimer",
+            "data": {}
         });
     }
 }
@@ -138,27 +130,11 @@ function maybeClearCountDownTimerHandler() {
 function resetEmojis() {
     pruneOldAvimojis();
     maybeClearPop();
-    maybeClearCountDownTimerHandler();
+    clearCountDownTimerHandler();
     if (currentEmoji && currentEmoji.id) {
         currentEmoji.destroy();
         selectedEmoji = null;
     }
-    _this._avimojiQMLWindow.sendToQml({
-        "source": "simplifiedEmoji.js",
-        "method": "updateArchEnd",
-        "data": {
-            "archEnd": 0
-        }
-    });
-    // Turns off locking the selected emoji in the app
-    _this._avimojiQMLWindow.sendToQml({
-        "source": "simplifiedEmoji.js",
-        "method": "isSelected",
-        "data": {
-            "isSelected": false
-        }
-    });
-    currentArch = 0;
 }
 
 
@@ -177,15 +153,13 @@ function resetEmojis() {
 var selectedEmoji = null;
 var lastEmoji = null;
 function handleSelectedEmoji(emoji) {
-    console.log("in handleSelectedEmoji");
     if (selectedEmoji && selectedEmoji.code[UTF_CODE] === emoji.code[UTF_CODE]) {
         return;
     } else {
         maybeClearTimeoutDelete();
-        maybeClearCountDownTimerHandler();
+        clearCountDownTimerHandler();
         selectedEmoji = emoji;
         lastEmoji = emoji;
-        console.log("handleSelected about to go to addEmoji - selectedEmoji")
         addEmoji(selectedEmoji);
     }
 }
@@ -277,6 +251,7 @@ function createEmoji(emoji) {
         .create();
         
     maybePlayPop("in");
+    beginCountDownTimer();
     startTimeoutDelete();
 }
 
@@ -298,23 +273,13 @@ function createEmoji(emoji) {
     First clear any current pop animations
 
     Then we check what kind of pop animation might be requested, either an in or an out.
-    If it's an out, reset the pie just in case.
 */
 function maybePlayPop(type) {
-    console.log("In maybe play pop");
     maybeClearPop();
     popType = type;
     if (popType === "in") {
         playPopInterval = Script.setInterval(playPopAnimation, POP_DURATION_IN_PER_STEP);
     } else {
-        _this._avimojiQMLWindow.sendToQml({
-            "source": "simplifiedEmoji.js",
-            "method": "updateArchEnd",
-            "data": {
-                "archEnd": 0
-            }
-        });
-        currentArch = 0;
         playPopInterval = Script.setInterval(playPopAnimation, POP_DURATION_OUT_PER_STEP);
     }
 }
@@ -322,7 +287,6 @@ function maybePlayPop(type) {
 
 // maybe clear a pop up animation not in animation mode
 function maybeClearPop() {
-    console.log("In maybe clear pop");
     if (playPopInterval) {
         Script.clearTimeout(playPopInterval);
         playPopInterval = null;
@@ -337,7 +301,7 @@ function maybeClearPop() {
 /*
     We are accounting for an in animation and an out animation
     We need the following to setup an animation
-        1. The duration of the animiation
+        1. The duration of the animation
         2. How many animation steps there will be for that duration
             The animation duration / the animation steps
         3. The max and min values 
@@ -349,10 +313,6 @@ var popType = null;
 var playPopInterval = null;
 var finalInPopScale = null;
 var currentArch = 0;
-
-// Degrees % Animation steps to know how much to fill in for each step
-var DEGREES_IN_CIRCLE = 360;
-var ARCH_END_PER_ANIMATION_STEP = DEGREES_IN_CIRCLE / POP_ANIMATION_OUT_STEPS; 
 
 var MAX_POP_SCALE = 1;
 var MIN_POP_SCALE = 0;
@@ -408,7 +368,6 @@ function playPopAnimation() {
             Math.min(dimensions.y, emojiMaxDimensions.y),
             Math.min(dimensions.z, emojiMaxDimensions.z)
         ];
-        currentArch += ARCH_END_PER_ANIMATION_STEP;
     }
 
     currentPopStep++;
@@ -434,15 +393,7 @@ function playPopAnimation() {
             }
             finalInPopScale = null;
             selectedEmoji = null;
-            maybeClearCountDownTimerHandler();
-            // Tell the UI we can show other icons in the selected window ok
-            _this._avimojiQMLWindow.sendToQml({
-                "source": "simplifiedEmoji.js",
-                "method": "isSelected",
-                "data": {
-                    "isSelected": false
-                }
-            });
+            clearCountDownTimerHandler();
         }
         maybeClearPop();
     }
@@ -462,6 +413,7 @@ function playPopAnimation() {
 
 // startup the app
 var emojiCodeMap;
+var signalsConnected = false;
 function init() {
     
     // make a map of just the utf codes to help with accesing
@@ -479,8 +431,10 @@ function init() {
 
     pruneOldAvimojis();
 
+    Window.domainChanged.connect(onDomainChanged);
     MyAvatar.scaleChanged.connect(onScaleChanged);
     Script.scriptEnding.connect(scriptEnding);
+    signalsConnected = true;
 }
 
 
@@ -497,9 +451,12 @@ function init() {
 
 function scriptEnding() {
     resetEmojis();
-    Window.domainChanged.disconnect(onDomainChanged);
-    MyAvatar.scaleChanged.disconnect(onScaleChanged);
-
+    if (signalsConnected) {
+        Script.scriptEnding.disconnect(scriptEnding);
+        Window.domainChanged.disconnect(onDomainChanged);
+        MyAvatar.scaleChanged.disconnect(onScaleChanged);
+        signalsConnected = false;
+    }
 }
 
 
@@ -526,13 +483,6 @@ function registerAvimojiQMLWindow(avimojiQMLWindow) {
 function addEmojiFromQML(code) {
     var emoji = emojiList[emojiCodeMap[code]];
     handleSelectedEmoji(emoji);
-    _this._avimojiQMLWindow.sendToQml({
-        "source": "simplifiedEmoji.js",
-        "method": "isSelected",
-        "data": {
-            "isSelected": true
-        }
-    });
 }
 
 function unload() {

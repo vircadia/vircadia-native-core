@@ -135,7 +135,7 @@ var APPLAUD_KEY = "b";
 var POINT_KEY = "n";
 var EMOTE_WINDOW = "f";
 function keyPressHandler(event) {
-    if (!event.isAutoRepeat) {
+    if (!event.isAutoRepeat && ! event.isMeta && ! event.isControl && ! event.isAlt) {
         if (event.text === POSITIVE_KEY) {
             MyAvatar.triggerReaction("positive");
         } else if (event.text === NEGATIVE_KEY) {
@@ -176,12 +176,8 @@ function keyReleaseHandler(event) {
 // *************************************
 // #region EMOTE_MAIN
 
-/*
-    Milad Note
-    Most of this is taken from Simplified.  Nothing to be changed here really besides maybe the window title
-*/
 var EMOTE_APP_BAR_QML_PATH = Script.resolvePath("./ui/qml/SimplifiedEmoteIndicator.qml");
-var EMOTE_APP_BAR_WINDOW_TITLE = "Emote";
+var EMOTE_APP_BAR_WINDOW_TITLE = "Emote Reaction Bar";
 var EMOTE_APP_BAR_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
 var EMOTE_APP_BAR_WIDTH_PX = 48;
 var EMOTE_APP_BAR_HEIGHT_PX = 48;
@@ -215,13 +211,18 @@ function showEmoteAppBar() {
 
 var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
 var emojiAPI = new EmojiAPI();
+var geometryChangedSignalConnected = false;
+var keyPressSignalsConnected = false;
 function init() {
     Window.geometryChanged.connect(onGeometryChanged);
+    geometryChangedSignalConnected = true;
     emojiAPI.startup();
     showEmoteAppBar();
     
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
+    keyPressSignalsConnected = true;
+
     Script.scriptEnding.connect(shutdown);
 }
 
@@ -237,10 +238,16 @@ function shutdown() {
 
     emojiAPI.unload();
 
-    Window.geometryChanged.disconnect(onGeometryChanged);
+    if (geometryChangedSignalConnected) {
+        Window.geometryChanged.disconnect(onGeometryChanged);
+        geometryChangedSignalConnected = false;
+    }
 
-    Controller.keyPressEvent.disconnect(keyPressHandler);
-    Controller.keyReleaseEvent.disconnect(keyReleaseHandler);
+    if (keyPressSignalsConnected) {
+        Controller.keyPressEvent.disconnect(keyPressHandler);
+        Controller.keyReleaseEvent.disconnect(keyReleaseHandler);
+        keyPressSignalsConnected = false;
+    }
 }
 
 
@@ -389,17 +396,16 @@ function unload() {
     shutdown();
 }
 
-function handleEmoteIndicatorVisible(newEmoteIndicatorVisible) {
+function handleEmoteIndicatorVisible(emoteIndicatorVisible) {
     console.log("in handle emote indicator");
-    emoteIndicatorVisible = newEmoteIndicatorVisible;
     if (!emoteAppBarWindow) {
         return;
     } 
 
     if (emoteIndicatorVisible) {
-        emoteAppBarWindow.close();
+        showEmoteAppBar();
     } else {
-        emoteAppBarWindow.open();
+        emoteAppBarWindow.close();
     }
 }
 

@@ -296,7 +296,9 @@ void InteractiveWindow::sendToQml(const QVariant& message) {
             QMetaObject::invokeMethod(rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
         }
     } else {
-        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+        if (_qmlWindowProxy) {
+            QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+        }
     }
 }
 

@@ -125,11 +125,10 @@ function handleEmoteIndicatorVisible(newEmoteIndicatorVisible) {
 
 var SETTINGS_APP_MESSAGE_SOURCE = "SettingsApp.qml";
 function onMessageFromSettingsApp(message) {
-    console.log("message from settings app", message);
     if (message.source !== SETTINGS_APP_MESSAGE_SOURCE) {
         return;
     }
-
+    console.log("\n \n MESSAGE FROM SETTINGS APP: ", JSON.stringify(message));
     switch (message.method) {
         /* 
             MILAD NOTE:
@@ -137,11 +136,12 @@ function onMessageFromSettingsApp(message) {
             nametag.  
         */
         case "handleAvatarNametagMode":
+            console.log("Got to handle avatar nametag mode");
             handleAvatarNametagMode(message.avatarNametagMode);
             break;
-        case "emoteIndicatorVisible":
-            console.log("Got to emote indicator visible");
-            handleEmoteIndicatorVisible(message.emoteIndicatorVisible);   
+        case "handleEmoteIndicatorVisible":
+            console.log("Got to handle emote indicator visible");
+            handleEmoteIndicatorVisible(message.emoteIndicatorVisible);
             break;
         default:
             console.log("Unrecognized message from " + SETTINGS_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
@@ -306,11 +306,10 @@ function sendLocalStatusToQml() {
 
 var TOP_BAR_MESSAGE_SOURCE = "SimplifiedTopBar.qml";
 function onMessageFromTopBar(message) {
-    console.log("\n\n FROM MESSAGE!")
     if (message.source !== TOP_BAR_MESSAGE_SOURCE) {
         return;
     }
-
+    console.log("\n\n MESSAGE FROM TOP BAR! ", JSON.stringify(message));
     switch (message.method) {
         case "toggleAvatarApp":
             toggleAvatarApp();
@@ -488,6 +487,7 @@ function modifyLODSettings() {
 
 
 function restoreLODSettings() {
+    print("RESTORING LOD SETTINGS");
     LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
     LODManager.lodAngleDeg = oldLODAngleDeg;
 }
@@ -547,6 +547,7 @@ function startup() {
 
 
 function shutdown() {
+    print("SHUTTING DOWN SIMPLIFIED UI");
     restoreLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
