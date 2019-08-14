@@ -8,6 +8,22 @@
 
 #include "ComponentMode.h"
 
+/**jsdoc
+ * <p>How an effect is applied in a {@link Entities.EntityProperties-Zone|Zone} entity.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"inherit"</code></td><td>The effect from any enclosing zone continues into this zone.</td></tr>
+ *     <tr><td><code>"disabled"</code></td><td>The effect &mdash; from any enclosing zone and this zone &mdash; is disabled in 
+ *       this zone.</td></tr>
+ *     <tr><td><code>"enabled"</code></td><td>The effect from this zone is enabled, overriding the effect from any enclosing 
+ *       zone.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Entities.ComponentMode
+ */
 const char* componentModeNames[] = {
     "inherit",
     "disabled",
@@ -22,6 +38,20 @@ QString ComponentModeHelpers::getNameForComponentMode(ComponentMode mode) {
     return componentModeNames[(int)mode];
 }
 
+/**jsdoc
+ * <p>The priority of updates from avatars in a zone to other clients.</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"inherit"</code></td><td>The update priority from any enclosing zone continues into this zone.</td></tr>
+ *     <tr><td><code>"crowd"</code></td><td>The update priority in this zone is the normal priority.</td></tr>
+ *     <tr><td><code>"hero"</code></td><td>Avatars in this zone have an increased update priority.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Entities.AvatarPriorityMode
+ */
 const char* avatarPriorityModeNames[] = {
     "inherit",
     "crowd",

@@ -21,14 +21,14 @@ void packBlendshapeOffsets_AVX2(float (*unpacked)[9], uint32_t (*packed)[4], int
         //
         // deinterleave (8x9 to 9x8 matrix transpose)
         //
-        __m256 s0 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+0][0])), _mm_load_ps(&unpacked[i+4][0]), 1);
-        __m256 s1 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+1][0])), _mm_load_ps(&unpacked[i+5][0]), 1);
-        __m256 s2 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+2][0])), _mm_load_ps(&unpacked[i+6][0]), 1);
-        __m256 s3 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+3][0])), _mm_load_ps(&unpacked[i+7][0]), 1);
-        __m256 s4 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+0][4])), _mm_load_ps(&unpacked[i+4][4]), 1);
-        __m256 s5 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+1][4])), _mm_load_ps(&unpacked[i+5][4]), 1);
-        __m256 s6 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+2][4])), _mm_load_ps(&unpacked[i+6][4]), 1);
-        __m256 s7 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_load_ps(&unpacked[i+3][4])), _mm_load_ps(&unpacked[i+7][4]), 1);
+        __m256 s0 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+0][0])), _mm_loadu_ps(&unpacked[i+4][0]), 1);
+        __m256 s1 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+1][0])), _mm_loadu_ps(&unpacked[i+5][0]), 1);
+        __m256 s2 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+2][0])), _mm_loadu_ps(&unpacked[i+6][0]), 1);
+        __m256 s3 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+3][0])), _mm_loadu_ps(&unpacked[i+7][0]), 1);
+        __m256 s4 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+0][4])), _mm_loadu_ps(&unpacked[i+4][4]), 1);
+        __m256 s5 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+1][4])), _mm_loadu_ps(&unpacked[i+5][4]), 1);
+        __m256 s6 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+2][4])), _mm_loadu_ps(&unpacked[i+6][4]), 1);
+        __m256 s7 = _mm256_insertf128_ps(_mm256_castps128_ps256(_mm_loadu_ps(&unpacked[i+3][4])), _mm_loadu_ps(&unpacked[i+7][4]), 1);
 
         __m256 t0 = _mm256_unpacklo_ps(s0, s1);
         __m256 t1 = _mm256_unpackhi_ps(s0, s1);

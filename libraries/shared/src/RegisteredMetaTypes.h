@@ -122,43 +122,43 @@ glm::vec3 vec3FromVariant(const QVariant &object, bool& valid);
 glm::vec3 vec3FromVariant(const QVariant &object);
 
 /**jsdoc
-* A color vector. See also the {@link Vec3(0)|Vec3} object.
-*
-* @typedef {object} Color
-* @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>.
-* @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>.
-* @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>.
-* @example <caption>Colors can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
-* Entities.editEntity(<id>, { color: { x: 1, y: 2, z: 3 }});                 // { red: 1, green: 2, blue: 3 }
-* Entities.editEntity(<id>, { color: { r: 4, g: 5, b: 6 }});                 // { red: 4, green: 5, blue: 6 }
-* Entities.editEntity(<id>, { color: { red: 7, green: 8, blue: 9 }});        // { red: 7, green: 8, blue: 9 }
-* Entities.editEntity(<id>, { color: [10, 11, 12] });                        // { red: 10, green: 11, blue: 12 }
-* Entities.editEntity(<id>, { color: 13 });                                  // { red: 13, green: 13, blue: 13 }
-* var color = Entities.getEntityProperties(<id>).color;                      // { red: 13, green: 13, blue: 13 }
-* color.g = 14;                                                              // { red: 13, green: 14, blue: 13 }
-* color.blue = 15;                                                           // { red: 13, green: 14, blue: 15 }
-* Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
-* Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
-*/
+ * A color vector. See also the {@link Vec3(0)|Vec3} object.
+ *
+ * @typedef {object} Color
+ * @property {number} red - Red component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>.
+ * @property {number} green - Green component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>.
+ * @property {number} blue - Blue component value. Integer in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>.
+ * @example <caption>Colors can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
+ * Entities.editEntity(<id>, { color: { x: 1, y: 2, z: 3 }});                 // { red: 1, green: 2, blue: 3 }
+ * Entities.editEntity(<id>, { color: { r: 4, g: 5, b: 6 }});                 // { red: 4, green: 5, blue: 6 }
+ * Entities.editEntity(<id>, { color: { red: 7, green: 8, blue: 9 }});        // { red: 7, green: 8, blue: 9 }
+ * Entities.editEntity(<id>, { color: [10, 11, 12] });                        // { red: 10, green: 11, blue: 12 }
+ * Entities.editEntity(<id>, { color: 13 });                                  // { red: 13, green: 13, blue: 13 }
+ * var color = Entities.getEntityProperties(<id>).color;                      // { red: 13, green: 13, blue: 13 }
+ * color.g = 14;                                                              // { red: 13, green: 14, blue: 13 }
+ * color.blue = 15;                                                           // { red: 13, green: 14, blue: 15 }
+ * Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
+ * Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
+ */
 /**jsdoc
-* A color vector. See also the {@link Vec3(0)|Vec3} object.
-*
-* @typedef {object} ColorFloat
-* @property {number} red - Red component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>.
-* @property {number} green - Green component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>.
-* @property {number} blue - Blue component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>.
-* @example <caption>ColorFloats can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
-* Entities.editEntity(<id>, { color: { x: 1, y: 2, z: 3 }});                 // { red: 1, green: 2, blue: 3 }
-* Entities.editEntity(<id>, { color: { r: 4, g: 5, b: 6 }});                 // { red: 4, green: 5, blue: 6 }
-* Entities.editEntity(<id>, { color: { red: 7, green: 8, blue: 9 }});        // { red: 7, green: 8, blue: 9 }
-* Entities.editEntity(<id>, { color: [10, 11, 12] });                        // { red: 10, green: 11, blue: 12 }
-* Entities.editEntity(<id>, { color: 13 });                                  // { red: 13, green: 13, blue: 13 }
-* var color = Entities.getEntityProperties(<id>).color;                      // { red: 13, green: 13, blue: 13 }
-* color.g = 14;                                                              // { red: 13, green: 14, blue: 13 }
-* color.blue = 15;                                                           // { red: 13, green: 14, blue: 15 }
-* Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
-* Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
-*/
+ * A color vector with real values. Values may also be <code>null</code>. See also the {@link Vec3(0)|Vec3} object.
+ *
+ * @typedef {object} ColorFloat
+ * @property {number} red - Red component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>r</code>, <code>x</code>.
+ * @property {number} green - Green component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>g</code>, <code>y</code>.
+ * @property {number} blue - Blue component value. Real in the range <code>0</code> - <code>255</code>.  Synonyms: <code>b</code>, <code>z</code>.
+ * @example <caption>ColorFloats can be set in multiple ways and modified with their aliases, but still stringify in the same way</caption>
+ * Entities.editEntity(<id>, { color: { x: 1, y: 2, z: 3 }});                 // { red: 1, green: 2, blue: 3 }
+ * Entities.editEntity(<id>, { color: { r: 4, g: 5, b: 6 }});                 // { red: 4, green: 5, blue: 6 }
+ * Entities.editEntity(<id>, { color: { red: 7, green: 8, blue: 9 }});        // { red: 7, green: 8, blue: 9 }
+ * Entities.editEntity(<id>, { color: [10, 11, 12] });                        // { red: 10, green: 11, blue: 12 }
+ * Entities.editEntity(<id>, { color: 13 });                                  // { red: 13, green: 13, blue: 13 }
+ * var color = Entities.getEntityProperties(<id>).color;                      // { red: 13, green: 13, blue: 13 }
+ * color.g = 14;                                                              // { red: 13, green: 14, blue: 13 }
+ * color.blue = 15;                                                           // { red: 13, green: 14, blue: 15 }
+ * Entities.editEntity(<id>, { color: "red"});                                // { red: 255, green: 0, blue: 0 }
+ * Entities.editEntity(<id>, { color: "#00FF00"});                            // { red: 0, green: 255, blue: 0 }
+ */
 QScriptValue u8vec3ToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3);
 QScriptValue u8vec3ColorToScriptValue(QScriptEngine* engine, const glm::u8vec3& vec3);
 void u8vec3FromScriptValue(const QScriptValue& object, glm::u8vec3& vec3);

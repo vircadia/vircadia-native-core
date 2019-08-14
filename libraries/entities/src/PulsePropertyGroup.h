@@ -26,19 +26,17 @@ class OctreePacketData;
 class ReadBitstreamToTreeParams;
 
 /**jsdoc
- * Pulse is defined by the following properties.
+ * A color and alpha pulse that an entity may have.
  * @typedef {object} Entities.Pulse
- *
  * @property {number} min=0 - The minimum value of the pulse multiplier.
  * @property {number} max=1 - The maximum value of the pulse multiplier.
  * @property {number} period=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
  *     <code>min</code> to <code>max</code>, then <code>max</code> to <code>min</code> in one period.
- * @property {PulseMode} colorMode="none" - If "in", the color is pulsed in phase with the pulse period; if "out"
+ * @property {Entities.PulseMode} colorMode="none" - If "in", the color is pulsed in phase with the pulse period; if "out"
  *     the color is pulsed out of phase with the pulse period.
- * @property {PulseMode} alphaMode="none" - If "in", the alpha is pulsed in phase with the pulse period; if "out"
+ * @property {Entities.PulseMode} alphaMode="none" - If "in", the alpha is pulsed in phase with the pulse period; if "out"
  *     the alpha is pulsed out of phase with the pulse period.
  */
-
 class PulsePropertyGroup : public PropertyGroup {
 public:
     // EntityItemProperty related helpers

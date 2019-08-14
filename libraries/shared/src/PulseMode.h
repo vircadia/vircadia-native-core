@@ -18,12 +18,12 @@
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>none</code></td><td>No pulsing.</td></tr>
- *     <tr><td><code>in</code></td><td>Pulse in phase with the pulse period.</td></tr>
- *     <tr><td><code>out</code></td><td>Pulse out of phase with the pulse period.</td></tr>
+ *     <tr><td><code>"none"</code></td><td>No pulsing.</td></tr>
+ *     <tr><td><code>"in"</code></td><td>Pulse in phase with the pulse period.</td></tr>
+ *     <tr><td><code>"out"</code></td><td>Pulse out of phase with the pulse period.</td></tr>
  *   </tbody>
  * </table>
- * @typedef {string} PulseMode
+ * @typedef {string} Entities.PulseMode
  */
 
 enum class PulseMode {

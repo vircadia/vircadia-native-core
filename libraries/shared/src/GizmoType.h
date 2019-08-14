@@ -12,16 +12,16 @@
 #include "QString"
 
 /**jsdoc
- * <p>Controls how the Gizmo behaves and renders</p>
+ * <p>A {@link Entities.EntityProperties-Gizmo|Gizmo} entity may be one of the following types:</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>ring</code></td><td>A ring gizmo.</td></tr>
+ *     <tr><td><code>"ring"</code></td><td>A ring gizmo.</td></tr>
  *   </tbody>
  * </table>
- * @typedef {string} GizmoType
+ * @typedef {string} Entities.GizmoType
  */
 
 enum GizmoType {

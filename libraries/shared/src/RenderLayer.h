@@ -12,18 +12,18 @@
 #include "QString"
 
 /**jsdoc
- * <p>In which layer an entity is rendered.</p>
+ * <p>A layer in which an entity may be rendered.</p>
  * <table>
  *   <thead>
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>world</code></td><td>The entity will be drawn in the world with everything else.</td></tr>
- *     <tr><td><code>front</code></td><td>The entity will be drawn on top of the world layer, but behind the HUD sphere.</td></tr>
- *     <tr><td><code>hud</code></td><td>The entity will be drawn on top of other layers and the HUD sphere.</td></tr>
+ *     <tr><td><code>"world"</code></td><td>The entity is drawn in the world with everything else.</td></tr>
+ *     <tr><td><code>"front"</code></td><td>The entity is drawn on top of the world layer but behind the HUD sphere.</td></tr>
+ *     <tr><td><code>"hud"</code></td><td>The entity is drawn on top of other layers and the HUD sphere.</td></tr>
  *   </tbody>
  * </table>
- * @typedef {string} RenderLayer
+ * @typedef {string} Entities.RenderLayer
  */
 
 enum class RenderLayer {

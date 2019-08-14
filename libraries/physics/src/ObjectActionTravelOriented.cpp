@@ -152,7 +152,7 @@ bool ObjectActionTravelOriented::updateArguments(QVariantMap arguments) {
 /**jsdoc
  * The <code>"travel-oriented"</code> {@link Entities.ActionType|ActionType} orients an entity to align with its direction of 
  * travel.
- * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}.
+ * It has arguments in addition to the common {@link Entities.ActionArguments|ActionArguments}:
  *
  * @typedef {object} Entities.ActionArguments-TravelOriented
  * @property {Vec3} forward=0,0,0 - The axis of the entity to align with the entity's direction of travel.

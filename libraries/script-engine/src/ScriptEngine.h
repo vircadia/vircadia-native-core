@@ -318,6 +318,7 @@ public:
 
     /**jsdoc
      * Adds a function to the list of functions called when an entity event occurs on a particular entity.
+     * <p>See also, the {@link Entities} API.</p>
      * @function Script.addEventHandler
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Script.EntityEvent} eventName - The name of the entity event.
@@ -341,6 +342,7 @@ public:
 
     /**jsdoc
      * Removes a function from the list of functions called when an entity event occurs on a particular entity.
+     * <p>See also, the {@link Entities} API.</p>
      * @function Script.removeEventHandler
      * @param {Uuid} entityID - The ID of the entity.
      * @param {Script.EntityEvent} eventName - The name of the entity event.

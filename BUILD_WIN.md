@@ -31,7 +31,7 @@ If you do not wish to use the Python installation bundled with Visual Studio, yo
 
 ### Step 2. Installing CMake
 
-Download and install the latest version of CMake 3.9.
+Download and install the latest version of CMake 3.14.
 
 Download the file named win64-x64 Installer from the [CMake Website](https://cmake.org/download/). You can access the installer on this [3.14 Version page](https://cmake.org/files/v3.14/). During installation, make sure to check "Add CMake to system PATH for all users" when prompted.
 

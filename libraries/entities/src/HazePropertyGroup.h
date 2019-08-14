@@ -43,7 +43,7 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
 // FIXME: Document hazeAttenuationKeyLight, hazeKeyLightRange, and hazeKeyLightAltitude once they're working and are provided 
 // in the Create app's UI.
 /**jsdoc
- * Haze is defined by the following properties.
+ * Haze is defined by the following properties:
  * @typedef {object} Entities.Haze
  *
  * @property {number} hazeRange=1000 - The horizontal distance at which visibility is reduced to 95%; i.e., 95% of each pixel's 
@@ -56,7 +56,7 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
  *     haze color are blended 50/50.
  *
  * @property {boolean} hazeAltitudeEffect=false - If <code>true</code> then haze decreases with altitude as defined by the 
- *     entity's local coordinate system; <code>hazeBaseRef</code> and </code>hazeCeiling</code> are used.
+ *     entity's local coordinate system; <code>hazeBaseRef</code> and <code>hazeCeiling</code> are used.
  * @property {number} hazeBaseRef=0 - The y-axis value in the entity's local coordinate system at which the haze density starts 
  *     reducing with altitude.
  * @property {number} hazeCeiling=200 - The y-axis value in the entity's local coordinate system at which the haze density has 
@@ -65,9 +65,11 @@ static const float INITIAL_KEY_LIGHT_ALTITUDE{ 200.0f };
  * @property {number} hazeBackgroundBlend=0 - The proportion of the skybox image to show through the haze: <code>0.0</code> 
  *     displays no skybox image; <code>1.0</code> displays no haze.
  *
- * @property {boolean} hazeAttenuateKeyLight=false - <em>Currently not supported.</em>
- * @property {number} hazeKeyLightRange=1000 - <em>Currently not supported.</em>
- * @property {number} hazeKeyLightAltitude=200 - <em>Currently not supported.</em>
+ * @property {boolean} hazeAttenuateKeyLight=false - If <code>true</code> then the haze attenuates the key light; 
+ *     <code>hazeKeyLightRange</code> and <code>hazeKeyLightAltitude</code> are used.
+ * @property {number} hazeKeyLightRange=1000 -  The distance at which the haze attenuates the key light by 95%.
+ * @property {number} hazeKeyLightAltitude=200 - The altitude at which the haze starts attenuating the key light (i.e., the 
+ *     altitude at which the distance starts being calculated).
  */
 class HazePropertyGroup : public PropertyGroup {
 public:

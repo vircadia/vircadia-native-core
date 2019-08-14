@@ -109,22 +109,19 @@ bool Basic2DWindowOpenGLDisplayPlugin::internalActivate() {
     return Parent::internalActivate();
 }
 
-gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getCompositeScenePipeline() {
+gpu::PipelinePointer Basic2DWindowOpenGLDisplayPlugin::getRenderTexturePipeline() {
 #if defined(Q_OS_ANDROID)
-        return _linearToSRGBPipeline;
+    return _linearToSRGBPipeline;
 #else
-        return _SRGBToLinearPipeline;
+
+#ifndef USE_GLES
+    return _SRGBToLinearPipeline;
+#else
+    return _drawTexturePipeline;
+#endif
+
 #endif
 }
-
-gpu::Element Basic2DWindowOpenGLDisplayPlugin::getCompositeFBColorSpace() {
-#if defined(Q_OS_ANDROID)
-    return gpu::Element::COLOR_SRGBA_32;
-#else
-    return gpu::Element::COLOR_RGBA_32;
-#endif
-}
-
 
 void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
 #if defined(Q_OS_ANDROID)

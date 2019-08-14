@@ -124,6 +124,11 @@ void OculusDisplayPlugin::uncustomizeContext() {
     Parent::uncustomizeContext();
 }
 
+gpu::PipelinePointer OculusDisplayPlugin::getRenderTexturePipeline() {
+    //return _SRGBToLinearPipeline;
+    return _drawTexturePipeline;
+}
+
 gpu::PipelinePointer OculusDisplayPlugin::getCompositeScenePipeline() {
     return _SRGBToLinearPipeline;
 }

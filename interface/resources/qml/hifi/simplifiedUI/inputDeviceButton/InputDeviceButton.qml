@@ -33,6 +33,7 @@ Rectangle {
     readonly property string unmutedIcon: "images/mic-unmute-i.svg"
     readonly property string mutedIcon: "images/mic-mute-i.svg"
     readonly property string pushToTalkIcon: "images/mic-ptt-i.svg"
+    readonly property string pushToTalkMutedIcon: "images/mic-ptt-mute-i.svg"
     readonly property string clippingIcon: "images/mic-clip-i.svg"
     readonly property string gatedIcon: "images/mic-gate-i.svg"
     
@@ -46,18 +47,6 @@ Rectangle {
         onNoiseGateClosed: {
             gated = false;
         }
-    }
-
-    opacity: 0.7
-
-    onLevelChanged: {
-        var rectOpacity = (muted && (level >= userSpeakingLevel)) ? 1.0 : 0.7;
-        if (pushToTalk && !pushingToTalk) {
-            rectOpacity = (mouseArea.containsMouse) ? 1.0 : 0.7;
-        } else if (mouseArea.containsMouse && rectOpacity != 1.0) {
-            rectOpacity = 1.0;
-        }
-        micBar.opacity = rectOpacity;
     }
 
     color: "#00000000"
@@ -116,82 +105,84 @@ Rectangle {
     Item {
         id: icon
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: parent.horizontalCenter
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.rightMargin: 2
-        width: 13
-        height: 21
+        width: pushToTalk ? 16 : (muted ? 20 : 16)
+        height: 22
 
         Item {
             anchors.fill: parent
-            opacity: mouseArea.containsMouse ? 1.0 : 0.7
             Image {
                 id: image
+                visible: false
                 source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
                 anchors.fill: parent
-                fillMode: Image.PreserveAspectFit
             }
 
             ColorOverlay {
+                opacity: mouseArea.containsMouse ? 1.0 : 0.7
+                visible: level === 0 || micBar.muted || micBar.clipping
                 id: imageOverlay
                 anchors { fill: image }
                 source: image
-                color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : colors.icon
+                color: pushToTalk ? (pushingToTalk ? colors.icon : colors.mutedColor) : colors.icon
+            }
+
+            OpacityMask {
+                id: bar
+                visible: level > 0 && !micBar.muted && !micBar.clipping
+                anchors.fill: meterGradient
+                source: meterGradient
+                maskSource: image
+            }
+
+            LinearGradient {
+                id: meterGradient
+                anchors { fill: parent }
+                visible: false
+                start: Qt.point(0, 0)
+                end: Qt.point(0, parent.height)
+                rotation: 180
+                gradient: Gradient {
+                    GradientStop {
+                        position: 1.0
+                        color: colors.greenStart
+                    }
+                    GradientStop {
+                        position: 0.5
+                        color: colors.greenEnd
+                    }
+                    GradientStop {
+                        position: 0.0
+                        color: colors.yellow
+                    }
+                }
             }
         }
-    }
 
-    Item {
-        id: bar
-
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.left: parent.horizontalCenter
-        anchors.leftMargin: 2
-
-        width: 4
-        height: 21
-
-        Rectangle { // base
-            id: baseBar
-            radius: 4
-            anchors { fill: parent }
-            color: colors.gutter
-        }
-
-        Rectangle { // mask
-            id: mask
-            height: micBar.muted ? parent.height : parent.height * level
-            color: micBar.muted ? colors.mutedColor : "white"
+        Item {
             width: parent.width
-            radius: 5
-            anchors {
-                bottom: parent.bottom
-                bottomMargin: 0
-                left: parent.left
-                leftMargin: 0
+            height: parent.height - parent.height * level
+            anchors.top: parent.top
+            anchors.left: parent.left
+            clip:true
+            Image {
+                id: maskImage
+                visible: false
+                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
+                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: parent.width
+                height: parent.parent.height
             }
-        }
-
-        LinearGradient {
-            anchors { fill: mask }
-            visible: mask.visible && !micBar.muted
-            source: mask
-            start: Qt.point(0, 0)
-            end: Qt.point(0, bar.height)
-            rotation: 180
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.0
-                    color: colors.greenStart
-                }
-                GradientStop {
-                    position: 0.5
-                    color: colors.greenEnd
-                }
-                GradientStop {
-                    position: 1.0
-                    color: colors.yellow
-                }
+            
+            ColorOverlay {
+                visible: level > 0 && !micBar.muted && !micBar.clipping
+                anchors { fill: maskImage }
+                source: maskImage
+                color: "#b2b2b2"
             }
         }
     }

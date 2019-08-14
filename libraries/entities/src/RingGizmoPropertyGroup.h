@@ -25,31 +25,32 @@ class ReadBitstreamToTreeParams;
 using u8vec3Color = glm::u8vec3;
 
 /**jsdoc
- * A RingGizmo is defined by the following properties.
+ * A {@link Entities.EntityProperties-Gizmo|ring Gizmo} entity is defined by the following properties:
  * @typedef {object} Entities.RingGizmo
  *
- * @property {number} startAngle=0 - The angle at which the ring will start, in degrees.
- * @property {number} endAngle=360 - The angle at which the ring will end, in degrees.
- * @property {number} innerRadius=0 - The inner radius of the ring as a fraction of the total radius.  0-1.
+ * @property {number} startAngle=0 - The angle at which the ring starts, in degrees.
+ * @property {number} endAngle=360 - The angle at which the ring ends, in degrees.
+ * @property {number} innerRadius=0 - The inner radius of the ring as a fraction of the total radius, range <code>0.0</code> 
+ *     &mdash; <code>1.0</code>.
 
- * @property {Color} innerStartColor - The color at the inner start point of the ring.
- * @property {Color} innerEndColor - The color at the inner end point of the ring.
- * @property {Color} outerStartColor - The color at the outer start point of the ring.
- * @property {Color} outerEndColor - The color at the outer end point of the ring.
- * @property {number} innerStartAlpha=1 - The alpha at the inner start point of the ring.
- * @property {number} innerEndAlpha=1 - The alpha at the inner end point of the ring.
- * @property {number} outerStartAlpha=1 - The alpha at the outer start point of the ring.
- * @property {number} outerEndAlpha=1 - The alpha at the outer end point of the ring.
+ * @property {Color} innerStartColor=255,255,255 - The color at the inner start point of the ring.
+ * @property {Color} innerEndColor=255,255,255 - The color at the inner end point of the ring.
+ * @property {Color} outerStartColor=255,255,255 - The color at the outer start point of the ring.
+ * @property {Color} outerEndColor=255,255,255 - The color at the outer end point of the ring.
+ * @property {number} innerStartAlpha=1 - The opacity at the inner start point of the ring.
+ * @property {number} innerEndAlpha=1 - The opacity at the inner end point of the ring.
+ * @property {number} outerStartAlpha=1 - The opacity at the outer start point of the ring.
+ * @property {number} outerEndAlpha=1 - The opacity at the outer end point of the ring.
 
- * @property {boolean} hasTickMarks=false - Whether or not to render tick marks.
- * @property {number} majorTickMarksAngle - The angle between major tick marks, in degrees.
- * @property {number} minorTickMarksAngle - The angle between minor tick marks, in degrees.
- * @property {number} majorTickMarksLength - The length of the major tick marks, as a fraction of the radius. A positive value draws tick marks
- *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {number} minorTickMarksLength - The length of the minor tick marks, as a fraction of the radius. A positive value draws tick marks
- *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {Color} majorTickMarksColor - The color of the major tick marks.
- * @property {Color} minorTickMarksColor - The color of the minor tick marks.
+ * @property {boolean} hasTickMarks=false - <code>true</code> to render tick marks, otherwise <code>false</code>.
+ * @property {number} majorTickMarksAngle=0 - The angle between major tick marks, in degrees.
+ * @property {number} minorTickMarksAngle=0 - The angle between minor tick marks, in degrees.
+ * @property {number} majorTickMarksLength=0 - The length of the major tick marks as a fraction of the radius. A positive value 
+ *     draws tick marks outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
+ * @property {number} minorTickMarksLength=0 - The length of the minor tick marks, as a fraction of the radius. A positive 
+ *     value draws tick marks outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
+ * @property {Color} majorTickMarksColor=255,255,255 - The color of the major tick marks.
+ * @property {Color} minorTickMarksColor=255,255,255 - The color of the minor tick marks.
  */
 
 class RingGizmoPropertyGroup : public PropertyGroup {
