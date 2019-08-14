@@ -21,8 +21,9 @@ const int TREE_SCALE = 32768; // ~20 miles.. This is the number of meters of the
 const int HALF_TREE_SCALE = TREE_SCALE / 2;
 
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
-const float MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT = 400.0f; // max distance where a 1x1x1 cube is visible for 20:20 vision
-const float DEFAULT_OCTREE_SIZE_SCALE = TREE_SCALE * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
+const float DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT = 400.0f; // max distance where a 1x1x1 cube is visible for 20:20 vision
+const float UNIT_ELEMENT_MAX_EXTENT = sqrtf(3.0f) / 2.0f; // A unit cube tilted on its edge will have its edge jutting out sqrt(3)/2 units from the center
+const float DEFAULT_OCTREE_SIZE_SCALE = TREE_SCALE * DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT;
 
 // Since entities like models live inside of octree cells, and they themselves can have very small mesh parts,
 // we want to have some constant that controls have big a mesh part must be to render even if the octree cell itself

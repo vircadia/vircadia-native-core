@@ -355,7 +355,7 @@ CameraManager = function() {
             return;
         }
 
-        if (event.isRightButton || (event.isLeftButton && event.isControl && !event.isShifted)) {
+        if (event.isRightButton || (event.isLeftButton && event.isAlt && !event.isShifted)) {
             that.mode = MODE_ORBIT;
         } else if (event.isMiddleButton || (event.isLeftButton && event.isControl && event.isShifted)) {
             that.mode = MODE_PAN;
