@@ -136,30 +136,32 @@ PropFolderPanel {
     function populateFromObjectProps(object) {
         var propsModel = []
 
-        var props = Object.keys(object);
-        for (var p in props) {
-            var o = {};
-            o["object"] = object
-            o["property"] = props[p];
-            // o["readOnly"] = true;
-        
-            var thePropThing = object[props[p]];
-            if ((thePropThing !== undefined) && (thePropThing !== null)) {
-                var theType = typeof(thePropThing)
-                switch(theType) {
-                    case 'object': {
-                        o["type"] = "object";
-                        propsModel.push(o)  
-                    } break;
-                    default: {
-                        o["type"] = "string";
-                        propsModel.push(o)
-                    } break;
-                }
+        if (object !== undefined) {
+            var props = Object.keys(object);
+            for (var p in props) {
+                var o = {};
+                o["object"] = object
+                o["property"] = props[p];
+                // o["readOnly"] = true;
             
-            } else {
-                o["type"] = "string";
-                propsModel.push(o)
+                var thePropThing = object[props[p]];
+                if ((thePropThing !== undefined) && (thePropThing !== null)) {
+                    var theType = typeof(thePropThing)
+                    switch(theType) {
+                        case 'object': {
+                            o["type"] = "object";
+                            propsModel.push(o)  
+                        } break;
+                        default: {
+                            o["type"] = "string";
+                            propsModel.push(o)
+                        } break;
+                    }
+                
+                } else {
+                    o["type"] = "string";
+                    propsModel.push(o)
+                }
             }
         }
 

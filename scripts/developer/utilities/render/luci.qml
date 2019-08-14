@@ -32,6 +32,7 @@ Rectangle {
         clip: true
          
         Column {
+            id: column
             width: parent.width
             Prop.PropFolderPanel {
                 label: "Render Settings"
@@ -82,16 +83,25 @@ Rectangle {
                 panelFrameData: Component {
                     Row {
                         HifiControls.Button {
+                            text: "Engine"
+                            onClicked: {
+                                sendToScript({method: "openEngineInspectorView"}); 
+                            }
+                            width:column.width / 3
+                        }
+                        HifiControls.Button {
                             text: "LOD"
                             onClicked: {
                                 sendToScript({method: "openEngineLODView"}); 
                             }
+                            width:column.width / 3
                         }
                         HifiControls.Button {
                             text: "Material"
                             onClicked: {
                                 sendToScript({method: "openMaterialInspectorView"}); 
                             }
+                            width:column.width / 3
                         }
                     }
                 }

@@ -31,9 +31,9 @@ Item {
     readonly property color colorBorderHighight: hifi.colors.blueHighlight
     readonly property color colorBorderLighter: hifi.colors.faintGray
 
-    readonly property color colorOrangeAccent: "#FF6309"
-    readonly property color colorRedAccent: "#C62147"
-    readonly property color colorGreenHighlight: "#1ac567"
+    readonly property color colorOrangeAccent: hifi.colors.orangeAccent
+    readonly property color colorRedAccent: hifi.colors.redAccent
+    readonly property color colorGreenHighlight: hifi.colors.greenHighlight
 
     readonly property real fontSize: 12
     readonly property var fontFamily: "Raleway"

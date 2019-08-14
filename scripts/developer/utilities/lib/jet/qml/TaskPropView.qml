@@ -29,7 +29,7 @@ Prop.PropGroup {
 
     property var showProps: true
     property var showSubs: true
-    property var jobEnabled: rootConfig.getConfig(jobPath).enabled
+    property bool jobEnabled: rootConfig.getConfig(jobPath).enabled
     property var jobCpuTime: pullCpuTime()
 
     function pullCpuTime() {
@@ -72,7 +72,7 @@ Prop.PropGroup {
                 anchors.right:parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 filled: root.jobEnabled
-                fillColor: (root.jobEnabled ? root.global.colorGreenHighlight : global.colorOrangeAccent)
+                fillColor: (root.jobEnabled ? global.colorGreenHighlight : global.colorOrangeAccent)
                 icon: 5
                 
                 MouseArea{
