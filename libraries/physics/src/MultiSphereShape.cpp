@@ -323,7 +323,7 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         for (size_t i = 0; i < spheres.size() - 1; i++) {
             for (size_t j = i + 1; j < spheres.size(); j++) {
                 if (i != j) {
-                    int maxRadiusIndex = spheres[i]._radius > spheres[j]._radius ? i : j;
+                    size_t maxRadiusIndex = spheres[i]._radius > spheres[j]._radius ? i : j;
                     if (glm::length(spheres[i]._position - spheres[j]._position) < 0.2f * spheres[maxRadiusIndex]._radius) {
                         SphereShapeData newSphere;
                         newSphere._position = _midPoint;
