@@ -59,6 +59,7 @@ var DISTANCE_SCALER_ALWAYS_ON = 0.45;
 var distanceScaler = DISTANCE_SCALER_ON;
 var userScaler = 1.0;
 var DEFAULT_LINE_HEIGHT = entityProps.lineHeight;
+var ADDITIONAL_PADDING = 1.06;
 function calculateInitialProperties(uuid) {
     var adjustedScaler = null;
     var distance = null;
@@ -82,7 +83,7 @@ function calculateInitialProperties(uuid) {
     distanceScaler = avatarNametagMode === "on" ? DISTANCE_SCALER_ON : DISTANCE_SCALER_ALWAYS_ON;
     adjustedScaler = distance * distanceScaler;
     // Get the new dimensions from the text helper
-    dimensions = [textHelper.getTotalTextLength(), DEFAULT_LINE_HEIGHT, Z_SIZE];
+    dimensions = [textHelper.getTotalTextLength() * ADDITIONAL_PADDING, DEFAULT_LINE_HEIGHT, Z_SIZE];
     // Adjust the dimensions by the modified distance scaler
     scaledDimensions = Vec3.multiply(dimensions, adjustedScaler);
 
@@ -253,11 +254,7 @@ function getCorrectName(uuid) {
     var avatar = _this.avatars[uuid];
     var avatarInfo = avatar.avatarInfo;
 
-    var displayNameToUse = avatarInfo.sessionDisplayName.trim();
-    
-    if (displayNameToUse === "") {
-        displayNameToUse = avatarInfo.displayName.trim();
-    }
+    var displayNameToUse = avatarInfo.displayName.trim();
 
     if (displayNameToUse === "") {
         displayNameToUse = "anonymous";
@@ -344,24 +341,19 @@ function makeNameTag(uuid) {
     }, REDRAW_TIMEOUT_AMOUNT_MS);
 }
 
-
 // Check to see if the display named changed or if the distance is big enough to need a redraw.
 var MAX_RADIUS_IGNORE_METERS = 22;
 var MAX_ON_MODE_DISTANCE = 35;
-var CHECK_AVATAR = true;
-var MIN_DISTANCE_FOR_REDRAW_METERS = 0.1;
 function maybeRedraw(uuid) {
     var avatar = _this.avatars[uuid];
     getAvatarData(uuid);
 
     getDistance(uuid);
-    var distanceDelta = Math.abs(avatar.currentDistance - avatar.previousDistance);
-
     var name = getCorrectName(uuid);
 
     if (avatar.previousName !== name) {
         updateName(uuid, name);
-    } else if (distanceDelta > MIN_DISTANCE_FOR_REDRAW_METERS) {
+    } else {
         redraw(uuid);
     }
 }

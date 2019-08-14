@@ -111,7 +111,8 @@ public:
 
     enum ConnectReason : quint32 {
         Connect = 0,
-        SilentDomainDisconnect
+        SilentDomainDisconnect,
+        Awake
     };
     Q_ENUM(ConnectReason);
 
@@ -347,8 +348,8 @@ public:
     };
 
 public slots:
-    void reset();
-    void eraseAllNodes();
+    void reset(QString reason);
+    void eraseAllNodes(QString reason);
 
     void removeSilentNodes();
 
@@ -358,6 +359,7 @@ public slots:
     virtual void sendSTUNRequest();
 
     bool killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID = NULL_CONNECTION_ID);
+    void noteAwakening() { _connectReason = Awake; }
 
 private slots:
     void sampleConnectionStats();

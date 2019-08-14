@@ -98,23 +98,23 @@ private:
     void disconnectFromReply(QNetworkReply* reply);
     void abortRequest();
 
-    QScriptEngine* _engine;
-    bool _async;
+    QScriptEngine* _engine { nullptr };
+    bool _async { true };
     QUrl _url;
     QString _method;
     QString _responseType;
     QNetworkRequest _request;
-    QNetworkReply* _reply;
-    QBuffer* _sendData;
+    QNetworkReply* _reply { nullptr };
+    QByteArray _sendData;
     QByteArray _rawResponseData;
     QScriptValue _responseData;
-    QScriptValue _onTimeout;
-    QScriptValue _onReadyStateChange;
-    ReadyState _readyState;
-    QNetworkReply::NetworkError _errorCode;
-    int _timeout;
+    QScriptValue _onTimeout { QScriptValue::NullValue };
+    QScriptValue _onReadyStateChange { QScriptValue::NullValue };
+    ReadyState _readyState { XMLHttpRequestClass::UNSENT };
+    QNetworkReply::NetworkError _errorCode { QNetworkReply::NoError };
+    int _timeout { 0 };
     QTimer _timer;
-    int _numRedirects;
+    int _numRedirects { 0 };
 
 private slots:
     void requestFinished();

@@ -20,6 +20,7 @@ namespace platform { namespace keys{
         extern const char*  model;
         extern const char*  clockSpeed;
         extern const char*  numCores;
+        extern const char*  isMaster;
     }
     namespace gpu {
         extern const char*  vendor;
@@ -30,14 +31,66 @@ namespace platform { namespace keys{
         extern const char*  model;
         extern const char*  videoMemory;
         extern const char*  driver;
+        extern const char*  displays;
+        extern const char*  isMaster;
+    }
+    namespace graphicsAPI {
+        extern const char* name;
+        extern const char* version;
+        extern const char* apiOpenGL;
+        extern const char* apiVulkan;
+        extern const char* apiDirect3D11;
+        extern const char* apiDirect3D12;
+        extern const char* apiMetal;
+        namespace gl {
+            extern const char* shadingLanguageVersion;
+            extern const char* vendor;
+            extern const char* renderer;
+            extern const char* extensions;
+        }
+        namespace vk {
+            extern const char* devices;
+            namespace device {
+                extern const char* apiVersion;
+                extern const char* driverVersion;
+                extern const char* deviceType;
+                extern const char* vendor;
+                extern const char* name;
+                extern const char* formats;
+                extern const char* extensions;
+                extern const char* queues;
+                extern const char* heaps;
+                namespace heap {
+                    extern const char* flags;
+                    extern const char* size;
+                }
+                namespace queue {
+                    extern const char* flags;
+                    extern const char* count;
+                }
+            }
+        }
+    }
+    namespace nic {
+        extern const char* mac;
+        extern const char* name;
     }
     namespace display {
         extern const char*  description;
         extern const char*  name;
-        extern const char*  coordsLeft;
-        extern const char*  coordsRight;
-        extern const char*  coordsTop;
-        extern const char*  coordsBottom;
+        extern const char*  boundsLeft;
+        extern const char*  boundsRight;
+        extern const char*  boundsTop;
+        extern const char*  boundsBottom;
+        extern const char*  gpu;
+        extern const char*  ppi;
+        extern const char*  ppiDesktop;
+        extern const char*  physicalWidth;
+        extern const char*  physicalHeight;
+        extern const char*  modeRefreshrate;
+        extern const char*  modeWidth;
+        extern const char*  modeHeight;
+        extern const char*  isMaster;
     }
     namespace memory {
         extern const char*  memTotal;
@@ -62,7 +115,9 @@ namespace platform { namespace keys{
     // Keys for categories used in json returned by getAll()
     extern const char*  CPUS;
     extern const char*  GPUS;
+    extern const char*  GRAPHICS_APIS;
     extern const char*  DISPLAYS;
+    extern const char*  NICS;
     extern const char*  MEMORY;
     extern const char*  COMPUTER;
 

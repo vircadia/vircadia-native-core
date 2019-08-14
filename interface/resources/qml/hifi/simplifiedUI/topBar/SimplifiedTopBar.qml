@@ -76,10 +76,20 @@ Rectangle {
                 return;
             }
 
-            if (walletStatus === 5) {
-                topBarInventoryModel.getFirstPage();
-            } else {
-                // Show some error to the user
+            switch (walletStatus) {
+                case 1:
+                    var randomNumber = Math.floor(Math.random() * 34) + 1;
+                    var securityImagePath = "images/" + randomNumber.toString().padStart(2, '0') + ".jpg";
+                    Commerce.getWalletAuthenticatedStatus(); // before writing security image, ensures that salt/account password is set.
+                    Commerce.chooseSecurityImage(securityImagePath);
+                    Commerce.generateKeyPair()
+                    Commerce.getWalletStatus();
+                    break;
+                case 5:
+                    topBarInventoryModel.getFirstPage();
+                    break;
+                default:
+                    console.log('WARNING: SimplifiedTopBar.qml walletStatusResult:', walletStatus);
             }
         }
 
@@ -352,8 +362,8 @@ Rectangle {
             id: displayModeImage
             source: HMD.active ? "./images/desktopMode.svg" : "./images/vrMode.svg"
             anchors.centerIn: parent
-            width: HMD.active ? 25 : 43
-            height: 22
+            width: HMD.active ? 25 : 26
+            height: HMD.active ? 22 : 14
             visible: false
         }
 

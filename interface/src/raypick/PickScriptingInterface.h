@@ -10,7 +10,6 @@
 
 #include <QtCore/QObject>
 
-#include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
 #include <PhysicsEngine.h>
 #include <Pick.h>
@@ -29,7 +28,7 @@
  * @property {FilterFlags} PICK_AVATAR_ENTITIES - Include avatar entities when intersecting. <em>Read-only.</em>
  * @property {FilterFlags} PICK_LOCAL_ENTITIES - Include local entities when intersecting. <em>Read-only.</em>
  * @property {FilterFlags} PICK_AVATARS - Include avatars when intersecting. <em>Read-only.</em>
- * @property {FilterFlags} PICK_HUD - Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
+ * @property {FilterFlags} PICK_HUD - Include the HUD surface when intersecting in HMD mode. <em>Read-only.</em>
  *
  * @property {FilterFlags} PICK_ENTITIES - Include domain and avatar entities when intersecting. <em>Read-only.</em>
  *     <p class="important">Deprecated: This property is deprecated and will be removed. Use <code>PICK_DOMAIN_ENTITIES | 
@@ -61,7 +60,7 @@
  *     <p class="important">Deprecated: This property is deprecated and will be removed. Use 
  *     <code>INTERSECTED_LOCAL_ENTITY</code> instead.</p>
  * @property {IntersectionType} INTERSECTED_AVATAR - Intersected an avatar. <em>Read-only.</em>
- * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD sphere. <em>Read-only.</em>
+ * @property {IntersectionType} INTERSECTED_HUD - Intersected the HUD surface. <em>Read-only.</em>
  *
  * @property {number} perFrameTimeBudget - The maximum time, in microseconds, to spend per frame updating pick results.
  */
@@ -98,11 +97,6 @@ class PickScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    unsigned int createRayPick(const QVariant& properties);
-    unsigned int createStylusPick(const QVariant& properties);
-    unsigned int createCollisionPick(const QVariant& properties);
-    unsigned int createParabolaPick(const QVariant& properties);
-
     void registerMetaTypes(QScriptEngine* engine);
 
     /**jsdoc
@@ -135,11 +129,45 @@ public:
     Q_INVOKABLE void disablePick(unsigned int uid);
 
     /**jsdoc
+     * Get the enabled status of a pick. Enabled picks update their pick results.
+     * @function Picks.isPickEnabled
+     * @param {number} id - The ID of the pick.
+     * @returns {boolean} enabled - Whether or not the pick is enabled.
+     */
+    Q_INVOKABLE bool isPickEnabled(unsigned int uid) const;
+
+    /**jsdoc
      * Removes (deletes) a pick.
      * @function Picks.removePick
      * @param {number} id - The ID of the pick.
      */
     Q_INVOKABLE void removePick(unsigned int uid);
+
+    /**jsdoc
+     * Gets the current properties of the pick.
+     * @function Picks.getPickProperties
+     * @param {number} id - The ID of the pick.
+     * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} Properties of the pick, per the pick <code>type</code>.
+     */
+    Q_INVOKABLE QVariantMap getPickProperties(unsigned int uid) const;
+
+    /**jsdoc
+    * Gets the parameters that were passed in to {@link Picks.createPick} to create the pick,
+    * if the pick was created through a script.
+    * Note that these properties do not reflect the current state of the pick.
+    * See {@link Picks.getPickProperties}.
+    * @function Picks.getPickScriptParameters
+    * @param {number} id - The ID of the pick.
+    * @returns {Picks.RayPickProperties|Picks.ParabolaPickProperties|Picks.StylusPickProperties|Picks.CollisionPickProperties} User-provided properties, per the pick <code>type</code>.
+    */
+    Q_INVOKABLE QVariantMap getPickScriptParameters(unsigned int uid) const;
+
+    /**jsdoc
+     * Gets all picks which currently exist, including disabled picks.
+     * @function Picks.getPicks
+     * @returns {number[]} picks - The IDs of the picks.
+     */
+    Q_INVOKABLE QVector<unsigned int> getPicks() const;
 
     /**jsdoc
      * Gets the most recent result from a pick. A pick continues to be updated ready to return a result, as long as it is 
@@ -194,7 +222,8 @@ public:
     Q_INVOKABLE QVariantMap getPrevPickResult(unsigned int uid);
 
     /**jsdoc
-     * Sets whether or not to use precision picking, i.e., whether to pick against precise meshes or coarse meshes.
+     * Sets whether or not a pick should use precision picking, i.e., whether it should pick against precise meshes or coarse 
+     * meshes.
      * This has the same effect as using the <code>PICK_PRECISE</code> or <code>PICK_COARSE</code> filter flags.
      * @function Picks.setPrecisionPicking
      * @param {number} id - The ID of the pick.
@@ -203,7 +232,7 @@ public:
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
 
     /**jsdoc
-     * Sets a list of entity and avatar IDs to ignore during intersection.
+     * Sets a list of entity and avatar IDs that a pick should ignore during intersection.
      * <p><strong>Note:</strong> Not used by stylus picks.</p>
      * @function Picks.setIgnoreItems
      * @param {number} id - The ID of the pick.
@@ -212,8 +241,9 @@ public:
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems);
 
     /**jsdoc
-     * Sets a list of entity IDs and/or avatar IDs to include during intersection, instead of intersecting with everything.
-     * <p><strong>Note:</strong> Stylus picks only intersect with objects in their include list.</p>
+     * Sets a list of entity and avatar IDs that a pick should include during intersection, instead of intersecting with 
+     * everything.
+     * <p><strong>Note:</strong> Stylus picks only intersect with items in their include list.</p>
      * @function Picks.setIncludeItems
      * @param {number} id - The ID of the pick.
      * @param {Uuid[]} includeItems - The list of IDs to include.
@@ -221,9 +251,9 @@ public:
     Q_INVOKABLE void setIncludeItems(unsigned int uid, const QScriptValue& includeItems);
 
     /**jsdoc
-     * Checks if a pick is associated with the left hand: a ray or parabola pick with joint set to 
-     * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>, or a stylus pick with hand 
-     * set to <code>0</code>.
+     * Checks if a pick is associated with the left hand: a ray or parabola pick with <code>joint</code> property set to 
+     * <code>"_CONTROLLER_LEFTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"</code>, or a stylus pick with 
+     * <code>hand</code> property set to <code>0</code>.
      * @function Picks.isLeftHand
      * @param {number} id - The ID of the pick.
      * @returns {boolean} <code>true</code> if the pick is associated with the left hand, <code>false</code> if it isn't.
@@ -231,9 +261,9 @@ public:
     Q_INVOKABLE bool isLeftHand(unsigned int uid);
 
     /**jsdoc
-     * Checks if a pick is associated with the right hand: a ray or parabola pick with joint set to
-     * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>, or a stylus pick with hand
-     * set to <code>1</code>.
+     * Checks if a pick is associated with the right hand: a ray or parabola pick with <code>joint</code> property set to
+     * <code>"_CONTROLLER_RIGHTHAND"</code> or <code>"_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"</code>, or a stylus pick with 
+     * <code>hand</code> property set to <code>1</code>.
      * @function Picks.isRightHand
      * @param {number} id - The ID of the pick.
      * @returns {boolean} <code>true</code> if the pick is associated with the right hand, <code>false</code> if it isn't.
@@ -241,7 +271,8 @@ public:
     Q_INVOKABLE bool isRightHand(unsigned int uid);
 
     /**jsdoc
-     * Checks if a pick is associated with the system mouse: a ray or parabola pick with joint set to <code>"Mouse"</code>.
+     * Checks if a pick is associated with the system mouse: a ray or parabola pick with <code>joint</code> property set to 
+     * <code>"Mouse"</code>.
      * @function Picks.isMouse
      * @param {number} id - The ID of the pick.
      * @returns {boolean} <code>true</code> if the pick is associated with the system mouse, <code>false</code> if it isn't.
@@ -416,6 +447,11 @@ public slots:
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
 protected:
+    static std::shared_ptr<PickQuery> buildRayPick(const QVariantMap& properties);
+    static std::shared_ptr<PickQuery> buildStylusPick(const QVariantMap& properties);
+    static std::shared_ptr<PickQuery> buildCollisionPick(const QVariantMap& properties);
+    static std::shared_ptr<PickQuery> buildParabolaPick(const QVariantMap& properties);
+
     static void setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap);
 };
 

@@ -10,7 +10,7 @@
 #define hifi_RenderHUDLayerTask_h
 
 #include "LightingModel.h"
-
+#include "HazeStage.h"
 
 class CompositeHUD {
 public:
@@ -25,7 +25,7 @@ public:
 class RenderHUDLayerTask {
 public:
     // Framebuffer where to draw, lighting model, opaque items, transparent items
-    using Input = render::VaryingSet4<gpu::FramebufferPointer, LightingModelPointer, render::ItemBounds, render::ItemBounds>;
+    using Input = render::VaryingSet5<gpu::FramebufferPointer, LightingModelPointer, render::ItemBounds, render::ItemBounds, HazeStage::FramePointer>;
     using JobModel = render::Task::ModelI<RenderHUDLayerTask, Input>;
 
     void build(JobModel& task, const render::Varying& input, render::Varying& output);

@@ -278,17 +278,19 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
     _backups.emplace_back(backupName, mappings, false);
 }
 
-void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) {
+std::pair<bool, QString> AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename) {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (operationInProgress()) {
-        qCWarning(asset_backup) << "There is already a backup/restore in progress.";
-        return;
+        QString errorStr ("There is already a backup/restore in progress.  Please wait.");
+        qWarning() << errorStr;
+        return { false, errorStr };
     }
 
     if (_lastMappingsRefresh.time_since_epoch().count() == 0) {
-        qCWarning(asset_backup) << "Current mappings not yet loaded.";
-        return;
+        QString errorStr ("Current mappings not yet loaded.  Please wait.");
+        qWarning() << errorStr;
+        return { false, errorStr };
     }
 
     if ((p_high_resolution_clock::now() - _lastMappingsRefresh) > MAX_REFRESH_TIME) {
@@ -300,6 +302,16 @@ void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) 
     });
     if (it == end(_backups)) {
         loadBackup(backupName, zip);
+
+        auto emplaced_backup = find_if(begin(_backups), end(_backups), [&](const AssetServerBackup& backup) {
+            return backup.name == backupName;
+        });
+
+        if(emplaced_backup->corruptedBackup) {
+            QString errorStr ("Current mappings file is corrupted.");
+            qWarning() << errorStr;
+            return { false, errorStr };
+        }
 
         QuaZipDir zipDir { &zip, ZIP_ASSETS_FOLDER };
 
@@ -330,8 +342,9 @@ void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) 
         });
 
         if (it == end(_backups)) {
-            qCCritical(asset_backup) << "Failed to recover backup:" << backupName;
-            return;
+            QString errorStr ("Failed to recover backup: " + backupName);
+            qWarning() << errorStr;
+            return { false, errorStr };
         }
     }
 
@@ -339,6 +352,7 @@ void AssetsBackupHandler::recoverBackup(const QString& backupName, QuaZip& zip) 
     computeServerStateDifference(_currentMappings, newMappings);
 
     restoreAllAssets();
+    return { true, QString() };
 }
 
 void AssetsBackupHandler::deleteBackup(const QString& backupName) {

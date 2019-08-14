@@ -32,21 +32,47 @@ CLauncherApp theApp;
 // CLauncherApp initialization
 
 BOOL CLauncherApp::InitInstance() {
-    // don't launch if already running
-    CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        return FALSE;
+    // Close interface if is running
+    int interfacePID = -1;
+    if (LauncherUtils::isProcessRunning(L"interface.exe", interfacePID)) {
+        LauncherUtils::shutdownProcess(interfacePID, 0);
     }
     int iNumOfArgs;
     LPWSTR* pArgs = CommandLineToArgvW(GetCommandLine(), &iNumOfArgs);
-    if (iNumOfArgs > 1 && CString(pArgs[1]).Compare(_T("--uninstall")) == 0) {
+    bool uninstalling = false;
+    bool restarting = false;
+    bool noUpdate = false;
+    LauncherManager::ContinueActionOnStart continueAction = LauncherManager::ContinueActionOnStart::ContinueNone;
+    if (iNumOfArgs > 1) {
+        for (int i = 1; i < iNumOfArgs; i++) {
+            CString curArg = CString(pArgs[i]);
+            if (curArg.Compare(_T("--uninstall")) == 0) {
+                uninstalling = true;
+            } else if (curArg.Compare(_T("--restart")) == 0) {
+                restarting = true;
+            } else if (curArg.Compare(_T("--noUpdate")) == 0) {
+                noUpdate = true;
+            } else if (curArg.Compare(_T("--continueAction")) == 0) {
+                if (i + 1 < iNumOfArgs) {
+                    continueAction = LauncherManager::getContinueActionFromParam(pArgs[i + 1]);
+                }
+            }
+        }
+    }
+    if (!restarting) {
+        // don't launch if already running
+        CreateMutex(NULL, TRUE, _T("HQ_Launcher_Mutex"));
+        if (GetLastError() == ERROR_ALREADY_EXISTS) {
+            return FALSE;
+        }
+    }
+
+    if (uninstalling) {
         _manager.uninstall();
     } else {
-        _manager.init();
+        _manager.init(!noUpdate, continueAction);
     }   
-    if (!_manager.installLauncher()) {
-        return FALSE;
-    }
+    _manager.tryToInstallLauncher();
     installFont(IDR_FONT_REGULAR);
     installFont(IDR_FONT_BOLD);
     CWinApp::InitInstance();

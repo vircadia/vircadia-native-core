@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <render/IndexedContainer.h>
 #include <render/Stage.h>
+#include "HazeStage.h"
 
 #include "LightingModel.h"
 
@@ -81,7 +82,7 @@ public:
 
 class DrawBackgroundStage {
 public:
-    using Inputs = render::VaryingSet2<LightingModelPointer, BackgroundStage::FramePointer>;
+    using Inputs = render::VaryingSet3<LightingModelPointer, BackgroundStage::FramePointer, HazeStage::FramePointer>;
     using JobModel = render::Job::ModelI<DrawBackgroundStage, Inputs>;
 
     DrawBackgroundStage() {}

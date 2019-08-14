@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 8/14/2018
+//  Created by Sabrina Shanman 2018/08/14
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -21,4 +21,10 @@ Transform MyAvatarHeadTransformNode::getTransform() {
     glm::quat ori = headOri * glm::angleAxis(-PI / 2.0f, Vectors::RIGHT);
 
     return Transform(ori, scale, pos);
+}
+
+QVariantMap MyAvatarHeadTransformNode::toVariantMap() const {
+    QVariantMap map;
+    map["joint"] = "Avatar";
+    return map;
 }

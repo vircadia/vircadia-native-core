@@ -44,10 +44,10 @@ using namespace render;
 static void loadLightProgram(int programId, bool lightVolume, gpu::PipelinePointer& program);
 
 void DeferredLightingEffect::init() {
-    loadLightProgram(shader::render_utils::program::directional_ambient_light, false, _directionalAmbientSphereLight);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light_ambient, false, _directionalAmbientSphereLight);
     loadLightProgram(shader::render_utils::program::directional_skybox_light, false, _directionalSkyboxLight);
 
-    loadLightProgram(shader::render_utils::program::directional_ambient_light_shadow, false, _directionalAmbientSphereLightShadow);
+    loadLightProgram(shader::render_utils::program::directional_skybox_light_ambient_shadow, false, _directionalAmbientSphereLightShadow);
     loadLightProgram(shader::render_utils::program::directional_skybox_light_shadow, false, _directionalSkyboxLightShadow);
 
     loadLightProgram(shader::render_utils::program::local_lights_shading, true, _localLight);
@@ -432,7 +432,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         if (hazeStage && hazeFrame->_hazes.size() > 0) {
             const auto& hazePointer = hazeStage->getHaze(hazeFrame->_hazes.front());
             if (hazePointer) {
-                batch.setUniformBuffer(ru::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
+                batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, hazePointer->getHazeParametersBuffer());
             }
         }
 
@@ -655,7 +655,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
     if (!_defaultHaze) {
         auto hazeStage = renderContext->_scene->getStage<HazeStage>();
         if (hazeStage) {
-
             auto haze = std::make_shared<graphics::Haze>();
 
             _defaultHaze = haze;

@@ -41,7 +41,6 @@
 #include "MainWindow.h"
 #include "Snapshot.h"
 #include "SnapshotUploader.h"
-#include "ToneMappingEffect.h"
 
 // filename format: hifi-snap-by-%username%-on-%date%_%time%_@-%location%.jpg
 // %1 <= username, %2 <= date and time, %3 <= current location
@@ -143,10 +142,6 @@ void Snapshot::save360Snapshot(const glm::vec3& cameraPosition,
         secondaryCameraRenderConfig->enableSecondaryCameraRenderConfigs(true);
     }
 
-    // Initialize some secondary camera render config options for 360 snapshot capture
-    static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))
-        ->setCurve(0);
-
     secondaryCameraRenderConfig->resetSizeSpectatorCamera(static_cast<int>(CUBEMAP_SIDE_PIXEL_DIMENSION),
                                                           static_cast<int>(CUBEMAP_SIDE_PIXEL_DIMENSION));
     secondaryCameraRenderConfig->setProperty("attachedEntityId", "");
@@ -209,7 +204,6 @@ void Snapshot::takeNextSnapshot() {
 
         // Reset secondary camera render config
         SecondaryCameraJobConfig* config = static_cast<SecondaryCameraJobConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCamera"));
-        static_cast<ToneMappingConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("SecondaryCameraJob.ToneMapping"))->setCurve(1);
         config->resetSizeSpectatorCamera(qApp->getWindow()->geometry().width(), qApp->getWindow()->geometry().height());
         config->setProperty("attachedEntityId", _oldAttachedEntityId);
         config->setProperty("vFoV", _oldvFoV);

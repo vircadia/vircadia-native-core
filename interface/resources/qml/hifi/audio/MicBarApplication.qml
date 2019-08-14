@@ -39,8 +39,8 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
-        AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        AudioScriptingInterface.noiseGateOpened.connect(function() { micBar.gated = false; });
+        AudioScriptingInterface.noiseGateClosed.connect(function() { micBar.gated = true; });
         HMD.displayModeChanged.connect(function() {
             muted = AudioScriptingInterface.muted;
             pushToTalk = AudioScriptingInterface.pushToTalk;
@@ -151,7 +151,7 @@ Rectangle {
         readonly property string yellow: "#C0C000";
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: (muted || clipping) ? mutedColor : gated ? gatedColor : unmutedColor;
+        readonly property string icon: (muted || clipping) ? mutedColor : micBar.gated ? gatedColor : unmutedColor;
     }
 
     Item {
@@ -169,7 +169,7 @@ Rectangle {
             Image {
                 id: image;
                 source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
-                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
+                    clipping ? clippingIcon : micBar.gated ? gatedIcon : unmutedIcon;
                 width: 29;
                 height: 32;
                 anchors {

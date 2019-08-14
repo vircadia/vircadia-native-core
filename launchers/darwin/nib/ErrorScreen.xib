@@ -16,7 +16,7 @@
             <rect key="frame" x="0.0" y="0.0" width="515" height="390"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eih-a8-Pqa">
+                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eih-a8-Pqa" customClass="ImageView">
                     <rect key="frame" x="0.0" y="0.0" width="515" height="390"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="SuI-2T-YhQ"/>
@@ -36,21 +36,21 @@
                     </textFieldCell>
                 </textField>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FkC-xi-3UI">
-                    <rect key="frame" x="156" y="105" width="192" height="17"/>
+                    <rect key="frame" x="156" y="103" width="202" height="19"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="We seem to have a problem." id="bX3-v1-LLM">
                         <font key="font" metaFont="system" size="15"/>
-                        <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        <color key="textColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tV0-Su-eLX">
-                    <rect key="frame" x="156" y="80" width="192" height="17"/>
+                    <rect key="frame" x="156" y="78" width="192" height="19"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Please restart Launcher" id="aBw-o2-xZE">
                         <font key="font" metaFont="system" size="15"/>
-                        <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        <color key="textColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="alternateSelectedControlTextColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
                 <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Sds-MZ-qhT" customClass="HFButton">
@@ -69,12 +69,22 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="CBD-Vk-Xd4"/>
                 </imageView>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Omk-5j-C6r">
+                    <rect key="frame" x="381" y="0.0" width="130" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Label" id="xpG-oP-agI">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="138.5" y="152"/>
         </customView>
         <customObject id="nWn-x7-LxT" customClass="ErrorViewController">
             <connections>
                 <outlet property="backgroundImage" destination="eih-a8-Pqa" id="2xh-8r-1Qu"/>
+                <outlet property="buildVersion" destination="Omk-5j-C6r" id="aTp-c3-RVy"/>
                 <outlet property="smallLogo" destination="ugn-Hk-gWL" id="EVI-d3-mf5"/>
                 <outlet property="voxelImage" destination="jmW-5q-Mf3" id="NiI-cY-tAf"/>
             </connections>

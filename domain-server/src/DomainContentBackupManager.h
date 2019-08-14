@@ -28,10 +28,21 @@
 #include <GenericThread.h>
 
 #include "BackupHandler.h"
+#include "DomainServerSettingsManager.h"
 
 #include <shared/MiniPromises.h>
 
 #include <PortableHighResolutionClock.h>
+
+const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
+const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
+const QString MANUAL_BACKUP_PREFIX { "backup-" };
+const QString INSTALLED_CONTENT = "installed_content";
+const QString INSTALLED_CONTENT_FILENAME = "filename";
+const QString INSTALLED_CONTENT_NAME = "name";
+const QString INSTALLED_CONTENT_CREATION_TIME = "creation_time";
+const QString INSTALLED_CONTENT_INSTALL_TIME = "install_time";
+const QString INSTALLED_CONTENT_INSTALLED_BY = "installed_by";
 
 struct BackupItemInfo {
     BackupItemInfo(QString pId, QString pName, QString pAbsolutePath, QDateTime pCreatedAt, bool pIsManualBackup) :
@@ -71,7 +82,7 @@ public:
     static const std::chrono::seconds DEFAULT_PERSIST_INTERVAL;
 
     DomainContentBackupManager(const QString& rootBackupDirectory,
-                               const QVariantList& settings,
+                               DomainServerSettingsManager& domainServerSettingsManager,
                                std::chrono::milliseconds persistInterval = DEFAULT_PERSIST_INTERVAL,
                                bool debugTimestampNow = false);
 
@@ -84,9 +95,9 @@ public:
 public slots:
     void getAllBackupsAndStatus(MiniPromise::Promise promise);
     void createManualBackup(MiniPromise::Promise promise, const QString& name);
-    void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName);
-    void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup);
-    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename);
+    void recoverFromBackup(MiniPromise::Promise promise, const QString& backupName, const QString& username);
+    void recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup, QString username);
+    void recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename, QString username, QString sourceFilename);
     void deleteBackup(MiniPromise::Promise promise, const QString& backupName);
 
 signals:
@@ -108,13 +119,15 @@ protected:
 
     std::pair<bool, QString> createBackup(const QString& prefix, const QString& name);
 
-    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip);
+    bool recoverFromBackupZip(const QString& backupName, QuaZip& backupZip, const QString& username, const QString& sourceFilename, bool rollingBack = false);
 
 private slots:
     void removeOldConsolidatedBackups();
     void consolidateBackupInternal(QString fileName);
 
 private:
+    DomainServerSettingsManager& _settingsManager;
+
     QTimer _consolidatedBackupCleanupTimer;
 
     const QString _consolidatedBackupDirectory;
@@ -126,6 +139,7 @@ private:
     std::unordered_map<QString, ConsolidatedBackupInfo> _consolidatedBackups;
 
     std::atomic<bool> _isRecovering { false };
+    QString _recoveryError;
     QString _recoveryFilename { };
 
     p_high_resolution_clock::time_point _lastCheck;

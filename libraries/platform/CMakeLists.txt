@@ -1,7 +1,7 @@
 set(TARGET_NAME platform)
 
 setup_hifi_library()
-link_hifi_libraries(shared)
+link_hifi_libraries(shared gl)
 
 GroupSources("src")
 target_json()
@@ -12,4 +12,7 @@ if (APPLE)
   find_library(AppKit AppKit)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
-endif ()
+
+elseif(WIN32)
+    target_link_libraries(${TARGET_NAME} Iphlpapi.lib)
+endif()

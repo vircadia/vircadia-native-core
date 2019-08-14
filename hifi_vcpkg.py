@@ -71,16 +71,19 @@ endif()
 
         if 'Windows' == system:
             self.exe = os.path.join(self.path, 'vcpkg.exe')
+            self.bootstrapCmd = 'bootstrap-vcpkg.bat'
             self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-win32.tar.gz?versionId=YZYkDejDRk7L_hrK_WVFthWvisAhbDzZ'
             self.vcpkgHash = '3e0ff829a74956491d57666109b3e6b5ce4ed0735c24093884317102387b2cb1b2cd1ff38af9ed9173501f6e32ffa05cc6fe6d470b77a71ca1ffc3e0aa46ab9e'
             self.hostTriplet = 'x64-windows'
         elif 'Darwin' == system:
             self.exe = os.path.join(self.path, 'vcpkg')
+            self.bootstrapCmd = 'bootstrap-vcpkg.sh'
             self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-osx.tar.gz?versionId=_fhqSxjfrtDJBvEsQ8L_ODcdUjlpX9cc'
             self.vcpkgHash = '519d666d02ef22b87c793f016ca412e70f92e1d55953c8f9bd4ee40f6d9f78c1df01a6ee293907718f3bbf24075cc35492fb216326dfc50712a95858e9cbcb4d'
             self.hostTriplet = 'x64-osx'
         else:
             self.exe = os.path.join(self.path, 'vcpkg')
+            self.bootstrapCmd = 'bootstrap-vcpkg.sh'
             self.vcpkgUrl = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/vcpkg-linux.tar.gz?versionId=97Nazh24etEVKWz33XwgLY0bvxEfZgMU'
             self.vcpkgHash = '6a1ce47ef6621e699a4627e8821ad32528c82fce62a6939d35b205da2d299aaa405b5f392df4a9e5343dd6a296516e341105fbb2dd8b48864781d129d7fba10d'
             self.hostTriplet = 'x64-linux'
@@ -141,8 +144,14 @@ endif()
             downloadVcpkg = True
 
         if downloadVcpkg:
-            print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
-            hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgHash)
+            if "HIFI_VCPKG_BOOTSTRAP" in os.environ:
+                print("Cloning vcpkg from github to {}".format(self.path))
+                hifi_utils.executeSubprocess(['git', 'clone', 'git@github.com:microsoft/vcpkg.git', self.path])
+                print("Bootstrapping vcpkg")
+                hifi_utils.executeSubprocess([self.bootstrapCmd], folder=self.path)
+            else:
+                print("Fetching vcpkg from {} to {}".format(self.vcpkgUrl, self.path))
+                hifi_utils.downloadAndExtract(self.vcpkgUrl, self.path, self.vcpkgHash)
 
         print("Replacing port files")
         portsPath = os.path.join(self.path, 'ports')
@@ -259,7 +268,7 @@ endif()
                 url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-macos3.tar.gz'
             elif platform.system() == 'Linux':
                 if platform.linux_distribution()[1][:3] == '16.':
-                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04.tar.gz'
+                    url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-16.04-with-symbols.tar.gz'
                 elif platform.linux_distribution()[1][:3] == '18.':
                     url = 'https://hifi-public.s3.amazonaws.com/dependencies/vcpkg/qt5-install-5.12.3-ubuntu-18.04.tar.gz'
                 else:

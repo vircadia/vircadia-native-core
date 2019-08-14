@@ -78,6 +78,7 @@
 #include <ModelScriptingInterface.h>
 
 #include "Sound.h"
+#include "VisionSqueeze.h"
 
 class GLCanvas;
 class FaceTracker;
@@ -325,7 +326,7 @@ public:
     bool isInterstitialMode() const { return _interstitialMode; }
     bool failedToConnectToEntityServer() const { return _failedToConnectToEntityServer; }
 
-    void replaceDomainContent(const QString& url);
+    void replaceDomainContent(const QString& url, const QString& itemName);
 
     void loadAvatarScripts(const QVector<QString>& urls);
     void unloadAvatarScripts();
@@ -363,6 +364,9 @@ public:
     void forceDisplayName(const QString& displayName);
     void forceLoginWithTokens(const QString& tokens);
     void setConfigFileURL(const QString& fileUrl);
+
+    // used by preferences and HMDScriptingInterface...
+    VisionSqueeze& getVisionSqueeze() { return _visionSqueeze; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -512,7 +516,7 @@ private slots:
 
     void loadSettings();
     void saveSettings() const;
-    void setFailedToConnectToEntityServer() { _failedToConnectToEntityServer = true; }
+    void setFailedToConnectToEntityServer();
 
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
@@ -527,7 +531,7 @@ private slots:
 
     void domainURLChanged(QUrl domainURL);
     void updateWindowTitle() const;
-    void nodeAdded(SharedNodePointer node) const;
+    void nodeAdded(SharedNodePointer node);
     void nodeActivated(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     static void packetSent(quint64 length);
@@ -564,6 +568,7 @@ private:
     void cleanupBeforeQuit();
 
     void idle();
+    void tryToEnablePhysics();
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -730,6 +735,7 @@ private:
 
     bool _loginDialogPoppedUp{ false };
     bool _desktopRootItemCreated{ false };
+
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
@@ -786,8 +792,6 @@ private:
     qint64 _gpuTextureMemSizeStabilityCount { 0 };
     qint64 _gpuTextureMemSizeAtLastCheck { 0 };
 
-    quint64 _lastPhysicsCheckTime { usecTimestampNow() }; // when did we last check to see if physics was ready
-
     bool _keyboardDeviceHasFocus { true };
 
     ConnectionMonitor _connectionMonitor;
@@ -838,5 +842,7 @@ private:
     bool _resumeAfterLoginDialogActionTaken_SafeToRun { false };
     bool _startUpFinished { false };
     bool _overrideEntry { false };
+
+    VisionSqueeze _visionSqueeze;
 };
 #endif // hifi_Application_h

@@ -224,7 +224,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
     if (_type == Type::ENTITY_CLIENT || _type == Type::ENTITY_SERVER) {
         QObject::connect(this, &ScriptEngine::update, this, [this]() {
             // process pending entity script content
-            if (!_contentAvailableQueue.empty()) {
+            if (!_contentAvailableQueue.empty() && !(_isFinished || _isStopping)) {
                 EntityScriptContentAvailableMap pending;
                 std::swap(_contentAvailableQueue, pending);
                 for (auto& pair : pending) {
@@ -343,7 +343,7 @@ void ScriptEngine::runDebuggable() {
         // we check for 'now' in the past in case people set their clock back
         if (_lastUpdate < now) {
             float deltaTime = (float)(now - _lastUpdate) / (float)USECS_PER_SECOND;
-            if (!_isFinished) {
+            if (!(_isFinished || _isStopping)) {
                 emit update(deltaTime);
             }
         }
@@ -411,6 +411,27 @@ void ScriptEngine::waitTillDoneRunning() {
         // We should never be waiting (blocking) on our own thread
         assert(workerThread != QThread::currentThread());
 
+#ifdef Q_OS_MAC
+        // On mac, don't call QCoreApplication::processEvents() here. This is to prevent
+        // [NSApplication terminate:] from prematurely destroying the static destructors
+        // while we are waiting for the scripts to shutdown. We will pump the message
+        // queue later in the Application destructor.
+        if (workerThread->isRunning()) {
+            workerThread->quit();
+
+            if (isEvaluating()) {
+                qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
+                abortEvaluation();
+            }
+
+            // Wait for the scripting thread to stop running, as
+            // flooding it with aborts/exceptions will persist it longer
+            static const auto MAX_SCRIPT_QUITTING_TIME = 0.5 * MSECS_PER_SECOND;
+            if (!workerThread->wait(MAX_SCRIPT_QUITTING_TIME)) {
+                workerThread->terminate();
+            }
+        }
+#else
         auto startedWaiting = usecTimestampNow();
         while (workerThread->isRunning()) {
             // If the final evaluation takes too long, then tell the script engine to stop running
@@ -448,6 +469,7 @@ void ScriptEngine::waitTillDoneRunning() {
             // Avoid a pure busy wait
             QThread::yieldCurrentThread();
         }
+#endif
 
         scriptInfoMessage("Script Engine has stopped:" + getFilename());
     }

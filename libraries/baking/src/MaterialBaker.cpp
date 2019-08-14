@@ -72,7 +72,7 @@ void MaterialBaker::loadMaterial() {
         _materialResource->parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(_materialData.toUtf8()), QUrl());
     } else {
         qCDebug(material_baking) << "Downloading material" << _materialData;
-        _materialResource = MaterialCache::instance().getMaterial(_materialData);
+        _materialResource = DependencyManager::get<MaterialCache>()->getMaterial(_materialData);
     }
 
     if (_materialResource) {

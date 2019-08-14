@@ -334,12 +334,17 @@ void Socket::checkForReadyReadBackup() {
         qCDebug(networking) << "Socket::checkForReadyReadyBackup() last sequence number"
             << (uint32_t) _lastReceivedSequenceNumber << "from" << _lastPacketSockAddr << "-"
             << _lastPacketSizeRead << "bytes";
-
+#ifdef DEBUG_EVENT_QUEUE
+        qCDebug(networking) << "NodeList event queue size:" << ::hifi::qt::getEventQueueSize(thread());
+#endif
 
         // drop all of the pending datagrams on the floor
+        int droppedCount = 0;
         while (_udpSocket.hasPendingDatagrams()) {
             _udpSocket.readDatagram(nullptr, 0);
+            ++droppedCount;
         }
+        qCDebug(networking) << "Flushed" << droppedCount << "Packets";
     }
 }
 
@@ -535,6 +540,33 @@ void Socket::handleSocketError(QAbstractSocket::SocketError socketError) {
 void Socket::handleStateChanged(QAbstractSocket::SocketState socketState) {
     if (socketState != QAbstractSocket::BoundState) {
         qCDebug(networking) << "udt::Socket state changed - state is now" << socketState;
+    }
+}
+
+void Socket::handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress) {
+    {
+        Lock connectionsLock(_connectionsHashMutex);
+        _connectionsHash.erase(currentAddress);
+
+        const auto connectionIter = _connectionsHash.find(previousAddress);
+        if (connectionIter != _connectionsHash.end()) {
+            auto connection = move(connectionIter->second);
+            _connectionsHash.erase(connectionIter);
+            connection->setDestinationAddress(currentAddress);
+            _connectionsHash[currentAddress] = move(connection);
+        }
+    }
+
+    {
+        Lock sequenceNumbersLock(_unreliableSequenceNumbersMutex);
+        _unreliableSequenceNumbers.erase(currentAddress);
+
+        const auto sequenceNumbersIter = _unreliableSequenceNumbers.find(previousAddress);
+        if (sequenceNumbersIter != _unreliableSequenceNumbers.end()) {
+            auto sequenceNumbers = sequenceNumbersIter->second;
+            _unreliableSequenceNumbers.erase(sequenceNumbersIter);
+            _unreliableSequenceNumbers[currentAddress] = sequenceNumbers;
+        }
     }
 }
 

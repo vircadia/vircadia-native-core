@@ -29,6 +29,7 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 static const bool HIFI_SCRIPT_DEBUGGABLES { true };
 static const QString SETTINGS_KEY { "RunningScripts" };
 static const QUrl DEFAULT_SCRIPTS_LOCATION { "file:///~//defaultScripts.js" };
+
 // Using a QVariantList so this is human-readable in the settings file
 static Setting::Handle<QVariantList> runningScriptsHandle(SETTINGS_KEY, { QVariant(DEFAULT_SCRIPTS_LOCATION) });
 
@@ -64,8 +65,8 @@ void ScriptEngines::onErrorLoadingScript(const QString& url) {
     emit errorLoadingScript(url);
 }
 
-ScriptEngines::ScriptEngines(ScriptEngine::Context context)
-    : _context(context)
+ScriptEngines::ScriptEngines(ScriptEngine::Context context, const QUrl& defaultScriptsOverride)
+    : _context(context), _defaultScriptsOverride(defaultScriptsOverride)
 {
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
@@ -322,12 +323,21 @@ void ScriptEngines::loadScripts() {
 
     // loads all saved scripts
     auto runningScripts = runningScriptsHandle.get();
+    bool defaultScriptsOverrideSet = !_defaultScriptsOverride.isEmpty();
 
     for (auto script : runningScripts) {
-        auto string = script.toString();
-        if (!string.isEmpty()) {
-            loadScript(string);
+        auto url = script.toUrl();
+        if (!url.isEmpty()) {
+            if (defaultScriptsOverrideSet && url == DEFAULT_SCRIPTS_LOCATION) {
+                _defaultScriptsWasRunning = true;
+            } else {
+                loadScript(url);
+            }
         }
+    }
+
+    if (defaultScriptsOverrideSet) {
+        loadScript(_defaultScriptsOverride, false);
     }
 }
 
@@ -342,6 +352,7 @@ void ScriptEngines::saveScripts() {
     // the scripts that the user expects to be there when launched without the
     // --scripts override.
     if (_defaultScriptsLocationOverridden) {
+        runningScriptsHandle.set(QVariantList{ DEFAULT_SCRIPTS_LOCATION });
         return;
     }
 
@@ -357,6 +368,10 @@ void ScriptEngines::saveScripts() {
                 list.append(normalizedUrl.toString());
             }
         }
+    }
+
+    if (_defaultScriptsWasRunning) {
+        list.append(DEFAULT_SCRIPTS_LOCATION);
     }
 
     runningScriptsHandle.set(list);
@@ -387,13 +402,14 @@ void ScriptEngines::stopAllScripts(bool restart) {
             continue;
         }
 
+        bool isOverrideScript = it.key().toString().compare(this->_defaultScriptsOverride.toString());
         // queue user scripts if restarting
-        if (restart && scriptEngine->isUserLoaded()) {
+        if (restart && (scriptEngine->isUserLoaded() || isOverrideScript)) {
             _isReloading = true;
             ScriptEngine::Type type = scriptEngine->getType();
 
-            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type] (QString scriptName) {
-                reloadScript(scriptName, true)->setType(type);
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type, isOverrideScript] (QString scriptName) {
+                reloadScript(scriptName, !isOverrideScript)->setType(type);
             });
         }
 
@@ -461,7 +477,8 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),
             Q_ARG(bool, activateMainWindow),
-            Q_ARG(bool, reload));
+            Q_ARG(bool, reload),
+            Q_ARG(bool, quitWhenFinished));
         return result;
     }
     QUrl scriptUrl;

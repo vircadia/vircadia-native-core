@@ -210,10 +210,13 @@ public:
     // for updating plugin-related commands. Mimics the input plugin.
     virtual void pluginUpdate() = 0;
 
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() { return nullptr; }
+    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() { return nullptr; }
     virtual StencilMaskMode getStencilMaskMode() const { return StencilMaskMode::NONE; }
     using StencilMaskMeshOperator = std::function<void(gpu::Batch&)>;
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() { return nullptr; }
+    virtual void updateParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
+                                  int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
+                                  float visionSqueezeSpotlightSize) {}
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);

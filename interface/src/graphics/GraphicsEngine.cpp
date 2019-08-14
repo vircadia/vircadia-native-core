@@ -258,8 +258,9 @@ void GraphicsEngine::render_performFrame() {
             batch.setFramebuffer(finalFramebuffer);
             batch.enableSkybox(true);
             batch.enableStereo(isStereo);
+            batch.clearDepthStencilFramebuffer(1.0, 0);
             batch.setViewportTransform({ 0, 0, finalFramebuffer->getSize() });
-            _splashScreen->render(batch, viewFrustum);
+            _splashScreen->render(batch, viewFrustum, renderArgs._renderMethod == RenderArgs::RenderMethod::FORWARD);
         });
     } else {
         {

@@ -1,0 +1,104 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  DrawTextureWithVisionSqueeze.frag
+//
+//  Draw texture 0 fetched at texcoord.xy
+//
+//  Created by Seth Alves on 2019-2-15
+//  Copyright 2019 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include display-plugins/VisionSqueeze.slh@>
+
+struct DrawTextureWithVisionSqueezeParams {
+    float _visionSqueezeX;
+    float _visionSqueezeY;
+    float _spareA;
+    float _spareB;
+    mat4 _leftProjection;
+    mat4 _rightProjection;
+    mat4 _hmdSensorMatrix;
+    float _visionSqueezeTransition;
+    int _visionSqueezePerEye;
+    float _visionSqueezeGroundPlaneY;
+    float _visionSqueezeSpotlightSize;
+};
+
+
+LAYOUT(binding=0) uniform sampler2D colorMap;
+
+// binding=1 must match drawTextureWithSqueezeParamsSlot in OpenGLDisplayPlugin.h
+LAYOUT(binding=1) uniform drawTextureWithSqueezeMappingParamsBuffer {
+    DrawTextureWithVisionSqueezeParams params;
+};
+
+layout(location=0) in vec2 varTexCoord0;
+layout(location=0) out vec4 outFragColor;
+
+
+float getVisionSqueezeX() {
+    return params._visionSqueezeX;
+}
+float getVisionSqueezeY() {
+    return params._visionSqueezeY;
+}
+float getVisionSqueezeTransitionRatio() {
+    return params._visionSqueezeTransition;
+}
+int getVisionSqueezePerEye() {
+    return params._visionSqueezePerEye;
+}
+float getVisionSqueezeGroundPlaneY() {
+    return params._visionSqueezeGroundPlaneY;
+}
+float getVisionSqueezeSpotlightSize() {
+    return params._visionSqueezeSpotlightSize;
+}
+mat4 getProjectionMatrix(float eye) {
+    if (eye == 0.0) {
+        return params._leftProjection;
+    } else {
+        return params._rightProjection;
+    }
+}
+mat4 getHMDSensorMatrix() {
+    return params._hmdSensorMatrix;
+}
+
+
+void main(void) {
+
+    float side = float(varTexCoord0.x > 0.5);
+    mat4 leftProjectionMatrix = getProjectionMatrix(0.0);
+    vec4 fovTan = extractFovTan(leftProjectionMatrix);
+    vec2 focalPointNDC = extractFocalPoint(fovTan);
+    focalPointNDC.x -= 2.0 * focalPointNDC.x * (1.0 - side);
+    vec2 focalPointUV = 0.5 * (focalPointNDC + vec2(1.0));
+
+    // block edges of vision to avoid sickness
+    vec2 visionSqueezeRatios = vec2(getVisionSqueezeX(), getVisionSqueezeY());
+    bool perEye = getVisionSqueezePerEye() > 0;
+    float frac = squeezeVision(perEye, varTexCoord0, visionSqueezeRatios, getVisionSqueezeTransitionRatio(), focalPointUV);
+
+    if (frac == 0.0) {
+        // world only
+        outFragColor = texture(colorMap, varTexCoord0);
+    } else {
+        // grid on the floor only or mixed
+        mat4 hmdSensorMatrix = getHMDSensorMatrix();
+        mat4 projectionMatrix = getProjectionMatrix(side);
+        mat4 projectionInverse = inverse(projectionMatrix);
+        float groundPlaneY = getVisionSqueezeGroundPlaneY();
+        float spotLightSize = getVisionSqueezeSpotlightSize();
+        vec4 gridColor = vec4(gridFloor(varTexCoord0, hmdSensorMatrix, projectionInverse, groundPlaneY, spotLightSize), 1.0);
+
+        vec4 preSqueezeColor = texture(colorMap, varTexCoord0);
+        // mix between grid and world
+        outFragColor = mix(preSqueezeColor, gridColor, frac);
+    }
+}

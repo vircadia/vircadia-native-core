@@ -69,6 +69,7 @@ public:
     virtual PacketType getExpectedPacketType() const override { return PacketType::EntityData; }
 
     // Returns the priority at which an entity should be loaded. Higher values indicate higher priority.
+    static CalculateEntityLoadingPriority getEntityLoadingPriorityOperator() { return _calculateEntityLoadingPriorityFunc; }
     static float getEntityLoadingPriority(const EntityItem& item) { return _calculateEntityLoadingPriorityFunc(item); }
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 

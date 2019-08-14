@@ -25,6 +25,6 @@ extern NSString* hifiBackgroundFilename;
 @end
 
 @interface Hyperlink : NSTextField {
-    
+
 }
 @end

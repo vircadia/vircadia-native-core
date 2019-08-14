@@ -457,12 +457,14 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
  * @property {number} timeScale=3.4e+38 - Controls how long it takes for the entity's position and rotation to catch up with 
  *     the target. The value is the time for the action to catch up to 1/e = 0.368 of the target value, where the action is 
  *     applied using an exponential decay.
- * @property {boolean} kinematic=false - If <code>true</code>, the entity is made kinematic during the action; the entity won't 
- *    lag behind the hand but constraint actions such as <code>"hinge"</code> won't act properly.
- * @property {boolean} kinematicSetVelocity=false - If <code>true</code> and <code>kinematic</code> is <code>true</code>, the 
- *    entity's <code>velocity</code> property will be set during the action, e.g., so that other scripts may use the value.
- * @property {boolean} ignoreIK=false - If <code>true</code>, the entity follows the HMD controller rather than the avatar's 
- *    hand.
+ * @property {boolean} kinematic=false - <code>true</code> if the entity is made kinematic during the action; the entity won't 
+ *     lag behind the hand but constraint actions such as <code>"hinge"</code> won't act properly. <code>false</code> if the 
+ *     entity is not made kinematic during the action
+ * @property {boolean} kinematicSetVelocity=false - <code>true</code> if, when <code>kinematic</code> is <code>true</code>, the 
+ *     entity's velocity will be set during the action, e.g., so that other scripts may use the value. <code>false</code> if 
+ *     the entity's velocity will not be set during the action.
+ * @property {boolean} ignoreIK=false - <code>true</code> if the entity follows the HMD controller, <code>false</code> if it 
+ *     follows the avatar's hand.
  */
 QVariantMap AvatarActionHold::getArguments() {
     QVariantMap arguments = ObjectDynamic::getArguments();

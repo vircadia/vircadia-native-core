@@ -26,6 +26,8 @@
 #define IDC_TERMS_LINK                  1022
 #define IDC_TROUBLE                     1023
 #define IDC_VOXEL                       1024
+#define IDC_PROGRESS                    1025
+#define IDC_VERSION                     1026
 #define IDC_TROUBLE_LINK                1027
 
 // Next default values for new objects

@@ -76,10 +76,12 @@ public:
     
     void recordSentUnreliablePackets(int wireSize, int payloadSize);
     void recordReceivedUnreliablePackets(int wireSize, int payloadSize);
+    void setDestinationAddress(const HifiSockAddr& destination);
 
 signals:
     void packetSent();
     void receiverHandshakeRequestComplete(const HifiSockAddr& sockAddr);
+    void destinationAddressChange(HifiSockAddr currentAddress);
 
 private slots:
     void recordSentPackets(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);

@@ -98,7 +98,7 @@ void Haze::setHazeGlareColor(const glm::vec3 hazeGlareColor) {
 void Haze::setHazeActive(const bool isHazeActive) {
     auto& params = _hazeParametersBuffer.get<Parameters>();
 
-    if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE )&& !isHazeActive) {
+    if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) && !isHazeActive) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode &= ~HAZE_MODE_IS_ACTIVE;
     } else if (((params.hazeMode & HAZE_MODE_IS_ACTIVE) != HAZE_MODE_IS_ACTIVE) && isHazeActive) {
         _hazeParametersBuffer.edit<Parameters>().hazeMode |= HAZE_MODE_IS_ACTIVE;

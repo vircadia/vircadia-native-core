@@ -48,8 +48,13 @@ public:
 
     void pluginUpdate() override {};
 
-    std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator() override;
+    std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
     virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::PAINT; }
+    void updateVisionSqueezeParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
+                                       int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
+                                       float visionSqueezeSpotlightSize);
+    // Attempt to reserve two threads.
+    int getRequiredThreadCount() const override { return 2; }
 
 signals:
     void hmdMountedChanged();
@@ -91,6 +96,33 @@ protected:
     RateCounter<> _stutterRate;
 
     bool _disablePreview { true };
+
+    class VisionSqueezeParameters {
+    public:
+        float _visionSqueezeX { 0.0f };
+        float _visionSqueezeY { 0.0f };
+        float _spareA { 0.0f };
+        float _spareB { 0.0f };
+        glm::mat4 _leftProjection;
+        glm::mat4 _rightProjection;
+        glm::mat4 _hmdSensorMatrix;
+        float _visionSqueezeTransition { 0.15f };
+        int _visionSqueezePerEye { 0 };
+        float _visionSqueezeGroundPlaneY { 0.0f };
+        float _visionSqueezeSpotlightSize { 0.0f };
+
+        VisionSqueezeParameters() {}
+    };
+    typedef gpu::BufferView UniformBufferView;
+    gpu::BufferView _visionSqueezeParametersBuffer;
+
+    virtual void setupCompositeScenePipeline(gpu::Batch& batch) override;
+
+    float _visionSqueezeDeviceLowX { 0.0f };
+    float _visionSqueezeDeviceHighX { 1.0f };
+    float _visionSqueezeDeviceLowY { 0.0f };
+    float _visionSqueezeDeviceHighY { 1.0f };
+
 private:
     ivec4 getViewportForSourceSize(const uvec2& size) const;
     float getLeftCenterPixel() const;
@@ -112,7 +144,7 @@ private:
         struct Uniforms {
             float alpha { 1.0f };
         } uniforms;
-        
+
         struct Vertex {
             vec3 pos;
             vec2 uv;
@@ -123,6 +155,8 @@ private:
         static const int VERTEX_STRIDE { sizeof(Vertex) };
 
         void build();
-        std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> render();
+        std::function<void(gpu::Batch&, const gpu::TexturePointer&)> render();
     } _hudRenderer;
 };
+
+const int drawTextureWithVisionSqueezeParamsSlot = 1; // must match binding in DrawTextureWithVisionSqueeze.slf

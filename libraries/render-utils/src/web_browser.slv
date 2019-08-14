@@ -1,0 +1,41 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Andrzej Kapolka on 9/15/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include render-utils/ShaderConstants.h@>
+
+<@if HIFI_USE_FORWARD@>
+    layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+    layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
+<@else@>
+    layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
+<@endif@>
+layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;
+layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+
+void main(void) {
+    _color = color_sRGBAToLinear(inColor);
+    _texCoord01 = vec4(inTexCoord0.st, 0.0, 0.0);
+
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+<@if HIFI_USE_FORWARD@>
+    <$transformModelToWorldAndEyeAndClipPos(cam, obj, inPosition, _positionWS, _positionES, gl_Position)$>
+<@else@>
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normalWS)$>
+<@endif@>
+}

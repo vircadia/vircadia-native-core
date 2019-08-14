@@ -59,12 +59,20 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     const auto& inItems = inputs.get0();
     const auto& lightingModel = inputs.get1();
-    const auto jitter = inputs.get2();
+    const auto& hazeFrame = inputs.get2();
+    const auto jitter = inputs.get3();
     
     config->setNumDrawn((int)inItems.size());
     emit config->numDrawnChanged();
 
     RenderArgs* args = renderContext->args;
+
+    graphics::HazePointer haze;
+    const auto& hazeStage = renderContext->args->_scene->getStage<HazeStage>();
+    if (hazeStage && hazeFrame->_hazes.size() > 0) {
+        // We use _hazes.back() here because the last haze object will always have haze disabled.
+        haze = hazeStage->getHaze(hazeFrame->_hazes.back());
+    }
 
     // Clear the framebuffer without stereo
     // Needs to be distinct from the other batch because using the clear call 
@@ -95,6 +103,10 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
             // Setup lighting model for all items;
             batch.setUniformBuffer(ru::Buffer::LightModel, lightingModel->getParametersBuffer());
             batch.setResourceTexture(ru::Texture::AmbientFresnel, lightingModel->getAmbientFresnelLUT());
+
+            if (haze) {
+                batch.setUniformBuffer(graphics::slot::buffer::Buffer::HazeParams, haze->getHazeParametersBuffer());
+            }
 
             if (_opaquePass) {
                 renderStateSortShapes(renderContext, _shapePlumber, inItems, _maxDrawn);
@@ -128,53 +140,36 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     gpu::doInBatch("Blit", renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
-        if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            if (renderArgs->isStereo()) {
-                gpu::Vec4i srcRectLeft;
-                srcRectLeft.z = width / 2;
-                srcRectLeft.w = height;
+        gpu::Vec4i rect;
+        rect.z = width;
+        rect.w = height;
 
-                gpu::Vec4i srcRectRight;
-                srcRectRight.x = width / 2;
-                srcRectRight.z = width;
-                srcRectRight.w = height;
-
-                gpu::Vec4i destRectLeft;
-                destRectLeft.x = srcRectLeft.z;
-                destRectLeft.z = srcRectLeft.x;
-                destRectLeft.y = srcRectLeft.y;
-                destRectLeft.w = srcRectLeft.w;
-
-                gpu::Vec4i destRectRight;
-                destRectRight.x = srcRectRight.z;
-                destRectRight.z = srcRectRight.x;
-                destRectRight.y = srcRectRight.y;
-                destRectRight.w = srcRectRight.w;
-
-                // Blit left to right and right to left in stereo
-                batch.blit(primaryFbo, srcRectRight, blitFbo, destRectLeft);
-                batch.blit(primaryFbo, srcRectLeft, blitFbo, destRectRight);
-            } else {
-                gpu::Vec4i srcRect;
-                srcRect.z = width;
-                srcRect.w = height;
-
-                gpu::Vec4i destRect;
-                destRect.x = width;
-                destRect.y = 0;
-                destRect.z = 0;
-                destRect.w = height;
-
-                batch.blit(primaryFbo, srcRect, blitFbo, destRect);
-            }
-        } else {
-            gpu::Vec4i rect;
-            rect.z = width;
-            rect.w = height;
-
-            batch.blit(primaryFbo, rect, blitFbo, rect);
-        }
+        batch.blit(primaryFbo, rect, blitFbo, rect);
     });
+}
+
+NewFramebuffer::NewFramebuffer(gpu::Element pixelFormat) {
+    _pixelFormat = pixelFormat;
+}
+
+void NewFramebuffer::run(const render::RenderContextPointer& renderContext, Output& output) {
+    RenderArgs* args = renderContext->args;
+    glm::uvec2 frameSize(args->_viewport.z, args->_viewport.w);
+    output.reset();
+
+    if (_outputFramebuffer && _outputFramebuffer->getSize() != frameSize) {
+        _outputFramebuffer.reset();
+    }
+
+    if (!_outputFramebuffer) {
+        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer.out"));
+        auto colorFormat = _pixelFormat;
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+        auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _outputFramebuffer->setRenderBuffer(0, colorTexture);
+    }
+
+    output = _outputFramebuffer;
 }
 
 void NewOrDefaultFramebuffer::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
@@ -196,7 +191,7 @@ void NewOrDefaultFramebuffer::run(const render::RenderContextPointer& renderCont
     }
 
     if (!_outputFramebuffer) {
-        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newFramebuffer.out"));
+        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("newOrDefaultFramebuffer.out"));
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
         auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);

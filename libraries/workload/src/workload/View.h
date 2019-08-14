@@ -48,10 +48,10 @@ public:
     float originRadius{ 0.5f };
 
     // N regions distances
-    glm::vec2 regionBackFronts[Region::NUM_VIEW_REGIONS + 1];
+    glm::vec2 regionBackFronts[Region::NUM_TRACKED_REGIONS];
 
     // N regions spheres
-    Sphere regions[Region::NUM_VIEW_REGIONS];
+    Sphere regions[Region::NUM_TRACKED_REGIONS];
 
     // Set fov properties from angle
     void setFov(float angleRad);

@@ -34,9 +34,7 @@
 
 #include "EntityTreeRenderer.h"
 
-#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
-#   include <FadeEffect.h>
-#endif
+#include <FadeEffect.h>
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -1553,52 +1551,49 @@ using namespace render;
 using namespace render::entities;
 
 static uint8_t CUSTOM_PIPELINE_NUMBER;
-static gpu::PipelinePointer _pipelines[2];
-static gpu::PipelinePointer _wireframePipelines[2];
+static std::map<std::tuple<bool, bool, bool>, ShapePipelinePointer> _pipelines;
 static gpu::Stream::FormatPointer _vertexFormat;
 
-ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch) {
-    if (!_pipelines[0]) {
+ShapePipelinePointer shapePipelineFactory(const ShapePlumber& plumber, const ShapeKey& key, RenderArgs* args) {
+    // FIXME: custom pipelines like this don't handle shadows or renderLayers correctly
+
+    if (_pipelines.empty()) {
         using namespace shader::entities_renderer::program;
-        int programsIds[2] = { polyvox, polyvox_fade };
 
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        PrepareStencil::testMaskDrawShape(*state);
+        static const std::vector<std::tuple<bool, bool, uint32_t>> keys = {
+            std::make_tuple(false, false, polyvox), std::make_tuple(true, false, polyvox_forward)
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+            , std::make_tuple(false, true, polyvox_fade), std::make_tuple(true, true, polyvox_forward_fade)
+#else
+            , std::make_tuple(false, true, polyvox), std::make_tuple(true, true, polyvox_forward)
+#endif
+        };
+        for (auto& key : keys) {
+            for (int i = 0; i < 2; ++i) {
+                bool wireframe = i != 0;
 
-        auto wireframeState = std::make_shared<gpu::State>();
-        wireframeState->setCullMode(gpu::State::CULL_BACK);
-        wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
-        wireframeState->setFillMode(gpu::State::FILL_LINE);
-        PrepareStencil::testMaskDrawShape(*wireframeState);
+                auto state = std::make_shared<gpu::State>();
+                state->setCullMode(gpu::State::CULL_BACK);
+                state->setDepthTest(true, true, gpu::LESS_EQUAL);
+                PrepareStencil::testMaskDrawShape(*state);
 
-        // Two sets of pipelines: normal and fading
-        for (auto i = 0; i < 2; i++) {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(programsIds[i]);
-            _pipelines[i] = gpu::Pipeline::create(program, state);
-            _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);
+                if (wireframe) {
+                    state->setFillMode(gpu::State::FILL_LINE);
+                }
+
+                auto pipeline = gpu::Pipeline::create(gpu::Shader::createProgram(std::get<2>(key)), state);
+                if (std::get<1>(key)) {
+                    _pipelines[std::make_tuple(std::get<0>(key), std::get<1>(key), wireframe)] = std::make_shared<render::ShapePipeline>(pipeline, nullptr, nullptr, nullptr);
+                } else {
+                    const auto& fadeEffect = DependencyManager::get<FadeEffect>();
+                    _pipelines[std::make_tuple(std::get<0>(key), std::get<1>(key), wireframe)] = std::make_shared<render::ShapePipeline>(pipeline, nullptr,
+                        fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+                }
+            }
         }
     }
 
-#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
-    if (key.isFaded()) {
-        const auto& fadeEffect = DependencyManager::get<FadeEffect>();
-        if (key.isWireframe()) {
-            return std::make_shared<render::ShapePipeline>(_wireframePipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
-        } else {
-            return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
-        }
-    } else {
-#endif
-        if (key.isWireframe()) {
-            return std::make_shared<render::ShapePipeline>(_wireframePipelines[0], nullptr, nullptr, nullptr);
-        } else {
-            return std::make_shared<render::ShapePipeline>(_pipelines[0], nullptr, nullptr, nullptr);
-        }
-#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
-    }
-#endif
+    return _pipelines[std::make_tuple(args->_renderMethod == Args::RenderMethod::FORWARD, key.isFaded(), key.isWireframe())];
 }
 
 PolyVoxEntityRenderer::PolyVoxEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {

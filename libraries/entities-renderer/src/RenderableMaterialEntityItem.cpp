@@ -172,7 +172,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         }
 
         if (urlChanged && !usingMaterialData) {
-            _networkMaterial = MaterialCache::instance().getMaterial(_materialURL);
+            _networkMaterial = DependencyManager::get<MaterialCache>()->getMaterial(_materialURL);
             auto onMaterialRequestFinished = [this, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
                 if (success) {
                     deleteMaterial(oldParentID, oldParentMaterialName);

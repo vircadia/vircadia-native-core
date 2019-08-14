@@ -44,7 +44,7 @@ Item {
         anchors.bottom: parent.bottom
         horizontalAlignment: Text.AlignRight
         visible: sliderText.text != ""
-        color: simplifiedUI.colors.text.white
+        color: root.enabled ? simplifiedUI.colors.controls.slider.text.enabled : simplifiedUI.colors.controls.slider.text.disabled
         size: simplifiedUI.sizes.controls.slider.labelTextSize
     }
 

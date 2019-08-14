@@ -30,7 +30,7 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const auto culledSpatialSelection = task.addJob<CullSpatialSelection>("CullSceneSelection", cullInputs, cullFunctor, RenderDetails::ITEM);
 
     // Layered objects are not culled
-    const ItemFilter layeredFilter = ItemFilter::Builder().withVisible().withoutSubMetaCulled().withTagBits(tagBits, tagMask);
+    const ItemFilter layeredFilter = ItemFilter::Builder::visibleWorldItems().withTagBits(tagBits, tagMask);
     const auto nonspatialFilter = render::Varying(layeredFilter);
     const auto nonspatialSelection = task.addJob<FetchNonspatialItems>("FetchLayeredSelection", nonspatialFilter);
 

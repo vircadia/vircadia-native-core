@@ -79,7 +79,7 @@ public:
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
-    bool computeShapeFailedToLoad();
+    bool unableToLoadCollisionShape();
 
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
@@ -120,7 +120,7 @@ private:
     bool readyToAnimate() const;
     void fetchCollisionGeometryResource();
 
-    GeometryResource::Pointer _compoundShapeResource;
+    GeometryResource::Pointer _collisionGeometryResource;
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
     bool _jointMapCompleted { false };
@@ -154,7 +154,7 @@ protected:
 
     void setKey(bool didVisualGeometryRequestSucceed);
     virtual ItemKey getKey() override;
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
 
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual bool needsRenderUpdate() const override;

@@ -100,25 +100,22 @@ public:
 private:
     static const CPUIdent_Internal CPU_Rep;
 
-    class CPUIdent_Internal
-    {
+    class CPUIdent_Internal {
     public:
         CPUIdent_Internal();
 
-        uint32_t nIds_;
-        uint32_t nExIds_;
+        uint32_t nIds_{ 0 };
+        uint32_t nExIds_{ 0 };
         std::string vendor_;
         std::string brand_;
-        bool isIntel_;
-        bool isAMD_;
-        std::bitset<32> f_1_ECX_;
-        std::bitset<32> f_1_EDX_;
-        std::bitset<32> f_7_EBX_;
-        std::bitset<32> f_7_ECX_;
-        std::bitset<32> f_81_ECX_;
-        std::bitset<32> f_81_EDX_;
-        std::vector<std::array<uint32_t, 4>> data_;
-        std::vector<std::array<uint32_t, 4>> extdata_;
+        bool isIntel_{ false };
+        bool isAMD_{ false };
+        std::bitset<32> f_1_ECX_{ 0 };
+        std::bitset<32> f_1_EDX_{ 0 };
+        std::bitset<32> f_7_EBX_{ 0 };
+        std::bitset<32> f_7_ECX_{ 0 };
+        std::bitset<32> f_81_ECX_{ 0 };
+        std::bitset<32> f_81_EDX_{ 0 };
     };
 };
 

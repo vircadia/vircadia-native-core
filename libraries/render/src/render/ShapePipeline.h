@@ -272,7 +272,7 @@ protected:
     ItemSetter _itemSetter;
 public:
     using CustomKey = uint8_t;
-    using CustomFactory = std::function<std::shared_ptr<ShapePipeline> (const ShapePlumber& plumber, const ShapeKey& key, gpu::Batch& batch)>;
+    using CustomFactory = std::function<std::shared_ptr<ShapePipeline> (const ShapePlumber& plumber, const ShapeKey& key, RenderArgs* args)>;
     using CustomFactoryMap = std::map<CustomKey, CustomFactory>;
 
     static CustomFactoryMap _globalCustomFactoryMap;

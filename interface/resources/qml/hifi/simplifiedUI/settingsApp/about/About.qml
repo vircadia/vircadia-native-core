@@ -25,6 +25,14 @@ Flickable {
         if (visible) {
             root.contentX = 0;
             root.contentY = 0;
+
+            // When the user clicks the About tab, refresh the audio I/O model so that
+            // the delegate Component.onCompleted handlers fire, which will update
+            // the text that appears in the About screen.
+            audioOutputDevices.model = undefined;
+            audioOutputDevices.model = AudioScriptingInterface.devices.output;
+            audioInputDevices.model = undefined;
+            audioInputDevices.model = AudioScriptingInterface.devices.input;
         }
     }
 
@@ -47,8 +55,8 @@ Flickable {
             source: "images/logo.png"
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 16
-            Layout.preferredWidth: 200
-            Layout.preferredHeight: 150
+            Layout.preferredWidth: 160
+            Layout.preferredHeight: 120
             fillMode: Image.PreserveAspectFit
             mipmap: true
         }
@@ -176,7 +184,7 @@ Flickable {
                 wrapMode: Text.Wrap
                 
                 Component.onCompleted: {
-                    var gpu = JSON.parse(PlatformInfo.getGPU(0));
+                    var gpu = JSON.parse(PlatformInfo.getGPU(PlatformInfo.getMasterGPU()));
                     var gpuModel = gpu.model;
                     if (gpuModel.length === 0) {
                         gpuModel = "Unknown";
@@ -188,6 +196,71 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>VR Hand Controllers:</b> " + (PlatformInfo.hasRiftControllers() ? "Rift" : (PlatformInfo.hasViveControllers() ? "Vive" : "None"))
+                Layout.maximumWidth: parent.width
+                height: paintedHeight
+                size: 16
+                color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+            }
+
+            // This is a bit of a hack to get the name of the currently-selected audio input device
+            // in the current mode (Desktop or VR). The reason this is necessary is because it seems to me like
+            // the only way one can get a human-readable list of the audio I/O devices is by using a ListView
+            // and grabbing the names from the AudioScriptingInterface; you can't do it using a ListModel.
+            // See `AudioDevices.h`, specifically the comment above the declaration of `QVariant data()`.
+            ListView {
+                id: audioInputDevices
+                visible: false
+                property string selectedInputDeviceName
+                Layout.preferredWidth: parent.width
+                Layout.preferredHeight: contentItem.height
+                interactive: false
+                delegate: Item {
+                    Component.onCompleted: {
+                        if (HMD.active && selectedHMD) {
+                            audioInputDevices.selectedInputDeviceName = model.devicename
+                        } else if (!HMD.active && selectedDesktop) {
+                            audioInputDevices.selectedInputDeviceName = model.devicename
+                        }
+                    }
+                }
+            }
+
+            HifiStylesUit.GraphikRegular {
+                text: "<b>Audio Input:</b> " + audioInputDevices.selectedInputDeviceName
+                Layout.maximumWidth: parent.width
+                height: paintedHeight
+                size: 16
+                color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+            }
+
+
+            // This is a bit of a hack to get the name of the currently-selected audio output device
+            // in the current mode (Desktop or VR). The reason this is necessary is because it seems to me like
+            // the only way one can get a human-readable list of the audio I/O devices is by using a ListView
+            // and grabbing the names from the AudioScriptingInterface; you can't do it using a ListModel.
+            // See `AudioDevices.h`, specifically the comment above the declaration of `QVariant data()`.
+            ListView {
+                id: audioOutputDevices
+                visible: false
+                property string selectedOutputDeviceName
+                Layout.preferredWidth: parent.width
+                Layout.preferredHeight: contentItem.height
+                interactive: false
+                delegate: Item {
+                    Component.onCompleted: {
+                        if (HMD.active && selectedHMD) {
+                            audioOutputDevices.selectedOutputDeviceName = model.devicename
+                        } else if (!HMD.active && selectedDesktop) {
+                            audioOutputDevices.selectedOutputDeviceName = model.devicename
+                        }
+                    }
+                }
+            }
+
+            HifiStylesUit.GraphikRegular {
+                text: "<b>Audio Output:</b> " + audioOutputDevices.selectedOutputDeviceName
                 Layout.maximumWidth: parent.width
                 height: paintedHeight
                 size: 16
@@ -240,7 +313,7 @@ Flickable {
         textToCopy += "# CPU Cores: " + PlatformInfo.getNumLogicalCores() + "\n";
         textToCopy += "RAM: " + PlatformInfo.getTotalSystemMemoryMB() + " MB\n";
         
-        var gpu = JSON.parse(PlatformInfo.getGPU(0));
+        var gpu = JSON.parse(PlatformInfo.getGPU(PlatformInfo.getMasterGPU()));
         var gpuModel = gpu.model;
         if (gpuModel.length === 0) {
             gpuModel = "Unknown";
@@ -248,6 +321,8 @@ Flickable {
 
         textToCopy += "GPU: " + gpuModel + "\n";
         textToCopy += "VR Hand Controllers: " + (PlatformInfo.hasRiftControllers() ? "Rift" : (PlatformInfo.hasViveControllers() ? "Vive" : "None")) + "\n";
+        textToCopy += "Audio Input: " + audioInputDevices.selectedInputDeviceName + "\n";
+        textToCopy += "Audio Output: " + audioOutputDevices.selectedOutputDeviceName + "\n";
         
         textToCopy += "\n**All Platform Info**\n";
         textToCopy += JSON.stringify(JSON.parse(PlatformInfo.getPlatform()), null, 4);

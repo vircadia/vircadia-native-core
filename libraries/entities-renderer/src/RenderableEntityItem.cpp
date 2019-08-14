@@ -173,19 +173,22 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
 }
 
 ItemKey EntityRenderer::getKey() {
+    ItemKey::Builder builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+        builder.withTransparent();
+    } else if (_canCastShadow) {
+        builder.withShadowCaster();
     }
 
-    // This allows shapes to cast shadows
-    if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster().withLayer(getHifiRenderLayer());
-    } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    if (!_visible) {
+        builder.withInvisible();
     }
+
+    return builder;
 }
 
-uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) {
+uint32_t EntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
     if (Item::isValidID(_renderItemID)) {
         subItems.emplace_back(_renderItemID);
         return 1;
@@ -476,6 +479,29 @@ glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const Puls
         result.a *= pulse;
     } else if (pulseProperties.getAlphaMode() == PulseMode::OUT_PHASE) {
         result.a *= outPulse;
+    }
+
+    return result;
+}
+
+glm::vec3 EntityRenderer::calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
+    if (pulseProperties.getPeriod() == 0.0f || (pulseProperties.getColorMode() == PulseMode::NONE && pulseProperties.getAlphaMode() == PulseMode::NONE)) {
+        return color;
+    }
+
+    float t = ((float)(usecTimestampNow() - start)) / ((float)USECS_PER_SECOND);
+    float pulse = 0.5f * (cosf(t * (2.0f * (float)M_PI) / pulseProperties.getPeriod()) + 1.0f) * (pulseProperties.getMax() - pulseProperties.getMin()) + pulseProperties.getMin();
+    float outPulse = (1.0f - pulse);
+
+    glm::vec3 result = color;
+    if (pulseProperties.getColorMode() == PulseMode::IN_PHASE) {
+        result.r *= pulse;
+        result.g *= pulse;
+        result.b *= pulse;
+    } else if (pulseProperties.getColorMode() == PulseMode::OUT_PHASE) {
+        result.r *= outPulse;
+        result.g *= outPulse;
+        result.b *= outPulse;
     }
 
     return result;

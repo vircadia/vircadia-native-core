@@ -36,7 +36,7 @@ Rectangle {
                     break;
                 case "content set":
                     urlHandler.handleUrl("hifi://localhost/0,0,0");
-                    Commerce.replaceContentSet(toUrl(resource), "");
+                    Commerce.replaceContentSet(toUrl(resource), "", "");
                     break;
                 case "entity":
                 case "wearable":

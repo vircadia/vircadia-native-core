@@ -111,9 +111,9 @@ void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     void* key = (void*)this;
     AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
         withWriteLock([&] {
-            _dimensions = entity->getScaledDimensions();
             updateModelTransformAndBound();
             _renderTransform = getModelTransform();
+            _renderTransform.postScale(entity->getScaledDimensions());
         });
     });
 }
@@ -152,14 +152,12 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     NetworkTexturePointer texture;
     QRect subImage;
     glm::vec4 color;
-    glm::vec3 dimensions;
     Transform transform;
     withReadLock([&] {
         texture = _texture;
         subImage = _subImage;
         color = glm::vec4(toGlm(_color), _alpha);
         color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
-        dimensions = _dimensions;
         transform = _renderTransform;
     });
 
@@ -171,7 +169,6 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch* batch = args->_batch;
 
     transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
-    transform.postScale(dimensions);
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, texture->getGPUTexture());
@@ -200,16 +197,13 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
 
     float maxSize = glm::max(fromImage.width(), fromImage.height());
     float x = _keepAspectRatio ? fromImage.width() / (2.0f * maxSize) : 0.5f;
-    float y = _keepAspectRatio ? -fromImage.height() / (2.0f * maxSize) : -0.5f;
+    float y = _keepAspectRatio ? fromImage.height() / (2.0f * maxSize) : 0.5f;
 
-    glm::vec2 topLeft(-x, -y);
-    glm::vec2 bottomRight(x, y);
-    glm::vec2 texCoordTopLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
-    glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth,
-                                  (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
+    glm::vec2 texCoordBottomLeft((fromImage.x() + 0.5f) / imageWidth, (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
+    glm::vec2 texCoordTopRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth, (fromImage.y() + 0.5f) / imageHeight);
 
     DependencyManager::get<GeometryCache>()->renderQuad(
-        *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
+        *batch, glm::vec2(-x, -y), glm::vec2(x, y), texCoordBottomLeft, texCoordTopRight,
         color, _geometryId
     );
 

@@ -99,7 +99,7 @@ private slots:
 
     void handleDomainContentReplacementFromURLRequest(QSharedPointer<ReceivedMessage> message);
     void handleOctreeFileReplacementRequest(QSharedPointer<ReceivedMessage> message);
-    void handleOctreeFileReplacement(QByteArray octreeFile);
+    bool handleOctreeFileReplacement(QByteArray octreeFile, QString sourceFilename, QString name, QString username);
 
     void processOctreeDataRequestMessage(QSharedPointer<ReceivedMessage> message);
     void processOctreeDataPersistMessage(QSharedPointer<ReceivedMessage> message);
@@ -194,7 +194,7 @@ private:
     QUrl oauthRedirectURL();
     QUrl oauthAuthorizationURL(const QUuid& stateUUID = QUuid::createUuid());
 
-    bool isAuthenticatedRequest(HTTPConnection* connection, const QUrl& url);
+    std::pair<bool, QString>  isAuthenticatedRequest(HTTPConnection* connection);
 
     QNetworkReply* profileRequestGivenTokenReply(QNetworkReply* tokenReply);
     Headers setupCookieHeadersFromProfileReply(QNetworkReply* profileReply);

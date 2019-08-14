@@ -6,6 +6,11 @@
 
 static NSString* const organizationURL = @"https://orgs.highfidelity.com/organizations/";
 
+@interface OrganizationRequest ()
+@property (nonatomic, assign) NSMutableData* receivedData;
+@property (nonatomic, assign) NSInteger statusCode;
+@end
+
 @implementation OrganizationRequest
 
 - (void) confirmOrganization:(NSString*)aOrganization :(NSString*)aUsername {
@@ -23,70 +28,72 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
     }
 
     NSString* jsonFile = [hash stringByAppendingString:@".json"];
-    NSError *error;
-    NSData *data = [NSData dataWithContentsOfURL: [NSURL URLWithString:[organizationURL stringByAppendingString:jsonFile]]];
-    
-    Launcher* sharedLauncher = [Launcher sharedLauncher];
-    if (data) {
-        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&error];
-        [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :[json valueForKey:@"scripts_url"]];
-        [sharedLauncher setLoginErrorState: NONE];
-        return [sharedLauncher organizationRequestFinished:TRUE];
-    }
-    [sharedLauncher setLoginErrorState: ORGANIZATION];
-    return [sharedLauncher organizationRequestFinished:FALSE];
-    /*NSLog(@"URL: %@", [organizationURL stringByAppendingString:jsonFile]);
+
     NSMutableURLRequest *request = [NSMutableURLRequest new];
-    [request setURL:[NSURL URLWithString: [organizationURL stringByAppendingString:@"High%20Fidelity"]]];
+    [request setURL:[NSURL URLWithString:[organizationURL stringByAppendingString:jsonFile]]];
     [request setHTTPMethod:@"GET"];
-    [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request setValue:@"" forHTTPHeaderField:@"Content-Type"];
 
-    NSURLConnection *theConnection = [[NSURLConnection alloc] initWithRequest:request delegate:self];
-
-    if(theConnection) {
-        self.webData = [NSMutableData data];
-        NSLog(@"connection initiated");
-    }*/
+    NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
+    NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request];
+    [dataTask resume];
 }
 
-- (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data {
-    [self.webData appendData:data];
-}
 
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response {
+- (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response
+ completionHandler:(void (^)(NSURLSessionResponseDisposition disposition))completionHandler {
+    self.receivedData = nil;
+    self.receivedData = [[NSMutableData alloc] init];
+    [self.receivedData setLength:0];
     NSHTTPURLResponse *ne = (NSHTTPURLResponse *)response;
-    if([ne statusCode] == 200) {
-        NSLog(@"connection state is 200 - all okay");
+    self.statusCode = [ne statusCode];
+    NSLog(@"Organization Response status code: %ld", self.statusCode);
+    completionHandler(NSURLSessionResponseAllow);
+}
+
+
+-(void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
+   didReceiveData:(NSData *)data {
+
+    [self.receivedData appendData:data];
+    NSLog(@"Organization: did recieve data");
+}
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error {
+    Launcher* sharedLauncher = [Launcher sharedLauncher];
+    if (error) {
+        NSLog(@"Organization: Request completed with an error -> error: %@", error);
+        [sharedLauncher displayErrorPage];
     } else {
-        NSLog(@"connection state is NOT 200");
+        if (self.statusCode == 200) {
+            NSError *jsonError = nil;
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:self.receivedData options:kNilOptions error:&jsonError];
+            if (jsonError) {
+                NSLog(@"Failed to parse Organzation json -> error: %@", jsonError);
+                [sharedLauncher displayErrorPage];
+                return;
+            }
+            NSString* domainURL = [json valueForKey:@"domain"];
+            NSString* contentSetURL = [json valueForKey:@"content_set_url"];
+
+            if (domainURL != nil && contentSetURL != nil) {
+                NSLog(@"Organization: getting org file successful");
+                [sharedLauncher setDomainURLInfo:[json valueForKey:@"domain"] :[json valueForKey:@"content_set_url"] :nil];
+                [sharedLauncher setLoginErrorState: NONE];
+                [sharedLauncher organizationRequestFinished:TRUE];
+            } else {
+                NSLog(@"Organization: Either domainURL: %@ or contentSetURL: %@ json entries are invalid", domainURL, contentSetURL);
+                [sharedLauncher displayErrorPage];
+            }
+        } else if (self.statusCode == 403 || self.statusCode == 404) {
+            NSLog(@"Organization: failed to get org file");
+            [sharedLauncher setLoginErrorState: ORGANIZATION];
+            [sharedLauncher organizationRequestFinished:FALSE];
+        } else {
+            NSLog(@ "Organization: Response error -> statusCode: %ld", self.statusCode);
+            [sharedLauncher displayErrorPage];
+        }
     }
-}
-
--(void) connection:(NSURLConnection *)connection didFailWithError:(NSError *)error {
-    NSLog(@"Conn Err: %@", [error localizedDescription]);
-}
-
-- (void)connectionDidFinishLoading:(NSURLConnection *)connection {
-    /*NSString* jsonString = [[NSString alloc] initWithBytes: [self.webData mutableBytes] length:[self.webData length] encoding:NSUTF8StringEncoding];
-    NSData *data = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-    id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];*/
-    
-    /*Launcher* sharedLauncher = [Launcher sharedLauncher];
-    if (json[@"error"] != nil) {
-        NSLog(@"Login in failed");
-        NSString* accessToken = [json objectForKey:@"access_token"];
-        NSLog(@"access token %@", accessToken);
-        [sharedLauncher credentialsAccepted:FALSE];
-    } else {
-        NSLog(@"Login successful");
-        NSString* accessToken = [json objectForKey:@"access_token"];
-        NSLog(@"access token %@", accessToken);
-        NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-        [defaults setValue:accessToken forKey:@"access_token"];
-        [defaults synchronize];
-        [sharedLauncher credentialsAccepted:TRUE];
-    }*/
-    //NSLog(@"OUTPUT:: %@", self.jsonString);
 }
 
 @end

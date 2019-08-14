@@ -584,7 +584,7 @@ SharedNodePointer LimitedNodeList::nodeWithLocalID(Node::LocalID localID) const 
     return idIter == _localIDMap.cend() ? nullptr : idIter->second;
 }
 
-void LimitedNodeList::eraseAllNodes() {
+void LimitedNodeList::eraseAllNodes(QString reason) {
     std::vector<SharedNodePointer> killedNodes;
 
     {
@@ -593,7 +593,7 @@ void LimitedNodeList::eraseAllNodes() {
         QWriteLocker writeLocker(&_nodeMutex);
 
         if (_nodeHash.size() > 0) {
-            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList.";
+            qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList:" << reason;
 
             killedNodes.reserve(_nodeHash.size());
             for (auto& pair : _nodeHash) {
@@ -611,8 +611,8 @@ void LimitedNodeList::eraseAllNodes() {
     _delayedNodeAdds.clear();
 }
 
-void LimitedNodeList::reset() {
-    eraseAllNodes();
+void LimitedNodeList::reset(QString reason) {
+    eraseAllNodes(reason);
 
     // we need to make sure any socket connections are gone so wait on that here
     _nodeSocket.clearConnections();
@@ -754,6 +754,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
         emit nodeSocketUpdated(weakPtr);
     });
+    connect(newNodePointer.data(), &NetworkPeer::socketUpdated, &_nodeSocket, &udt::Socket::handleRemoteAddressChange);
 
     return newNodePointer;
 }
@@ -1088,11 +1089,13 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
     if (parseSTUNResponse(packet.get(), newPublicAddress, newPublicPort)) {
 
         if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
-            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-
-            qCDebug(networking, "New public socket received from STUN server is %s:%hu",
+            qCDebug(networking, "New public socket received from STUN server is %s:%hu (was %s:%hu)",
+                    newPublicAddress.toString().toStdString().c_str(),
+                    newPublicPort,
                     _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
                     _publicSockAddr.getPort());
+
+            _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
             if (!_hasCompletedInitialSTUN) {
                 // if we're here we have definitely completed our initial STUN sequence
@@ -1255,7 +1258,7 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
             _localSockAddr = sockAddr;
             if (_hasTCPCheckedLocalSocket) {  // Force a port change for NAT:
-                reset();
+                reset("local socket change");
                 _nodeSocket.rebind(0);
                 _localSockAddr.setPort(_nodeSocket.localPort());
                 qCInfo(networking) << "Local port changed to" << _localSockAddr.getPort();

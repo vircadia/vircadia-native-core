@@ -99,7 +99,8 @@ signals:
 public slots:
     void cleanupConnection(HifiSockAddr sockAddr);
     void clearConnections();
-    
+    void handleRemoteAddressChange(HifiSockAddr previousAddress, HifiSockAddr currentAddress);
+
 private slots:
     void readPendingDatagrams();
     void checkForReadyReadBackup();
@@ -110,7 +111,6 @@ private slots:
 private:
     void setSystemBufferSizes();
     Connection* findOrCreateConnection(const HifiSockAddr& sockAddr, bool filterCreation = false);
-    bool socketMatchesNodeOrDomain(const HifiSockAddr& sockAddr);
    
     // privatized methods used by UDTTest - they are private since they must be called on the Socket thread
     ConnectionStats::Stats sampleStatsForConnection(const HifiSockAddr& destination);

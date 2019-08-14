@@ -39,6 +39,10 @@ Q_LOGGING_CATEGORY(trace_baker, "trace.baker")
 #endif
 
 static bool tracingEnabled() {
+    if (!DependencyManager::isSet<tracing::Tracer>()) {
+        return false;
+    }
+
     // Cheers, love! The cavalry's here!
     auto tracer = DependencyManager::get<tracing::Tracer>();
     return (tracer && tracer->isEnabled());

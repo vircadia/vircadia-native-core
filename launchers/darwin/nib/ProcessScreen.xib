@@ -16,18 +16,18 @@
             <rect key="frame" x="0.0" y="0.0" width="515" height="390"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kuY-e2-Hqb">
+                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kuY-e2-Hqb" customClass="ImageView">
                     <rect key="frame" x="0.0" y="0.0" width="515" height="390"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="Abr-HV-cKq"/>
                 </imageView>
                 <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Nrc-t3-PSh">
-                    <rect key="frame" x="192" y="190" width="131" height="112"/>
+                    <rect key="frame" x="192" y="235" width="131" height="112"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="LNv-HQ-3gb"/>
                 </imageView>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EMF-E4-qLL">
-                    <rect key="frame" x="30" y="109" width="454" height="41"/>
+                    <rect key="frame" x="30" y="161" width="454" height="41"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Setup will take a moment" id="y9y-tH-HjJ">
                         <font key="font" metaFont="systemBold" size="28"/>
@@ -36,7 +36,7 @@
                     </textFieldCell>
                 </textField>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BSg-lp-njL">
-                    <rect key="frame" x="33" y="84" width="448" height="17"/>
+                    <rect key="frame" x="33" y="136" width="448" height="17"/>
                     <autoresizingMask key="autoresizingMask"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="We're getting your headquaters ready" id="HeV-5p-9FI">
                         <font key="font" metaFont="system"/>
@@ -49,6 +49,19 @@
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="6NP-7q-Mhj"/>
                 </imageView>
+                <progressIndicator wantsLayer="YES" fixedFrame="YES" maxValue="100" doubleValue="50" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="aEr-fi-fkV">
+                    <rect key="frame" x="68" y="78" width="394" height="20"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                </progressIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="U3I-TA-xRz">
+                    <rect key="frame" x="380" y="0.0" width="130" height="14"/>
+                    <autoresizingMask key="autoresizingMask"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Label" id="8YH-Td-daK">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="systemGrayColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
             </subviews>
             <point key="canvasLocation" x="138.5" y="154"/>
         </customView>
@@ -56,6 +69,8 @@
             <connections>
                 <outlet property="background" destination="kuY-e2-Hqb" id="CBc-bD-ux7"/>
                 <outlet property="boldStatus" destination="EMF-E4-qLL" id="udm-8B-7lt"/>
+                <outlet property="buildVersion" destination="U3I-TA-xRz" id="HDI-tW-1cC"/>
+                <outlet property="progressView" destination="aEr-fi-fkV" id="OUy-Qp-tiP"/>
                 <outlet property="smallLogo" destination="uh2-4K-n56" id="pYg-hP-nr5"/>
                 <outlet property="smallStatus" destination="BSg-lp-njL" id="ziz-ek-Lq4"/>
                 <outlet property="voxelImage" destination="Nrc-t3-PSh" id="J81-ex-qbE"/>

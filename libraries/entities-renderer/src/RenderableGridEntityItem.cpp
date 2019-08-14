@@ -122,7 +122,7 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
         forward = _renderLayer != RenderLayer::WORLD || args->_renderMethod == Args::RenderMethod::FORWARD;
     });
 
-    if (!_visible) {
+    if (!_visible || color.a == 0.0f) {
         return;
     }
 

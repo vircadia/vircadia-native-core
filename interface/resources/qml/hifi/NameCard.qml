@@ -400,7 +400,8 @@ Item {
         size: 24;
         x: 120
         anchors.verticalCenter: nameCardConnectionInfoImage.verticalCenter
-        anchors.left: has3DHTML ? nameCardConnectionInfoText.right + 10 : avatarImage.right
+        anchors.left: has3DHTML ? nameCardConnectionInfoText.right : avatarImage.right
+        anchors.leftMargin: has3DHTML ? 10 : 0
     }
     MouseArea {
         anchors.fill:nameCardRemoveConnectionImage

@@ -1,8 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+//  <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//  skybox.frag
-//  fragment shader
 //
 //  Created by Sam Gateau on 5/5/2015.
 //  Copyright 2015 High Fidelity, Inc.
@@ -11,6 +10,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 <@include graphics/ShaderConstants.h@>
+
+<@if HIFI_USE_FORWARD@>
+    <@include gpu/Transform.slh@>
+    <$declareStandardCameraTransform()$>
+
+    <@include graphics/Light.slh@>
+    <$declareLightBuffer()$>
+
+    <@include graphics/Haze.slh@>
+<@endif@>
 
 LAYOUT(binding=GRAPHICS_TEXTURE_SKYBOX) uniform samplerCube cubeMap;
 
@@ -32,8 +41,28 @@ void main(void) {
     // mix(skyboxColor, skyboxTexel, skybox.color.a)
     // and the blend factor should be user controlled
 
-    vec3 skyboxTexel = texture(cubeMap, normalize(_normal)).rgb;
+    vec3 normal = normalize(_normal);
+    vec3 skyboxTexel = texture(cubeMap, normal).rgb;
     vec3 skyboxColor = skybox.color.rgb;
     _fragColor = vec4(mix(vec3(1.0), skyboxTexel, float(skybox.color.a > 0.0)) *
                       mix(vec3(1.0), skyboxColor, float(skybox.color.a < 1.0)), 1.0);
+
+<@if HIFI_USE_FORWARD@>
+    // FIXME: either move this elsewhere or give it access to isHazeEnabled() (which is in render-utils/LightingModel.slh)
+    if (/*(isHazeEnabled() > 0.0) && */(hazeParams.hazeMode & HAZE_MODE_IS_ACTIVE) == HAZE_MODE_IS_ACTIVE) {
+        TransformCamera cam = getTransformCamera();
+        vec4 eyePositionWS = cam._viewInverse[3];
+        // We choose an arbitrary large number > BLEND_DISTANCE in Haze.slh
+        const float SKYBOX_DISTANCE = 32000.0;
+        vec4 fragPositionWS = eyePositionWS + SKYBOX_DISTANCE * vec4(normal, 0.0);
+        vec4 fragPositionES = cam._view * fragPositionWS;
+
+        Light light = getKeyLight();
+        vec3 lightDirectionWS = getLightDirection(light);
+
+        vec4 hazeColor = computeHazeColor(fragPositionES.xyz, fragPositionWS.xyz, eyePositionWS.xyz, lightDirectionWS);
+        _fragColor.rgb = mix(_fragColor.rgb, hazeColor.rgb, hazeColor.a);
+    }
+<@endif@>
+
 }

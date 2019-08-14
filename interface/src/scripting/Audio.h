@@ -66,10 +66,19 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @property {boolean} pushToTalkHMD - <code>true</code> if HMD push-to-talk is enabled, otherwise <code>false</code>.
      * @property {boolean} pushingToTalk - <code>true</code> if the user is currently pushing-to-talk, otherwise 
      *     <code>false</code>.
-     * @property {float} avatarGain - The gain (relative volume) that avatars' voices are played at. This gain is used at the server.
-     * @property {float} localInjectorGain - The gain (relative volume) that local injectors (local environment sounds) are played at.
-     * @property {float} serverInjectorGain - The gain (relative volume) that server injectors (server environment sounds) are played at. This gain is used at the server.
-     * @property {float} systemInjectorGain - The gain (relative volume) that system sounds are played at.
+     
+     * @property {number} avatarGain - The gain (relative volume in dB) that avatars' voices are played at. This gain is used 
+     *     at the server.
+     * @property {number} localInjectorGain - The gain (relative volume in dB) that local injectors (local environment sounds) 
+     *    are played at.
+     * @property {number} serverInjectorGain - The gain (relative volume in dB) that server injectors (server environment 
+     *     sounds) are played at. This gain is used at the server.
+     * @property {number} systemInjectorGain - The gain (relative volume in dB) that system sounds are played at.
+     * @property {number} pushingToTalkOutputGainDesktop - The gain (relative volume in dB) that all sounds are played at when 
+     *     the user is holding the push-to-talk key in desktop mode.
+     * @property {boolean} acousticEchoCancellation - <code>true</code> if acoustic echo cancellation is enabled, otherwise
+     *     <code>false</code>. When enabled, sound from the audio output is suppressed when it echos back to the input audio 
+     *     signal.
      *
      * @comment The following properties are from AudioScriptingInterface.h.
      * @property {boolean} isStereoInput - <code>true</code> if the input audio is being used in stereo, otherwise
@@ -83,6 +92,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
     Q_PROPERTY(bool warnWhenMuted READ warnWhenMutedEnabled WRITE enableWarnWhenMuted NOTIFY warnWhenMutedChanged)
+    Q_PROPERTY(bool acousticEchoCancellation
+               READ acousticEchoCancellationEnabled WRITE enableAcousticEchoCancellation NOTIFY acousticEchoCancellationChanged)
     Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY inputVolumeChanged)
     Q_PROPERTY(float inputLevel READ getInputLevel NOTIFY inputLevelChanged)
     Q_PROPERTY(bool clipping READ isClipping NOTIFY clippingChanged)
@@ -94,6 +105,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool pushToTalkDesktop READ getPTTDesktop WRITE setPTTDesktop NOTIFY pushToTalkDesktopChanged)
     Q_PROPERTY(bool pushToTalkHMD READ getPTTHMD WRITE setPTTHMD NOTIFY pushToTalkHMDChanged)
     Q_PROPERTY(bool pushingToTalk READ getPushingToTalk WRITE setPushingToTalk NOTIFY pushingToTalkChanged)
+    Q_PROPERTY(float pushingToTalkOutputGainDesktop READ getPushingToTalkOutputGainDesktop
+        WRITE setPushingToTalkOutputGainDesktop NOTIFY pushingToTalkOutputGainDesktopChanged)
     Q_PROPERTY(float avatarGain READ getAvatarGain WRITE setAvatarGain NOTIFY avatarGainChanged)
     Q_PROPERTY(float localInjectorGain READ getLocalInjectorGain WRITE setLocalInjectorGain NOTIFY localInjectorGainChanged)
     Q_PROPERTY(float serverInjectorGain READ getInjectorGain WRITE setInjectorGain NOTIFY serverInjectorGainChanged)
@@ -111,6 +124,7 @@ public:
     bool isMuted() const;
     bool noiseReductionEnabled() const;
     bool warnWhenMutedEnabled() const;
+    bool acousticEchoCancellationEnabled() const;
     float getInputVolume() const;
     float getInputLevel() const;
     bool isClipping() const;
@@ -197,14 +211,14 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.setAvatarGain
-     * @param {number} gain - Avatar gain (dB) at the server.
+     * @param {number} gain - The avatar gain (dB) at the server.
      */
     Q_INVOKABLE void setAvatarGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.getAvatarGain
-     * @returns {number} Avatar gain (dB) at the server.
+     * @returns {number} The avatar gain (dB) at the server.
      * @example <caption>Report current audio gain settings.</caption>
      * // 0 value = normal volume; -ve value = quieter; +ve value = louder.
      * print("Avatar gain: " + Audio.getAvatarGain());
@@ -217,42 +231,42 @@ public:
     /**jsdoc
      * Sets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.setInjectorGain
-     * @param {number} gain - Injector gain (dB) at the server.
+     * @param {number} gain - The injector gain (dB) at the server.
      */
     Q_INVOKABLE void setInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that environment sounds from the server are played at.
      * @function Audio.getInjectorGain
-     * @returns {number} Injector gain (dB) at the server.
+     * @returns {number} The injector gain (dB) at the server.
      */
     Q_INVOKABLE float getInjectorGain();
 
     /**jsdoc
      * Sets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.setLocalInjectorGain
-     * @param {number} gain - Injector gain (dB) in the client.
+     * @param {number} gain - The injector gain (dB) in the client.
      */
     Q_INVOKABLE void setLocalInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that environment sounds from the client are played at.
      * @function Audio.getLocalInjectorGain
-     * @returns {number} Injector gain (dB) in the client.
+     * @returns {number} The injector gain (dB) in the client.
      */
     Q_INVOKABLE float getLocalInjectorGain();
 
     /**jsdoc
      * Sets the gain (relative volume) that system sounds are played at.
      * @function Audio.setSystemInjectorGain
-     * @param {number} gain - Injector gain (dB) in the client.
+     * @param {number} gain - The injector gain (dB) in the client.
      */
     Q_INVOKABLE void setSystemInjectorGain(float gain);
 
     /**jsdoc
      * Gets the gain (relative volume) that system sounds are played at.
      * @function Audio.getSystemInjectorGain
-     * @returns {number} Injector gain (dB) in the client.
+     * @returns {number} The injector gain (dB) in the client.
     */
     Q_INVOKABLE float getSystemInjectorGain();
 
@@ -289,6 +303,22 @@ public:
      * @returns {boolean} <code>true</code> if an audio recording is currently being made, otherwise <code>false</code>.
      */
     Q_INVOKABLE bool getRecording();
+
+    /**jsdoc
+     * Sets the output volume gain that will be used when the user is holding the push-to-talk key.
+     * Should be negative.
+     * @function Audio.setPushingToTalkOutputGainDesktop
+     * @param {number} gain - The output volume gain (dB) while using push-to-talk.
+     */
+    Q_INVOKABLE void setPushingToTalkOutputGainDesktop(float gain);
+
+    /**jsdoc
+     * Gets the output volume gain that is used when the user is holding the push-to-talk key.
+     * Should be negative.
+     * @function Audio.getPushingToTalkOutputGainDesktop
+     * @returns {number} gain - The output volume gain (dB) while using push-to-talk.
+     */
+    Q_INVOKABLE float getPushingToTalkOutputGainDesktop();
 
 signals:
 
@@ -377,6 +407,14 @@ signals:
     void warnWhenMutedChanged(bool isEnabled);
 
     /**jsdoc
+     * Triggered when acoustic echo cancellation is enabled or disabled.
+     * @function Audio.acousticEchoCancellationChanged
+     * @param {boolean} isEnabled - <code>true</code> if acoustic echo cancellation is enabled, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    void acousticEchoCancellationChanged(bool isEnabled);
+
+    /**jsdoc
      * Triggered when the input audio volume changes.
      * @function Audio.inputVolumeChanged
      * @param {number} volume - The requested volume to be applied to the audio input, range <code>0.0</code> &ndash;
@@ -423,7 +461,7 @@ signals:
     /**jsdoc
      * Triggered when the avatar gain changes.
      * @function Audio.avatarGainChanged
-     * @param {float} gain - The new avatar gain value.
+     * @param {number} gain - The new avatar gain value (dB).
      * @returns {Signal}
      */
     void avatarGainChanged(float gain);
@@ -431,7 +469,7 @@ signals:
     /**jsdoc
      * Triggered when the local injector gain changes.
      * @function Audio.localInjectorGainChanged
-     * @param {float} gain - The new local injector gain value.
+     * @param {number} gain - The new local injector gain value (dB).
      * @returns {Signal}
      */
     void localInjectorGainChanged(float gain);
@@ -439,7 +477,7 @@ signals:
     /**jsdoc
      * Triggered when the server injector gain changes.
      * @function Audio.serverInjectorGainChanged
-     * @param {float} gain - The new server injector gain value.
+     * @param {number} gain - The new server injector gain value (dB).
      * @returns {Signal}
      */
     void serverInjectorGainChanged(float gain);
@@ -447,10 +485,18 @@ signals:
     /**jsdoc
      * Triggered when the system injector gain changes.
      * @function Audio.systemInjectorGainChanged
-     * @param {float} gain - The new system injector gain value.
+     * @param {number} gain - The new system injector gain value (dB).
      * @returns {Signal}
      */
     void systemInjectorGainChanged(float gain);
+
+    /**jsdoc
+     * Triggered when the push to talk gain changes.
+     * @function Audio.pushingToTalkOutputGainDesktopChanged
+     * @param {number} gain - The new output gain value (dB).
+     * @returns {Signal}
+     */
+    void pushingToTalkOutputGainDesktopChanged(float gain);
 
 public slots:
 
@@ -466,6 +512,7 @@ private slots:
     void setMuted(bool muted);
     void enableNoiseReduction(bool enable);
     void enableWarnWhenMuted(bool enable);
+    void enableAcousticEchoCancellation(bool enable);
     void setInputVolume(float volume);
     void onInputLoudnessChanged(float loudness, bool isClipping);
 
@@ -478,11 +525,17 @@ private:
     bool _settingsLoaded { false };
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
-    float _localInjectorGain { 0.0f };  // in dB
-    float _systemInjectorGain { 0.0f }; // in dB
+    Setting::Handle<float> _avatarGainSetting { QStringList { Audio::AUDIO, "AvatarGain" }, 0.0f };
+    Setting::Handle<float> _injectorGainSetting { QStringList { Audio::AUDIO, "InjectorGain" }, 0.0f };
+    Setting::Handle<float> _localInjectorGainSetting { QStringList { Audio::AUDIO, "LocalInjectorGain" }, 0.0f };
+    Setting::Handle<float> _systemInjectorGainSetting { QStringList { Audio::AUDIO, "SystemInjectorGain" }, 0.0f };
+    float _localInjectorGain { 0.0f };      // in dB
+    float _systemInjectorGain { 0.0f };     // in dB
+    float _pttOutputGainDesktop { 0.0f };   // in dB
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _enableWarnWhenMuted { true };
+    bool _enableAcousticEchoCancellation { true }; // AudioClient::_isAECEnabled
     bool _contextIsHMD { false };
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;

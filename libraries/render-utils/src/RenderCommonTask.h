@@ -11,9 +11,8 @@
 
 #include <gpu/Pipeline.h>
 #include "LightStage.h"
+#include "HazeStage.h"
 #include "LightingModel.h"
-
-
 
 class BeginGPURangeTimer {
 public:
@@ -62,7 +61,7 @@ protected:
 
 class DrawLayered3D {
 public:
-    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
+    using Inputs = render::VaryingSet4<render::ItemBounds, LightingModelPointer, HazeStage::FramePointer, glm::vec2>;
     using Config = DrawLayered3DConfig;
     using JobModel = render::Job::ModelI<DrawLayered3D, Inputs, Config>;
 
@@ -82,6 +81,20 @@ public:
     using JobModel = render::Job::ModelI<Blit, gpu::FramebufferPointer>;
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
+};
+
+class NewFramebuffer {
+public:
+    using Output = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelO<NewFramebuffer, Output>;
+
+    NewFramebuffer(gpu::Element pixelFormat = gpu::Element::COLOR_SRGBA_32);
+
+    void run(const render::RenderContextPointer& renderContext, Output& output);
+protected:
+    gpu::Element _pixelFormat;
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
 };
 
 class NewOrDefaultFramebuffer {

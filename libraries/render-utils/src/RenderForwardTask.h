@@ -50,11 +50,13 @@ public:
         const float SCALE_RANGE_MIN = 0.1f;
         const float SCALE_RANGE_MAX = 2.0f;
         resolutionScale = std::max(SCALE_RANGE_MIN, std::min(SCALE_RANGE_MAX, scale));
+        //emit dirty();
     }
 
     int getNumSamples() const { return numSamples; }
     void setNumSamples(int num) {
         numSamples = std::max(1, std::min(32, num));
+        emit dirty();
     }
 
 signals:
@@ -96,7 +98,7 @@ private:
 
 class DrawForward{
 public:
-    using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
+    using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, HazeStage::FramePointer>;
     using JobModel = render::Job::ModelI<DrawForward, Inputs>;
 
     DrawForward(const render::ShapePlumberPointer& shapePlumber, bool opaquePass) : _shapePlumber(shapePlumber), _opaquePass(opaquePass) {}

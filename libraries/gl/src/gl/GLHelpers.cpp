@@ -26,13 +26,19 @@ size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     return pixelSize;
 }
 
+static bool FORCE_DISABLE_OPENGL_45 = false;
+
+void gl::setDisableGl45(bool disable) {
+    FORCE_DISABLE_OPENGL_45 = disable;
+}
+
 bool gl::disableGl45() {
 #if defined(USE_GLES)
     return false;
 #else
     static const QString DEBUG_FLAG("HIFI_DISABLE_OPENGL_45");
     static bool disableOpenGL45 = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-    return disableOpenGL45;
+    return FORCE_DISABLE_OPENGL_45 || disableOpenGL45;
 #endif
 }
 
@@ -142,6 +148,33 @@ static bool setupPixelFormatSimple(HDC hdc) {
 
 #endif
 
+
+const gl::ContextInfo& gl::ContextInfo::get(bool init) {
+    static gl::ContextInfo INSTANCE;
+    if (init) {
+        static std::once_flag once;
+        std::call_once(once, [&] {
+            INSTANCE.init();
+        });
+    }
+    return INSTANCE;
+}
+
+gl::ContextInfo& gl::ContextInfo::init() {
+    if (glGetString) {
+        version = (const char*)glGetString(GL_VERSION);
+        shadingLanguageVersion = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+        vendor = (const char*)glGetString(GL_VENDOR);
+        renderer = (const char*)glGetString(GL_RENDERER);
+        GLint n = 0;
+        glGetIntegerv(GL_NUM_EXTENSIONS, &n);
+        for (GLint i = 0; i < n; ++i) {
+            extensions.emplace_back((const char*)glGetStringi(GL_EXTENSIONS, i));
+        }
+    }
+    return *this;
+}
+
 uint16_t gl::getAvailableVersion() {
     static uint8_t major = 0, minor = 0;
     static std::once_flag once;
@@ -202,6 +235,15 @@ uint16_t gl::getAvailableVersion() {
             return;
         }
         gl::initModuleGl();
+
+        std::string glvendor{ (const char*)glGetString(GL_VENDOR) };
+        std::transform(glvendor.begin(), glvendor.end(), glvendor.begin(), ::tolower); 
+
+        // Intel has *notoriously* buggy DSA implementations, especially around cubemaps
+        if (std::string::npos != glvendor.find("intel")) {
+            gl::setDisableGl45(true);
+        }
+
         wglMakeCurrent(0, 0);
         hGLRC.reset();
         if (!wglChoosePixelFormatARB || !wglCreateContextAttribsARB) {
@@ -260,25 +302,6 @@ int glVersionToInteger(QString glVersion) {
         minorNumber = versionParts[1].toInt();
     }
     return (majorNumber << 16) | minorNumber;
-}
-
-QJsonObject getGLContextData() {
-    static QJsonObject result;
-    static std::once_flag once;
-    std::call_once(once, [] {
-        QString glVersion = QString((const char*)glGetString(GL_VERSION));
-        QString glslVersion = QString((const char*) glGetString(GL_SHADING_LANGUAGE_VERSION));
-        QString glVendor = QString((const char*) glGetString(GL_VENDOR));
-        QString glRenderer = QString((const char*)glGetString(GL_RENDERER));
-
-        result = QJsonObject {
-            { "version", glVersion },
-            { "sl_version", glslVersion },
-            { "vendor", glVendor },
-            { "renderer", glRenderer },
-        };
-    });
-    return result;
 }
 
 QThread* RENDER_THREAD = nullptr;

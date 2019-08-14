@@ -75,6 +75,7 @@ public slots:
     void ack(SequenceNumber ack);
     void fastRetransmit(SequenceNumber ack);
     void handshakeACK();
+    void updateDestinationAddress(HifiSockAddr newAddress);
 
 signals:
     void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);

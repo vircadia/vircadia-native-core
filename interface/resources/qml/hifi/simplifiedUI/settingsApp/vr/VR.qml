@@ -171,6 +171,7 @@ Flickable {
 
             ColumnLayout {
                 id: micControlsSwitchGroup
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
 
                 SimplifiedControls.Switch {

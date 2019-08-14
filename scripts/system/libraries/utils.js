@@ -340,8 +340,8 @@ calculateHandSizeRatio = function() {
     return handSizeRatio;
 }
 
-clamp = function(val, min, max){
-     return Math.max(min, Math.min(max, val))
+hifiClamp = function(val, min, max) {
+     return Math.max(min, Math.min(max, val));
 }
 
 // flattens an array of arrays into a single array

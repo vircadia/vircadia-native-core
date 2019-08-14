@@ -17,16 +17,21 @@ namespace platform {
     
 class Instance {
 public:
+    const int NOT_FOUND { -1 };
+
     bool virtual enumeratePlatform();
 
     int getNumCPUs() { return (int)_cpus.size(); }
     json getCPU(int index);
+    int getMasterCPU() const { return _masterCPU; }
 
     int getNumGPUs() { return (int)_gpus.size(); }
     json getGPU(int index);
+    int getMasterGPU() const { return _masterGPU; }
 
     int getNumDisplays() { return (int)_displays.size(); }
     json getDisplay(int index);
+    int getMasterDisplay() const { return _masterDisplay; }
 
     json getMemory() { return _memory; }
 
@@ -35,10 +40,11 @@ public:
     json getAll();
 
     void virtual enumerateCpus()=0;
-    void virtual enumerateGpus()=0;
-    void virtual enumerateDisplays() {}
+    void virtual enumerateGpusAndDisplays()=0;
+    void virtual enumerateNics();
     void virtual enumerateMemory() = 0;
     void virtual enumerateComputer()=0;
+    virtual void enumerateGraphicsApis();
     
     virtual ~Instance();
 
@@ -51,8 +57,18 @@ protected:
     std::vector<json>  _cpus;
     std::vector<json>  _gpus;
     std::vector<json>  _displays;
+    std::vector<json>  _nics;
+    json  _graphicsApis;
     json  _memory;
     json  _computer;
+
+    int _masterCPU{ -1 };
+    int _masterGPU{ -1 };
+    int _masterDisplay{ -1 };
+
+    // Traverse the cpus, gpus and displays to update the "master" index in each domain
+    void updateMasterIndices();
+
 };
 
 }  // namespace platform

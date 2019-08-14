@@ -2,6 +2,7 @@
 #import "DownloadInterface.h"
 #import "CredentialsRequest.h"
 #import "DownloadDomainContent.h"
+#import "DownloadLauncher.h"
 #import "LatestBuildRequest.h"
 #import "OrganizationRequest.h"
 #import "DownloadScripts.h"
@@ -21,6 +22,12 @@ typedef enum LoginErrorTypes
     CREDENTIALS
 } LoginError;
 
+struct LatestBuildInfo {
+    NSString* downloadURL;
+    BOOL shouldDownload;
+    BOOL requestBuildFinished;
+};
+
 @interface Launcher : NSObject <NSApplicationDelegate, NSWindowDelegate, NSURLDownloadDelegate> {
 }
 @property (nonatomic, retain) NSString* password;
@@ -34,9 +41,11 @@ typedef enum LoginErrorTypes
 @property (nonatomic, retain) NSString* domainURL;
 @property (nonatomic, retain) NSString* domainContentUrl;
 @property (nonatomic, retain) NSString* domainScriptsUrl;
+@property (nonatomic, retain) NSString* interfaceDownloadUrl;
 @property (nonatomic, retain) DownloadInterface* downloadInterface;
 @property (nonatomic, retain) CredentialsRequest* credentialsRequest;
 @property (nonatomic, retain) DownloadDomainContent* downloadDomainContent;
+@property (nonatomic, retain) DownloadLauncher* downloadLauncher;
 @property (nonatomic, retain) DownloadScripts* downloadScripts;
 @property (nonatomic, retain) LatestBuildRequest* latestBuildRequest;
 @property (nonatomic, retain) OrganizationRequest* organizationRequest;
@@ -44,9 +53,17 @@ typedef enum LoginErrorTypes
 @property (nonatomic) BOOL waitingForCredentialReponse;
 @property (nonatomic) BOOL gotCredentialResponse;
 @property (nonatomic) BOOL waitingForInterfaceToTerminate;
+@property (nonatomic) BOOL shouldDownloadInterface;
+@property (nonatomic) BOOL latestBuildRequestFinished;
+@property (nonatomic, assign) NSTimer* updateProgressIndicatorTimer;
 @property (nonatomic, assign, readwrite) ProcessState processState;
 @property (nonatomic, assign, readwrite) LoginError loginError;
+@property (nonatomic, assign) NSProgressIndicator* progressIndicator;
+@property (nonatomic) double progressTarget;
+@property (nonatomic) struct LatestBuildInfo buildInfo;
 
+- (NSProgressIndicator*) getProgressView;
+- (void) setProgressView:(NSProgressIndicator*) aProgressIndicator;
 - (void) displayNameEntered:(NSString*)aDisplayName;
 - (void) credentialsEntered:(NSString*)aOrginization :(NSString*)aUsername :(NSString*)aPassword;
 - (void) credentialsAccepted:(BOOL) aCredentialsAccepted;
@@ -57,16 +74,18 @@ typedef enum LoginErrorTypes
 - (BOOL) loginShouldSetErrorState;
 - (void) displayErrorPage;
 - (void) showLoginScreen;
+- (void) restart;
 - (NSString*) getLauncherPath;
+- (void) runAutoupdater;
 - (ProcessState) currentProccessState;
 - (void) setCurrentProcessState:(ProcessState) aProcessState;
 - (void) setLoginErrorState:(LoginError) aLoginError;
 - (LoginError) getLoginErrorState;
-- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl;
+- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl :(BOOL) newLauncherAvailable :(NSString*) launcherUrl;
 - (void) interfaceFinishedDownloading;
 - (NSString*) getDownloadPathForContentAndScripts;
 - (void) launchInterface;
-- (void) extractZipFileAtDestination:(NSString*) destination :(NSString*) file;
+- (BOOL) extractZipFileAtDestination:(NSString*) destination :(NSString*) file;
 - (BOOL) isWaitingForInterfaceToTerminate;
 - (void) setDownloadFilename:(NSString*) aFilename;
 - (void) setDownloadContextFilename:(NSString*) aFilename;
@@ -76,8 +95,13 @@ typedef enum LoginErrorTypes
 - (NSString*) getDownloadContentFilename;
 - (NSString*) getDownloadScriptsFilename;
 - (NSString*) getDownloadFilename;
+- (void) startUpdateProgressIndicatorTimer;
+- (void) endUpdateProgressIndicatorTimer;
 - (BOOL) isLoadedIn;
 - (NSString*) getAppPath;
+- (void) updateProgressIndicator;
+- (void) setLatestBuildInfo:(struct LatestBuildInfo) latestBuildInfo;
+- (struct LatestBuildInfo) getLatestBuildInfo;
 
 + (id) sharedLauncher;
 @end

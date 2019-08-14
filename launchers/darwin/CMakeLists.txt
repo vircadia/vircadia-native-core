@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
 project(HQLauncher)
 set (CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+include("cmake/macros/SetPackagingParameters.cmake")
 set(src_files
   src/Launcher.h
   src/Launcher.m
@@ -19,6 +20,8 @@ set(src_files
   src/DownloadInterface.m
   src/DownloadDomainContent.h
   src/DownloadDomainContent.m
+  src/DownloadLauncher.h
+  src/DownloadLauncher.m
   src/DownloadScripts.h
   src/DownloadScripts.m
   src/CredentialsRequest.h
@@ -27,15 +30,21 @@ set(src_files
   src/LatestBuildRequest.m
   src/OrganizationRequest.m
   src/OrganizationRequest.h
+  src/ImageView.m
+  src/ImageView.h
   src/Interface.h
   src/Interface.m
   src/ErrorViewController.h
   src/ErrorViewController.m
+  src/LauncherCommandlineArgs.h
+  src/LauncherCommandlineArgs.m
   src/Settings.h
   src/Settings.m
   src/LaunchInterface.h
   src/CustomUI.h
   src/CustomUI.m
+  src/NSTask+NSTaskExecveAdditions.h
+  src/NSTask+NSTaskExecveAdditions.m
   src/main.mm
   nib/Window.xib
   nib/SplashScreen.xib
@@ -43,6 +52,9 @@ set(src_files
   nib/LoginScreen.xib
   nib/ProcessScreen.xib
   nib/DisplayNameScreen.xib)
+
+set(updater_src_files
+  src/updater/main.m)
 
 set(APP_NAME "HQ Launcher")
 
@@ -57,16 +69,19 @@ set_target_properties(${this_target} PROPERTIES
 set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-    if (NOT DEFINED ${_RESULT_NAME}) 
-        if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
-            set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
-        else()
-            set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
-        endif()
+  if (NOT DEFINED ${_RESULT_NAME}) 
+    if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+      set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+    else()
+      set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
     endif()
+  endif()
 endfunction()
 
+  set_packaging_parameters()
+
 add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+add_executable("updater" ${updater_src_files})
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME}
   MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME})
 set_from_env(LAUNCHER_HMAC_SECRET LAUNCHER_HMAC_SECRET "")
@@ -75,6 +90,7 @@ if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
 
 file(GLOB NIB_FILES "nib/*.xib")
 
@@ -95,6 +111,10 @@ endforeach()
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_SOURCE_DIR}/images "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+  COMMAND updater
+  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/updater" "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${APP_NAME}.app/Contents/Resources/")
 
 install(
   TARGETS HQLauncher

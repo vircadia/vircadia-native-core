@@ -23,6 +23,7 @@
 
 #include <gl/OffscreenGLCanvas.h>
 #include <shared/ReadWriteLockable.h>
+#include <NetworkingConstants.h>
 
 #include "Logging.h"
 #include "impl/SharedObject.h"
@@ -32,6 +33,23 @@
 
 using namespace hifi::qml;
 using namespace hifi::qml::impl;
+
+QmlUrlValidator OffscreenSurface::validator = [](const QUrl& url) -> bool { 
+    if (url.isRelative()) {
+        return true;
+    }
+
+    if (url.isLocalFile()) {
+        return true;
+    }
+
+    if (url.scheme() == URL_SCHEME_QRC) {
+        return true;
+    }
+
+    // By default, only allow local QML, either from the local filesystem or baked into the QRC
+    return false;
+};
 
 static uvec2 clampSize(const uvec2& size, uint32_t maxDimension) {
     return glm::clamp(size, glm::uvec2(1), glm::uvec2(maxDimension));
@@ -307,6 +325,10 @@ void OffscreenSurface::loadInternal(const QUrl& qmlSource,
     // For desktop toolbar mode window: stop script when window is closed.
     if (qmlSource.isEmpty()) {
         getSurfaceContext()->engine()->quit();
+    }
+
+    if (!validator(qmlSource)) {
+        qCWarning(qmlLogging) << "Unauthorized QML URL found" << qmlSource;
         return;
     }
 
