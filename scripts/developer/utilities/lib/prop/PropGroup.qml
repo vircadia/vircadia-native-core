@@ -68,7 +68,7 @@ PropFolderPanel {
                                 "min": (proItem["min"] !== undefined ? proItem.min : 0.0),                   
                                 "max": (proItem["max"] !== undefined ? proItem.max : 1.0),                                       
                                 "integer": (proItem["integral"] !== undefined ? proItem.integral : false),
-                                "readOnly": (proItem["readOnly"] !== undefined ?  proItem["readOnly"] : false),
+                                "readOnly": (proItem["readOnly"] !== undefined ?  proItem["readOnly"] : true),
                             })
                         } break;
                         case 'PropEnum': {

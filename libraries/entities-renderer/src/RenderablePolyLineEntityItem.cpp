@@ -55,7 +55,6 @@ void PolyLineEntityRenderer::buildPipelines() {
 
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
         state->setDepthTest(true, !key.second, gpu::LESS_EQUAL);
-      //  PrepareStencil::testMaskDrawShape(*state);
         PrepareStencil::testMask(*state);
 
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
@@ -67,12 +66,10 @@ void PolyLineEntityRenderer::buildPipelines() {
 
 ItemKey PolyLineEntityRenderer::getKey() {
     return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
-  //  return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
     auto builder = ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
-    //auto builder = ShapeKey::Builder().withOwnPipeline().withoutCullFace();
     if (_primitiveMode == PrimitiveMode::LINES) {
         builder.withWireframe();
     }

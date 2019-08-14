@@ -264,12 +264,24 @@ void Procedural::prepare(gpu::Batch& batch,
         fragmentSource.replacements[PROCEDURAL_VERSION] = "#define PROCEDURAL_V" + std::to_string(_data.version);
         fragmentSource.replacements[PROCEDURAL_BLOCK] = _shaderSource.toStdString();
 
-        // Set any userdata specified uniforms
-        int customSlot = procedural::slot::uniform::Custom;
-        for (const auto& key : _data.uniforms.keys()) {
-            std::string uniformName = key.toLocal8Bit().data();
-          //  fragmentSource.reflection.uniforms[uniformName] = customSlot;
-            ++customSlot;
+        // Set any userdata specified uniforms (if any)
+        if (!_data.uniforms.empty()) {
+            // First grab all the possible dialect/variant/Reflections
+            std::vector<shader::Reflection*> allReflections;
+            for (auto dialectIt = fragmentSource.dialectSources.begin(); dialectIt != fragmentSource.dialectSources.end(); ++dialectIt) {
+                for (auto variantIt = (*dialectIt).second.variantSources.begin(); variantIt != (*dialectIt).second.variantSources.end(); ++variantIt) {
+                    allReflections.push_back(&(*variantIt).second.reflection);
+                }
+            }
+            // Then fill in every reflections the new custom bindings
+            int customSlot = procedural::slot::uniform::Custom;
+            for (const auto& key : _data.uniforms.keys()) {
+                std::string uniformName = key.toLocal8Bit().data();
+                for (auto reflection : allReflections) {
+                    reflection->uniforms[uniformName] = customSlot;
+                }
+                ++customSlot;
+            }
         }
 
         // Leave this here for debugging

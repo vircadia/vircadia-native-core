@@ -32,7 +32,7 @@ namespace shader {
 
 #if defined(USE_GLES)
 
-static const Dialect DEFAULT_DIALECT = Dialect::glsl310es;
+const Dialect DEFAULT_DIALECT = Dialect::glsl310es;
 
 const std::vector<Dialect>& allDialects() {
     static const std::vector<Dialect> ALL_DIALECTS{ { Dialect::glsl310es } };
@@ -41,7 +41,7 @@ const std::vector<Dialect>& allDialects() {
     
 #elif defined(Q_OS_MAC) 
 
-static const Dialect DEFAULT_DIALECT = Dialect::glsl410;
+const Dialect DEFAULT_DIALECT = Dialect::glsl410;
 
 const std::vector<Dialect>& allDialects() {
     static const std::vector<Dialect> ALL_DIALECTS{ Dialect::glsl410 };
@@ -50,7 +50,7 @@ const std::vector<Dialect>& allDialects() {
 
 #else
 
-static const Dialect DEFAULT_DIALECT = Dialect::glsl450;
+const Dialect DEFAULT_DIALECT = Dialect::glsl450;
 
 const std::vector<Dialect> & allDialects() {
     static const std::vector<Dialect> ALL_DIALECTS{ { Dialect::glsl450, Dialect::glsl410 } };

@@ -91,7 +91,7 @@ Prop.PropGroup {
       //  console.log(JSON.stringify(props));
         if (showProps) {
             for (var p in props) {
-                propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
+                propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p]})
             }
             root.updatePropItems(root.propItemsPanel, propsModel);
         }

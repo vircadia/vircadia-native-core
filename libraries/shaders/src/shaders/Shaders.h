@@ -42,6 +42,8 @@ enum class Dialect
 #endif
 };
 
+extern const Dialect DEFAULT_DIALECT;
+
 const std::vector<Dialect>& allDialects();
 const std::string& dialectPath(Dialect dialect);
 
