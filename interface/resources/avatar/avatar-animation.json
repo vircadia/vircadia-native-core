@@ -632,8 +632,8 @@
                                                                                                         ],
                                                                                                         "data": {
                                                                                                             "currentState": "seatedTalk02",
-                                                                                                            "randomSwitchTimeMax": 10,
-                                                                                                            "randomSwitchTimeMin": 1,
+                                                                                                            "randomSwitchTimeMax": 12,
+                                                                                                            "randomSwitchTimeMin": 7,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "seatedTalk02",
@@ -698,8 +698,8 @@
                                                                                                         ],
                                                                                                         "data": {
                                                                                                             "currentState": "seatedIdle01",
-                                                                                                            "randomSwitchTimeMax": 10,
-                                                                                                            "randomSwitchTimeMin": 1,
+                                                                                                            "randomSwitchTimeMax": 20,
+                                                                                                            "randomSwitchTimeMin": 10,
                                                                                                             "states": [
                                                                                                                 {
                                                                                                                     "id": "seatedIdle01",
@@ -779,8 +779,8 @@
                                                                                                     "currentState": "seatedReactionPositiveHeadNod",
                                                                                                     "endFrame": 30,
                                                                                                     "loopFlag": false,
-                                                                                                    "randomSwitchTimeMax": 10,
-                                                                                                    "randomSwitchTimeMin": 1,
+                                                                                                    "randomSwitchTimeMax": 12,
+                                                                                                    "randomSwitchTimeMin": 7,
                                                                                                     "startFrame": 0,
                                                                                                     "states": [
                                                                                                         {
@@ -856,18 +856,22 @@
                                                                                                     "startFrame": 0,
                                                                                                     "states": [
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionNegativeDisagreeHeadshake",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionNegativeDisagreeDropHead",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -957,9 +961,11 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionRaiseHandOutro",
-                                                                                                            "interpDuration": 1,
-                                                                                                            "interpTarget": 1,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1038,9 +1044,11 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaudLoop",
-                                                                                                            "interpDuration": 5,
-                                                                                                            "interpTarget": 5,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1051,9 +1059,11 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaudOutro",
-                                                                                                            "interpDuration": 1,
-                                                                                                            "interpTarget": 1,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1132,9 +1142,11 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionPointLoop",
-                                                                                                            "interpDuration": 5,
-                                                                                                            "interpTarget": 5,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1145,9 +1157,11 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionPointOutro",
-                                                                                                            "interpDuration": 1,
-                                                                                                            "interpTarget": 1,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1197,10 +1211,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionPositive",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "seatedTalkOverlay",
@@ -1233,10 +1248,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionNegative",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "seatedReactionPositive",
@@ -1265,10 +1281,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionRaiseHand",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "seatedReactionNegative",
@@ -1293,10 +1310,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionApplaud",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "seatedReactionNegative",
@@ -1321,10 +1339,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionPoint",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "seatedReactionNegative",
@@ -1457,63 +1476,77 @@
                                                                                                             "randomSwitchTimeMin": 7,
                                                                                                             "states": [
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk02",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk03",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk04",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk_armsdown",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk_lefthand",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "talk_righthand",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 20,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 0.33,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
@@ -1588,36 +1621,44 @@
                                                                                                                     "randomSwitchTimeMin": 10,
                                                                                                                     "states": [
                                                                                                                         {
+                                                                                                                            "easingType": "easeInOutQuad",
                                                                                                                             "id": "masterIdle1",
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
+                                                                                                                            "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.25,
                                                                                                                             "resume": true,
                                                                                                                             "transitions": [
                                                                                                                             ]
                                                                                                                         },
                                                                                                                         {
+                                                                                                                            "easingType": "easeInOutQuad",
                                                                                                                             "id": "masterIdle2",
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
+                                                                                                                            "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.25,
                                                                                                                             "resume": true,
                                                                                                                             "transitions": [
                                                                                                                             ]
                                                                                                                         },
                                                                                                                         {
+                                                                                                                            "easingType": "easeInOutQuad",
                                                                                                                             "id": "masterIdle3",
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
+                                                                                                                            "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.25,
                                                                                                                             "resume": true,
                                                                                                                             "transitions": [
                                                                                                                             ]
                                                                                                                         },
                                                                                                                         {
+                                                                                                                            "easingType": "easeInOutQuad",
                                                                                                                             "id": "masterIdle4",
-                                                                                                                            "interpDuration": 20,
-                                                                                                                            "interpTarget": 21,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
+                                                                                                                            "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.25,
                                                                                                                             "resume": true,
                                                                                                                             "transitions": [
@@ -1742,72 +1783,88 @@
                                                                                                                             "currentState": "idle_once_slownod",
                                                                                                                             "states": [
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_slownod",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_headtilt",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_shiftheelpivot",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idleWS_all",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_lookaround",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_neckstretch",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_lookleftright",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "idle_once_fidget",
-                                                                                                                                    "interpDuration": 20,
-                                                                                                                                    "interpTarget": 21,
+                                                                                                                                    "interpDuration": 15,
+                                                                                                                                    "interpTarget": 15,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.2,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
@@ -1827,7 +1884,8 @@
                                                                                                                                     "endFrame": 80,
                                                                                                                                     "loopFlag": false,
                                                                                                                                     "startFrame": 1,
-                                                                                                                                    "timeScale": 1,
+                                                                                                                                    "startFrameVar": "",
+                                                                                                                                    "timeScale": 0.65,
                                                                                                                                     "url": "qrc:///avatar/animations/idle_LFF_all.fbx"
                                                                                                                                 },
                                                                                                                                 "id": "transitionToAltIdle1",
@@ -1840,7 +1898,7 @@
                                                                                                                                     "endFrame": 80,
                                                                                                                                     "loopFlag": false,
                                                                                                                                     "startFrame": 1,
-                                                                                                                                    "timeScale": 1,
+                                                                                                                                    "timeScale": 0.65,
                                                                                                                                     "url": "qrc:///avatar/animations/idle_RFF_all.fbx"
                                                                                                                                 },
                                                                                                                                 "id": "transitionToAltIdle2",
@@ -1850,7 +1908,7 @@
                                                                                                                                 "children": [
                                                                                                                                 ],
                                                                                                                                 "data": {
-                                                                                                                                    "endFrame": 389,
+                                                                                                                                    "endFrame": 388,
                                                                                                                                     "loopFlag": true,
                                                                                                                                     "startFrame": 80,
                                                                                                                                     "timeScale": 1,
@@ -1863,7 +1921,7 @@
                                                                                                                                 "children": [
                                                                                                                                 ],
                                                                                                                                 "data": {
-                                                                                                                                    "endFrame": 390,
+                                                                                                                                    "endFrame": 388,
                                                                                                                                     "loopFlag": true,
                                                                                                                                     "startFrame": 80,
                                                                                                                                     "timeScale": 1,
@@ -1878,7 +1936,7 @@
                                                                                                                                 "data": {
                                                                                                                                     "endFrame": 472,
                                                                                                                                     "loopFlag": false,
-                                                                                                                                    "startFrame": 389,
+                                                                                                                                    "startFrame": 388,
                                                                                                                                     "timeScale": 1,
                                                                                                                                     "url": "qrc:///avatar/animations/idle_LFF_all.fbx"
                                                                                                                                 },
@@ -1891,7 +1949,7 @@
                                                                                                                                 "data": {
                                                                                                                                     "endFrame": 453,
                                                                                                                                     "loopFlag": false,
-                                                                                                                                    "startFrame": 390,
+                                                                                                                                    "startFrame": 388,
                                                                                                                                     "timeScale": 1,
                                                                                                                                     "url": "qrc:///avatar/animations/idle_RFF_all.fbx"
                                                                                                                                 },
@@ -1903,9 +1961,11 @@
                                                                                                                             "currentState": "transitionToAltIdle1",
                                                                                                                             "states": [
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "transitionToAltIdle1",
-                                                                                                                                    "interpDuration": 10,
-                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.5,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
@@ -1916,9 +1976,11 @@
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "transitionToAltIdle2",
-                                                                                                                                    "interpDuration": 10,
-                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 20,
+                                                                                                                                    "interpTarget": 20,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": 0.5,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
@@ -1929,9 +1991,11 @@
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "altIdle1",
-                                                                                                                                    "interpDuration": 10,
-                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": -1,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
@@ -1942,9 +2006,11 @@
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "altIdle2",
-                                                                                                                                    "interpDuration": 10,
-                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 1,
+                                                                                                                                    "interpTarget": 1,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": -1,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
@@ -1955,18 +2021,22 @@
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "alt1ToMasterIdle",
-                                                                                                                                    "interpDuration": 10,
-                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 24,
+                                                                                                                                    "interpTarget": 24,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": -1,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
                                                                                                                                     ]
                                                                                                                                 },
                                                                                                                                 {
+                                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                                     "id": "alt2ToMasterIdle",
-                                                                                                                                    "interpDuration": 10,
-                                                                                                                                    "interpTarget": 11,
+                                                                                                                                    "interpDuration": 24,
+                                                                                                                                    "interpTarget": 24,
+                                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                                     "priority": -1,
                                                                                                                                     "resume": false,
                                                                                                                                     "transitions": [
@@ -1985,18 +2055,22 @@
                                                                                                                     "currentState": "movement",
                                                                                                                     "states": [
                                                                                                                         {
+                                                                                                                            "easingType": "easeInOutQuad",
                                                                                                                             "id": "movement",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 17,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
+                                                                                                                            "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.6,
                                                                                                                             "resume": false,
                                                                                                                             "transitions": [
                                                                                                                             ]
                                                                                                                         },
                                                                                                                         {
+                                                                                                                            "easingType": "easeInOutQuad",
                                                                                                                             "id": "alternateIdle",
-                                                                                                                            "interpDuration": 15,
-                                                                                                                            "interpTarget": 17,
+                                                                                                                            "interpDuration": 30,
+                                                                                                                            "interpTarget": 30,
+                                                                                                                            "interpType": "evaluateBoth",
                                                                                                                             "priority": 0.4,
                                                                                                                             "resume": false,
                                                                                                                             "transitions": [
@@ -2012,9 +2086,11 @@
                                                                                                             "currentState": "masterIdle",
                                                                                                             "states": [
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "masterIdle",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 30,
+                                                                                                                    "interpTarget": 30,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2025,9 +2101,11 @@
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "fidget",
-                                                                                                                    "interpDuration": 20,
-                                                                                                                    "interpTarget": 21,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": -1,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2164,45 +2242,55 @@
                                                                                                     "randomSwitchTimeMin": 1,
                                                                                                     "states": [
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveAcknowledge",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveHeadNod",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveHeadNodYes",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveLongHeadNod",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveThoughtfulHeadNod",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0.33,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -2262,27 +2350,33 @@
                                                                                                     "randomSwitchTimeMin": 1,
                                                                                                     "states": [
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "negativeAnnoyedHeadshake",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "negativeThoughtfulHeadshake",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "negativeDropHead",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -2584,27 +2678,33 @@
                                                                                                     "randomSwitchTimeMin": 1,
                                                                                                     "states": [
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "raiseHand01",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "raiseHand03",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "raiseHand04",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -2909,27 +3009,33 @@
                                                                                                     "randomSwitchTimeMin": 1,
                                                                                                     "states": [
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "applaudClap01",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "applaudClap02",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "applaudClap03",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -3016,9 +3122,11 @@
                                                                                                             ]
                                                                                                         },
                                                                                                         {
+                                                                                                            "easingType": "easeInOutQuad",
                                                                                                             "id": "reactionPointOutro",
-                                                                                                            "interpDuration": 1,
-                                                                                                            "interpTarget": 1,
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -3068,10 +3176,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "reactionPositive",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "idleTalkOverlay",
@@ -3112,10 +3221,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "reactionNegative",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "reactionPositive",
@@ -3148,10 +3258,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "reactionRaiseHand",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "reactionNegative",
@@ -3176,10 +3287,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "reactionApplaud",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "reactionNegative",
@@ -3204,10 +3316,11 @@
                                                                                                     ]
                                                                                                 },
                                                                                                 {
+                                                                                                    "easingType": "easeInOutQuad",
                                                                                                     "id": "reactionPoint",
-                                                                                                    "interpDuration": 6,
-                                                                                                    "interpTarget": 6,
-                                                                                                    "interpType": "snapshotPrev",
+                                                                                                    "interpDuration": 18,
+                                                                                                    "interpTarget": 18,
+                                                                                                    "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
                                                                                                             "state": "reactionNegative",
@@ -3945,10 +4058,11 @@
                                                                                     ],
                                                                                     "states": [
                                                                                         {
+                                                                                            "easingType": "easeInOutQuad",
                                                                                             "id": "seated",
-                                                                                            "interpDuration": 8,
+                                                                                            "interpDuration": 18,
                                                                                             "interpTarget": 20,
-                                                                                            "interpType": "snapshotPrev",
+                                                                                            "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
                                                                                                     "state": "idle",
@@ -4009,10 +4123,11 @@
                                                                                             ]
                                                                                         },
                                                                                         {
+                                                                                            "easingType": "easeInOutQuad",
                                                                                             "id": "idle",
-                                                                                            "interpDuration": 8,
-                                                                                            "interpTarget": 20,
-                                                                                            "interpType": "snapshotPrev",
+                                                                                            "interpDuration": 30,
+                                                                                            "interpTarget": 30,
+                                                                                            "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
                                                                                                     "state": "WALKFWD",
@@ -4140,10 +4255,11 @@
                                                                                             ]
                                                                                         },
                                                                                         {
+                                                                                            "easingType": "easeInOutQuad",
                                                                                             "id": "idleSettle",
-                                                                                            "interpDuration": 8,
-                                                                                            "interpTarget": 15,
-                                                                                            "interpType": "snapshotPrev",
+                                                                                            "interpDuration": 12,
+                                                                                            "interpTarget": 12,
+                                                                                            "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
                                                                                                     "state": "idle",
@@ -4464,9 +4580,11 @@
                                                                                             ]
                                                                                         },
                                                                                         {
+                                                                                            "easingType": "easeInOutQuad",
                                                                                             "id": "turnRight",
-                                                                                            "interpDuration": 8,
-                                                                                            "interpTarget": 8,
+                                                                                            "interpDuration": 15,
+                                                                                            "interpTarget": 15,
+                                                                                            "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
                                                                                                     "state": "idle",
@@ -4527,9 +4645,11 @@
                                                                                             ]
                                                                                         },
                                                                                         {
+                                                                                            "easingType": "easeInOutQuad",
                                                                                             "id": "turnLeft",
-                                                                                            "interpDuration": 8,
-                                                                                            "interpTarget": 8,
+                                                                                            "interpDuration": 15,
+                                                                                            "interpTarget": 15,
+                                                                                            "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
                                                                                                     "state": "idle",
@@ -4718,9 +4838,11 @@
                                                                                             ]
                                                                                         },
                                                                                         {
+                                                                                            "easingType": "easeInOutQuad",
                                                                                             "id": "fly",
-                                                                                            "interpDuration": 6,
-                                                                                            "interpTarget": 6,
+                                                                                            "interpDuration": 24,
+                                                                                            "interpTarget": 24,
+                                                                                            "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
                                                                                                     "state": "idleSettle",
