@@ -78,7 +78,8 @@ public:
     void setVsyncEnabled(bool vsyncEnabled) { _vsyncEnabled = vsyncEnabled; }
     bool isVsyncEnabled() const { return _vsyncEnabled; }
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
-    int getRequiredThreadCount() const override { return 3; }
+    // Drop to one reserved for better other-task performance in desktop
+    int getRequiredThreadCount() const override { return 1; }
 
     virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source,

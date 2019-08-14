@@ -292,7 +292,7 @@ static const uint32_t MAX_CONCURRENT_RESOURCE_DOWNLOADS = 4;
 // For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
 // we will never drop below the 'min' value
-static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
+static const int MIN_PROCESSING_THREAD_POOL_SIZE = 2;
 
 static const QString SNAPSHOT_EXTENSION = ".jpg";
 static const QString JPG_EXTENSION = ".jpg";
@@ -4418,8 +4418,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (isMeta) {
                     auto dialogsManager = DependencyManager::get<DialogsManager>();
                     dialogsManager->toggleAddressBar();
-                } else if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
                 }
                 break;
 
@@ -6817,8 +6815,8 @@ void Application::updateRenderArgs(float deltaTime) {
                 _viewFrustum.setProjection(adjustedProjection);
                 _viewFrustum.calculate();
             }
-            appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getOctreeSizeScale(),
-                lodManager->getBoundaryLevelAdjust(), lodManager->getLODAngleHalfTan(), RenderArgs::DEFAULT_RENDER_MODE,
+            appRenderArgs._renderArgs = RenderArgs(_graphicsEngine.getGPUContext(), lodManager->getVisibilityDistance(),
+                lodManager->getBoundaryLevelAdjust(), lodManager->getLODHalfAngleTan(), RenderArgs::DEFAULT_RENDER_MODE,
                 RenderArgs::MONO, RenderArgs::DEFERRED, RenderArgs::RENDER_DEBUG_NONE);
             appRenderArgs._renderArgs._scene = getMain3DScene();
 

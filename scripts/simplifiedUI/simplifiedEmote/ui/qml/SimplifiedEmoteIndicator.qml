@@ -17,7 +17,7 @@ import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
 
 Rectangle {
     id: root
-    color: simplifiedUI.colors.almostWhite
+    color: simplifiedUI.colors.white
     anchors.fill: parent
 
     property int originalWidth: 48
@@ -78,7 +78,7 @@ Rectangle {
             anchors.verticalCenterOffset: -2
             horizontalAlignment: Text.AlignHCenter
             size: 26
-            color: simplifiedUI.colors.text.almostWhite
+            color: simplifiedUI.colors.white
         }
 
     }
@@ -91,7 +91,7 @@ Rectangle {
     Rectangle {
         id: drawerContainer
         z: 1
-        color: simplifiedUI.colors.almostWhite
+        color: simplifiedUI.colors.white
         anchors.top: parent.top
         anchors.right: parent.right
         height: parent.height
@@ -103,26 +103,28 @@ Rectangle {
             they probably be switched with Image {} to be supplied by Joshua.
         */
 
+        ListModel {
+            id: buttonsModel
+            ListElement { text: "Z"; method: "happyPressed" }
+            ListElement { text: "C"; method: "sadPressed" }
+            ListElement { text: "V"; method: "raiseHandPressed" }
+            ListElement { text: "B"; method: "applaudPressed" }
+            ListElement { text: "N"; method: "pointPressed" }
+            ListElement { text: "😊"; method: "toggleEmojiApp" }
+        }
+
         Repeater {
             id: emoteButtonsRepeater
-            model: ListModel {
-                id: buttonsModel
-                ListElement { text: "Z"; method: "happyPressed" }
-                ListElement { text: "C"; method: "sadPressed" }
-                ListElement { text: "V"; method: "raiseHandPressed" }
-                ListElement { text: "B"; method: "applaudPressed" }
-                ListElement { text: "N"; method: "pointPressed" }
-                ListElement { text: "😊"; method: "toggleEmojiApp" }
-            }
+            model: buttonsModel
 
             Rectangle {
                 z: 3
                 width: root.originalWidth
-                height: parent.height
-                color: simplifiedUI.colors.darkBackground
+                height: drawerContainer.height
+                color: simplifiedUI.colors.white
 
                 HifiStylesUit.GraphikRegular {
-                    text: text
+                    text: model.text
                     z: 3
                     anchors.fill: parent
                     anchors.rightMargin: 1
@@ -140,7 +142,7 @@ Rectangle {
                     onClicked: {
                         sendToScript({
                             "source": "EmoteAppBar.qml",
-                            "method": method
+                            "method": model.method
                         });
                     }
                     onEntered: {
