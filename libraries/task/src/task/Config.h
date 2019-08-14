@@ -133,8 +133,6 @@ public:
      */
     Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
 
-    //Q_INVOKABLE QObject* getConfig(const QString& name) { return nullptr; }
-
     // Running Time measurement
     // The new stats signal is emitted once per run time of a job when stats  (cpu runtime) are updated
     void setCPURunTime(const std::chrono::nanoseconds& runtime) { _msCPURunTime = std::chrono::duration<double, std::milli>(runtime).count(); emit newStats(); }

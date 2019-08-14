@@ -56,9 +56,6 @@ void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& pro
                 continue;
             }
             const auto& targetBinding = expectedResourceBuffers.at(resourceBuffer.name);
-            if (resourceBuffer.name == std::string("polylineVerticesBuffer")) {
-                qDebug() << "Setting texture unit for " << resourceBuffer.name.c_str() << " to " << targetBinding;
-            }
             glProgramUniform1i(glprogram, resourceBuffer.binding, targetBinding);
         }
     }

@@ -261,7 +261,6 @@ public:
             _jobs.emplace_back((NT::JobModel::create(name, input, std::forward<NA>(args)...)));
 
             // Conect the child config to this task's config
-           // std::static_pointer_cast<TaskConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
             std::static_pointer_cast<JobConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
 
             return _jobs.back().getOutput();

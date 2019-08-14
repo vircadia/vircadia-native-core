@@ -42,8 +42,8 @@ public:
 
 class PreparePrimaryFramebufferMSAAConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(float resolutionScale  WRITE setResolutionScale READ getResolutionScale NOTIFY dirty())
-    Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples NOTIFY dirty())
+    Q_PROPERTY(float resolutionScale  WRITE setResolutionScale READ getResolutionScale NOTIFY dirty)
+    Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples NOTIFY dirty)
 public:
     float getResolutionScale() const { return resolutionScale; }
     void setResolutionScale(float scale);
