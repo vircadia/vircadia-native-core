@@ -226,81 +226,31 @@ void GL45Texture::generateMips() const {
 
 Size GL45Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
     Size amountCopied = sourceSize;
+    bool compressed = GLTexelFormat::isCompressed(internalFormat);
     if (GL_TEXTURE_2D == _target) {
-        switch (internalFormat) {
-            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
-            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-            case GL_COMPRESSED_RED_RGTC1:
-            case GL_COMPRESSED_RG_RGTC2:
-            case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
-            case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-            case GL_COMPRESSED_RGB8_ETC2:
-            case GL_COMPRESSED_SRGB8_ETC2:
-            case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_RGBA8_ETC2_EAC:
-            case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-            case GL_COMPRESSED_R11_EAC:
-            case GL_COMPRESSED_SIGNED_R11_EAC:
-            case GL_COMPRESSED_RG11_EAC:
-            case GL_COMPRESSED_SIGNED_RG11_EAC:
-                glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat,
-                                              static_cast<GLsizei>(sourceSize), sourcePointer);
-                break;
-            default:
-                glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
-                break;
+        if (compressed) {
+            glCompressedTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                            static_cast<GLsizei>(sourceSize), sourcePointer);
+        } else {
+            glTextureSubImage2D(_id, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
         }
     } else if (GL_TEXTURE_CUBE_MAP == _target) {
-        switch (internalFormat) {
-            case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
-            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-            case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-            case GL_COMPRESSED_RED_RGTC1:
-            case GL_COMPRESSED_RG_RGTC2:
-            case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
-            case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT:
-            case GL_COMPRESSED_RGB8_ETC2:
-            case GL_COMPRESSED_SRGB8_ETC2:
-            case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
-            case GL_COMPRESSED_RGBA8_ETC2_EAC:
-            case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
-            case GL_COMPRESSED_R11_EAC:
-            case GL_COMPRESSED_SIGNED_R11_EAC:
-            case GL_COMPRESSED_RG11_EAC:
-            case GL_COMPRESSED_SIGNED_RG11_EAC:
-#if AMD_CUBE_MAP_EXT_WORKAROUND
-                if (glCompressedTextureSubImage2DEXT) {
-                    auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-                    glCompressedTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, internalFormat,
-                                                     static_cast<GLsizei>(sourceSize), sourcePointer);
-                } else
-#endif
-                {
-                    glCompressedTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, internalFormat,
-                                                  static_cast<GLsizei>(sourceSize), sourcePointer);
-                }
-                break;
-            default:
-#if AMD_CUBE_MAP_EXT_WORKAROUND
-                if (glTextureSubImage2DEXT) {
-                    auto target = GLTexture::CUBE_FACE_LAYOUT[face];
-                    glTextureSubImage2DEXT(_id, target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
-                } else
-#endif
-                {
-                    glTextureSubImage3D(_id, mip, 0, yOffset, face, size.x, size.y, 1, format, type, sourcePointer);
-                }
-                break;
+        // DSA and cubemap functions are notoriously buggy. use the 4.1 compatible pathway
+        glActiveTexture(GL_TEXTURE0 + GL45Backend::RESOURCE_TRANSFER_TEX_UNIT);
+        glBindTexture(_target, _texture);
+        auto target = GLTexture::CUBE_FACE_LAYOUT[face];
+        if (compressed) {
+            glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
+                                        static_cast<GLsizei>(sourceSize), sourcePointer);
+        } else {
+            glTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, format, type, sourcePointer);
         }
+        glBindTexture(_target, 0);
     } else {
         assert(false);
         amountCopied = 0;
     }
     (void)CHECK_GL_ERROR();
-
     return amountCopied;
 }
 

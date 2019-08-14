@@ -2112,8 +2112,10 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             }
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
             _animVars.set("talkOverlayAlpha", easeOutInValue);
+            _animVars.set("idleOverlayAlpha", easeOutInValue);  // backward compatibility for older anim graphs.
         } else {
             _animVars.set("talkOverlayAlpha", 1.0f);
+            _animVars.set("idleOverlayAlpha", 1.0f);  // backward compatibility for older anim graphs.
         }
     } else {
         if (_talkIdleInterpTime < 1.0f) {
@@ -2124,8 +2126,10 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
             float easeOutInValue = _talkIdleInterpTime < 0.5f ? 4.0f * powf(_talkIdleInterpTime, 3.0f) : 4.0f * powf((_talkIdleInterpTime - 1.0f), 3.0f) + 1.0f;
             float talkAlpha = 1.0f - easeOutInValue;
             _animVars.set("talkOverlayAlpha", talkAlpha);
+            _animVars.set("idleOverlayAlpha", talkAlpha);  // backward compatibility for older anim graphs.
         } else {
             _animVars.set("talkOverlayAlpha", 0.0f);
+            _animVars.set("idleOverlayAlpha", 0.0f);  // backward compatibility for older anim graphs.
         }
     }
 

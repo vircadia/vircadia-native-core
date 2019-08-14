@@ -75,7 +75,7 @@ public:
     void each(std::function<void(AvatarMixerSlave& slave)> functor);
 
 #ifdef DEBUG_EVENT_QUEUE
-    void AvatarMixerSlavePool::queueStats(QJsonObject& stats);
+    void queueStats(QJsonObject& stats);
 #endif
 
     void setNumThreads(int numThreads);

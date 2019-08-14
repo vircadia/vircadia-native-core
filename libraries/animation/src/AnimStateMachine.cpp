@@ -128,6 +128,7 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimCon
     auto prevStateNode = _children[_currentState->getChildIndex()];
     auto nextStateNode = _children[desiredState->getChildIndex()];
 
+    bool interpActive = _duringInterp;
     _duringInterp = true;
     _alpha = 0.0f;
     float duration = std::max(0.001f, animVars.lookup(desiredState->_interpDurationVar, desiredState->_interpDuration));
@@ -146,11 +147,19 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, const AnimCon
         nextStateNode->setCurrentFrame(desiredState->_interpTarget);
         _nextPoses = nextStateNode->evaluate(animVars, context, dt, triggers);
     } else if (_interpType == InterpType::SnapshotPrev) {
-        // snapshot previoius pose
+        // snapshot previous pose
         _prevPoses = _poses;
         // no need to evaluate _nextPoses we will do it dynamically during the interp,
         // however we need to set the current frame.
         nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+    } else if (_interpType == InterpType::EvaluateBoth) {
+        // need to set current frame in destination branch.
+        nextStateNode->setCurrentFrame(desiredState->_interpTarget - duration);
+        if (interpActive) {
+            // snapshot previous pose
+            _prevPoses = _poses;
+            _interpType = InterpType::SnapshotPrev;
+        }
     } else {
         assert(false);
     }
