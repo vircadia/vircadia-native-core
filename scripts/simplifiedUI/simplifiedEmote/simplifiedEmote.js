@@ -24,28 +24,6 @@
 // #region EMOTE_UTILITY
 
 
-// REMOVE THIS WHEN ENGINE CAN HANDLE BLENDING
-function maybeEndOtherReactions(currentEmote) {
-    print("CURRENT EMOTE: ", currentEmote);
-    if (raiseHandPlaying && "raiseHand" != currentEmote) {
-        print("ENDING RAISE HAND");
-        MyAvatar.endReaction("raiseHand");
-        raiseHandPlaying = false;
-    }
-    if (pointPlaying && "point" != currentEmote) {
-        print("ENDING POINT");
-        MyAvatar.endReaction("point");
-        pointPlaying = false;
-    }
-    if (applaudPlaying && "applaud" != currentEmote) {
-        print("ENDING APPLAUD");
-        MyAvatar.endReaction("applaud");
-        maybeClearClapSoundInterval();
-        applaudPlaying = false;
-    }
-}
-
-
 
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
@@ -148,20 +126,51 @@ function maybeClearClapSoundInterval() {
 }
 
 
-function toggleApplaud() {
-    if (applaudPlaying) {
-        MyAvatar.endReaction("applaud");
-        maybeClearClapSoundInterval();
-        applaudPlaying = false;
-        return;
+function toggleReaction(reaction) {
+    var reactionEnding = reactionsBegun.indexOf(reaction) > -1;
+
+    if (reactionEnding) {
+        endReactionWrapper(reaction);
+    } else {
+        beginReactionWrapper(reaction);
     }
-    maybeEndOtherReactions("applaud");
-    MyAvatar.beginReaction("applaud");
-    startClappingSounds();
-    applaudPlaying = true;
-    // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
-    pointPlaying = false;
-    raiseHandPlaying = false;
+}
+
+
+var reactionsBegun = [];
+function beginReactionWrapper(reaction) {
+    reactionsBegun.forEach(function(react) {
+        endReactionWrapper(react);
+    });
+
+    if (MyAvatar.beginReaction(reaction)) {
+        reactionsBegun.push(reaction);
+    }
+
+    // Insert reaction-specific logic here:
+    switch (reaction) {
+        case ("applaud"):
+            startClappingSounds();
+            break;
+    }
+}
+
+
+function endReactionWrapper(reaction) {
+    var reactionsBegunIndex = reactionsBegun.indexOf(reaction);
+
+    if (reactionsBegunIndex > -1) {
+        if (MyAvatar.endReaction(reaction)) {
+            reactionsBegun.splice(reactionsBegunIndex, 1);
+        }
+    }
+
+    // Insert reaction-specific logic here:
+    switch (reaction) {
+        case ("applaud"):
+            maybeClearClapSoundInterval();
+            break;
+    }
 }
 
 
@@ -173,9 +182,6 @@ function toggleApplaud() {
     make sense for more than one reaction to be playing.
 */
 var EMOTE_APP_BAR_MESSAGE_SOURCE = "EmoteAppBar.qml";
-var raiseHandPlaying = false;
-var applaudPlaying = false;
-var pointPlaying = false;
 function onMessageFromEmoteAppBar(message) {
     console.log("MESSAGE From emote app bar: ", JSON.stringify(message));
     if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
@@ -183,41 +189,15 @@ function onMessageFromEmoteAppBar(message) {
     }
     switch (message.method) {
         case "positive":
-            maybeEndOtherReactions("positive");
             MyAvatar.triggerReaction("positive");
             break;
         case "negative":
-            maybeEndOtherReactions("negative");
             MyAvatar.triggerReaction("negative");
             break;
         case "raiseHand":
-            if (raiseHandPlaying) {
-                MyAvatar.endReaction("raiseHand");
-                raiseHandPlaying = false;
-                return;
-            }
-            maybeEndOtherReactions("raiseHand");
-            MyAvatar.beginReaction("raiseHand");
-            raiseHandPlaying = true;
-            // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
-            pointPlaying = false;
-            applaudPlaying = false;
-            break;
         case "applaud":
-            toggleApplaud();
-            break;
         case "point":
-            if (pointPlaying) {
-                MyAvatar.endReaction("point");
-                pointPlaying = false;
-                return;
-            }
-            maybeEndOtherReactions("point");
-            MyAvatar.beginReaction("point");
-            pointPlaying = true;
-            // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
-            raiseHandPlaying = false;
-            applaudPlaying = false;
+            toggleReaction(message.method);
             break;
         case "toggleEmojiApp": 
             toggleEmojiApp();
@@ -262,11 +242,11 @@ function keyPressHandler(event) {
         } else if (event.text === NEGATIVE_KEY) {
             MyAvatar.triggerReaction("negative");
         } else if (event.text === RAISE_HAND_KEY) {
-            MyAvatar.beginReaction("raiseHand");
+            toggleReaction("raiseHand");
         } else if (event.text === APPLAUD_KEY) {
-            toggleApplaud();
+            toggleReaction("applaud");
         } else if (event.text === POINT_KEY) {
-            MyAvatar.beginReaction("point");
+            toggleReaction("point");
         } else if (event.text === EMOTE_WINDOW) {
             toggleEmojiApp();
         }
@@ -277,13 +257,17 @@ function keyPressHandler(event) {
 function keyReleaseHandler(event) {
     if (!event.isAutoRepeat) {
         if (event.text === RAISE_HAND_KEY) {
-            MyAvatar.endReaction("raiseHand");
+            if (reactionsBegun.indexOf("raiseHand") > -1) {
+                toggleReaction("raiseHand");
+            }
         } else if (event.text === APPLAUD_KEY) {
-            if (applaudPlaying) {
-                toggleApplaud();
+            if (reactionsBegun.indexOf("applaud") > -1) {
+                toggleReaction("applaud");
             }
         } else if (event.text === POINT_KEY) {
-            MyAvatar.endReaction("point");
+            if (reactionsBegun.indexOf("point") > -1) {
+                toggleReaction("point");
+            }
         }
     }
 }
