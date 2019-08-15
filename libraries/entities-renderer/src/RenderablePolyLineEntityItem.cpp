@@ -77,11 +77,9 @@ ShapeKey PolyLineEntityRenderer::getShapeKey() {
 }
 
 bool PolyLineEntityRenderer::needsRenderUpdate() const {
-    bool textureLoadedChanged = resultWithReadLock<bool>([&] {
+    if (resultWithReadLock<bool>([&] {
         return (!_textureLoaded && _texture && _texture->isLoaded());
-    });
-
-    if (textureLoadedChanged) {
+    })) {
         return true;
     }
 
@@ -90,10 +88,6 @@ bool PolyLineEntityRenderer::needsRenderUpdate() const {
 
 bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->pointsChanged() || entity->widthsChanged() || entity->normalsChanged() || entity->texturesChanged() || entity->colorsChanged()) {
-        return true;
-    }
-
-    if (_isUVModeStretch != entity->getIsUVModeStretch() || _glow != entity->getGlow() || _faceCamera != entity->getFaceCamera()) {
         return true;
     }
 

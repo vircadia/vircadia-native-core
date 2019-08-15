@@ -64,32 +64,6 @@ ParticleEffectEntityRenderer::ParticleEffectEntityRenderer(const EntityItemPoint
     });
 }
 
-bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    entity->updateQueryAACube();
-
-    if (_emitting != entity->getIsEmitting()) {
-        return true;
-    }
-
-    if (_particleProperties != entity->getParticleProperties()) {
-        return true;
-    }
-
-    if (_pulseProperties != entity->getPulseProperties()) {
-        return true;
-    }
-
-    if (_shapeType != entity->getShapeType()) {
-        return true;
-    }
-
-    if (_compoundShapeURL != entity->getCompoundShapeURL()) {
-        return true;
-    }
-
-    return false;
-}
-
 void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     auto newParticleProperties = entity->getParticleProperties();
     if (!newParticleProperties.valid()) {

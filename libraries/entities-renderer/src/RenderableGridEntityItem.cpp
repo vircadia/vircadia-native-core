@@ -29,42 +29,6 @@ bool GridEntityRenderer::isTransparent() const {
     return Parent::isTransparent() || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
-bool GridEntityRenderer::needsRenderUpdate() const {
-    return Parent::needsRenderUpdate();
-}
-
-bool GridEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    bool needsUpdate = resultWithReadLock<bool>([&] {
-        if (_color != entity->getColor()) {
-            return true;
-        }
-
-        if (_alpha != entity->getAlpha()) {
-            return true;
-        }
-
-        if (_followCamera != entity->getFollowCamera()) {
-            return true;
-        }
-
-        if (_majorGridEvery != entity->getMajorGridEvery()) {
-            return true;
-        }
-
-        if (_minorGridEvery != entity->getMinorGridEvery()) {
-            return true;
-        }
-
-        if (_pulseProperties != entity->getPulseProperties()) {
-            return true;
-        }
-
-        return false;
-    });
-
-    return needsUpdate;
-}
-
 void GridEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     withWriteLock([&] {
         _color = entity->getColor();

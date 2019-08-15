@@ -93,66 +93,7 @@ uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
 }
 
 bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_text != entity->getText()) {
-        return true;
-    }
-    if (_lineHeight != entity->getLineHeight()) {
-        return true;
-    }
-
-    if (_textColor != toGlm(entity->getTextColor())) {
-        return true;
-    }
-    if (_textAlpha != entity->getTextAlpha()) {
-        return true;
-    }
-    if (_backgroundColor != toGlm(entity->getBackgroundColor())) {
-        return true;
-    }
-    if (_backgroundAlpha != entity->getBackgroundAlpha()) {
-        return true;
-    }
-
     if (_dimensions != entity->getScaledDimensions()) {
-        return true;
-    }
-
-    if (_billboardMode != entity->getBillboardMode()) {
-        return true;
-    }
-
-    if (_leftMargin != entity->getLeftMargin()) {
-        return true;
-    }
-    if (_rightMargin != entity->getRightMargin()) {
-        return true;
-    }
-    if (_topMargin != entity->getTopMargin()) {
-        return true;
-    }
-    if (_bottomMargin != entity->getBottomMargin()) {
-        return true;
-    }
-
-    if (_unlit != entity->getUnlit()) {
-        return true;
-    }
-
-    if (_font != entity->getFont()) {
-        return true;
-    }
-
-    if (_effect != entity->getTextEffect()) {
-        return true;
-    }
-    if (_effectColor != toGlm(entity->getTextEffectColor())) {
-        return true;
-    }
-    if (_effectThickness != entity->getTextEffectThickness()) {
-        return true;
-    }
-
-    if (_pulseProperties != entity->getPulseProperties()) {
         return true;
     }
 

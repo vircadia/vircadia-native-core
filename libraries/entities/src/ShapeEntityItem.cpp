@@ -129,9 +129,7 @@ EntityItemProperties ShapeEntityItem::getProperties(const EntityPropertyFlags& d
 }
 
 void ShapeEntityItem::setShape(const entity::Shape& shape) {
-    const entity::Shape prevShape = _shape;
-    _shape = shape;
-    switch (_shape) {
+    switch (shape) {
         case entity::Shape::Cube:
             _type = EntityTypes::Box;
             break;
@@ -151,10 +149,20 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
             break;
     }
 
-    if (_shape != prevShape) {
+    if (shape != getShape()) {
         // Internally grabs writeLock
         markDirtyFlags(Simulation::DIRTY_SHAPE);
+        withWriteLock([&] {
+            _needsRenderUpdate = true;
+            _shape = shape;
+        });
     }
+}
+
+entity::Shape ShapeEntityItem::getShape() const {
+    return resultWithReadLock<entity::Shape>([&] {
+        return _shape;
+    });
 }
 
 bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -165,6 +173,7 @@ bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
 
@@ -232,6 +241,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
 void ShapeEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _color != value;
         _color = value;
     });
 }
@@ -244,6 +254,7 @@ glm::u8vec3 ShapeEntityItem::getColor() const {
 
 void ShapeEntityItem::setAlpha(float alpha) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _alpha != alpha;
         _alpha = alpha;
     });
 }
