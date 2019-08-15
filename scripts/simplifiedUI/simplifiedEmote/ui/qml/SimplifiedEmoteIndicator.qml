@@ -21,8 +21,15 @@ Rectangle {
     anchors.fill: parent
 
     property int originalWidth: 48
-    property int hoveredWidth: 357
-    property int requestedWidth
+    property int expandedWidth: 336
+    property int requestedWidth: (drawerContainer.keepDrawerExpanded ||
+        emoteIndicatorMouseArea.containsMouse ||
+        happyButtonMouseArea.containsMouse ||
+        sadButtonMouseArea.containsMouse ||
+        raiseHandButtonMouseArea.containsMouse ||
+        applaudButtonMouseArea.containsMouse ||
+        pointButtonMouseArea.containsMouse ||
+        emojiButtonMouseArea.containsMouse) ? expandedWidth : originalWidth;
 
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);
@@ -37,32 +44,8 @@ Rectangle {
         id: simplifiedUI
     }
 
-    /*
-        MILAD NOTE: 
-        Right now there are some strange issues around overlapping
-        onEnters with mouse areas.  I was having a hard time getting an individual
-        hover happening.  Not sure if there is just one mouse menu that gives 
-        info about what is underneath to be able to be toggle an individual icon on and off.
-    */
-    MouseArea {
-        id: emoteMouseArea
-        anchors.fill: parent
-        hoverEnabled: enabled
-        propagateComposedEvents: true;
-        onEntered: {
-            Tablet.playSound(TabletEnums.ButtonHover);
-            root.requestedWidth = root.hoveredWidth;
-        }
-        onExited: {
-            Tablet.playSound(TabletEnums.ButtonClick);
-            root.requestedWidth = root.originalWidth;
-        }
-        z: 2
-    }
-
     Rectangle {
         id: mainEmojiContainer
-        z: 2
         color: simplifiedUI.colors.darkBackground
         anchors.top: parent.top
         anchors.left: parent.left
@@ -80,71 +63,279 @@ Rectangle {
             color: simplifiedUI.colors.white
         }
 
-    }
+        MouseArea {
+            id: emoteIndicatorMouseArea
+            anchors.fill: parent
+            hoverEnabled: enabled
 
-    /*
-        MILAD NOTE:
-        The main container of the actual buttons
-    */
+
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                drawerContainer.keepDrawerExpanded = !drawerContainer.keepDrawerExpanded;
+            }
+
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+        }
+    }
 
     Row {
         id: drawerContainer
-        z: 1
+        property bool keepDrawerExpanded: false
         anchors.top: parent.top
         leftPadding: root.originalWidth
         height: parent.height
-        width: root.hoveredWidth
+        width: root.expandedWidth
 
-        /*
-            MILAD NOTE:
-            Below is one button.  They are just text representations now, but
-            they probably be switched with Image {} to be supplied by Joshua.
-        */
+        Rectangle {
+            id: happyButtonContainer
+            width: root.originalWidth
+            height: drawerContainer.height
+            color: simplifiedUI.colors.white
 
-        ListModel {
-            id: buttonsModel
-            ListElement { text: "Z"; method: "happyPressed" }
-            ListElement { text: "C"; method: "sadPressed" }
-            ListElement { text: "V"; method: "raiseHandPressed" }
-            ListElement { text: "B"; method: "applaudPressed" }
-            ListElement { text: "N"; method: "pointPressed" }
-            ListElement { text: "😊"; method: "toggleEmojiApp" }
-        }
+            HifiStylesUit.GraphikRegular {
+                text: "Z"
+                anchors.fill: parent
+                anchors.rightMargin: 1
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.black
+            }
 
-        Repeater {
-            id: emoteButtonsRepeater
-            model: buttonsModel
+            MouseArea {
+                id: happyButtonMouseArea
+                anchors.fill: parent
 
-            Rectangle {
-                z: 3
-                width: root.originalWidth
-                height: drawerContainer.height
-                color: simplifiedUI.colors.white
+                onClicked: {                hoverEnabled: enabled
 
-                HifiStylesUit.GraphikRegular {
-                    text: model.text
-                    z: 3
-                    anchors.fill: parent
-                    anchors.rightMargin: 1
-                    horizontalAlignment: Text.AlignHCenter
-                    size: 26
-                    color: simplifiedUI.colors.text.black
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "happyPressed"
+                    });
+                    parent.color = simplifiedUI.colors.darkBackground
                 }
 
-                MouseArea {
-                    id: buttonMouseArea
-                    anchors.fill: parent
-                    hoverEnabled: false
-                    propagateComposedEvents: true;
-                    z: 4
-                    onClicked: {
-                        sendToScript({
-                            "source": "EmoteAppBar.qml",
-                            "method": model.method
-                        });
-                    }
-                    onEntered: {
-                    }
+                onEntered: {
+                    console.log("ENTERED BUTTON");
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onExited: {
+                    parent.color = simplifiedUI.colors.white
+                }
+            }
+        }
+
+        Rectangle {
+            id: sadButtonContainer
+            width: root.originalWidth
+            height: drawerContainer.height
+            color: simplifiedUI.colors.white
+
+            HifiStylesUit.GraphikRegular {
+                text: "C"
+                anchors.fill: parent
+                anchors.rightMargin: 1
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.black
+            }
+
+            MouseArea {
+                id: sadButtonMouseArea
+                anchors.fill: parent
+                hoverEnabled
+                    Tablet.playSound(TabletEnu: enabled
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "sadPressed"
+                    });
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onEntered: {
+                    console.log("ENTERED BUTTON");
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onExited: {
+                    parent.color = simplifiedUI.colors.white
+                }
+            }
+        }
+
+        Rectangle {
+            id: raiseHandButtonContainer
+            width: root.originalWidth
+            height: drawerContainer.height
+            color: simplifiedUI.colors.white
+
+            HifiStylesUit.GraphikRegular {
+                text: "V"
+                anchors.fill: parent
+                anchors.rightMargin: 1
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.black
+            }
+
+            MouseArea {
+                id: raiseHandButtonMouseArea
+                anchors.fill: parent
+                hoverEnabled: enabledTabletEnums.ButtonClick);
+                    sendToScript({
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "raiseHandPressed"
+                    });
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onEntered: {
+                    console.log("ENTERED BUTTON");
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onExited: {
+                    parent.color = simplifiedUI.colors.white
+                }
+            }
+        }
+
+        Rectangle {
+            id: applaudButtonContainer
+            width: root.originalWidth
+            height: drawerContainer.height
+            color: simplifiedUI.colors.white
+
+            HifiStylesUit.GraphikRegular {
+                text: "B"
+                anchors.fill: parent
+                anchors.rightMargin: 1
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.black
+            }
+
+            MouseArea {
+                id: applaudButtonMouseArea
+                anchors.fill: parent
+                hoverEnabled: enab
+                        "source": "EmoteAppBarled
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "applaudPressed"
+                    });
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onEntered: {
+                    console.log("ENTERED BUTTON");
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onExited: {
+                    parent.color = simplifiedUI.colors.white
+                }
+            }
+        }
+
+        Rectangle {
+            id: pointButtonContainer
+            width: root.originalWidth
+            height: drawerContainer.height
+            color: simplifiedUI.colors.white
+
+            HifiStylesUit.GraphikRegular {
+                text: "N"
+                anchors.fill: parent
+                anchors.rightMargin: 1
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.black
+            }
+
+            MouseArea {
+                id: pointButtonMouseArea
+                anchors.fill: parent
+                hoverEnabled: enabledoteAppBar.qml",
+                        "method": "pointPresse
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "pointPressed"
+                    });
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onEntered: {
+                    console.log("ENTERED BUTTON");
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onExited: {
+                    parent.color = simplifiedUI.colors.white
+                }
+            }
+        }
+
+        Rectangle {
+            id: emojiButtonContainer
+            width: root.originalWidth
+            height: drawerContainer.height
+            color: simplifiedUI.colors.white
+
+            HifiStylesUit.GraphikRegular {
+                text: "😊"
+                anchors.fill: parent
+                anchors.rightMargin: 1
+                horizontalAlignment: Text.AlignHCenter
+                size: 26
+                color: simplifiedUI.colors.text.black
+            }
+
+            MouseArea {
+                id: emojiButtonMouseArea
+                anchors.fill: parent
+                hoverEnabled: enabledggleEmojiApp"
+                    });
+
+                onClicked: {
+                    Tablet.playSound(TabletEnums.ButtonClick);
+                    sendToScript({
+                        "source": "EmoteAppBar.qml",
+                        "method": "toggleEmojiApp"
+                    });
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onEntered: {
+                    console.log("ENTERED BUTTON");
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    parent.color = simplifiedUI.colors.darkBackground
+                }
+
+                onExited: {
+                    parent.color = simplifiedUI.colors.white
                 }
             }
         }

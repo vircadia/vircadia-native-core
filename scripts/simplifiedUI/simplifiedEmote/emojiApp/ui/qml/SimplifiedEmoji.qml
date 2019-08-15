@@ -222,8 +222,6 @@ Rectangle {
                                         root.isSelected = true;
                                         root.currentCode = mainModel.get(index).code.utf;
                                     }
-                                    onExited: {
-                                    }
                                 }
                             }
                         }       
