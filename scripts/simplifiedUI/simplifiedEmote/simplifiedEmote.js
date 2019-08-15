@@ -40,6 +40,7 @@ function maybeEndOtherReactions(currentEmote) {
     if (applaudPlaying && "applaud" != currentEmote) {
         print("ENDING APPLAUD");
         MyAvatar.endReaction("applaud");
+        maybeClearClapSoundInterval();
         applaudPlaying = false;
     }
 }
@@ -58,6 +59,17 @@ function updateEmoteAppBarPosition() {
 }
 
 
+function randomFloat(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+
+// Returns a linearly scaled value based on `factor` and the other inputs
+function linearScale(factor, minInput, maxInput, minOutput, maxOutput) {
+    return minOutput + (maxOutput - minOutput) *
+    (factor - minInput) / (maxInput - minInput);
+}
+
 
 // #endregion
 // *************************************
@@ -67,6 +79,91 @@ function updateEmoteAppBarPosition() {
 // START EMOTE_HANDLERS
 // *************************************
 // #region EMOTE_HANDLERS
+
+
+// Calculates the audio injector volume based on 
+// the current global appreciation intensity and some min/max values.
+var MAX_CLAP_INTENSITY = 1.0; // Unitless, determined empirically
+var MIN_VOLUME_CLAP = 0.05;
+var MAX_VOLUME_CLAP = 1.0;
+function calculateInjectorVolume(clapIntensity) {
+    var minInputVolume = 0;
+    var maxInputVolume = MAX_CLAP_INTENSITY;
+    var minOutputVolume = MIN_VOLUME_CLAP;
+    var maxOutputVolume = MAX_VOLUME_CLAP;
+
+    var vol = linearScale(clapIntensity, minInputVolume,
+        maxInputVolume, minOutputVolume, maxOutputVolume);
+    return vol;
+}
+
+
+var soundInjector = false;
+var MINIMUM_PITCH = 0.85;
+var MAXIMUM_PITCH = 1.15;
+function playSound(sound, position) {
+    if (soundInjector && soundInjector.isPlaying()) {
+        return;
+    }
+
+    if (soundInjector) {
+        soundInjector.stop();
+        soundInjector = false;
+    }
+
+    soundInjector = Audio.playSound(sound, {
+        position: position || MyAvatar.position,
+        volume: calculateInjectorVolume(0.5),
+        pitch: randomFloat(MINIMUM_PITCH, MAXIMUM_PITCH)
+    });
+}
+
+
+var NUM_CLAP_SOUNDS = 16;
+var clapSounds = [];
+function getSounds() {
+    for (var i = 1; i < NUM_CLAP_SOUNDS + 1; i++) {
+        clapSounds.push(SoundCache.getSound(Script.resolvePath(
+            "resources/sounds/claps/" + ("0" + i).slice(-2) + ".wav")));
+    }
+}
+
+
+var clapSoundInterval = false;
+var CLAP_SOUND_INTERVAL_MS = 260; // Must match the clap animation interval
+function startClappingSounds() {
+    maybeClearClapSoundInterval();
+
+    clapSoundInterval = Script.setInterval(function() {
+        playSound(clapSounds[Math.floor(Math.random() * clapSounds.length)]);
+    }, CLAP_SOUND_INTERVAL_MS);
+}
+
+
+function maybeClearClapSoundInterval() {
+    if (clapSoundInterval) {
+        Script.clearInterval(clapSoundInterval);
+        clapSoundInterval = false;
+    }
+}
+
+
+function toggleApplaud() {
+    if (applaudPlaying) {
+        MyAvatar.endReaction("applaud");
+        maybeClearClapSoundInterval();
+        applaudPlaying = false;
+        return;
+    }
+    maybeEndOtherReactions("applaud");
+    MyAvatar.beginReaction("applaud");
+    startClappingSounds();
+    applaudPlaying = true;
+    // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
+    pointPlaying = false;
+    raiseHandPlaying = false;
+}
+
 
 /*
     MILAD NOTE:
@@ -107,17 +204,7 @@ function onMessageFromEmoteAppBar(message) {
             applaudPlaying = false;
             break;
         case "applaudPressed":
-            if (applaudPlaying) {
-                MyAvatar.endReaction("applaud");
-                applaudPlaying = false;
-                return;
-            }
-            maybeEndOtherReactions("applaud");
-            MyAvatar.beginReaction("applaud");
-            applaudPlaying = true;
-            // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
-            pointPlaying = false;
-            raiseHandPlaying = false;
+            toggleApplaud();
             break;
         case "pointPressed":
             if (pointPlaying) {
@@ -170,7 +257,7 @@ function keyPressHandler(event) {
         } else if (event.text === RAISE_HAND_KEY) {
             MyAvatar.beginReaction("raiseHand");
         } else if (event.text === APPLAUD_KEY) {
-            MyAvatar.beginReaction("applaud");
+            toggleApplaud();
         } else if (event.text === POINT_KEY) {
             MyAvatar.beginReaction("point");
         } else if (event.text === EMOTE_WINDOW) {
@@ -185,7 +272,9 @@ function keyReleaseHandler(event) {
         if (event.text === RAISE_HAND_KEY) {
             MyAvatar.endReaction("raiseHand");
         } else if (event.text === APPLAUD_KEY) {
-            MyAvatar.endReaction("applaud");
+            if (applaudPlaying) {
+                toggleApplaud();
+            }
         } else if (event.text === POINT_KEY) {
             MyAvatar.endReaction("point");
         }
@@ -244,6 +333,8 @@ function init() {
     Window.geometryChanged.connect(onGeometryChanged);
     geometryChangedSignalConnected = true;
     emojiAPI.startup();
+
+    getSounds();
     showEmoteAppBar();
     
     Controller.keyPressEvent.connect(keyPressHandler);
@@ -264,6 +355,7 @@ function shutdown() {
     }
 
     emojiAPI.unload();
+    maybeClearClapSoundInterval();
 
     if (geometryChangedSignalConnected) {
         Window.geometryChanged.disconnect(onGeometryChanged);
