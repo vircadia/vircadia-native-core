@@ -53,16 +53,13 @@ Rectangle {
         height: parent.height
         width: root.originalWidth
 
-        HifiStylesUit.GraphikRegular {
+        Image {
             id: emoteIndicator
-            text: "😊"
+            width: 30
+            height: 30
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            anchors.horizontalCenterOffset: -2
-            anchors.verticalCenterOffset: -2
-            horizontalAlignment: Text.AlignHCenter
-            size: 26
-            color: simplifiedUI.colors.white
+            source: "../../resources/images/emote_Icon.svg"
         }
 
         MouseArea {
@@ -93,12 +90,12 @@ Rectangle {
             id: emoteButtonsRepeater
             model: ListModel {
                 id: buttonsModel
-                ListElement { text: "Z"; method: "positive" }
-                ListElement { text: "C"; method: "negative" }
-                ListElement { text: "V"; method: "raiseHand" }
-                ListElement { text: "B"; method: "applaud" }
-                ListElement { text: "N"; method: "point" }
-                ListElement { text: "😊"; method: "toggleEmojiApp" }
+                ListElement { imageURL: "../../resources/images/happy_Icon.svg"; method: "positive" }
+                ListElement { imageURL: "../../resources/images/sad_Icon.svg"; method: "negative" }
+                ListElement { imageURL: "../../resources/images/raiseHand_Icon.svg"; method: "raiseHand" }
+                ListElement { imageURL: "../../resources/images/clap_Icon.svg"; method: "applaud" }
+                ListElement { imageURL: "../../resources/images/point_Icon.svg"; method: "point" }
+                ListElement { imageURL: "../../resources/images/emote_Icon.svg"; method: "toggleEmojiApp" }
             }
 
             Rectangle {
@@ -107,21 +104,16 @@ Rectangle {
                 // For the below to work, the This Rectangle's second child must be the `MouseArea`
                 color: children[1].containsMouse ? "#CCCCCC" : simplifiedUI.colors.white
 
-                HifiStylesUit.GraphikRegular {
-                    text: model.text
-                    // Gotta special-case the below for the emoji button, or else it looks off-center.
-                    anchors.fill: text === "😊" ? undefined : parent
-                    anchors.horizontalCenter: text === "😊" ? parent.horizontalCenter : undefined
-                    anchors.verticalCenter: text === "😊" ? parent.verticalCenter : undefined
-                    anchors.horizontalCenterOffset: text === "😊" ? -2 : undefined
-                    anchors.verticalCenterOffset: text === "😊" ? -2 : undefined
-                    horizontalAlignment: Text.AlignHCenter
-                    size: 26
-                    color: simplifiedUI.colors.text.black
+                Image {
+                    width: 30
+                    height: 30
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    source: model.imageURL
                 }
 
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.margins: 3
                     hoverEnabled: true
                     onClicked: {
                         Tablet.playSound(TabletEnums.ButtonClick);
