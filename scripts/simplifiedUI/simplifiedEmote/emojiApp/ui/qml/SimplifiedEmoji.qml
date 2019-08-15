@@ -13,7 +13,8 @@ import QtQuick.Controls 2.4
 import QtGraphicalEffects 1.12
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
-import "qrc:////qml//hifi//simplifiedUI//simplifiedConstants" as SimplifiedConstants
+import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
+import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
 import "../../resources/modules/emojiList.js" as EmojiList
 import "./ProgressCircle"
 
@@ -24,8 +25,7 @@ Rectangle {
     
     // Used for the indicator picture
     readonly property string emojiBaseURL: "../../resources/images/emojis/png1024/"
-    // Sprite sheet used for the smaller icons
-    readonly property string emojiSpriteBaseURL: "../../resources/images/emojis/"
+    readonly property string emoji36BaseURL: "../../resources/images/emojis/png36/"
     // Capture the selected code to handle which emoji to show
     property string currentCode: ""
     // if this is true, then hovering doesn't allow showing other icons
@@ -152,100 +152,55 @@ Rectangle {
         clip: true
         color: simplifiedUI.colors.darkBackground
 
-
-        /*
-            This is what the individual view will be.  It's a bit complicated, but it works.  Might not be worth
-            refactoring, but might want to check with Zach if he has an issue with below. 
-            Here is reasoning / logic: 
-
-            The icons displayed are implemented with a sprite sheet from the previous HTML version.  
-            QML seems to have something that lets you play spritesheet animations, but it doesn't have something
-            that is like background-position for css.  
-
-            The way I had to recreate it was to use an Image that has no set size / height and to make sure nothing is transformed
-            to fit a container.
-
-            Then I have to put that in a rectangle that acts like a mask.  The x,y position of the image on the emoji meta data is what
-            is used to move the image x and y itself.  The emoji images per sprite shell are 36 x 36.  In grid view, there are no spacing
-            options besides making the cell width and grid have fake extra padding.  I can't make that rectangle that is the mask to be larger than 36 by 36.
-            What worked the best was to make another container rectangle the width of the cell, then positioned the emoji mask rectangle to be centered in that.
-
-            The gridview has a function to handle the highlighting which is nice because it comes with an animation already that looks good out the box.
-            This covers the whole 40X40 cell space.
-        
-        */
         Component {
             id: emojiDelegate
-            Item {
-                width: grid.cellWidth; height: grid.cellHeight
-                Column {
-                    Rectangle {
-                        width: 40
-                        height: 40
-                        color: Qt.rgba(1, 1, 1, 0.0)
-                        Rectangle {
-                            id: imageContainer
-                            anchors.centerIn: parent
-                            clip: true; 
-                            z:1
-                            width: 36
-                            height: 36
-                            anchors.leftMargin: 2
-                            anchors.topMargin: 2
-                            x: 1
-                            y: -1
-                            color: Qt.rgba(1, 1, 1, 0.0)
-                            Image {
-                                source: emojiSpriteBaseURL + normal.source
-                                z: 2
-                                fillMode: Image.Pad
-                                x: -normal.frame.x
-                                y: -normal.frame.y
-                                MouseArea {
-                                    hoverEnabled: enabled
-                                    anchors.fill: parent
-                                    onEntered: {
-                                        grid.currentIndex = index
-                                        // don't allow a hover image change of the main emoji image 
-                                        if (root.isSelected) {
-                                            return;
-                                        }
-                                        // Updates the selected image
-                                        root.currentCode = mainModel.get(index).code.utf;
-                                    }
-                                    onClicked: {
-                                        sendToScript({
-                                            "source": "SimplifiedEmoji.qml",
-                                            "method": "selectedEmoji",
-                                            "code": code.utf
-                                        });
-                                        root.isSelected = true;
-                                        root.currentCode = mainModel.get(index).code.utf;
-                                    }
-                                }
-                            }
-                        }       
+            Image {
+                width: 36
+                height: 36
+                source: emoji36BaseURL + mainModel.get(index).code.utf + ".png"
+                fillMode: Image.Pad
+                MouseArea {
+                    hoverEnabled: enabled
+                    anchors.fill: parent
+                    onEntered: {
+                        grid.currentIndex = index
+                        // don't allow a hover image change of the main emoji image 
+                        if (root.isSelected) {
+                            return;
+                        }
+                        // Updates the selected image
+                        root.currentCode = mainModel.get(index).code.utf;
                     }
-         
+                    onClicked: {
+                        sendToScript({
+                            "source": "SimplifiedEmoji.qml",
+                            "method": "selectedEmoji",
+                            "code": code.utf
+                        });
+                        root.isSelected = true;
+                        root.currentCode = mainModel.get(index).code.utf;
+                    }
                 }
             }
-            
         }
 
         GridView {
             id: grid
             anchors.fill: parent
-            anchors.centerIn: parent
-            anchors.leftMargin: 0
-            anchors.rightMargin: 0
-            width: 480
-            height: 415
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
             cellWidth: 40
             cellHeight: 40
             model: mainModel
             delegate: emojiDelegate
+            cacheBuffer: 400
             focus: true
             highlight: Rectangle { color: Qt.rgba(1, 1, 1, 0.4); radius: 0 }
+        }
+
+        SimplifiedControls.VerticalScrollBar {
+            parent: grid
+            anchors.rightMargin: -grid.anchors.rightMargin + 2
         }
     }
     signal sendToScript(var message);

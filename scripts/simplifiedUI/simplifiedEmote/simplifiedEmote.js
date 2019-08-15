@@ -83,7 +83,6 @@ function onMessageFromEmoteAppBar(message) {
     }
     switch (message.method) {
         case "happyPressed":
-            console.log("IN HAPPY PRESSED")
             MyAvatar.triggerReaction("positive");
             break;
         case "sadPressed": 
@@ -105,7 +104,6 @@ function onMessageFromEmoteAppBar(message) {
             applaudPlaying = true;
             break;
         case "toggleEmojiApp": 
-            console.log("CALLING TOGGLE EMOJI APP");
             toggleEmojiApp();
             break;
         default:
