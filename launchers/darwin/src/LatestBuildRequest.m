@@ -27,7 +27,7 @@
         NSLog(@"Latest Build Request Response: %ld", [ne statusCode]);
         Launcher* sharedLauncher = [Launcher sharedLauncher];
 
-        if ([ne statusCode] == 500) {
+        if (error || [ne statusCode] == 500) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 [sharedLauncher displayErrorPage];
             });
