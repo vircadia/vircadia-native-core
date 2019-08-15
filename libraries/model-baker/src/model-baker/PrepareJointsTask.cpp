@@ -64,6 +64,9 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     const auto& jointsIn = input.get0();
     auto& jointsOut = output.edit0();
 
+    const QString APPEND_DUPLICATE_JOINT = "_joint";
+    const QString APPEND_DUPLICATE_MESH = "_mesh";
+
     if (_passthrough) {
         jointsOut = jointsIn;
     } else {
@@ -87,17 +90,29 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
 
             // Make sure that joint name is unique
             if (jointIndices.contains(jointOut.name)) {
-                // The joint name is duplicated. Most likely a mesh joint.
-                auto duplicatedJointData = jointIndices.find(jointOut.name);
-                int duplicatedJointIndex = duplicatedJointData.value();
+                int duplicatedJointIndex = jointIndices.find(jointOut.name).value();
                 auto& duplicatedJoint = jointsOut[duplicatedJointIndex];
+                bool areBothJoints = jointOut.isSkeletonJoint && duplicatedJoint.isSkeletonJoint;
                 QString existJointName = jointOut.name;
-                qCDebug(model_baker) << "Joint already exist. Renaming joint: " << existJointName;
-                // One of the joints could be a mesh joint. Locate it and change its name.
-                if (!jointOut.isSkeletonJoint) {
-                    jointOut.name = existJointName + "_mesh";
+                QString appendName;
+                if (areBothJoints) {
+                    appendName = APPEND_DUPLICATE_JOINT;
+                    qCWarning(model_baker) << "Duplicated skeleton joints found: " << existJointName;
                 } else {
-                    duplicatedJoint.name = existJointName + "_mesh";
+                    appendName = APPEND_DUPLICATE_MESH;
+                    qCDebug(model_baker) << "Duplicated joints found. Renaming the mesh joint: " << existJointName;
+                }
+                QString newName = existJointName + appendName;
+                // Make sure the new name is unique
+                int duplicateIndex = 0;
+                while (jointIndices.contains(newName)) {
+                    newName = existJointName + appendName + QString::number(++duplicateIndex);
+                }
+                // Find and rename the mesh joint
+                if (!jointOut.isSkeletonJoint) {
+                    jointOut.name = newName;
+                } else {
+                    duplicatedJoint.name = newName;
                     jointIndices.remove(jointOut.name);
                     jointIndices.insert(duplicatedJoint.name, duplicatedJointIndex);
                 } 
