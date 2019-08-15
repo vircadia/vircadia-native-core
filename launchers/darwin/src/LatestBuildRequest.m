@@ -5,8 +5,16 @@
 @implementation LatestBuildRequest
 
 - (void) requestLatestBuildInfo {
+    NSString* buildsURL = [[[NSProcessInfo processInfo] environment] objectForKey:@"HQ_LAUNCHER_BUILDS_URL"];
+
+    if ([buildsURL length] == 0) {
+        buildsURL = @"https://thunder.highfidelity.com/builds/api/tags/latest?format=json";
+    }
+
+    NSLog(@"Making request for builds to: %@", buildsURL);
+
     NSMutableURLRequest* request = [NSMutableURLRequest new];
-    [request setURL:[NSURL URLWithString:@"https://thunder.highfidelity.com/builds/api/tags/latest?format=json"]];
+    [request setURL:[NSURL URLWithString:buildsURL]];
     [request setHTTPMethod:@"GET"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
