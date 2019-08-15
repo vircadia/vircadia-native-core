@@ -90,12 +90,12 @@ Rectangle {
             id: emoteButtonsRepeater
             model: ListModel {
                 id: buttonsModel
-                ListElement { imageURL: "../../resources/images/happy_Icon.svg"; method: "positive" }
-                ListElement { imageURL: "../../resources/images/sad_Icon.svg"; method: "negative" }
-                ListElement { imageURL: "../../resources/images/raiseHand_Icon.svg"; method: "raiseHand" }
-                ListElement { imageURL: "../../resources/images/clap_Icon.svg"; method: "applaud" }
-                ListElement { imageURL: "../../resources/images/point_Icon.svg"; method: "point" }
-                ListElement { imageURL: "../../resources/images/emote_Icon.svg"; method: "toggleEmojiApp" }
+                ListElement { imageURL: "images/happy_Icon.svg"; method: "positive" }
+                ListElement { imageURL: "images/sad_Icon.svg"; method: "negative" }
+                ListElement { imageURL: "images/raiseHand_Icon.svg"; method: "raiseHand" }
+                ListElement { imageURL: "images/clap_Icon.svg"; method: "applaud" }
+                ListElement { imageURL: "images/point_Icon.svg"; method: "point" }
+                ListElement { imageURL: "images/emote_Icon.svg"; method: "toggleEmojiApp" }
             }
 
             Rectangle {
