@@ -71,7 +71,9 @@ Item {
                 ctx.beginPath()
                 ctx.fillStyle = root.colorCircle
                 ctx.moveTo(x, y)
-                ctx.arc(x, y, width / 2, start, end, false)
+                // Using `width` instead of `width/2` as the argument here ensures
+                // that the ProgressCircle mask will cover the entirety of non-circular emoji.
+                ctx.arc(x, y, width, start, end, false)
                 ctx.lineTo(x, y)
                 ctx.fill()
             } else {
@@ -88,6 +90,8 @@ Item {
                 ctx.strokeStyle = root.colorCircle
                 ctx.stroke()
             }
+
+            ctx.scale(0.1, 0.2);
         }
     }
 }
