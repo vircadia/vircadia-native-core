@@ -110,6 +110,7 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
                     source: model.imageURL
+                    mipmap: true
                 }
 
                 MouseArea {
