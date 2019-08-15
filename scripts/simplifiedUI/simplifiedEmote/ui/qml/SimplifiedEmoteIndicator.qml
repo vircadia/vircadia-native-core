@@ -11,6 +11,7 @@
 
 import QtQuick 2.10
 import QtQuick.Controls 2.3
+import QtGraphicalEffects 1.0
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
@@ -59,7 +60,14 @@ Rectangle {
             height: 30
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            source: "../../resources/images/emote_Icon.svg"
+            source: "images/emote_Icon.svg"
+        }
+
+        ColorOverlay {
+            anchors.fill: emoteIndicator
+            opacity: emoteIndicatorMouseArea.containsMouse ? 1.0 : 0.7
+            source: emoteIndicator
+            color: "#ffffff"
         }
 
         MouseArea {
@@ -102,9 +110,10 @@ Rectangle {
                 width: mainEmojiContainer.width
                 height: drawerContainer.height
                 // For the below to work, the This Rectangle's second child must be the `MouseArea`
-                color: children[1].containsMouse ? "#CCCCCC" : simplifiedUI.colors.white
+                color: children[1].containsMouse ? "#000000" : simplifiedUI.colors.white
 
                 Image {
+                    id: emoteTrayButtonImage
                     width: 30
                     height: 30
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -114,6 +123,7 @@ Rectangle {
                 }
 
                 MouseArea {
+                    id: emoteTrayMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: {
@@ -127,6 +137,13 @@ Rectangle {
                     onEntered: {
                         Tablet.playSound(TabletEnums.ButtonHover);
                     }
+                }
+
+                ColorOverlay {
+                    anchors.fill: emoteTrayButtonImage
+                    opacity: emoteTrayMouseArea.containsMouse ? 1.0 : 0
+                    source: emoteTrayButtonImage
+                    color: "#ffffff"
                 }
             }
         }
