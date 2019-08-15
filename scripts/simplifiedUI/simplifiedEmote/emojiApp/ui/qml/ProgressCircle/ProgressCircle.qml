@@ -12,7 +12,7 @@ Item {
 
     property int size: 200               // The size of the circle in pixel
     property real arcBegin: 0            // start arc angle in degree
-    property real arcEnd: 270            // end arc angle in degree
+    property real arcEnd: 360            // end arc angle in degree
     property real arcOffset: 0           // rotation
     property bool isPie: false           // paint a pie instead of an arc
     property bool showBackground: false  // a full circle as a background of the arc
@@ -39,10 +39,10 @@ Item {
 
     Behavior on arcEnd {
        id: animationArcEnd
-       enabled: false
+       enabled: true
        NumberAnimation {
            duration: root.animationDuration
-           easing.type: Easing.InOutCubic
+           easing.type: Easing.OutQuad
        }
     }
 

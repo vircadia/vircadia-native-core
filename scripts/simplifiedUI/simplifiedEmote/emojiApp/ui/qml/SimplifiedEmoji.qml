@@ -95,16 +95,6 @@ Rectangle {
         color: simplifiedUI.colors.darkBackground
 
         Image {
-            id: mainEmojiImage
-            width: 180
-            height: 180
-            anchors.centerIn: parent
-            source: ""
-            fillMode: Image.PreserveAspectFit
-            visible: false
-        }
-
-        Image {
             id: mainEmojiLowOpacity
             width: 180
             height: 180
@@ -115,10 +105,20 @@ Rectangle {
             visible: true
         }
 
+        Image {
+            id: mainEmojiImage
+            width: 180
+            height: 180
+            anchors.centerIn: parent
+            source: ""
+            fillMode: Image.PreserveAspectFit
+            visible: false
+        }
+
         // The overlay used during the pie timeout
         ProgressCircle {
-            property int arcChangeSize: 15
             id: progressCircle
+            animationDuration: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
             anchors.centerIn: mainEmojiImage
             size: mainEmojiImage.width * 2
             opacity: 0.5
@@ -127,7 +127,7 @@ Rectangle {
             showBackground: false
             isPie: true
             arcBegin: 0
-            arcEnd: 0
+            arcEnd: 360
             visible: false
         }
 
@@ -135,16 +135,6 @@ Rectangle {
             anchors.fill: mainEmojiImage
             source: mainEmojiImage
             maskSource: progressCircle
-        }
-
-         Timer {
-            id: arcTimer
-            interval: 5000
-            repeat: true
-            running: false
-            onTriggered: {
-                progressCircle.arcEnd = ((progressCircle.arcEnd - progressCircle.arcChangeSize) > 0) ? (progressCircle.arcEnd - progressCircle.arcChangeSize) : 0;
-            }
         }
     }
 
@@ -283,16 +273,14 @@ Rectangle {
 
         switch(message.method) {
             case "beginCountdownTimer":
-                var degreesInCircle = 360;
-                progressCircle.arcEnd = degreesInCircle;
-                arcTimer.interval = message.data.interval;
-                progressCircle.arcChangeSize = degreesInCircle / (message.data.duration / arcTimer.interval);
-                arcTimer.start();
+                progressCircle.endAnimation = true;
+                progressCircle.arcEnd = 0;
                 root.isSelected = true;
             break;
             case "clearCountdownTimer":
-                progressCircle.arcEnd = 0;
-                arcTimer.stop();
+                progressCircle.endAnimation = false;
+                progressCircle.arcEnd = 360;
+                progressCircle.endAnimation = true;
                 root.isSelected = false;
             break;
             default:
