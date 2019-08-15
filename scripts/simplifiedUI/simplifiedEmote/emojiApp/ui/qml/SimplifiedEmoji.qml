@@ -51,7 +51,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        root.forceActiveFocus();
+        emojiSearchTextField.forceActiveFocus();
         /*
             MILAD NOTE:
             The emoji list we have is a node transformed list of all the UTF emojis with meta info.
