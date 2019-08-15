@@ -21,7 +21,7 @@ Rectangle {
     anchors.fill: parent
 
     property int originalWidth: 48
-    property int expandedWidth: 336
+    property int expandedWidth: mainEmojiContainer.width + drawerContainer.width
     property int requestedWidth: (drawerContainer.keepDrawerExpanded ||
         emoteIndicatorMouseArea.containsMouse ||
         happyButtonMouseArea.containsMouse ||
@@ -68,7 +68,6 @@ Rectangle {
             anchors.fill: parent
             hoverEnabled: enabled
 
-
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 drawerContainer.keepDrawerExpanded = !drawerContainer.keepDrawerExpanded;
@@ -86,7 +85,7 @@ Rectangle {
         anchors.top: parent.top
         leftPadding: root.originalWidth
         height: parent.height
-        width: root.expandedWidth
+        width: childrenRect.width
 
         Rectangle {
             id: happyButtonContainer
@@ -106,8 +105,7 @@ Rectangle {
             MouseArea {
                 id: happyButtonMouseArea
                 anchors.fill: parent
-
-                onClicked: {                hoverEnabled: enabled
+                hoverEnabled: enabled
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
@@ -148,8 +146,7 @@ Rectangle {
             MouseArea {
                 id: sadButtonMouseArea
                 anchors.fill: parent
-                hoverEnabled
-                    Tablet.playSound(TabletEnu: enabled
+                hoverEnabled: enabled
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
@@ -190,8 +187,7 @@ Rectangle {
             MouseArea {
                 id: raiseHandButtonMouseArea
                 anchors.fill: parent
-                hoverEnabled: enabledTabletEnums.ButtonClick);
-                    sendToScript({
+                hoverEnabled: enabled
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
@@ -232,8 +228,7 @@ Rectangle {
             MouseArea {
                 id: applaudButtonMouseArea
                 anchors.fill: parent
-                hoverEnabled: enab
-                        "source": "EmoteAppBarled
+                hoverEnabled: enabled
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
@@ -274,8 +269,7 @@ Rectangle {
             MouseArea {
                 id: pointButtonMouseArea
                 anchors.fill: parent
-                hoverEnabled: enabledoteAppBar.qml",
-                        "method": "pointPresse
+                hoverEnabled: enabled
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
@@ -306,8 +300,10 @@ Rectangle {
 
             HifiStylesUit.GraphikRegular {
                 text: "😊"
-                anchors.fill: parent
-                anchors.rightMargin: 1
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenterOffset: -2
+                anchors.verticalCenterOffset: -2
                 horizontalAlignment: Text.AlignHCenter
                 size: 26
                 color: simplifiedUI.colors.text.black
@@ -316,8 +312,7 @@ Rectangle {
             MouseArea {
                 id: emojiButtonMouseArea
                 anchors.fill: parent
-                hoverEnabled: enabledggleEmojiApp"
-                    });
+                hoverEnabled: enabled
 
                 onClicked: {
                     Tablet.playSound(TabletEnums.ButtonClick);
