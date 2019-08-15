@@ -156,6 +156,15 @@ function beginReactionWrapper(reaction) {
 }
 
 
+function triggerReactionWrapper(reaction) {
+    reactionsBegun.forEach(function(react) {
+        endReactionWrapper(react);
+    });
+
+    MyAvatar.triggerReaction(reaction);
+}
+
+
 function endReactionWrapper(reaction) {
     var reactionsBegunIndex = reactionsBegun.indexOf(reaction);
 
@@ -189,10 +198,10 @@ function onMessageFromEmoteAppBar(message) {
     }
     switch (message.method) {
         case "positive":
-            MyAvatar.triggerReaction("positive");
+            triggerReactionWrapper("positive");
             break;
         case "negative":
-            MyAvatar.triggerReaction("negative");
+            triggerReactionWrapper("negative");
             break;
         case "raiseHand":
         case "applaud":
@@ -238,9 +247,9 @@ var EMOTE_WINDOW = "f";
 function keyPressHandler(event) {
     if (!event.isAutoRepeat && ! event.isMeta && ! event.isControl && ! event.isAlt) {
         if (event.text === POSITIVE_KEY) {
-            MyAvatar.triggerReaction("positive");
+            triggerReactionWrapper("positive");
         } else if (event.text === NEGATIVE_KEY) {
-            MyAvatar.triggerReaction("negative");
+            triggerReactionWrapper("negative");
         } else if (event.text === RAISE_HAND_KEY) {
             toggleReaction("raiseHand");
         } else if (event.text === APPLAUD_KEY) {
