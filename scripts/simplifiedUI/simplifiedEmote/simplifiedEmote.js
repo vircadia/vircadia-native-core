@@ -182,15 +182,15 @@ function onMessageFromEmoteAppBar(message) {
         return;
     }
     switch (message.method) {
-        case "happyPressed":
+        case "positive":
             maybeEndOtherReactions("positive");
             MyAvatar.triggerReaction("positive");
             break;
-        case "sadPressed":
+        case "negative":
             maybeEndOtherReactions("negative");
             MyAvatar.triggerReaction("negative");
             break;
-        case "raiseHandPressed":
+        case "raiseHand":
             if (raiseHandPlaying) {
                 MyAvatar.endReaction("raiseHand");
                 raiseHandPlaying = false;
@@ -203,10 +203,10 @@ function onMessageFromEmoteAppBar(message) {
             pointPlaying = false;
             applaudPlaying = false;
             break;
-        case "applaudPressed":
+        case "applaud":
             toggleApplaud();
             break;
-        case "pointPressed":
+        case "point":
             if (pointPlaying) {
                 MyAvatar.endReaction("point");
                 pointPlaying = false;
@@ -226,6 +226,13 @@ function onMessageFromEmoteAppBar(message) {
             console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
     }
+    emoteAppBarWindow.sendToQml({
+        "source": "simplifiedEmote.js",
+        "method": "updateEmoteIndicator",
+        "data": {
+            "icon": message.method
+        }
+    });
 }
 
 
@@ -516,7 +523,6 @@ function unload() {
 }
 
 function handleEmoteIndicatorVisible(emoteIndicatorVisible) {
-    console.log("in handle emote indicator");
     if (!emoteAppBarWindow) {
         return;
     } 

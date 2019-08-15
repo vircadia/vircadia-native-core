@@ -54,6 +54,7 @@ Rectangle {
         width: root.originalWidth
 
         HifiStylesUit.GraphikRegular {
+            id: emoteIndicator
             text: "😊"
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
@@ -92,11 +93,11 @@ Rectangle {
             id: emoteButtonsRepeater
             model: ListModel {
                 id: buttonsModel
-                ListElement { text: "Z"; method: "happyPressed" }
-                ListElement { text: "C"; method: "sadPressed" }
-                ListElement { text: "V"; method: "raiseHandPressed" }
-                ListElement { text: "B"; method: "applaudPressed" }
-                ListElement { text: "N"; method: "pointPressed" }
+                ListElement { text: "Z"; method: "positive" }
+                ListElement { text: "C"; method: "negative" }
+                ListElement { text: "V"; method: "raiseHand" }
+                ListElement { text: "B"; method: "applaud" }
+                ListElement { text: "N"; method: "point" }
                 ListElement { text: "😊"; method: "toggleEmojiApp" }
             }
 
@@ -135,6 +136,25 @@ Rectangle {
                     }
                 }
             }
+        }
+    }
+
+    function fromScript(message) {
+        if (message.source !== "simplifiedEmote.js") {
+            return;
+        }
+
+        switch (message.method) {
+            case "updateEmoteIndicator":
+                if (message.data.icon) {
+                print("UPDATING EMOTE INDICATOR");
+                    emoteIndicator.text = message.data.icon[0];
+                }
+                break;
+            default:
+                print("MESSAGE TO THE EMOTE INDICATOR QML RECEIVED: ", JSON.stringify(message));
+                console.log('SimplifiedEmoteIndicator.qml: Unrecognized message from JS');
+                break;
         }
     }
 
