@@ -24,20 +24,23 @@
 // #region EMOTE_UTILITY
 
 
-// See the note below about needing to end reactions before another one starts
-// This just takes care of all 3 of them at the same time
-function maybeEndOtherReactions() {
-    if (raiseHandPlaying) {
+// REMOVE THIS WHEN ENGINE CAN HANDLE BLENDING
+function maybeEndOtherReactions(currentEmote) {
+    print("CURRENT EMOTE: ", currentEmote);
+    if (raiseHandPlaying && "raiseHand" != currentEmote) {
+        print("ENDING RAISE HAND");
         MyAvatar.endReaction("raiseHand");
         raiseHandPlaying = false;
     }
-    if (applaudPlaying) {
-        MyAvatar.endReaction("applaudPlaying");
-        applaudPlaying = false;
-    }
-    if (pointPlaying) {
-        MyAvatar.endReaction("pointPlaying");
+    if (pointPlaying && "point" != currentEmote) {
+        print("ENDING POINT");
+        MyAvatar.endReaction("point");
         pointPlaying = false;
+    }
+    if (applaudPlaying && "applaud" != currentEmote) {
+        print("ENDING APPLAUD");
+        MyAvatar.endReaction("applaud");
+        applaudPlaying = false;
     }
 }
 
@@ -77,31 +80,57 @@ var raiseHandPlaying = false;
 var applaudPlaying = false;
 var pointPlaying = false;
 function onMessageFromEmoteAppBar(message) {
-    console.log("MESSAGE From emote app bar: ", message);
+    console.log("MESSAGE From emote app bar: ", JSON.stringify(message));
     if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
         return;
     }
     switch (message.method) {
         case "happyPressed":
+            maybeEndOtherReactions("positive");
             MyAvatar.triggerReaction("positive");
             break;
-        case "sadPressed": 
+        case "sadPressed":
+            maybeEndOtherReactions("negative");
             MyAvatar.triggerReaction("negative");
             break;
         case "raiseHandPressed":
-            maybeEndOtherReactions();
+            if (raiseHandPlaying) {
+                MyAvatar.endReaction("raiseHand");
+                raiseHandPlaying = false;
+                return;
+            }
+            maybeEndOtherReactions("raiseHand");
             MyAvatar.beginReaction("raiseHand");
             raiseHandPlaying = true;
+            // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
+            pointPlaying = false;
+            applaudPlaying = false;
             break;
         case "applaudPressed":
-            maybeEndOtherReactions();
+            if (applaudPlaying) {
+                MyAvatar.endReaction("applaud");
+                applaudPlaying = false;
+                return;
+            }
+            maybeEndOtherReactions("applaud");
             MyAvatar.beginReaction("applaud");
             applaudPlaying = true;
+            // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
+            pointPlaying = false;
+            raiseHandPlaying = false;
             break;
         case "pointPressed":
-            maybeEndOtherReactions();
+            if (pointPlaying) {
+                MyAvatar.endReaction("point");
+                pointPlaying = false;
+                return;
+            }
+            maybeEndOtherReactions("point");
             MyAvatar.beginReaction("point");
-            applaudPlaying = true;
+            pointPlaying = true;
+            // REMOVE THESE WHEN ENGINE CAN HANDLE BLENDING
+            raiseHandPlaying = false;
+            applaudPlaying = false;
             break;
         case "toggleEmojiApp": 
             toggleEmojiApp();
