@@ -1,4 +1,4 @@
-﻿//
+//
 //  SimplifiedEmoteIndicator.qml
 //
 //  Created by Milad Nazeri on 2019-08-05
@@ -68,6 +68,7 @@ Rectangle {
             hoverEnabled: enabled
 
             onClicked: {
+                print("CLICKED BUTTON");
                 Tablet.playSound(TabletEnums.ButtonClick);
                 drawerContainer.keepDrawerExpanded = !drawerContainer.keepDrawerExpanded;
             }
@@ -113,9 +114,11 @@ Rectangle {
                 }
 
                 MouseArea {
-                    anchors.fill: parent
+                    anchors.margins: 3
                     hoverEnabled: true
+
                     onClicked: {
+                        print("CLICKED TRAY BUTTON");
                         Tablet.playSound(TabletEnums.ButtonClick);
                         sendToScript({
                             "source": "EmoteAppBar.qml",
