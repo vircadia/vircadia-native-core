@@ -71,14 +71,7 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
         auto& jointRotationOffsets = output.edit1();
         auto& jointIndices = output.edit2();
 
-        bool newJointRot = false;
-        static const QString JOINT_ROTATION_OFFSET2_FIELD = "jointRotationOffset2";
         QVariantHash fstHashMap = mapping;
-        if (fstHashMap.contains(JOINT_ROTATION_OFFSET2_FIELD)) {
-            newJointRot = true;
-        } else {
-            newJointRot = false;
-        }
 
         // Get joint renames
         auto jointNameMapping = getJointNameMapping(mapping);
@@ -87,11 +80,27 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
             jointsOut.push_back(jointIn);
             auto& jointOut = jointsOut.back();
 
-            if (!newJointRot) {
-                auto jointNameMapKey = jointNameMapping.key(jointIn.name);
-                if (jointNameMapping.contains(jointNameMapKey)) {
-                    jointOut.name = jointNameMapKey;
-                }
+            auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+            if (jointNameMapping.contains(jointNameMapKey)) {
+                jointOut.name = jointNameMapKey;
+            }
+
+            // Make sure that joint name is unique
+            if (jointIndices.contains(jointOut.name)) {
+                // The joint name is duplicated. Most likely a mesh joint.
+                auto duplicatedJointData = jointIndices.find(jointOut.name);
+                int duplicatedJointIndex = duplicatedJointData.value();
+                auto& duplicatedJoint = jointsOut[duplicatedJointIndex];
+                QString existJointName = jointOut.name;
+                qCDebug(model_baker) << "Joint already exist. Renaming joint: " << existJointName;
+                // One of the joints could be a mesh joint. Locate it and change its name.
+                if (!jointOut.isSkeletonJoint) {
+                    jointOut.name = existJointName + "_mesh";
+                } else {
+                    duplicatedJoint.name = existJointName + "_mesh";
+                    jointIndices.remove(jointOut.name);
+                    jointIndices.insert(duplicatedJoint.name, duplicatedJointIndex);
+                } 
             }
             jointIndices.insert(jointOut.name, (int)jointsOut.size());
         }
@@ -105,28 +114,6 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
                 glm::quat rotationOffset = itr.value();
                 jointRotationOffsets.insert(jointIndex, rotationOffset);
                 qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
-            }
-        }
-
-        if (newJointRot) {
-            for (auto& jointOut : jointsOut) {
-                auto jointNameMapKey = jointNameMapping.key(jointOut.name);
-                int mappedIndex = jointIndices.value(jointOut.name);
-                if (jointNameMapping.contains(jointNameMapKey)) {
-                    // delete and replace with hifi name
-                    jointIndices.remove(jointOut.name);
-                    jointOut.name = jointNameMapKey;
-                    jointIndices.insert(jointOut.name, mappedIndex);
-                } else {
-                    // nothing mapped to this fbx joint name
-                    if (jointNameMapping.contains(jointOut.name)) {
-                        // but the name is in the list of hifi names is mapped to a different joint
-                        int extraIndex = jointIndices.value(jointOut.name);
-                        jointIndices.remove(jointOut.name);
-                        jointOut.name = "";
-                        jointIndices.insert(jointOut.name, extraIndex);
-                    }
-                }
             }
         }
     }
