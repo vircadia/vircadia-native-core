@@ -43,17 +43,34 @@ Shader::Shader(Type type, const Pointer& vertex, const Pointer& geometry, const 
         shaders[VERTEX] = vertex;
         shaders[PIXEL] = pixel;
     }
+}
 
-    auto& reflection = const_cast<Reflection&>(getReflection());
-    for (const auto& subShader : _shaders) {
-        reflection.merge(subShader->getReflection());
+Shader::Reflection Shader::getReflection(shader::Dialect dialect, shader::Variant variant) const {
+    if (_type == Shader::Type::PROGRAM) {
+        Reflection reflection;
+        for (const auto& subShader : _shaders) {
+            reflection.merge(subShader->getReflection(dialect, variant));
+        }
+        if (_shaders[VERTEX]) {
+            reflection.inputs = _shaders[VERTEX]->getReflection(dialect, variant).inputs;
+        }
+        if (_shaders[PIXEL]) {
+            reflection.outputs = _shaders[PIXEL]->getReflection(dialect, variant).outputs;
+        }
+
+        return reflection;
     }
-    if (_shaders[VERTEX]) {
-        reflection.inputs = _shaders[VERTEX]->getReflection().inputs;
-    }
-    if (_shaders[PIXEL]) {
-        reflection.outputs = _shaders[PIXEL]->getReflection().outputs;
-    }
+
+    return _source.getReflection(dialect, variant);
+}
+
+
+Shader::Reflection Shader::getReflection() const {
+    // For sake of convenience i would like to be able to use a  "default" dialect that represents the reflection
+    // of the source of the shader
+    // What i really want, is a reflection that is designed for the gpu lib interface but we don't have that yet (glsl45 is the closest to that)
+    // Until we have an implementation for this, we will return such default reflection from the one available and platform specific
+    return getReflection(shader::DEFAULT_DIALECT, shader::Variant::Mono);
 }
 
 Shader::~Shader()

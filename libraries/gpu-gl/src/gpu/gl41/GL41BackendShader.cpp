@@ -15,7 +15,7 @@ using namespace gpu::gl41;
 void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& program) const {
     Parent::postLinkProgram(programObject, program);
     const auto& glprogram = programObject.glprogram;
-    const auto& reflection = program.getReflection();
+    auto reflection = program.getReflection(getShaderDialect(), getShaderVariant());
     // For the UBOs, use glUniformBlockBinding to fixup the locations based on the reflection
     {
         const auto& expectedUbos = reflection.uniformBuffers;
@@ -43,25 +43,23 @@ void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& pro
     }
 
     // For the resource buffers, do the same as for the textures, since in GL 4.1 that's how they're implemented
+    static const std::string TRANSFORM_OBJECT_BUFFER = "transformObjectBuffer";
     {
         const auto& expectedResourceBuffers = reflection.resourceBuffers;
         const auto names = Shader::Reflection::getNames(expectedResourceBuffers);
         const auto resourceBufferUniforms = ::gl::Uniform::loadByName(glprogram, names);
         for (const auto& resourceBuffer : resourceBufferUniforms) {
+
+            // Special case for the transformObjectBuffer, which is filtered out of the reflection data at shader load time
+            if (resourceBuffer.name == TRANSFORM_OBJECT_BUFFER) {
+                glProgramUniform1i(glprogram, resourceBuffer.binding, ::gpu::slot::texture::ObjectTransforms);
+                continue;
+            }
             const auto& targetBinding = expectedResourceBuffers.at(resourceBuffer.name);
             glProgramUniform1i(glprogram, resourceBuffer.binding, targetBinding);
         }
     }
 
-    // Special case for the transformObjectBuffer, which is filtered out of the reflection data at shader load time
-    // 
-    {
-        static const std::string TRANSFORM_OBJECT_BUFFER = "transformObjectBuffer";
-        const auto uniform = ::gl::Uniform::loadByName(glprogram, TRANSFORM_OBJECT_BUFFER);
-        if (-1 != uniform.binding) {
-            glProgramUniform1i(glprogram, uniform.binding, ::gpu::slot::texture::ObjectTransforms);
-        }
-    }
 }
 
 

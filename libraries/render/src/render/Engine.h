@@ -70,7 +70,7 @@ namespace render {
 
 
         GPUTaskConfig() = default;
-        GPUTaskConfig(bool enabled) : TaskConfig(enabled) {}
+        GPUTaskConfig(bool enabled) : render::TaskConfig(enabled) {}
 
         // Running Time measurement on GPU and for Batch execution
         void setGPUBatchRunTime(double msGpuTime, double msBatchTime) { _msGPURunTime = msGpuTime; _msBatchRunTime = msBatchTime; }
