@@ -46,6 +46,10 @@ Rectangle {
         id: mainModel
     }
 
+    ListModel {
+        id: filteredModel
+    }
+
     Component.onCompleted: {
         root.forceActiveFocus();
         /*
@@ -74,10 +78,11 @@ Rectangle {
                 item.code = { utf: item.code[0] }
                 item.keywords = { keywords: item.keywords }
                 mainModel.append(item);
+                filteredModel.append(item);
             });
             // Deleting this might remove any emoji that is shown when you open the app
             // Keeping in case the spec design might prefer this instead
-            root.currentCode = mainModel.get(0).code.utf;
+            root.currentCode = filteredModel.get(0).code.utf;
     }
 
     Rectangle {
@@ -148,41 +153,9 @@ Rectangle {
         anchors.top: emojiIndicatorContainer.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
+        anchors.bottom: emojiSearchContainer.top
         clip: true
         color: simplifiedUI.colors.darkBackground
-
-        Component {
-            id: emojiDelegate
-            Image {
-                width: 36
-                height: 36
-                source: emoji36BaseURL + mainModel.get(index).code.utf + ".png"
-                fillMode: Image.Pad
-                MouseArea {
-                    hoverEnabled: enabled
-                    anchors.fill: parent
-                    onEntered: {
-                        grid.currentIndex = index
-                        // don't allow a hover image change of the main emoji image 
-                        if (root.isSelected) {
-                            return;
-                        }
-                        // Updates the selected image
-                        root.currentCode = mainModel.get(index).code.utf;
-                    }
-                    onClicked: {
-                        sendToScript({
-                            "source": "SimplifiedEmoji.qml",
-                            "method": "selectedEmoji",
-                            "code": code.utf
-                        });
-                        root.isSelected = true;
-                        root.currentCode = mainModel.get(index).code.utf;
-                    }
-                }
-            }
-        }
 
         GridView {
             id: grid
@@ -191,8 +164,35 @@ Rectangle {
             anchors.rightMargin: 14
             cellWidth: 40
             cellHeight: 40
-            model: mainModel
-            delegate: emojiDelegate
+            model: filteredModel
+            delegate: Image {
+                    width: 36
+                    height: 36
+                    source: emoji36BaseURL + model.code.utf + ".png"
+                    fillMode: Image.Pad
+                    MouseArea {
+                        hoverEnabled: enabled
+                        anchors.fill: parent
+                        onEntered: {
+                            grid.currentIndex = index
+                            // don't allow a hover image change of the main emoji image 
+                            if (root.isSelected) {
+                                return;
+                            }
+                            // Updates the selected image
+                            root.currentCode = model.code.utf;
+                        }
+                        onClicked: {
+                            sendToScript({
+                                "source": "SimplifiedEmoji.qml",
+                                "method": "selectedEmoji",
+                                "code": code.utf
+                            });
+                            root.isSelected = true;
+                            root.currentCode = model.code.utf;
+                        }
+                    }
+                }
             cacheBuffer: 400
             focus: true
             highlight: Rectangle { color: Qt.rgba(1, 1, 1, 0.4); radius: 0 }
@@ -203,6 +203,77 @@ Rectangle {
             anchors.rightMargin: -grid.anchors.rightMargin + 2
         }
     }
+
+
+    Item {
+        id: emojiSearchContainer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 40
+
+        SimplifiedControls.TextField {
+            id: emojiSearchTextField
+            placeholderText: "Search"
+            maximumLength: 100
+            clip: true
+            selectByMouse: true
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            onTextChanged: {
+                if (text.length === 0) {
+                    root.filterEmoji(emojiSearchTextField.text);
+                } else {
+                    waitForMoreInputTimer.restart();
+                }
+            }
+            onAccepted: {
+                root.filterEmoji(emojiSearchTextField.text);
+            }
+            onFocusChanged: {
+                emojiSearchTextField.autoScroll = focus;
+            }
+        }
+
+        Timer {
+            id: waitForMoreInputTimer
+            repeat: false
+            running: false
+            triggeredOnStart: false
+            interval: 300
+
+            onTriggered: {
+                root.filterEmoji(emojiSearchTextField.text);
+            }
+        }
+    }
+
+    function filterEmoji(filterText) {
+        filteredModel.clear();
+
+        if (filterText.length === 0) {
+            for (var i = 0; i < mainModel.count; i++) {
+                filteredModel.append(mainModel.get(i));
+            }
+            return;
+        }
+
+        for (var i = 0; i < mainModel.count; i++) {
+            var currentObject = mainModel.get(i);
+            var currentKeywords = currentObject.keywords.keywords;
+            for (var j = 0; j < currentKeywords.length; j++) {
+                if ((currentKeywords[j].toLowerCase()).indexOf(filterText.toLowerCase()) > -1) {
+                    filteredModel.append(mainModel.get(i));
+                    break;
+                }
+            }
+        }
+    }
+
+
     signal sendToScript(var message);
 
     function fromScript(message) {
