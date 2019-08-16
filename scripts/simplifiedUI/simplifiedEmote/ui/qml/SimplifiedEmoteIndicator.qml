@@ -65,7 +65,6 @@ Rectangle {
 
         ColorOverlay {
             anchors.fill: emoteIndicator
-            opacity: emoteIndicatorMouseArea.containsMouse ? 1.0 : 0.7
             source: emoteIndicator
             color: "#ffffff"
         }
@@ -98,10 +97,10 @@ Rectangle {
             id: emoteButtonsRepeater
             model: ListModel {
                 id: buttonsModel
-                ListElement { imageURL: "images/happy_Icon.svg"; method: "positive" }
-                ListElement { imageURL: "images/sad_Icon.svg"; method: "negative" }
+                ListElement { imageURL: "images/positive_Icon.svg"; method: "positive" }
+                ListElement { imageURL: "images/negative_Icon.svg"; method: "negative" }
                 ListElement { imageURL: "images/raiseHand_Icon.svg"; method: "raiseHand" }
-                ListElement { imageURL: "images/clap_Icon.svg"; method: "applaud" }
+                ListElement { imageURL: "images/applaud_Icon.svg"; method: "applaud" }
                 ListElement { imageURL: "images/point_Icon.svg"; method: "point" }
                 ListElement { imageURL: "images/emote_Icon.svg"; method: "toggleEmojiApp" }
             }
@@ -157,10 +156,12 @@ Rectangle {
         switch (message.method) {
             case "updateEmoteIndicator":
                 if (message.data.icon) {
-                print("UPDATING EMOTE INDICATOR");
-                    emoteIndicator.text = message.data.icon[0];
+                print("CHANGING INDICATOR TO: ", message.data.icon);
+                    var imageURL = "images/" + message.data.icon + "_Icon.svg";
+                    emoteIndicator.source = imageURL;
                 }
                 break;
+
             default:
                 print("MESSAGE TO THE EMOTE INDICATOR QML RECEIVED: ", JSON.stringify(message));
                 console.log('SimplifiedEmoteIndicator.qml: Unrecognized message from JS');
