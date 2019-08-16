@@ -1616,20 +1616,6 @@ ShapeKey PolyVoxEntityRenderer::getShapeKey() {
 }
 
 bool PolyVoxEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    std::array<QString, 3> xyzTextureURLs{ {
-        entity->getXTextureURL(),
-        entity->getYTextureURL(),
-        entity->getZTextureURL()
-    } };
-
-    if (xyzTextureURLs != _xyzTextureUrls) {
-        return true;
-    }
-
-    if (entity->getVoxelVolumeSize() != _lastVoxelVolumeSize) {
-        return true;
-    }
-
     if (entity->voxelToWorldMatrix() != _lastVoxelToWorldMatrix) {
         return true;
     }

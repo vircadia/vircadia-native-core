@@ -53,6 +53,7 @@ bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
@@ -214,6 +215,7 @@ QString ImageEntityItem::getImageURL() const {
 
 void ImageEntityItem::setImageURL(const QString& url) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _imageURL != url;
         _imageURL = url;
     });
 }
@@ -228,6 +230,7 @@ bool ImageEntityItem::getEmissive() const {
 
 void ImageEntityItem::setEmissive(bool emissive) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _emissive != emissive;
         _emissive = emissive;
     });
 }
@@ -242,6 +245,7 @@ bool ImageEntityItem::getKeepAspectRatio() const {
 
 void ImageEntityItem::setKeepAspectRatio(bool keepAspectRatio) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _keepAspectRatio != keepAspectRatio;
         _keepAspectRatio = keepAspectRatio;
     });
 }
@@ -256,6 +260,7 @@ BillboardMode ImageEntityItem::getBillboardMode() const {
 
 void ImageEntityItem::setBillboardMode(BillboardMode value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _billboardMode != value;
         _billboardMode = value;
     });
 }
@@ -270,12 +275,14 @@ QRect ImageEntityItem::getSubImage() const {
 
 void ImageEntityItem::setSubImage(const QRect& subImage) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _subImage != subImage;
         _subImage = subImage;
     });
 }
 
 void ImageEntityItem::setColor(const glm::u8vec3& color) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _color != color;
         _color = color;
     });
 }
@@ -288,6 +295,7 @@ glm::u8vec3 ImageEntityItem::getColor() const {
 
 void ImageEntityItem::setAlpha(float alpha) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _alpha != alpha;
         _alpha = alpha;
     });
 }

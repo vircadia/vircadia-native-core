@@ -31,7 +31,7 @@ layout(location=3) in float _distanceFromCenter;
 void main(void) {
     vec4 texel = texture(_texture, _texCoord);
     texel *= _color;
-    texel.a *= mix(1.0, pow(1.0 - abs(_distanceFromCenter), 10.0), _polylineData.faceCameraGlow.y);
+    texel.a *= mix(1.0, pow(1.0 - min(1.0, abs(_distanceFromCenter)), 10.0), _polylineData.faceCameraGlow.y);
 
 <@if not HIFI_USE_FORWARD@>
     packDeferredFragmentTranslucent((2.0 * float(gl_FrontFacing) - 1.0) * _normalWS, texel.a, texel.rgb, DEFAULT_ROUGHNESS);

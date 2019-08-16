@@ -63,26 +63,11 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
 }
 
 bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_lastUserData != entity->getUserData()) {
-        return true;
-    }
-
-    if (_color != toGlm(entity->getColor())) {
-        return true;
-    }
-    if (_alpha != entity->getAlpha()) {
-        return true;
-    }
-
-    if (_shape != entity->getShape()) {
-        return true;
-    }
-
     if (_dimensions != entity->getScaledDimensions()) {
         return true;
     }
 
-    if (_pulseProperties != entity->getPulseProperties()) {
+    if (_lastUserData != entity->getUserData()) {
         return true;
     }
 

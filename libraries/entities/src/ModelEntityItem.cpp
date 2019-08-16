@@ -50,6 +50,7 @@ const QString ModelEntityItem::getTextures() const {
 
 void ModelEntityItem::setTextures(const QString& textures) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _textures != textures;
         _textures = textures;
     });
 }
@@ -295,6 +296,7 @@ void ModelEntityItem::setModelURL(const QString& url) {
         if (_modelURL != url) {
             _modelURL = url;
             _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
+            _needsRenderUpdate = true;
         }
     });
 }
@@ -576,6 +578,7 @@ bool ModelEntityItem::getRelayParentJoints() const {
 
 void ModelEntityItem::setGroupCulled(bool value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _groupCulled != value;
         _groupCulled = value;
     });
 }

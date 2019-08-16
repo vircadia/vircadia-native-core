@@ -202,7 +202,7 @@ GLint GLBackend::getRealUniformLocation(GLint location) const {
 
 void GLBackend::postLinkProgram(ShaderObject& shaderObject, const Shader& program) const {
     const auto& glprogram = shaderObject.glprogram;
-    const auto& expectedUniforms = program.getReflection().uniforms;
+    auto expectedUniforms = program.getReflection(getShaderDialect(), getShaderVariant()).uniforms;
 
     auto& uniformRemap = shaderObject.uniformRemap;
     // initialize all the uniforms with an invalid location
