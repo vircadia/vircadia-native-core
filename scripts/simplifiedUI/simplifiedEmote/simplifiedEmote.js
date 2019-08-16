@@ -11,6 +11,21 @@
 
 */
 
+// *************************************
+// START dependencies
+// *************************************
+// #region dependencies
+
+// The information needed to properly use the sprite sheets and get the general information
+// about the emojis
+var emojiList = Script.require("./emojiApp/resources/modules/emojiList.js?" + Date.now());
+var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiList.js?" + Date.now());
+var imageURLBase = Script.resolvePath("./resources/images/emojis/1024px/");
+
+// #endregion
+// *************************************
+// END dependencies
+// *************************************
 
 // *************************************
 // START EMOTE
@@ -53,6 +68,12 @@ function linearScale(factor, minInput, maxInput, minOutput, maxOutput) {
 // *************************************
 // END EMOTE_UTILITY
 // *************************************
+
+// CONSTS
+// UTF-Codes are stored on the first index of one of the keys on a returned emoji object.
+// Just makes the code a little easier to read 
+var UTF_CODE = 0;
+
 // *************************************
 // START EMOTE_HANDLERS
 // *************************************
@@ -125,28 +146,16 @@ function maybeClearClapSoundInterval() {
     }
 }
 
-
+// URLs for this fn are relative to SimplifiedEmoteIndicator.qml
 function toggleReaction(reaction) {
     var reactionEnding = reactionsBegun.indexOf(reaction) > -1;
 
     if (reactionEnding) {
         endReactionWrapper(reaction);
-        emoteAppBarWindow.sendToQml({
-            "source": "simplifiedEmote.js",
-            "method": "updateEmoteIndicator",
-            "data": {
-                "icon": "emote"
-            }
-        });
+        updateEmoteIndicatorIcon("images/emote_Icon.svg", true);
     } else {
         beginReactionWrapper(reaction);
-        emoteAppBarWindow.sendToQml({
-            "source": "simplifiedEmote.js",
-            "method": "updateEmoteIndicator",
-            "data": {
-                "icon": reaction
-            }
-        });
+        updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg", true);
     }
 }
 
@@ -206,23 +215,11 @@ function onMessageFromEmoteAppBar(message) {
     switch (message.method) {
         case "positive":
             triggerReactionWrapper("positive");
-            emoteAppBarWindow.sendToQml({
-                "source": "simplifiedEmote.js",
-                "method": "updateEmoteIndicator",
-                "data": {
-                    "icon": message.method
-                }
-            });
+            updateEmoteIndicatorIcon("images/" + message.method + "_Icon.svg", true);
             break;
         case "negative":
             triggerReactionWrapper("negative");
-            emoteAppBarWindow.sendToQml({
-                "source": "simplifiedEmote.js",
-                "method": "updateEmoteIndicator",
-                "data": {
-                    "icon": message.method
-                }
-            });
+            updateEmoteIndicatorIcon("images/" + message.method + "_Icon.svg", true);
             break;
         case "raiseHand":
         case "applaud":
@@ -236,6 +233,30 @@ function onMessageFromEmoteAppBar(message) {
             console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
     }
+}
+
+function getEmojiURLFromCode(code) {
+    var emojiObject = emojiList[emojiCodeMap[code]];
+    print(JSON.stringify(emojiObject));
+    var emojiFilename;
+    // If `emojiObject` isn't defined here, that probably means we're looking for a custom emoji
+    if (!emojiObject) {
+        emojiFilename = customEmojiList[customEmojiCodeMap[code]].filename;
+    } else {
+        emojiFilename = emojiObject.code[UTF_CODE] + ".png";
+    }
+    return "../../emojiApp/resources/images/emojis/52px/" + emojiFilename;
+}
+
+function updateEmoteIndicatorIcon(iconURL, colorOverlayVisible) {
+    emoteAppBarWindow.sendToQml({
+        "source": "simplifiedEmote.js",
+        "method": "updateEmoteIndicator",
+        "data": {
+            "iconURL": iconURL,
+            "colorOverlayVisible": colorOverlayVisible
+        }
+    });
 }
 
 
@@ -356,7 +377,31 @@ function onSettingsValueChanged(settingName, newValue) {
 var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
 var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
+var emojiCodeMap;
 function init() {
+    // make a map of just the utf codes to help with accesing
+    emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
+        if (
+            currentEmojiInList &&
+            currentEmojiInList.code &&
+            currentEmojiInList.code.length > 0 &&
+            currentEmojiInList.code[UTF_CODE]) {
+
+            codeMap[currentEmojiInList.code[UTF_CODE]] = index;
+            return codeMap;
+        }
+    }, {});
+    customEmojiCodeMap = customEmojiList.reduce(function (codeMap, currentEmojiInList, index) {
+        if (
+            currentEmojiInList &&
+            currentEmojiInList.name &&
+            currentEmojiInList.name.length > 0) {
+
+            codeMap[currentEmojiInList.name] = index;
+            return codeMap;
+        }
+    }, {});
+
     Window.geometryChanged.connect(onGeometryChanged);
     Settings.valueChanged.connect(onSettingsValueChanged);
     emojiAPI.startup();
@@ -418,9 +463,24 @@ function shutdown() {
 // *************************************
 // #region EMOJI_UTILITY
 
-
+var EMOJI_52_BASE_URL = "../../resources/images/emojis/52px/";
+// This duration must match the timeframe over which simplifiedEmoji.qml displays an emoji over the user's head
+var EMOJI_DURATION_MS = 7000;
+var restoreEmoteIndicatorIconTimeout;
 function selectedEmoji(code) {
     emojiAPI.addEmoji(code);
+    // this URL needs to be relative to SimplifiedEmoteIndicator.qml
+    var emojiURL = getEmojiURLFromCode(code);
+
+    updateEmoteIndicatorIcon(emojiURL, false);
+
+    if (restoreEmoteIndicatorIconTimeout) {
+        Script.clearTimeout(restoreEmoteIndicatorIconTimeout);
+    }
+    restoreEmoteIndicatorIconTimeout = Script.setTimeout(function () {
+        updateEmoteIndicatorIcon("images/emote_Icon.svg", true);
+        restoreEmoteIndicatorIconTimeout = null;
+    }, EMOJI_DURATION_MS);
 }
 
 

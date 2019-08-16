@@ -65,9 +65,11 @@ Rectangle {
         }
 
         ColorOverlay {
+            id: emoteIndicatorColorOverlay
             anchors.fill: emoteIndicator
             source: emoteIndicator
             color: "#ffffff"
+            opacity: 1
         }
 
         MouseArea {
@@ -171,10 +173,17 @@ Rectangle {
 
         switch (message.method) {
             case "updateEmoteIndicator":
-                if (message.data.icon) {
-                    print("CHANGING INDICATOR TO: ", message.data.icon);
-                    var imageURL = "images/" + message.data.icon + "_Icon.svg";
+                print("CHANGING INDICATOR TO: ", JSON.stringify(message));
+                if (message.data.iconURL) {
+                    var imageURL = message.data.iconURL;
                     emoteIndicator.source = imageURL;
+                    if (message.data.colorOverlayVisible) {
+                        print("SET OPACITY TO 1");
+                        emoteIndicatorColorOverlay.opacity = 1;
+                    } else {
+                        print("SET OPACITY TO 0");
+                        emoteIndicatorColorOverlay.opacity = 0;
+                    }
                 }
                 break;
 
