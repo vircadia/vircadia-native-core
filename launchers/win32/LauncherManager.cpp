@@ -476,9 +476,11 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
         LauncherUtils::ResponseError error = LauncherUtils::ResponseError(err);
         if (error == LauncherUtils::ResponseError::NoError) {
             Json::Value& json = _latestBuilds;
-            _defaultBuildTag = json.get("default_tag", "hqlauncher").asCString();
-            auto buildTag = _organizationBuildTag.IsEmpty() ? _defaultBuildTag : _organizationBuildTag;
             if (LauncherUtils::parseJSON(response, json)) {
+                _defaultBuildTag = json.get("default_tag", "").asCString();
+                auto buildTag = _organizationBuildTag.IsEmpty() ? _defaultBuildTag : _organizationBuildTag;
+                addToLog(_T("Build tag is: ") + buildTag);
+
                 if (json["launcher"].isObject()) {
                     if (json["launcher"]["windows"].isObject() && json["launcher"]["windows"]["url"].isString()) {
                         launcherUrlOut = json["launcher"]["windows"]["url"].asCString();
@@ -494,6 +496,7 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
                 }
 
                 if (!findBuildInResponse(json, buildTag, _latestApplicationURL, _latestVersion)) {
+                    addToLog(_T("Failed to find build"));
                     error = LauncherUtils::ResponseError::ParsingJSON;
                 }
             }
