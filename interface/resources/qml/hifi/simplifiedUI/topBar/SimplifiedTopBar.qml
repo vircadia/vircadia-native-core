@@ -427,9 +427,9 @@ Rectangle {
 
         Image {
             id: helpButtonImage
-            source: "./images/settings.svg"
+            source: "./images/questionMark.svg"
             anchors.centerIn: parent
-            width: 22
+            width: 13
             height: 22
             visible: false
         }

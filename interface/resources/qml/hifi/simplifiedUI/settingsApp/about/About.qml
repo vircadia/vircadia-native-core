@@ -70,7 +70,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 text: "Version " + Window.checkVersion()
                 Layout.alignment: Qt.AlignHCenter
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -79,7 +79,7 @@ Flickable {
 
             HifiStylesUit.GraphikSemiBold {
                 text: "Platform Info"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 Layout.topMargin: 8
                 Layout.bottomMargin: 8
                 height: paintedHeight
@@ -90,7 +90,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>Computer Vendor/Model:</b>"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -113,7 +113,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>Profiled Platform Tier:</b> " + PlatformInfo.getTierProfiled()
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -122,7 +122,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>OS Type:</b> " + PlatformInfo.getOperatingSystemType()
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -131,7 +131,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>CPU:</b>"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -150,7 +150,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b># CPUs:</b> " + PlatformInfo.getNumCPUs()
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -159,7 +159,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b># CPU Cores:</b> " + PlatformInfo.getNumLogicalCores()
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -168,7 +168,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>RAM:</b> " + PlatformInfo.getTotalSystemMemoryMB() + " MB"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -177,7 +177,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>GPU:</b> "
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -196,7 +196,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>VR Hand Controllers:</b> " + (PlatformInfo.hasRiftControllers() ? "Rift" : (PlatformInfo.hasViveControllers() ? "Vive" : "None"))
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -228,7 +228,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>Audio Input:</b> " + audioInputDevices.selectedInputDeviceName
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -261,7 +261,7 @@ Flickable {
 
             HifiStylesUit.GraphikRegular {
                 text: "<b>Audio Output:</b> " + audioOutputDevices.selectedOutputDeviceName
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white

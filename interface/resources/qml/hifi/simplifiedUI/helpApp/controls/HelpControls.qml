@@ -14,7 +14,6 @@ import "../../simplifiedConstants" as SimplifiedConstants
 import "../../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
 import QtQuick.Layouts 1.3
-import PerformanceEnums 1.0
 
 Flickable {
     id: root
@@ -60,7 +59,7 @@ Flickable {
 
         HifiStylesUit.GraphikSemiBold {
             text: "HQ Controls"
-            Layout.maximumWidth: parent.width
+            Layout.preferredWidth: parent.width
             Layout.topMargin: 16
             height: paintedHeight
             size: 22
@@ -69,22 +68,27 @@ Flickable {
 
         HifiStylesUit.GraphikRegular {
             text: "You can use the following controls to move your avatar around your HQ:"
-            Layout.maximumWidth: parent.width
+            Layout.preferredWidth: parent.width
             wrapMode: Text.Wrap
             height: paintedHeight
             size: 18
             color: simplifiedUI.colors.text.white
         }
 
+        ControlsTable {
+            Layout.topMargin: 8
+            Layout.preferredWidth: parent.width
+        }
+
         SimplifiedControls.Button {
             Layout.topMargin: 8
-            width: 200
+            Layout.preferredWidth: 200
             height: 32
             text: "VIEW ALL CONTROLS"
             temporaryText: "Viewing!"
 
             onClicked: {
-                Qt.openUrlExternally("http://docs.highfidelity.com/en/rc83/explore/get-started/desktop.html");
+                Qt.openUrlExternally("http://docs.highfidelity.com/explore/get-started/desktop.html");
             }
         }
     }
