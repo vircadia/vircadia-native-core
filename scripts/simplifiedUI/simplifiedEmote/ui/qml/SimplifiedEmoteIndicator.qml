@@ -61,6 +61,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             source: "images/emote_Icon.svg"
+            mipmap: true
         }
 
         ColorOverlay {

@@ -244,14 +244,6 @@ function onGeometryChanged(rect) {
 }
 
 
-function onEmoteAppBarClosed() {
-    if (emoteAppBarWindow) {
-        emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
-    }
-    emoteAppBarWindow = false;
-}
-
-
 var POSITIVE_KEY = "z";
 var NEGATIVE_KEY = "c";
 var RAISE_HAND_KEY = "v";
@@ -318,8 +310,11 @@ var EMOTE_APP_BAR_WINDOW_FLAGS = 0x00000001 | // Qt::Window
     0x40000000 | // Qt::NoDropShadowWindowHint
     0x00200000; // Qt::WindowDoesNotAcceptFocus
 var emoteAppBarWindow = false;
-var emoteIndicatorVisible = true;
 function showEmoteAppBar() {
+    if (emoteAppBarWindow) {
+        return;
+    }
+
     emoteAppBarWindow = Desktop.createWindow(EMOTE_APP_BAR_QML_PATH, {
         title: EMOTE_APP_BAR_WINDOW_TITLE,
         presentationMode: EMOTE_APP_BAR_PRESENTATION_MODE,
@@ -335,21 +330,39 @@ function showEmoteAppBar() {
     });
 
     emoteAppBarWindow.fromQml.connect(onMessageFromEmoteAppBar);
-    emoteAppBarWindow.closed.connect(onEmoteAppBarClosed);
+}
+
+
+function handleEmoteIndicatorVisibleChanged(newValue) {
+    if (newValue && !emoteAppBarWindow) {
+        showEmoteAppBar();
+    } else if (emoteAppBarWindow) {
+        if (emoteAppBarWindow) {
+            emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
+        }
+        emoteAppBarWindow.close();
+        emoteAppBarWindow = false;
+    }
+}
+
+
+function onSettingsValueChanged(settingName, newValue) {
+    if (settingName === "simplifiedUI/emoteIndicatorVisible") {
+        handleEmoteIndicatorVisibleChanged(newValue);
+    }
 }
 
 
 var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
 var emojiAPI = new EmojiAPI();
-var geometryChangedSignalConnected = false;
 var keyPressSignalsConnected = false;
 function init() {
     Window.geometryChanged.connect(onGeometryChanged);
-    geometryChangedSignalConnected = true;
+    Settings.valueChanged.connect(onSettingsValueChanged);
     emojiAPI.startup();
 
     getSounds();
-    showEmoteAppBar();
+    handleEmoteIndicatorVisibleChanged(Settings.getValue("simplifiedUI/emoteIndicatorVisible", true));
     
     Controller.keyPressEvent.connect(keyPressHandler);
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
@@ -361,7 +374,9 @@ function init() {
 
 function shutdown() {
     if (emoteAppBarWindow) {
+        emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
+        emoteAppBarWindow = false;
     }
 
     if (emojiAppWindow) {
@@ -371,10 +386,8 @@ function shutdown() {
     emojiAPI.unload();
     maybeClearClapSoundInterval();
 
-    if (geometryChangedSignalConnected) {
-        Window.geometryChanged.disconnect(onGeometryChanged);
-        geometryChangedSignalConnected = false;
-    }
+    Window.geometryChanged.disconnect(onGeometryChanged);
+    Settings.valueChanged.disconnect(onSettingsValueChanged);
 
     if (keyPressSignalsConnected) {
         Controller.keyPressEvent.disconnect(keyPressHandler);
@@ -529,18 +542,6 @@ function unload() {
     shutdown();
 }
 
-function handleEmoteIndicatorVisible(emoteIndicatorVisible) {
-    if (!emoteAppBarWindow) {
-        return;
-    } 
-
-    if (emoteIndicatorVisible) {
-        showEmoteAppBar();
-    } else {
-        emoteAppBarWindow.close();
-    }
-}
-
 var _this;
 function EmoteBar() {
     _this = this;
@@ -549,7 +550,6 @@ function EmoteBar() {
 
 EmoteBar.prototype = {
     startup: startup,
-    handleEmoteIndicatorVisible: handleEmoteIndicatorVisible,
     unload: unload
 };
 

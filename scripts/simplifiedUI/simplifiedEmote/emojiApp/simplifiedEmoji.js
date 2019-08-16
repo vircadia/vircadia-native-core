@@ -22,8 +22,8 @@ var EasingFunctions = Script.require("./resources/modules/easing.js?");
 // The information needed to properly use the sprite sheets and get the general information
 // about the emojis
 var emojiList = Script.require("./resources/modules/emojiList.js?" + Date.now());
-var imageURLBase = Script.resolvePath("https://hifi-content.s3.amazonaws.com/milad/ROLC/mnt/d/ROLC_High-Fidelity/02_Organize/O_Projects/Repos/hifi-content/Prototyping/emojis/");
-// alternate url: ./resources/images/emojis/png1024/
+var customEmojiList = Script.require("./resources/modules/customEmojiList.js?" + Date.now());
+var imageURLBase = Script.resolvePath("./resources/images/emojis/1024px/");
 
 
 // #endregion
@@ -95,7 +95,7 @@ function startTimeoutDelete() {
     defaultTimeout = Script.setTimeout(function () {
         // This is called to start the shrink animation and also where the deleting happens when that is done
         maybePlayPop("off");
-        selectedEmoji = null;
+        selectedEmojiFilename = null;
     }, TOTAL_EMOJI_DURATION_MS - POP_ANIMATION_OUT_DURATION_MS);
 }
 
@@ -133,7 +133,7 @@ function resetEmojis() {
     clearCountDownTimerHandler();
     if (currentEmoji && currentEmoji.id) {
         currentEmoji.destroy();
-        selectedEmoji = null;
+        selectedEmojiFilename = null;
     }
 }
 
@@ -150,17 +150,15 @@ function resetEmojis() {
 
 
 // what to do when someone selects an emoji in the tablet
-var selectedEmoji = null;
-var lastEmoji = null;
-function handleSelectedEmoji(emoji) {
-    if (selectedEmoji && selectedEmoji.code[UTF_CODE] === emoji.code[UTF_CODE]) {
+var selectedEmojiFilename = null;
+function handleSelectedEmoji(emojiFilename) {
+    if (selectedEmojiFilename === emojiFilename) {
         return;
     } else {
         maybeClearTimeoutDelete();
         clearCountDownTimerHandler();
-        selectedEmoji = emoji;
-        lastEmoji = emoji;
-        addEmoji(selectedEmoji);
+        selectedEmojiFilename = emojiFilename;
+        addEmoji(selectedEmojiFilename);
     }
 }
 
@@ -186,11 +184,11 @@ function onScaleChanged() {
 
 
 // what happens when we need to add an emoji over a user
-function addEmoji(emoji) {
+function addEmoji(emojiFilename) {
     if (currentEmoji && currentEmoji.id) {
         resetEmojis();
     }
-    createEmoji(emoji);
+    createEmoji(emojiFilename);
 }
 
 
@@ -221,9 +219,9 @@ var EMOJI_X_OFFSET = 0.0;
 var DEFAULT_EMOJI_SIZE = 0.37;
 var currentEmoji = new EntityMaker("avatar");
 var emojiMaxDimensions = null;
-function createEmoji(emoji) {
+function createEmoji(emojiFilename) {
     var emojiPosition;
-    var imageURL = imageURLBase + emoji.code[UTF_CODE] + ".png";
+    var imageURL = imageURLBase + emojiFilename;
 
     var IMAGE_SIZE = MyAvatar.scale * DEFAULT_EMOJI_SIZE;
     emojiMaxDimensions = { x: IMAGE_SIZE, y: IMAGE_SIZE, z: IMAGE_SIZE };
@@ -312,7 +310,6 @@ var currentPopScale = null;
 var popType = null;
 var playPopInterval = null;
 var finalInPopScale = null;
-var currentArch = 0;
 
 var MAX_POP_SCALE = 1;
 var MIN_POP_SCALE = 0;
@@ -392,7 +389,7 @@ function playPopAnimation() {
                 currentEmoji = new EntityMaker("avatar");
             }
             finalInPopScale = null;
-            selectedEmoji = null;
+            selectedEmojiFilename = null;
             clearCountDownTimerHandler();
         }
         maybeClearPop();
@@ -413,9 +410,9 @@ function playPopAnimation() {
 
 // startup the app
 var emojiCodeMap;
+var customEmojiCodeMap;
 var signalsConnected = false;
 function init() {
-    
     // make a map of just the utf codes to help with accesing
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
         if (
@@ -425,6 +422,16 @@ function init() {
             currentEmojiInList.code[UTF_CODE]) {
 
             codeMap[currentEmojiInList.code[UTF_CODE]] = index;
+            return codeMap;
+        }
+    }, {});
+    customEmojiCodeMap = customEmojiList.reduce(function (codeMap, currentEmojiInList, index) {
+        if (
+            currentEmojiInList && 
+            currentEmojiInList.name && 
+            currentEmojiInList.name.length > 0) {
+
+            codeMap[currentEmojiInList.name] = index;
             return codeMap;
         }
     }, {});
@@ -481,8 +488,15 @@ function registerAvimojiQMLWindow(avimojiQMLWindow) {
 }
 
 function addEmojiFromQML(code) {
-    var emoji = emojiList[emojiCodeMap[code]];
-    handleSelectedEmoji(emoji);
+    var emojiObject = emojiList[emojiCodeMap[code]];
+    var emojiFilename;
+    // If `emojiObject` isn't defined here, that probably means we're looking for a custom emoji
+    if (!emojiObject) {
+        emojiFilename = customEmojiList[customEmojiCodeMap[code]].filename;
+    } else {
+        emojiFilename = emojiObject.code[UTF_CODE] + ".png";
+    }
+    handleSelectedEmoji(emojiFilename);
 }
 
 function unload() {
