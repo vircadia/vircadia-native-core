@@ -26,7 +26,6 @@ public:
     LightEntityRenderer(const EntityItemPointer& entity) : Parent(entity) { }
 
 protected:
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;

@@ -578,9 +578,10 @@ public:
 
     /**jsdoc
      * @function Script.unloadAllEntityScripts
+     * @param {boolean} [blockingCall=false] - Wait for completion if call moved to another thread.
      * @deprecated This function is deprecated and will be removed.
      */
-    Q_INVOKABLE void unloadAllEntityScripts();
+    Q_INVOKABLE void unloadAllEntityScripts(bool blockingCall = false);
 
     /**jsdoc
      * Calls a method in an entity script.

@@ -28,7 +28,6 @@ public:
 
 protected:
     virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
-    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 

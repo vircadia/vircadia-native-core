@@ -80,6 +80,7 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
@@ -180,7 +181,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
                                     int& propertyCount, 
-                                    OctreeElement::AppendState& appendState) const { 
+                                    OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
 
@@ -272,6 +273,7 @@ bool TextEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, c
 
 void TextEntityItem::setText(const QString& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _text != value;
         _text = value;
     });
 }
@@ -282,13 +284,14 @@ QString TextEntityItem::getText() const {
     });
 }
 
-void TextEntityItem::setLineHeight(float value) { 
+void TextEntityItem::setLineHeight(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _lineHeight != value;
         _lineHeight = value;
     });
 }
 
-float TextEntityItem::getLineHeight() const { 
+float TextEntityItem::getLineHeight() const {
     float result;
     withReadLock([&] {
         result = _lineHeight;
@@ -298,6 +301,7 @@ float TextEntityItem::getLineHeight() const {
 
 void TextEntityItem::setTextColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _textColor != value;
         _textColor = value;
     });
 }
@@ -310,6 +314,7 @@ glm::u8vec3 TextEntityItem::getTextColor() const {
 
 void TextEntityItem::setTextAlpha(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _textAlpha != value;
         _textAlpha = value;
     });
 }
@@ -322,6 +327,7 @@ float TextEntityItem::getTextAlpha() const {
 
 void TextEntityItem::setBackgroundColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _backgroundColor != value;
         _backgroundColor = value;
     });
 }
@@ -334,6 +340,7 @@ glm::u8vec3 TextEntityItem::getBackgroundColor() const {
 
 void TextEntityItem::setBackgroundAlpha(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _backgroundAlpha != value;
         _backgroundAlpha = value;
     });
 }
@@ -354,12 +361,14 @@ BillboardMode TextEntityItem::getBillboardMode() const {
 
 void TextEntityItem::setBillboardMode(BillboardMode value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _billboardMode != value;
         _billboardMode = value;
     });
 }
 
 void TextEntityItem::setLeftMargin(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _leftMargin != value;
         _leftMargin = value;
     });
 }
@@ -372,6 +381,7 @@ float TextEntityItem::getLeftMargin() const {
 
 void TextEntityItem::setRightMargin(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _rightMargin != value;
         _rightMargin = value;
     });
 }
@@ -384,6 +394,7 @@ float TextEntityItem::getRightMargin() const {
 
 void TextEntityItem::setTopMargin(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _topMargin != value;
         _topMargin = value;
     });
 }
@@ -396,6 +407,7 @@ float TextEntityItem::getTopMargin() const {
 
 void TextEntityItem::setBottomMargin(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _bottomMargin != value;
         _bottomMargin = value;
     });
 }
@@ -408,6 +420,7 @@ float TextEntityItem::getBottomMargin() const {
 
 void TextEntityItem::setUnlit(bool value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _unlit != value;
         _unlit = value;
     });
 }
@@ -420,6 +433,7 @@ bool TextEntityItem::getUnlit() const {
 
 void TextEntityItem::setFont(const QString& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _font != value;
         _font = value;
     });
 }
@@ -432,6 +446,7 @@ QString TextEntityItem::getFont() const {
 
 void TextEntityItem::setTextEffect(TextEffect value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _effect != value;
         _effect = value;
     });
 }
@@ -444,6 +459,7 @@ TextEffect TextEntityItem::getTextEffect() const {
 
 void TextEntityItem::setTextEffectColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _effectColor != value;
         _effectColor = value;
     });
 }
@@ -456,6 +472,7 @@ glm::u8vec3 TextEntityItem::getTextEffectColor() const {
 
 void TextEntityItem::setTextEffectThickness(float value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _effectThickness != value;
         _effectThickness = value;
     });
 }

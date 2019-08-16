@@ -233,29 +233,31 @@ public:
 
     bool shouldBePhysical() const override { return false; }
 
+    virtual void debugDump() const override;
+
     void setColor(const glm::u8vec3& value);
-    glm::u8vec3 getColor() const { return _particleProperties.color.gradient.target; }
+    glm::u8vec3 getColor() const;
 
     void setColorStart(const vec3& colorStart);
-    vec3 getColorStart() const { return _particleProperties.color.range.start; }
+    vec3 getColorStart() const;
 
     void setColorFinish(const vec3& colorFinish);
-    vec3 getColorFinish() const { return _particleProperties.color.range.finish; }
+    vec3 getColorFinish() const;
 
     void setColorSpread(const glm::u8vec3& colorSpread);
-    glm::u8vec3 getColorSpread() const { return _particleProperties.color.gradient.spread; }
+    glm::u8vec3 getColorSpread() const;
 
     void setAlpha(float alpha);
-    float getAlpha() const { return _particleProperties.alpha.gradient.target; }
+    float getAlpha() const;
 
     void setAlphaStart(float alphaStart);
-    float getAlphaStart() const { return _particleProperties.alpha.range.start; }
+    float getAlphaStart() const;
 
     void setAlphaFinish(float alphaFinish);
-    float getAlphaFinish() const { return _particleProperties.alpha.range.finish; }
+    float getAlphaFinish() const;
 
     void setAlphaSpread(float alphaSpread);
-    float getAlphaSpread() const { return _particleProperties.alpha.gradient.spread; }
+    float getAlphaSpread() const;
 
     void setShapeType(ShapeType type) override;
     virtual ShapeType getShapeType() const override;
@@ -263,76 +265,74 @@ public:
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
 
-    virtual void debugDump() const override;
-
     bool getIsEmitting() const { return _isEmitting; }
-    void setIsEmitting(bool isEmitting) { _isEmitting = isEmitting; }
+    void setIsEmitting(bool isEmitting);
 
     void setMaxParticles(quint32 maxParticles);
-    quint32 getMaxParticles() const { return _particleProperties.maxParticles; }
+    quint32 getMaxParticles() const;
 
     void setLifespan(float lifespan);
-    float getLifespan() const { return _particleProperties.lifespan; }
+    float getLifespan() const;
 
     void setEmitRate(float emitRate);
-    float getEmitRate() const { return _particleProperties.emission.rate; }
+    float getEmitRate() const;
 
     void setEmitSpeed(float emitSpeed);
-    float getEmitSpeed() const { return _particleProperties.emission.speed.target; }
+    float getEmitSpeed() const;
 
     void setSpeedSpread(float speedSpread);
-    float getSpeedSpread() const { return _particleProperties.emission.speed.spread; }
+    float getSpeedSpread() const;
 
     void setEmitOrientation(const glm::quat& emitOrientation);
-    const glm::quat& getEmitOrientation() const { return _particleProperties.emission.orientation; }
+    glm::quat getEmitOrientation() const;
 
     void setEmitDimensions(const glm::vec3& emitDimensions);
-    const glm::vec3& getEmitDimensions() const { return _particleProperties.emission.dimensions; }
+    glm::vec3 getEmitDimensions() const;
 
     void setEmitRadiusStart(float emitRadiusStart);
-    float getEmitRadiusStart() const { return _particleProperties.radiusStart; }
+    float getEmitRadiusStart() const;
 
     void setPolarStart(float polarStart);
-    float getPolarStart() const { return _particleProperties.polar.start; }
+    float getPolarStart() const;
 
     void setPolarFinish(float polarFinish);
-    float getPolarFinish() const { return _particleProperties.polar.finish; }
+    float getPolarFinish() const;
 
     void setAzimuthStart(float azimuthStart);
-    float getAzimuthStart() const { return _particleProperties.azimuth.start; }
+    float getAzimuthStart() const;
 
     void setAzimuthFinish(float azimuthFinish);
-    float getAzimuthFinish() const { return _particleProperties.azimuth.finish; }
+    float getAzimuthFinish() const;
 
     void setEmitAcceleration(const glm::vec3& emitAcceleration);
-    const glm::vec3& getEmitAcceleration() const { return _particleProperties.emission.acceleration.target; }
+    glm::vec3 getEmitAcceleration() const;
     
     void setAccelerationSpread(const glm::vec3& accelerationSpread);
-    const glm::vec3& getAccelerationSpread() const { return _particleProperties.emission.acceleration.spread; }
+    glm::vec3 getAccelerationSpread() const;
 
     void setParticleRadius(float particleRadius);
-    float getParticleRadius() const { return _particleProperties.radius.gradient.target; }
+    float getParticleRadius() const;
 
     void setRadiusStart(float radiusStart);
-    float getRadiusStart() const { return _particleProperties.radius.range.start; }
+    float getRadiusStart() const;
 
     void setRadiusFinish(float radiusFinish);
-    float getRadiusFinish() const { return _particleProperties.radius.range.finish; }
+    float getRadiusFinish() const;
 
     void setRadiusSpread(float radiusSpread);
-    float getRadiusSpread() const { return _particleProperties.radius.gradient.spread; }
+    float getRadiusSpread() const;
 
     void setParticleSpin(float particleSpin);
-    float getParticleSpin() const { return _particleProperties.spin.gradient.target; }
+    float getParticleSpin() const;
 
     void setSpinStart(float spinStart);
-    float getSpinStart() const { return _particleProperties.spin.range.start; }
+    float getSpinStart() const;
 
     void setSpinFinish(float spinFinish);
-    float getSpinFinish() const { return _particleProperties.spin.range.finish; }
+    float getSpinFinish() const;
 
     void setSpinSpread(float spinSpread);
-    float getSpinSpread() const { return _particleProperties.spin.gradient.spread; }
+    float getSpinSpread() const;
 
     void setRotateWithEntity(bool rotateWithEntity);
     bool getRotateWithEntity() const { return _particleProperties.rotateWithEntity; }
@@ -340,10 +340,10 @@ public:
     void computeAndUpdateDimensions();
 
     void setTextures(const QString& textures);
-    QString getTextures() const { return _particleProperties.textures; }
+    QString getTextures() const;
 
-    bool getEmitterShouldTrail() const { return _particleProperties.emission.shouldTrail; }
     void setEmitterShouldTrail(bool emitterShouldTrail);
+    bool getEmitterShouldTrail() const { return _particleProperties.emission.shouldTrail; }
 
     virtual bool supportsDetailedIntersection() const override { return false; }
 

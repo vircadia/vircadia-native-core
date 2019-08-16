@@ -76,9 +76,10 @@ bool LineEntityItem::appendPoint(const glm::vec3& point) {
         return false;
     }
     withWriteLock([&] {
+        _needsRenderUpdate = true;
         _points << point;
-        _pointsChanged = true;
     });
+
     return true;
 }
 
@@ -96,9 +97,10 @@ bool LineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
     }
 
     withWriteLock([&] {
+        _needsRenderUpdate = true;
         _points = points;
-        _pointsChanged = true;
     });
+
     return true;
 }
 
@@ -155,6 +157,7 @@ glm::u8vec3 LineEntityItem::getColor() const {
 
 void LineEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _color != value;
         _color = value;
     });
 }
@@ -165,10 +168,4 @@ QVector<glm::vec3> LineEntityItem::getLinePoints() const {
         result = _points;
     });
     return result;
-}
-
-void LineEntityItem::resetPointsChanged() { 
-    withWriteLock([&] {
-        _pointsChanged = false;
-    });
 }

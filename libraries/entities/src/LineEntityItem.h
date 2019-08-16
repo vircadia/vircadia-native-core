@@ -61,15 +61,13 @@ class LineEntityItem : public EntityItem {
                                                   BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo,
                                                   bool precisionPicking) const override { return false; }
-    bool pointsChanged() const { return _pointsChanged; }
-    void resetPointsChanged();
+
     virtual void debugDump() const override;
     static const int MAX_POINTS_PER_LINE;
 
  private:
     glm::u8vec3 _color;
     QVector<glm::vec3> _points;
-    bool _pointsChanged { true };
 };
 
 #endif // hifi_LineEntityItem_h

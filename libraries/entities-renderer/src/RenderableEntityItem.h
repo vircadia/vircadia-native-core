@@ -144,7 +144,6 @@ protected:
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _cauterized { false };
     bool _moving { false };
-    bool _needsRenderUpdate { false };
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
     Transform _renderTransform;

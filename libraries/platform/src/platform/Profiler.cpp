@@ -58,21 +58,31 @@ bool filterOnComputer(const platform::json& computer, Profiler::Tier& tier) {
 // tier filter on computer MACOS
 bool filterOnComputerMACOS(const platform::json& computer, Profiler::Tier& tier) {
 
-    // it s a macos computer, probably can tell from the model name:
-    if (computer.count(keys::computer::model)) {
-        const auto model = computer[keys::computer::model].get<std::string>();
-        if (model.find("MacBookAir") != std::string::npos) {
+    // it s a macos computer, probably can tell from the model name but...
+    // The simple rule for mac is
+    // if it s an intel gpu then LOW
+    // else go mid
+    auto gpu = platform::getGPU(platform::getMasterGPU());
+    if (gpu.count(keys::gpu::vendor)) {
+        std::string gpuVendor = gpu[keys::gpu::vendor].get<std::string>();
+        
+        // intel integrated graphics
+        if (gpuVendor.find(keys::gpu::vendor_Intel) != std::string::npos) {
+            // go LOW because Intel GPU
             tier = Profiler::Tier::LOW;
             return true;
-        } else if (model.find("MacBookPro") != std::string::npos) {
+        } else {
+            // else go mid
             tier = Profiler::Tier::MID;
             return true;
-        } else if (model.find("MacBook") != std::string::npos) {
-            tier = Profiler::Tier::LOW;
-            return true;
         }
+    } else {
+        // no gpuinfo ?
+        // Go low in doubt
+        // go LOW because Intel GPU
+        tier = Profiler::Tier::LOW;
+        return true;
     }
-    return false;
 }
 
 bool filterOnProcessors(const platform::json& computer, const platform::json& cpu, const platform::json& gpu, Profiler::Tier& tier) {
@@ -133,30 +143,6 @@ bool filterOnProcessors(const platform::json& computer, const platform::json& cp
 // YES on macos EXCEPT for macbookair with gpu intel iris or intel HD 6000
 bool Profiler::isRenderMethodDeferredCapable() {
 #if defined(Q_OS_MAC)
-    // Deferred works correctly on every supported macos platform at the moment, let s enable it 
-/*
-    auto computer = platform::getComputer();
-    const auto computerModel = (computer.count(keys::computer::model) ? computer[keys::computer::model].get<std::string>() : "");
-
-    auto gpuInfo = platform::getGPU(getMasterGPU());
-    const auto gpuModel = (gpuInfo.count(keys::gpu::model) ? gpuInfo[keys::gpu::model].get<std::string>() : "");
-    
-    
-    // Macbook air 2018 are a problem
-    if ((computerModel.find("MacBookAir7,2") != std::string::npos) && (gpuModel.find("Intel HD Graphics 6000") != std::string::npos)) {
-        return false;
-    }
-    
-    // We know for fact that the Mac BOok Pro 13 from Mid 2014 INtel Iris is problematic,
-    if ((computerModel.find("MacBookPro11,1") != std::string::npos) && (gpuModel.find("Intel Iris") != std::string::npos)) {
-         return false;
-    }
-    
-    // TO avoid issues for the next few days, we are excluding all of intel chipset...
-    if ((gpuModel.find("Intel ") != std::string::npos)) {
-        return false;
-    }
-*/
     return true;
 #elif defined(Q_OS_ANDROID)
     return false;
