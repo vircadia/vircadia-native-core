@@ -18,7 +18,6 @@ import PerformanceEnums 1.0
 
 Flickable {
     property string avatarNametagMode: Settings.getValue("simplifiedNametag/avatarNametagMode", "on")
-    property bool emoteIndicatorVisible: true;
     id: root
     contentWidth: parent.width
     contentHeight: generalColumnLayout.height
@@ -137,11 +136,20 @@ Flickable {
                     Layout.preferredHeight: 18
                     Layout.preferredWidth: parent.width
                     labelTextOn: "Show Emote UI"
-                    checked: root.emoteIndicatorVisible
+                    checked: Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)
                     onClicked: {
-                        root.emoteIndicatorVisible = !root.emoteIndicatorVisible;
-                        sendEmoteVisible({method: 'handleEmoteIndicatorVisible', emoteIndicatorVisible: root.emoteIndicatorVisible, source: "SettingsApp.qml"});
-                        console.log("emoteSwitch clicked. Emote UI is ", root.emoteIndicatorVisible);
+                        var currentSetting = Settings.getValue("simplifiedUI/emoteIndicatorVisible", true);
+                        Settings.setValue("simplifiedUI/emoteIndicatorVisible", !currentSetting);
+                    }                    
+
+                    Connections {
+                        target: Settings
+
+                        onValueChanged: {
+                            if (setting === "simplifiedUI/emoteIndicatorVisible") {
+                                emoteSwitch.checked = value;
+                            }
+                        }
                     }
                 }
             }
