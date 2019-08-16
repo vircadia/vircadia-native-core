@@ -284,10 +284,12 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
             _numStuckSubsteps = NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY;
             _stuckTransitionCount = 0;
             if (_isStuck) {
-                _physicsEngine->addContactAddedCallback(applyPairwiseFilter);
+                // enable pairwise filter
+                _physicsEngine->setContactAddedCallback(applyPairwiseFilter);
                 _pairwiseFilter.incrementStepCount();
             } else {
-                _physicsEngine->removeContactAddedCallback(applyPairwiseFilter);
+                // disable pairwise filter
+                _physicsEngine->setContactAddedCallback(nullptr);
                 _appliedStuckRecoveryStrategy = false;
                 _pairwiseFilter.clearAllEntries();
             }

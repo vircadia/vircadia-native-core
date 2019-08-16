@@ -27,29 +27,6 @@
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
-// a list of sub-callbacks
-std::vector<PhysicsEngine::ContactAddedCallback> _contactAddedCallbacks;
-
-// a callback that calls each sub-callback in the list
-// if one returns 'true' --> break and return
-bool globalContactAddedCallback(btManifoldPoint& cp,
-        const btCollisionObjectWrapper* colObj0Wrap, int partId0, int index0,
-        const btCollisionObjectWrapper* colObj1Wrap, int partId1, int index1) {
-    // call each callback
-    for (auto cb : _contactAddedCallbacks) {
-        if (cb(cp, colObj0Wrap, partId0, index0, colObj1Wrap, partId1, index1)) {
-            // Not a Bullet convention, but one we are using for sub-callbacks:
-            // a return value of 'true' indicates the contact has been "disabled"
-            // in which case there is no need to process other callbacks
-            break;
-        }
-    }
-    // by Bullet convention for its gContactAddedCallback feature:
-    // the return value is currently ignored but to be future-proof:
-    // return true when friction has been modified
-    return false;
-}
-
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
         _myAvatarController(nullptr) {
@@ -843,31 +820,11 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
     }
 }
 
-void PhysicsEngine::addContactAddedCallback(PhysicsEngine::ContactAddedCallback newCb) {
-    for (auto cb : _contactAddedCallbacks) {
-        if (cb == newCb) {
-            // newCb is already in the list
-            return;
-        }
-    }
-    _contactAddedCallbacks.push_back(newCb);
-    gContactAddedCallback = globalContactAddedCallback;
-}
-
-void PhysicsEngine::removeContactAddedCallback(PhysicsEngine::ContactAddedCallback cb) {
-    int32_t numCallbacks = (int32_t)(_contactAddedCallbacks.size());
-    for (int32_t i = 0; i < numCallbacks; ++i) {
-        if (_contactAddedCallbacks[i] == cb) {
-            // found it --> remove it
-            _contactAddedCallbacks[i] = _contactAddedCallbacks[numCallbacks - 1];
-            _contactAddedCallbacks.pop_back();
-            numCallbacks--;
-            break;
-        }
-    }
-    if (numCallbacks == 0) {
-        gContactAddedCallback = nullptr;
-    }
+void PhysicsEngine::setContactAddedCallback(PhysicsEngine::ContactAddedCallback newCb) {
+    // gContactAddedCallback is a special feature hook in Bullet
+    // if non-null AND one of the colliding objects has btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK flag set
+    // then it is called whenever a new candidate contact point is created
+    gContactAddedCallback = newCb;
 }
 
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {

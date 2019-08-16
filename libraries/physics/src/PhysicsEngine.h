@@ -154,8 +154,7 @@ public:
     // See PhysicsCollisionGroups.h for mask flags.
     std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC, float threshold = 0.0f) const;
 
-    void addContactAddedCallback(ContactAddedCallback cb);
-    void removeContactAddedCallback(ContactAddedCallback cb);
+    void setContactAddedCallback(ContactAddedCallback cb);
 
     btDiscreteDynamicsWorld* getDynamicsWorld() const { return _dynamicsWorld; }
     void removeContacts(ObjectMotionState* motionState);
