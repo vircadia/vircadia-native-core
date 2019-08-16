@@ -140,6 +140,13 @@ function toggleReaction(reaction) {
         });
     } else {
         beginReactionWrapper(reaction);
+        emoteAppBarWindow.sendToQml({
+            "source": "simplifiedEmote.js",
+            "method": "updateEmoteIndicator",
+            "data": {
+                "icon": reaction
+            }
+        });
     }
 }
 
@@ -222,14 +229,6 @@ function onMessageFromEmoteAppBar(message) {
             console.log("Unrecognized message from " + EMOTE_APP_BAR_MESSAGE_SOURCE + ": " + JSON.stringify(message));
             break;
     }
-
-    emoteAppBarWindow.sendToQml({
-        "source": "simplifiedEmote.js",
-        "method": "updateEmoteIndicator",
-        "data": {
-            "icon": message.method
-        }
-    });
 }
 
 
