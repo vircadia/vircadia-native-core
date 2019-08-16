@@ -77,9 +77,6 @@ public:
     virtual void locationChanged(bool tellPhysics, bool tellChildren) override;
     virtual void dimensionsChanged() override;
 
-    bool lightPropertiesChanged() const { return _lightPropertiesChanged; }
-    void resetLightPropertiesChanged();
-
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                             OctreeElementPointer& element, float& distance,
@@ -98,8 +95,6 @@ private:
     float _falloffRadius { DEFAULT_FALLOFF_RADIUS };
     float _exponent { DEFAULT_EXPONENT };
     float _cutoff { DEFAULT_CUTOFF };
-    // Dirty flag turn true when either light properties is changing values.
-    bool _lightPropertiesChanged { false };
 
     static bool _lightsArePickable;
 };

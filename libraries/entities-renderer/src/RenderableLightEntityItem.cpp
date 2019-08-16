@@ -18,11 +18,6 @@ using namespace render;
 using namespace render::entities;
 
 void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    // Reset the value before reading the data!
-    // otherwise there could be a race condition where the value changes
-    // after we read it but before we reset, and we never see the change
-    entity->resetLightPropertiesChanged();
-
     auto& lightPayload = *_lightPayload;
 
     lightPayload.setVisible(_visible);
@@ -67,10 +62,6 @@ ItemKey LightEntityRenderer::getKey() {
 
 Item::Bound LightEntityRenderer::getBound() {
     return payloadGetBound(_lightPayload);
-}
-
-bool LightEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    return entity->lightPropertiesChanged();
 }
 
 void LightEntityRenderer::doRender(RenderArgs* args) {

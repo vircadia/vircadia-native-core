@@ -8,23 +8,32 @@
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
 import QtQuick 2.7
-import QtQuick.Controls 1.4
+import QtQuick.Controls 2.5
 import QtQuick.Layouts 1.3
 
-import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
 
 import "../lib/jet/qml" as Jet
 
 Item {
-    HifiConstants { id: hifi;}
+    anchors.fill: parent 
     id: root;   
-    anchors.fill: parent
-
+    
     property var rootConfig: Render.getConfig("")
 
-    Jet.TaskListView {
-        rootConfig: root.rootConfig
-        anchors.fill: root        
+    ScrollView {
+        id: scrollView
+        anchors.fill: parent 
+        contentWidth: parent.width
+        clip: true
+
+        Column {
+            anchors.left: parent.left 
+            anchors.right: parent.right 
+
+            Jet.TaskPropView {
+                rootConfig: root.rootConfig
+                anchors.fill: root        
+            }
+        }
     }
 }

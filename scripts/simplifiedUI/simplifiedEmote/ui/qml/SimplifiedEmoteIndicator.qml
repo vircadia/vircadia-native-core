@@ -11,6 +11,7 @@
 
 import QtQuick 2.10
 import QtQuick.Controls 2.3
+import QtGraphicalEffects 1.0
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
@@ -59,7 +60,13 @@ Rectangle {
             height: 30
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            source: "../../resources/images/emote_Icon.svg"
+            source: "images/emote_Icon.svg"
+        }
+
+        ColorOverlay {
+            anchors.fill: emoteIndicator
+            source: emoteIndicator
+            color: "#ffffff"
         }
 
         MouseArea {
@@ -90,10 +97,10 @@ Rectangle {
             id: emoteButtonsRepeater
             model: ListModel {
                 id: buttonsModel
-                ListElement { imageURL: "images/happy_Icon.svg"; method: "positive" }
-                ListElement { imageURL: "images/sad_Icon.svg"; method: "negative" }
+                ListElement { imageURL: "images/positive_Icon.svg"; method: "positive" }
+                ListElement { imageURL: "images/negative_Icon.svg"; method: "negative" }
                 ListElement { imageURL: "images/raiseHand_Icon.svg"; method: "raiseHand" }
-                ListElement { imageURL: "images/clap_Icon.svg"; method: "applaud" }
+                ListElement { imageURL: "images/applaud_Icon.svg"; method: "applaud" }
                 ListElement { imageURL: "images/point_Icon.svg"; method: "point" }
                 ListElement { imageURL: "images/emote_Icon.svg"; method: "toggleEmojiApp" }
             }
@@ -102,9 +109,10 @@ Rectangle {
                 width: mainEmojiContainer.width
                 height: drawerContainer.height
                 // For the below to work, the This Rectangle's second child must be the `MouseArea`
-                color: children[1].containsMouse ? "#CCCCCC" : simplifiedUI.colors.white
+                color: children[1].containsMouse ? "#000000" : simplifiedUI.colors.white
 
                 Image {
+                    id: emoteTrayButtonImage
                     width: 30
                     height: 30
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -114,6 +122,7 @@ Rectangle {
                 }
 
                 MouseArea {
+                    id: emoteTrayMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
                     onClicked: {
@@ -128,6 +137,13 @@ Rectangle {
                         Tablet.playSound(TabletEnums.ButtonHover);
                     }
                 }
+
+                ColorOverlay {
+                    anchors.fill: emoteTrayButtonImage
+                    opacity: emoteTrayMouseArea.containsMouse ? 1.0 : 0
+                    source: emoteTrayButtonImage
+                    color: "#ffffff"
+                }
             }
         }
     }
@@ -140,10 +156,12 @@ Rectangle {
         switch (message.method) {
             case "updateEmoteIndicator":
                 if (message.data.icon) {
-                print("UPDATING EMOTE INDICATOR");
-                    emoteIndicator.text = message.data.icon[0];
+                print("CHANGING INDICATOR TO: ", message.data.icon);
+                    var imageURL = "images/" + message.data.icon + "_Icon.svg";
+                    emoteIndicator.source = imageURL;
                 }
                 break;
+
             default:
                 print("MESSAGE TO THE EMOTE INDICATOR QML RECEIVED: ", JSON.stringify(message));
                 console.log('SimplifiedEmoteIndicator.qml: Unrecognized message from JS');

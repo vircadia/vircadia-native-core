@@ -150,16 +150,15 @@ Rectangle {
         GridView {
             id: grid
             anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
-            cellWidth: 40
-            cellHeight: 40
+            anchors.leftMargin: 30
+            anchors.rightMargin: 24
+            cellWidth: 60
+            cellHeight: 60
             model: filteredModel
             delegate: Image {
-                    width: 36
-                    height: 36
+                    width: 52
+                    height: 52
                     source: emoji36BaseURL + model.code.utf + ".png"
-                    fillMode: Image.Pad
                     MouseArea {
                         hoverEnabled: enabled
                         anchors.fill: parent

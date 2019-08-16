@@ -41,46 +41,6 @@ bool ImageEntityRenderer::needsRenderUpdate() const {
     return Parent::needsRenderUpdate();
 }
 
-bool ImageEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    bool needsUpdate = resultWithReadLock<bool>([&] {
-        if (_imageURL != entity->getImageURL()) {
-            return true;
-        }
-
-        if (_emissive != entity->getEmissive()) {
-            return true;
-        }
-
-        if (_keepAspectRatio != entity->getKeepAspectRatio()) {
-            return true;
-        }
-
-        if (_billboardMode != entity->getBillboardMode()) {
-            return true;
-        }
-
-        if (_subImage != entity->getSubImage()) {
-            return true;
-        }
-
-        if (_color != entity->getColor()) {
-            return true;
-        }
-
-        if (_alpha != entity->getAlpha()) {
-            return true;
-        }
-
-        if (_pulseProperties != entity->getPulseProperties()) {
-            return true;
-        }
-
-        return false;
-    });
-
-    return needsUpdate;
-}
-
 void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     withWriteLock([&] {
         auto imageURL = entity->getImageURL();

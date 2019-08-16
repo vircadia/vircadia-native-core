@@ -167,211 +167,446 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
 }
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {
+    alpha = glm::clamp(alpha, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+
     withWriteLock([&] {
-        _particleProperties.alpha.gradient.target  = glm::clamp(alpha, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+        _needsRenderUpdate |= _particleProperties.alpha.gradient.target != alpha;
+        _particleProperties.alpha.gradient.target  = alpha;
+    });
+}
+
+float ParticleEffectEntityItem::getAlpha() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.alpha.gradient.target;
     });
 }
 
 void ParticleEffectEntityItem::setAlphaStart(float alphaStart) {
+    alphaStart = glm::isnan(alphaStart) ? alphaStart : glm::clamp(alphaStart, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+
     withWriteLock([&] {
-        _particleProperties.alpha.range.start = glm::isnan(alphaStart) ? alphaStart : glm::clamp(alphaStart, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+        _needsRenderUpdate |= _particleProperties.alpha.range.start != alphaStart;
+        _particleProperties.alpha.range.start = alphaStart;
+    });
+}
+
+float ParticleEffectEntityItem::getAlphaStart() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.alpha.range.start;
     });
 }
 
 void ParticleEffectEntityItem::setAlphaFinish(float alphaFinish) {
+    alphaFinish = glm::isnan(alphaFinish) ? alphaFinish : glm::clamp(alphaFinish, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+
     withWriteLock([&] {
-        _particleProperties.alpha.range.finish = glm::isnan(alphaFinish) ? alphaFinish : glm::clamp(alphaFinish, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+        _needsRenderUpdate |= _particleProperties.alpha.range.finish != alphaFinish;
+        _particleProperties.alpha.range.finish = alphaFinish;
+    });
+}
+
+float ParticleEffectEntityItem::getAlphaFinish() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.alpha.range.finish;
     });
 }
 
 void ParticleEffectEntityItem::setAlphaSpread(float alphaSpread) {
+    alphaSpread = glm::clamp(alphaSpread, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+
     withWriteLock([&] {
-        _particleProperties.alpha.gradient.spread = glm::clamp(alphaSpread, MINIMUM_ALPHA, MAXIMUM_ALPHA);
+        _needsRenderUpdate |= _particleProperties.alpha.gradient.spread != alphaSpread;
+        _particleProperties.alpha.gradient.spread = alphaSpread;
+    });
+}
+
+float ParticleEffectEntityItem::getAlphaSpread() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.alpha.gradient.spread;
     });
 }
 
 void ParticleEffectEntityItem::setLifespan(float lifespan) {
     lifespan = glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN);
-    if (lifespan != _particleProperties.lifespan) {
-        withWriteLock([&] {
-            _particleProperties.lifespan = lifespan;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.lifespan != lifespan;
+        _needsRenderUpdate |= changed;
+        _particleProperties.lifespan = lifespan;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
 }
 
+float ParticleEffectEntityItem::getLifespan() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.lifespan;
+    });
+}
+
 void ParticleEffectEntityItem::setEmitRate(float emitRate) {
+    emitRate = glm::clamp(emitRate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE);
+
     withWriteLock([&] {
-        _particleProperties.emission.rate = glm::clamp(emitRate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE);
+        _needsRenderUpdate |= _particleProperties.emission.rate != emitRate;
+        _particleProperties.emission.rate = emitRate;
+    });
+}
+
+float ParticleEffectEntityItem::getEmitRate() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.emission.rate;
     });
 }
 
 void ParticleEffectEntityItem::setEmitSpeed(float emitSpeed) {
     emitSpeed = glm::clamp(emitSpeed, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED);
-    if (emitSpeed != _particleProperties.emission.speed.target) {
-        withWriteLock([&] { 
-            _particleProperties.emission.speed.target = emitSpeed; 
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.emission.speed.target != emitSpeed;
+        _needsRenderUpdate |= changed;
+        _particleProperties.emission.speed.target = emitSpeed;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+float ParticleEffectEntityItem::getEmitSpeed() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.emission.speed.target;
+    });
 }
 
 void ParticleEffectEntityItem::setSpeedSpread(float speedSpread) {
     speedSpread = glm::clamp(speedSpread, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED);
-    if (speedSpread != _particleProperties.emission.speed.spread) {
-        withWriteLock([&] { 
-            _particleProperties.emission.speed.spread = speedSpread;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.emission.speed.spread != speedSpread;
+        _needsRenderUpdate |= changed;
+        _particleProperties.emission.speed.spread = speedSpread;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+float ParticleEffectEntityItem::getSpeedSpread() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.emission.speed.spread;
+    });
 }
 
 void ParticleEffectEntityItem::setEmitOrientation(const glm::quat& emitOrientation_) {
     auto emitOrientation = glm::normalize(emitOrientation_);
-    if (emitOrientation != _particleProperties.emission.orientation) {
-        withWriteLock([&] {
-            _particleProperties.emission.orientation = emitOrientation;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.emission.orientation != emitOrientation;
+        _needsRenderUpdate |= changed;
+        _particleProperties.emission.orientation = emitOrientation;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+glm::quat ParticleEffectEntityItem::getEmitOrientation() const {
+    return resultWithReadLock<glm::quat>([&] {
+        return _particleProperties.emission.orientation;
+    });
 }
 
 void ParticleEffectEntityItem::setEmitDimensions(const glm::vec3& emitDimensions_) {
     auto emitDimensions = glm::clamp(emitDimensions_, vec3(MINIMUM_EMIT_DIMENSION), vec3(MAXIMUM_EMIT_DIMENSION));
-    if (emitDimensions != _particleProperties.emission.dimensions) {
-        withWriteLock([&] { 
-            _particleProperties.emission.dimensions = emitDimensions;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.emission.dimensions != emitDimensions;
+        _needsRenderUpdate |= changed;
+        _particleProperties.emission.dimensions = emitDimensions;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
 }
 
+glm::vec3 ParticleEffectEntityItem::getEmitDimensions() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _particleProperties.emission.dimensions;
+    });
+}
+
 void ParticleEffectEntityItem::setEmitRadiusStart(float emitRadiusStart) {
+    emitRadiusStart = glm::clamp(emitRadiusStart, MINIMUM_EMIT_RADIUS_START, MAXIMUM_EMIT_RADIUS_START);
+
     withWriteLock([&] {
-        _particleProperties.radiusStart = glm::clamp(emitRadiusStart, MINIMUM_EMIT_RADIUS_START, MAXIMUM_EMIT_RADIUS_START);
+        _needsRenderUpdate |= _particleProperties.radiusStart != emitRadiusStart;
+        _particleProperties.radiusStart = emitRadiusStart;
+    });
+}
+
+float ParticleEffectEntityItem::getEmitRadiusStart() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.radiusStart;
     });
 }
 
 void ParticleEffectEntityItem::setPolarStart(float polarStart) {
+    polarStart = glm::clamp(polarStart, MINIMUM_POLAR, MAXIMUM_POLAR);
+
     withWriteLock([&] {
-        _particleProperties.polar.start = glm::clamp(polarStart, MINIMUM_POLAR, MAXIMUM_POLAR);
+        _needsRenderUpdate |= _particleProperties.polar.start != polarStart;
+        _particleProperties.polar.start = polarStart;
+    });
+}
+
+float ParticleEffectEntityItem::getPolarStart() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.polar.start;
     });
 }
 
 void ParticleEffectEntityItem::setPolarFinish(float polarFinish) {
+    polarFinish = glm::clamp(polarFinish, MINIMUM_POLAR, MAXIMUM_POLAR);
+
     withWriteLock([&] {
-        _particleProperties.polar.finish = glm::clamp(polarFinish, MINIMUM_POLAR, MAXIMUM_POLAR);
+        _needsRenderUpdate |= _particleProperties.polar.finish != polarFinish;
+        _particleProperties.polar.finish = polarFinish;
+    });
+}
+
+float ParticleEffectEntityItem::getPolarFinish() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.polar.finish;
     });
 }
 
 void ParticleEffectEntityItem::setAzimuthStart(float azimuthStart) {
+    azimuthStart = glm::clamp(azimuthStart, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH);
+
     withWriteLock([&] {
-        _particleProperties.azimuth.start = glm::clamp(azimuthStart, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH);
+        _needsRenderUpdate |= _particleProperties.azimuth.start != azimuthStart;
+        _particleProperties.azimuth.start = azimuthStart;
+    });
+}
+
+float ParticleEffectEntityItem::getAzimuthStart() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.azimuth.start;
     });
 }
 
 void ParticleEffectEntityItem::setAzimuthFinish(float azimuthFinish) {
+    azimuthFinish = glm::clamp(azimuthFinish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH);
+
     withWriteLock([&] {
-        _particleProperties.azimuth.finish = glm::clamp(azimuthFinish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH);
+        _needsRenderUpdate |= _particleProperties.azimuth.finish != azimuthFinish;
+        _particleProperties.azimuth.finish = azimuthFinish;
+    });
+}
+
+float ParticleEffectEntityItem::getAzimuthFinish() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.azimuth.finish;
     });
 }
 
 void ParticleEffectEntityItem::setEmitAcceleration(const glm::vec3& emitAcceleration_) {
     auto emitAcceleration = glm::clamp(emitAcceleration_, vec3(MINIMUM_EMIT_ACCELERATION), vec3(MAXIMUM_EMIT_ACCELERATION));
-    if (emitAcceleration != _particleProperties.emission.acceleration.target) {
-        withWriteLock([&] {
-            _particleProperties.emission.acceleration.target = emitAcceleration;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.emission.acceleration.target != emitAcceleration;
+        _needsRenderUpdate |= changed;
+        _particleProperties.emission.acceleration.target = emitAcceleration;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+glm::vec3 ParticleEffectEntityItem::getEmitAcceleration() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _particleProperties.emission.acceleration.target;
+    });
 }
 
 void ParticleEffectEntityItem::setAccelerationSpread(const glm::vec3& accelerationSpread_){
     auto accelerationSpread = glm::clamp(accelerationSpread_, vec3(MINIMUM_ACCELERATION_SPREAD), vec3(MAXIMUM_ACCELERATION_SPREAD));
-    if (accelerationSpread != _particleProperties.emission.acceleration.spread) {
-        withWriteLock([&] {
-            _particleProperties.emission.acceleration.spread = accelerationSpread;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.emission.acceleration.spread != accelerationSpread;
+        _needsRenderUpdate |= changed;
+        _particleProperties.emission.acceleration.spread = accelerationSpread;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+glm::vec3 ParticleEffectEntityItem::getAccelerationSpread() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _particleProperties.emission.acceleration.spread;
+    });
 }
 
 void ParticleEffectEntityItem::setParticleRadius(float particleRadius) {
     particleRadius = glm::clamp(particleRadius, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    if (particleRadius != _particleProperties.radius.gradient.target) {
-        withWriteLock([&] {
-            _particleProperties.radius.gradient.target = particleRadius;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.radius.gradient.target != particleRadius;
+        _needsRenderUpdate |= changed;
+        _particleProperties.radius.gradient.target = particleRadius;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+float ParticleEffectEntityItem::getParticleRadius() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.radius.gradient.target;
+    });
 }
 
 void ParticleEffectEntityItem::setRadiusStart(float radiusStart) {
     radiusStart = glm::isnan(radiusStart) ? radiusStart : glm::clamp(radiusStart, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    if (radiusStart != _particleProperties.radius.range.start) {
-        withWriteLock([&] {
-            _particleProperties.radius.range.start = radiusStart;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.radius.range.start != radiusStart;
+        _needsRenderUpdate |= changed;
+        _particleProperties.radius.range.start = radiusStart;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+float ParticleEffectEntityItem::getRadiusStart() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.radius.range.start;
+    });
 }
 
 void ParticleEffectEntityItem::setRadiusFinish(float radiusFinish) {
     radiusFinish = glm::isnan(radiusFinish) ? radiusFinish : glm::clamp(radiusFinish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    if (radiusFinish != _particleProperties.radius.range.finish) {
-        withWriteLock([&] {
-            _particleProperties.radius.range.finish = radiusFinish;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.radius.range.finish != radiusFinish;
+        _needsRenderUpdate |= changed;
+        _particleProperties.radius.range.finish = radiusFinish;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
+}
+
+float ParticleEffectEntityItem::getRadiusFinish() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.radius.range.finish;
+    });
 }
 
 void ParticleEffectEntityItem::setRadiusSpread(float radiusSpread) {
     radiusSpread = glm::clamp(radiusSpread, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS);
-    if (radiusSpread != _particleProperties.radius.gradient.spread) {
-        withWriteLock([&] {
-            _particleProperties.radius.gradient.spread = radiusSpread;
-        });
+
+    bool changed;
+    withWriteLock([&] {
+        changed = _particleProperties.radius.gradient.spread != radiusSpread;
+        _needsRenderUpdate |= changed;
+        _particleProperties.radius.gradient.spread = radiusSpread;
+    });
+
+    if (changed) {
         computeAndUpdateDimensions();
     }
 }
 
+float ParticleEffectEntityItem::getRadiusSpread() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.radius.gradient.spread;
+    });
+}
+
 void ParticleEffectEntityItem::setParticleSpin(float particleSpin) {
     particleSpin = glm::clamp(particleSpin, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN);
-    if (particleSpin != _particleProperties.spin.gradient.target) {
-        withWriteLock([&] {
-            _particleProperties.spin.gradient.target = particleSpin;
-        });
-    }
+
+    withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.spin.gradient.target != particleSpin;
+        _particleProperties.spin.gradient.target = particleSpin;
+    });
+}
+
+float ParticleEffectEntityItem::getParticleSpin() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.spin.gradient.target;
+    });
 }
 
 void ParticleEffectEntityItem::setSpinStart(float spinStart) {
     spinStart =
         glm::isnan(spinStart) ? spinStart : glm::clamp(spinStart, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN);
-    if (spinStart != _particleProperties.spin.range.start) {
-        withWriteLock([&] {
-            _particleProperties.spin.range.start = spinStart;
-        });
-    }
+
+    withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.spin.range.start != spinStart;
+        _particleProperties.spin.range.start = spinStart;
+    });
+}
+
+float ParticleEffectEntityItem::getSpinStart() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.spin.range.start;
+    });
 }
 
 void ParticleEffectEntityItem::setSpinFinish(float spinFinish) {
     spinFinish =
         glm::isnan(spinFinish) ? spinFinish : glm::clamp(spinFinish, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN);
-    if (spinFinish != _particleProperties.spin.range.finish) {
-        withWriteLock([&] {
-            _particleProperties.spin.range.finish = spinFinish;
-        });
-    }
+
+    withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.spin.range.finish != spinFinish;
+        _particleProperties.spin.range.finish = spinFinish;
+    });
+}
+
+float ParticleEffectEntityItem::getSpinFinish() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.spin.range.finish;
+    });
 }
 
 void ParticleEffectEntityItem::setSpinSpread(float spinSpread) {
     spinSpread = glm::clamp(spinSpread, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN);
-    if (spinSpread != _particleProperties.spin.gradient.spread) {
-        withWriteLock([&] {
-            _particleProperties.spin.gradient.spread = spinSpread;
-        });
-    }
+
+    withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.spin.gradient.spread != spinSpread;
+        _particleProperties.spin.gradient.spread = spinSpread;
+    });
+}
+
+float ParticleEffectEntityItem::getSpinSpread() const {
+    return resultWithReadLock<float>([&] {
+        return _particleProperties.spin.gradient.spread;
+    });
 }
 
 void ParticleEffectEntityItem::computeAndUpdateDimensions() {
@@ -471,6 +706,7 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
@@ -529,7 +765,14 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
 
 void ParticleEffectEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.color.gradient.target != glm::vec3(value);
         _particleProperties.color.gradient.target = value;
+    });
+}
+
+glm::u8vec3 ParticleEffectEntityItem::getColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _particleProperties.color.gradient.target;
     });
 }
 
@@ -740,6 +983,7 @@ void ParticleEffectEntityItem::setShapeType(ShapeType type) {
     }
 
     withWriteLock([&] {
+        _needsRenderUpdate |= _shapeType != type;
         _shapeType = type;
     });
 }
@@ -752,6 +996,7 @@ ShapeType ParticleEffectEntityItem::getShapeType() const {
 
 void ParticleEffectEntityItem::setCompoundShapeURL(const QString& compoundShapeURL) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _compoundShapeURL != compoundShapeURL;
         _compoundShapeURL = compoundShapeURL;
     });
 }
@@ -762,44 +1007,90 @@ QString ParticleEffectEntityItem::getCompoundShapeURL() const {
     });
 }
 
-void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
+void ParticleEffectEntityItem::setIsEmitting(bool isEmitting) {
     withWriteLock([&] {
-        _particleProperties.maxParticles = glm::clamp(maxParticles, MINIMUM_MAX_PARTICLES, MAXIMUM_MAX_PARTICLES);
+        _needsRenderUpdate |= _isEmitting != isEmitting;
+        _isEmitting = isEmitting;
+    });
+}
+
+void ParticleEffectEntityItem::setMaxParticles(quint32 maxParticles) {
+    maxParticles = glm::clamp(maxParticles, MINIMUM_MAX_PARTICLES, MAXIMUM_MAX_PARTICLES);
+
+    withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.maxParticles != maxParticles;
+        _particleProperties.maxParticles = maxParticles;
+    });
+}
+
+quint32 ParticleEffectEntityItem::getMaxParticles() const {
+    return resultWithReadLock<quint32>([&] {
+        return _particleProperties.maxParticles;
     });
 }
 
 void ParticleEffectEntityItem::setTextures(const QString& textures) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.textures != textures;
         _particleProperties.textures = textures;
+    });
+}
+
+QString ParticleEffectEntityItem::getTextures() const {
+    return resultWithReadLock<QString>([&] {
+        return _particleProperties.textures;
     });
 }
 
 void ParticleEffectEntityItem::setColorStart(const vec3& colorStart) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.color.range.start != colorStart;
         _particleProperties.color.range.start = colorStart;
+    });
+}
+
+glm::vec3 ParticleEffectEntityItem::getColorStart() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _particleProperties.color.range.start;
     });
 }
 
 void ParticleEffectEntityItem::setColorFinish(const vec3& colorFinish) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.color.range.finish != colorFinish;
         _particleProperties.color.range.finish = colorFinish;
+    });
+}
+
+glm::vec3 ParticleEffectEntityItem::getColorFinish() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _particleProperties.color.range.finish;
     });
 }
 
 void ParticleEffectEntityItem::setColorSpread(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.color.gradient.spread != glm::vec3(value);
         _particleProperties.color.gradient.spread = value;
+    });
+}
+
+glm::u8vec3 ParticleEffectEntityItem::getColorSpread() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _particleProperties.color.gradient.spread;
     });
 }
 
 void ParticleEffectEntityItem::setEmitterShouldTrail(bool emitterShouldTrail) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.emission.shouldTrail != emitterShouldTrail;
         _particleProperties.emission.shouldTrail = emitterShouldTrail;
     });
 }
 
 void ParticleEffectEntityItem::setRotateWithEntity(bool rotateWithEntity) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _particleProperties.rotateWithEntity != rotateWithEntity;
         _particleProperties.rotateWithEntity = rotateWithEntity;
     });
 }
@@ -808,33 +1099,33 @@ particle::Properties ParticleEffectEntityItem::getParticleProperties() const {
     particle::Properties result;  
     withReadLock([&] {
         result = _particleProperties;
-
-        // Special case the properties that get treated differently if they're unintialized
-        if (glm::any(glm::isnan(result.color.range.start))) {
-            result.color.range.start = getColor();
-        }
-        if (glm::any(glm::isnan(result.color.range.finish))) {
-            result.color.range.finish = getColor();
-        }
-        if (glm::isnan(result.alpha.range.start)) {
-            result.alpha.range.start = getAlpha();
-        }
-        if (glm::isnan(result.alpha.range.finish)) {
-            result.alpha.range.finish = getAlpha();
-        }
-        if (glm::isnan(result.radius.range.start)) {
-            result.radius.range.start = getParticleRadius();
-        }
-        if (glm::isnan(result.radius.range.finish)) {
-            result.radius.range.finish = getParticleRadius();
-        }
-        if (glm::isnan(result.spin.range.start)) {
-            result.spin.range.start = getParticleSpin();
-        }
-        if (glm::isnan(result.spin.range.finish)) {
-            result.spin.range.finish = getParticleSpin();
-        }
     });
+
+    // Special case the properties that get treated differently if they're unintialized
+    if (glm::any(glm::isnan(result.color.range.start))) {
+        result.color.range.start = getColor();
+    }
+    if (glm::any(glm::isnan(result.color.range.finish))) {
+        result.color.range.finish = getColor();
+    }
+    if (glm::isnan(result.alpha.range.start)) {
+        result.alpha.range.start = getAlpha();
+    }
+    if (glm::isnan(result.alpha.range.finish)) {
+        result.alpha.range.finish = getAlpha();
+    }
+    if (glm::isnan(result.radius.range.start)) {
+        result.radius.range.start = getParticleRadius();
+    }
+    if (glm::isnan(result.radius.range.finish)) {
+        result.radius.range.finish = getParticleRadius();
+    }
+    if (glm::isnan(result.spin.range.start)) {
+        result.spin.range.start = getParticleSpin();
+    }
+    if (glm::isnan(result.spin.range.finish)) {
+        result.spin.range.finish = getParticleSpin();
+    }
 
     if (!result.valid()) {
         qCWarning(entities) << "failed validation";

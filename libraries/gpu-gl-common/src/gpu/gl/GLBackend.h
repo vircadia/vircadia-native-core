@@ -584,6 +584,7 @@ protected:
     friend class GLState;
     friend class GLTexture;
     friend class GLShader;
+    friend class GLPipeline;
 };
 
 }}  // namespace gpu::gl
