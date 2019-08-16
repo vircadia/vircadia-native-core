@@ -689,7 +689,6 @@ void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
 }
 
 void PhysicsEngine::setCharacterController(CharacterController* character) {
-    assert(!_myAvatarCharacterController);
     _myAvatarController = character;
 }
 
