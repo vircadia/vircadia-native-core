@@ -16,6 +16,7 @@ import TabletScriptingInterface 1.0
 import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
 import "../../resources/modules/emojiList.js" as EmojiList
+import "../../resources/modules/customEmojiList.js" as CustomEmojiList
 import "./ProgressCircle"
 
 Rectangle {
@@ -24,8 +25,8 @@ Rectangle {
     anchors.fill: parent
     
     // Used for the indicator picture
-    readonly property string emojiBaseURL: "../../resources/images/emojis/png1024/"
-    readonly property string emoji36BaseURL: "../../resources/images/emojis/png36/"
+    readonly property string emojiBaseURL: "../../resources/images/emojis/1024px/"
+    readonly property string emoji52BaseURL: "../../resources/images/emojis/52px/"
     // Capture the selected code to handle which emoji to show
     property string currentCode: ""
     // if this is true, then hovering doesn't allow showing other icons
@@ -33,7 +34,7 @@ Rectangle {
 
     // Update the selected emoji image whenever the code property is changed.
     onCurrentCodeChanged: {
-        mainEmojiImage.source = emojiBaseURL + currentCode + ".png";
+        mainEmojiImage.source = emojiBaseURL + currentCode;
     }
 
     SimplifiedConstants.SimplifiedConstants {
@@ -67,7 +68,7 @@ Rectangle {
             files to be in the repo or loading that big config.json file. 
         */
         EmojiList.emojiList
-            .filter( emoji => {
+            .filter(emoji => {
                 return emoji.mainCategory === "Smileys & Emotion" || 
                 emoji.mainCategory === "People & Body" ||
                 emoji.mainCategory === "Animals & Nature" ||
@@ -80,9 +81,15 @@ Rectangle {
                 mainModel.append(item);
                 filteredModel.append(item);
             });
-            // Deleting this might remove any emoji that is shown when you open the app
-            // Keeping in case the spec design might prefer this instead
-            root.currentCode = filteredModel.get(0).code.utf;
+        CustomEmojiList.customEmojiList
+            .forEach(function(item, index){
+                item.code = { utf: item.name }
+                item.keywords = { keywords: item.keywords }
+                mainModel.append(item);
+                filteredModel.append(item);
+            });
+            
+        root.currentCode = filteredModel.get(0).code.utf;
     }
 
     Rectangle {
@@ -103,6 +110,7 @@ Rectangle {
             opacity: 0.5
             fillMode: Image.PreserveAspectFit
             visible: true
+            mipmap: true
         }
 
         Image {
@@ -113,6 +121,7 @@ Rectangle {
             source: ""
             fillMode: Image.PreserveAspectFit
             visible: false
+            mipmap: true
         }
 
         // The overlay used during the pie timeout
@@ -158,7 +167,8 @@ Rectangle {
             delegate: Image {
                     width: 52
                     height: 52
-                    source: emoji36BaseURL + model.code.utf + ".png"
+                    source: emoji52BaseURL + model.code.utf
+                    fillMode: Image.PreserveAspectFit
                     MouseArea {
                         hoverEnabled: enabled
                         anchors.fill: parent
