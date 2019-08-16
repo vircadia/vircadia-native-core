@@ -320,7 +320,6 @@ function showEmoteAppBar() {
 
 
 function handleEmoteIndicatorVisibleChanged(newValue) {
-    console.log("ZRF 2" + emoteAppBarWindow);
     if (newValue && !emoteAppBarWindow) {
         showEmoteAppBar();
     } else if (emoteAppBarWindow) {
