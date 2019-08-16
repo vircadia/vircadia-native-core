@@ -21,7 +21,7 @@ Item {
     property int mainTextSize: 18
     property int subTextSize: 14
     property color separatorColor: "#CCCCCC"
-    height: controlsTableColumnLayout.height
+    Layout.preferredHeight: controlsTableColumnLayout.height
         
     // Top separator
     Rectangle {
@@ -43,7 +43,8 @@ Item {
 
     // Bottom separator
     Rectangle {
-        anchors.bottom: controlsTableColumnLayout.bottom
+        anchors.top: controlsTableColumnLayout.top
+        anchors.topMargin: controlsTableRoot.height
         anchors.left: controlsTableColumnLayout.left
         width: parent.width
         height: 1
@@ -68,11 +69,11 @@ Item {
 
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 Image {
                     source: "images/rightClick.svg"
@@ -92,9 +93,15 @@ Item {
                 }
             }
 
+            // Spacer
+            Item {
+                width: controlsTableRoot.rowPadding
+                height: parent.height
+            }
+
             Row {
                 width: controlsTableRoot.column2Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 spacing: controlsTableRoot.rowPadding
 
                 HifiStylesUit.GraphikRegular {
@@ -110,7 +117,7 @@ Item {
 
                 HifiStylesUit.GraphikRegular {
                     text: "Right-click and drag to look around"
-                    width: parent.width - cameraText.width - parent.spacing
+                    width: parent.width - cameraText.width - parent.spacing - controlsTableRoot.rowPadding
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -120,6 +127,13 @@ Item {
                 }
             }
         }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
+        }
         
 
 
@@ -127,11 +141,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "W / ↑"
@@ -154,18 +168,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "Walk Forward"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -174,11 +195,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "S / ↓"
@@ -201,18 +222,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "Walk Backward"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -221,11 +249,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "A / ←"
@@ -248,18 +276,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "Turn Left"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -268,11 +303,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "A / →"
@@ -295,18 +330,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "Turn Right"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -315,11 +357,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "Q"
@@ -342,18 +384,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "Sidestep Left"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -362,11 +411,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "E"
@@ -389,18 +438,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "Sidestep Right"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -409,11 +465,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "Shift"
@@ -436,12 +492,12 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             Row {
                 width: controlsTableRoot.column2Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 spacing: controlsTableRoot.rowPadding
 
                 HifiStylesUit.GraphikRegular {
@@ -457,7 +513,7 @@ Item {
 
                 HifiStylesUit.GraphikRegular {
                     text: "Example: Shift + W"
-                    width: parent.width - runText.width - parent.spacing
+                    width: parent.width - runText.width - parent.spacing - controlsTableRoot.rowPadding
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -467,6 +523,13 @@ Item {
                 }
             }
         }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
+        }
         
 
         
@@ -474,11 +537,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "Space"
@@ -501,12 +564,12 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             Row {
                 width: controlsTableRoot.column2Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 spacing: controlsTableRoot.rowPadding
 
                 HifiStylesUit.GraphikRegular {
@@ -522,7 +585,7 @@ Item {
 
                 HifiStylesUit.GraphikRegular {
                     text: "Stand Up only while seated"
-                    width: parent.width - jumpText.width - parent.spacing
+                    width: parent.width - jumpText.width - parent.spacing - controlsTableRoot.rowPadding
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -532,6 +595,13 @@ Item {
                 }
             }
         }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
+        }
         
 
         
@@ -539,11 +609,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "1"
@@ -566,18 +636,25 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "1st Person View"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
                 color: simplifiedUI.colors.text.white
             }
+        }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
         }
         
 
@@ -586,11 +663,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "2"
@@ -613,12 +690,12 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             Row {
                 width: controlsTableRoot.column2Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 spacing: controlsTableRoot.rowPadding
 
                 HifiStylesUit.GraphikRegular {
@@ -634,7 +711,7 @@ Item {
 
                 HifiStylesUit.GraphikRegular {
                     text: "See your own avatar"
-                    width: parent.width - mirrorText.width - parent.spacing
+                    width: parent.width - mirrorText.width - parent.spacing - controlsTableRoot.rowPadding
                     height: parent.height
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -644,6 +721,13 @@ Item {
                 }
             }
         }
+
+        // Bottom separator
+        Rectangle {
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 1
+            color: controlsTableRoot.separatorColor
+        }
         
 
         
@@ -651,11 +735,11 @@ Item {
         
         Row {
             Layout.preferredWidth: parent.width
-            height: controlsTableRoot.rowHeight
+            Layout.preferredHeight: controlsTableRoot.rowHeight
 
             Item {
                 width: controlsTableRoot.column1Width
-                height: controlsTableRoot.rowHeight
+                height: parent.height
 
                 HifiStylesUit.GraphikRegular {
                     text: "3"
@@ -678,13 +762,13 @@ Item {
             // Spacer
             Item {
                 width: controlsTableRoot.rowPadding
-                height: controlsTableRoot.rowHeight
+                height: parent.height
             }
 
             HifiStylesUit.GraphikRegular {
                 text: "3rd Person View"
                 width: controlsTableRoot.column2Width - controlsTableRoot.rowPadding * 2
-                height: controlsTableRoot.rowHeight
+                height: parent.height
                 horizontalAlignment: Text.AlignLeft
                 verticalAlignment: Text.AlignVCenter
                 size: controlsTableRoot.mainTextSize
