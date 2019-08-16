@@ -84,6 +84,8 @@ Rectangle {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }
         }
+
+        
     }
 
     Row {
@@ -98,12 +100,12 @@ Rectangle {
             id: emoteButtonsRepeater
             model: ListModel {
                 id: buttonsModel
-                ListElement { imageURL: "images/positive_Icon.svg"; method: "positive" }
-                ListElement { imageURL: "images/negative_Icon.svg"; method: "negative" }
-                ListElement { imageURL: "images/raiseHand_Icon.svg"; method: "raiseHand" }
-                ListElement { imageURL: "images/applaud_Icon.svg"; method: "applaud" }
-                ListElement { imageURL: "images/point_Icon.svg"; method: "point" }
-                ListElement { imageURL: "images/emote_Icon.svg"; method: "toggleEmojiApp" }
+                ListElement { imageURL: "images/positive_Icon.svg"; hotkey: "Z"; method: "positive" }
+                ListElement { imageURL: "images/negative_Icon.svg"; hotkey: "X"; method: "negative" }
+                ListElement { imageURL: "images/raiseHand_Icon.svg"; hotkey: "C"; method: "raiseHand" }
+                ListElement { imageURL: "images/applaud_Icon.svg"; hotkey: "V"; method: "applaud" }
+                ListElement { imageURL: "images/point_Icon.svg"; hotkey: "B"; method: "point" }
+                ListElement { imageURL: "images/emote_Icon.svg"; hotkey: "N"; method: "toggleEmojiApp" }
             }
 
             Rectangle {
@@ -137,6 +139,19 @@ Rectangle {
                     onEntered: {
                         Tablet.playSound(TabletEnums.ButtonHover);
                     }
+
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.right: parent.right
+                        height: 1
+                        width: 20
+                        color: "transparent"
+
+                        ToolTip {
+                            text: model.hotkey
+                            visible: emoteTrayMouseArea.containsMouse
+                        }
+                    }
                 }
 
                 ColorOverlay {
@@ -157,14 +172,13 @@ Rectangle {
         switch (message.method) {
             case "updateEmoteIndicator":
                 if (message.data.icon) {
-                print("CHANGING INDICATOR TO: ", message.data.icon);
+                    print("CHANGING INDICATOR TO: ", message.data.icon);
                     var imageURL = "images/" + message.data.icon + "_Icon.svg";
                     emoteIndicator.source = imageURL;
                 }
                 break;
 
             default:
-                print("MESSAGE TO THE EMOTE INDICATOR QML RECEIVED: ", JSON.stringify(message));
                 console.log('SimplifiedEmoteIndicator.qml: Unrecognized message from JS');
                 break;
         }

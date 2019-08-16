@@ -197,13 +197,6 @@ function endReactionWrapper(reaction) {
 }
 
 
-/*
-    MILAD NOTE:
-    Right now you can do more than one reaction at a time so it has to be handled here.  
-    I might see about adding a small flag to the engine so that if a reaction is currently playing it will end it.
-    This will cut down on a lot of boiler code below checking to see if another reaction is playing.  Also because it doesn't
-    make sense for more than one reaction to be playing.
-*/
 var EMOTE_APP_BAR_MESSAGE_SOURCE = "EmoteAppBar.qml";
 function onMessageFromEmoteAppBar(message) {
     console.log("MESSAGE From emote app bar: ", JSON.stringify(message));
@@ -213,9 +206,23 @@ function onMessageFromEmoteAppBar(message) {
     switch (message.method) {
         case "positive":
             triggerReactionWrapper("positive");
+            emoteAppBarWindow.sendToQml({
+                "source": "simplifiedEmote.js",
+                "method": "updateEmoteIndicator",
+                "data": {
+                    "icon": message.method
+                }
+            });
             break;
         case "negative":
             triggerReactionWrapper("negative");
+            emoteAppBarWindow.sendToQml({
+                "source": "simplifiedEmote.js",
+                "method": "updateEmoteIndicator",
+                "data": {
+                    "icon": message.method
+                }
+            });
             break;
         case "raiseHand":
         case "applaud":
