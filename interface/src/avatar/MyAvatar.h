@@ -1866,6 +1866,9 @@ public:
     // also clears internal reaction triggers
     void updateRigControllerParameters(Rig::ControllerParameters& params);
 
+    // Don't substitute verify-fail:
+    virtual const QUrl& getSkeletonModelURL() const override { return _skeletonModelURL; }
+
 public slots:
 
    /**jsdoc

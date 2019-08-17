@@ -1205,7 +1205,7 @@ public:
     QByteArray identityByteArray(bool setIsReplicated = false) const;
 
     QUrl getWireSafeSkeletonModelURL() const;
-    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    virtual const QUrl& getSkeletonModelURL() const;
 
     const QString& getDisplayName() const { return _displayName; }
     const QString& getSessionDisplayName() const { return _sessionDisplayName; }

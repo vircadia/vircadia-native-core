@@ -1988,6 +1988,7 @@ void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identity
         if (flagValue != _verificationFailed) {
             _verificationFailed = flagValue;
             identityChanged = true;
+            setSkeletonModelURL(_skeletonModelURL);
         }
 
         if (identity.attachmentData != _attachmentData) {
@@ -2016,6 +2017,18 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
         return QUrl();
     }
 }
+
+static const QString VERIFY_FAIL_MODEL { "/meshes/verifyFailed.fst" };
+
+const QUrl& AvatarData::getSkeletonModelURL() const {
+    if (_verificationFailed) {
+        static QUrl VERIFY_FAIL_MODEL_URL = PathUtils::resourcesUrl(VERIFY_FAIL_MODEL);
+        return VERIFY_FAIL_MODEL_URL;
+    } else {
+        return _skeletonModelURL;
+    }
+}
+
 QByteArray AvatarData::packSkeletonData() const {
     // Send an avatar trait packet with the skeleton data before the mesh is loaded
     int avatarDataSize = 0;
