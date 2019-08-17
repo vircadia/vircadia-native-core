@@ -13,7 +13,10 @@ var self = this;
                         <?js returns.forEach(function(r) { ?>
                             <?js= self.partial('returns.tmpl', r) ?>
                         <?js });
-                    } ?></span>           
+                    } ?></span>
+                    <?js if (data.kind === 'typedef' && data.type && data.type.names) { ?>
+                        <br />Type: <?js= self.partial('type.tmpl', data.type.names) ?>
+                    <?js } ?>
                 </th>
             </tr>
         </thead>
