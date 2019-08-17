@@ -253,7 +253,7 @@ void EntityTreeRenderer::clear() {
     // unload and stop the engine
     if (_entitiesScriptEngine) {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
-        _entitiesScriptEngine->unloadAllEntityScripts();
+        _entitiesScriptEngine->unloadAllEntityScripts(true);
         _entitiesScriptEngine->stop();
     }
 
