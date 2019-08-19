@@ -310,7 +310,7 @@ Item {
                 height: parent.height
 
                 HifiStylesUit.GraphikRegular {
-                    text: "A / →"
+                    text: "D / →"
                     anchors.fill: parent
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
