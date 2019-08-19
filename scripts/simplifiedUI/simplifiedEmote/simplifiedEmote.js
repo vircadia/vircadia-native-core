@@ -188,44 +188,38 @@ function beginReactionWrapper(reaction) {
     }
 }
 
-var intersectedEntityOrAvatarID = null;
+
+var MAX_INTERSECTION_DISTANCE_M = 50;
 function mouseMoveEvent(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
     var avatarIntersectionData = AvatarManager.findRayIntersection(pickRay);
     var entityIntersectionData = Entities.findRayIntersection(pickRay, true);
-    var avatarIntersectionDistanceM = avatarIntersectionData.intersects ? avatarIntersectionData.distance : null;
-    var entityIntersectionDistanceM = entityIntersectionData.intersects ? entityIntersectionData.distance : null;
+    var avatarIntersectionDistanceM = avatarIntersectionData.intersects && avatarIntersectionData.distance < MAX_INTERSECTION_DISTANCE_M ? avatarIntersectionData.distance : null;
+    var entityIntersectionDistanceM = entityIntersectionData.intersects && entityIntersectionData.distance < MAX_INTERSECTION_DISTANCE_M ? entityIntersectionData.distance : null;
     var reticlePosition;
 
     if (avatarIntersectionDistanceM && entityIntersectionDistanceM) {
         if (avatarIntersectionDistanceM < entityIntersectionDistanceM) {
-            intersectedEntityOrAvatarID = avatarIntersectionData.avatarID;
             reticlePosition = avatarIntersectionData.intersection;
         } else {
-            intersectedEntityOrAvatarID = entityIntersectionData.entityID;
             reticlePosition = entityIntersectionData.intersection;
         }
     } else if (avatarIntersectionDistanceM) {
-        intersectedEntityOrAvatarID = avatarIntersectionData.avatarID;
         reticlePosition = avatarIntersectionData.intersection;
     } else if (entityIntersectionDistanceM) {
-        intersectedEntityOrAvatarID = entityIntersectionData.entityID;
         reticlePosition = entityIntersectionData.intersection;
     } else {
-        print("ERROR: No intersected avatar or entity found.");
+        print("ERROR: No intersected avatar or entity found or the distance is too far.");
+        if (pointReticle) {
+            Entities.deleteEntity(pointReticle);
+            pointReticle = null;
+        }
         return;
     }
-
-    //if (intersectedEntityOrAvatarID === avatarIntersectionData.intersects) {
-    //    print("PICKRAY INTERSECTS AVATAR: ", intersectedEntityOrAvatarID);
-    //} else {
-    //    print("PICKRAY INTERSECTS ENTITY: ", intersectedEntityOrAvatarID);
-    //}
 
     if (pointReticle) {
         Entities.editEntity(pointReticle, { position: reticlePosition });
     } else {
-        // make dimensions scale to distance
         pointReticle = Entities.addEntity({
             type: "Sphere",
             name: "Point Reticle",
@@ -236,13 +230,6 @@ function mouseMoveEvent(event) {
             ignorePickIntersection: true
         }, true);
     }
-
-    // cast ray from camera to 3d cursor position
-    // get intersection of ray
-    // if intersects with entity, move back along normal 1/2 depth of the entity to get reticle position or maybe just SubmeshIntersection.worldIntersectionPoint
-    // if intersects avatar, move backward 0.5m or maybe just SubmeshIntersection.worldIntersectionPoint
-    // create reticle at the position
-    // make avatar point at the reticle
 }
 
 
