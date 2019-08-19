@@ -183,7 +183,7 @@ MultiSphereShape::KdopData MultiSphereShape::getKdopData(const std::vector<btVec
         glm::vec3 relPoint = points[i] - data._origin;
         data._relativePoints.push_back(relPoint);
     }
-    glm::vec3& corrector = data._corrector;
+    glm::vec3 corrector;
     
     corrector.x = dimensions.x > dimensions.y && dimensions.x > dimensions.z ? -1.0f + (dimensions.x / (0.5f * (dimensions.y + dimensions.z))) : 0.0f;
     corrector.y = dimensions.y > dimensions.x && dimensions.y > dimensions.z ? -1.0f + (dimensions.y / (0.5f * (dimensions.x + dimensions.z))) : 0.0f;
@@ -210,7 +210,6 @@ MultiSphereShape::CollapsingMode MultiSphereShape::computeSpheres(ExtractionMode
     auto& diff = data._diff;
     auto& epsilon = data._epsilon;
     auto& dimensions = data._dimensions;
-    auto& corrector = data._corrector;
 
     if (_mode == ExtractionMode::Automatic) {
         if (diff.xy < 0.5f * epsilon.xy && diff.xz < 0.5f * epsilon.xz && diff.yz < 0.5f * epsilon.yz) {

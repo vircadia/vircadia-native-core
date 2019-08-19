@@ -100,7 +100,6 @@ public:
         bool _isValidShape{ true };
         glm::vec3 _origin;
         glm::vec3 _dimensions;
-        glm::vec3 _corrector;
         KdopCoefficient _epsilon;
         KdopCoefficient _diff;
     };
