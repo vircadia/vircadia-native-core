@@ -1989,7 +1989,10 @@ void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identity
             _verificationFailed = flagValue;
             identityChanged = true;
             setSkeletonModelURL(_skeletonModelURL);
-        }
+            if (_verificationFailed) {
+                qCDebug(avatars) << "Avatar" << getSessionDisplayName() << "marked as VERIFY-FAILED";
+            }
+        };
 
         if (identity.attachmentData != _attachmentData) {
             setAttachmentData(identity.attachmentData);
