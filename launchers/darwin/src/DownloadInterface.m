@@ -21,7 +21,10 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
-    NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
+    
+    if ((int)(100.0 * prog) != (int)self.progressPercentage) {
+        NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
+    }
 
     self.progressPercentage = (100.0 * prog);
     [[Launcher sharedLauncher] updateProgressIndicator];
