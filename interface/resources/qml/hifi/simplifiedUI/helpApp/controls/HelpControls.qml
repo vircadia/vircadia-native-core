@@ -81,7 +81,7 @@ Flickable {
         }
 
         SimplifiedControls.Button {
-            Layout.topMargin: 8
+            Layout.topMargin: 14
             Layout.preferredWidth: 200
             height: 32
             text: "VIEW ALL CONTROLS"

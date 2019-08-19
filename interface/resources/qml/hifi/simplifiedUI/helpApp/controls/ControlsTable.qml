@@ -17,7 +17,7 @@ Item {
     property int column1Width: 80
     property int column2Width: width - column1Width
     property int rowHeight: 31
-    property int rowPadding: 4
+    property int rowPadding: 8
     property int mainTextSize: 18
     property int subTextSize: 14
     property color separatorColor: "#CCCCCC"
