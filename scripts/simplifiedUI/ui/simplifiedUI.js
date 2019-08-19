@@ -428,7 +428,16 @@ function updateInputDeviceMutedOverlay(isMuted) {
 
 
 function onDesktopInputDeviceMutedChanged(isMuted) {
-    updateInputDeviceMutedOverlay(isMuted);
+    if (!HMD.active) {
+        updateInputDeviceMutedOverlay(isMuted);
+    }
+}
+
+
+function onHMDInputDeviceMutedChanged(isMuted) {
+    if (HMD.active) {
+        updateInputDeviceMutedOverlay(isMuted);
+    }
 }
 
 
@@ -450,6 +459,12 @@ function onGeometryChanged(rect) {
 function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
+    }
+
+    if (isHMDMode) {
+        onHMDInputDeviceMutedChanged(Audio.mutedHMD);
+    } else {
+        onDesktopInputDeviceMutedChanged(Audio.mutedDesktop);
     }
 }
 
@@ -531,6 +546,7 @@ function startup() {
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
+    Audio.mutedHMDChanged.connect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
@@ -581,6 +597,7 @@ function shutdown() {
     emote.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
+    Audio.mutedHMDChanged.disconnect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);
