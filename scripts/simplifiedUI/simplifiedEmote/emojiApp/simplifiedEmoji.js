@@ -192,27 +192,6 @@ function addEmoji(emojiFilename) {
 
 
 // creating the actual emoji that isn't an animation
-/*
-    MILAD NOTE:
-    The Above head should be what you need to control how high the distance is.  
-    The calcuation might need to be played with more depending on what kind of avatar is brought in and what 
-    their scale maybe.  So far this seems to be ok. 
-
-    EntityMaker is a helper library I made.  Don't be too scared about it, you just make an entity wrapper
-    with new, use .add to gather properties, .create to add those property, you can also send in a quick edit with .edit
-    then .destroy to kill the entity
-
-    The images come from the entity object compiled from entityList.json.  Right now code is an array where just one index
-    which is why there is a const UTF_CODE that represents 0.  
-    This can probably be fixed by just editing that .code to not be an array,
-    but as long as you know what that is, I think it is fine and not worth the trouble. 
-
-    There was a note about falling back to other joints in the spec, 
-    but I don't think that is necessary if this is meant for simplified
-    as we can guarentee an avatar that is supported has to have a head joint.  
-    That is unless we are future proofing for the ability
-    to use any kind of avatar.
-*/
 var ABOVE_HEAD = 0.61;
 var EMOJI_X_OFFSET = 0.0;
 var DEFAULT_EMOJI_SIZE = 0.37;
