@@ -26,12 +26,12 @@ Rectangle {
     // For the below to work, the Repeater's Item's second child must be the individual button's `MouseArea`
     property int requestedWidth: (drawerContainer.keepDrawerExpanded ||
         emoteIndicatorMouseArea.containsMouse ||
-        emoteButtonsRepeater.itemAt(0).children[1].containsMouse ||
-        emoteButtonsRepeater.itemAt(1).children[1].containsMouse ||
-        emoteButtonsRepeater.itemAt(2).children[1].containsMouse ||
-        emoteButtonsRepeater.itemAt(3).children[1].containsMouse ||
-        emoteButtonsRepeater.itemAt(4).children[1].containsMouse ||
-        emoteButtonsRepeater.itemAt(5).children[1].containsMouse) ? expandedWidth : originalWidth;
+        emoteButtonsRepeater.itemAt(0).hovered ||
+        emoteButtonsRepeater.itemAt(1).hovered ||
+        emoteButtonsRepeater.itemAt(2).hovered ||
+        emoteButtonsRepeater.itemAt(3).hovered ||
+        emoteButtonsRepeater.itemAt(4).hovered ||
+        emoteButtonsRepeater.itemAt(5).hovered) ? expandedWidth : originalWidth;
 
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);
@@ -107,14 +107,15 @@ Rectangle {
                 ListElement { imageURL: "images/raiseHand_Icon.svg"; hotkey: "C"; method: "raiseHand" }
                 ListElement { imageURL: "images/applaud_Icon.svg"; hotkey: "V"; method: "applaud" }
                 ListElement { imageURL: "images/point_Icon.svg"; hotkey: "B"; method: "point" }
-                ListElement { imageURL: "images/emote_Icon.svg"; hotkey: "N"; method: "toggleEmojiApp" }
+                ListElement { imageURL: "images/emote_Icon.svg"; hotkey: "F"; method: "toggleEmojiApp" }
             }
 
             Rectangle {
                 width: mainEmojiContainer.width
                 height: drawerContainer.height
                 // For the below to work, the This Rectangle's second child must be the `MouseArea`
-                color: children[1].containsMouse ? "#000000" : simplifiedUI.colors.white
+                color: hovered ? "#000000" : simplifiedUI.colors.white
+                property alias hovered: emoteTrayMouseArea.containsMouse
 
                 Image {
                     id: emoteTrayButtonImage
@@ -124,6 +125,38 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     source: model.imageURL
                     mipmap: true
+                    visible: false
+                }
+
+                ColorOverlay {
+                    anchors.fill: emoteTrayButtonImage
+                    source: emoteTrayButtonImage
+                    color: parent.hovered ? "#ffffff" : "#000000"
+                }
+
+                Rectangle {
+                    visible: parent.hovered
+                    anchors.left: parent.left
+                    anchors.bottom: parent.bottom
+                    width: toolTipText.width + 4
+                    height: toolTipText.height - 3
+                    color: "#000000"
+                    opacity: 0.8
+                    radius: 4
+
+                    HifiStylesUit.GraphikRegular {
+                        id: toolTipText
+                        anchors.left: parent.left
+                        anchors.leftMargin: 2
+                        anchors.bottom: parent.bottom
+                        width: paintedWidth
+                        height: paintedHeight
+                        text: model.hotkey
+                        verticalAlignment: TextInput.AlignBottom
+                        horizontalAlignment: TextInput.AlignLeft
+                        color: simplifiedUI.colors.text.white
+                        size: 22
+                    }
                 }
 
                 MouseArea {
@@ -141,26 +174,6 @@ Rectangle {
                     onEntered: {
                         Tablet.playSound(TabletEnums.ButtonHover);
                     }
-
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.right: parent.right
-                        height: 1
-                        width: 20
-                        color: "transparent"
-
-                        ToolTip {
-                            text: model.hotkey
-                            visible: emoteTrayMouseArea.containsMouse
-                        }
-                    }
-                }
-
-                ColorOverlay {
-                    anchors.fill: emoteTrayButtonImage
-                    opacity: emoteTrayMouseArea.containsMouse ? 1.0 : 0
-                    source: emoteTrayButtonImage
-                    color: "#ffffff"
                 }
             }
         }

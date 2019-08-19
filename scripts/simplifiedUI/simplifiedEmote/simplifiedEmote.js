@@ -329,11 +329,13 @@ function onGeometryChanged(rect) {
 }
 
 
+// These keys need to match what's in `SimplifiedEmoteIndicator.qml` in the `buttonsModel`
+// for the tooltips to match the actual keys.
 var POSITIVE_KEY = "z";
-var NEGATIVE_KEY = "c";
-var RAISE_HAND_KEY = "v";
-var APPLAUD_KEY = "b";
-var POINT_KEY = "n";
+var NEGATIVE_KEY = "x";
+var RAISE_HAND_KEY = "c";
+var APPLAUD_KEY = "v";
+var POINT_KEY = "b";
 var EMOTE_WINDOW = "f";
 function keyPressHandler(event) {
     if (!event.isAutoRepeat && ! event.isMeta && ! event.isControl && ! event.isAlt) {
