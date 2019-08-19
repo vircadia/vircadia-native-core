@@ -187,12 +187,17 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
     }
 }
 
+void DebugBloomConfig::setMode(int mode) {
+    _mode = std::min((int)DebugBloomConfig::MODE_COUNT, std::max(0, mode));
+    emit dirty();
+}
+
 DebugBloom::DebugBloom() {
     _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
 }
 
 void DebugBloom::configure(const Config& config) {
-    _mode = static_cast<DebugBloomConfig::Mode>(config.mode);
+    _mode = (DebugBloomConfig::Mode) config.getMode();
     assert(_mode < DebugBloomConfig::MODE_COUNT);
 }
 
@@ -200,6 +205,10 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     RenderArgs* args = renderContext->args;
+
+    if (_mode == DebugBloomConfig::OFF) {
+        return;
+    }
 
     const auto frameBuffer = inputs.get0();
     const auto combinedBlurBuffer = inputs.get4();

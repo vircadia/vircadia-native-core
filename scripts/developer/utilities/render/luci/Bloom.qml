@@ -19,15 +19,15 @@ Column {
     property var config: Render.getConfig("RenderMainView.DebugBloom")
 
     function setDebugMode(mode) {
+        console.log("Bloom mode is " + mode)
         bloom.config.enabled = (mode != 0);
         bloom.config.mode = mode;
     }
 
     Prop.PropEnum {
         label: "Debug Bloom Buffer"
-        object: config
-        property: "mode"
-       // valueVar: 0
+       // object: config
+       // property: "mode"
         enums: [
             "Off",
             "Lvl 0",

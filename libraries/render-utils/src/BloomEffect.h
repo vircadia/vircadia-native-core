@@ -87,12 +87,13 @@ private:
 
 class DebugBloomConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int mode MEMBER mode NOTIFY dirty)
+    Q_PROPERTY(int mode READ getMode WRITE setMode NOTIFY dirty)
 
 public:
 
     enum Mode {
-        MODE_LEVEL0 = 0,
+        OFF = 0,
+        MODE_LEVEL0,
         MODE_LEVEL1,
         MODE_LEVEL2,
         MODE_ALL_LEVELS,
@@ -102,7 +103,10 @@ public:
 
     DebugBloomConfig() : render::Job::Config(false) {}
 
-    int mode{ MODE_ALL_LEVELS };
+    void setMode(int mode);
+    int getMode() const { return _mode; }
+
+    int _mode{ MODE_ALL_LEVELS };
 
 signals:
     void dirty();
