@@ -1,7 +1,7 @@
 //
-//  About.qml
+//  HelpAbout.qml
 //
-//  Created by Zach Fox on 2019-06-18
+//  Created by Zach Fox on 2019-08-07
 //  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -42,6 +42,21 @@ Flickable {
     }
 
 
+    Image {
+        id: accent
+        source: "../images/accent3.svg"
+        anchors.left: parent.left
+        anchors.top: parent.top
+        width: 83
+        height: 156
+        transform: Scale {
+            xScale: -1
+            origin.x: accent.width / 2
+            origin.y: accent.height / 2
+        }
+    }
+
+
     ColumnLayout {
         id: aboutColumnLayout
         anchors.left: parent.left
@@ -50,16 +65,6 @@ Flickable {
         anchors.rightMargin: 26
         anchors.top: parent.top
         spacing: 0
-
-        Image {
-            source: "images/logo.png"
-            Layout.alignment: Qt.AlignHCenter
-            Layout.topMargin: 16
-            Layout.preferredWidth: 160
-            Layout.preferredHeight: 120
-            fillMode: Image.PreserveAspectFit
-            mipmap: true
-        }
         
         ColumnLayout {
             id: platformInfoContainer
@@ -68,9 +73,31 @@ Flickable {
             spacing: 0
 
             HifiStylesUit.GraphikSemiBold {
-                text: "Version " + Window.checkVersion()
-                Layout.alignment: Qt.AlignHCenter
+                text: "About Your Configuration"
                 Layout.preferredWidth: parent.width
+                Layout.topMargin: 16
+                Layout.bottomMargin: 8
+                height: paintedHeight
+                size: 22
+                color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+            }
+
+            HifiStylesUit.GraphikRegular {
+                text: "Use the button below to get a copy to share with us."
+                Layout.preferredWidth: parent.width
+                Layout.bottomMargin: 8
+                height: paintedHeight
+                size: 18
+                color: simplifiedUI.colors.text.white
+                wrapMode: Text.Wrap
+            }
+
+            HifiStylesUit.GraphikRegular {
+                text: "Version " + Window.checkVersion()
+                Layout.preferredWidth: parent.width
+                Layout.topMargin: 8
+                Layout.bottomMargin: 8
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
@@ -217,9 +244,7 @@ Flickable {
                 interactive: false
                 delegate: Item {
                     Component.onCompleted: {
-                        if (HMD.active && selectedHMD) {
-                            audioInputDevices.selectedInputDeviceName = model.devicename
-                        } else if (!HMD.active && selectedDesktop) {
+                        if ((HMD.active && selectedHMD) || (!HMD.active && selectedDesktop)) {
                             audioInputDevices.selectedInputDeviceName = model.devicename
                         }
                     }
@@ -250,9 +275,7 @@ Flickable {
                 interactive: false
                 delegate: Item {
                     Component.onCompleted: {
-                        if (HMD.active && selectedHMD) {
-                            audioOutputDevices.selectedOutputDeviceName = model.devicename
-                        } else if (!HMD.active && selectedDesktop) {
+                        if ((HMD.active && selectedHMD) || (!HMD.active && selectedDesktop)) {
                             audioOutputDevices.selectedOutputDeviceName = model.devicename
                         }
                     }

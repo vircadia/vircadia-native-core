@@ -72,7 +72,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: avatarNameTagsTitle
                 text: "Avatar Name Tags"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
@@ -163,7 +163,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: performanceTitle
                 text: "Graphics Settings"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
@@ -211,7 +211,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: cameraTitle
                 text: "Camera View"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white

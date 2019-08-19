@@ -90,16 +90,21 @@ void Audio::setMuted(bool isMuted) {
 
 void Audio::setMutedDesktop(bool isMuted) {
     bool changed = false;
+    bool isHMD = qApp->isHMDMode();
     withWriteLock([&] {
         if (_mutedDesktop != isMuted) {
             changed = true;
             _mutedDesktop = isMuted;
-            auto client = DependencyManager::get<AudioClient>().data();
-            QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            if (!isHMD) {
+                auto client = DependencyManager::get<AudioClient>().data();
+                QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            }
         }
     });
     if (changed) {
-        emit mutedChanged(isMuted);
+        if (!isHMD) {
+            emit mutedChanged(isMuted);
+        }
         emit mutedDesktopChanged(isMuted);
     }
 }
@@ -112,16 +117,21 @@ bool Audio::getMutedDesktop() const {
 
 void Audio::setMutedHMD(bool isMuted) {
     bool changed = false;
+    bool isHMD = qApp->isHMDMode();
     withWriteLock([&] {
         if (_mutedHMD != isMuted) {
             changed = true;
             _mutedHMD = isMuted;
-            auto client = DependencyManager::get<AudioClient>().data();
-            QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            if (isHMD) {
+                auto client = DependencyManager::get<AudioClient>().data();
+                QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            }
         }
     });
     if (changed) {
-        emit mutedChanged(isMuted);
+        if (isHMD) {
+            emit mutedChanged(isMuted);
+        }
         emit mutedHMDChanged(isMuted);
     }
 }
@@ -386,6 +396,7 @@ void Audio::onContextChanged() {
             changed = true;
         }
     });
+
     if (_settingsLoaded) {
         bool isMuted = isHMD ? getMutedHMD() : getMutedDesktop();
         setMuted(isMuted);
@@ -395,6 +406,12 @@ void Audio::onContextChanged() {
     }
     if (changed) {
         emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
+
+        bool mutedHMD = getMutedHMD();
+        bool mutedDesktop = getMutedDesktop();
+        if (mutedHMD != mutedDesktop) {
+            emit mutedChanged(isHMD ? mutedHMD : mutedDesktop);
+        }
     }
 }
 

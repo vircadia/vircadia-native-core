@@ -176,6 +176,7 @@ Rectangle {
                 anchors.left: parent.left
                 width: parent.width
                 height: parent.parent.height
+                mipmap: true
             }
             
             ColorOverlay {
