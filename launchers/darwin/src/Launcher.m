@@ -413,6 +413,7 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     NSLog(@"Updating latest build info");
 
     NSInteger currentVersion = [self getCurrentVersion];
+    NSInteger latestVersion = 0;
     Launcher* sharedLauncher = [Launcher sharedLauncher];
     [sharedLauncher setCurrentProcessState:CHECKING_UPDATE];
     BOOL newVersionAvailable = false;
@@ -424,10 +425,13 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 
     for (NSDictionary* build in self.latestBuilds) {
         NSString* name = [build valueForKey:@"name"];
+        NSLog(@"Checking %@", name);
         if ([name isEqual:buildTag]) {
             url = [[[build objectForKey:@"installers"] objectForKey:@"mac"] valueForKey:@"zip_url"];
-            NSString* latestVersion = [build valueForKey:@"latest_version"];
-            newVersionAvailable = currentVersion != latestVersion.integerValue;
+            NSString* thisLatestVersion = [build valueForKey:@"latest_version"];
+            latestVersion = thisLatestVersion.integerValue;
+            newVersionAvailable = currentVersion != latestVersion;
+            NSLog(@"Using %@, %ld", name, latestVersion);
             break;
         }
     }
@@ -435,7 +439,8 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
     self.shouldDownloadInterface = newVersionAvailable;
     self.interfaceDownloadUrl = url;
 
-    NSLog(@"Updating latest build info %@ %@", (self.shouldDownloadInterface ? @"Yes" : @"No"), self.interfaceDownloadUrl);
+    NSLog(@"Updating latest build info, currentVersion=%ld, latestVersion=%ld, %@ %@",
+          currentVersion, latestVersion, (self.shouldDownloadInterface ? @"Yes" : @"No"), self.interfaceDownloadUrl);
 }
 
 - (void) tryDownloadLatestBuild:(BOOL)progressScreenAlreadyDisplayed
