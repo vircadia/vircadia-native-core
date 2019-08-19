@@ -10,6 +10,7 @@
 //
 
 #include "MultiSphereShape.h"
+#include "PhysicsLogging.h"
 
 void SphereRegion::translate(const glm::vec3& translation) {
     for (auto &line : _lines) {
@@ -90,8 +91,8 @@ void SphereRegion::extractSphereRegion(std::vector<std::pair<glm::vec3, glm::vec
     }
 }
 
-CollisionShapeExtractionMode MultiSphereShape::getExtractionModeByName(const QString& name) {
-    CollisionShapeExtractionMode mode = CollisionShapeExtractionMode::Automatic;
+MultiSphereShape::ExtractionMode MultiSphereShape::getExtractionModeByJointName(const QString& name) {
+    ExtractionMode mode = ExtractionMode::Automatic;
     bool isSim = name.indexOf("SIM") == 0;
     bool isFlow = name.indexOf("FLOW") == 0;
     bool isEye = name.indexOf("EYE") > -1;
@@ -105,13 +106,13 @@ CollisionShapeExtractionMode MultiSphereShape::getExtractionModeByName(const QSt
     
     //bool isFinger = 
     if (isNeck || isLeftFinger || isRightFinger) {
-        mode = CollisionShapeExtractionMode::SpheresY;
+        mode = ExtractionMode::SpheresY;
     } else if (isShoulder) {
-        mode = CollisionShapeExtractionMode::SphereCollapse;
+        mode = ExtractionMode::SphereCollapse;
     } else if (isRightHand || isLeftHand) {
-        mode = CollisionShapeExtractionMode::SpheresXY;
+        mode = ExtractionMode::SpheresXY;
     } else if (isSim || isFlow || isEye || isToe) {
-        mode = CollisionShapeExtractionMode::None;
+        mode = ExtractionMode::None;
     }
     return mode;
 }
@@ -130,19 +131,33 @@ void MultiSphereShape::filterUniquePoints(const std::vector<btVector3>& kdop, st
     }
 }
 
-bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& name, const std::vector<btVector3>& kdop, float scale) {
+bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& jointName, const std::vector<btVector3>& kdop, float scale) {
     _scale = scale;
     _jointIndex = jointIndex;
-    _name = name;
-    _mode = getExtractionModeByName(_name);
-    if (_mode == CollisionShapeExtractionMode::None || kdop.size() < 4) {
+    _jointName = jointName;
+    auto mode = getExtractionModeByJointName(_jointName);
+    KdopData kdopData = getKdopData(kdop);
+    if (kdop.size() < 4 || mode == ExtractionMode::None || !kdopData._isValidShape) {
         return false;
     }
+    bool needRecompute = true;
+    while (needRecompute) {
+        CollapsingMode collapsingMode = computeSpheres(mode, kdopData);
+        needRecompute = collapsingMode != CollapsingMode::None;
+        if (needRecompute) {
+            mode = (CollapsingMode)collapsingMode;
+        }
+    }
+    return mode != ExtractionMode::None;
+}
+
+MultiSphereShape::KdopData MultiSphereShape::getKdopData(const std::vector<btVector3>& kdop) {
+    KdopData data;
     std::vector<glm::vec3> points;
     filterUniquePoints(kdop, points);
     glm::vec3 min = glm::vec3(100.0f, 100.0f, 100.0f);
     glm::vec3 max = glm::vec3(-100.0f, -100.0f, -100.0f);
-    _midPoint = glm::vec3(0.0f, 0.0f, 0.0f);
+    data._origin = glm::vec3(0.0f, 0.0f, 0.0f);
     std::vector<glm::vec3> relPoints;
     for (size_t i = 0; i < points.size(); i++) {
 
@@ -154,97 +169,112 @@ bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& na
         max.y = points[i].y > max.y ? points[i].y : max.y;
         max.z = points[i].z > max.z ? points[i].z : max.z;
 
-        _midPoint += points[i];
+        data._origin += points[i];
     }
 
-    _midPoint /= (int)points.size();
-    glm::vec3 dimensions = max - min;
+    data._origin /= (int)points.size();
+    glm::vec3& dimensions = data._dimensions;
+    dimensions = max - min;
     if (glm::length(dimensions) == 0.0f) {
-        return false;
+        data._isValidShape = false;
+        return data;
     }
     for (size_t i = 0; i < points.size(); i++) {
-        glm::vec3 relPoint = points[i] - _midPoint;
-        relPoints.push_back(relPoint);
+        glm::vec3 relPoint = points[i] - data._origin;
+        data._relativePoints.push_back(relPoint);
     }
-    CollisionShapeExtractionMode applyMode = _mode;
-    float xCorrector = dimensions.x > dimensions.y && dimensions.x > dimensions.z ? -1.0f + (dimensions.x / (0.5f * (dimensions.y + dimensions.z))) : 0.0f;
-    float yCorrector = dimensions.y > dimensions.x && dimensions.y > dimensions.z ? -1.0f + (dimensions.y / (0.5f * (dimensions.x + dimensions.z))) : 0.0f;
-    float zCorrector = dimensions.z > dimensions.x && dimensions.z > dimensions.y ? -1.0f + (dimensions.z / (0.5f * (dimensions.x + dimensions.y))) : 0.0f;
+    glm::vec3& corrector = data._corrector;
+    
+    corrector.x = dimensions.x > dimensions.y && dimensions.x > dimensions.z ? -1.0f + (dimensions.x / (0.5f * (dimensions.y + dimensions.z))) : 0.0f;
+    corrector.y = dimensions.y > dimensions.x && dimensions.y > dimensions.z ? -1.0f + (dimensions.y / (0.5f * (dimensions.x + dimensions.z))) : 0.0f;
+    corrector.z = dimensions.z > dimensions.x && dimensions.z > dimensions.y ? -1.0f + (dimensions.z / (0.5f * (dimensions.x + dimensions.y))) : 0.0f;
 
-    float xyDif = glm::abs(dimensions.x - dimensions.y);
-    float xzDif = glm::abs(dimensions.x - dimensions.z);
-    float yzDif = glm::abs(dimensions.y - dimensions.z);
+    KdopCoefficient& diff = data._diff;
+    diff.xy = glm::abs(dimensions.x - dimensions.y);
+    diff.xz = glm::abs(dimensions.x - dimensions.z);
+    diff.yz = glm::abs(dimensions.y - dimensions.z);
 
-    float xyEpsilon = (0.05f + zCorrector) * glm::max(dimensions.x, dimensions.y);
-    float xzEpsilon = (0.05f + yCorrector) * glm::max(dimensions.x, dimensions.z);
-    float yzEpsilon = (0.05f + xCorrector) * glm::max(dimensions.y, dimensions.z);
+    KdopCoefficient& epsilon = data._epsilon;
+    epsilon.xy = (0.05f + corrector.z) * glm::max(dimensions.x, dimensions.y);
+    epsilon.xz = (0.05f + corrector.y) * glm::max(dimensions.x, dimensions.z);
+    epsilon.yz = (0.05f + corrector.x) * glm::max(dimensions.y, dimensions.z);
 
-    if (xyDif < 0.5f * xyEpsilon && xzDif < 0.5f * xzEpsilon && yzDif < 0.5f * yzEpsilon) {
-        applyMode = CollisionShapeExtractionMode::Sphere;
-    } else if (xzDif < xzEpsilon) {
-        applyMode = dimensions.y > dimensions.z ? CollisionShapeExtractionMode::SpheresY : CollisionShapeExtractionMode::SpheresXZ;
-    } else if (xyDif < xyEpsilon) {
-        applyMode = dimensions.z > dimensions.y ? CollisionShapeExtractionMode::SpheresZ : CollisionShapeExtractionMode::SpheresXY;
-    } else if (yzDif < yzEpsilon) {
-        applyMode = dimensions.x > dimensions.y ? CollisionShapeExtractionMode::SpheresX : CollisionShapeExtractionMode::SpheresYZ;
+    return data;
+}
+
+MultiSphereShape::CollapsingMode MultiSphereShape::computeSpheres(ExtractionMode mode, const KdopData& data) {
+    _mode = mode;
+    _midPoint = data._origin;
+    ExtractionMode applyMode = mode;
+    _spheres.clear();
+    auto& diff = data._diff;
+    auto& epsilon = data._epsilon;
+    auto& dimensions = data._dimensions;
+    auto& corrector = data._corrector;
+
+    if (_mode == ExtractionMode::Automatic) {
+        if (diff.xy < 0.5f * epsilon.xy && diff.xz < 0.5f * epsilon.xz && diff.yz < 0.5f * epsilon.yz) {
+            applyMode =ExtractionMode::Sphere;
+        } else if (diff.xz < epsilon.xz) {
+            applyMode = dimensions.y > dimensions.z ? ExtractionMode::SpheresY : ExtractionMode::SpheresXZ;
+        } else if (diff.xy < epsilon.xy) {
+            applyMode = dimensions.z > dimensions.y ? ExtractionMode::SpheresZ : ExtractionMode::SpheresXY;
+        } else if (diff.yz < epsilon.yz) {
+            applyMode = dimensions.x > dimensions.y ? ExtractionMode::SpheresX : ExtractionMode::SpheresYZ;
+        } else {
+            applyMode = ExtractionMode::SpheresXYZ;
+        }
     } else {
-        applyMode = CollisionShapeExtractionMode::SpheresXYZ;
+        applyMode = _mode;
     }
-
-    if (_mode != CollisionShapeExtractionMode::Automatic && applyMode != _mode) {
-        bool isModeSphereAxis = (_mode >= CollisionShapeExtractionMode::SpheresX && _mode <= CollisionShapeExtractionMode::SpheresZ);
-        bool isApplyModeComplex = (applyMode >= CollisionShapeExtractionMode::SpheresXY && applyMode <= CollisionShapeExtractionMode::SpheresXYZ);
-        applyMode = (isModeSphereAxis && isApplyModeComplex) ? CollisionShapeExtractionMode::Sphere : _mode;
-    }
-
     std::vector<glm::vec3> axes;
     glm::vec3 axis, axis1, axis2;
-    SphereShapeData sphere;
+    SphereData sphere;
     switch (applyMode) {
-    case CollisionShapeExtractionMode::None:
+    case ExtractionMode::None:
         break;
-    case CollisionShapeExtractionMode::Automatic:
+    case ExtractionMode::Automatic:
         break;
-    case CollisionShapeExtractionMode::Box:
+    case ExtractionMode::Box:
         break;
-    case CollisionShapeExtractionMode::Sphere:
+    case ExtractionMode::Sphere:
         sphere._radius = 0.5f * (dimensions.x + dimensions.y + dimensions.z) / 3.0f;
         sphere._position = glm::vec3(0.0f);
         _spheres.push_back(sphere);
         break;
-    case CollisionShapeExtractionMode::SphereCollapse:
+    case ExtractionMode::SphereCollapse:
         sphere._radius = 0.5f * glm::min(glm::min(dimensions.x, dimensions.y), dimensions.z);
         sphere._position = glm::vec3(0.0f);
         _spheres.push_back(sphere);
         break;
-    case CollisionShapeExtractionMode::SpheresX:
+    case ExtractionMode::SpheresX:
         axis = 0.5f* dimensions.x * Vectors::UNIT_NEG_X;
         axes = { axis, -axis };
         break;
-    case CollisionShapeExtractionMode::SpheresY:
+    case ExtractionMode::SpheresY:
         axis = 0.5f* dimensions.y * Vectors::UNIT_NEG_Y;
         axes = { axis, -axis };
         break;
-    case CollisionShapeExtractionMode::SpheresZ:
+    case ExtractionMode::SpheresZ:
         axis = 0.5f* dimensions.z * Vectors::UNIT_NEG_Z;
         axes = { axis, -axis };
         break;
-    case CollisionShapeExtractionMode::SpheresXY:
+    case ExtractionMode::SpheresXY:
         axis1 = glm::vec3(0.5f * dimensions.x, 0.5f * dimensions.y, 0.0f);
         axis2 = glm::vec3(0.5f * dimensions.x, -0.5f * dimensions.y, 0.0f);
         axes = { axis1, axis2, -axis1, -axis2 };
         break;
-    case CollisionShapeExtractionMode::SpheresYZ:
+    case ExtractionMode::SpheresYZ:
         axis1 = glm::vec3(0.0f, 0.5f * dimensions.y, 0.5f * dimensions.z);
         axis2 = glm::vec3(0.0f, 0.5f * dimensions.y, -0.5f * dimensions.z);
         axes = { axis1, axis2, -axis1, -axis2 };
         break;
-    case CollisionShapeExtractionMode::SpheresXZ:
+    case ExtractionMode::SpheresXZ:
         axis1 = glm::vec3(0.5f * dimensions.x, 0.0f, 0.5f * dimensions.z);
         axis2 = glm::vec3(-0.5f * dimensions.x, 0.0f, 0.5f * dimensions.z);
         axes = { axis1, axis2, -axis1, -axis2 };
         break;
-    case CollisionShapeExtractionMode::SpheresXYZ:
+    case ExtractionMode::SpheresXYZ:
         for (size_t i = 0; i < CORNER_SIGNS.size(); i++) {
             axes.push_back(0.5f * (dimensions * CORNER_SIGNS[i]));
         }
@@ -252,24 +282,95 @@ bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& na
     default:
         break;
     }
+    CollapsingMode collapsingMode = CollapsingMode::None;
     if (axes.size() > 0) {
-        spheresFromAxes(relPoints, axes, _spheres);
+        collapsingMode = spheresFromAxes(data._relativePoints, axes, _spheres);
     }
     for (size_t i = 0; i < _spheres.size(); i++) {
         _spheres[i]._position += _midPoint;
     }
-    
-    return _mode != CollisionShapeExtractionMode::None;
+    // computing fails if the shape needs to be collapsed
+    return collapsingMode;
 }
 
-void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, const std::vector<glm::vec3>& axes, std::vector<SphereShapeData>& spheres) {
+MultiSphereShape::CollapsingMode MultiSphereShape::getNextCollapsingMode(ExtractionMode mode, const std::vector<SphereData>& spheres) {
+    auto collapsingMode = CollapsingMode::None;
+    int collapseCount = 0;
+    glm::vec3 collapseVector;
+    for (size_t i = 0; i < spheres.size() - 1; i++) {
+        for (size_t j = i + 1; j < spheres.size(); j++) {
+            size_t maxRadiusIndex = spheres[i]._radius > spheres[j]._radius ? i : j;
+            auto pairVector = spheres[i]._position - spheres[j]._position;
+            if (glm::length(pairVector) < 0.2f * spheres[maxRadiusIndex]._radius) {
+                collapseCount++;
+                collapseVector += spheres[i]._axis - spheres[j]._axis;
+            }
+        }
+    }
+
+    if (collapseCount > 0) {
+        collapseVector = glm::normalize(collapseVector);
+        bool perfectAxis = collapseVector.x != 1.0f && collapseVector.y != 1.0f && collapseVector.z != 1.0f;
+        int halfSphere3DCount = 4;
+        int halfSphere2DCount = 2;
+        bool modeSpheres3D = mode == ExtractionMode::SpheresXYZ;
+        bool modeSpheres2D = mode == ExtractionMode::SpheresXY ||
+                             mode == ExtractionMode::SpheresYZ ||
+                             mode == ExtractionMode::SpheresXZ;
+        bool modeSpheres1D = mode == ExtractionMode::SpheresX ||
+                             mode == ExtractionMode::SpheresY ||
+                             mode == ExtractionMode::SpheresZ;
+        bool collapseToSphere = !perfectAxis || (modeSpheres3D && collapseCount > halfSphere3DCount) ||
+                                                (modeSpheres2D && collapseCount > halfSphere2DCount) ||
+                                                 modeSpheres1D;
+        if (collapseToSphere) {
+            collapsingMode = CollapsingMode::Sphere;
+        } else if (collapseVector.x == 1.0f) {
+            if (modeSpheres3D) {
+                collapsingMode = CollapsingMode::SpheresYZ;
+            } else if (modeSpheres2D) {
+                if (mode == ExtractionMode::SpheresXY) {
+                    collapsingMode = CollapsingMode::SpheresY;
+                } else if (mode == ExtractionMode::SpheresXZ) {
+                    collapsingMode = CollapsingMode::SpheresZ;
+                }
+            }
+        } else if (collapseVector.y == 1.0f) {
+            if (modeSpheres3D) {
+                collapsingMode = CollapsingMode::SpheresXZ;
+            } else if (modeSpheres2D) {
+                if (mode == ExtractionMode::SpheresXY) {
+                    collapsingMode = CollapsingMode::SpheresX;
+                } else if (mode == ExtractionMode::SpheresYZ) {
+                    collapsingMode = CollapsingMode::SpheresZ;
+                }
+            }
+        } else if (collapseVector.z == 1.0f) {
+            if (modeSpheres3D) {
+                collapsingMode = CollapsingMode::SpheresXY;
+            } else if (modeSpheres2D) {
+                if (mode == ExtractionMode::SpheresXZ) {
+                    collapsingMode = CollapsingMode::SpheresX;
+                } else if (mode == ExtractionMode::SpheresYZ) {
+                    collapsingMode = CollapsingMode::SpheresY;
+                }
+            }
+        }
+        qCDebug(physics) << "Multisphere collapsing from mode: " << modeToString(mode) << " to mode: " 
+                         << modeToString(collapsingMode) << " Joint: " << _jointName;
+    }
+    return collapsingMode;
+}
+
+MultiSphereShape::CollapsingMode MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points,
+                                                                   const std::vector<glm::vec3>& axes, std::vector<SphereData>& spheres) {
     float maxRadius = 0.0f;
     float maxAverageRadius = 0.0f;
     float minAverageRadius = glm::length(points[0]);
     size_t sphereCount = axes.size();
     spheres.clear();
     for (size_t j = 0; j < sphereCount; j++) {
-        SphereShapeData sphere = SphereShapeData();
+        SphereData sphere = SphereData();
         sphere._axis = axes[j];
         spheres.push_back(sphere);
     }
@@ -318,29 +419,11 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         }
     }
     // Collapse spheres if too close
+    CollapsingMode collapsingMode = ExtractionMode::None;
     if (sphereCount > 1) {
-        bool collapsed = false;
-        for (size_t i = 0; i < spheres.size() - 1; i++) {
-            for (size_t j = i + 1; j < spheres.size(); j++) {
-                if (i != j) {
-                    size_t maxRadiusIndex = spheres[i]._radius > spheres[j]._radius ? i : j;
-                    if (glm::length(spheres[i]._position - spheres[j]._position) < 0.2f * spheres[maxRadiusIndex]._radius) {
-                        SphereShapeData newSphere;
-                        newSphere._position = _midPoint;
-                        newSphere._radius = maxRadius;
-                        spheres.clear();
-                        spheres.push_back(newSphere);
-                        collapsed = true;
-                        break;
-                    }
-                }
-            }
-            if (collapsed) {
-                break;
-            }
-        }
-
+        collapsingMode = getNextCollapsingMode(_mode, spheres);
     }
+    return collapsingMode;
 }
 
 void MultiSphereShape::connectSpheres(int index1, int index2, bool onlyEdges) {
