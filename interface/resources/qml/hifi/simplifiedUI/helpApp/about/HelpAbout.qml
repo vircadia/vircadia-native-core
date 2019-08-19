@@ -244,9 +244,7 @@ Flickable {
                 interactive: false
                 delegate: Item {
                     Component.onCompleted: {
-                        if (HMD.active && selectedHMD) {
-                            audioInputDevices.selectedInputDeviceName = model.devicename
-                        } else if (!HMD.active && selectedDesktop) {
+                        if ((HMD.active && selectedHMD) || (!HMD.active && selectedDesktop)) {
                             audioInputDevices.selectedInputDeviceName = model.devicename
                         }
                     }
@@ -277,9 +275,7 @@ Flickable {
                 interactive: false
                 delegate: Item {
                     Component.onCompleted: {
-                        if (HMD.active && selectedHMD) {
-                            audioOutputDevices.selectedOutputDeviceName = model.devicename
-                        } else if (!HMD.active && selectedDesktop) {
+                        if ((HMD.active && selectedHMD) || (!HMD.active && selectedDesktop)) {
                             audioOutputDevices.selectedOutputDeviceName = model.devicename
                         }
                     }
