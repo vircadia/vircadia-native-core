@@ -33,10 +33,11 @@
         return 0;
     }
 
-    NSFileHandle * fh = [standardOut fileHandleForReading];
-    NSData * data = [fh readDataToEndOfFile];
-    NSString * output = [NSString stringWithUTF8String:[data bytes]];
-    if (output == nil) {
+    NSFileHandle* fh = [standardOut fileHandleForReading];
+    NSData* data = [fh readDataToEndOfFile];
+
+    NSString* output = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    if (output == nil || [output length] == 0) {
         NSDictionary * userInfo = @{
             NSLocalizedDescriptionKey: NSLocalizedString(@"Couldn't start interface", nil)
             };
