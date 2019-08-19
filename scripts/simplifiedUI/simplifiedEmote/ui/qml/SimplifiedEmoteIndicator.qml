@@ -15,6 +15,7 @@ import QtGraphicalEffects 1.0
 import stylesUit 1.0 as HifiStylesUit
 import TabletScriptingInterface 1.0
 import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
+import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 
 Rectangle {
     id: root
@@ -32,6 +33,8 @@ Rectangle {
         emoteButtonsRepeater.itemAt(3).hovered ||
         emoteButtonsRepeater.itemAt(4).hovered ||
         emoteButtonsRepeater.itemAt(5).hovered) ? expandedWidth : originalWidth;
+    readonly property int totalEmojiDurationMS: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
+    readonly property string emoteIconSource: "images/emote_Icon.svg"
 
     onRequestedWidthChanged: {
         root.requestNewWidth(root.requestedWidth);
@@ -55,13 +58,76 @@ Rectangle {
         width: root.originalWidth
 
         Image {
+            id: emoteIndicatorLowOpacity
+            width: emoteIndicator.width
+            height: emoteIndicator.height
+            anchors.centerIn: parent
+            source: emoteIndicator.source
+            opacity: 0.5
+            fillMode: Image.PreserveAspectFit
+            // All "reactions" have associated icon filenames that contain "Icon.svg"; emojis don't.
+            visible: emoteIndicator.source.toString().indexOf("Icon.svg") === -1
+            mipmap: true
+        }
+
+        Image {
             id: emoteIndicator
             width: 30
             height: 30
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
-            source: "images/emote_Icon.svg"
+            source: root.emoteIconSource
             mipmap: true
+            visible: false
+
+            onSourceChanged: {
+                // All "reactions" have associated icon filenames that contain "Icon.svg"; emojis don't.
+                progressCircle.endAnimation = false;
+                progressCircle.arcEnd = 360;
+                progressCircle.endAnimation = true;
+
+                var sourceIsEmojiImage = source.toString().indexOf("Icon.svg") === -1;
+
+                // This kicks off the progress circle animation
+                if (sourceIsEmojiImage) {
+                    progressCircle.arcEnd = 0;
+                    restoreEmoteIconTimer.restart();
+                } else {
+                    restoreEmoteIconTimer.stop();
+                }
+            }
+        }
+
+        Timer {
+            id: restoreEmoteIconTimer
+            running: false
+            repeat: false
+            interval: root.totalEmojiDurationMS
+            onTriggered: {
+                emoteIndicator.source = root.emoteIconSource;
+            }
+        }
+
+        // The overlay used during the pie timeout
+        SimplifiedControls.ProgressCircle {
+            id: progressCircle
+            animationDuration: root.totalEmojiDurationMS
+            anchors.centerIn: emoteIndicator
+            size: emoteIndicator.width * 2
+            opacity: 0.5
+            colorCircle: "#FFFFFF"
+            colorBackground: "#E6E6E6"
+            showBackground: false
+            isPie: true
+            arcBegin: 0
+            arcEnd: 360
+            visible: false
+        }
+
+        OpacityMask {
+            anchors.fill: emoteIndicator
+            source: emoteIndicator
+            maskSource: progressCircle
         }
 
         ColorOverlay {
@@ -69,7 +135,8 @@ Rectangle {
             anchors.fill: emoteIndicator
             source: emoteIndicator
             color: "#ffffff"
-            opacity: 1
+            // All "reactions" have associated icon filenames that contain "Icon.svg"; emojis don't.
+            opacity: emoteIndicator.source.toString().indexOf("Icon.svg") > -1 ? 1.0 : 0.0
         }
 
         MouseArea {
@@ -188,15 +255,9 @@ Rectangle {
             case "updateEmoteIndicator":
                 print("CHANGING INDICATOR TO: ", JSON.stringify(message));
                 if (message.data.iconURL) {
-                    var imageURL = message.data.iconURL;
-                    emoteIndicator.source = imageURL;
-                    if (message.data.colorOverlayVisible) {
-                        print("SET OPACITY TO 1");
-                        emoteIndicatorColorOverlay.opacity = 1;
-                    } else {
-                        print("SET OPACITY TO 0");
-                        emoteIndicatorColorOverlay.opacity = 0;
-                    }
+                    emoteIndicator.source = message.data.iconURL;
+                } else {
+                    console.log("SimplifiedEmoteIndicator.qml: Error! `updateEmoteIndicator()` called without a new `iconURL`!");
                 }
                 break;
 

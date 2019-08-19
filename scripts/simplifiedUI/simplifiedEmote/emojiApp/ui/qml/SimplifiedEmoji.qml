@@ -17,7 +17,6 @@ import hifi.simplifiedUI.simplifiedControls 1.0 as SimplifiedControls
 import hifi.simplifiedUI.simplifiedConstants 1.0 as SimplifiedConstants
 import "../../resources/modules/emojiList.js" as EmojiList
 import "../../resources/modules/customEmojiList.js" as CustomEmojiList
-import "./ProgressCircle"
 
 Rectangle {
     id: root
@@ -103,8 +102,8 @@ Rectangle {
 
         Image {
             id: mainEmojiLowOpacity
-            width: 180
-            height: 180
+            width: mainEmojiImage.width
+            height: mainEmojiImage.height
             anchors.centerIn: parent
             source: mainEmojiImage.source
             opacity: 0.5
@@ -125,7 +124,7 @@ Rectangle {
         }
 
         // The overlay used during the pie timeout
-        ProgressCircle {
+        SimplifiedControls.ProgressCircle {
             id: progressCircle
             animationDuration: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
             anchors.centerIn: mainEmojiImage

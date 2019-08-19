@@ -46,13 +46,12 @@ var UTF_CODE = 0;
 // Plays the specified sound at the specified position, volume, and localOnly
 // Only plays a sound if it is downloaded.
 // Only plays one sound at a time.
-var soundUrl = Script.resolvePath('./resources/sounds/emojiPopSound.wav');
-var popSound = SoundCache.getSound(soundUrl);
+var emojiCreateSound = SoundCache.getSound(Script.resolvePath('resources/sounds/emojiPopSound1.wav'));
+var emojiDestroySound = SoundCache.getSound(Script.resolvePath('resources/sounds/emojiPopSound2.wav'));
 var injector;
 var DEFAULT_VOLUME = 0.01;
 var local = false;
 function playSound(sound, volume, position, localOnly) {
-    sound = sound || popSound;
     volume = volume || DEFAULT_VOLUME;
     position = position || MyAvatar.position;
     localOnly = localOnly || local;
@@ -342,7 +341,7 @@ function playPopAnimation() {
         } else {
             // Start with the pop sound on the out
             currentPopScale = finalInPopScale ? finalInPopScale : MAX_POP_SCALE;
-            playSound();
+            playSound(emojiDestroySound);
         }
     }
 
@@ -375,7 +374,7 @@ function playPopAnimation() {
     if (currentPopStep === POP_ANIMATION_STEPS) {
         if (popType === "in") {
             finalInPopScale = currentPopScale;
-            playSound();
+            playSound(emojiCreateSound);
             dimensions = [
                 Math.max(dimensions.x, emojiMaxDimensions.x),
                 Math.max(dimensions.y, emojiMaxDimensions.y),
