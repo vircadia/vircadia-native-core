@@ -253,7 +253,6 @@ Rectangle {
 
         switch (message.method) {
             case "updateEmoteIndicator":
-                print("CHANGING INDICATOR TO: ", JSON.stringify(message));
                 if (message.data.iconURL) {
                     emoteIndicator.source = message.data.iconURL;
                 } else {

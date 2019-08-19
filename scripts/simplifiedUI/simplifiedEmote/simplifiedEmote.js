@@ -178,14 +178,21 @@ function beginReactionWrapper(reaction) {
             startClappingSounds();
             break;
         case ("point"):
-            
-            if (pointReticle) {
-                Entities.deleteEntity(pointReticle);
-                pointReticle = null;
-            }
+            deleteOldReticles();
             Controller.mouseMoveEvent.connect(mouseMoveEvent);
             mouseMoveEventsConnected = true;
     }
+}
+
+// Checks to see if there are any reticle entities already to delete
+function deleteOldReticles() {
+    MyAvatar.getAvatarEntitiesVariant()
+        .forEach(function (avatarEntity) {
+            if (avatarEntity && avatarEntity.properties.name.toLowerCase().indexOf("reticle") > -1) {
+                Entities.deleteEntity(avatarEntity.id);
+            }
+        });
+    pointReticle = null;
 }
 
 
@@ -210,10 +217,7 @@ function mouseMoveEvent(event) {
         reticlePosition = entityIntersectionData.intersection;
     } else {
         print("ERROR: No intersected avatar or entity found or the distance is too far.");
-        if (pointReticle) {
-            Entities.deleteEntity(pointReticle);
-            pointReticle = null;
-        }
+        deleteOldReticles();
         return;
     }
 
@@ -261,10 +265,7 @@ function endReactionWrapper(reaction) {
                 Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
             }
             intersectedEntityOrAvatarID = null;
-            if (pointReticle) {
-                Entities.deleteEntity(pointReticle);
-                pointReticle = null;
-            }
+            deleteOldReticles()
             break;
     }
 }
@@ -272,7 +273,6 @@ function endReactionWrapper(reaction) {
 
 var EMOTE_APP_BAR_MESSAGE_SOURCE = "EmoteAppBar.qml";
 function onMessageFromEmoteAppBar(message) {
-    console.log("MESSAGE From emote app bar: ", JSON.stringify(message));
     if (message.source !== EMOTE_APP_BAR_MESSAGE_SOURCE) {
         return;
     }
@@ -301,7 +301,6 @@ function onMessageFromEmoteAppBar(message) {
 
 function getEmojiURLFromCode(code) {
     var emojiObject = emojiList[emojiCodeMap[code]];
-    print(JSON.stringify(emojiObject));
     var emojiFilename;
     // If `emojiObject` isn't defined here, that probably means we're looking for a custom emoji
     if (!emojiObject) {
@@ -444,6 +443,8 @@ var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
 function init() {
+    deleteOldReticles();
+
     // make a map of just the utf codes to help with accesing
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
         if (
