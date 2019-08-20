@@ -204,6 +204,22 @@ Rectangle {
             parent: grid
             anchors.rightMargin: -grid.anchors.rightMargin + 2
         }
+
+        HifiStylesUit.GraphikRegular {
+            readonly property var cantFindEmojiList: ["😣", "😭", "😖", "😢", "🤔"]
+            onVisibleChanged: {
+                if (visible) {
+                    text = "We couldn't find that emoji " + cantFindEmojiList[Math.floor(Math.random() * cantFindEmojiList.length)]
+                }
+            }
+            visible: grid.model.count === 0
+            anchors.fill: parent
+            wrapMode: Text.Wrap
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            color: simplifiedUI.colors.text.darkGrey
+            size: 22
+        }
     }
 
 
