@@ -127,8 +127,7 @@ function onMessageFromSettingsApp(message) {
 
     switch (message.method) {
         /* 
-            MILAD NOTE:
-            These two call an update methon on the module apis because I can't get a signal from Settings.QML to the emoji.js without it being a module like
+            This calls an update methon on the module apis because I can't get a signal from Settings.QML to the emoji.js without it being a module like
             nametag.  
         */
         case "handleAvatarNametagMode":
