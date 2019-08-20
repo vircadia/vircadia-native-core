@@ -346,11 +346,11 @@ MultiSphereShape::CollapsingMode MultiSphereShape::getNextCollapsingMode(Extract
                     }
                 } else if (alongPlane) {
                     if (collapseVector.x == 0.0f) {
-                        collapsingMode == CollapsingMode::SpheresX;
+                        collapsingMode = CollapsingMode::SpheresX;
                     } else if (collapseVector.y == 0.0f) {
-                        collapsingMode == CollapsingMode::SpheresY;
+                        collapsingMode = CollapsingMode::SpheresY;
                     } else if (collapseVector.z == 0.0f) {
-                        collapsingMode == CollapsingMode::SpheresZ;
+                        collapsingMode = CollapsingMode::SpheresZ;
                     }
                 }
             } else if (modeSpheres2D) {
