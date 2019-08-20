@@ -15,7 +15,7 @@
 #include "EntityItem.h"
 
 class PolyLineEntityItem : public EntityItem {
- public:
+public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     PolyLineEntityItem(const EntityItemID& entityItemID);
@@ -90,10 +90,12 @@ class PolyLineEntityItem : public EntityItem {
                                                   BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
+    void computeTightLocalBoundingBox(AABox& box) const;
+
     virtual void debugDump() const override;
 private:
-    void computeAndUpdateDimensionsAndPosition();
-    
+    void computeAndUpdateDimensions();
+
  protected:
     glm::u8vec3 _color;
     QVector<glm::vec3> _points;

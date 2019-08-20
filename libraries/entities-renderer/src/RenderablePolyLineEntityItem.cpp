@@ -41,6 +41,20 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
     }
 }
 
+void PolyLineEntityRenderer::updateModelTransformAndBound() {
+    bool success = false;
+    auto newModelTransform = _entity->getTransformToCenter(success);
+    if (success) {
+        _modelTransform = newModelTransform;
+
+        auto lineEntity = std::static_pointer_cast<PolyLineEntityItem>(_entity);
+        AABox bound;
+        lineEntity->computeTightLocalBoundingBox(bound);
+        bound.transform(newModelTransform);
+        _bound = bound;
+    }
+}
+
 void PolyLineEntityRenderer::buildPipelines() {
     // FIXME: opaque pipelines
 

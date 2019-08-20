@@ -25,6 +25,8 @@ class PolyLineEntityRenderer : public TypedEntityRenderer<PolyLineEntityItem> {
 public:
     PolyLineEntityRenderer(const EntityItemPointer& entity);
 
+    void updateModelTransformAndBound() override;
+
     // FIXME: shouldn't always be transparent: take into account texture and glow
     virtual bool isTransparent() const override { return true; }
 
