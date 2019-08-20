@@ -100,8 +100,8 @@ function calculateInjectorVolume(clapIntensity) {
 var soundInjector = false;
 var MINIMUM_PITCH = 0.85;
 var MAXIMUM_PITCH = 1.15;
-function playSound(sound, position) {
-    if (soundInjector && soundInjector.isPlaying()) {
+function playSound(sound, position, stopPrevious) {
+    if (soundInjector && soundInjector.isPlaying() && !stopPrevious) {
         return;
     }
 
@@ -134,7 +134,7 @@ function startClappingSounds() {
     maybeClearClapSoundInterval();
 
     clapSoundInterval = Script.setInterval(function() {
-        playSound(clapSounds[Math.floor(Math.random() * clapSounds.length)]);
+        playSound(clapSounds[Math.floor(Math.random() * clapSounds.length)], MyAvatar.position, true);
     }, CLAP_SOUND_INTERVAL_MS);
 }
 
