@@ -306,57 +306,75 @@ MultiSphereShape::CollapsingMode MultiSphereShape::getNextCollapsingMode(Extract
             }
         }
     }
-
+    
     if (collapseCount > 0) {
-        collapseVector = glm::normalize(collapseVector);
-        bool perfectAxis = collapseVector.x != 1.0f && collapseVector.y != 1.0f && collapseVector.z != 1.0f;
-        int halfSphere3DCount = 4;
-        int halfSphere2DCount = 2;
-        bool modeSpheres3D = mode == ExtractionMode::SpheresXYZ;
-        bool modeSpheres2D = mode == ExtractionMode::SpheresXY ||
-                             mode == ExtractionMode::SpheresYZ ||
-                             mode == ExtractionMode::SpheresXZ;
-        bool modeSpheres1D = mode == ExtractionMode::SpheresX ||
-                             mode == ExtractionMode::SpheresY ||
-                             mode == ExtractionMode::SpheresZ;
-        bool collapseToSphere = !perfectAxis || (modeSpheres3D && collapseCount > halfSphere3DCount) ||
-                                                (modeSpheres2D && collapseCount > halfSphere2DCount) ||
-                                                 modeSpheres1D;
-        if (collapseToSphere) {
+        float collapseDistance = glm::length(collapseVector);
+        bool allSpheresCollapse = collapseDistance < EPSILON;
+        if (allSpheresCollapse) {
             collapsingMode = CollapsingMode::Sphere;
-        } else if (collapseVector.x == 1.0f) {
-            if (modeSpheres3D) {
-                collapsingMode = CollapsingMode::SpheresYZ;
-            } else if (modeSpheres2D) {
-                if (mode == ExtractionMode::SpheresXY) {
-                    collapsingMode = CollapsingMode::SpheresY;
-                } else if (mode == ExtractionMode::SpheresXZ) {
-                    collapsingMode = CollapsingMode::SpheresZ;
+        } else {
+            collapseVector = glm::normalize(collapseVector);
+            bool alongAxis = collapseVector.x == 1.0f || collapseVector.y == 1.0f || collapseVector.z == 1.0f;
+            bool alongPlane = collapseVector.x == 0.0f || collapseVector.y == 0.0f || collapseVector.z == 0.0f;
+            int halfSphere3DCount = 4;
+            int halfSphere2DCount = 2;
+            bool modeSpheres3D = mode == ExtractionMode::SpheresXYZ;
+            bool modeSpheres2D = mode == ExtractionMode::SpheresXY ||
+                mode == ExtractionMode::SpheresYZ ||
+                mode == ExtractionMode::SpheresXZ;
+            bool modeSpheres1D = mode == ExtractionMode::SpheresX ||
+                mode == ExtractionMode::SpheresY ||
+                mode == ExtractionMode::SpheresZ;
+            // SpheresXYZ will collapse along XY YZ XZ planes or X Y Z axes.
+            // SpheresXY, SpheresYZ and Spheres XZ will collapse only along X Y Z axes.
+            // Other occurences will be collapsed to a single sphere.
+            bool isCollapseValid = (modeSpheres3D && (alongAxis || alongPlane)) ||
+                                   (modeSpheres2D && (alongAxis));
+            bool collapseToSphere = !isCollapseValid || (modeSpheres3D && collapseCount > halfSphere3DCount) ||
+                                                        (modeSpheres2D && collapseCount > halfSphere2DCount) ||
+                                                         modeSpheres1D;
+            if (collapseToSphere) {
+                collapsingMode = CollapsingMode::Sphere;
+            } else if (modeSpheres3D) {
+                if (alongAxis) {
+                    if (collapseVector.x == 1.0f) {
+                        collapsingMode = CollapsingMode::SpheresYZ;
+                    } else if (collapseVector.y == 1.0f) {
+                        collapsingMode = CollapsingMode::SpheresXZ;
+                    } else if (collapseVector.z == 1.0f) {
+                        collapsingMode = CollapsingMode::SpheresXY;
+                    }
+                } else if (alongPlane) {
+                    if (collapseVector.x == 0.0f) {
+                        collapsingMode == CollapsingMode::SpheresX;
+                    } else if (collapseVector.y == 0.0f) {
+                        collapsingMode == CollapsingMode::SpheresY;
+                    } else if (collapseVector.z == 0.0f) {
+                        collapsingMode == CollapsingMode::SpheresZ;
+                    }
                 }
-            }
-        } else if (collapseVector.y == 1.0f) {
-            if (modeSpheres3D) {
-                collapsingMode = CollapsingMode::SpheresXZ;
             } else if (modeSpheres2D) {
-                if (mode == ExtractionMode::SpheresXY) {
-                    collapsingMode = CollapsingMode::SpheresX;
-                } else if (mode == ExtractionMode::SpheresYZ) {
-                    collapsingMode = CollapsingMode::SpheresZ;
-                }
-            }
-        } else if (collapseVector.z == 1.0f) {
-            if (modeSpheres3D) {
-                collapsingMode = CollapsingMode::SpheresXY;
-            } else if (modeSpheres2D) {
-                if (mode == ExtractionMode::SpheresXZ) {
-                    collapsingMode = CollapsingMode::SpheresX;
-                } else if (mode == ExtractionMode::SpheresYZ) {
-                    collapsingMode = CollapsingMode::SpheresY;
+                if (collapseVector.x == 1.0f) {
+                    if (mode == ExtractionMode::SpheresXY) {
+                        collapsingMode = CollapsingMode::SpheresY;
+                    } else if (mode == ExtractionMode::SpheresXZ) {
+                        collapsingMode = CollapsingMode::SpheresZ;
+                    }
+                } else if (collapseVector.y == 1.0f) {
+                    if (mode == ExtractionMode::SpheresXY) {
+                        collapsingMode = CollapsingMode::SpheresX;
+                    } else if (mode == ExtractionMode::SpheresYZ) {
+                        collapsingMode = CollapsingMode::SpheresZ;
+                    }
+                } else if (collapseVector.z == 1.0f) {
+                    if (mode == ExtractionMode::SpheresXZ) {
+                        collapsingMode = CollapsingMode::SpheresX;
+                    } else if (mode == ExtractionMode::SpheresYZ) {
+                        collapsingMode = CollapsingMode::SpheresY;
+                    }
                 }
             }
         }
-        qCDebug(physics) << "Multisphere collapsing from mode: " << modeToString(mode) << " to mode: " 
-                         << modeToString(collapsingMode) << " Joint: " << _jointName;
     }
     return collapsingMode;
 }
