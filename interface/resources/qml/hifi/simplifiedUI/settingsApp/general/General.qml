@@ -240,7 +240,7 @@ Flickable {
                     }
                 }
                 
-              Connections {
+                Connections {
                     target: Camera
 
                     onModeUpdated: {

@@ -15,14 +15,14 @@
 // #region dependencies
 
 // Custom module for handling entities
-var EntityMaker = Script.require("./resources/modules/entityMaker.js?" + Date.now());
+var EntityMaker = Script.require("./resources/modules/entityMaker.js");
 // Add nice smoothing functions to the animations
-var EasingFunctions = Script.require("./resources/modules/easing.js?");
+var EasingFunctions = Script.require("./resources/modules/easing.js");
 
 // The information needed to properly use the sprite sheets and get the general information
 // about the emojis
-var emojiList = Script.require("./resources/modules/emojiList.js?" + Date.now());
-var customEmojiList = Script.require("./resources/modules/customEmojiList.js?" + Date.now());
+var emojiList = Script.require("./resources/modules/emojiList.js");
+var customEmojiList = Script.require("./resources/modules/customEmojiList.js");
 var imageURLBase = Script.resolvePath("./resources/images/emojis/1024px/");
 
 
@@ -95,6 +95,7 @@ function startTimeoutDelete() {
         // This is called to start the shrink animation and also where the deleting happens when that is done
         maybePlayPop("off");
         selectedEmojiFilename = null;
+        defaultTimeout = false;
     }, TOTAL_EMOJI_DURATION_MS - POP_ANIMATION_OUT_DURATION_MS);
 }
 
@@ -104,11 +105,7 @@ var COUNT_DOWN_INTERVAL_MS = 100;
 function beginCountDownTimer() {
     _this._avimojiQMLWindow.sendToQml({
         "source": "simplifiedEmoji.js",
-        "method": "beginCountdownTimer",
-        "data": {
-            "interval": COUNT_DOWN_INTERVAL_MS,
-            "duration": TOTAL_EMOJI_DURATION_MS
-        }
+        "method": "beginCountdownTimer"
     });
     
 }
@@ -118,12 +115,10 @@ function clearCountDownTimerHandler() {
     if (_this._avimojiQMLWindow) {
         _this._avimojiQMLWindow.sendToQml({
             "source": "simplifiedEmoji.js",
-            "method": "clearCountdownTimer",
-            "data": {}
+            "method": "clearCountdownTimer"
         });
     }
 }
-
 
 
 function resetEmojis() {

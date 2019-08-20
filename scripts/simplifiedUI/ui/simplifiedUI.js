@@ -118,17 +118,13 @@ function handleAvatarNametagMode(newAvatarNametagMode) {
     nametag.handleAvatarNametagMode(newAvatarNametagMode);
 }
 
-function handleEmoteIndicatorVisible(newEmoteIndicatorVisible) {
-    emote.handleEmoteIndicatorVisible(newEmoteIndicatorVisible);
-}
-
 
 var SETTINGS_APP_MESSAGE_SOURCE = "SettingsApp.qml";
 function onMessageFromSettingsApp(message) {
     if (message.source !== SETTINGS_APP_MESSAGE_SOURCE) {
         return;
     }
-    console.log("\n \n MESSAGE FROM SETTINGS APP: ", JSON.stringify(message));
+
     switch (message.method) {
         /* 
             MILAD NOTE:
@@ -136,12 +132,7 @@ function onMessageFromSettingsApp(message) {
             nametag.  
         */
         case "handleAvatarNametagMode":
-            console.log("Got to handle avatar nametag mode");
             handleAvatarNametagMode(message.avatarNametagMode);
-            break;
-        case "handleEmoteIndicatorVisible":
-            console.log("Got to handle emote indicator visible");
-            handleEmoteIndicatorVisible(message.emoteIndicatorVisible);
             break;
         default:
             console.log("Unrecognized message from " + SETTINGS_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
@@ -392,7 +383,6 @@ function onMessageFromTopBar(message) {
     if (message.source !== TOP_BAR_MESSAGE_SOURCE) {
         return;
     }
-    console.log("\n\n MESSAGE FROM TOP BAR! ", JSON.stringify(message));
     switch (message.method) {
         case "toggleAvatarApp":
             toggleAvatarApp();
@@ -589,7 +579,6 @@ function modifyLODSettings() {
 
 
 function restoreLODSettings() {
-    print("RESTORING LOD SETTINGS");
     LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
     LODManager.lodAngleDeg = oldLODAngleDeg;
 }
@@ -650,11 +639,9 @@ function startup() {
 
 
 function shutdown() {
-    print("SHUTTING DOWN SIMPLIFIED UI");
     restoreLODSettings();
 
     if (!keepExistingUIAndScriptsSetting) {
-        console.log("The Simplified UI script has been shut down. If you notice any strangeness with user interface, please restart this application.");
 
         if (!HMD.active) {
             var toolbar = Toolbars.getToolbar(TOOLBAR_NAME);
