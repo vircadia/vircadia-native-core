@@ -18,8 +18,8 @@
 
 // The information needed to properly use the sprite sheets and get the general information
 // about the emojis
-var emojiList = Script.require("./emojiApp/resources/modules/emojiList.js?" + Date.now());
-var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiList.js?" + Date.now());
+var emojiList = Script.require("./emojiApp/resources/modules/emojiList.js");
+var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiList.js");
 var imageURLBase = Script.resolvePath("./resources/images/emojis/1024px/");
 
 // #endregion
@@ -159,7 +159,6 @@ function toggleReaction(reaction) {
     }
 }
 
-var UPDATE_POINT_EMOTE_MS = 1000;
 var reactionsBegun = [];
 var pointReticle = null;
 var mouseMoveEventsConnected = false;
@@ -179,8 +178,10 @@ function beginReactionWrapper(reaction) {
             break;
         case ("point"):
             deleteOldReticles();
-            Controller.mouseMoveEvent.connect(mouseMoveEvent);
-            mouseMoveEventsConnected = true;
+            if (!mouseMoveEventsConnected) {
+                Controller.mouseMoveEvent.connect(mouseMoveEvent);
+                mouseMoveEventsConnected = true;
+            }
     }
 }
 
@@ -216,14 +217,13 @@ function mouseMoveEvent(event) {
     } else if (entityIntersectionDistanceM) {
         reticlePosition = entityIntersectionData.intersection;
     } else {
-        print("ERROR: No intersected avatar or entity found or the distance is too far.");
         deleteOldReticles();
         return;
     }
 
-    if (pointReticle) {
+    if (pointReticle && reticlePosition) {
         Entities.editEntity(pointReticle, { position: reticlePosition });
-    } else {
+    } else if (reticlePosition) {
         pointReticle = Entities.addEntity({
             type: "Sphere",
             name: "Point Reticle",
@@ -231,7 +231,10 @@ function mouseMoveEvent(event) {
             dimensions: { x: 0.1, y: 0.1, z: 0.1 },
             color: { red: 255, green: 0, blue: 0 },
             collisionless: true,
-            ignorePickIntersection: true
+            ignorePickIntersection: true,
+            grab: {
+                grabbable: false
+            }
         }, true);
     }
 }
@@ -265,7 +268,7 @@ function endReactionWrapper(reaction) {
                 Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
             }
             intersectedEntityOrAvatarID = null;
-            deleteOldReticles()
+            deleteOldReticles();
             break;
     }
 }
@@ -438,7 +441,7 @@ function onSettingsValueChanged(settingName, newValue) {
 }
 
 
-var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js?" + Date.now());
+var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
