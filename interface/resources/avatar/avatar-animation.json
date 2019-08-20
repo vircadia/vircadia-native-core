@@ -636,33 +636,40 @@
                                                                                                             "randomSwitchTimeMin": 7,
                                                                                                             "states": [
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "seatedTalk02",
-                                                                                                                    "interpDuration": 6,
-                                                                                                                    "interpTarget": 6,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "seatedTalk03",
-                                                                                                                    "interpDuration": 6,
-                                                                                                                    "interpTarget": 6,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "seatedTalk04",
-                                                                                                                    "interpDuration": 6,
-                                                                                                                    "interpTarget": 6,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 }
-                                                                                                            ]
+                                                                                                            ],
+                                                                                                            "triggerRandomSwitch": "seatedTalkSwitch"
                                                                                                         },
                                                                                                         "id": "seatedTalk",
                                                                                                         "type": "randomSwitchStateMachine"
@@ -675,7 +682,7 @@
                                                                                                                 "data": {
                                                                                                                     "endFrame": 800,
                                                                                                                     "loopFlag": true,
-                                                                                                                    "startFrame": 1,
+                                                                                                                    "startFrame": 0,
                                                                                                                     "timeScale": 1,
                                                                                                                     "url": "qrc:///avatar/animations/sitting_idle.fbx"
                                                                                                                 },
@@ -688,7 +695,20 @@
                                                                                                                 "data": {
                                                                                                                     "endFrame": 800,
                                                                                                                     "loopFlag": true,
-                                                                                                                    "startFrame": 1,
+                                                                                                                    "startFrame": 0,
+                                                                                                                    "timeScale": 1,
+                                                                                                                    "url": "qrc:///avatar/animations/sitting_idle02.fbx"
+                                                                                                                },
+                                                                                                                "id": "seatedIdle02",
+                                                                                                                "type": "clip"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "children": [
+                                                                                                                ],
+                                                                                                                "data": {
+                                                                                                                    "endFrame": 800,
+                                                                                                                    "loopFlag": true,
+                                                                                                                    "startFrame": 0,
                                                                                                                     "timeScale": 1,
                                                                                                                     "url": "qrc:///avatar/animations/sitting_idle03.fbx"
                                                                                                                 },
@@ -702,24 +722,40 @@
                                                                                                             "randomSwitchTimeMin": 10,
                                                                                                             "states": [
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "seatedIdle01",
-                                                                                                                    "interpDuration": 6,
-                                                                                                                    "interpTarget": 6,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 },
                                                                                                                 {
+                                                                                                                    "easingType": "easeInOutQuad",
+                                                                                                                    "id": "seatedIdle02",
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
+                                                                                                                    "priority": 1,
+                                                                                                                    "resume": true,
+                                                                                                                    "transitions": [
+                                                                                                                    ]
+                                                                                                                },
+                                                                                                                {
+                                                                                                                    "easingType": "easeInOutQuad",
                                                                                                                     "id": "seatedIdle03",
-                                                                                                                    "interpDuration": 6,
-                                                                                                                    "interpTarget": 6,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
+                                                                                                                    "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": true,
                                                                                                                     "transitions": [
                                                                                                                     ]
                                                                                                                 }
-                                                                                                            ]
+                                                                                                            ],
+                                                                                                            "triggerRandomSwitch": "seatedIdleSwitch"
                                                                                                         },
                                                                                                         "id": "seatedIdle",
                                                                                                         "type": "randomSwitchStateMachine"
@@ -925,6 +961,45 @@
                                                                                                         },
                                                                                                         "id": "seatedReactionRaiseHandOutro",
                                                                                                         "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 18,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 0,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_raisehand02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionRaiseHand02Intro",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 378,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 18,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_raisehand02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionRaiseHand02Loop",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 435,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 378,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_raisehand02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionRaiseHand02Outro",
+                                                                                                        "type": "clip"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -971,6 +1046,49 @@
                                                                                                             "transitions": [
                                                                                                                 {
                                                                                                                     "randomSwitchState": "seatedReactionRaiseHandLoop",
+                                                                                                                    "var": "reactionRaiseHandEnabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionRaiseHand02Intro",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionRaiseHand02Loop",
+                                                                                                                    "var": "seatedReactionRaiseHand02IntroOnDone"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "seatedReactionRaiseHand02Loop",
+                                                                                                            "interpDuration": 5,
+                                                                                                            "interpTarget": 5,
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionRaiseHand02Outro",
+                                                                                                                    "var": "reactionRaiseHandDisabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionRaiseHand02Outro",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionRaiseHand02Loop",
                                                                                                                     "var": "reactionRaiseHandEnabled"
                                                                                                                 }
                                                                                                             ]
@@ -1021,6 +1139,45 @@
                                                                                                         },
                                                                                                         "id": "seatedReactionApplaudOutro",
                                                                                                         "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 12,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 0,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaud02Intro",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 112,
+                                                                                                            "loopFlag": true,
+                                                                                                            "startFrame": 12,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaud02Loop",
+                                                                                                        "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 132,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 112,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_clap02_all.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionApplaud02Outro",
+                                                                                                        "type": "clip"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -1069,6 +1226,51 @@
                                                                                                             "transitions": [
                                                                                                                 {
                                                                                                                     "randomSwitchState": "seatedReactionApplaudLoop",
+                                                                                                                    "var": "reactionApplaudEnabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaud02Intro",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaud02Loop",
+                                                                                                                    "var": "seatedReactionApplaud02IntroOnDone"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaud02Loop",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaud02Outro",
+                                                                                                                    "var": "reactionApplaudDisabled"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionApplaud02Outro",
+                                                                                                            "interpDuration": 18,
+                                                                                                            "interpTarget": 18,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 0,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                                {
+                                                                                                                    "randomSwitchState": "seatedReactionApplaud02Loop",
                                                                                                                     "var": "reactionApplaudEnabled"
                                                                                                                 }
                                                                                                             ]
