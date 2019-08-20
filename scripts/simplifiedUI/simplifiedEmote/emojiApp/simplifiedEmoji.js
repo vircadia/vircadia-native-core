@@ -238,12 +238,10 @@ function createEmoji(emojiFilename) {
 // #region animation
 
 
-// see what we need to do when an emoji gets clicked
 /*
-    MILAD NOTE:
+    see what we need to do when an emoji gets clicked
     First clear any current pop animations
-
-    Then we check what kind of pop animation might be requested, either an in or an out.
+    Then check what kind of pop animation might be requested, either an in or an out.
 */
 function maybePlayPop(type) {
     maybeClearPop();
