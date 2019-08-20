@@ -19,8 +19,9 @@
 // TODO: move everything in here to the physics library after the physics/entities library
 // dependency order is swapped.
 
-const int PHYSICS_ENGINE_MAX_NUM_SUBSTEPS = 6; // Bullet will start to "lose time" at 10 FPS.
-const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / 90.0f;
+const int32_t PHYSICS_ENGINE_MAX_NUM_SUBSTEPS = 6; // Bullet will start to "lose time" at 10 FPS.
+const uint32_t NUM_SUBSTEPS_PER_SECOND = 90;
+const float PHYSICS_ENGINE_FIXED_SUBSTEP = 1.0f / (float)NUM_SUBSTEPS_PER_SECOND;
 
 const float DYNAMIC_LINEAR_SPEED_THRESHOLD = 0.05f;  // 5 cm/sec
 const float DYNAMIC_ANGULAR_SPEED_THRESHOLD = 0.087266f;  // ~5 deg/sec

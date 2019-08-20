@@ -25,6 +25,7 @@
 #include "BulletUtil.h"
 #include "CharacterGhostObject.h"
 #include "PhysicsEngine.h"
+#include "PhysicsHelpers.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -38,7 +39,7 @@ const uint32_t PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION = 1U << 7;
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
 const uint32_t NUM_SUBSTEPS_FOR_STUCK_TRANSITION = 6; // physics substeps
-const uint32_t NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY = 40; // physics substeps
+const uint32_t NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY = NUM_SUBSTEPS_PER_SECOND / 2; // retry every half second
 
 class btRigidBody;
 class btCollisionWorld;
