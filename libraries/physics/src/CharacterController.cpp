@@ -105,6 +105,8 @@ CharacterController::CharacterMotor::CharacterMotor(const glm::vec3& vel, const 
     }
 }
 
+static uint32_t _numCharacterControllers { 0 };
+
 CharacterController::CharacterController() {
     _floorDistance = _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
 
@@ -123,6 +125,11 @@ CharacterController::CharacterController() {
     _hasSupport = false;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
+
+    // ATM CharacterController is a singleton.  When we want more we'll have to
+    // overhaul the applyPairwiseFilter() logic to handle multiple instances.
+    ++_numCharacterControllers;
+    assert(numCharacterControllers == 1);
 }
 
 CharacterController::~CharacterController() {
@@ -279,6 +286,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
         if (_stuckTransitionCount > NUM_SUBSTEPS_FOR_STUCK_TRANSITION) {
             // we've been in this "probablyStuck" state for several consecutive substeps
             // --> make it official by changing state
+            qCDebug(physics) << "CharacterController::_isStuck :" << _isStuck << "-->" << probablyStuck;
             _isStuck = probablyStuck;
             // init _numStuckSubsteps at NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY so SafeLanding tries to help immediately
             _numStuckSubsteps = NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY;
