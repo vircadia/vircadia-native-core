@@ -1511,7 +1511,7 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     }
     indicateLoadingStatus(LoadingStatus::LoadModel);
 
-    _skeletonModel->setURL(_skeletonModelURL);
+    _skeletonModel->setURL(getSkeletonModelURL());
 }
 
 void Avatar::setModelURLFinished(bool success) {

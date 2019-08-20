@@ -1,7 +1,7 @@
 //
-//  SettingsApp.qml
+//  HelpApp.qml
 //
-//  Created by Zach Fox on 2019-05-02
+//  Created by Zach Fox on 2019-08-07
 //  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -13,41 +13,26 @@ import QtQuick.Controls 2.3
 import "../simplifiedConstants" as SimplifiedConstants
 import "../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
-import "./audio" as AudioSettings
-import "./general" as GeneralSettings
-import "./vr" as VrSettings
-import "./dev" as DevSettings
-import "./about" as AboutSettings
+import "./controls" as HelpControls
+import "./faq" as HelpFAQ
+import "./about" as HelpAbout
 
 Rectangle {
-    property string activeTabView: "generalTabView"
+    property string activeTabView: "controlsTabView"
     id: root
     color: simplifiedUI.colors.darkBackground
     anchors.fill: parent
-    property bool developerModeEnabled: Settings.getValue("simplifiedUI/developerModeEnabled", false)
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
     }
             
-    focus: true        
-    Keys.onPressed: {
-        if ((event.key == Qt.Key_D) && (event.modifiers & Qt.ControlModifier && event.modifiers & Qt.AltModifier && event.modifiers & Qt.ShiftModifier)) {
-            var currentSetting = Settings.getValue("simplifiedUI/developerModeEnabled", false);
-            var newSetting = !currentSetting;
-            Settings.setValue("simplifiedUI/developerModeEnabled", newSetting);
-            root.developerModeEnabled = newSetting;
-            if (newSetting) {
-                console.log("Developer mode ON. You are now a developer!");
-            } else {
-                console.log("Developer mode OFF.");
-                if (root.activeTabView === "devTabView") {
-                    tabListView.currentIndex = 2;
-                    root.activeTabView = "vrTabView";
-                }
-            }
-        }
+    focus: true
+
+    Component.onCompleted: {
+        root.forceActiveFocus();
     }
+
 
     onActiveTabViewChanged: {
         for (var i = 0; i < tabListModel.count; i++) {
@@ -56,10 +41,6 @@ Rectangle {
                 return;
             }
         }
-    }
-
-    Component.onCompleted: {
-        root.forceActiveFocus();
     }
 
 
@@ -75,24 +56,16 @@ Rectangle {
             id: tabListModel
 
             ListElement {
-                tabTitle: "General"
-                tabViewName: "generalTabView"
+                tabTitle: "Controls"
+                tabViewName: "controlsTabView"
             }
             ListElement {
-                tabTitle: "Audio"
-                tabViewName: "audioTabView"
-            }
-            ListElement {
-                tabTitle: "VR"
-                tabViewName: "vrTabView"
+                tabTitle: "FAQ"
+                tabViewName: "faqTabView"
             }
             ListElement {
                 tabTitle: "About"
                 tabViewName: "aboutTabView"
-            }
-            ListElement {
-                tabTitle: "Dev"
-                tabViewName: "devTabView"
             }
         }
 
@@ -129,8 +102,6 @@ Rectangle {
             highlightFollowsCurrentItem: false
             interactive: contentItem.width > width
             delegate: Item {
-                visible: model.tabTitle !== "Dev" || (model.tabTitle === "Dev" && root.developerModeEnabled)
-
                 width: tabTitleText.paintedWidth + 32
                 height: parent.height
 
@@ -162,35 +133,23 @@ Rectangle {
         anchors.bottom: parent.bottom
 
 
-        GeneralSettings.General {
-            id: generalTabViewContainer
-            visible: activeTabView === "generalTabView"
+        HelpControls.HelpControls {
+            id: controlsTabViewContainer
+            visible: activeTabView === "controlsTabView"
             anchors.fill: parent
-            onSendNameTagInfo: {
-                sendToScript(message);
+        }
+
+        HelpFAQ.HelpFAQ {
+            id: faqTabViewContainer
+            visible: activeTabView === "faqTabView"
+            anchors.fill: parent
+
+            onSendToScript: {
+                root.sendToScript(message);
             }
         }
-        
 
-        AudioSettings.Audio {
-            id: audioTabViewContainer
-            visible: activeTabView === "audioTabView"
-            anchors.fill: parent
-        }
-
-        VrSettings.VR {
-            id: vrTabViewContainer
-            visible: activeTabView === "vrTabView"
-            anchors.fill: parent
-        }
-
-        DevSettings.Dev {
-            id: devTabViewContainer
-            visible: activeTabView === "devTabView"
-            anchors.fill: parent
-        }
-
-        AboutSettings.About {
+        HelpAbout.HelpAbout {
             id: aboutTabViewContainer
             visible: activeTabView === "aboutTabView"
             anchors.fill: parent
@@ -198,14 +157,10 @@ Rectangle {
 
         SimplifiedControls.VerticalScrollBar {
             parent: {
-                if (activeTabView === "generalTabView") {
-                    generalTabViewContainer
-                } else if (activeTabView === "audioTabView") {
-                    audioTabViewContainer
-                } else if (activeTabView === "vrTabView") {
-                    vrTabViewContainer
-                } else if (activeTabView === "devTabView") {
-                    devTabViewContainer
+                if (activeTabView === "controlsTabView") {
+                    controlsTabViewContainer
+                } else if (activeTabView === "faqTabView") {
+                    faqTabViewContainer
                 } else if (activeTabView === "aboutTabView") {
                     aboutTabViewContainer
                 }
@@ -215,26 +170,9 @@ Rectangle {
 
 
     function fromScript(message) {
-        if (message.source !== "simplifiedUI.js") {
-            return;
-        }
-
         switch (message.method) {
-            case "goToSettingsTab":
-                var tabToGoTo = message.data.settingsTab;
-                switch (tabToGoTo) {
-                    case "audio":
-                        activeTabView = "audioTabView";
-                        break;
-
-                    default:
-                        console.log("A message was sent to the Settings window to change tabs, but an invalid tab was specified.");
-                        break;
-                }
-                break;
-
             default:
-                console.log('SettingsApp.qml: Unrecognized message from JS');
+                console.log('HelpApp.qml: Unrecognized message from JS');
                 break;
         }
     }

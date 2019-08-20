@@ -68,7 +68,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: uiControlsTitle
                 text: "User Interface"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
@@ -77,7 +77,7 @@ Flickable {
             HifiStylesUit.GraphikRegular {
                 id: uiControlsSubtitle
                 text: "You'll have to restart Interface after changing either of these settings. If you don't get any Toolbar apps back after restarting, run defaultScripts.js manually."
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 16
                 color: simplifiedUI.colors.text.white
