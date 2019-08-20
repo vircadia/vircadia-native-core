@@ -88,7 +88,7 @@ Flickable {
             temporaryText: "Viewing!"
 
             onClicked: {
-                Qt.openUrlExternally("http://docs.highfidelity.com/explore/get-started/desktop.html");
+                Qt.openUrlExternally("https://www.highfidelity.com/knowledge/get-around");
             }
         }
     }
