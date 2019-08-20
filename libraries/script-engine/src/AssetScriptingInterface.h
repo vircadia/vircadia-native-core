@@ -25,7 +25,9 @@
 #include <QtNetwork/QNetworkDiskCache>
 
 /**jsdoc
- * The Assets API allows you to communicate with the Asset Browser.
+ * The <code>Assets</code> API provides facilities for interacting with the domain's asset server. Assets are stored in the 
+ * asset server in files with SHA256 names. These files are mapped to user-friendly URLs of the format: 
+ * <code>atp:/path/filename</code>.
  * @namespace Assets
  *
  * @hifi-interface
@@ -41,77 +43,131 @@ public:
     AssetScriptingInterface(QObject* parent = nullptr);
 
     /**jsdoc
-     * Upload content to the connected domain's asset server.
+     * Uploads content to the asset server, storing it in a SHA256-named file.
+     * <p>Note: The asset server destroys any unmapped SHA256-named file at server restart. Use {@link Assets.setMapping} to 
+     * set a path-to-hash mapping for the new file.</p>
      * @function Assets.uploadData
-     * @static
-     * @param data {string} content to upload
-     * @param callback {Assets~uploadDataCallback} called when upload is complete
+     * @param {string} data - The content to upload.
+     * @param {Assets~uploadDataCallback} callback - The function to call upon completion.
+     * @example <caption>Store a string in the asset server.</caption>
+     * Assets.uploadData("Hello world!", function (url, hash) {
+     *     print("URL: " + url);  // atp:0a1b...9g
+     *     Assets.setMapping("/assetsExamples/helloWorld.txt", hash, function (error) {
+     *         if (error) {
+     *             print("ERROR: Could not set mapping!");
+     *             return;
+     *         }
+     *     });
+     * });
      */
     /**jsdoc
-     * Called when uploadData is complete
+     * Called when an {@link Assets.uploadData} call is complete.
      * @callback Assets~uploadDataCallback
-     * @param {string} url
-     * @param {string} hash
+     * @param {string} url - The raw URL of the file that the content is stored in, with <code>atp:</code> as the scheme and 
+     *     the SHA256 hash as the filename (with no extension).
+     * @param {string} hash - The SHA256 hash of the content.
      */
     Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
 
     /**jsdoc
-     * Download data from the connected domain's asset server.
+     * Downloads content from the asset server, form a SHA256-named file.
      * @function Assets.downloadData
-     * @param url {string} URL of asset to download, must be ATP scheme URL.
-     * @param callback {Assets~downloadDataCallback}
+     * @param {string} url - The raw URL of asset to download: <code>atp:</code> followed by the assets's SHA256 hash.
+     * @param {Assets~downloadDataCallback} callback - The function to call upon completion.
+     * @example <caption>Store and retrieve a string from the asset server.</caption>
+     * var assetURL;
+     * 
+     * // Store the string.
+     * Assets.uploadData("Hello world!", function (url, hash) {
+     *     assetURL = url;
+     *     print("url: " + assetURL);  // atp:a0g89...
+     *     Assets.setMapping("/assetsExamples/hellowWorld.txt", hash, function (error) {
+     *         if (error) {
+     *             print("ERROR: Could not set mapping!");
+     *             return;
+     *         }
+     *     });
+     * });
+     * 
+     * // Retrieve the string.
+     * Script.setTimeout(function () {
+     *     Assets.downloadData(assetURL, function (data, error) {
+     *         print("Downloaded data: " + data);
+     *         print("Error: " + JSON.stringify(error));
+     *     });
+     * }, 1000);
      */
     /**jsdoc
-     * Called when downloadData is complete
+     * Called when an {@link Assets.downloadData} call is complete.
      * @callback Assets~downloadDataCallback
-     * @param data {string} content that was downloaded
+     * @param {string} data - The content that was downloaded.
+     * @param {Assets.DownloadDataError} error - The success or failure of the download.
      */
-    Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
+    /**jsdoc
+     * The success or failure of an {@link Assets.downloadData} call.
+     * @typedef {object} Assets.DownloadDataError
+     * @property {string} errorMessage - <code>""</code> if the download was successful, otherwise a description of the error.
+     */
+    Q_INVOKABLE void downloadData(QString url, QScriptValue callback);
 
     /**jsdoc
-     * Sets up a path to hash mapping within the connected domain's asset server
+     * Sets a path-to-hash mapping within the asset server.
      * @function Assets.setMapping
-     * @param path {string}
-     * @param hash {string}
-     * @param callback {Assets~setMappingCallback}
+     * @param {string} path - A user-friendly path for the file in the asset server, without leading <code>"atp:"</code>.
+     * @param {string} hash - The hash in the asset server.
+     * @param {Assets~setMappingCallback} callback - The function to call upon completion.
      */
     /**jsdoc
-     * Called when setMapping is complete
+     * Called when an {@link Assets.setMapping} call is complete.
      * @callback Assets~setMappingCallback
-     * @param {string} error
+     * @param {string} error - <code>null</code> if the path-to-hash mapping was set, otherwise a description of the error.
      */
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
 
     /**jsdoc
-     * Look up a path to hash mapping within the connected domain's asset server
+     * Gets the hash for a path within the asset server. The hash is for the unbaked or baked version of the
+     * asset, according to the asset server setting for the particular path.
      * @function Assets.getMapping
-     * @param path {string}
-     * @param callback {Assets~getMappingCallback}
+     * @param {string} path - The path to a file in the asset server to get the hash of.
+     * @param {Assets~getMappingCallback} callback - The function to call upon completion.
+     * @example <caption>Report the hash of an asset server item.</caption>
+     * var assetPath = Window.browseAssets();
+     * if (assetPath) {
+     *     var mapping = Assets.getMapping(assetPath, function (error, hash) {
+     *         print("Asset: " + assetPath);
+     *         print("- hash:  " + hash);
+     *         print("- error: " + error);
+     *     });
+     * }
      */
     /**jsdoc
-     * Called when getMapping is complete.
+     * Called when an {@link Assets.getMapping} call is complete.
      * @callback Assets~getMappingCallback
-     * @param assetID {string} hash value if found, else an empty string
-     * @param error {string} error description if the path could not be resolved; otherwise a null value.
+     * @param {string} error - <code>null</code> if the path was found, otherwise a description of the error.
+     * @param {string} hash - The hash value if the path was found, <code>""</code> if it wasn't.
      */
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
 
     /**jsdoc
+     * Sets whether or not to bake an asset in the asset server.
      * @function Assets.setBakingEnabled
-     * @param path {string}
-     * @param enabled {boolean}
-     * @param callback {}
+     * @param {string} path - The path to a file in the asset server.
+     * @param {boolean} enabled - <code>true</code> to enable baking of the asset, <code>false</code> to disable.
+     * @param {Assets~setBakingEnabledCallback} callback - The function to call upon completion.
      */
     /**jsdoc
-     * Called when setBakingEnabled is complete.
+     * Called when an {@link Assets.setBakingEnabled} call is complete.
      * @callback Assets~setBakingEnabledCallback
+     * @param {string} error - <code>null</code> if baking was successfully enabled or disabled, otherwise a description of the 
+     * error.
      */
+    // Note: Second callback parameter not documented because it's always {}.
     Q_INVOKABLE void setBakingEnabled(QString path, bool enabled, QScriptValue callback);
 
 #if (PR_BUILD || DEV_BUILD)
     /**
      * This function is purely for development purposes, and not meant for use in a
-     * production context. It is not a public-facing API, so it should not contain jsdoc.
+     * production context. It is not a public-facing API, so it should not have JSDoc.
      */
     Q_INVOKABLE void sendFakedHandshake();
 #endif

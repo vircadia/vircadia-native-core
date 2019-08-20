@@ -33,51 +33,62 @@ public:
 public slots:
 
     /**jsdoc
+     * Checks whether a string is a valid path. Note: A valid path must start with a <code>"/"</code>.
      * @function Assets.isValidPath
-     * @param {string} input
-     * @returns {boolean} 
+     * @param {string} path - The path to check.
+     * @returns {boolean} <code>true</code> if the path is a valid path, <code>false</code> if it isn't.
      */
     bool isValidPath(QString input) { return AssetUtils::isValidPath(input); }
 
     /**jsdoc
+     * Checks whether a string is a valid path and filename. Note: A valid path and filename must start with a <code>"/"</code> 
+     * but must not end with a <code>"/"</code>.
      * @function Assets.isValidFilePath
-     * @param {string} input
-     * @returns {boolean} 
+     * @param {string} path - The path to check.
+     * @returns {boolean} <code>true</code> if the path is a valid file path, <code>false</code> if it isn't.
      */
     bool isValidFilePath(QString input) { return AssetUtils::isValidFilePath(input); }
 
     /**jsdoc
+     * Gets the normalized ATP URL for a path or hash: ensures that it has <code>"atp:/"</code> at the start.
      * @function Assets.getATPUrl
-     * @param {string} input
-     * @returns {string} 
+     * @param {string} url - The URL to normalize.
+     * @returns {string} The normalized ATP URL.
      */
     QUrl getATPUrl(QString input) { return AssetUtils::getATPUrl(input); }
 
     /**jsdoc
+     * Gets the SHA256 hexadecimal hash portion of an asset server URL.
      * @function Assets.extractAssetHash
-     * @param {string} input
-     * @returns {string} 
+     * @param {string} url - The URL to get the SHA256 hexadecimal hash from.
+     * @returns {string} The SHA256 hexadecimal hash portion of the URL if present and valid, <code>""</code> otherwise.
      */
     QString extractAssetHash(QString input) { return AssetUtils::extractAssetHash(input); }
 
     /**jsdoc
+     * Checks whether a string is a valid SHA256 hexadecimal hash, i.e., 64 hexadecimal characters.
      * @function Assets.isValidHash
-     * @param {string} input
-     * @returns {boolean} 
+     * @param {string} hash - The hash to check.
+     * @returns {boolean} <code>true</code> if the hash is a valid SHA256 hexadecimal string, <code>false</code> if it isn't.
      */
     bool isValidHash(QString input) { return AssetUtils::isValidHash(input); }
 
     /**jsdoc
+     * Calculates the SHA256 hash of given data.
      * @function Assets.hashData
-     * @param {} data
-     * @returns {object} 
+     * @param {string|ArrayBuffer} data - The data to calculate the hash of.
+     * @returns {ArrayBuffere} The SHA256 hash of the <code>data</code>.
      */
     QByteArray hashData(const QByteArray& data) { return AssetUtils::hashData(data); }
 
     /**jsdoc
+     * Calculates the SHA256 hash of given data, in hexadecimal format.
      * @function Assets.hashDataHex
-     * @param {} data
-     * @returns {string} 
+     * @param {string|ArrayBuffer} data - The data to calculate the hash of.
+     * @returns {string} The SHA256 hash of the <code>data</code>, in hexadecimal format.
+     * @example <caption>Calculate the hash of some text.</caption>
+     * var text = "Hello world!";
+     * print("Hash: " + Assets.hashDataHex(text));
      */
     QString hashDataHex(const QByteArray& data) { return hashData(data).toHex(); }
 
