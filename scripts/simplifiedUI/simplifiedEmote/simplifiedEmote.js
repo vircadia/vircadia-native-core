@@ -198,7 +198,18 @@ function deleteOldReticles() {
 
 
 var MAX_INTERSECTION_DISTANCE_M = 50;
+var reticleUpdateRateLimiterTimer = false;
+var RETICLE_UPDATE_RATE_LIMITER_TIMER_MS = 75;
 function mouseMoveEvent(event) {
+    if (!reticleUpdateRateLimiterTimer) {
+        reticleUpdateRateLimiterTimer = Script.setTimeout(function() {
+            reticleUpdateRateLimiterTimer = false;
+        }, RETICLE_UPDATE_RATE_LIMITER_TIMER_MS);
+    } else {
+        return;
+    }
+
+
     var pickRay = Camera.computePickRay(event.x, event.y);
     var avatarIntersectionData = AvatarManager.findRayIntersection(pickRay);
     var entityIntersectionData = Entities.findRayIntersection(pickRay, true);
@@ -248,6 +259,13 @@ function triggerReactionWrapper(reaction) {
     MyAvatar.triggerReaction(reaction);
 }
 
+function maybeClearReticleUpdateLimiterTimeout() {
+    if (reticleUpdateRateLimiterTimer) {
+        Script.clearTimeout(reticleUpdateRateLimiterTimer);
+        reticleUpdateRateLimiterTimer = false;
+    }
+}
+
 
 function endReactionWrapper(reaction) {
     var reactionsBegunIndex = reactionsBegun.indexOf(reaction);
@@ -268,6 +286,7 @@ function endReactionWrapper(reaction) {
                 Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
                 mouseMoveEventsConnected = false;
             }
+            maybeClearReticleUpdateLimiterTimeout();
             intersectedEntityOrAvatarID = null;
             deleteOldReticles();
             break;
@@ -498,8 +517,13 @@ function shutdown() {
         emojiAppWindow.close();
     }
 
+    reactionsBegun.forEach(function(react) {
+        endReactionWrapper(react);
+    });
+
     emojiAPI.unload();
     maybeClearClapSoundInterval();
+    maybeClearReticleUpdateLimiterTimeout();
 
     Window.geometryChanged.disconnect(onGeometryChanged);
     Settings.valueChanged.disconnect(onSettingsValueChanged);
