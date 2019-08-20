@@ -359,6 +359,10 @@ var APPLAUD_KEY = "v";
 var POINT_KEY = "b";
 var EMOTE_WINDOW = "f";
 function keyPressHandler(event) {
+    if (HMD.active) {
+        return;
+    }
+
     if (!event.isAutoRepeat && ! event.isMeta && ! event.isControl && ! event.isAlt) {
         if (event.text === POSITIVE_KEY) {
             triggerReactionWrapper("positive");
@@ -461,6 +465,19 @@ function onSettingsValueChanged(settingName, newValue) {
 }
 
 
+function onDisplayModeChanged(isHMDMode) {
+    reactionsBegun.forEach(function(react) {
+        endReactionWrapper(react);
+    });
+
+    if (isHMDMode) {
+        handleEmoteIndicatorVisibleChanged(false);
+    } else if (Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)) {
+        handleEmoteIndicatorVisibleChanged(true);
+    }
+}
+
+
 var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
@@ -493,6 +510,7 @@ function init() {
 
     Window.geometryChanged.connect(onGeometryChanged);
     Settings.valueChanged.connect(onSettingsValueChanged);
+    HMD.displayModeChanged.connect(onDisplayModeChanged);
     emojiAPI.startup();
 
     getSounds();
@@ -527,6 +545,7 @@ function shutdown() {
 
     Window.geometryChanged.disconnect(onGeometryChanged);
     Settings.valueChanged.disconnect(onSettingsValueChanged);
+    HMD.displayModeChanged.disconnect(onDisplayModeChanged);
 
     if (keyPressSignalsConnected) {
         Controller.keyPressEvent.disconnect(keyPressHandler);
