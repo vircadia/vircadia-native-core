@@ -37,6 +37,12 @@ Column {
                 ]
 
         valueVarSetter: function (mode) { bloom.setDebugMode(mode) }
+    }
+
+    Prop.PropBool {
+        label: "Debug Bloom Buffer"
+        object: Render.getConfig("RenderMainView.Bloom")
+        property: "enabled"
     } 
 }
 

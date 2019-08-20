@@ -25,6 +25,7 @@ class JitterSampleConfig : public render::Job::Config {
         Q_PROPERTY(bool freeze MEMBER freeze NOTIFY dirty)
         Q_PROPERTY(bool stop MEMBER stop NOTIFY dirty)
         Q_PROPERTY(int index READ getIndex NOTIFY dirty)
+        Q_PROPERTY(int state READ getState WRITE setState NOTIFY dirty)
 public:
     JitterSampleConfig() : render::Job::Config(true) {}
 
@@ -33,6 +34,7 @@ public:
     bool freeze{ false };
 
     void setIndex(int current);
+    void setState(int state);
 
 public slots:
     int cycleStopPauseRun();
@@ -58,7 +60,7 @@ class JitterSample {
 public:
 
     enum {
-        SEQUENCE_LENGTH = 64 
+        SEQUENCE_LENGTH = 32 
     };
 
     using Config = JitterSampleConfig;
