@@ -132,6 +132,18 @@ Rectangle {
         }
     }
 
+
+    function selectEmoji(code) {
+        sendToScript({
+            "source": "SimplifiedEmoji.qml",
+            "method": "selectedEmoji",
+            "code": code
+        });
+        root.isSelected = true;
+        root.currentCode = code;
+    }
+
+
     Rectangle {
         id: emojiIconListContainer
         anchors.top: emojiIndicatorContainer.bottom
@@ -167,19 +179,25 @@ Rectangle {
                             root.currentCode = model.code.utf;
                         }
                         onClicked: {
-                            sendToScript({
-                                "source": "SimplifiedEmoji.qml",
-                                "method": "selectedEmoji",
-                                "code": code.utf
-                            });
-                            root.isSelected = true;
-                            root.currentCode = model.code.utf;
+                            root.selectEmoji(model.code.utf);
                         }
                     }
                 }
             cacheBuffer: 400
             focus: true
-            highlight: Rectangle { color: Qt.rgba(1, 1, 1, 0.4); radius: 0 }
+            highlight: Rectangle {
+                color: Qt.rgba(1, 1, 1, 0.4)
+                radius: 2
+            }
+
+            KeyNavigation.backtab: emojiSearchTextField
+            KeyNavigation.tab: emojiSearchTextField
+
+            Keys.onPressed: {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    root.selectEmoji(grid.model.get(grid.currentIndex).code.utf);
+                }
+            }
         }
 
         SimplifiedControls.VerticalScrollBar {
@@ -216,10 +234,16 @@ Rectangle {
             }
             onAccepted: {
                 root.filterEmoji(emojiSearchTextField.text);
+                waitForMoreInputTimer.stop();
+                if (filteredModel.count === 1) {
+                    root.selectEmoji(filteredModel.get(0).code.utf);
+                } else {
+                    grid.forceActiveFocus();
+                }
             }
-            onFocusChanged: {
-                emojiSearchTextField.autoScroll = focus;
-            }
+
+            KeyNavigation.backtab: grid
+            KeyNavigation.tab: grid
         }
 
         Timer {

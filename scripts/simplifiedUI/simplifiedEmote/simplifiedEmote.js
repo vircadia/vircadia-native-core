@@ -266,6 +266,7 @@ function endReactionWrapper(reaction) {
         case ("point"):
             if (mouseMoveEventsConnected) {
                 Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
+                mouseMoveEventsConnected = false;
             }
             intersectedEntityOrAvatarID = null;
             deleteOldReticles();
@@ -554,12 +555,9 @@ function selectedEmoji(code) {
 
 
 function onEmojiAppClosed() {
-    if (emojiAppWindow) {
+    if (emojiAppWindow && emojiAppWindowSignalsConnected) {
         emojiAppWindow.fromQml.disconnect(onMessageFromEmojiApp);
         emojiAppWindow.closed.disconnect(onEmojiAppClosed);
-    }
-    if (mouseMoveEventsConnected) {
-        Controller.mouseMoveEvent.disconnect(mouseMoveEvent);
     }
     emojiAppWindow = false;
 }
@@ -607,6 +605,7 @@ var EMOJI_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
 var emojiAppWindow = false;
 var POPOUT_SAFE_MARGIN_X = 30;
 var POPOUT_SAFE_MARGIN_Y = 30;
+var emojiAppWindowSignalsConnected = false;
 function toggleEmojiApp() {
     if (emojiAppWindow) {
         emojiAppWindow.close();
@@ -633,6 +632,8 @@ function toggleEmojiApp() {
 
     emojiAppWindow.fromQml.connect(onMessageFromEmojiApp);
     emojiAppWindow.closed.connect(onEmojiAppClosed);
+    emojiAppWindowSignalsConnected = true;
+
     // The actual emoji module needs this qml window object so it can send messages
     // to update the Selected emoji UI
     emojiAPI.registerAvimojiQMLWindow(emojiAppWindow);
