@@ -1,7 +1,7 @@
 //
-//  HelpControls.qml
+//  HelpSupport.qml
 //
-//  Created by Zach Fox on 2019-08-07
+//  Created by Zach Fox on 2019-08-20
 //  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -15,18 +15,11 @@ import "../../simplifiedControls" as SimplifiedControls
 import stylesUit 1.0 as HifiStylesUit
 import QtQuick.Layouts 1.3
 
-Flickable {
+Item {
     id: root
-    contentWidth: parent.width
-    contentHeight: controlsColumnLayout.height
-    clip: true
+    width: parent.width
+    height: parent.height
 
-    onVisibleChanged: {
-        if (visible) {
-            root.contentX = 0;
-            root.contentY = 0;
-        }
-    }
 
     SimplifiedConstants.SimplifiedConstants {
         id: simplifiedUI
@@ -35,7 +28,7 @@ Flickable {
 
     Image {
         id: accent
-        source: "../images/accent1.svg"
+        source: "../images/accent2.svg"
         anchors.left: parent.left
         anchors.top: parent.top
         width: 83
@@ -49,7 +42,6 @@ Flickable {
 
 
     ColumnLayout {
-        id: controlsColumnLayout
         anchors.left: parent.left
         anchors.leftMargin: 26
         anchors.right: parent.right
@@ -58,38 +50,36 @@ Flickable {
         spacing: 0
 
         HifiStylesUit.GraphikSemiBold {
-            text: "HQ Controls"
+            text: "Support"
             Layout.preferredWidth: parent.width
+            Layout.preferredHeight: paintedHeight
             Layout.topMargin: 16
-            height: paintedHeight
             size: 22
             color: simplifiedUI.colors.text.white
         }
 
         HifiStylesUit.GraphikRegular {
-            text: "You can use the following controls to move your avatar around your HQ:"
+            text: "You can quickly get the support that you need by clicking the button below."
             Layout.preferredWidth: parent.width
-            wrapMode: Text.Wrap
-            height: paintedHeight
+            Layout.preferredHeight: paintedHeight
+            Layout.topMargin: 8
             size: 18
+            wrapMode: Text.Wrap
             color: simplifiedUI.colors.text.white
         }
 
-        ControlsTable {
-            Layout.topMargin: 8
-            Layout.preferredWidth: parent.width
-        }
-
         SimplifiedControls.Button {
-            Layout.topMargin: 14
-            Layout.preferredWidth: 200
+            Layout.topMargin: 8
+            width: 200
             height: 32
-            text: "VIEW ALL CONTROLS"
-            temporaryText: "Viewing!"
+            text: "CONTACT SUPPORT"
+            temporaryText: "Opening browser..."
 
             onClicked: {
-                Qt.openUrlExternally("https://www.highfidelity.com/knowledge/get-around");
+                Qt.openUrlExternally("https://www.highfidelity.com/knowledge/kb-tickets/new");
             }
         }
     }
+
+    signal sendToScript(var message);
 }
