@@ -20,6 +20,7 @@
 class ResourceRequest;
 
 class MixerAvatar : public AvatarData {
+    Q_OBJECT
 public:
     ~MixerAvatar();
     bool getNeedsHeroCheck() const { return _needsHeroCheck; }
@@ -31,15 +32,18 @@ public:
     void setNeedsIdentityUpdate(bool value = true) { _needsIdentityUpdate = value; }
 
     void processCertifyEvents();
-    void handleChallengeResponse(ReceivedMessage* response);
+    void handleChallengeResponse(ReceivedMessage& response);
+
+    // Avatar certification/verification:
+    enum VerifyState {
+        nonCertified, requestingFST, receivedFST, staticValidation, requestingOwner, ownerResponse,
+        challengeClient, verified, verificationFailed, verificationSucceeded, error
+    };
+    Q_ENUM(VerifyState)
 
 private:
     bool _needsHeroCheck { false };
-
-    // Avatar certification/verification:
-    enum VerifyState { nonCertified, requestingFST, receivedFST, staticValidation, requestingOwner, ownerResponse,
-        challengeClient, challengeResponse, verified, verificationFailed, verificationSucceeded, error };
-    Q_ENUM(VerifyState);
+    static const char* stateToName(VerifyState state);
     VerifyState _verifyState { nonCertified };
     std::atomic<bool> _pendingEvent { false };
     QMutex _avatarCertifyLock;
@@ -53,12 +57,11 @@ private:
     QString _dynamicMarketResponse;
     QString _ownerPublicKey;
     QByteArray _challengeNonceHash;
-    QByteArray _challengeResponse;
     QTimer* _challengeTimeout { nullptr };
     bool _needsIdentityUpdate { false };
 
     bool generateFSTHash();
-    bool validateFSTHash(const QString& publicKey);
+    bool validateFSTHash(const QString& publicKey) const;
     QByteArray canonicalJson(const QString fstFile);
     void sendOwnerChallenge();
 

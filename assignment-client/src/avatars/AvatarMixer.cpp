@@ -83,7 +83,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
-    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "handleChallengeOwnership");
+    packetReceiver.registerListener(PacketType::ChallengeOwnership, this, "queueIncomingPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -1141,7 +1141,7 @@ void AvatarMixer::handleChallengeOwnership(QSharedPointer<ReceivedMessage> messa
         auto clientData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         auto avatar = clientData->getAvatarSharedPointer();
         if (avatar) {
-            avatar->handleChallengeResponse(message.data());
+            //avatar->handleChallengeResponse(message.data());
         }
     }
 }
