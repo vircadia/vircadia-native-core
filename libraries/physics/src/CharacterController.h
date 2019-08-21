@@ -20,11 +20,12 @@
 
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
-#include <PhysicsCollisionGroups.h>
 
+#include "AvatarConstants.h"
 #include "BulletUtil.h"
 #include "CharacterGhostObject.h"
-#include "AvatarConstants.h" 
+#include "PhysicsEngine.h"
+#include "PhysicsHelpers.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -36,6 +37,9 @@ const uint32_t PENDING_FLAG_ADD_DETAILED_TO_SIMULATION = 1U << 6;
 const uint32_t PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION = 1U << 7;
 
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
+
+const uint32_t NUM_SUBSTEPS_FOR_STUCK_TRANSITION = 6; // physics substeps
+const uint32_t NUM_SUBSTEPS_FOR_SAFE_LANDING_RETRY = NUM_SUBSTEPS_PER_SECOND / 2; // retry every half second
 
 class btRigidBody;
 class btCollisionWorld;
@@ -53,7 +57,8 @@ public:
     virtual ~CharacterController();
     bool needsRemoval() const;
     bool needsAddition() const;
-    virtual void setDynamicsWorld(btDynamicsWorld* world);
+    virtual void addToWorld();
+    void removeFromWorld();
     btCollisionObject* getCollisionObject() { return _rigidBody; }
 
     void setGravity(float gravity);
@@ -120,7 +125,8 @@ public:
 
     void setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale);
 
-    bool isEnabledAndReady() const { return _dynamicsWorld; }
+    void setPhysicsEngine(const PhysicsEnginePointer& engine);
+    bool isEnabledAndReady() const { return (bool)_physicsEngine; }
     bool isStuck() const { return _isStuck; }
 
     void setCollisionless(bool collisionless);
@@ -138,6 +144,8 @@ public:
     void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
     void setSeated(bool isSeated) { _isSeated = isSeated;  }
     bool getSeated() { return _isSeated; }
+
+    void resetStuckCounter() { _numStuckSubsteps = 0; }
 
 protected:
 #ifdef DEBUG_STATE_CHANGE
@@ -187,7 +195,6 @@ protected:
     // data for walking up steps
     btVector3 _stepPoint { 0.0f, 0.0f, 0.0f };
     btVector3 _stepNormal { 0.0f, 0.0f, 0.0f };
-    bool _steppingUp { false };
     btScalar _stepHeight { 0.0f };
     btScalar _minStepHeight { 0.0f };
     btScalar _maxStepHeight { 0.0f };
@@ -197,6 +204,7 @@ protected:
     btScalar _radius { 0.0f };
 
     btScalar _floorDistance;
+    bool _steppingUp { false };
     bool _stepUpEnabled { true };
     bool _hasSupport;
 
@@ -213,11 +221,14 @@ protected:
     bool _isStuck { false };
     bool _isSeated { false };
 
-    btDynamicsWorld* _dynamicsWorld { nullptr };
+    PhysicsEnginePointer _physicsEngine { nullptr };
     btRigidBody* _rigidBody { nullptr };
     uint32_t _pendingFlags { 0 };
     uint32_t _previousFlags { 0 };
+    uint32_t _stuckTransitionCount { 0 };
+    uint32_t _numStuckSubsteps { 0 };
 
+    bool _inWorld { false };
     bool _zoneFlyingAllowed { true };
     bool _comfortFlyingAllowed { true };
     bool _hoverWhenUnsupported{ true };
