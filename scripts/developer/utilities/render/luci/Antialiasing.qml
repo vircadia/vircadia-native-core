@@ -38,44 +38,29 @@ Column{
 
     Prop.PropEnum {
         label: "Deferred AA Method"
+        object: Render.getConfig("RenderMainView.Antialiasing")
+        property: "mode"
         enums: [
             "Off",
             "TAA",
             "FXAA",
                 ]
-
-        valueVarSetter: function (mode) { setAAMode(mode) }
-        valueVarGetter: function () { return Render.getConfig("RenderMainView.JitterCam").state +
-                                             Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff * 2 }
-
-        function setAAMode(mode) {
-            console.log("Deferred AA mode is " + mode)
-            
-            if (mode == 0) {
-                Render.getConfig("RenderMainView.JitterCam").state = 0;
-                Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = false;
-            } else if (mode == 1) {
-                Render.getConfig("RenderMainView.JitterCam").state = 1;
-                Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = false;
-            } else {
-                Render.getConfig("RenderMainView.JitterCam").state = 0;
-                Render.getConfig("RenderMainView.Antialiasing").fxaaOnOff = true;
-            }
-        }
     }
-    Separator {}          
     Prop.PropEnum {
+        id: jitter
         label: "Jitter"
         object: Render.getConfig("RenderMainView.JitterCam")
         property: "state"
-
         enums: [
             "Off",
             "On",
             "Paused",
                 ]
     }
+    Separator {}          
+
     Prop.PropScalar {
+        visible: (Render.getConfig("RenderMainView.JitterCam").state == 2)
         label: "Sample Index"
         object: Render.getConfig("RenderMainView.JitterCam")
         property: "index"
@@ -85,6 +70,7 @@ Column{
         integral: true
     }
     Row {
+        visible: (Render.getConfig("RenderMainView.JitterCam").state == 2)
         spacing: 10
 
         HifiControls.Button {

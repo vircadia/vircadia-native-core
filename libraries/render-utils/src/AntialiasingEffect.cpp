@@ -139,6 +139,11 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 }
 #else
 
+void AntialiasingConfig::setAAMode(int mode) {
+    _mode = std::min((int)AntialiasingConfig::MODE_COUNT, std::max(0, mode));
+    emit dirty();
+}
+
 Antialiasing::Antialiasing(bool isSharpenEnabled) : 
     _isSharpenEnabled{ isSharpenEnabled } {
 }
@@ -189,6 +194,8 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 }
 
 void Antialiasing::configure(const Config& config) {
+    _mode = (AntialiasingConfig::Mode) config.getAAMode();
+
     _sharpen = config.sharpen * 0.25f;
     if (!_isSharpenEnabled) {
         _sharpen = 0.0f;
