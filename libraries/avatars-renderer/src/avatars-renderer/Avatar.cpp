@@ -131,7 +131,7 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
         } else {
             _lastPosition = avatarPosition;
             _status = Status::ABORT_TRANSIT;
-        }        
+        }
     }
     _lastPosition = avatarPosition;
     _status = updatePosition(deltaTime);
@@ -143,11 +143,18 @@ AvatarTransit::Status AvatarTransit::update(float deltaTime, const glm::vec3& av
     return _status;
 }
 
+void AvatarTransit::slamPosition(const glm::vec3& avatarPosition) {
+    // used to instantly teleport between two points without triggering a change in status.
+    _lastPosition = avatarPosition;
+    _endPosition = avatarPosition;
+}
+
 void AvatarTransit::reset() {
     _lastPosition = _endPosition;
     _currentPosition = _endPosition;
     _isActive = false;
 }
+
 void AvatarTransit::start(float deltaTime, const glm::vec3& startPosition, const glm::vec3& endPosition, const AvatarTransit::TransitConfig& config) {
     _startPosition = startPosition;
     _endPosition = endPosition;
@@ -192,8 +199,8 @@ AvatarTransit::Status AvatarTransit::updatePosition(float deltaTime) {
             status = Status::PRE_TRANSIT;
             if (_currentTime == 0) {
                 status = Status::STARTED;
-            } 
-        } else if (nextTime < _totalTime - _postTransitTime){
+            }
+        } else if (nextTime < _totalTime - _postTransitTime) {
             status = Status::TRANSITING;
             if (_currentTime <= _preTransitTime) {
                 status = Status::START_TRANSIT;
@@ -519,10 +526,10 @@ void Avatar::relayJointDataToChildren() {
  *   <tbody>
  *     <tr><td><code>"avatar" or ""</code></td><td>The rate at which the avatar is updated even if not in view.</td></tr>
  *     <tr><td><code>"avatarInView"</code></td><td>The rate at which the avatar is updated if in view.</td></tr>
- *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no 
+ *     <tr><td><code>"skeletonModel"</code></td><td>The rate at which the skeleton model is being updated, even if there are no
  *       joint data available.</td></tr>
  *     <tr><td><code>"jointData"</code></td><td>The rate at which joint data are being updated.</td></tr>
- *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is 
+ *     <tr><td><code>""</code></td><td>When no rate name is specified, the <code>"avatar"</code> update rate is
  *       provided.</td></tr>
  *   </tbody>
  * </table>
@@ -557,6 +564,7 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
     _positionDeltaAccumulator = glm::vec3(0.0f);
     setWorldVelocity(glm::vec3(0.0f));
     _lastVelocity = glm::vec3(0.0f);
+    _transit.slamPosition(newPosition);
 }
 
 void Avatar::updateAttitude(const glm::quat& orientation) {
@@ -1511,7 +1519,7 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     }
     indicateLoadingStatus(LoadingStatus::LoadModel);
 
-    _skeletonModel->setURL(_skeletonModelURL);
+    _skeletonModel->setURL(getSkeletonModelURL());
 }
 
 void Avatar::setModelURLFinished(bool success) {
@@ -1533,7 +1541,7 @@ void Avatar::setModelURLFinished(bool success) {
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:" 
+            qCWarning(avatars_renderer) << "Avatar model failed to load... attempts:"
                 << _skeletonModel->getResourceDownloadAttempts() << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }

@@ -4235,12 +4235,43 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
+    auto eventType = event->type();
 
-    if (_aboutToQuit && event->type() != QEvent::DeferredDelete && event->type() != QEvent::Destroy) {
+    if (_aboutToQuit && eventType != QEvent::DeferredDelete && eventType != QEvent::Destroy) {
         return true;
     }
 
-    auto eventType = event->type();
+#if defined(Q_OS_MAC)
+    // On Mac OS, Cmd+LeftClick is treated as a RightClick (more specifically, it seems to
+    // be Cmd+RightClick without the modifier being dropped). Starting in Qt 5.12, only
+    // on Mac, the MouseButtonRelease event for these mouse presses is sent to the top
+    // level QWidgetWindow, but are not propagated further. This means that the Application
+    // will see a MouseButtonPress, but no MouseButtonRelease, causing the client to get
+    // stuck in "mouse-look." The cause of the problem is in the way QWidgetWindow processes
+    // events where QMouseEvent::button() is not equal to QMouseEvent::buttons(). In this case
+    // QMouseEvent::button() is Qt::RightButton, while QMouseEvent::buttons() is (correctly?)
+    // Qt::LeftButton.
+    //
+    // The change here gets around this problem by capturing these
+    // pseudo-RightClicks, and re-emitting them as "pure" RightClicks, where
+    // QMouseEvent::button() == QMouseEvent::buttons() == Qt::RightButton.
+    //
+    if (eventType == QEvent::MouseButtonPress) {
+        auto mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::RightButton
+            && mouseEvent->buttons() == Qt::LeftButton
+            && mouseEvent->modifiers() == Qt::MetaModifier) {
+
+            QMouseEvent* newEvent = new QMouseEvent(
+                    QEvent::MouseButtonPress, mouseEvent->localPos(), mouseEvent->windowPos(),
+                    mouseEvent->screenPos(), Qt::RightButton, Qt::MouseButtons(Qt::RightButton),
+                    mouseEvent->modifiers());
+            QApplication::postEvent(object, newEvent);
+            return true;
+        }
+    }
+#endif
+
     if (eventType == QEvent::KeyPress || eventType == QEvent::KeyRelease || eventType == QEvent::MouseMove) {
         getRefreshRateManager().resetInactiveTimer();
     }
