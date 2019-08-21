@@ -1144,6 +1144,11 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _desiredStateAge = STATE_CHANGE_HYSTERESIS_TIMER;
         }
 
+        // Skip hysterisis timer for sit transitions.
+        if (_desiredState == RigRole::Seated || _state == RigRole::Seated) {
+            _desiredStateAge = STATE_CHANGE_HYSTERESIS_TIMER;
+        }
+
         if ((_desiredStateAge >= STATE_CHANGE_HYSTERESIS_TIMER) && _desiredState != _state) {
             _state = _desiredState;
             _desiredStateAge = 0.0f;
@@ -1223,6 +1228,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
+            _animVars.set("isNotSeated", true);
 
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
@@ -1252,6 +1258,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
+            _animVars.set("isNotSeated", true);
 
         } else if (_state == RigRole::Idle) {
             // default anim vars to notMoving and notTurning
@@ -1274,6 +1281,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
+            _animVars.set("isNotSeated", true);
 
         } else if (_state == RigRole::Hover) {
             // flying.
@@ -1296,6 +1304,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", false);
+            _animVars.set("isNotSeated", true);
 
         } else if (_state == RigRole::Takeoff) {
             // jumping in-air
@@ -1326,6 +1335,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", false);
             _animVars.set("isSeated", false);
+            _animVars.set("isNotSeated", true);
 
         } else if (_state == RigRole::InAir) {
             // jumping in-air
@@ -1345,6 +1355,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isTakeoffRun", false);
             _animVars.set("isNotTakeoff", true);
             _animVars.set("isSeated", false);
+            _animVars.set("isNotSeated", true);
 
             bool inAirRun = forwardSpeed > 0.1f;
             if (inAirRun) {
@@ -1386,6 +1397,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isInAirRun", false);
             _animVars.set("isNotInAir", true);
             _animVars.set("isSeated", true);
+            _animVars.set("isNotSeated", false);
         }
 
         t += deltaTime;
@@ -1821,8 +1833,10 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabl
     int hipsIndex = indexOfJoint("Hips");
     const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.85f;
 
-    if (headEnabled) {
-        // always do IK if head is enabled
+    bool isSeated = _state == RigRole::Seated;
+
+    if (headEnabled && !isSeated) {
+        // enable leg IK if head is enabled and we arent sitting down.
         _animVars.set("leftFootIKEnabled", true);
         _animVars.set("rightFootIKEnabled", true);
     } else {

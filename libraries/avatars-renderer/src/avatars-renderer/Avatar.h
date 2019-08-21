@@ -93,6 +93,7 @@ public:
 
     AvatarTransit() {};
     Status update(float deltaTime, const glm::vec3& avatarPosition, const TransitConfig& config);
+    void slamPosition(const glm::vec3& avatarPosition);
     Status getStatus() { return _status; }
     bool isActive() { return _isActive; }
     glm::vec3 getCurrentPosition() { return _currentPosition; }

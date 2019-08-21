@@ -6245,31 +6245,43 @@ void MyAvatar::setSitDriveKeysStatus(bool enabled) {
 }
 
 void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "beginSit", Q_ARG(glm::vec3, position), Q_ARG(glm::quat, rotation));
+        return;
+    }
+
     _characterController.setSeated(true);
-    setCollisionsEnabled(false);    
+    setCollisionsEnabled(false);
     setHMDLeanRecenterEnabled(false);
     // Disable movement
     setSitDriveKeysStatus(false);
     centerBody();
     int hipIndex = getJointIndex("Hips");
     clearPinOnJoint(hipIndex);
-    goToLocation(position, true, rotation, false, false);
     pinJoint(hipIndex, position, rotation);
 }
 
 void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "endSit", Q_ARG(glm::vec3, position), Q_ARG(glm::quat, rotation));
+        return;
+    }
+
     if (_characterController.getSeated()) {
         clearPinOnJoint(getJointIndex("Hips"));
         _characterController.setSeated(false);
         setCollisionsEnabled(true);
         setHMDLeanRecenterEnabled(true);
         centerBody();
-        goToLocation(position, true, rotation, false, false);
+        slamPosition(position);
+        setWorldOrientation(rotation);
+
+        // the jump key is used to exit the chair.  We add a delay here to prevent
+        // the avatar from jumping right as they exit the chair.
         float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
         QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
             // Enable movement again
             setSitDriveKeysStatus(true);
         });
     }
-
 }
