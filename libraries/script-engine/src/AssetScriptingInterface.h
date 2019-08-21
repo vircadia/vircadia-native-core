@@ -324,7 +324,7 @@ public:
      * <p class="important">Not implemented: This method is not implemented yet.</p>
      * @function Assets.deleteAsset
      * @param {Assets.DeleteOptions} options - The content to delete and delete options.
-     * @param {object} scope - he scope that the <code>callback</code> function is defined in.
+     * @param {object} scope - The scope that the <code>callback</code> function is defined in.
      * @param {Assets~deleteAssetCallback} callback - The function to call upon completion.
      */
     Q_INVOKABLE void deleteAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());

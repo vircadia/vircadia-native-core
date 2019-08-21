@@ -66,7 +66,7 @@ public slots:
     bool isValidFilePath(QString input) { return AssetUtils::isValidFilePath(input); }
 
     /**jsdoc
-     * Gets the normalized ATP URL for a path or hash: ensures that it has <code>"atp:/"</code> at the start.
+     * Gets the normalized ATP URL for a path or hash: ensures that it has <code>"atp:"</code> at the start.
      * @function Assets.getATPUrl
      * @param {string} url - The URL to normalize.
      * @returns {string} The normalized ATP URL.
@@ -93,7 +93,7 @@ public slots:
      * Calculates the SHA256 hash of given data.
      * @function Assets.hashData
      * @param {string|ArrayBuffer} data - The data to calculate the hash of.
-     * @returns {ArrayBuffere} The SHA256 hash of the <code>data</code>.
+     * @returns {ArrayBuffer} The SHA256 hash of the <code>data</code>.
      */
     QByteArray hashData(const QByteArray& data) { return AssetUtils::hashData(data); }
 
