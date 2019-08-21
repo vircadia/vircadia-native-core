@@ -27,6 +27,7 @@
     NSMutableURLRequest* request = [NSMutableURLRequest new];
     [request setURL:[NSURL URLWithString:@"https://thunder.highfidelity.com/builds/api/tags/latest?format=json"]];
     [request setHTTPMethod:@"GET"];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
     // We're using an ephermeral session here to ensure the tags api response is never cached.

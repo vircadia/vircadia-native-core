@@ -32,6 +32,7 @@ static NSString* const organizationURL = @"https://orgs.highfidelity.com/organiz
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     [request setURL:[NSURL URLWithString:[organizationURL stringByAppendingString:jsonFile]]];
     [request setHTTPMethod:@"GET"];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
     [request setValue:@"" forHTTPHeaderField:@"Content-Type"];
 
     NSURLSession * session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration delegate: self delegateQueue: [NSOperationQueue mainQueue]];
