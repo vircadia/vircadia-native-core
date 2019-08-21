@@ -215,21 +215,6 @@ void AssetScriptingInterface::deleteAsset(QScriptValue options, QScriptValue sco
     jsVerify(false, "TODO: deleteAsset API");
 }
 
-/**jsdoc
- * @typedef {string} Assets.GetOptions.ResponseType
- * <p>Available <code>responseType</code> values for use with @{link Assets.getAsset} and @{link Assets.loadFromCache} configuration option. </p>
- * <table>
- *   <thead>
- *     <tr><th>responseType</th><th>typeof response value</th></tr>
- *   </thead>
- *   <tbody>
- *     <tr><td><code>"text"</code></td><td>contents returned as utf-8 decoded <code>String</code> value</td></tr>
- *     <tr><td><code>"arraybuffer"</code></td><td>contents as a binary <code>ArrayBuffer</code> object</td></tr>
- *     <tr><td><code>"json"</code></td><td>contents as a parsed <code>JSON</code> object</td></tr>
- *   </tbody>
- * </table>
- */
-
 void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope, QScriptValue callback) {
     JS_VERIFY(options.isObject() || options.isString(), "expected request options Object or URL as first parameter");
 
