@@ -5,9 +5,10 @@
 @implementation DownloadLauncher
 
 - (void) downloadLauncher:(NSString*)launcherUrl {
-    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:launcherUrl]
-                                             cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                         timeoutInterval:60.0];
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:launcherUrl]
+                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                       timeoutInterval:60.0];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
 
     NSURLSessionConfiguration *defaultConfigObject = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *defaultSession = [NSURLSession sessionWithConfiguration: defaultConfigObject delegate: self delegateQueue: [NSOperationQueue mainQueue]];

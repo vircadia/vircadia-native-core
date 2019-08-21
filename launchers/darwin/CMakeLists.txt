@@ -89,8 +89,14 @@ if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
     message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
 endif()
 
+# Development environments don't set BUILD_VERSION. Let 0 mean a development version.
+if(NOT BUILD_VERSION)
+    set(BUILD_VERSION 0)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE USER_AGENT_STRING="HQLauncher/${BUILD_VERSION}")
 
 file(GLOB NIB_FILES "nib/*.xib")
 

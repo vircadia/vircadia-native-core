@@ -12,9 +12,10 @@
 {
     self.progressPercentage = 0.0;
     self.taskProgressPercentage = 0.0;
-    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:domainContentUrl]
-                                             cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                         timeoutInterval:60.0];
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:domainContentUrl]
+                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                       timeoutInterval:60.0];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
 
     NSURLSessionConfiguration *defaultConfigObject = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *defaultSession = [NSURLSession sessionWithConfiguration: defaultConfigObject delegate: self delegateQueue: [NSOperationQueue mainQueue]];
