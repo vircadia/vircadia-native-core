@@ -51,7 +51,6 @@ const char* MixerAvatar::stateToName(VerifyState state) {
 }
 
 void MixerAvatar::fetchAvatarFST() {
-    volatile auto enumName = stateToName(_verifyState);
     if (_verifyState >= requestingFST && _verifyState <= challengeClient) {
         qCDebug(avatars) << "WARNING: Avatar verification restarted; old state:" << stateToName(_verifyState);
     }

@@ -9,8 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Avatar class for use within the avatar mixer - encapsulates data required only for
-// sorting priorities within the mixer.
+// Avatar class for use within the avatar mixer - includes avatar-verification state.
 
 #ifndef hifi_MixerAvatar_h
 #define hifi_MixerAvatar_h

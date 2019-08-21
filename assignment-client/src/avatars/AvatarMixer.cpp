@@ -1136,16 +1136,6 @@ void AvatarMixer::entityChange() {
     _dirtyHeroStatus = true;
 }
 
-void AvatarMixer::handleChallengeOwnership(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    if (senderNode->getType() == NodeType::Agent && senderNode->getLinkedData()) {
-        auto clientData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-        auto avatar = clientData->getAvatarSharedPointer();
-        if (avatar) {
-            //avatar->handleChallengeResponse(message.data());
-        }
-    }
-}
-
 void AvatarMixer::aboutToFinish() {
     DependencyManager::destroy<ResourceManager>();
     DependencyManager::destroy<ResourceCacheSharedItems>();
