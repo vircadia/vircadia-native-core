@@ -219,8 +219,8 @@ public:
      * @function Assets.getAsset
      * @param {Assets.GetOptions|string} source - What to download and download options. If a string, the mapped path or hash 
      *     to download, optionally including a leading <code>"atp:"</code>.
-     * @param {Assets~getAssetCallback} callback - The function to call upon completion. May be a function identifier or an
-     *     inline function.
+     * @param {Assets.CallbackDetails|Assets~getAssetCallback} callback - The function to call upon completion. May be a 
+     *     function identifier or an inline function.
      * @example <caption>Retrieve a string from the asset server.</caption>
      * Assets.getAsset(
      *     {
@@ -246,13 +246,6 @@ public:
      * @param {Assets~getAssetCallback} callback - The function to call upon completion. May be an inline function, a function 
      *     identifier, or the name of a function in a string. If the name of a function or a function identifier, it must be 
      *     a member of <code>scope</code>.
-     */
-    /**jsdoc
-     * Downloads content from the asset server.
-     * @function Assets.getAsset
-     * @param {Assets.GetOptions|string} source - What to download and download options. If a string, the mapped path or hash
-     *     to download, optionally including a leading <code>"atp:"</code>.
-     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
      */
     Q_INVOKABLE void getAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
 
@@ -289,8 +282,8 @@ public:
      * @function Assets.putAsset
      * @param {Assets.PutOptions|string} options - The content to upload and upload options. If a string, the value of the
      *     string is uploaded but a path-to-hash mapping is not set.
-     * @param {Assets~putAssetCallback} callback - The function to call upon completion. May be an inline function or a
-     *     function identifier.
+     * @param {Assets.CallbackDetails|Assets~putAssetCallback} callback - The function to call upon completion. May be an 
+     *     inline function or a function identifier.
      * @example <caption>Store a string in the asset server.</caption>
      * Assets.putAsset(
      *     {
@@ -316,13 +309,6 @@ public:
      * @param {Assets~getAssetCallback} callback - The function to call upon completion. May be an inline function, a function 
      *     identifier, or the name of a function in a string. If the name of a function or a function identifier, it must be 
      *     a member of <code>scope</code>.
-     */
-    /**jsdoc
-     * Uploads content to the assert server and sets a path-to-hash mapping.
-     * @function Assets.putAsset
-     * @param {Assets.PutOptions|string} options - The content to upload and upload options. If a string, the value of the
-     *     string is uploaded but a path-to-hash mapping is not set.
-     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
      */
     Q_INVOKABLE void putAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
 
@@ -370,8 +356,8 @@ public:
      * @function Assets.resolveAsset
      * @param {string|Assets.ResolveOptions} source - The hash or path to resolve if a string, otherwise an object specifying 
      *     what to resolve. If a string, it may have a leading <code>"atp:"</code>.
-     * @param {Assets~resolveAssetCallback} callback - The function to call upon completion. May be a function identifier or 
-     *     an inline function.
+     * @param {Assets.CallbackDetails|Assets~resolveAssetCallback} callback - The function to call upon completion. May be a 
+     *     function identifier or an inline function.
      * @example <caption>Get the hash and URL for a path.</caption>
      * Assets.resolveAsset(
      *     "/assetsExamples/helloWorld.txt",
@@ -395,13 +381,6 @@ public:
      * @param {Assets~resolveAssetCallback} callback - The function to call upon completion. May be an inline function, a 
      *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
      *     must be a member of <code>scope</code>.
-     */
-    /**jsdoc
-     * Resolves and returns information on a hash or a path in the asset server.
-     * @function Assets.resolveAsset
-     * @param {string|Assets.ResolveOptions} source - The hash or path to resolve if a string, otherwise an object specifying
-     *     what to resolve. If a string, it may have a leading <code>"atp:"</code>.
-     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
      */
     Q_INVOKABLE void resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
@@ -430,8 +409,8 @@ public:
      * Decompresses data in memory using gunzip.
      * @function Assets.decompressData
      * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
-     * @param {Assets~decompressDataCallback} callback - The function to call upon completion. May be a function identifier or 
-     *     an inline function.
+     * @param {Assets.CallbackDetails|Assets~decompressDataCallback} callback - The function to call upon completion. May be a 
+     *     function identifier or an inline function.
      */
     /**jsdoc
      * Decompresses data in memory using gunzip.
@@ -442,12 +421,6 @@ public:
      * @param {Assets~decompressDataCallback} callback - The function to call upon completion. May be an inline function, a 
      *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
      *     must be a member of <code>scope</code>.
-     */
-    /**jsdoc
-     * Decompresses data in memory using gunzip.
-     * @function Assets.decompressData
-     * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
-     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
      */
     Q_INVOKABLE void decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
@@ -478,8 +451,8 @@ public:
      * @function Assets.compressData
      * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compression options. If an ArrayBuffer 
      *     or a string, the data to compress.
-     * @param {Assets~compressDataCallback} callback - The function to call upon completion. May be a function identifier or an 
-     *     inline function.
+     * @param {Assets.CallbackDetails|Assets~compressDataCallback} callback - The function to call upon completion. May be a 
+     *     function identifier or an inline function.
      */
     /**jsdoc
      * Compresses data in memory using gzip.
@@ -491,13 +464,6 @@ public:
      * @param {Assets~compressDataCallback} callback - The function to call upon completion. May be an inline function, a 
      *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
      *     must be a member of <code>scope</code>.
-     */
-    /**jsdoc
-     * Compresses data in memory using gzip.
-     * @function Assets.compressData
-     * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compressopn options. If an ArrayBuffer 
-     *     or a string, the data to compress.
-     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
      */
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
