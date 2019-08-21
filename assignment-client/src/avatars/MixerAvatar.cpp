@@ -27,10 +27,23 @@
 #include "ClientTraitsHandler.h"
 #include "AvatarLogging.h"
 
-MixerAvatar::~MixerAvatar() {
-    if (_challengeTimeout) {
-        _challengeTimeout->deleteLater();
-    }
+MixerAvatar::MixerAvatar() {
+    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
+
+    _challengeTimer.setSingleShot(true);
+    _challengeTimer.setInterval(CHALLENGE_TIMEOUT_MS);
+    
+    _challengeTimer.callOnTimeout([this]() {
+        if (_verifyState == challengeClient) {
+            _pendingEvent = false;
+            _verifyState = verificationFailed;
+            _needsIdentityUpdate = true;
+            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
+        } else {
+            qCDebug(avatars) << "Ignoring timeout of avatar challenge";
+        }
+    });
+
 }
 
 const char* MixerAvatar::stateToName(VerifyState state) {
@@ -283,7 +296,6 @@ void MixerAvatar::processCertifyEvents() {
         }
 
         case requestingOwner:
-        case challengeClient:
         {   // Qt networking done on this thread:
             QCoreApplication::processEvents();
             break;
@@ -313,30 +325,15 @@ void MixerAvatar::sendOwnerChallenge() {
     nonceHash.addData(nonce);
     _challengeNonceHash = nonceHash.result();
     _pendingEvent = false;
-
-    static constexpr int CHALLENGE_TIMEOUT_MS = 10 * 1000;  // 10 s
-    if (_challengeTimeout) {
-        _challengeTimeout->deleteLater();
-    }
-    _challengeTimeout = new QTimer();
-    _challengeTimeout->setInterval(CHALLENGE_TIMEOUT_MS);
-    _challengeTimeout->setSingleShot(true);
-    _challengeTimeout->connect(_challengeTimeout, &QTimer::timeout, this, [this]() {
-        if (_verifyState == challengeClient) {
-            _pendingEvent = false;
-            _verifyState = verificationFailed;
-            _needsIdentityUpdate = true;
-            qCDebug(avatars) << "Dynamic verification TIMED-OUT for " << getDisplayName() << getSessionUUID();
-        } else {
-            qCDebug(avatars) << "Ignoring timeout of avatar challenge";
-        }
-    });
-    _challengeTimeout->start();
+    
+    // QTimer::start is a set of overloaded functions.
+    QMetaObject::invokeMethod(&_challengeTimer, static_cast<void(QTimer::*)()>(&QTimer::start));
 }
 
 void MixerAvatar::handleChallengeResponse(ReceivedMessage& response) {
     QByteArray avatarID;
     QMutexLocker certifyLocker(&_avatarCertifyLock);
+    QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
     if (_verifyState == challengeClient) {
         QByteArray responseData = response.readAll();
         if (responseData.length() < 8) {

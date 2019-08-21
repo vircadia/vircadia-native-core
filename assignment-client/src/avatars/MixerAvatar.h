@@ -22,7 +22,8 @@ class ResourceRequest;
 class MixerAvatar : public AvatarData {
     Q_OBJECT
 public:
-    ~MixerAvatar();
+    MixerAvatar();
+
     bool getNeedsHeroCheck() const { return _needsHeroCheck; }
     void setNeedsHeroCheck(bool needsHeroCheck = true) { _needsHeroCheck = needsHeroCheck; }
 
@@ -57,7 +58,7 @@ private:
     QString _dynamicMarketResponse;
     QString _ownerPublicKey;
     QByteArray _challengeNonceHash;
-    QTimer* _challengeTimeout { nullptr };
+    QTimer _challengeTimer;
     bool _needsIdentityUpdate { false };
 
     bool generateFSTHash();
