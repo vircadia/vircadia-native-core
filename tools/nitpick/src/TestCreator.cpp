@@ -323,9 +323,11 @@ void TestCreator::startTestsEvaluation(
 
             QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
 
-            // Images are stored on GitHub as ExpectedImage_ddddd.png
-            // Extract the digits at the end of the filename (excluding the file extension)
-            QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
+            // Images are stored on GitHub as ExpectedImage_ddddd.png or ExpectedImage_some_metadata_ddddd.png
+            // Extract the part of the filename after "ExpectedImage_" and excluding the file extension
+            QString expectedImageFilenameTail = currentFilename.left(currentFilename.lastIndexOf("."));
+            int expectedImageStart = expectedImageFilenameTail.lastIndexOf(".") + 1;
+            expectedImageFilenameTail.remove(0, expectedImageStart);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
             QString imageURLString("https://raw.githubusercontent.com/" + user + "/" + GIT_HUB_REPOSITORY  + "/" + branch + "/" +
