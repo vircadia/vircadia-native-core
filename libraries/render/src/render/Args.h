@@ -142,6 +142,13 @@ namespace render {
         bool _takingSnapshot { false };
         StencilMaskMode _stencilMaskMode { StencilMaskMode::NONE };
         std::function<void(gpu::Batch&)> _stencilMaskOperator;
+
+        float _visionSqueezeX { 0.0f };
+        float _visionSqueezeY { 0.0f };
+        float _visionSqueezeTransition { 0.15f };
+        int _visionSqueezePerEye { 0 };
+        float _visionSqueezeGroundPlaneY { 0.0f };
+        float _visionSqueezeSpotlightSize { 0.02f };
     };
 
 }

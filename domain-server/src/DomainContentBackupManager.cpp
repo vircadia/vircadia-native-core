@@ -42,9 +42,7 @@ const std::chrono::seconds DomainContentBackupManager::DEFAULT_PERSIST_INTERVAL 
 
 // Backup format looks like: daily_backup-TIMESTAMP.zip
 static const QString DATETIME_FORMAT { "yyyy-MM-dd_HH-mm-ss" };
-static const QString DATETIME_FORMAT_RE { "\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}" };
-static const QString AUTOMATIC_BACKUP_PREFIX { "autobackup-" };
-static const QString MANUAL_BACKUP_PREFIX { "backup-" };
+static const QString PRE_UPLOAD_SUFFIX{ "pre_upload" };
 static const QString MANUAL_BACKUP_NAME_RE { "[a-zA-Z0-9\\-_ ]+" };
 
 void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) {
@@ -52,9 +50,10 @@ void DomainContentBackupManager::addBackupHandler(BackupHandlerPointer handler) 
 }
 
 DomainContentBackupManager::DomainContentBackupManager(const QString& backupDirectory,
-                                                       const QVariantList& backupRules,
+                                                       DomainServerSettingsManager& domainServerSettingsManager,
                                                        std::chrono::milliseconds persistInterval,
                                                        bool debugTimestampNow) :
+    _settingsManager(domainServerSettingsManager),
     _consolidatedBackupDirectory(PathUtils::generateTemporaryDir()),
     _backupDirectory(backupDirectory), _persistInterval(persistInterval), _lastCheck(p_high_resolution_clock::now())
 {
@@ -63,7 +62,8 @@ DomainContentBackupManager::DomainContentBackupManager(const QString& backupDire
     // Make sure the backup directory exists.
     QDir(_backupDirectory).mkpath(".");
 
-    parseBackupRules(backupRules);
+    static const QString BACKUP_RULES_KEYPATH = AUTOMATIC_CONTENT_ARCHIVES_GROUP + ".backup_rules";
+    parseBackupRules(_settingsManager.valueOrDefaultValueForKeyPath(BACKUP_RULES_KEYPATH).toList());
 
     constexpr int CONSOLIDATED_BACKUP_CLEANER_INTERVAL_MSECS = 30 * 1000;
     _consolidatedBackupCleanupTimer.setInterval(CONSOLIDATED_BACKUP_CLEANER_INTERVAL_MSECS);
@@ -170,7 +170,9 @@ bool DomainContentBackupManager::process() {
                 return handler->getRecoveryStatus().first;
             });
 
-            if (!isStillRecovering) {
+            // if an error occurred, don't restart the server so that the user
+            // can be notified of the error and take action.
+            if (!isStillRecovering && _recoveryError.isEmpty()) {
                 _isRecovering = false;
                 _recoveryFilename = "";
                 emit recoveryCompleted();
@@ -277,7 +279,7 @@ void DomainContentBackupManager::deleteBackup(MiniPromise::Promise promise, cons
     });
 }
 
-bool DomainContentBackupManager::recoverFromBackupZip(const QString& backupName, QuaZip& zip) {
+bool DomainContentBackupManager::recoverFromBackupZip(const QString& backupName, QuaZip& zip, const QString& username, const QString& sourceFilename, bool rollingBack) {
     if (!zip.open(QuaZip::Mode::mdUnzip)) {
         qWarning() << "Failed to unzip file: " << backupName;
         return false;
@@ -286,7 +288,15 @@ bool DomainContentBackupManager::recoverFromBackupZip(const QString& backupName,
         _recoveryFilename = backupName;
 
         for (auto& handler : _backupHandlers) {
-            handler->recoverBackup(backupName, zip);
+            bool success;
+            QString errorStr;
+            std::tie(success, errorStr) = handler->recoverBackup(backupName, zip, username, sourceFilename);
+            if (!success) {
+                if (!rollingBack) {
+                    _recoveryError = errorStr;
+                }
+                return false;
+            }
         }
 
         qDebug() << "Successfully started recovering from " << backupName;
@@ -294,7 +304,7 @@ bool DomainContentBackupManager::recoverFromBackupZip(const QString& backupName,
     }
 }
 
-void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise, const QString& backupName) {
+void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise, const QString& backupName, const QString& username) {
     if (_isRecovering) {
         promise->resolve({
             { "success", false }
@@ -304,12 +314,12 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "recoverFromBackup", Q_ARG(MiniPromise::Promise, promise),
-                                  Q_ARG(const QString&, backupName));
+                                  Q_ARG(const QString&, backupName), Q_ARG(const QString&, username));
         return;
     }
 
     qDebug() << "Recovering from" << backupName;
-
+    _recoveryError = "";
     bool success { false };
     QDir backupDir { _backupDirectory };
     auto backupFilePath { backupDir.filePath(backupName) };
@@ -317,7 +327,7 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
     if (backupFile.open(QIODevice::ReadOnly)) {
         QuaZip zip { &backupFile };
 
-        success = recoverFromBackupZip(backupName, zip);
+        success = recoverFromBackupZip(backupName, zip, username, backupName);
 
         backupFile.close();
     } else {
@@ -330,11 +340,11 @@ void DomainContentBackupManager::recoverFromBackup(MiniPromise::Promise promise,
     });
 }
 
-void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup) {
+void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise promise, QByteArray uploadedBackup, QString username) {
 
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "recoverFromUploadedBackup", Q_ARG(MiniPromise::Promise, promise),
-                                  Q_ARG(QByteArray, uploadedBackup));
+                                  Q_ARG(QByteArray, uploadedBackup), Q_ARG(QString, username));
         return;
     }
 
@@ -345,29 +355,51 @@ void DomainContentBackupManager::recoverFromUploadedBackup(MiniPromise::Promise 
     QuaZip uploadedZip { &uploadedBackupBuffer };
 
     QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
-    bool success = recoverFromBackupZip(backupName, uploadedZip);
+    bool success = recoverFromBackupZip(backupName, uploadedZip, username, QString());
 
     promise->resolve({
         { "success", success }
     });
 }
 
-void DomainContentBackupManager::recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename) {
+void DomainContentBackupManager::recoverFromUploadedFile(MiniPromise::Promise promise, QString uploadedFilename, const QString username, QString sourceFilename) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "recoverFromUploadedFile", Q_ARG(MiniPromise::Promise, promise),
-            Q_ARG(QString, uploadedFilename));
+            Q_ARG(QString, uploadedFilename), Q_ARG(QString, username), Q_ARG(QString, sourceFilename));
         return;
     }
 
-    qDebug() << "Recovering from uploaded file -" << uploadedFilename;
+    qDebug() << "Recovering from uploaded file -" << uploadedFilename << "source" << sourceFilename;
+    bool success;
+    QString path;
+    std::tie(success, path) = createBackup(AUTOMATIC_BACKUP_PREFIX, PRE_UPLOAD_SUFFIX);
+    if(!success) {
+        _recoveryError = "Failed to create backup for " + PRE_UPLOAD_SUFFIX + " at " + path;
+        qCWarning(domain_server) << _recoveryError;
+    } else {
+        QFile uploadedFile(uploadedFilename);
+        QuaZip uploadedZip { &uploadedFile };
 
-    QFile uploadedFile(uploadedFilename);
-    QuaZip uploadedZip { &uploadedFile };
+        QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
 
-    QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
+        bool success = recoverFromBackupZip(backupName, uploadedZip, username, sourceFilename);
 
-    bool success = recoverFromBackupZip(backupName, uploadedZip);
+        if (!success) {
 
+            // attempt to rollback to
+            QString filename;
+            QDateTime filetime;
+            if (getMostRecentBackup(PRE_UPLOAD_SUFFIX, filename, filetime)) {
+                QFile uploadedFile(uploadedFilename);
+                QuaZip uploadedZip { &uploadedFile };
+
+                QString backupName = MANUAL_BACKUP_PREFIX + "uploaded.zip";
+                recoverFromBackupZip(backupName, uploadedZip, username, sourceFilename,  true);
+
+            }
+        }
+
+    }
     promise->resolve({
         { "success", success }
         });
@@ -455,9 +487,44 @@ void DomainContentBackupManager::getAllBackupsAndStatus(MiniPromise::Promise pro
         { "recoveryProgress", recoveryProgress }
     };
 
+    if(!_recoveryError.isEmpty()) {
+        status["recoveryError"] = _recoveryError;
+    }
+
+
+    QString filename = _settingsManager.valueForKeyPath(CONTENT_SETTINGS_INSTALLED_CONTENT_FILENAME).toString();
+    QString name = _settingsManager.valueForKeyPath(CONTENT_SETTINGS_INSTALLED_CONTENT_NAME).toString();
+    auto creationTime = _settingsManager.valueForKeyPath(CONTENT_SETTINGS_INSTALLED_CONTENT_CREATION_TIME).toULongLong();
+
+    if (name.isEmpty() || creationTime == 0) {
+        QString prefixFormat = "(" + QRegExp::escape(AUTOMATIC_BACKUP_PREFIX) + "|" + QRegExp::escape(MANUAL_BACKUP_PREFIX) + ")";
+        QString nameFormat = "(.+)";
+        QString dateTimeFormat = "(" + DATETIME_FORMAT_RE + ")";
+        QRegExp backupNameFormat { prefixFormat + nameFormat + "-" + dateTimeFormat + "\\.zip" };
+
+
+        if (backupNameFormat.exactMatch(filename)) {
+            if (name.isEmpty()) {
+                name = backupNameFormat.cap(2);
+            }
+            if (creationTime == 0) {
+                auto dateTime = backupNameFormat.cap(3);
+                creationTime = QDateTime::fromString(dateTime, DATETIME_FORMAT).toMSecsSinceEpoch();
+            }
+        }
+    }
+
+    QVariantMap currentArchive;
+    currentArchive["filename"] = filename;
+    currentArchive["name"] = name;
+    currentArchive["creation_time"] = creationTime;
+    currentArchive["install_time"] = _settingsManager.valueForKeyPath(CONTENT_SETTINGS_INSTALLED_CONTENT_INSTALL_TIME).toULongLong();
+    currentArchive["installed_by"] = _settingsManager.valueForKeyPath(CONTENT_SETTINGS_INSTALLED_CONTENT_INSTALLED_BY).toString();
+
     QVariantMap info {
         { "backups", variantBackups },
-        { "status", status }
+        { "status", status },
+        { "installed_content", currentArchive }
     };
 
     promise->resolve(info);

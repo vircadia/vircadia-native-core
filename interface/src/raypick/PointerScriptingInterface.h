@@ -11,6 +11,7 @@
 #include <QtCore/QObject>
 
 #include "DependencyManager.h"
+#include "RegisteredMetaTypes.h"
 #include <PointerManager.h>
 #include <Pick.h>
 
@@ -31,9 +32,6 @@ class PointerScriptingInterface : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    unsigned int createLaserPointer(const QVariant& properties) const;
-    unsigned int createStylus(const QVariant& properties) const;
-    unsigned int createParabolaPointer(const QVariant& properties) const;
 
     /**jsdoc
      * Specifies that a {@link Controller} action or function should trigger events on the entity or overlay currently 
@@ -148,11 +146,37 @@ public:
     Q_INVOKABLE void disablePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->disablePointer(uid); }
 
     /**jsdoc
+     * Gets the enabled status of a pointer. Enabled pointers update their pick results and generate events.
+     * @function Pointers.isPointerEnabled
+     * @param {number} id - The ID of the pointer.
+     * @returns {boolean} enabled - Whether or not the pointer is enabled.
+     */
+    Q_INVOKABLE bool isPointerEnabled(unsigned int uid) const;
+
+    /**jsdoc
      * Removes (deletes) a pointer.
      * @function Pointers.removePointer
      * @param {number} id - The ID of the pointer.
      */
     Q_INVOKABLE void removePointer(unsigned int uid) const { DependencyManager::get<PointerManager>()->removePointer(uid); }
+
+    /**jsdoc
+    * Gets the parameters that were passed in to {@link Pointers.createPointer} to create the pointer,
+    * if the pointer was created through a script.
+    * Note that these properties do not reflect the current state of the pointer.
+    * See {@link Pointers.getPointerProperties}.
+    * @function Pointers.getPointerScriptParameters
+    * @param {number} id - The ID of the pointer.
+    * @returns {Pointers.RayPointerProperties|Picks.ParabolaPointerProperties|Picks.StylusPointerProperties} User-provided properties, per the pointer <code>type</code>.
+    */
+    Q_INVOKABLE QVariantMap getPointerScriptParameters(unsigned int uid) const;
+
+    /**jsdoc
+    * Gets all pointers which currently exist, including disabled pointers.
+    * @function Pointers.getPointers
+    * @returns {number[]} pointers - The IDs of the pointers.
+    */
+    Q_INVOKABLE QVector<unsigned int> getPointers() const;
 
     /**jsdoc
      * Edits a render state of a {@link Pointers.RayPointerProperties|ray} or 
@@ -448,6 +472,11 @@ public:
      * });
      */
     Q_INVOKABLE QVariantMap getPointerProperties(unsigned int uid) const;
+
+protected:
+    static std::shared_ptr<Pointer> buildLaserPointer(const QVariant& properties);
+    static std::shared_ptr<Pointer> buildStylus(const QVariant& properties);
+    static std::shared_ptr<Pointer> buildParabolaPointer(const QVariant& properties);
 };
 
 #endif // hifi_PointerScriptingInterface_h

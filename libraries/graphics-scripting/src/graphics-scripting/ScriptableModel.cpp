@@ -43,12 +43,12 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
         occlusionMap = material.occlusionMap;
         lightMap = material.lightMap;
         scatteringMap = material.scatteringMap;
-
-        defaultFallthrough = material.defaultFallthrough;
-        propertyFallthroughs = material.propertyFallthroughs;
     } else if (model.toStdString() == graphics::Material::HIFI_SHADER_SIMPLE) {
         procedural = material.procedural;
     }
+
+    defaultFallthrough = material.defaultFallthrough;
+    propertyFallthroughs = material.propertyFallthroughs;
 
     key = material.key;
 
@@ -68,9 +68,6 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
             scattering = material->getScattering();
             unlit = material->isUnlit();
             emissive = material->getEmissive();
-            defaultFallthrough = material->getDefaultFallthrough();
-            propertyFallthroughs = material->getPropertyFallthroughs();
-            key = material->getKey();
 
             auto map = material->getTextureMap(graphics::Material::MapChannel::EMISSIVE_MAP);
             if (map && map->getTextureSource()) {
@@ -133,6 +130,11 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
         } else if (model.toStdString() == graphics::Material::HIFI_SHADER_SIMPLE) {
             procedural = material->getProceduralString();
         }
+
+        defaultFallthrough = material->getDefaultFallthrough();
+        propertyFallthroughs = material->getPropertyFallthroughs();
+
+        key = material->getKey();
     }
 }
 

@@ -52,12 +52,14 @@ void PolyLineEntityRenderer::buildPipelines() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(key.first == render::Args::DEFERRED ? shader::entities_renderer::program::paintStroke : shader::entities_renderer::program::paintStroke_forward);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
         state->setDepthTest(true, !key.second, gpu::LESS_EQUAL);
         PrepareStencil::testMask(*state);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
         _pipelines[key] = gpu::Pipeline::create(program, state);
     }
 }
@@ -75,11 +77,9 @@ ShapeKey PolyLineEntityRenderer::getShapeKey() {
 }
 
 bool PolyLineEntityRenderer::needsRenderUpdate() const {
-    bool textureLoadedChanged = resultWithReadLock<bool>([&] {
+    if (resultWithReadLock<bool>([&] {
         return (!_textureLoaded && _texture && _texture->isLoaded());
-    });
-
-    if (textureLoadedChanged) {
+    })) {
         return true;
     }
 
@@ -88,10 +88,6 @@ bool PolyLineEntityRenderer::needsRenderUpdate() const {
 
 bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (entity->pointsChanged() || entity->widthsChanged() || entity->normalsChanged() || entity->texturesChanged() || entity->colorsChanged()) {
-        return true;
-    }
-
-    if (_isUVModeStretch != entity->getIsUVModeStretch() || _glow != entity->getGlow() || _faceCamera != entity->getFaceCamera()) {
         return true;
     }
 

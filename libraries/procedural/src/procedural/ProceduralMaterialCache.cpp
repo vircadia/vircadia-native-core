@@ -121,9 +121,10 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB. 
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {number|string} opacity=1.0 - The opacity, range <code>0.0</code> &ndash; <code>1.0</code>.
- *     Set to <code>"fallthrough"</code> to fall through to the material below.  <code>"hifi_pbr"</code> and
+ *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> and
  *     <code>"hifi_shader_simple"</code> models only.
- * @property {boolean|string} unlit=false - <code>true</code> if the material is not lit, <code>false</code> if it is.
+ * @property {boolean|string} unlit=false - <code>true</code> if the material is unaffected by lighting, <code>false</code> if 
+ *     it is lit by the key light and local lights.
  *     Set to <code>"fallthrough"</code> to fall through to the material below. <code>"hifi_pbr"</code> model only.
  * @property {ColorFloat|RGBS|string} albedo - The albedo color. A {@link ColorFloat} value is treated as sRGB and must have
  *     component values in the range <code>0.0</code> &ndash; <code>1.0</code>. A {@link RGBS} value can be either RGB or sRGB.
@@ -178,7 +179,7 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     <p><em>Currently not used.</em></p>
  * @property {boolean} defaultFallthrough=false - <code>true</code> if all properties fall through to the material below 
  *     unless they are set, <code>false</code> if properties respect their individual fall-through settings. 
- *     <code>"hifi_pbr"</code> model only.
+ *     <code>"hifi_pbr"</code> and <code>"hifi_shader_simple"</code> models only.
  * @property {ProceduralData} procedural - The definition of a procedural shader material.  <code>"hifi_shader_simple"</code> model only.
  */
 // Note: See MaterialEntityItem.h for default values used in practice.
@@ -194,9 +195,9 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
 
     std::array<glm::mat4, graphics::Material::NUM_TEXCOORD_TRANSFORMS> texcoordTransforms;
 
+    const QString FALLTHROUGH("fallthrough");
     if (modelString == graphics::Material::HIFI_PBR) {
         auto material = std::make_shared<NetworkMaterial>();
-        const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {
             if (key == "name") {
                 auto nameJSON = materialJSON.value(key);
@@ -438,7 +439,6 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
         networkMaterial = material;
     } else if (modelString == graphics::Material::HIFI_SHADER_SIMPLE) {
         auto material = std::make_shared<graphics::ProceduralMaterial>();
-        const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {
             if (key == "name") {
                 auto nameJSON = materialJSON.value(key);
@@ -464,6 +464,11 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                     if (valid) {
                         material->setAlbedo(color, isSRGB);
                     }
+                }
+            } else if (key == "defaultFallthrough") {
+                auto value = materialJSON.value(key);
+                if (value.isBool()) {
+                    material->setDefaultFallthrough(value.toBool());
                 }
             } else if (key == "procedural") {
                 auto value = materialJSON.value(key);

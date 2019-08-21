@@ -187,6 +187,89 @@ function toggleSettingsApp() {
     settingsAppWindow.closed.connect(onSettingsAppClosed);
 }
 
+
+function handleGoToAudioSettings() {
+    if (!settingsAppWindow) {
+        toggleSettingsApp();
+    }
+
+    settingsAppWindow.sendToQml({
+        "source": "simplifiedUI.js",
+        "method": "goToSettingsTab",
+        "data": {
+            "settingsTab": "audio"
+        }
+    });
+}
+
+
+var HELP_APP_MESSAGE_SOURCE = "HelpApp.qml";
+function onMessageFromHelpApp(message) {
+    if (message.source !== HELP_APP_MESSAGE_SOURCE) {
+        return;
+    }
+
+    switch (message.method) {
+        case "goToAudioSettings":
+            handleGoToAudioSettings();
+            break;
+
+        default:
+            console.log("Unrecognized message from " + HELP_APP_MESSAGE_SOURCE + ": " + JSON.stringify(message));
+            break;
+    }
+}
+
+
+function onHelpAppClosed() {
+    if (helpAppWindow) {
+        helpAppWindow.fromQml.disconnect(onMessageFromHelpApp);
+        helpAppWindow.closed.disconnect(onHelpAppClosed);
+    }
+    helpAppWindow = false;
+}
+
+
+var HELP_APP_QML_PATH = Script.resourcesPath() + "qml/hifi/simplifiedUI/helpApp/HelpApp.qml";
+var HELP_APP_WINDOW_TITLE = "Help";
+var HELP_APP_PRESENTATION_MODE = Desktop.PresentationMode.NATIVE;
+var HELP_APP_WIDTH_PX = 480;
+var HELP_APP_HEIGHT_PX = 615;
+var HELP_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00001000 | // Qt::WindowTitleHint
+    0x00002000 | // Qt::WindowSystemMenuHint
+    0x08000000 | // Qt::WindowCloseButtonHint
+    0x00008000 | // Qt::WindowMaximizeButtonHint
+    0x00004000; // Qt::WindowMinimizeButtonHint
+var helpAppWindow = false;
+function toggleHelpApp() {
+    if (helpAppWindow) {
+        helpAppWindow.close();
+        // This really shouldn't be necessary.
+        // This signal really should automatically be called by the signal handler set up below.
+        // But fixing that requires an engine change, so this workaround will do.
+        onHelpAppClosed();
+        return;
+    }
+
+    helpAppWindow = Desktop.createWindow(HELP_APP_QML_PATH, {
+        title: HELP_APP_WINDOW_TITLE,
+        presentationMode: HELP_APP_PRESENTATION_MODE,
+        size: {
+            x: HELP_APP_WIDTH_PX,
+            y: HELP_APP_HEIGHT_PX
+        },
+        position: {
+            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - HELP_APP_WIDTH_PX / 2),
+            y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - HELP_APP_HEIGHT_PX / 2)
+        },
+        overrideFlags: HELP_APP_WINDOW_FLAGS
+    });
+
+    helpAppWindow.fromQml.connect(onMessageFromHelpApp);
+    helpAppWindow.closed.connect(onHelpAppClosed);
+}
+
 function updateEmoteAppBarPosition() {
     if (!emoteAppBarWindow) {
         return;
@@ -374,6 +457,10 @@ function onMessageFromTopBar(message) {
             toggleSettingsApp();
             break;
 
+        case "toggleHelpApp":
+            toggleHelpApp();
+            break;
+
         case "setOutputMuted":
             setOutputMuted(message.data.outputMuted);
             break;
@@ -483,7 +570,16 @@ function updateInputDeviceMutedOverlay(isMuted) {
 
 
 function onDesktopInputDeviceMutedChanged(isMuted) {
-    updateInputDeviceMutedOverlay(isMuted);
+    if (!HMD.active) {
+        updateInputDeviceMutedOverlay(isMuted);
+    }
+}
+
+
+function onHMDInputDeviceMutedChanged(isMuted) {
+    if (HMD.active) {
+        updateInputDeviceMutedOverlay(isMuted);
+    }
 }
 
 
@@ -508,6 +604,12 @@ function onDisplayModeChanged(isHMDMode) {
     if (isHMDMode) {
         Camera.setModeString("first person");
     }
+
+    if (isHMDMode) {
+        onHMDInputDeviceMutedChanged(Audio.mutedHMD);
+    } else {
+        onDesktopInputDeviceMutedChanged(Audio.mutedDesktop);
+    }
 }
 
 function onToolbarVisibleChanged(isVisible, toolbarName) {
@@ -531,21 +633,21 @@ function maybeUpdateOutputDeviceMutedOverlay() {
 
 
 var oldAutomaticLODAdjust;
-var oldLODLevel;
-var DEFAULT_AUTO_LOD_ADJUST = false;
-var DEFAULT_LOD_LEVEL = 0.5;
+var oldLODAngleDeg;
+var SIMPLIFIED_UI_AUTO_LOD_ADJUST = false;
+var SIMPLIFIED_UI_LOD_ANGLE_DEG = 0.248;
 function modifyLODSettings() {
     oldAutomaticLODAdjust = LODManager.automaticLODAdjust;
-    oldLODLevel = LODManager.lodQualityLevel;
+    oldLODAngleDeg = LODManager.lodAngleDeg;
 
-    LODManager.automaticLODAdjust = DEFAULT_AUTO_LOD_ADJUST;
-    LODManager.lodQualityLevel = DEFAULT_LOD_LEVEL;
+    LODManager.automaticLODAdjust = SIMPLIFIED_UI_AUTO_LOD_ADJUST;
+    LODManager.lodAngleDeg = SIMPLIFIED_UI_LOD_ANGLE_DEG;
 }
 
 
 function restoreLODSettings() {
     LODManager.automaticLODAdjust = oldAutomaticLODAdjust;
-    LODManager.lodQualityLevel = oldLODLevel;
+    LODManager.lodAngleDeg = oldLODAngleDeg;
 }
 
 
@@ -578,6 +680,7 @@ function startup() {
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
     Audio.mutedDesktopChanged.connect(onDesktopInputDeviceMutedChanged);
+    Audio.mutedHMDChanged.connect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
     Audio.avatarGainChanged.connect(maybeUpdateOutputDeviceMutedOverlay);
@@ -634,6 +737,7 @@ function shutdown() {
     si.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
+    Audio.mutedHMDChanged.disconnect(onHMDInputDeviceMutedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
     Audio.avatarGainChanged.disconnect(maybeUpdateOutputDeviceMutedOverlay);

@@ -125,6 +125,27 @@ QString userRecenterModelToString(MyAvatar::SitStandModelType model) {
     }
 }
 
+static const QStringList TRIGGER_REACTION_NAMES = {
+    QString("positive"),
+    QString("negative")
+};
+
+static const QStringList BEGIN_END_REACTION_NAMES = {
+    QString("raiseHand"),
+    QString("applaud"),
+    QString("point")
+};
+
+static int triggerReactionNameToIndex(const QString& reactionName) {
+    assert(NUM_AVATAR_TRIGGER_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    return TRIGGER_REACTION_NAMES.indexOf(reactionName);
+}
+
+static int beginEndReactionNameToIndex(const QString& reactionName) {
+    assert(NUM_AVATAR_BEGIN_END_REACTIONS == TRIGGER_REACTION_NAMES.size());
+    return BEGIN_END_REACTION_NAMES.indexOf(reactionName);
+}
+
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
     _yawSpeed(YAW_SPEED_DEFAULT),
@@ -2751,19 +2772,23 @@ QString MyAvatar::getScriptedMotorMode() const {
 }
 
 void MyAvatar::setScriptedMotorVelocity(const glm::vec3& velocity) {
-    float MAX_SCRIPTED_MOTOR_SPEED = 500.0f;
-    _scriptedMotorVelocity = velocity;
-    float speed = glm::length(_scriptedMotorVelocity);
-    if (speed > MAX_SCRIPTED_MOTOR_SPEED) {
-        _scriptedMotorVelocity *= MAX_SCRIPTED_MOTOR_SPEED / speed;
+    float newSpeed = glm::length(velocity);
+    if (!glm::isnan(newSpeed)) {
+        _scriptedMotorVelocity = velocity;
+        constexpr float MAX_SCRIPTED_MOTOR_SPEED = 500.0f;
+        if (newSpeed > MAX_SCRIPTED_MOTOR_SPEED) {
+            _scriptedMotorVelocity *= MAX_SCRIPTED_MOTOR_SPEED / newSpeed;
+        }
     }
 }
 
 void MyAvatar::setScriptedMotorTimescale(float timescale) {
-    // we clamp the timescale on the large side (instead of just the low side) to prevent
-    // obnoxiously large values from introducing NaN into avatar's velocity
-    _scriptedMotorTimescale = glm::clamp(timescale, MIN_SCRIPTED_MOTOR_TIMESCALE,
-            DEFAULT_SCRIPTED_MOTOR_TIMESCALE);
+    if (!glm::isnan(timescale)) {
+        // we clamp the timescale on the large side (instead of just the low side) to prevent
+        // obnoxiously large values from introducing NaN into avatar's velocity
+        _scriptedMotorTimescale = glm::clamp(timescale, MIN_SCRIPTED_MOTOR_TIMESCALE,
+                DEFAULT_SCRIPTED_MOTOR_TIMESCALE);
+    }
 }
 
 void MyAvatar::setScriptedMotorFrame(QString frame) {
@@ -5808,6 +5833,62 @@ void MyAvatar::setModelScale(float scale) {
     }
 }
 
+QStringList MyAvatar::getBeginEndReactions() const {
+    return BEGIN_END_REACTION_NAMES;
+}
+
+QStringList MyAvatar::getTriggerReactions() const {
+    return TRIGGER_REACTION_NAMES;
+}
+
+bool MyAvatar::triggerReaction(QString reactionName) {
+    int reactionIndex = triggerReactionNameToIndex(reactionName);
+    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_TRIGGER_REACTIONS) {
+        std::lock_guard<std::mutex> guard(_reactionLock);
+        _reactionTriggers[reactionIndex] = true;
+        return true;
+    }
+    return false;
+}
+
+bool MyAvatar::beginReaction(QString reactionName) {
+    int reactionIndex = beginEndReactionNameToIndex(reactionName);
+    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
+        std::lock_guard<std::mutex> guard(_reactionLock);
+        _reactionEnabledRefCounts[reactionIndex]++;
+        return true;
+    }
+    return false;
+}
+
+bool MyAvatar::endReaction(QString reactionName) {
+    int reactionIndex = beginEndReactionNameToIndex(reactionName);
+    if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
+        std::lock_guard<std::mutex> guard(_reactionLock);
+        _reactionEnabledRefCounts[reactionIndex]--;
+        return true;
+    }
+    return false;
+}
+
+void MyAvatar::updateRigControllerParameters(Rig::ControllerParameters& params) {
+    std::lock_guard<std::mutex> guard(_reactionLock);
+
+    for (int i = 0; i < TRIGGER_REACTION_NAMES.size(); i++) {
+        params.reactionTriggers[i] = _reactionTriggers[i];
+    }
+
+    for (int i = 0; i < BEGIN_END_REACTION_NAMES.size(); i++) {
+        // copy current state into params.
+        params.reactionEnabledFlags[i] = _reactionEnabledRefCounts[i] > 0;
+    }
+
+    for (int i = 0; i < TRIGGER_REACTION_NAMES.size(); i++) {
+        // clear reaction triggers here as well
+        _reactionTriggers[i] = false;
+    }
+}
+
 SpatialParentTree* MyAvatar::getParentTree() const {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -6145,3 +6226,50 @@ void MyAvatar::sendPacket(const QUuid& entityID) const {
     }
 }
 
+void MyAvatar::setSitDriveKeysStatus(bool enabled) {
+    const std::vector<DriveKeys> DISABLED_DRIVE_KEYS_DURING_SIT = {
+        DriveKeys::TRANSLATE_X,
+        DriveKeys::TRANSLATE_Y,
+        DriveKeys::TRANSLATE_Z,
+        DriveKeys::STEP_TRANSLATE_X,
+        DriveKeys::STEP_TRANSLATE_Y,
+        DriveKeys::STEP_TRANSLATE_Z
+    };
+    for (auto key : DISABLED_DRIVE_KEYS_DURING_SIT) {
+        if (enabled) {
+            enableDriveKey(key);
+        } else {
+            disableDriveKey(key);
+        }
+    }
+}
+
+void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
+    _characterController.setSeated(true);
+    setCollisionsEnabled(false);    
+    setHMDLeanRecenterEnabled(false);
+    // Disable movement
+    setSitDriveKeysStatus(false);
+    centerBody();
+    int hipIndex = getJointIndex("Hips");
+    clearPinOnJoint(hipIndex);
+    goToLocation(position, true, rotation, false, false);
+    pinJoint(hipIndex, position, rotation);
+}
+
+void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
+    if (_characterController.getSeated()) {
+        clearPinOnJoint(getJointIndex("Hips"));
+        _characterController.setSeated(false);
+        setCollisionsEnabled(true);
+        setHMDLeanRecenterEnabled(true);
+        centerBody();
+        goToLocation(position, true, rotation, false, false);
+        float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
+        QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
+            // Enable movement again
+            setSitDriveKeysStatus(true);
+        });
+    }
+
+}

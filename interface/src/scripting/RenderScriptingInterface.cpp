@@ -54,7 +54,7 @@ void RenderScriptingInterface::forceRenderMethod(RenderMethod renderMethod) {
         _renderMethod = (int)renderMethod;
         _renderMethodSetting.set((int)renderMethod);
 
-        auto config = dynamic_cast<task::SwitchConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("RenderMainView.DeferredForwardSwitch"));
+        auto config = dynamic_cast<render::SwitchConfig*>(qApp->getRenderEngine()->getConfiguration()->getConfig("RenderMainView.DeferredForwardSwitch"));
         if (config) {
             config->setBranch((int)renderMethod);
         }

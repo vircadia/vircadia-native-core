@@ -238,7 +238,7 @@ public:
      * @function AvatarManager.getPalData
      * @param {string[]} [avatarIDs=[]] - The IDs of the avatars to get the PAL data for. If empty, then PAL data is obtained 
      *     for all avatars.
-     * @returns {object<"data", AvatarManager.PalData[]>} An array of objects, each object being the PAL data for an avatar.
+     * @returns {Object<"data", AvatarManager.PalData[]>} An array of objects, each object being the PAL data for an avatar.
      * @example <caption>Report the PAL data for an avatar nearby.</caption>
      * var palData = AvatarManager.getPalData();
      * print("PAL data for one avatar: " + JSON.stringify(palData.data[0]));

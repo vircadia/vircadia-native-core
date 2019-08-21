@@ -91,7 +91,8 @@ public:
 
     const Shaders& getShaders() const { return _shaders; }
 
-    const Reflection& getReflection() const { return _source.reflection; }
+    Reflection getReflection(shader::Dialect dialect, shader::Variant variant) const;
+    Reflection getReflection() const; // get the default version of the reflection
 
     // Compilation Handler can be passed while compiling a shader (in the makeProgram call) to be able to give the hand to
     // the caller thread if the compilation fails and to provide a different version of the source for it

@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 8/22/2018
+//  Created by Sabrina Shanman 2018/08/22
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -23,4 +23,10 @@ Transform PickTransformNode::getTransform() {
     }
 
     return pickManager->getResultTransform(_uid);
+}
+
+QVariantMap PickTransformNode::toVariantMap() const {
+    QVariantMap map;
+    map["parentID"] = _uid;
+    return map;
 }

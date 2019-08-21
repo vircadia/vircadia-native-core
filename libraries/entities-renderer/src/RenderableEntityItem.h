@@ -61,6 +61,7 @@ public:
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
     static glm::vec4 calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start);
+    static glm::vec3 calculatePulseColor(const glm::vec3& color, const PulsePropertyGroup& pulseProperties, quint64 start);
 
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) const override;
     virtual Item::Bound getBound() override;
@@ -143,7 +144,6 @@ protected:
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _cauterized { false };
     bool _moving { false };
-    bool _needsRenderUpdate { false };
     // Only touched on the rendering thread
     bool _renderUpdateQueued{ false };
     Transform _renderTransform;

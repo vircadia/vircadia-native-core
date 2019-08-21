@@ -154,6 +154,7 @@ QString MaterialEntityItem::getMaterialURL() const {
 
 void MaterialEntityItem::setMaterialURL(const QString& materialURL) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _materialURL != materialURL;
         _materialURL = materialURL;
     });
 }
@@ -166,6 +167,7 @@ QString MaterialEntityItem::getMaterialData() const {
 
 void MaterialEntityItem::setMaterialData(const QString& materialData) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _materialData != materialData;
         _materialData = materialData;
     });
 }
@@ -178,6 +180,7 @@ MaterialMappingMode MaterialEntityItem::getMaterialMappingMode() const {
 
 void MaterialEntityItem::setMaterialMappingMode(MaterialMappingMode mode) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _materialMappingMode != mode;
         _materialMappingMode = mode;
     });
     setUnscaledDimensions(_desiredDimensions);
@@ -191,6 +194,7 @@ quint16 MaterialEntityItem::getPriority() const {
 
 void MaterialEntityItem::setPriority(quint16 priority) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _priority != priority;
         _priority = priority;
     });
 }
@@ -203,6 +207,7 @@ QString MaterialEntityItem::getParentMaterialName() const {
 
 void MaterialEntityItem::setParentMaterialName(const QString& parentMaterialName) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _parentMaterialName != parentMaterialName;
         _parentMaterialName = parentMaterialName;
     });
 }
@@ -215,6 +220,7 @@ glm::vec2 MaterialEntityItem::getMaterialMappingPos() const {
 
 void MaterialEntityItem::setMaterialMappingPos(const glm::vec2& materialMappingPos) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _materialMappingPos != materialMappingPos;
         _materialMappingPos = materialMappingPos;
     });
 }
@@ -227,6 +233,7 @@ glm::vec2 MaterialEntityItem::getMaterialMappingScale() const {
 
 void MaterialEntityItem::setMaterialMappingScale(const glm::vec2& materialMappingScale) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _materialMappingScale != materialMappingScale;
         _materialMappingScale = materialMappingScale;
     });
 }
@@ -239,7 +246,21 @@ float MaterialEntityItem::getMaterialMappingRot() const {
 
 void MaterialEntityItem::setMaterialMappingRot(float materialMappingRot) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _materialMappingRot != materialMappingRot;
         _materialMappingRot = materialMappingRot;
+    });
+}
+
+bool MaterialEntityItem::getMaterialRepeat() const {
+    return resultWithReadLock<bool>([&] {
+        return _materialRepeat;
+    });
+}
+
+void MaterialEntityItem::setMaterialRepeat(bool value) {
+    withWriteLock([&] {
+        _needsRenderUpdate |= _materialRepeat != value;
+        _materialRepeat = value;
     });
 }
 

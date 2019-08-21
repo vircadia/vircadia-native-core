@@ -166,16 +166,16 @@ Rectangle {
             x: 2 * margins.paddings;
             width: parent.width;
             // switch heights + 2 * top margins
-            height: (root.switchHeight) * 3 + 48;
+            height: (root.switchHeight) * 6 + 48;
             anchors.top: firstSeparator.bottom;
             anchors.topMargin: 10;
 
-            // mute is in its own row
            Item {
                 id: switchContainer;
                 x: margins.paddings;
                 width: parent.width / 2;
                 height: parent.height;
+                anchors.top: parent.top
                 anchors.left: parent.left;
                 HifiControlsUit.Switch {
                     id: muteMic;
@@ -222,10 +222,27 @@ Rectangle {
                 }
 
                 HifiControlsUit.Switch {
-                    id: pttSwitch
+                    id: acousticEchoCancellationSwitch;
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
                     anchors.top: noiseReductionSwitch.bottom
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
+                    labelTextOn: "Echo Cancellation";
+                    labelTextSize: 16;
+                    backgroundOnColor: "#E3E3E3";
+                    checked: AudioScriptingInterface.acousticEchoCancellation;
+                    onCheckedChanged: {
+                        AudioScriptingInterface.acousticEchoCancellation = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.acousticEchoCancellation; });
+                    }
+                }
+
+                HifiControlsUit.Switch {
+                    id: pttSwitch
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    anchors.top: acousticEchoCancellationSwitch.bottom;
                     anchors.topMargin: 24
                     anchors.left: parent.left
                     labelTextOn: (bar.currentIndex === 0) ? qsTr("Push To Talk (T)") : qsTr("Push To Talk");
@@ -298,7 +315,6 @@ Rectangle {
                         checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
                     }
                 }
-
             }
         }
 

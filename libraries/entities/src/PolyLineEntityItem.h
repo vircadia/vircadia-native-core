@@ -58,16 +58,16 @@ class PolyLineEntityItem : public EntityItem {
     void setStrokeColors(const QVector<glm::vec3>& strokeColors);
     QVector<glm::vec3> getStrokeColors() const;
 
-    void setIsUVModeStretch(bool isUVModeStretch){ _isUVModeStretch = isUVModeStretch; }
+    void setIsUVModeStretch(bool isUVModeStretch);
     bool getIsUVModeStretch() const{ return _isUVModeStretch; }
 
     QString getTextures() const;
     void setTextures(const QString& textures);
 
-    void setGlow(bool glow) { _glow = glow; }
+    void setGlow(bool glow);
     bool getGlow() const { return _glow; }
 
-    void setFaceCamera(bool faceCamera) { _faceCamera = faceCamera; }
+    void setFaceCamera(bool faceCamera);
     bool getFaceCamera() const { return _faceCamera; }
 
     bool pointsChanged() const { return _pointsChanged; } 

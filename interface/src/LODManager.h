@@ -12,9 +12,12 @@
 #ifndef hifi_LODManager_h
 #define hifi_LODManager_h
 
+#include <mutex>
+
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 #include <OctreeConstants.h>
+#include <OctreeUtils.h>
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
 #include <render/Args.h>
@@ -47,11 +50,6 @@ class AABox;
  * @property {number} presentTime <em>Read-only.</em>
  * @property {number} engineRunTime <em>Read-only.</em>
  * @property {number} gpuTime <em>Read-only.</em>
- * @property {number} avgRenderTime <em>Read-only.</em>
- * @property {number} fps <em>Read-only.</em>
- * @property {number} lodLevel <em>Read-only.</em>
- * @property {number} lodDecreaseFPS <em>Read-only.</em>
- * @property {number} lodIncreaseFPS <em>Read-only.</em>
  */
 
 class LODManager : public QObject, public Dependency {
@@ -141,24 +139,28 @@ public:
     /**jsdoc
      * @function LODManager.setOctreeSizeScale
      * @param {number} sizeScale
+     * @deprecated This function is deprecated and will be removed. Use the {@link LODManager.lodAngleDeg} property instead.
      */
     Q_INVOKABLE void setOctreeSizeScale(float sizeScale);
 
     /**jsdoc
      * @function LODManager.getOctreeSizeScale
      * @returns {number}
+     * @deprecated This function is deprecated and will be removed. Use the {@link LODManager.lodAngleDeg} property instead.
      */
-    Q_INVOKABLE float getOctreeSizeScale() const { return _octreeSizeScale; }
+    Q_INVOKABLE float getOctreeSizeScale() const;
 
     /**jsdoc
      * @function LODManager.setBoundaryLevelAdjust
      * @param {number} boundaryLevelAdjust
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE void setBoundaryLevelAdjust(int boundaryLevelAdjust);
 
     /**jsdoc
      * @function LODManager.getBoundaryLevelAdjust
      * @returns {number}
+     * @deprecated This function is deprecated and will be removed.
      */
     Q_INVOKABLE int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
@@ -199,8 +201,10 @@ public:
 
     float getLODAngleDeg() const;
     void setLODAngleDeg(float lodAngle);
-    float getLODAngleHalfTan() const;
+    float getLODHalfAngleTan() const;
     float getLODAngle() const;
+    float getVisibilityDistance() const;
+    void setVisibilityDistance(float distance);
 
     float getPidKp() const;
     float getPidKi() const;
@@ -240,6 +244,7 @@ signals:
 private:
     LODManager();
 
+    std::mutex _automaticLODLock;
     bool _automaticLODAdjust = true;
 
     float _presentTime{ 0.0f }; // msec
@@ -256,7 +261,7 @@ private:
     float _desktopTargetFPS { LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_DESKTOP_FPS };
     float _hmdTargetFPS { LOD_OFFSET_FPS + LOD_DEFAULT_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS };
 
-    float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
+    float _lodHalfAngle = getHalfAngleFromVisibilityDistance(DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT);
     int _boundaryLevelAdjust = 0;
 
     glm::vec4 _pidCoefs{ 1.0f, 0.0f, 0.0f, 1.0f }; // Kp, Ki, Kd, Kv

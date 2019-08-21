@@ -153,6 +153,10 @@ QtObject {
                 readonly property color background: "#474747"
                 readonly property color contentItem: "#0198CB"
             }
+            readonly property QtObject table: QtObject {
+                readonly property color cellBackground: "#000000"
+                readonly property color textColor: "#ffffff"
+            }
         }
 
         readonly property color darkSeparator: "#595959"

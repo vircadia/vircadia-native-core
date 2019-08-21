@@ -1,5 +1,5 @@
 //
-//  Created by Sabrina Shanman 8/14/2018
+//  Created by Sabrina Shanman 2018/08/14
 //  Copyright 2018 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -11,6 +11,8 @@
 #include "TransformNode.h"
 
 #include "SpatiallyNestable.h"
+
+#include "RegisteredMetaTypes.h"
 
 template <typename T>
 class BaseNestableTransformNode : public TransformNode {
@@ -43,6 +45,19 @@ public:
         jointWorldTransform.setScale(getActualScale(nestable) / _baseScale);
 
         return jointWorldTransform;
+    }
+
+    QVariantMap toVariantMap() const override {
+        QVariantMap map;
+
+        auto nestable = _spatiallyNestable.lock();
+        if (nestable) {
+            map["parentID"] = nestable->getID();
+            map["parentJointIndex"] = _jointIndex;
+            map["baseParentScale"] = vec3toVariant(_baseScale);
+        }
+
+        return map;
     }
 
     glm::vec3 getActualScale(const std::shared_ptr<T>& nestablePointer) const;

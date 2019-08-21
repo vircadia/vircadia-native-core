@@ -111,42 +111,6 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
             return true;
         }
 
-        if (_color != entity->getColor()) {
-            return true;
-        }
-
-        if (_alpha != entity->getAlpha()) {
-            return true;
-        }
-
-        if (_billboardMode != entity->getBillboardMode()) {
-            return true;
-        }
-
-        if (_sourceURL != entity->getSourceUrl()) {
-            return true;
-        }
-
-        if (_dpi != entity->getDPI()) {
-            return true;
-        }
-
-        if (_scriptURL != entity->getScriptURL()) {
-            return true;
-        }
-
-        if (_maxFPS != entity->getMaxFPS()) {
-            return true;
-        }
-
-        if (_inputMode != entity->getInputMode()) {
-            return true;
-        }
-
-        if (_pulseProperties != entity->getPulseProperties()) {
-            return true;
-        }
-
         return false;
     })) {
         return true;

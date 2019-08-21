@@ -830,9 +830,14 @@ void Wallet::handleChallengeOwnershipPacket(QSharedPointer<ReceivedMessage> pack
 }
 
 void Wallet::sendChallengeOwnershipResponses() {
-    if (_pendingChallenges.size() == 0 || getSalt().length() == 0) {
+    if (_pendingChallenges.size() == 0) {
         return;
     }
+    if (getSalt().length() == 0) {
+        qCDebug(commerce) << "Not responding to ownership challenge due to missing Wallet salt";
+        return;
+    }
+
     auto nodeList = DependencyManager::get<NodeList>();
 
     EC_KEY* ec = readKeys(keyFilePath());

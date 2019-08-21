@@ -253,7 +253,7 @@ void EntityTreeRenderer::clear() {
     // unload and stop the engine
     if (_entitiesScriptEngine) {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
-        _entitiesScriptEngine->unloadAllEntityScripts();
+        _entitiesScriptEngine->unloadAllEntityScripts(true);
         _entitiesScriptEngine->stop();
     }
 
@@ -1027,6 +1027,10 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
 
 void EntityTreeRenderer::entityScriptChanging(const EntityItemID& entityID, bool reload) {
     checkAndCallPreload(entityID, reload, true);
+    // Force "re-checking" entities so that the logic inside `checkEnterLeaveEntities()` is run.
+    // This will ensure that the `enterEntity()` signal is emitted on clients whose avatars
+    // are inside an entity when the script is reloaded.
+    forceRecheckEntities();
 }
 
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool reload, bool unloadFirst) {

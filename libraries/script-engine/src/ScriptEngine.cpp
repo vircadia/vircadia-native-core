@@ -2470,13 +2470,14 @@ QList<EntityItemID> ScriptEngine::getListOfEntityScriptIDs() {
     return _entityScripts.keys();
 }
 
-void ScriptEngine::unloadAllEntityScripts() {
+void ScriptEngine::unloadAllEntityScripts(bool blockingCall) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::unloadAllEntityScripts() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
 #endif
 
-        QMetaObject::invokeMethod(this, "unloadAllEntityScripts");
+        QMetaObject::invokeMethod(this, "unloadAllEntityScripts",
+            blockingCall ? Qt::BlockingQueuedConnection : Qt::QueuedConnection);
         return;
     }
 #ifdef THREAD_DEBUGGING

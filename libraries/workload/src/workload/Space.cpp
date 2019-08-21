@@ -99,7 +99,7 @@ void Space::categorizeAndGetChanges(std::vector<Space::Change>& changes) {
         if (proxy.region < Region::INVALID) {
             glm::vec3 proxyCenter = glm::vec3(proxy.sphere);
             float proxyRadius = proxy.sphere.w;
-            uint8_t region = Region::UNKNOWN;
+            uint8_t region = Region::R4;
             for (uint32_t j = 0; j < numViews; ++j) {
                 auto& view = _views[j];
                 // for each 'view' we need only increment 'k' below the current value of 'region'

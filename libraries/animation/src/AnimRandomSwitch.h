@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include "AnimNode.h"
+#include "AnimUtil.h"
 
 // Random Switch State Machine for random transitioning between children AnimNodes
 //
@@ -51,6 +52,7 @@ public:
     enum class InterpType {
         SnapshotBoth = 0,
         SnapshotPrev,
+        EvaluateBoth,
         NumTypes
     };
 
@@ -73,12 +75,13 @@ protected:
             RandomSwitchState::Pointer _randomSwitchState;
         };
 
-        RandomSwitchState(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType, float priority, bool resume) :
+        RandomSwitchState(const QString& id, int childIndex, float interpTarget, float interpDuration, InterpType interpType, EasingType easingType, float priority, bool resume) :
             _id(id),
             _childIndex(childIndex),
             _interpTarget(interpTarget),
             _interpDuration(interpDuration),
             _interpType(interpType),
+            _easingType(easingType),
             _priority(priority),
             _resume(resume){
         }
@@ -106,6 +109,7 @@ protected:
         float _interpTarget;  // frames
         float _interpDuration; // frames
         InterpType _interpType;
+        EasingType _easingType;
         float _priority {0.0f};
         bool _resume {false};
 
@@ -139,7 +143,6 @@ protected:
     void setTransitionVar(const QString& transitionVar) { _transitionVar = transitionVar; }
     void setTriggerTimeMin(float triggerTimeMin) { _triggerTimeMin = triggerTimeMin; }
     void setTriggerTimeMax(float triggerTimeMax) { _triggerTimeMax = triggerTimeMax; }
-    void addToPrioritySum(float priority) { _totalPriorities += priority; }
 
     void addState(RandomSwitchState::Pointer randomState);
 
@@ -154,12 +157,12 @@ protected:
     int _randomSwitchEvaluationCount { 0 };
     // interpolation state
     bool _duringInterp = false;
-    InterpType _interpType{ InterpType::SnapshotPrev };
+    InterpType _interpType { InterpType::SnapshotPrev };
+    EasingType _easingType { EasingType_Linear };
     float _alphaVel = 0.0f;
     float _alpha = 0.0f;
     AnimPoseVec _prevPoses;
     AnimPoseVec _nextPoses;
-    float _totalPriorities { 0.0f };
 
     RandomSwitchState::Pointer _currentState;
     RandomSwitchState::Pointer _previousState;
@@ -174,6 +177,7 @@ protected:
     float _randomSwitchTimeMin { 10.0f };
     float _randomSwitchTimeMax { 20.0f };
     float _randomSwitchTime { 0.0f };
+    QString _lastPlayedState;
 
 private:
     // no copies

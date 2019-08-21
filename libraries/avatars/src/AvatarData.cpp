@@ -1988,7 +1988,11 @@ void AvatarData::processAvatarIdentity(QDataStream& packetStream, bool& identity
         if (flagValue != _verificationFailed) {
             _verificationFailed = flagValue;
             identityChanged = true;
-        }
+            setSkeletonModelURL(_skeletonModelURL);
+            if (_verificationFailed) {
+                qCDebug(avatars) << "Avatar" << getSessionDisplayName() << "marked as VERIFY-FAILED";
+            }
+        };
 
         if (identity.attachmentData != _attachmentData) {
             setAttachmentData(identity.attachmentData);
@@ -2016,6 +2020,18 @@ QUrl AvatarData::getWireSafeSkeletonModelURL() const {
         return QUrl();
     }
 }
+
+static const QString VERIFY_FAIL_MODEL { "/meshes/verifyFailed.fst" };
+
+const QUrl& AvatarData::getSkeletonModelURL() const {
+    if (_verificationFailed) {
+        static QUrl VERIFY_FAIL_MODEL_URL = PathUtils::resourcesUrl(VERIFY_FAIL_MODEL);
+        return VERIFY_FAIL_MODEL_URL;
+    } else {
+        return _skeletonModelURL;
+    }
+}
+
 QByteArray AvatarData::packSkeletonData() const {
     // Send an avatar trait packet with the skeleton data before the mesh is loaded
     int avatarDataSize = 0;
@@ -2860,8 +2876,9 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
 /**jsdoc
  * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
- * @property {string} modelUrl - The URL of the model file. Models can be FBX or OBJ format.
- * @property {string} jointName - The offset to apply to the model relative to the joint position.
+ * @property {string} modelUrl - The URL of the glTF, FBX, or OBJ model file. glTF models may be in JSON or binary format 
+ *     (".gltf" or ".glb" URLs respectively).
+ * @property {string} jointName - The name of the joint that the attachment is parented to.
  * @property {Vec3} translation - The offset from the joint that the attachment is positioned at.
  * @property {Vec3} rotation - The rotation applied to the model relative to the joint orientation.
  * @property {number} scale - The scale applied to the attachment model.

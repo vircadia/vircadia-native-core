@@ -30,7 +30,7 @@ const float LINE_SCALE_RATIO = 1.2f;
 
 TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
     Parent(entity),
-    _textRenderer(TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE / 2.0f)) {
+    _textRenderer(TextRenderer3D::getInstance(ROBOTO_FONT_FAMILY)) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
         _geometryID = geometryCache->allocateID();
@@ -93,59 +93,7 @@ uint32_t TextEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) const {
 }
 
 bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    if (_text != entity->getText()) {
-        return true;
-    }
-
-    if (_lineHeight != entity->getLineHeight()) {
-        return true;
-    }
-
-    if (_textColor != toGlm(entity->getTextColor())) {
-        return true;
-    }
-
-    if (_textAlpha != entity->getTextAlpha()) {
-        return true;
-    }
-
-    if (_backgroundColor != toGlm(entity->getBackgroundColor())) {
-        return true;
-    }
-
-    if (_backgroundAlpha != entity->getBackgroundAlpha()) {
-        return true;
-    }
-
     if (_dimensions != entity->getScaledDimensions()) {
-        return true;
-    }
-
-    if (_billboardMode != entity->getBillboardMode()) {
-        return true;
-    }
-
-    if (_leftMargin != entity->getLeftMargin()) {
-        return true;
-    }
-
-    if (_rightMargin != entity->getRightMargin()) {
-        return true;
-    }
-
-    if (_topMargin != entity->getTopMargin()) {
-        return true;
-    }
-
-    if (_bottomMargin != entity->getBottomMargin()) {
-        return true;
-    }
-
-    if (_unlit != entity->getUnlit()) {
-        return true;
-    }
-
-    if (_pulseProperties != entity->getPulseProperties()) {
         return true;
     }
 
@@ -179,6 +127,10 @@ void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointe
         _topMargin = entity->getTopMargin();
         _bottomMargin = entity->getBottomMargin();
         _unlit = entity->getUnlit();
+        _font = entity->getFont();
+        _effect = entity->getTextEffect();
+        _effectColor = toGlm(entity->getTextEffectColor());
+        _effectThickness = entity->getTextEffectThickness();
         updateTextRenderItem();
     });
 }
@@ -282,7 +234,22 @@ ItemKey entities::TextPayload::getKey() const {
         auto renderable = entityTreeRenderer->renderableForEntityId(_entityID);
         if (renderable) {
             auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
-            return ItemKey::Builder(textRenderable->getKey()).withoutMetaCullGroup().withSubMetaCulled();
+
+            // Similar to RenderableEntityItem::getKey()
+            ItemKey::Builder builder = ItemKey::Builder().withTypeShape().withTypeMeta().withTagBits(textRenderable->getTagMask()).withLayer(textRenderable->getHifiRenderLayer());
+            builder.withSubMetaCulled();
+
+            if (textRenderable->isTextTransparent()) {
+                builder.withTransparent();
+            } else if (textRenderable->_canCastShadow) {
+                builder.withShadowCaster();
+            }
+
+            if (!textRenderable->_visible) {
+                builder.withInvisible();
+            }
+
+            return builder;
         }
     }
     return ItemKey::Builder::opaqueShape();
@@ -342,27 +309,40 @@ void entities::TextPayload::render(RenderArgs* args) {
     }
     auto textRenderable = std::static_pointer_cast<TextEntityRenderer>(renderable);
 
-    glm::vec4 textColor;
     Transform modelTransform;
-    BillboardMode billboardMode;
-    float lineHeight, leftMargin, rightMargin, topMargin, bottomMargin;
-    QString text;
     glm::vec3 dimensions;
+    BillboardMode billboardMode;
+
+    QString text;
+    glm::vec4 textColor;
+    QString font;
+    TextEffect effect;
+    glm::vec3 effectColor;
+    float effectThickness;
+    float lineHeight, leftMargin, rightMargin, topMargin, bottomMargin;
     bool forward;
     textRenderable->withReadLock([&] {
         modelTransform = textRenderable->_renderTransform;
+        dimensions = textRenderable->_dimensions;
         billboardMode = textRenderable->_billboardMode;
+
+        text = textRenderable->_text;
+        font = textRenderable->_font;
+        effect = textRenderable->_effect;
+        effectThickness = textRenderable->_effectThickness;
+
         lineHeight = textRenderable->_lineHeight;
         leftMargin = textRenderable->_leftMargin;
         rightMargin = textRenderable->_rightMargin;
         topMargin = textRenderable->_topMargin;
         bottomMargin = textRenderable->_bottomMargin;
-        text = textRenderable->_text;
-        dimensions = textRenderable->_dimensions;
 
         float fadeRatio = textRenderable->_isFading ? Interpolate::calculateFadeRatio(textRenderable->_fadeStartTime) : 1.0f;
         textColor = glm::vec4(textRenderable->_textColor, fadeRatio * textRenderable->_textAlpha);
         textColor = EntityRenderer::calculatePulseColor(textColor, textRenderable->_pulseProperties, textRenderable->_created);
+
+        effectColor = EntityRenderer::calculatePulseColor(textRenderable->_effectColor, textRenderable->_pulseProperties, textRenderable->_created);
+
         forward = textRenderable->_renderLayer != RenderLayer::WORLD || args->_renderMethod == render::Args::FORWARD;
     });
 
@@ -378,7 +358,9 @@ void entities::TextPayload::render(RenderArgs* args) {
     batch.setModelTransform(modelTransform);
 
     glm::vec2 bounds = glm::vec2(dimensions.x - (leftMargin + rightMargin), dimensions.y - (topMargin + bottomMargin));
-    textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, text, textColor, bounds / scale, textRenderable->_unlit, forward);
+    textRenderer->draw(batch, leftMargin / scale, -topMargin / scale, bounds / scale, scale,
+                       text, font, textColor, effectColor, effectThickness, effect,
+                       textRenderable->_unlit, forward);
 }
 
 namespace render {

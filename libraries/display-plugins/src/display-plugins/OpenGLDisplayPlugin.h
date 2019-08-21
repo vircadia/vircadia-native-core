@@ -78,7 +78,8 @@ public:
     void setVsyncEnabled(bool vsyncEnabled) { _vsyncEnabled = vsyncEnabled; }
     bool isVsyncEnabled() const { return _vsyncEnabled; }
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
-    int getRequiredThreadCount() const override { return 3; }
+    // Drop to one reserved for better other-task performance in desktop
+    int getRequiredThreadCount() const override { return 1; }
 
     virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&)> getHUDOperator() override;
     void copyTextureToQuickFramebuffer(NetworkTexturePointer source,
@@ -100,6 +101,7 @@ protected:
 
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
+    virtual void setupCompositeScenePipeline(gpu::Batch& batch);
     virtual void compositeScene();
     virtual void compositePointer();
     virtual void compositeExtra(){};
@@ -155,6 +157,7 @@ protected:
     gpu::PipelinePointer _mirrorHUDPipeline;
     gpu::ShaderPointer _mirrorHUDPS;
     gpu::PipelinePointer _drawTexturePipeline;
+    gpu::PipelinePointer _drawTextureSqueezePipeline;
     gpu::PipelinePointer _linearToSRGBPipeline;
     gpu::PipelinePointer _SRGBToLinearPipeline;
     gpu::PipelinePointer _cursorPipeline;

@@ -18,64 +18,31 @@
 #include <AABox.h>
 #include <AACube.h>
 
-float calculateRenderAccuracy(const glm::vec3& position,
-        const AABox& bounds,
-        float octreeSizeScale,
-        int boundaryLevelAdjust) {
-    float largestDimension = bounds.getLargestDimension();
-
-    const float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-
-    static std::once_flag once;
-    static QMap<float, float> shouldRenderTable;
-    std::call_once(once, [&] {
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float factor = 1.0f;
-
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            factor /= 2.0f;
-            shouldRenderTable[scale] = factor;
-        }
-    });
-
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
-    }
-
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-
-    // FIXME - for now, it's either visible or not visible. We want to adjust this to eventually return
-    // a floating point for objects that have small angular size to indicate that they may be rendered
-    // with lower preciscion
-    float distanceToCamera = glm::length(bounds.calcCenter() - position);
-    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f;
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float visibilityDistance) {
+    return visibilityDistance / powf(2.0f, renderLevel);
 }
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
-    return voxelSizeScale / powf(2.0f, renderLevel);
+float getPerspectiveAccuracyHalfAngleTan(float visibilityDistance, int boundaryLevelAdjust) {
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, visibilityDistance);
+    return UNIT_ELEMENT_MAX_EXTENT / visibleDistanceAtMaxScale;
 }
 
-float getPerspectiveAccuracyAngleTan(float octreeSizeScale, int boundaryLevelAdjust) {
-    const float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-    return (maxScale / visibleDistanceAtMaxScale);
+float getPerspectiveAccuracyHalfAngle(float visibilityDistance, int boundaryLevelAdjust) {
+    return atan(getPerspectiveAccuracyHalfAngleTan(visibilityDistance, boundaryLevelAdjust));
 }
 
-float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) {
-    return atan(getPerspectiveAccuracyAngleTan(octreeSizeScale, boundaryLevelAdjust));
+float getVisibilityDistanceFromHalfAngle(float halfAngle) {
+    float halfAngleTan = tan(halfAngle);
+    return UNIT_ELEMENT_MAX_EXTENT / halfAngleTan;
 }
 
-float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust) {
+float getHalfAngleFromVisibilityDistance(float visibilityDistance) {
+    float halfAngleTan = UNIT_ELEMENT_MAX_EXTENT / visibilityDistance;
+    return atan(halfAngleTan);
+}
+
+float getOrthographicAccuracySize(float visibilityDistance, int boundaryLevelAdjust) {
     // Smallest visible element is 1cm
     const float smallestSize = 0.01f;
-    return (smallestSize * MAX_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT) / boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale);
+    return (smallestSize * DEFAULT_VISIBILITY_DISTANCE_FOR_UNIT_ELEMENT) / boundaryDistanceForRenderLevel(boundaryLevelAdjust, visibilityDistance);
 }
