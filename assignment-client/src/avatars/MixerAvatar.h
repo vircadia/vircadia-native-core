@@ -32,7 +32,7 @@ public:
     void setNeedsIdentityUpdate(bool value = true) { _needsIdentityUpdate = value; }
 
     void processCertifyEvents();
-    void handleChallengeResponse(ReceivedMessage& response);
+    void processChallengeResponse(ReceivedMessage& response);
 
     // Avatar certification/verification:
     enum VerifyState {

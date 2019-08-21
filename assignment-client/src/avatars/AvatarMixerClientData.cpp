@@ -75,7 +75,7 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
                 processBulkAvatarTraitsAckMessage(*packet);
                 break;
             case PacketType::ChallengeOwnership:
-                _avatar->handleChallengeResponse(*packet);
+                _avatar->processChallengeResponse(*packet);
                 break;
             default:
                 Q_UNREACHABLE();

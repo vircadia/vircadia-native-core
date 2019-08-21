@@ -329,7 +329,7 @@ void MixerAvatar::sendOwnerChallenge() {
     QMetaObject::invokeMethod(&_challengeTimer, static_cast<void(QTimer::*)()>(&QTimer::start));
 }
 
-void MixerAvatar::handleChallengeResponse(ReceivedMessage& response) {
+void MixerAvatar::processChallengeResponse(ReceivedMessage& response) {
     QByteArray avatarID;
     QMutexLocker certifyLocker(&_avatarCertifyLock);
     QMetaObject::invokeMethod(&_challengeTimer, &QTimer::stop);
