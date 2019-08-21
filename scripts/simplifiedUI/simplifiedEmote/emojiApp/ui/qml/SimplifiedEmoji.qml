@@ -78,6 +78,139 @@ Rectangle {
     }
 
     Rectangle {
+        id: popupContainer
+        z: 999
+        visible: false
+        color: Qt.rgba(0, 0, 0, 0.8)
+        anchors.fill: parent
+            
+        MouseArea {
+            hoverEnabled: false
+            anchors.fill: parent
+            onClicked: {
+                popupContainer.visible = false;
+            }
+        }
+            
+        MouseArea {
+            hoverEnabled: false
+            anchors.fill: popupContentContainer
+            propagateComposedEvents: false
+        }
+
+        Rectangle {
+            id: popupContentContainer
+            color: simplifiedUI.colors.darkBackground
+            anchors.centerIn: parent
+            width: 300
+            height: 500
+
+            Item {
+                id: closeButtonContainer
+                anchors.top: parent.top
+                anchors.right: parent.right
+                width: 50
+                height: width
+
+                HifiStylesUit.GraphikSemiBold {
+                    text: "X"
+                    anchors.fill: parent
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    color: simplifiedUI.colors.text.darkGrey
+                    opacity: closeButtonMouseArea.containsMouse ? 1.0 : 0.8
+                    size: 22
+                }
+            
+                MouseArea {
+                    id: closeButtonMouseArea
+                    hoverEnabled: true
+                    anchors.fill: parent
+                    onClicked: {
+                        popupContainer.visible = false;
+                    }
+                }
+            }
+
+            HifiStylesUit.GraphikSemiBold {
+                id: popupHeader1
+                text: "Emoji Reactions"
+                anchors.top: parent.top
+                anchors.topMargin: 10
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                width: paintedWidth
+                height: 24
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignTop
+                color: simplifiedUI.colors.text.white
+                size: 22
+            }
+
+            HifiStylesUit.GraphikRegular {
+                id: popupText1
+                text: "Click an emoji and it will appear above your head!\nUse Emoji Reactions to express yourself without saying a word.\n\n" +
+                    "Try using the search bar to search for an emoji directly. You can use your arrow keys to navigate the results."
+                anchors.top: popupHeader1.bottom
+                anchors.topMargin: 16
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                height: paintedHeight
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignTop
+                color: simplifiedUI.colors.text.white
+                size: 18
+            }
+
+            HifiStylesUit.GraphikSemiBold {
+                id: popupHeader2
+                text: "Attributions"
+                anchors.top: popupText1.bottom
+                anchors.topMargin: 16
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                height: 24
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignTop
+                color: simplifiedUI.colors.text.white
+                size: 22
+            }
+
+            HifiStylesUit.GraphikRegular {
+                id: popupText2
+                textFormat: Text.RichText
+                text: "<style>a:link { color: #FFF; }</style>" +
+                    "Emoji Reaction images are <a href='https://twemoji.twitter.com/content/twemoji-twitter/en.html'>Twemojis</a> " +
+                    "and are © 2019 Twitter, Inc and other contributors.\n" +
+                    "Graphics are licensed under <a href='https://creativecommons.org/licenses/by/4.0/'>CC-BY 4.0</a>."
+                anchors.top: popupHeader2.bottom
+                anchors.topMargin: 16
+                anchors.left: parent.left
+                anchors.leftMargin: 16
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                height: paintedHeight
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignTop
+                color: simplifiedUI.colors.text.white
+                size: 18
+
+                onLinkActivated: {
+                    Qt.openUrlExternally(link);
+                }
+            }
+        }
+    }
+
+    Rectangle {
         id: emojiIndicatorContainer
         anchors.top: parent.top
         anchors.left: parent.left
@@ -149,7 +282,7 @@ Rectangle {
         anchors.top: emojiIndicatorContainer.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: emojiSearchContainer.top
+        anchors.bottom: bottomContainer.top
         clip: true
         color: simplifiedUI.colors.darkBackground
 
@@ -224,7 +357,7 @@ Rectangle {
 
 
     Item {
-        id: emojiSearchContainer
+        id: bottomContainer
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
@@ -236,9 +369,10 @@ Rectangle {
             maximumLength: 100
             clip: true
             selectByMouse: true
+            autoScroll: true
             anchors.left: parent.left
             anchors.leftMargin: 16
-            anchors.right: parent.right
+            anchors.right: helpGlyphContainer.left
             anchors.rightMargin: 16
             anchors.verticalCenter: parent.verticalCenter
             onTextChanged: {
@@ -271,6 +405,33 @@ Rectangle {
 
             onTriggered: {
                 root.filterEmoji(emojiSearchTextField.text);
+            }
+        }
+
+        Item {
+            id: helpGlyphContainer
+            anchors.right: parent.right
+            anchors.rightMargin: 8
+            width: height
+            height: parent.height
+
+            HifiStylesUit.GraphikRegular {
+                text: "?"
+                anchors.fill: parent
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                color: simplifiedUI.colors.text.darkGrey
+                opacity: attributionMouseArea.containsMouse ? 1.0 : 0.8
+                size: 22
+            }
+        
+            MouseArea {
+                id: attributionMouseArea
+                hoverEnabled: enabled
+                anchors.fill: parent
+                onClicked: {
+                    popupContainer.visible = true;
+                }
             }
         }
     }
