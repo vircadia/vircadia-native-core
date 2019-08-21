@@ -177,9 +177,10 @@ public:
      * @typedef {object} Assets.CallbackDetails
      * @property {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to 
      *     <code>this</code> when the function is called.
-     * @property {Assets~putAssetCallback|Assets~getAssetCallback|Assets~resolveAssetCallback} callback -  The function to 
-     *     call upon completion. May be an inline function or a function identifier. If a function identifier, it must be a 
-     *     member of <code>scope</code>.
+     * @property {Assets~putAssetCallback|Assets~getAssetCallback|Assets~resolveAssetCallback|Assets~compressDataCallback
+     *     |Assets~decompressDataCallback} 
+     *     callback -  The function to call upon completion. May be an inline function or a function identifier. If a function 
+     *     identifier, it must be a member of <code>scope</code>.
      */
 
     /**jsdoc
@@ -405,21 +406,99 @@ public:
     Q_INVOKABLE void resolveAsset(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
-     * @function Assets.decompressData
-     * @param {} options
-     * @param {} scope
-     * @param {} [callback = ""]
+     * Content and decompression options for {@link Assets.decompressData}.
+     * @typedef {object} Assets.DecompressOptions
+     * @property {ArrayBuffer} data - The data to decompress.
+     * @property {Assets.ResponseType} [responseType=text] - The type of data to return.
      */
-
+    /**jsdoc
+     * Called when an {@link Assets.decompressData} call is complete.
+     * @callback Assets~decompressDataCallback
+     * @param {string} error - <code>null</code> if the data was successfully compressed, otherwise a description of the error.
+     * @param {Assets.DecompressResult} result - Information on and the decompressed data.
+     */
+    /**jsdoc
+     * Result value returned by {@link Assets.decompressData}.
+     * @typedef {object} Assets.DecompressResult
+     * @property {number} [byteLength] - The number of bytes in the decompressed data.
+     * @property {string} [contentType] - The MIME type of the decompressed data.
+     * @property {boolean} [decompressed] - <code>true</code> if the data is decompressed.
+     * @property {string|ArrayBuffer|object} [response] - The decompressed data.
+     * @property {Assets.ResponseType} [responseType] - The type of the response.
+     */
+    /**jsdoc
+     * Decompresses data in memory using gunzip.
+     * @function Assets.decompressData
+     * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
+     * @param {Assets~decompressDataCallback} callback - The function to call upon completion. May be a function identifier or 
+     *     an inline function.
+     */
+    /**jsdoc
+     * Decompresses data in memory using gunzip.
+     * @function Assets.decompressData
+     * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
+     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
+     *     <code>this</code> when the function is called.
+     * @param {Assets~decompressDataCallback} callback - The function to call upon completion. May be an inline function, a 
+     *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
+     *     must be a member of <code>scope</code>.
+     */
+    /**jsdoc
+     * Decompresses data in memory using gunzip.
+     * @function Assets.decompressData
+     * @param {Assets.DecompressOptions} source - What to decompress and decompression options.
+     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
+     */
     Q_INVOKABLE void decompressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc
-     * @function Assets.compressData
-     * @param {} options
-     * @param {} scope
-     * @param {} [callback = ""]
+     * Content and compression options for {@link Assets.compressData}.
+     * @typedef {object} Assets.CompressOptions
+     * @property {ArrayBuffer|string} data - The data to compress.
+     * @property {number} level - The compression level, range <code>-1</code> &ndash; <code>9</code>. <code>-1</code> means 
+     *     use the default gzip compression level, <code>0</code> means no compression, and <code>9</code> means maximum 
+     *     compression.
      */
-
+    /**jsdoc
+     * Called when an {@link Assets.compressData} call is complete.
+     * @callback Assets~compressDataCallback
+     * @param {string} error - <code>null</code> if the data was successfully compressed, otherwise a description of the error.
+     * @param {Assets.CompressResult} result - Information on and the compressed data.
+     */
+    /**jsdoc
+     * Result value returned by {@link Assets.compressData}.
+     * @typedef {object} Assets.CompressResult
+     * @property {boolean} [compressed] - <code>true</code> if the data is compressed.
+     * @property {number} [byteLength] - The number of bytes in the compressed data.
+     * @property {string} [contentType] - The MIME type of the compressed data, i.e., <code>"application/gzip"</code>.
+     * @property {ArrayBuffer} [data] - The compressed data.
+     */
+    /**jsdoc
+     * Compresses data in memory using gzip.
+     * @function Assets.compressData
+     * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compression options. If an ArrayBuffer 
+     *     or a string, the data to compress.
+     * @param {Assets~compressDataCallback} callback - The function to call upon completion. May be a function identifier or an 
+     *     inline function.
+     */
+    /**jsdoc
+     * Compresses data in memory using gzip.
+     * @function Assets.compressData
+     * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compression options. If an ArrayBuffer 
+     *     or a string, the data to compress.
+     * @param {object} scope - The scope that the <code>callback</code> function is defined in. This object is bound to
+     *     <code>this</code> when the function is called.
+     * @param {Assets~compressDataCallback} callback - The function to call upon completion. May be an inline function, a 
+     *     function identifier, or the name of a function in a string. If the name of a function or a function identifier, it 
+     *     must be a member of <code>scope</code>.
+     */
+    /**jsdoc
+     * Compresses data in memory using gzip.
+     * @function Assets.compressData
+     * @param {Assets.CompressOptions|ArrayBuffer|string} source - What to compress and compressopn options. If an ArrayBuffer 
+     *     or a string, the data to compress.
+     * @param {Assets.CallbackDetails} callbackDetails - Details of the function to call upon completion.
+     */
     Q_INVOKABLE void compressData(QScriptValue options, QScriptValue scope, QScriptValue callback = QScriptValue());
     
     /**jsdoc

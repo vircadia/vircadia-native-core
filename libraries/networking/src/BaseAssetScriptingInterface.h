@@ -26,7 +26,8 @@ class BaseAssetScriptingInterface : public QObject {
 public:
 
     /**jsdoc
-     * <p>Types of response that {@link Assets.getAsset} and {@link Assets.loadFromCache} may provide.</p>
+     * <p>Types of response that {@link Assets.getAsset}, {@link Assets.loadFromCache}, or {@link Assets.decompressData} may 
+     * provide.</p>
      * <table>
      *   <thead>
      *     <tr><th>Value</th><th>Description</th></tr>
