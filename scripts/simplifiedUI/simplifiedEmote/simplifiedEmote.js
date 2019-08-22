@@ -256,6 +256,7 @@ function triggerReactionWrapper(reaction) {
     });
 
     MyAvatar.triggerReaction(reaction);
+    updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
 }
 
 function maybeClearReticleUpdateLimiterTimeout() {
