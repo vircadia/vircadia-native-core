@@ -289,12 +289,11 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
         Interface* interface = [[Interface alloc] initWith:interfaceAppPath];
         currentVersion = [interface getVersion:&error];
         if (currentVersion == 0 && error != nil) {
-            NSLog(@"can't get version from interface, falling back to settings: %@", error);
-            currentVersion = [Settings.sharedSettings latestBuildVersion];
+            NSLog(@"can't get version from interface: %@", error);
         }
     } @catch (NSException *exception) {
-        NSLog(@"an exception was thrown: %@", exception);
-        currentVersion = [Settings.sharedSettings latestBuildVersion];
+        NSLog(@"an exception was thrown while getting current interface version: %@", exception);
+        currentVersion = 0;
     }
     return currentVersion;
 }
