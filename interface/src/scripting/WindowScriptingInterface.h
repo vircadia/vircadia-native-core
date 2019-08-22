@@ -814,6 +814,17 @@ signals:
      */
     void geometryChanged(QRect geometry);
 
+
+    /**jsdoc
+     * Triggered when "minimized" state of the Interface window changes.
+     * @function Window.minimizedChanged
+     * @param {bool} isMinimized - true if the Interface window is now minimized; false otherwise.
+     * @returns {Signal}
+     *
+     * Window.minimizedChanged.connect(onWindowMinimizedChanged);
+     */
+    void minimizedChanged(bool isMinimized);
+
 private:
     QString getPreviousBrowseLocation() const;
     void setPreviousBrowseLocation(const QString& location);
