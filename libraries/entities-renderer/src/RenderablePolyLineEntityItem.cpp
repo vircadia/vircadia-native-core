@@ -55,23 +55,41 @@ void PolyLineEntityRenderer::updateModelTransformAndBound() {
     }
 }
 
-void PolyLineEntityRenderer::buildPipelines() {
-    // FIXME: opaque pipelines
+bool PolyLineEntityRenderer::isTransparent() const {
+    return _glow || (_textureLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha());
+}
 
+void PolyLineEntityRenderer::buildPipelines() {
     static const std::vector<std::pair<render::Args::RenderMethod, bool>> keys = {
         { render::Args::DEFERRED, false }, { render::Args::DEFERRED, true }, { render::Args::FORWARD, false }, { render::Args::FORWARD, true },
     };
 
     for (auto& key : keys) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(key.first == render::Args::DEFERRED ? shader::entities_renderer::program::paintStroke : shader::entities_renderer::program::paintStroke_forward);
+        gpu::ShaderPointer program;
+        render::Args::RenderMethod renderMethod = key.first;
+        bool transparent = key.second;
+
+        if (renderMethod == render::Args::DEFERRED) {
+            if (transparent) {
+                program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_translucent);
+            } else {
+                program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+            }
+        } else { // render::Args::FORWARD
+            program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_forward);
+        }
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
-        state->setDepthTest(true, !key.second, gpu::LESS_EQUAL);
-        PrepareStencil::testMask(*state);
+        state->setDepthTest(true, !transparent, gpu::LESS_EQUAL);
+        if (transparent) {
+            PrepareStencil::testMask(*state);
+        } else {
+            PrepareStencil::testMaskDrawShape(*state);
+        }
 
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        state->setBlendFunction(transparent, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
         _pipelines[key] = gpu::Pipeline::create(program, state);
@@ -79,11 +97,16 @@ void PolyLineEntityRenderer::buildPipelines() {
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+    return isTransparent() ?
+        ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()) :
+        ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
-    auto builder = ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    auto builder = ShapeKey::Builder().withOwnPipeline().withoutCullFace();
+    if (isTransparent()) {
+        builder.withTranslucent();
+    }
     if (_primitiveMode == PrimitiveMode::LINES) {
         builder.withWireframe();
     }
@@ -308,7 +331,7 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
         buildPipelines();
     }
 
-    batch.setPipeline(_pipelines[{args->_renderMethod, _glow}]);
+    batch.setPipeline(_pipelines[{args->_renderMethod, isTransparent()}]);
     batch.setModelTransform(transform);
     batch.setResourceTexture(0, texture);
     batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * numVertices), 0);

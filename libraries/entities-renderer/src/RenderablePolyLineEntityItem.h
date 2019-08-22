@@ -27,8 +27,7 @@ public:
 
     void updateModelTransformAndBound() override;
 
-    // FIXME: shouldn't always be transparent: take into account texture and glow
-    virtual bool isTransparent() const override { return true; }
+    virtual bool isTransparent() const override;
 
 protected:
     virtual bool needsRenderUpdate() const override;
