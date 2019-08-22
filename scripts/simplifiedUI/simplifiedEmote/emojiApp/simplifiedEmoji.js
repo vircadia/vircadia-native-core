@@ -14,8 +14,6 @@
 // *************************************
 // #region dependencies
 
-// Custom module for handling entities
-var EntityMaker = Script.require("./resources/modules/entityMaker.js");
 // Add nice smoothing functions to the animations
 var EasingFunctions = Script.require("./resources/modules/easing.js");
 
@@ -23,7 +21,10 @@ var EasingFunctions = Script.require("./resources/modules/easing.js");
 // about the emojis
 var emojiList = Script.require("./resources/modules/emojiList.js");
 var customEmojiList = Script.require("./resources/modules/customEmojiList.js");
-var imageURLBase = Script.resolvePath("./resources/images/emojis/512px/");
+// The contents of this remote folder must always contain all possible emojis for users of `simplifiedEmoji.js`
+var imageURLBase = "https://content.highfidelity.com/Experiences/Releases/simplifiedUI/simplifiedEmote/emojiApp/resources/images/emojis/512px/";
+// Uncomment below for local testing
+//imageURLBase = Script.resolvePath("./resources/images/emojis/512px/");
 
 
 // #endregion
@@ -125,8 +126,9 @@ function resetEmojis() {
     pruneOldAvimojis();
     maybeClearPop();
     clearCountDownTimerHandler();
-    if (currentEmoji && currentEmoji.id) {
-        currentEmoji.destroy();
+    if (currentEmoji) {
+        Entities.deleteEntity(currentEmoji);
+        currentEmoji = false;
         selectedEmojiFilename = null;
     }
 }
@@ -179,7 +181,7 @@ function onScaleChanged() {
 
 // what happens when we need to add an emoji over a user
 function addEmoji(emojiFilename) {
-    if (currentEmoji && currentEmoji.id) {
+    if (currentEmoji) {
         resetEmojis();
     }
     createEmoji(emojiFilename);
@@ -190,7 +192,7 @@ function addEmoji(emojiFilename) {
 var ABOVE_HEAD = 0.61;
 var EMOJI_X_OFFSET = 0.0;
 var DEFAULT_EMOJI_SIZE = 0.37;
-var currentEmoji = new EntityMaker("avatar");
+var currentEmoji = false;
 var emojiMaxDimensions = null;
 function createEmoji(emojiFilename) {
     var emojiPosition;
@@ -205,21 +207,21 @@ function createEmoji(emojiFilename) {
         0
     ];
 
-    currentEmoji
-        .add('type', 'Image')
-        .add('name', 'AVIMOJI')
-        .add('localPosition', emojiPosition)
-        .add('dimensions', [0, 0, 0])
-        .add('parentID', MyAvatar.sessionUUID)
-        .add('parentJointIndex', MyAvatar.getJointIndex("Head"))
-        .add('emissive', true)
-        .add('collisionless', true)
-        .add('imageURL', imageURL)
-        .add('billboardMode', "full")
-        .add('ignorePickIntersection', true)
-        .add('alpha', 1)
-        .add('grab', { grabbable: false })
-        .create();
+    currentEmoji = Entities.addEntity({
+        "type": "Image",
+        "name": "AVIMOJI",
+        "localPosition": emojiPosition,
+        "dimensions": [0, 0, 0],
+        "parentID": MyAvatar.sessionUUID,
+        "parentJointIndex": MyAvatar.getJointIndex("Head"),
+        "emissive": true,
+        "collisionless": true,
+        "imageURL": imageURL,
+        "billboardMode": "full",
+        "ignorePickIntersection": true,
+        "alpha": 1,
+        "grab": { "grabbable": false }
+    }, "avatar");
         
     maybePlayPop("in");
     beginCountDownTimer();
@@ -339,7 +341,9 @@ function playPopAnimation() {
     }
 
     currentPopStep++;
-    currentEmoji.edit("dimensions", dimensions);
+    if (currentEmoji) {
+        Entities.editEntity(currentEmoji, {"dimensions": dimensions});
+    }
 
     // Handle if it's the end of the animation step
 
@@ -352,12 +356,14 @@ function playPopAnimation() {
                 Math.max(dimensions.y, emojiMaxDimensions.y),
                 Math.max(dimensions.z, emojiMaxDimensions.z)
             ];
-            currentEmoji.edit("dimensions", dimensions);
+            if (currentEmoji) {
+                Entities.editEntity(currentEmoji, {"dimensions": dimensions});
+            }
         } else {
             // make sure there is a currentEmoji entity before trying to delete
-            if (currentEmoji && currentEmoji.id) {
-                currentEmoji.destroy();
-                currentEmoji = new EntityMaker("avatar");
+            if (currentEmoji) {
+                Entities.deleteEntity(currentEmoji);
+                currentEmoji = false;
             }
             finalInPopScale = null;
             selectedEmojiFilename = null;
