@@ -24,7 +24,7 @@ Rectangle {
     anchors.fill: parent
     
     // Used for the indicator picture
-    readonly property string emojiBaseURL: "../../resources/images/emojis/1024px/"
+    readonly property string emojiBaseURL: "../../resources/images/emojis/512px/"
     readonly property string emoji52BaseURL: "../../resources/images/emojis/52px/"
     // Capture the selected code to handle which emoji to show
     property string currentCode: ""

@@ -23,7 +23,7 @@ var EasingFunctions = Script.require("./resources/modules/easing.js");
 // about the emojis
 var emojiList = Script.require("./resources/modules/emojiList.js");
 var customEmojiList = Script.require("./resources/modules/customEmojiList.js");
-var imageURLBase = Script.resolvePath("./resources/images/emojis/1024px/");
+var imageURLBase = Script.resolvePath("./resources/images/emojis/512px/");
 
 
 // #endregion

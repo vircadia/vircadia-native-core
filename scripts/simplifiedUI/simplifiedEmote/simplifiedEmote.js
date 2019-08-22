@@ -20,7 +20,6 @@
 // about the emojis
 var emojiList = Script.require("./emojiApp/resources/modules/emojiList.js");
 var customEmojiList = Script.require("./emojiApp/resources/modules/customEmojiList.js");
-var imageURLBase = Script.resolvePath("./resources/images/emojis/1024px/");
 
 // #endregion
 // *************************************
@@ -418,6 +417,8 @@ var EMOTE_APP_BAR_HEIGHT_PX = 48;
 var EMOTE_APP_BAR_LEFT_MARGIN = 48;
 var EMOTE_APP_BAR_BOTTOM_MARGIN = 48;
 var EMOTE_APP_BAR_WINDOW_FLAGS = 0x00000001 | // Qt::Window
+    0x00000008 | // Qt::Popup
+    0x00000002 | // Qt::Tool
     0x00000800 | // Qt::FramelessWindowHint
     0x40000000 | // Qt::NoDropShadowWindowHint
     0x00200000; // Qt::WindowDoesNotAcceptFocus
