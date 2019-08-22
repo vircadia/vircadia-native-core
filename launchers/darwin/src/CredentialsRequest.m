@@ -22,6 +22,7 @@
     NSMutableURLRequest *request = [NSMutableURLRequest new];
     [request setURL:[NSURL URLWithString:@"https://metaverse.highfidelity.com/oauth/token"]];
     [request setHTTPMethod:@"POST"];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
     [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
     [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
     [request setHTTPBody:postData];

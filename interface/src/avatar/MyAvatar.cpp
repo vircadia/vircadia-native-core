@@ -733,7 +733,7 @@ void MyAvatar::update(float deltaTime) {
         // When needed and ready, arrange to check and fix.
         _physicsSafetyPending = false;
         if (_goToSafe) {
-            safeLanding(_goToPosition); // no-op if already safe
+            safeLanding(_goToPosition); // no-op if safeLanding logic determines already safe
         }
     }
 
@@ -2733,24 +2733,22 @@ void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position;
     glm::quat orientation;
-    if (_characterController.isEnabledAndReady()) {
+    if (_characterController.isEnabledAndReady() && !(_characterController.needsSafeLandingSupport() || _goToPending)) {
         _characterController.getPositionAndOrientation(position, orientation);
+        setWorldVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
     } else {
         position = getWorldPosition();
         orientation = getWorldOrientation();
+        if (_characterController.needsSafeLandingSupport() && !_goToPending) {
+            _characterController.resetStuckCounter();
+            _physicsSafetyPending = true;
+            _goToSafe = true;
+            _goToPosition = position;
+        }
+        setWorldVelocity(getWorldVelocity() + _characterController.getFollowVelocity());
     }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
-
-    if (_characterController.isEnabledAndReady()) {
-        setWorldVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-        if (_characterController.isStuck()) {
-            _physicsSafetyPending = true;
-            _goToPosition = getWorldPosition();
-        }
-    } else {
-        setWorldVelocity(getWorldVelocity() + _characterController.getFollowVelocity());
-    }
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
