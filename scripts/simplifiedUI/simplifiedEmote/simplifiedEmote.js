@@ -349,6 +349,15 @@ function onGeometryChanged(rect) {
 }
 
 
+function onWindowMinimizedChanged(isMinimized) {
+    if (isMinimized) {
+        handleEmoteIndicatorVisibleChanged(false);
+    } else if (!HMD.active && Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)) {
+        handleEmoteIndicatorVisibleChanged(true);
+    }
+}
+
+
 // These keys need to match what's in `SimplifiedEmoteIndicator.qml` in the `buttonsModel`
 // for the tooltips to match the actual keys.
 var POSITIVE_KEY = "z";
@@ -450,9 +459,7 @@ function handleEmoteIndicatorVisibleChanged(newValue) {
     if (newValue && !emoteAppBarWindow) {
         showEmoteAppBar();
     } else if (emoteAppBarWindow) {
-        if (emoteAppBarWindow) {
-            emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
-        }
+        emoteAppBarWindow.fromQml.disconnect(onMessageFromEmoteAppBar);
         emoteAppBarWindow.close();
         emoteAppBarWindow = false;
     }
@@ -509,6 +516,7 @@ function init() {
         }
     }, {});
 
+    Window.minimizedChanged.connect(onWindowMinimizedChanged);
     Window.geometryChanged.connect(onGeometryChanged);
     Settings.valueChanged.connect(onSettingsValueChanged);
     HMD.displayModeChanged.connect(onDisplayModeChanged);
@@ -544,6 +552,7 @@ function shutdown() {
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
 
+    Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
     Settings.valueChanged.disconnect(onSettingsValueChanged);
     HMD.displayModeChanged.disconnect(onDisplayModeChanged);
