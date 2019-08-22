@@ -814,7 +814,7 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 81,
+                                                                                                            "endFrame": 78,
                                                                                                             "loopFlag": false,
                                                                                                             "startFrame": 1,
                                                                                                             "timeScale": 1,
@@ -895,7 +895,7 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 158,
+                                                                                                            "endFrame": 99,
                                                                                                             "loopFlag": false,
                                                                                                             "startFrame": 0,
                                                                                                             "timeScale": 1,
@@ -908,9 +908,9 @@
                                                                                                         "children": [
                                                                                                         ],
                                                                                                         "data": {
-                                                                                                            "endFrame": 125,
+                                                                                                            "endFrame": 124,
                                                                                                             "loopFlag": false,
-                                                                                                            "startFrame": 0,
+                                                                                                            "startFrame": 1,
                                                                                                             "timeScale": 1,
                                                                                                             "url": "qrc:///avatar/animations/sitting_emote_disagree_disbelief.fbx"
                                                                                                         },
