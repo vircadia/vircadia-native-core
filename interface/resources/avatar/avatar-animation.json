@@ -809,6 +809,19 @@
                                                                                                         },
                                                                                                         "id": "seatedReactionPositiveLongHeadNod",
                                                                                                         "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 81,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 1,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_agree_cheer.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionPositiveCheer",
+                                                                                                        "type": "clip"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -821,8 +834,8 @@
                                                                                                     "states": [
                                                                                                         {
                                                                                                             "id": "seatedReactionPositiveHeadNod",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -830,8 +843,8 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "id": "seatedReactionPositiveHeadNodYes",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -839,8 +852,17 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "id": "seatedReactionPositiveLongHeadNod",
-                                                                                                            "interpDuration": 6,
-                                                                                                            "interpTarget": 6,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "id": "seatedReactionPositiveCheer",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -881,6 +903,19 @@
                                                                                                         },
                                                                                                         "id": "seatedReactionNegativeDisagreeDropHead",
                                                                                                         "type": "clip"
+                                                                                                    },
+                                                                                                    {
+                                                                                                        "children": [
+                                                                                                        ],
+                                                                                                        "data": {
+                                                                                                            "endFrame": 125,
+                                                                                                            "loopFlag": false,
+                                                                                                            "startFrame": 0,
+                                                                                                            "timeScale": 1,
+                                                                                                            "url": "qrc:///avatar/animations/sitting_emote_disagree_disbelief.fbx"
+                                                                                                        },
+                                                                                                        "id": "seatedReactionNegativeDisagreeDisbelief",
+                                                                                                        "type": "clip"
                                                                                                     }
                                                                                                 ],
                                                                                                 "data": {
@@ -894,8 +929,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionNegativeDisagreeHeadshake",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -905,8 +940,19 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionNegativeDisagreeDropHead",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
+                                                                                                            "interpType": "evaluateBoth",
+                                                                                                            "priority": 1,
+                                                                                                            "resume": false,
+                                                                                                            "transitions": [
+                                                                                                            ]
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "easingType": "easeInOutQuad",
+                                                                                                            "id": "seatedReactionNegativeDisagreeDisbelief",
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -1010,8 +1056,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionRaiseHandIntro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 8,
+                                                                                                            "interpTarget": 8,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -1024,8 +1070,8 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "id": "seatedReactionRaiseHandLoop",
-                                                                                                            "interpDuration": 5,
-                                                                                                            "interpTarget": 5,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1038,8 +1084,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionRaiseHandOutro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 12,
+                                                                                                            "interpTarget": 12,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -1053,8 +1099,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionRaiseHand02Intro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 8,
+                                                                                                            "interpTarget": 8,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -1067,8 +1113,8 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "id": "seatedReactionRaiseHand02Loop",
-                                                                                                            "interpDuration": 5,
-                                                                                                            "interpTarget": 5,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -1081,8 +1127,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionRaiseHand02Outro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 12,
+                                                                                                            "interpTarget": 12,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -1188,8 +1234,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaudIntro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 8,
+                                                                                                            "interpTarget": 8,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -1203,8 +1249,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaudLoop",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -1218,8 +1264,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaudOutro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 12,
+                                                                                                            "interpTarget": 12,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -1233,8 +1279,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaud02Intro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 8,
+                                                                                                            "interpTarget": 8,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -1248,8 +1294,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaud02Loop",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -1263,8 +1309,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "seatedReactionApplaud02Outro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 12,
+                                                                                                            "interpTarget": 12,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -1386,8 +1432,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedTalkOverlay",
-                                                                                                    "interpDuration": 15,
-                                                                                                    "interpTarget": 15,
+                                                                                                    "interpDuration": 25,
+                                                                                                    "interpTarget": 25,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
@@ -1415,8 +1461,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionPositive",
-                                                                                                    "interpDuration": 18,
-                                                                                                    "interpTarget": 18,
+                                                                                                    "interpDuration": 12,
+                                                                                                    "interpTarget": 12,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
@@ -1430,6 +1476,10 @@
                                                                                                         {
                                                                                                             "state": "seatedTalkOverlay",
                                                                                                             "var": "seatedReactionPositiveLongHeadNodOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "seatedReactionPositiveCheerOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "seatedReactionNegative",
@@ -1452,8 +1502,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionNegative",
-                                                                                                    "interpDuration": 18,
-                                                                                                    "interpTarget": 18,
+                                                                                                    "interpDuration": 12,
+                                                                                                    "interpTarget": 12,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
@@ -1467,6 +1517,10 @@
                                                                                                         {
                                                                                                             "state": "seatedTalkOverlay",
                                                                                                             "var": "seatedReactionNegativeDisagreeDropHeadOnDone"
+                                                                                                        },
+                                                                                                        {
+                                                                                                            "state": "seatedTalkOverlay",
+                                                                                                            "var": "seatedReactionNegativeDisagreeDisbeliefOnDone"
                                                                                                         },
                                                                                                         {
                                                                                                             "state": "seatedReactionRaiseHand",
@@ -1485,8 +1539,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionRaiseHand",
-                                                                                                    "interpDuration": 18,
-                                                                                                    "interpTarget": 18,
+                                                                                                    "interpDuration": 12,
+                                                                                                    "interpTarget": 12,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
@@ -1514,8 +1568,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionApplaud",
-                                                                                                    "interpDuration": 18,
-                                                                                                    "interpTarget": 18,
+                                                                                                    "interpDuration": 12,
+                                                                                                    "interpTarget": 12,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
@@ -1543,8 +1597,8 @@
                                                                                                 {
                                                                                                     "easingType": "easeInOutQuad",
                                                                                                     "id": "seatedReactionPoint",
-                                                                                                    "interpDuration": 18,
-                                                                                                    "interpTarget": 18,
+                                                                                                    "interpDuration": 12,
+                                                                                                    "interpTarget": 12,
                                                                                                     "interpType": "evaluateBoth",
                                                                                                     "transitions": [
                                                                                                         {
@@ -4250,19 +4304,6 @@
                                                                                         },
                                                                                         "id": "LANDRUN",
                                                                                         "type": "clip"
-                                                                                    },
-                                                                                    {
-                                                                                        "children": [
-                                                                                        ],
-                                                                                        "data": {
-                                                                                            "endFrame": 105,
-                                                                                            "loopFlag": false,
-                                                                                            "startFrame": 100,
-                                                                                            "timeScale": 1,
-                                                                                            "url": "qrc:///avatar/animations/idle.fbx"
-                                                                                        },
-                                                                                        "id": "seatedToIdle",
-                                                                                        "type": "clip"
                                                                                     }
                                                                                 ],
                                                                                 "data": {
@@ -4275,13 +4316,65 @@
                                                                                         {
                                                                                             "easingType": "easeInOutQuad",
                                                                                             "id": "seated",
-                                                                                            "interpDuration": 18,
-                                                                                            "interpTarget": 20,
+                                                                                            "interpDuration": 6,
+                                                                                            "interpTarget": 6,
                                                                                             "interpType": "evaluateBoth",
                                                                                             "transitions": [
                                                                                                 {
-                                                                                                    "state": "seatedToIdle",
-                                                                                                    "var": "isNotSeated"
+                                                                                                    "state": "idle",
+                                                                                                    "var": "isNotMoving"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "WALKFWD",
+                                                                                                    "var": "isMovingForward"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "WALKBWD",
+                                                                                                    "var": "isMovingBackward"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "STRAFERIGHT",
+                                                                                                    "var": "isMovingRight"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "STRAFELEFT",
+                                                                                                    "var": "isMovingLeft"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "turnRight",
+                                                                                                    "var": "isTurningRight"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "turnLeft",
+                                                                                                    "var": "isTurningLeft"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "fly",
+                                                                                                    "var": "isFlying"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "takeoffStand",
+                                                                                                    "var": "isTakeoffStand"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "TAKEOFFRUN",
+                                                                                                    "var": "isTakeoffRun"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "inAirStand",
+                                                                                                    "var": "isInAirStand"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "INAIRRUN",
+                                                                                                    "var": "isInAirRun"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "strafeRightHmd",
+                                                                                                    "var": "isMovingRightHmd"
+                                                                                                },
+                                                                                                {
+                                                                                                    "state": "strafeLeftHmd",
+                                                                                                    "var": "isMovingLeftHmd"
                                                                                                 }
                                                                                             ]
                                                                                         },
@@ -5169,18 +5262,6 @@
                                                                                                 {
                                                                                                     "state": "WALKFWD",
                                                                                                     "var": "landRunOnDone"
-                                                                                                }
-                                                                                            ]
-                                                                                        },
-                                                                                        {
-                                                                                            "id": "seatedToIdle",
-                                                                                            "interpDuration": 10,
-                                                                                            "interpTarget": 1,
-                                                                                            "interpType": "snapshotPrev",
-                                                                                            "transitions": [
-                                                                                                {
-                                                                                                    "state": "idle",
-                                                                                                    "var": "seatedToIdleOnDone"
                                                                                                 }
                                                                                             ]
                                                                                         }
