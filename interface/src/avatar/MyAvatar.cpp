@@ -5865,10 +5865,11 @@ bool MyAvatar::endReaction(QString reactionName) {
         std::lock_guard<std::mutex> guard(_reactionLock);
         if (_reactionEnabledRefCounts[reactionIndex] > 0) {
             _reactionEnabledRefCounts[reactionIndex]--;
+            return true;
         } else {
             _reactionEnabledRefCounts[reactionIndex] = 0;
+            return false;
         }
-        return true;
     }
     return false;
 }
