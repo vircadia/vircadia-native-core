@@ -581,7 +581,7 @@ void CLauncherDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
     int xpan = 0;
     if (nIDCtl == IDC_BUTTON_NEXT) {
         if (_drawStep == DrawStep::DrawChoose || _drawStep == DrawStep::DrawLoginLogin) {
-            btnName += _drawStep == DrawStep::DrawLoginLogin ? _T("NEXT") : _T("LOG IN");
+            btnName += _drawStep == DrawStep::DrawLoginLogin ? _T("LOG IN") : _T("NEXT");
             int xpan = -20;
             defrect = CRect(rect.left - xpan, rect.top, rect.right + xpan, rect.bottom);
         } else if (_drawStep == DrawStep::DrawError) {
