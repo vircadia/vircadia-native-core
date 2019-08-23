@@ -10,7 +10,7 @@
 #include <QtNetwork/QNetworkInterface>
 
 namespace {
-    const QString LINK_LOCAL_SUBNET {"169.154."};
+    const QString LINK_LOCAL_SUBNET {"169.254."};
 
     // Is address local-subnet valid only (rfc 3927):
     bool isLinkLocalAddress(const QHostAddress& ip4Addr) {
