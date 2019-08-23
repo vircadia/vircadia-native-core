@@ -109,6 +109,10 @@ void InteractiveWindow::forwardKeyReleaseEvent(int key, int modifiers) {
     QCoreApplication::postEvent(QCoreApplication::instance(), event);
 }
 
+void InteractiveWindow::emitMainWindowResizeEvent() {
+    emit qApp->getWindow()->windowGeometryChanged(qApp->getWindow()->geometry());
+}
+
 /**jsdoc
  * A set of properties used when creating an <code>InteractiveWindow</code>.
  * @typedef {object} InteractiveWindow.Properties
@@ -215,9 +219,10 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
                                  Qt::QueuedConnection);
                 QObject::connect(rootItem, SIGNAL(keyReleaseEvent(int, int)), this, SLOT(forwardKeyReleaseEvent(int, int)),
                                  Qt::QueuedConnection);
-                emit mainWindow->windowGeometryChanged(qApp->getWindow()->geometry());
             }
         });
+
+        QObject::connect(_dockWidget.get(), SIGNAL(onResizeEvent()), this, SLOT(emitMainWindowResizeEvent()));
 
         _dockWidget->setSource(QUrl(sourceUrl));
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
@@ -296,7 +301,9 @@ void InteractiveWindow::sendToQml(const QVariant& message) {
             QMetaObject::invokeMethod(rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
         }
     } else {
-        QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+        if (_qmlWindowProxy) {
+            QMetaObject::invokeMethod(_qmlWindowProxy->getQmlWindow(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
+        }
     }
 }
 
