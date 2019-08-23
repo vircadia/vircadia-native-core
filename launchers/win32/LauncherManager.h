@@ -76,7 +76,7 @@ public:
     BOOL getAndCreatePaths(PathType type, CString& outPath);
     BOOL getInstalledVersion(const CString& path, CString& version);
     BOOL isApplicationInstalled(CString& version, CString& domain, 
-                                CString& content, bool& loggedIn);
+                                CString& content, bool& loggedIn, CString& organizationBuildTag);
     LauncherUtils::ResponseError getAccessTokenForCredentials(const CString& username, const CString& password);
     void getMostRecentBuilds(CString& launcherUrlOut,
                              CString& launcherVersionOut,
@@ -84,7 +84,7 @@ public:
                              CString& interfaceVersionOut);
     LauncherUtils::ResponseError readOrganizationJSON(const CString& hash);
     LauncherUtils::ResponseError readConfigJSON(CString& version, CString& domain, 
-                                                CString& content, bool& loggedIn);
+                                                CString& content, bool& loggedIn, CString& organizationBuildTag);
     BOOL createConfigJSON();
     BOOL createApplicationRegistryKeys(int size);
     BOOL deleteApplicationRegistryKeys();
@@ -139,10 +139,12 @@ public:
 private:
     ProcessType _currentProcess { ProcessType::DownloadApplication };
     void onMostRecentBuildsReceived(const CString& response, LauncherUtils::ResponseError error);
+
     CString _latestApplicationURL;
     CString _latestVersion;
     CString _latestLauncherURL;
     CString _latestLauncherVersion;
+
     CString _contentURL;
     CString _domainURL;
     CString _version;
@@ -152,6 +154,8 @@ private:
     CString _contentZipPath;
     CString _launcherVersion;
     CString _tempLauncherPath;
+    CString _currentVersion;
+    bool _isInstalled{ false };
     bool _loggedIn { false };
     bool _hasFailed { false };
     BOOL _shouldUpdate { FALSE };
@@ -171,4 +175,7 @@ private:
     float _progressOffset { 0.0f };
     float _progress { 0.0f };
     CStdioFile _logFile;
+    Json::Value _latestBuilds;
+    CString _defaultBuildTag;
+    CString _organizationBuildTag;
 };
