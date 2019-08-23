@@ -174,7 +174,7 @@ Rectangle {
                 ListElement { imageURL: "images/applaud_Icon.svg"; hotkey: "C"; method: "applaud" }
                 ListElement { imageURL: "images/raiseHand_Icon.svg"; hotkey: "V"; method: "raiseHand" }
                 ListElement { imageURL: "images/point_Icon.svg"; hotkey: "B"; method: "point" }
-                ListElement { imageURL: "images/emote_Icon.svg"; hotkey: "F"; method: "toggleEmojiApp" }
+                ListElement { imageURL: "images/emoji_Icon.svg"; hotkey: "F"; method: "toggleEmojiApp" }
             }
 
             Rectangle {
