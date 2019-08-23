@@ -2500,8 +2500,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveAcknowledge",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2511,8 +2511,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveHeadNod",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2522,8 +2522,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveHeadNodYes",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2533,8 +2533,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveLongHeadNod",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2544,8 +2544,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "positiveThoughtfulHeadNod",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0.33,
                                                                                                             "resume": false,
@@ -2608,8 +2608,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "negativeAnnoyedHeadshake",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2619,8 +2619,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "negativeThoughtfulHeadshake",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2630,8 +2630,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "negativeDropHead",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2695,8 +2695,8 @@
                                                                                                                 {
                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                     "id": "raiseHand01Intro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
+                                                                                                                    "interpDuration": 10,
+                                                                                                                    "interpTarget": 10,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
@@ -2709,8 +2709,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "raiseHand01Loop",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 1,
+                                                                                                                    "interpTarget": 1,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2722,8 +2722,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "raiseHand01Outro",
-                                                                                                                    "interpDuration": 1,
-                                                                                                                    "interpTarget": 1,
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2789,8 +2789,8 @@
                                                                                                                 {
                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                     "id": "raiseHand03Intro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
@@ -2803,8 +2803,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "raiseHand03Loop",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 1,
+                                                                                                                    "interpTarget": 1,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2816,8 +2816,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "raiseHand03Outro",
-                                                                                                                    "interpDuration": 1,
-                                                                                                                    "interpTarget": 1,
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2883,8 +2883,8 @@
                                                                                                                 {
                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                     "id": "raiseHand04Intro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
@@ -2897,8 +2897,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "raiseHand04Loop",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 1,
+                                                                                                                    "interpTarget": 1,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2910,8 +2910,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "raiseHand04Outro",
-                                                                                                                    "interpDuration": 1,
-                                                                                                                    "interpTarget": 1,
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -2936,8 +2936,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "raiseHand01",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2947,8 +2947,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "raiseHand03",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -2958,8 +2958,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "raiseHand04",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -3023,8 +3023,8 @@
                                                                                                                 {
                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                     "id": "applaudClap01Intro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
@@ -3037,8 +3037,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "applaudClap01Loop",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 1,
+                                                                                                                    "interpTarget": 1,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -3050,8 +3050,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "applaudClap01Outro",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
@@ -3118,8 +3118,8 @@
                                                                                                                 {
                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                     "id": "applaudClap02Intro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
@@ -3132,8 +3132,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "applaudClap02Loop",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 1,
+                                                                                                                    "interpTarget": 1,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -3145,8 +3145,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "applaudClap02Outro",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
@@ -3213,8 +3213,8 @@
                                                                                                                 {
                                                                                                                     "easingType": "easeInOutQuad",
                                                                                                                     "id": "applaudClap03Intro",
-                                                                                                                    "interpDuration": 18,
-                                                                                                                    "interpTarget": 18,
+                                                                                                                    "interpDuration": 15,
+                                                                                                                    "interpTarget": 15,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 1,
                                                                                                                     "resume": false,
@@ -3227,8 +3227,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "applaudClap03Loop",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 1,
+                                                                                                                    "interpTarget": 1,
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
                                                                                                                     "transitions": [
@@ -3240,8 +3240,8 @@
                                                                                                                 },
                                                                                                                 {
                                                                                                                     "id": "applaudClap03Outro",
-                                                                                                                    "interpDuration": 5,
-                                                                                                                    "interpTarget": 5,
+                                                                                                                    "interpDuration": 6,
+                                                                                                                    "interpTarget": 6,
                                                                                                                     "interpType": "evaluateBoth",
                                                                                                                     "priority": 0,
                                                                                                                     "resume": false,
@@ -3267,8 +3267,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "applaudClap01",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -3278,8 +3278,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "applaudClap02",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -3289,8 +3289,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "applaudClap03",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -3352,8 +3352,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "reactionPointIntro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 1,
                                                                                                             "resume": false,
@@ -3366,8 +3366,8 @@
                                                                                                         },
                                                                                                         {
                                                                                                             "id": "reactionPointLoop",
-                                                                                                            "interpDuration": 5,
-                                                                                                            "interpTarget": 5,
+                                                                                                            "interpDuration": 1,
+                                                                                                            "interpTarget": 1,
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
                                                                                                             "transitions": [
@@ -3380,8 +3380,8 @@
                                                                                                         {
                                                                                                             "easingType": "easeInOutQuad",
                                                                                                             "id": "reactionPointOutro",
-                                                                                                            "interpDuration": 18,
-                                                                                                            "interpTarget": 18,
+                                                                                                            "interpDuration": 6,
+                                                                                                            "interpTarget": 6,
                                                                                                             "interpType": "evaluateBoth",
                                                                                                             "priority": 0,
                                                                                                             "resume": false,
@@ -5414,9 +5414,11 @@
             "currentState": "userAnimNone",
             "states": [
                 {
+                    "easingType": "easeInOutQuad",
                     "id": "userAnimNone",
-                    "interpDuration": 6,
-                    "interpTarget": 6,
+                    "interpDuration": 15,
+                    "interpTarget": 15,
+                    "interpType": "evaluateBoth",
                     "transitions": [
                         {
                             "state": "userAnimA",
@@ -5429,9 +5431,11 @@
                     ]
                 },
                 {
+                    "easingType": "easeInOutQuad",
                     "id": "userAnimA",
-                    "interpDuration": 6,
-                    "interpTarget": 6,
+                    "interpDuration": 15,
+                    "interpTarget": 15,
+                    "interpType": "evaluateBoth",
                     "transitions": [
                         {
                             "state": "userAnimNone",
@@ -5444,9 +5448,11 @@
                     ]
                 },
                 {
+                    "easingType": "easeInOutQuad",
                     "id": "userAnimB",
-                    "interpDuration": 6,
-                    "interpTarget": 6,
+                    "interpDuration": 15,
+                    "interpTarget": 15,
+                    "interpType": "evaluateBoth",
                     "transitions": [
                         {
                             "state": "userAnimNone",
