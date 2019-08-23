@@ -161,7 +161,7 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
                     }
                 }
             }
-            jointIndices.insert(jointOut.name, i + 1);
+            jointIndices.insert(jointOut.name, (int)(i + 1));
         }
     }
 }
