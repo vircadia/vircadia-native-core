@@ -16,6 +16,8 @@
 #include <QtCore/QRegularExpression>
 #include <QProgressBar>
 
+#include <platform/Profiler.h>
+
 #include "AWSInterface.h"
 #include "ImageComparer.h"
 #include "Downloader.h"
@@ -30,10 +32,59 @@ public:
 
 using StepList = std::vector<Step*>;
 
+class TestProfile {
+public:
+    TestProfile() {}
+    TestProfile(platform::Profiler::Tier tier, const QString& os, const QString& gpu) :
+        tier(tier),
+        os(os),
+        gpu(gpu) {
+    }
+    TestProfile(const TestProfile& other) :
+        tier(other.tier),
+        os(other.os),
+        gpu(other.gpu) {
+    }
+    bool operator==(const TestProfile& other) const {
+        return tier == other.tier &&
+            os == other.os &&
+            gpu == other.gpu;
+    }
+
+    const static std::vector<QString> tiers;
+    const static std::vector<QString> operatingSystems;
+    const static std::vector<QString> gpus;
+
+    static std::vector<TestProfile> getAllTestProfiles();
+
+    QString tier;
+    QString os;
+    QString gpu;
+};
+
+class TestFilter {
+public:
+    TestFilter(const QString& filterString);
+    bool matches(const TestProfile& testProfile) const;
+    bool isValid() const;
+    QString getError() const;
+
+    std::vector<QString> allowedTiers;
+    std::vector<QString> allowedOperatingSystems;
+    std::vector<QString> allowedGPUs;
+
+protected:
+    QString error;
+};
+
 class ExtractedText {
 public:
     QString title;
     StepList stepList;
+    std::vector<TestProfile> expectedImageProfileVariants;
+
+    bool hasError { false };
+    void error(const QString& fileName, const QString& error);
 };
 
 enum TestRailCreateMode {

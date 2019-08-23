@@ -15,6 +15,8 @@
 #include <QHostInfo>
 #include <QImageReader>
 #include <QImageWriter>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
@@ -497,6 +499,122 @@ void TestCreator::createTests(const QString& clientProfile) {
     QMessageBox::information(0, "Success", "Test images have been created");
 }
 
+void ExtractedText::error(const QString& fileName, const QString& error) {
+    QMessageBox::critical(0,
+        "Test File Parse Error",
+        error + " Test file: '" + fileName + "'"
+    );
+    hasError = true;
+}
+
+const std::vector<QString> TestProfile::tiers = [](){
+    std::vector<QString> toReturn;
+    for (int tier = (int)platform::Profiler::Tier::LOW; tier < (int)platform::Profiler::Tier::NumTiers; ++tier) {
+        QString tierStringUpper = platform::Profiler::TierNames[tier];
+        toReturn.push_back(tierStringUpper.toLower());
+    }
+    return toReturn;
+}();
+const std::vector<QString> TestProfile::operatingSystems = { "windows", "mac", "linux", "android" };
+const std::vector<QString> TestProfile::gpus = { "amd", "nvidia", "intel" };
+
+enum class ProfileCategory {
+    TIER,
+    OS,
+    GPU
+};
+const std::map<QString, ProfileCategory> propertyToProfileCategory = [](){
+    std::map<QString, ProfileCategory> toReturn;
+    for (const auto& tier : TestProfile::tiers) {
+        toReturn[tier] = ProfileCategory::TIER;
+    }
+    for (const auto& os : TestProfile::operatingSystems) {
+        toReturn[os] = ProfileCategory::OS;
+    }
+    for (const auto& gpu : TestProfile::gpus) {
+        toReturn[gpu] = ProfileCategory::GPU;
+    }
+    return toReturn;
+}();
+
+std::vector<TestProfile> TestProfile::getAllTestProfiles() {
+    std::vector<TestProfile> testProfiles;
+    for (int tier = (int)platform::Profiler::Tier::LOW; tier < (int)platform::Profiler::Tier::NumTiers; ++tier) {
+        for (const auto& os : operatingSystems) {
+            for (const auto& gpu : gpus) {
+                testProfiles.push_back(TestProfile((platform::Profiler::Tier)tier, os, gpu));
+            }
+        }
+    }
+    return testProfiles;
+}
+
+TestFilter::TestFilter(const QString& filterString) {
+    auto filterParts = filterString.split(".", QString::SkipEmptyParts);
+    for (const auto& filterPart : filterParts) {
+        QList<QString> allowedVariants = filterPart.split(",", QString::SkipEmptyParts);
+        if (allowedVariants.empty()) {
+            continue;
+        }
+
+        auto& referenceVariant = allowedVariants[0];
+        auto foundCategoryIt = propertyToProfileCategory.find(referenceVariant);
+        if (foundCategoryIt == propertyToProfileCategory.cend()) {
+            error = "Invalid test filter property '" + referenceVariant + "'";
+            return;
+        } else {
+            ProfileCategory selectedFilterCategory = foundCategoryIt->second;
+            for (auto allowedVariantIt = ++(allowedVariants.cbegin()); allowedVariantIt != allowedVariants.cend(); ++allowedVariantIt) {
+                auto& currentVariant = *allowedVariantIt;
+                auto nextCategoryIt = propertyToProfileCategory.find(currentVariant);
+                if (nextCategoryIt == propertyToProfileCategory.cend()) {
+                    error = "Invalid test filter property '" + referenceVariant + "'";
+                    return;
+                }
+                auto& currentCategory = nextCategoryIt->second;
+                if (currentCategory != selectedFilterCategory) {
+                    error = "Mismatched comma-separated test filter properties '" + referenceVariant + "' and '" + currentVariant + "'";
+                    return;
+                }
+                // List of comma-separated test property variants is consistent so far
+            }
+
+            switch (selectedFilterCategory) {
+            case ProfileCategory::TIER:
+                allowedTiers.insert(allowedTiers.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+                break;
+            case ProfileCategory::OS:
+                allowedOperatingSystems.insert(allowedOperatingSystems.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+                break;
+            case ProfileCategory::GPU:
+                allowedGPUs.insert(allowedGPUs.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+                break;
+            }
+        }
+    }
+}
+
+bool TestFilter::matches(const TestProfile& testProfile) const {
+    return isValid() &&
+           (allowedTiers.empty() || std::find(allowedTiers.cbegin(), allowedTiers.cend(), testProfile.tier) != allowedTiers.cend()) &&
+           (allowedOperatingSystems.empty() || std::find(allowedOperatingSystems.cbegin(), allowedOperatingSystems.cend(), testProfile.os) != allowedOperatingSystems.cend()) &&
+           (allowedGPUs.empty() || std::find(allowedGPUs.cbegin(), allowedGPUs.cend(), testProfile.gpu) != allowedGPUs.cend());
+}
+
+bool TestFilter::isValid() const {
+    return error.isEmpty();
+}
+
+QString TestFilter::getError() const {
+    return error;
+}
+
+enum class ParseTarget {
+    PERFORM_FUNCTION = 0,
+    TEST_FILTER,
+    NITPICK_COMMANDS
+};
+
 ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     ExtractedText relevantTextFromTest;
 
@@ -509,16 +627,19 @@ ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
         );
     }
 
-    QTextStream stream(&inputFile);
-    QString line = stream.readLine();
-
     // Name of test is the string in the following line:
-    //        nitpick.perform("Apply Material Entities to Avatars", Script.resolvePath("."), function(testType) {...
-    const QString ws("\\h*");    //white-space character
+    //        nitpick.perform("Apply Material Entities to Avatars", Script.resolvePath("."), "secondary", undefined, function(testType) {...
+    const QString ws("\\h*");    // One or more white-space characters
     const QString functionPerformName(ws + "nitpick" + ws + "\\." + ws + "perform");
-    const QString quotedString("\\\".+\\\"");
+    const QString quote("[\"\']");
+    const QString notAQuote("[^\"\']");
+    const QString quotedString(quote + notAQuote + "*" + quote);
     QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString);
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
+
+    // Test filter, for example: undefined, [["high"]], [["linux,mac,windows", "tier.gpu"]], etc...
+    // This is currently the only Nitpick property that can be set to undefined
+    const QRegularExpression testFilter = QRegularExpression("(undefined|(\\[[\\[\"'\\w\\h\\.,\\]]*\\])*)" + ws + ",");
 
 
     // Each step is either of the following forms:
@@ -532,29 +653,86 @@ ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     const QString regexStep(ws + functionAddStepName + ws + "\\(" + ws + quotedString + ".*");
     const QRegularExpression lineStep = QRegularExpression(regexStep);
 
-    while (!line.isNull()) {
-        line = stream.readLine();
-        if (lineContainingTitle.match(line).hasMatch()) {
-            QStringList tokens = line.split('"');
-            relevantTextFromTest.title = tokens[1];
-        } else if (lineStepSnapshot.match(line).hasMatch()) {
-            QStringList tokens = line.split('"');
-            QString nameOfStep = tokens[1];
+    QTextStream stream(&inputFile);
+    int lineNumber = 1;
+    ParseTarget parseTarget = ParseTarget::PERFORM_FUNCTION;
+    for (QString line = stream.readLine(); !line.isNull(); line = stream.readLine()) {
+        switch (parseTarget) {
+        case ParseTarget::PERFORM_FUNCTION:
+            if (lineContainingTitle.match(line).hasMatch()) {
+                QStringList tokens = line.split('"');
+                relevantTextFromTest.title = tokens[1];
+                parseTarget = ParseTarget::TEST_FILTER;
+            } else {
+                break;
+            }
+        case ParseTarget::TEST_FILTER:
+            {
+                auto result = testFilter.match(line);
+                if (result.hasMatch()) {
+                    // Therefore, must be in the form of a list, ideally a double list [[...]]
+                    QString filterListDefinition = result.captured(1);
+                    if (filterListDefinition != "undefined") {
+                        std::string filterListDefinitionStd = filterListDefinition.toStdString();
+                        QJsonDocument filterListJSON = QJsonDocument::fromRawData(filterListDefinitionStd.c_str(), (int)filterListDefinitionStd.size());
+                        QJsonArray filterList = filterListJSON.array();
 
-            Step *step = new Step();
-            step->text = nameOfStep;
-            step->takeSnapshot = true;
-            relevantTextFromTest.stepList.emplace_back(step);
+                        std::vector<TestFilter> testFilters;
+                        testFilters.reserve((size_t)filterList.size());
+                        for (const auto& filter : filterList) {
+                            QJsonArray filterArgs = filter.toArray();
+                            if (filterArgs.isEmpty()) {
+                                relevantTextFromTest.error(testFileName, "Invalid empty list of test filters at line " + QString::number(lineNumber) + ".");
+                                return relevantTextFromTest;
+                            }
 
-        } else if (lineStep.match(line).hasMatch()) {
-            QStringList tokens = line.split('"');
-            QString nameOfStep = tokens[1];
+                            auto filterString = filterArgs[0].toString();
+                            TestFilter testFilter(filterString);
+                            if (!testFilter.isValid()) {
+                                relevantTextFromTest.error(testFileName, testFilter.getError() + " at line " + QString::number(lineNumber) + ".");
+                                return relevantTextFromTest;
+                            } else {
+                                testFilters.push_back(testFilter);
+                            }
+                        }
 
-            Step *step = new Step();
-            step->text = nameOfStep;
-            step->takeSnapshot = false;
-            relevantTextFromTest.stepList.emplace_back(step);
+                        std::vector<TestProfile> allowedVariants;
+                        for (const auto& variant : TestProfile::getAllTestProfiles()) {
+                            for (const auto& filter : testFilters) {
+                                if (filter.matches(variant)) {
+                                    allowedVariants.push_back(variant);
+                                }
+                            }
+                        }
+                        relevantTextFromTest.expectedImageProfileVariants = allowedVariants;
+
+                        parseTarget = ParseTarget::NITPICK_COMMANDS;
+                    }
+                }
+            }
+            break;
+        case ParseTarget::NITPICK_COMMANDS:
+            if (lineStepSnapshot.match(line).hasMatch()) {
+                QStringList tokens = line.split('"');
+                QString nameOfStep = tokens[1];
+
+                Step *step = new Step();
+                step->text = nameOfStep;
+                step->takeSnapshot = true;
+                relevantTextFromTest.stepList.emplace_back(step);
+            } else if (lineStep.match(line).hasMatch()) {
+                QStringList tokens = line.split('"');
+                QString nameOfStep = tokens[1];
+
+                Step *step = new Step();
+                step->text = nameOfStep;
+                step->takeSnapshot = false;
+                relevantTextFromTest.stepList.emplace_back(step);
+            }
+            break;
         }
+
+        ++lineNumber;
     }
 
     inputFile.close();
@@ -646,6 +824,18 @@ void TestCreator::createAllMDFiles() {
     QMessageBox::information(0, "Success", "MD files have been created");
 }
 
+QString joinVector(const std::vector<QString>& qStringVector, char* separator) {
+    if (qStringVector.empty()) {
+        return QString("");
+    }
+    QString joined = qStringVector[0];
+    for (std::size_t i = 1; i < qStringVector.size(); ++i) {
+        joined += separator + qStringVector[1];
+    }
+    return joined;
+}
+
+// TODO: Rename this function + related functions, testScriptLines
 bool TestCreator::createMDFile(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
@@ -656,39 +846,68 @@ bool TestCreator::createMDFile(const QString& directory) {
     }
 
     ExtractedText testScriptLines = getTestScriptLines(testFileName);
-
-    QString mdFilename(directory + "/" + "test.md");
-    QFile mdFile(mdFilename);
-    if (!mdFile.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
-        exit(-1);
+    if (testScriptLines.hasError) {
+        return false;
     }
 
-    QTextStream stream(&mdFile);
+    QDir qDirectory(directory);
 
-    //TestCreator title
-    QString testName = testScriptLines.title;
-    stream << "# " << testName << "\n";
-
-    stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
-
-    stream << "## Preconditions" << "\n";
-    stream << "- In an empty region of a domain with editing rights." << "\n\n";
-
-    stream << "## Steps\n";
-    stream << "Press '" + ADVANCE_KEY + "' key to advance step by step\n\n"; // note apostrophes surrounding 'ADVANCE_KEY'
-
-    int snapShotIndex { 0 };
-    for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
-        stream << "### Step " << QString::number(i + 1) << "\n";
-        stream << "- " << testScriptLines.stepList[i]->text << "\n";
-        if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
-            stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
-            ++snapShotIndex;
+    // ExpectedImage_00000.png OR ExpectedImage_some_stu-ff_00000.png
+    const QRegularExpression firstExpectedImage("^ExpectedImage(_[-_\\w]*)?_00000\\.png$");
+    for (const auto& potentialImageFile : qDirectory.entryInfoList()) {
+        if (potentialImageFile.isDir()) {
+            continue;
         }
-    }
 
-    mdFile.close();
+        auto firstExpectedImageMatch = firstExpectedImage.match(potentialImageFile.fileName());
+        if (!firstExpectedImageMatch.hasMatch()) {
+            continue;
+        }
+
+        QString testDescriptor = firstExpectedImageMatch.captured(1);
+        auto filterString = QString(testDescriptor).replace("_", ".").replace("-", ",");
+        TestFilter descriptorAsFilter(filterString);
+
+        QString mdFilename(directory + "/" + "test" + testDescriptor + ".md");
+        QFile mdFile(mdFilename);
+        if (!mdFile.open(QIODevice::WriteOnly)) {
+            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
+            // TODO: Don't just exit
+            exit(-1);
+        }
+
+        QTextStream stream(&mdFile);
+
+        QString testName = testScriptLines.title;
+        stream << "# " << testName << "\n";
+
+        stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
+
+        stream << "## Preconditions" << "\n";
+        stream << "- In an empty region of a domain with editing rights." << "\n";
+        stream << "- Tier: " << (descriptorAsFilter.allowedTiers.empty() ? "any" : joinVector(descriptorAsFilter.allowedTiers, ", ")) << "\n";
+        stream << "- OS: " << (descriptorAsFilter.allowedOperatingSystems.empty() ? "any" : joinVector(descriptorAsFilter.allowedOperatingSystems, ", ")) << "\n";
+        stream << "- GPU: " << (descriptorAsFilter.allowedGPUs.empty() ? "any" : joinVector(descriptorAsFilter.allowedGPUs, ", ")) << "\n";
+        if (!descriptorAsFilter.isValid()) {
+            stream << "\nWarning: The profile preconditions were unsuccessfully read from the expected image name and may be incorrect. Error message: " << descriptorAsFilter.getError() << "\n";
+        }
+        stream << "\n";
+
+        stream << "## Steps\n";
+        stream << "Press '" + ADVANCE_KEY + "' key to advance step by step\n\n"; // note apostrophes surrounding 'ADVANCE_KEY'
+
+        int snapShotIndex { 0 };
+        for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
+            stream << "### Step " << QString::number(i + 1) << "\n";
+            stream << "- " << testScriptLines.stepList[i]->text << "\n";
+            if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
+                stream << "- ![](./ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
+                ++snapShotIndex;
+            }
+        }
+
+        mdFile.close();
+    }
 
     foreach (auto test, testScriptLines.stepList) {
         delete test;
