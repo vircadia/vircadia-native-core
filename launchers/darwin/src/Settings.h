@@ -7,6 +7,7 @@
 @property (nonatomic, assign) BOOL loggedIn;
 @property (nonatomic, assign) NSString* domain;
 @property (nonatomic, assign) NSString* launcher;
+@property (nonatomic, assign) NSString* _organizationBuildTag;
 - (NSInteger) latestBuildVersion;
 - (BOOL) isLoggedIn;
 - (void) login:(BOOL)aLoggedIn;
@@ -15,6 +16,8 @@
 - (NSString*) getLaucnherPath;
 - (void) setDomainUrl:(NSString*) aDomainUrl;
 - (NSString*) getDomainUrl;
+- (void) setOrganizationBuildTag:(NSString*) aOrganizationBuildTag;
+- (NSString*) organizationBuildTag;
 - (void) save;
 + (id) sharedSettings;
 @end
