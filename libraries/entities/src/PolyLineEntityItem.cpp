@@ -14,6 +14,7 @@
 #include <QDebug>
 
 #include <ByteCountCoding.h>
+#include <Extents.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
@@ -85,7 +86,7 @@ void PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
         _points = points;
         _pointsChanged = true;
     });
-    computeAndUpdateDimensionsAndPosition();
+    computeAndUpdateDimensions();
 }
 
 void PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
@@ -93,7 +94,7 @@ void PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
         _widths = strokeWidths;
         _widthsChanged = true;
     });
-    computeAndUpdateDimensionsAndPosition();
+    computeAndUpdateDimensions();
 }
 
 void PolyLineEntityItem::setNormals(const QVector<glm::vec3>& normals) {
@@ -110,7 +111,7 @@ void PolyLineEntityItem::setStrokeColors(const QVector<glm::vec3>& strokeColors)
     });
 }
 
-void PolyLineEntityItem::computeAndUpdateDimensionsAndPosition() {
+void PolyLineEntityItem::computeAndUpdateDimensions() {
     QVector<glm::vec3> points;
     QVector<float> widths;
 
@@ -127,6 +128,32 @@ void PolyLineEntityItem::computeAndUpdateDimensionsAndPosition() {
     }
 
     setScaledDimensions(2.0f * (maxHalfDim + maxWidth));
+}
+
+void PolyLineEntityItem::computeTightLocalBoundingBox(AABox& localBox) const {
+    QVector<glm::vec3> points;
+    QVector<float> widths;
+    withReadLock([&] {
+        points = _points;
+        widths = _widths;
+    });
+
+    if (points.size() > 0) {
+        Extents extents;
+        float maxWidth = DEFAULT_LINE_WIDTH;
+        for (int i = 0; i < points.length(); i++) {
+            extents.addPoint(points[i]);
+            if (i < widths.size()) {
+                maxWidth = glm::max(maxWidth, widths[i]);
+            }
+        }
+        extents.addPoint(extents.minimum - maxWidth * Vectors::ONE);
+        extents.addPoint(extents.maximum + maxWidth * Vectors::ONE);
+
+        localBox.setBox(extents.minimum, extents.maximum - extents.minimum);
+    } else {
+        localBox.setBox(glm::vec3(-0.5f * DEFAULT_LINE_WIDTH), glm::vec3(DEFAULT_LINE_WIDTH));
+    }
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
