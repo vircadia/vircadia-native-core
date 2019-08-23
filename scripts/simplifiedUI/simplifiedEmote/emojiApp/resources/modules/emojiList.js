@@ -38734,10 +38734,7 @@ var emojiList = [
         }
     }
 ]
-try {
-    if (module) {
-        module.exports = emojiList;
-    }
-} catch (e) {
-    console.log("error exporting:\n", e);
+
+if (module.exports) {
+    module.exports = emojiList;
 }

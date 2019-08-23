@@ -102,7 +102,6 @@ function startTimeoutDelete() {
 
 
 // The QML has a property called archEnd on the pie chart that controls how much pie is showing
-var COUNT_DOWN_INTERVAL_MS = 100;
 function beginCountDownTimer() {
     _this._avimojiQMLWindow.sendToQml({
         "source": "simplifiedEmoji.js",
@@ -128,9 +127,9 @@ function resetEmojis() {
     clearCountDownTimerHandler();
     if (currentEmoji) {
         Entities.deleteEntity(currentEmoji);
-        currentEmoji = false;
-        selectedEmojiFilename = null;
     }
+    currentEmoji = false;
+    selectedEmojiFilename = null;
 }
 
 
@@ -360,11 +359,11 @@ function playPopAnimation() {
                 Entities.editEntity(currentEmoji, {"dimensions": dimensions});
             }
         } else {
-            // make sure there is a currentEmoji entity before trying to delete
+            pruneOldAvimojis();
             if (currentEmoji) {
                 Entities.deleteEntity(currentEmoji);
-                currentEmoji = false;
             }
+            currentEmoji = false;
             finalInPopScale = null;
             selectedEmojiFilename = null;
             clearCountDownTimerHandler();

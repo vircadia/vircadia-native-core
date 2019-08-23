@@ -225,6 +225,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         QObject::connect(_dockWidget.get(), SIGNAL(onResizeEvent()), this, SLOT(emitMainWindowResizeEvent()));
 
         _dockWidget->setSource(QUrl(sourceUrl));
+        _dockWidget->setObjectName("DockedWidget");
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -283,6 +284,7 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
             if (!KNOWN_SCHEMES.contains(sourceURL.scheme(), Qt::CaseInsensitive)) {
                 sourceURL = QUrl::fromLocalFile(sourceURL.toString()).toString();
             }
+            object->setObjectName("InteractiveWindow");
             object->setProperty(SOURCE_PROPERTY, sourceURL);
         });
     }
