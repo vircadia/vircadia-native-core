@@ -102,7 +102,7 @@ void Audio::setMutedDesktop(bool isMuted) {
         }
     });
     if (!isMuted && _settingsLoaded && !_pushingToTalk) {
-        // If the user is not using Push-to-talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
+        // If the user is not using pushing to talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
         setPTTDesktop(isMuted);
     }
     if (changed) {
@@ -133,7 +133,7 @@ void Audio::setMutedHMD(bool isMuted) {
         }
     });
     if (!isMuted && _settingsLoaded && !_pushingToTalk) {
-        // If the user is not using Push-to-talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
+        // If the user is not using pushing to talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
         setPTTHMD(isMuted);
     }
     if (changed) {
