@@ -314,7 +314,7 @@ function playPopAnimation() {
         } else {
             // Start with the pop sound on the out
             currentPopScale = finalInPopScale ? finalInPopScale : MAX_POP_SCALE;
-            playSound(emojiDestroySound);
+            playSound(emojiDestroySound, DEFAULT_VOLUME, MyAvatar.position, true);
         }
     }
 

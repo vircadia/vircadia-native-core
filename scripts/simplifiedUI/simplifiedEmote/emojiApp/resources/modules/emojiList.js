@@ -2987,8 +2987,7 @@ var emojiList = [
         "shortName": "unamused face",
         "keywords": [
             "face",
-            "unamused",
-            "unhappy"
+            "unamused"
         ],
         "mainCategory": "Smileys & Emotion",
         "subCategory": "face-neutral-skeptical",
