@@ -26,7 +26,7 @@ public:
     friend class AnimTests;
 
     AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag,
-             bool isRelative, const QString& baseURL, float baseFrame);
+             bool relativeFlag, const QString& baseURL, float baseFrame);
     virtual ~AnimClip() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
@@ -80,7 +80,7 @@ protected:
     bool _loopFlag;
     bool _mirrorFlag;
     float _frame;
-    bool _isRelative;
+    bool _relativeFlag;
     QString _baseURL;
     float _baseFrame;
 

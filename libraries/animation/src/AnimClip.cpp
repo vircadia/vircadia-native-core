@@ -197,7 +197,7 @@ static std::vector<AnimPoseVec> copyAndRetargetFromNetworkAnim(AnimationPointer 
 }
 
 AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag,
-                   bool isRelative, const QString& baseURL, float baseFrame) :
+                   bool relativeFlag, const QString& baseURL, float baseFrame) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
@@ -205,12 +205,12 @@ AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, floa
     _loopFlag(loopFlag),
     _mirrorFlag(mirrorFlag),
     _frame(startFrame),
-    _isRelative(isRelative),
+    _relativeFlag(relativeFlag),
     _baseFrame(baseFrame)
 {
     loadURL(url);
 
-    if (isRelative) {
+    if (relativeFlag) {
         auto animCache = DependencyManager::get<AnimationCache>();
         _baseNetworkAnim = animCache->getAnimation(baseURL);
         _baseURL = baseURL;
@@ -234,7 +234,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
     _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
 
     // poll network anim to see if it's finished loading yet.
-    if (_isRelative) {
+    if (!_relativeFlag) {
         if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
             // loading is complete, copy & retarget animation.
             _anim = copyAndRetargetFromNetworkAnim(_networkAnim, _skeleton);
@@ -256,6 +256,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
             _networkAnim.reset();
 
             // mirrorAnim will be re-built on demand, if needed.
+            // TODO: handle mirrored relative animations.
             _mirrorAnim.clear();
 
             _poses.resize(_skeleton->getNumJoints());
