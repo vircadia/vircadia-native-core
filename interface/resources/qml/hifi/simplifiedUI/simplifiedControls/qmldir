@@ -1,0 +1,10 @@
+module hifi.simplifiedUI.simplifiedControls
+Button 1.0 Button.qml
+CheckBox 1.0 CheckBox.qml
+InputPeak 1.0 InputPeak.qml
+ProgressCircle 1.0 ProgressCircle.qml
+RadioButton 1.0 RadioButton.qml
+Slider 1.0 Slider.qml
+Switch 1.0 Switch.qml
+TextField 1.0 TextField.qml
+VerticalScrollBar 1.0 VerticalScrollBar.qml

@@ -319,6 +319,7 @@ protected slots:
 
     void forwardKeyPressEvent(int key, int modifiers);
     void forwardKeyReleaseEvent(int key, int modifiers);
+    void emitMainWindowResizeEvent();
 
 private:
     std::shared_ptr<QmlWindowProxy> _qmlWindowProxy;

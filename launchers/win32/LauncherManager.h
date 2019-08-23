@@ -134,6 +134,7 @@ public:
     void updateProgress(ProcessType processType, float progress);
     void onCancel();
     const CString& getLauncherVersion() const { return _launcherVersion; }
+    CString getHttpUserAgent() const { return L"HQLauncher/" + _launcherVersion + L" (Windows)"; }
 
 private:
     ProcessType _currentProcess { ProcessType::DownloadApplication };

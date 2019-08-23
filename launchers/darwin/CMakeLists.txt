@@ -69,7 +69,7 @@ set_target_properties(${this_target} PROPERTIES
 set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
 
 function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
-  if (NOT DEFINED ${_RESULT_NAME}) 
+  if (NOT DEFINED ${_RESULT_NAME})
     if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
       set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
     else()
@@ -89,8 +89,14 @@ if ("${LAUNCHER_HMAC_SECRET}" STREQUAL "")
     message(FATAL_ERROR "LAUNCHER_HMAC_SECRET is not set")
 endif()
 
+# Development environments don't set BUILD_VERSION. Let 0 mean a development version.
+if(NOT BUILD_VERSION)
+    set(BUILD_VERSION 0)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_HMAC_SECRET="${LAUNCHER_HMAC_SECRET}")
 target_compile_definitions(${PROJECT_NAME} PRIVATE LAUNCHER_BUILD_VERSION="${BUILD_VERSION}")
+target_compile_definitions(${PROJECT_NAME} PRIVATE USER_AGENT_STRING="HQLauncher/${BUILD_VERSION} \(macOS\)")
 
 file(GLOB NIB_FILES "nib/*.xib")
 

@@ -405,7 +405,7 @@ LauncherUtils::ResponseError LauncherManager::readOrganizationJSON(const CString
     CString contentTypeJson = L"content-type:application/json";
     CString response;
     CString url = _T("/organizations/") + hash + _T(".json");
-    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", 
+    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(getHttpUserAgent(),
                                                                      L"orgs.highfidelity.com", url,
                                                                      contentTypeJson, CStringA(), 
                                                                      response, false);
@@ -464,7 +464,7 @@ void LauncherManager::getMostRecentBuilds(CString& launcherUrlOut, CString& laun
         }
         onMostRecentBuildsReceived(response, error);
     };
-    LauncherUtils::httpCallOnThread(L"HQ Launcher",
+    LauncherUtils::httpCallOnThread(getHttpUserAgent(),
                                     L"thunder.highfidelity.com",
                                     L"/builds/api/tags/latest?format=json",
                                     contentTypeJson, CStringA(), false, httpCallback);
@@ -530,7 +530,7 @@ LauncherUtils::ResponseError LauncherManager::getAccessTokenForCredentials(const
 
     CString contentTypeText = L"content-type:application/x-www-form-urlencoded";
     CString response;
-    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(L"HQ Launcher", 
+    LauncherUtils::ResponseError error = LauncherUtils::makeHTTPCall(getHttpUserAgent(),
                                                                      L"metaverse.highfidelity.com", 
                                                                      L"/oauth/token",
                                                                      contentTypeText, post, 
