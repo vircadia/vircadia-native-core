@@ -215,6 +215,7 @@ protected:
     btVector3 _followLinearDisplacement;
     btQuaternion _followAngularDisplacement;
     btVector3 _linearAcceleration;
+    btVector3 _netCollisionImpulse;
 
     State _state;
     bool _isPushingUp;
