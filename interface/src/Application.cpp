@@ -58,6 +58,7 @@
 
 #include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
+#include <shared/PlatformHelper.h>
 #include <shared/GlobalAppProperties.h>
 #include <StatTracker.h>
 #include <Trace.h>
@@ -255,10 +256,6 @@
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
-#endif
-
-#ifdef Q_OS_MAC
-#include "MacHelper.h"
 #endif
 
 #if defined(Q_OS_ANDROID)
@@ -550,13 +547,6 @@ public:
                 }
                 qApp->setActiveWindow(applicationWindow);  // Flashes the taskbar icon if not focus.
                 return true;
-            }
-
-            if (message->message == WM_POWERBROADCAST) {
-                if (message->wParam == PBT_APMRESUMEAUTOMATIC) {
-                    qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
-                    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
-                }
             }
 
             if (message->message == WM_COPYDATA) {
@@ -964,9 +954,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
-#ifdef Q_OS_MAC
-    DependencyManager::set<MacHelper>();
-#endif
+    PlatformHelper::setup();
+    
+    QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
+        QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+    });
+
 
     QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
     if (!setBookmarkValue.isEmpty()) {
@@ -1172,6 +1165,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
 
+        // Pause the deadlock watchdog when we sleep, or it might 
+        // trigger a false positive when we wake back up
+        auto platformHelper = PlatformHelper::instance();
+
+        connect(platformHelper, &PlatformHelper::systemWillSleep, [] {
+            DeadlockWatchdogThread::pause();
+        });
+
+        connect(platformHelper, &PlatformHelper::systemWillWake, [] {
+            DeadlockWatchdogThread::resume();
+        });
 
         // Main thread timer to keep the watchdog updated
         QTimer* watchdogUpdateTimer = new QTimer(this);
@@ -2868,9 +2872,7 @@ Application::~Application() {
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
-#ifdef Q_OS_MAC
-    DependencyManager::destroy<MacHelper>();
-#endif
+    PlatformHelper::shutdown();
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
