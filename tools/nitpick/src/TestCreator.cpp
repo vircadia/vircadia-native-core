@@ -757,62 +757,66 @@ bool TestCreator::createMDFile(const QString& directory) {
 
     QDir qDirectory(directory);
 
+    QString mdFilename(directory + "/" + "test.md");
+    QFile mdFile(mdFilename);
+    if (!mdFile.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
+        // TODO: Don't just exit
+        exit(-1);
+    }
+
+    QTextStream stream(&mdFile);
+
+    QString testName = testScriptLines.title;
+    stream << "# " << testName << "\n";
+
+    stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
+
+    stream << "## Preconditions" << "\n";
+    stream << "- In an empty region of a domain with editing rights." << "\n";
+    stream << "\n";
+
     // ExpectedImage_00000.png OR ExpectedImage_some_stu-ff_00000.png
     const QRegularExpression firstExpectedImage("^ExpectedImage(_[-_\\w]*)?_00000\\.png$");
-    for (const auto& potentialImageFile : qDirectory.entryInfoList()) {
-        if (potentialImageFile.isDir()) {
-            continue;
-        }
 
-        auto firstExpectedImageMatch = firstExpectedImage.match(potentialImageFile.fileName());
-        if (!firstExpectedImageMatch.hasMatch()) {
-            continue;
-        }
+    stream << "## Steps\n";
+    stream << "Press '" + ADVANCE_KEY + "' key to advance step by step\n\n"; // note apostrophes surrounding 'ADVANCE_KEY'
+    int snapShotIndex { 0 };
+    for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
+        stream << "### Step " << QString::number(i + 1) << "\n";
+        stream << "- " << testScriptLines.stepList[i]->text << "\n";
+        if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
+            for (const auto& potentialImageFile : qDirectory.entryInfoList()) {
+                if (potentialImageFile.isDir()) {
+                    continue;
+                }
 
-        QString testDescriptor = firstExpectedImageMatch.captured(1);
-        auto filterString = QString(testDescriptor).replace("_", ".").replace("-", ",");
-        TestFilter descriptorAsFilter(filterString);
+                auto firstExpectedImageMatch = firstExpectedImage.match(potentialImageFile.fileName());
+                if (!firstExpectedImageMatch.hasMatch()) {
+                    continue;
+                }
 
-        QString mdFilename(directory + "/" + "test" + testDescriptor + ".md");
-        QFile mdFile(mdFilename);
-        if (!mdFile.open(QIODevice::WriteOnly)) {
-            QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
-            // TODO: Don't just exit
-            exit(-1);
-        }
-
-        QTextStream stream(&mdFile);
-
-        QString testName = testScriptLines.title;
-        stream << "# " << testName << "\n";
-
-        stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
-
-        stream << "## Preconditions" << "\n";
-        stream << "- In an empty region of a domain with editing rights." << "\n";
-        stream << "- Tier: " << (descriptorAsFilter.allowedTiers.empty() ? "any" : joinVector(descriptorAsFilter.allowedTiers, ", ")) << "\n";
-        stream << "- OS: " << (descriptorAsFilter.allowedOperatingSystems.empty() ? "any" : joinVector(descriptorAsFilter.allowedOperatingSystems, ", ")) << "\n";
-        stream << "- GPU: " << (descriptorAsFilter.allowedGPUs.empty() ? "any" : joinVector(descriptorAsFilter.allowedGPUs, ", ")) << "\n";
-        if (!descriptorAsFilter.isValid()) {
-            stream << "\nWarning: The profile preconditions were unsuccessfully read from the expected image name and may be incorrect. Error message: " << descriptorAsFilter.getError() << "\n";
-        }
-        stream << "\n";
-
-        stream << "## Steps\n";
-        stream << "Press '" + ADVANCE_KEY + "' key to advance step by step\n\n"; // note apostrophes surrounding 'ADVANCE_KEY'
-
-        int snapShotIndex { 0 };
-        for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
-            stream << "### Step " << QString::number(i + 1) << "\n";
-            stream << "- " << testScriptLines.stepList[i]->text << "\n";
-            if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
+                QString testDescriptor = firstExpectedImageMatch.captured(1);
+                auto filterString = QString(testDescriptor).replace("_", ".").replace("-", ",");
+                TestFilter descriptorAsFilter(filterString);
+                if (descriptorAsFilter.isValid()) {
+                    stream << "- Expected image on ";
+                    stream << (descriptorAsFilter.allowedTiers.empty() ? "any" : joinVector(descriptorAsFilter.allowedTiers, "/")) << " tier, ";
+                    stream << (descriptorAsFilter.allowedOperatingSystems.empty() ? "any" : joinVector(descriptorAsFilter.allowedOperatingSystems, "/")) << " OS, ";
+                    stream << (descriptorAsFilter.allowedGPUs.empty() ? "any" : joinVector(descriptorAsFilter.allowedGPUs, "/")) << " GPU";
+                    stream << ":";
+                } else {
+                    // Fall back to displaying file name
+                    stream << "ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png";
+                }
+                stream << "\n";
                 stream << "- ![](./ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
-                ++snapShotIndex;
             }
+            ++snapShotIndex;
         }
-
-        mdFile.close();
     }
+
+    mdFile.close();
 
     foreach (auto test, testScriptLines.stepList) {
         delete test;
