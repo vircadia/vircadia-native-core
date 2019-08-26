@@ -1,6 +1,7 @@
 #import "LatestBuildRequest.h"
 #import "Launcher.h"
 #import "Settings.h"
+#import "HQDefaults.h"
 
 @implementation LatestBuildRequest
 
@@ -8,7 +9,13 @@
     NSString* buildsURL = [[[NSProcessInfo processInfo] environment] objectForKey:@"HQ_LAUNCHER_BUILDS_URL"];
 
     if ([buildsURL length] == 0) {
-        buildsURL = @"https://thunder.highfidelity.com/builds/api/tags/latest?format=json";
+        NSString *thunderURL = [[HQDefaults sharedDefaults] defaultNamed:@"thunderURL"];
+        if (thunderURL == nil) {
+            @throw [NSException exceptionWithName:@"DefaultMissing"
+                                           reason:@"The thunderURL default is missing"
+                                         userInfo:nil];
+        }
+        buildsURL = [NSString stringWithFormat:@"%@/builds/api/tags/latest?format=json", thunderURL];
     }
 
     NSLog(@"Making request for builds to: %@", buildsURL);

@@ -9,6 +9,7 @@
 #import "Settings.h"
 #import "NSTask+NSTaskExecveAdditions.h"
 #import "Interface.h"
+#import "HQDefaults.h"
 
 @interface Launcher ()
 
@@ -481,6 +482,17 @@ static BOOL const DELETE_ZIP_FILES = TRUE;
 - (void)applicationWillFinishLaunching:(NSNotification *)notification
 {
     [self.window makeKeyAndOrderFront:self];
+}
+
+-(void)applicationDidFinishLaunching:(NSNotification *)notification
+{
+    // Sanity check the HQDefaults so we fail early if there's an issue.
+    HQDefaults *defaults = [HQDefaults sharedDefaults];
+    if ([defaults defaultNamed:@"thunderURL"] == nil) {
+        @throw [NSException exceptionWithName:@"DefaultsNotConfigured"
+                                       reason:@"thunderURL is not configured"
+                                     userInfo:nil];
+    }
 }
 
 - (void) setDownloadFilename:(NSString *)aFilename
