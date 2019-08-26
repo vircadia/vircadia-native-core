@@ -130,7 +130,7 @@ public:
 
 
     /**jsdoc
-     * Restarts all Interface, avatar, and client scripts after clearing the scripts cache.
+     * Restarts all Interface, avatar, and client entity scripts after clearing the scripts cache.
      * @function ScriptDiscoveryService.reloadAllScripts
      */
     Q_INVOKABLE void reloadAllScripts();

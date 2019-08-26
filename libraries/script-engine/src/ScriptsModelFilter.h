@@ -22,6 +22,7 @@
  * <p>The information provided reflects the subdirectory structure. Properties, methods, and signals are per QT's
  * <a href="https://doc.qt.io/qt-5/qsortfilterproxymodel.html">QSortFilterProxyModel</a> class, with the following details:</p>
  * <ul>
+ *   <li>The rows are sorted per directory and file names.</li>
  *   <li>A single column of data: <code>columnCount(index)</code> returns <code>1</code>. </li>
  *   <li>Data is provided for the following roles:
  *     <table>
@@ -36,7 +37,6 @@
  *     </table>
  *   </li>
  *   <li>Use <code>null</code> for the root directory's index.</li>
- *   <li>The rows are sorted per directory and file names.</li>
  * </ul>
  *
  * @class ScriptsModelFilter

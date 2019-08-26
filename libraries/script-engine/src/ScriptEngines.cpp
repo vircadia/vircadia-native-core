@@ -216,10 +216,10 @@ void ScriptEngines::shutdownScripting() {
  * @property {string} type - <code>"script"</code> or <code>"folder"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently always has the value, 
  *     <code>"script"</code>.</p>
- * @property {ScriptDiscoveryService.PublicScript[]} [children] - Only present if <code>type</code> is <code>"folder"</code>.
+ * @property {ScriptDiscoveryService.PublicScript[]} [children] - Only present if <code>type == "folder"</code>.
  *     <p class="important">Deprecated: This property is deprecated and will be removed. It currently is never present.
  * @property {string} [url] - The full URL of the script &mdash; including the <code>"file:///"</code> scheme at the start.
- *     <p>Only present if <code>type</code> is <code>"script"</code>.</p>
+ *     <p>Only present if <code>type == "script"</code>.</p>
  */
 QVariantList getPublicChildNodes(TreeNodeFolder* parent) {
     QVariantList result;
