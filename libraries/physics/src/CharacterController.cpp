@@ -129,7 +129,7 @@ CharacterController::CharacterController() {
     // ATM CharacterController is a singleton.  When we want more we'll have to
     // overhaul the applyPairwiseFilter() logic to handle multiple instances.
     ++_numCharacterControllers;
-    assert(numCharacterControllers == 1);
+    assert(_numCharacterControllers == 1);
 }
 
 CharacterController::~CharacterController() {
