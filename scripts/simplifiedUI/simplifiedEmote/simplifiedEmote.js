@@ -193,14 +193,19 @@ function toggleReaction(reaction) {
     }
 }
 
+function maybeDeleteRemoteIndicatorTimeout() {
+    if (restoreEmoteIndicatorTimeout) {
+        Script.clearTimeout(restoreEmoteIndicatorTimeout);
+        restoreEmoteIndicatorTimeout = null;
+    }
+}
+
 var reactionsBegun = [];
 var pointReticle = null;
 var mouseMoveEventsConnected = false;
 function beginReactionWrapper(reaction) {
-    if (restoreEmoteIndicatorTimeout) {
-        Script.clearTimeout(restoreEmoteIndicatorTimeout);
-    }
-    
+    maybeDeleteRemoteIndicatorTimeout();
+
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
@@ -294,9 +299,7 @@ function mouseMoveEvent(event) {
 var WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS = 2000;
 var restoreEmoteIndicatorTimeout;
 function triggerReactionWrapper(reaction) {
-    if (restoreEmoteIndicatorTimeout) {
-        Script.clearTimeout(restoreEmoteIndicatorTimeout);
-    }
+    maybeDeleteRemoteIndicatorTimeout();
 
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
@@ -304,8 +307,10 @@ function triggerReactionWrapper(reaction) {
 
     MyAvatar.triggerReaction(reaction);
     updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
+
     restoreEmoteIndicatorTimeout = Script.setTimeout(function() {
         updateEmoteIndicatorIcon("images/emote_Icon.svg");
+        restoreEmoteIndicatorTimeout = null;
     }, WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS);
 }
 
