@@ -778,6 +778,26 @@ bool TestCreator::createMDFile(const QString& directory) {
 
     // ExpectedImage_00000.png OR ExpectedImage_some_stu-ff_00000.png
     const QRegularExpression firstExpectedImage("^ExpectedImage(_[-_\\w]*)?_00000\\.png$");
+    std::vector<QString> testDescriptors;
+    std::vector<TestFilter> testFilters;
+
+    for (const auto& potentialImageFile : qDirectory.entryInfoList()) {
+        if (potentialImageFile.isDir()) {
+            continue;
+        }
+
+        auto firstExpectedImageMatch = firstExpectedImage.match(potentialImageFile.fileName());
+        if (!firstExpectedImageMatch.hasMatch()) {
+            continue;
+        }
+
+        QString testDescriptor = firstExpectedImageMatch.captured(1);
+        auto filterString = QString(testDescriptor).replace("_", ".").replace("-", ",");
+        TestFilter descriptorAsFilter(filterString);
+
+        testDescriptors.push_back(testDescriptor);
+        testFilters.push_back(descriptorAsFilter);
+    }
 
     stream << "## Steps\n";
     stream << "Press '" + ADVANCE_KEY + "' key to advance step by step\n\n"; // note apostrophes surrounding 'ADVANCE_KEY'
@@ -786,19 +806,9 @@ bool TestCreator::createMDFile(const QString& directory) {
         stream << "### Step " << QString::number(i + 1) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
         if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
-            for (const auto& potentialImageFile : qDirectory.entryInfoList()) {
-                if (potentialImageFile.isDir()) {
-                    continue;
-                }
-
-                auto firstExpectedImageMatch = firstExpectedImage.match(potentialImageFile.fileName());
-                if (!firstExpectedImageMatch.hasMatch()) {
-                    continue;
-                }
-
-                QString testDescriptor = firstExpectedImageMatch.captured(1);
-                auto filterString = QString(testDescriptor).replace("_", ".").replace("-", ",");
-                TestFilter descriptorAsFilter(filterString);
+            for (int i = 0; i < testDescriptors.size(); ++i) {
+                const auto& testDescriptor = testDescriptors[i];
+                const auto& descriptorAsFilter = testFilters[i];
                 if (descriptorAsFilter.isValid()) {
                     stream << "- Expected image on ";
                     stream << (descriptorAsFilter.allowedTiers.empty() ? "any" : joinVector(descriptorAsFilter.allowedTiers, "/")) << " tier, ";
