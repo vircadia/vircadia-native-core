@@ -197,6 +197,10 @@ var reactionsBegun = [];
 var pointReticle = null;
 var mouseMoveEventsConnected = false;
 function beginReactionWrapper(reaction) {
+    if (restoreEmoteIndicatorTimeout) {
+        Script.clearTimeout(restoreEmoteIndicatorTimeout);
+    }
+    
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
@@ -288,14 +292,19 @@ function mouseMoveEvent(event) {
 
 
 var WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS = 2000;
+var restoreEmoteIndicatorTimeout;
 function triggerReactionWrapper(reaction) {
+    if (restoreEmoteIndicatorTimeout) {
+        Script.clearTimeout(restoreEmoteIndicatorTimeout);
+    }
+
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
 
     MyAvatar.triggerReaction(reaction);
     updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
-    Script.setTimeout(function() {
+    restoreEmoteIndicatorTimeout = Script.setTimeout(function() {
         updateEmoteIndicatorIcon("images/emote_Icon.svg");
     }, WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS);
 }
