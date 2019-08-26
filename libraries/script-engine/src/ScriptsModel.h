@@ -64,14 +64,60 @@ public:
 };
 
 /**jsdoc
- * <p>Provided as a property of {@link ScriptDiscoveryService}.</p>
- * <p>Has properties and functions below in addition to those of <a href="http://doc.qt.io/qt-5/qabstractitemmodel.html">
- * http://doc.qt.io/qt-5/qabstractitemmodel.html</a>.</p>
+ * Information on the scripts that are in the default scripts directory of the Interface installation. This is provided as a 
+ * property of {@link ScriptDiscoveryService}.
+ *
+ * <p>The information provided reflects the subdirectory structure. Methods and signals are per QT's 
+ * <a href="http://doc.qt.io/qt-5/qabstractitemmodel.html">QAbstractItemModel</a> class, with the following details:</p>
+ * <ul>
+ *   <li>A single column of data: <code>columnCount(index)</code> returns <code>1</code>. </li>
+ *   <li>Data is provided for the following roles:
+ *     <table>
+ *       <thead>
+ *         <tr><th>Role</th><th>Value</th><th>Description</th></tr>
+ *       </thead>
+ *       <tbody>
+ *         <tr><td>Display</td><td><code>0</code></td><td>The directory or script file name.</td></tr>
+ *         <tr><td>Path</td><td><code>256</code></td><td>The path and filename of the data item if it is a script, 
+ *         <code>undefined</code> if it is a directory.</td></tr>
+ *       </tbody>
+ *     </table>
+ *   </li>
+ *   <li>Use <code>null</code> for the root directory's index.</li>
+ * </ul>
+ *
  * @class ScriptsModel
+
+ * @hideconstructor
  *
  * @hifi-interface
  * @hifi-client-entity
  * @hifi-avatar
+ *
+ * @example <caption>List the first 2 levels of the scripts directory.</caption>
+ * var MAX_DIRECTORY_LEVEL = 1;
+ * var DISPLAY_ROLE = 0;
+ * var PATH_ROLE = 256;
+ * 
+ * function printDirectory(parentIndex, directoryLevel, indent) {
+ *     var numRows = ScriptDiscoveryService.scriptsModel.rowCount(parentIndex);
+ *     for (var i = 0; i < numRows; i++) {
+ *         var rowIndex = ScriptDiscoveryService.scriptsModel.index(i, 0, parentIndex);
+ * 
+ *         var name = ScriptDiscoveryService.scriptsModel.data(rowIndex, DISPLAY_ROLE);
+ *         var hasChildren = ScriptDiscoveryService.scriptsModel.hasChildren(rowIndex);
+ *         var path = hasChildren ? "" : ScriptDiscoveryService.scriptsModel.data(rowIndex, PATH_ROLE);
+ * 
+ *         print(indent + "- " + name + (hasChildren ? "" : " - " + path));
+ * 
+ *         if (hasChildren && directoryLevel < MAX_DIRECTORY_LEVEL) {
+ *             printDirectory(rowIndex, directoryLevel + 1, indent + "    ");
+ *         }
+ *     }
+ * }
+ * 
+ * print("Scripts:");
+ * printDirectory(null, 0, "");  // null index for the root directory.
  */
 class ScriptsModel : public QAbstractItemModel {
     Q_OBJECT
@@ -79,56 +125,25 @@ public:
     ScriptsModel(QObject* parent = NULL);
     ~ScriptsModel();
 
-    /**jsdoc
-     * @function ScriptsModel.index
-     * @param {number} row
-     * @param {number} column
-     * @param {QModelIndex} parent
-     * @returns {QModelIndex}
-     */
+    // No JSDoc because the particulars of the parent class is provided in the @class description.
     QModelIndex index(int row, int column, const QModelIndex& parent) const override;
 
-    /**jsdoc
-     * @function ScriptsModel.parent
-     * @param {QModelIndex} child
-     * @returns {QModelIndex}
-     */
+    // No JSDoc because the particulars of the parent class is provided in the @class description.
     QModelIndex parent(const QModelIndex& child) const override;
 
-    /**jsdoc
-     * @function ScriptsModel.data
-     * @param {QModelIndex} index
-     * @param {number} [role=0]
-     * returns {string}
-     */
+    // No JSDoc because the particulars of the parent class is provided in the @class description.
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 
-    /**jsdoc
-     * @function ScriptsModel.rowCount
-     * @param {QmodelIndex} [parent=null]
-     * @returns {number}
-     */
+    // No JSDoc because the particulars of the parent class is provided in the @class description.
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;
 
-    /**jsdoc
-     * @function ScriptsModel.columnCount
-     * @param {QmodelIndex} [parent=null]
-     * @returns {number}
-     */
+    // No JSDoc because the particulars of the parent class is provided in the @class description.
     int columnCount(const QModelIndex& parent = QModelIndex()) const override;
 
-    /**jsdoc
-     * @function ScriptsModel.getTreeNodeFromIndex
-     * @param {QmodelIndex} index
-     * @returns {TreeNodeBase}
-     */
+    // Not exposed in the API because no conversion between TreeNodeBase and QScriptValue is provided.
     TreeNodeBase* getTreeNodeFromIndex(const QModelIndex& index) const;
 
-    /**jsdoc
-     * @function ScriptsModel.getFolderNodes
-     * @param {TreeNodeFolder} parent
-     * @returns {TreeNodeBase[]}
-     */
+    // Not exposed in the API because no conversion between TreeNodeBase and QScriptValue is provided.
     QList<TreeNodeBase*> getFolderNodes(TreeNodeFolder* parent) const;
 
     enum Role {
