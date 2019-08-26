@@ -150,7 +150,7 @@ function getClapPosition() {
     var validLeftJoints = ["LeftHandMiddle2", "LeftHand", "LeftArm"];
     var leftPosition = getValidJointPosition(validLeftJoints);
 
-    var validRightJoints = ["RightHandMiddle2", "RightHand", "RightArm"];;
+    var validRightJoints = ["RightHandMiddle2", "RightHand", "RightArm"];
     var rightPosition = getValidJointPosition(validRightJoints);
 
     var centerPosition = Vec3.sum(leftPosition, rightPosition);
@@ -193,10 +193,19 @@ function toggleReaction(reaction) {
     }
 }
 
+function maybeDeleteRemoteIndicatorTimeout() {
+    if (restoreEmoteIndicatorTimeout) {
+        Script.clearTimeout(restoreEmoteIndicatorTimeout);
+        restoreEmoteIndicatorTimeout = null;
+    }
+}
+
 var reactionsBegun = [];
 var pointReticle = null;
 var mouseMoveEventsConnected = false;
 function beginReactionWrapper(reaction) {
+    maybeDeleteRemoteIndicatorTimeout();
+
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
@@ -287,13 +296,22 @@ function mouseMoveEvent(event) {
 }
 
 
+var WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS = 2000;
+var restoreEmoteIndicatorTimeout;
 function triggerReactionWrapper(reaction) {
+    maybeDeleteRemoteIndicatorTimeout();
+
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
 
     MyAvatar.triggerReaction(reaction);
     updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
+
+    restoreEmoteIndicatorTimeout = Script.setTimeout(function() {
+        updateEmoteIndicatorIcon("images/emote_Icon.svg");
+        restoreEmoteIndicatorTimeout = null;
+    }, WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS);
 }
 
 function maybeClearReticleUpdateLimiterTimeout() {
@@ -326,7 +344,6 @@ function endReactionWrapper(reaction) {
                 mouseMoveEventsConnected = false;
             }
             maybeClearReticleUpdateLimiterTimeout();
-            intersectedEntityOrAvatarID = null;
             deleteOldReticles();
             break;
     }
@@ -538,6 +555,7 @@ var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
+var customEmojiCodeMap;
 function init() {
     deleteOldReticles();
 
@@ -599,6 +617,7 @@ function shutdown() {
     emojiAPI.unload();
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
+    maybeDeleteRemoteIndicatorTimeout();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
