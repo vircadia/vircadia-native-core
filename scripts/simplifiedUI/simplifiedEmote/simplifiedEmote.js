@@ -617,6 +617,7 @@ function shutdown() {
     emojiAPI.unload();
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
+    maybeDeleteRemoteIndicatorTimeout();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
