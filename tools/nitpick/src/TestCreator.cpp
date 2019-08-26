@@ -544,34 +544,34 @@ TestFilter::TestFilter(const QString& filterString) {
         if (foundCategoryIt == propertyToProfileCategory.cend()) {
             error = "Invalid test filter property '" + referenceVariant + "'";
             return;
-        } else {
-            ProfileCategory selectedFilterCategory = foundCategoryIt->second;
-            for (auto allowedVariantIt = ++(allowedVariants.cbegin()); allowedVariantIt != allowedVariants.cend(); ++allowedVariantIt) {
-                auto& currentVariant = *allowedVariantIt;
-                auto nextCategoryIt = propertyToProfileCategory.find(currentVariant);
-                if (nextCategoryIt == propertyToProfileCategory.cend()) {
-                    error = "Invalid test filter property '" + referenceVariant + "'";
-                    return;
-                }
-                auto& currentCategory = nextCategoryIt->second;
-                if (currentCategory != selectedFilterCategory) {
-                    error = "Mismatched comma-separated test filter properties '" + referenceVariant + "' and '" + currentVariant + "'";
-                    return;
-                }
-                // List of comma-separated test property variants is consistent so far
-            }
+        }
 
-            switch (selectedFilterCategory) {
-            case ProfileCategory::TIER:
-                allowedTiers.insert(allowedTiers.cend(), allowedVariants.cbegin(), allowedVariants.cend());
-                break;
-            case ProfileCategory::OS:
-                allowedOperatingSystems.insert(allowedOperatingSystems.cend(), allowedVariants.cbegin(), allowedVariants.cend());
-                break;
-            case ProfileCategory::GPU:
-                allowedGPUs.insert(allowedGPUs.cend(), allowedVariants.cbegin(), allowedVariants.cend());
-                break;
+        ProfileCategory selectedFilterCategory = foundCategoryIt->second;
+        for (auto allowedVariantIt = ++(allowedVariants.cbegin()); allowedVariantIt != allowedVariants.cend(); ++allowedVariantIt) {
+            auto& currentVariant = *allowedVariantIt;
+            auto nextCategoryIt = propertyToProfileCategory.find(currentVariant);
+            if (nextCategoryIt == propertyToProfileCategory.cend()) {
+                error = "Invalid test filter property '" + referenceVariant + "'";
+                return;
             }
+            auto& currentCategory = nextCategoryIt->second;
+            if (currentCategory != selectedFilterCategory) {
+                error = "Mismatched comma-separated test filter properties '" + referenceVariant + "' and '" + currentVariant + "'";
+                return;
+            }
+            // List of comma-separated test property variants is consistent so far
+        }
+
+        switch (selectedFilterCategory) {
+        case ProfileCategory::TIER:
+            allowedTiers.insert(allowedTiers.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+            break;
+        case ProfileCategory::OS:
+            allowedOperatingSystems.insert(allowedOperatingSystems.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+            break;
+        case ProfileCategory::GPU:
+            allowedGPUs.insert(allowedGPUs.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+            break;
         }
     }
 }
