@@ -733,7 +733,7 @@ void TestCreator::createAllMDFiles() {
     QMessageBox::information(0, "Success", "MD files have been created");
 }
 
-QString joinVector(const std::vector<QString>& qStringVector, char* separator) {
+QString joinVector(const std::vector<QString>& qStringVector, const char* separator) {
     if (qStringVector.empty()) {
         return QString("");
     }
@@ -806,7 +806,7 @@ bool TestCreator::createMDFile(const QString& directory) {
         stream << "### Step " << QString::number(i + 1) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
         if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
-            for (int i = 0; i < testDescriptors.size(); ++i) {
+            for (int i = 0; i < (int)testDescriptors.size(); ++i) {
                 const auto& testDescriptor = testDescriptors[i];
                 const auto& descriptorAsFilter = testFilters[i];
                 if (descriptorAsFilter.isValid()) {
