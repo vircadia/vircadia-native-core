@@ -32,6 +32,8 @@ public:
     static void setup();
     // Run the per-platform code to cleanly shutdown a platform-dependent PlatformHelper dependency object
     static void shutdown();
+    // Fetch the platform specific instance of the helper
+    static PlatformHelper* instance();
     
     std::atomic<bool> _awake{ true };
 };

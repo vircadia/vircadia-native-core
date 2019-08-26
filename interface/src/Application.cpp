@@ -956,7 +956,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AvatarPackager>();
     PlatformHelper::setup();
     
-    QObject::connect(DependencyManager::get<PlatformHelper>().get(), &PlatformHelper::systemWillWake, [] {
+    QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
         QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
     });
 
@@ -1167,13 +1167,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         // Pause the deadlock watchdog when we sleep, or it might 
         // trigger a false positive when we wake back up
-        auto platformHelper = DependencyManager::get<PlatformHelper>();
+        auto platformHelper = PlatformHelper::instance();
 
-        connect(platformHelper.get(), &PlatformHelper::systemWillSleep, [] {
+        connect(platformHelper, &PlatformHelper::systemWillSleep, [] {
             DeadlockWatchdogThread::pause();
         });
 
-        connect(platformHelper.get(), &PlatformHelper::systemWillWake, [] {
+        connect(platformHelper, &PlatformHelper::systemWillWake, [] {
             DeadlockWatchdogThread::resume();
         });
 

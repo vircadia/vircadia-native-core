@@ -25,3 +25,7 @@ void PlatformHelper::shutdown() {
     DependencyManager::destroy<PlatformHelper>();
 }
 
+PlatformHelper* PlatformHelper::instance() {
+    return DependencyManager::get<PlatformHelper>().get();
+}
+
