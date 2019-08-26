@@ -20,7 +20,7 @@ endforeach()
 set(src_files
   src/main.cpp)
 
-add_executable(${PROJECT_NAME} ${src_file})
+add_executable(${PROJECT_NAME} ${src_files})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   Qt5::Core
