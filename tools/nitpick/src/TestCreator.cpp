@@ -739,7 +739,7 @@ QString joinVector(const std::vector<QString>& qStringVector, const char* separa
     }
     QString joined = qStringVector[0];
     for (std::size_t i = 1; i < qStringVector.size(); ++i) {
-        joined += separator + qStringVector[1];
+        joined += separator + qStringVector[i];
     }
     return joined;
 }
