@@ -323,9 +323,11 @@ void TestCreator::startTestsEvaluation(
 
             QString expectedImagePartialSourceDirectory = getExpectedImagePartialSourceDirectory(currentFilename);
 
-            // Images are stored on GitHub as ExpectedImage_ddddd.png
-            // Extract the digits at the end of the filename (excluding the file extension)
-            QString expectedImageFilenameTail = currentFilename.left(currentFilename.length() - 4).right(NUM_DIGITS);
+            // Images are stored on GitHub as ExpectedImage_ddddd.png or ExpectedImage_some_metadata_ddddd.png
+            // Extract the part of the filename after "ExpectedImage_" and excluding the file extension
+            QString expectedImageFilenameTail = currentFilename.left(currentFilename.lastIndexOf("."));
+            int expectedImageStart = expectedImageFilenameTail.lastIndexOf(".") + 1;
+            expectedImageFilenameTail.remove(0, expectedImageStart);
             QString expectedImageStoredFilename = EXPECTED_IMAGE_PREFIX + expectedImageFilenameTail + ".png";
 
             QString imageURLString("https://raw.githubusercontent.com/" + user + "/" + GIT_HUB_REPOSITORY  + "/" + branch + "/" +
@@ -495,6 +497,93 @@ void TestCreator::createTests(const QString& clientProfile) {
     QMessageBox::information(0, "Success", "Test images have been created");
 }
 
+namespace TestProfile {
+    std::vector<QString> tiers = [](){
+        std::vector<QString> toReturn;
+        for (int tier = (int)platform::Profiler::Tier::LOW; tier < (int)platform::Profiler::Tier::NumTiers; ++tier) {
+            QString tierStringUpper = platform::Profiler::TierNames[tier];
+            toReturn.push_back(tierStringUpper.toLower());
+        }
+        return toReturn;
+    }();
+
+    std::vector<QString> operatingSystems = { "windows", "mac", "linux", "android" };
+
+    std::vector<QString> gpus = { "amd", "nvidia", "intel" };
+};
+
+enum class ProfileCategory {
+    TIER,
+    OS,
+    GPU
+};
+const std::map<QString, ProfileCategory> propertyToProfileCategory = [](){
+    std::map<QString, ProfileCategory> toReturn;
+    for (const auto& tier : TestProfile::tiers) {
+        toReturn[tier] = ProfileCategory::TIER;
+    }
+    for (const auto& os : TestProfile::operatingSystems) {
+        toReturn[os] = ProfileCategory::OS;
+    }
+    for (const auto& gpu : TestProfile::gpus) {
+        toReturn[gpu] = ProfileCategory::GPU;
+    }
+    return toReturn;
+}();
+
+TestFilter::TestFilter(const QString& filterString) {
+    auto filterParts = filterString.split(".", QString::SkipEmptyParts);
+    for (const auto& filterPart : filterParts) {
+        QList<QString> allowedVariants = filterPart.split(",", QString::SkipEmptyParts);
+        if (allowedVariants.empty()) {
+            continue;
+        }
+
+        auto& referenceVariant = allowedVariants[0];
+        auto foundCategoryIt = propertyToProfileCategory.find(referenceVariant);
+        if (foundCategoryIt == propertyToProfileCategory.cend()) {
+            error = "Invalid test filter property '" + referenceVariant + "'";
+            return;
+        }
+
+        ProfileCategory selectedFilterCategory = foundCategoryIt->second;
+        for (auto allowedVariantIt = ++(allowedVariants.cbegin()); allowedVariantIt != allowedVariants.cend(); ++allowedVariantIt) {
+            auto& currentVariant = *allowedVariantIt;
+            auto nextCategoryIt = propertyToProfileCategory.find(currentVariant);
+            if (nextCategoryIt == propertyToProfileCategory.cend()) {
+                error = "Invalid test filter property '" + referenceVariant + "'";
+                return;
+            }
+            auto& currentCategory = nextCategoryIt->second;
+            if (currentCategory != selectedFilterCategory) {
+                error = "Mismatched comma-separated test filter properties '" + referenceVariant + "' and '" + currentVariant + "'";
+                return;
+            }
+            // List of comma-separated test property variants is consistent so far
+        }
+
+        switch (selectedFilterCategory) {
+        case ProfileCategory::TIER:
+            allowedTiers.insert(allowedTiers.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+            break;
+        case ProfileCategory::OS:
+            allowedOperatingSystems.insert(allowedOperatingSystems.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+            break;
+        case ProfileCategory::GPU:
+            allowedGPUs.insert(allowedGPUs.cend(), allowedVariants.cbegin(), allowedVariants.cend());
+            break;
+        }
+    }
+}
+
+bool TestFilter::isValid() const {
+    return error.isEmpty();
+}
+
+QString TestFilter::getError() const {
+    return error;
+}
+
 ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     ExtractedText relevantTextFromTest;
 
@@ -511,7 +600,7 @@ ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     QString line = stream.readLine();
 
     // Name of test is the string in the following line:
-    //        nitpick.perform("Apply Material Entities to Avatars", Script.resolvePath("."), function(testType) {...
+    //        nitpick.perform("Apply Material Entities to Avatars", Script.resolvePath("."), "secondary", undefined, function(testType) {...
     const QString ws("\\h*");    //white-space character
     const QString functionPerformName(ws + "nitpick" + ws + "\\." + ws + "perform");
     const QString quotedString("\\\".+\\\"");
@@ -644,6 +733,17 @@ void TestCreator::createAllMDFiles() {
     QMessageBox::information(0, "Success", "MD files have been created");
 }
 
+QString joinVector(const std::vector<QString>& qStringVector, const char* separator) {
+    if (qStringVector.empty()) {
+        return QString("");
+    }
+    QString joined = qStringVector[0];
+    for (std::size_t i = 1; i < qStringVector.size(); ++i) {
+        joined += separator + qStringVector[i];
+    }
+    return joined;
+}
+
 bool TestCreator::createMDFile(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
@@ -655,33 +755,73 @@ bool TestCreator::createMDFile(const QString& directory) {
 
     ExtractedText testScriptLines = getTestScriptLines(testFileName);
 
+    QDir qDirectory(directory);
+
     QString mdFilename(directory + "/" + "test.md");
     QFile mdFile(mdFilename);
     if (!mdFile.open(QIODevice::WriteOnly)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
+        // TODO: Don't just exit
         exit(-1);
     }
 
     QTextStream stream(&mdFile);
 
-    //TestCreator title
     QString testName = testScriptLines.title;
     stream << "# " << testName << "\n";
 
     stream << "## Run this script URL: [Manual](./test.js?raw=true)   [Auto](./testAuto.js?raw=true)(from menu/Edit/Open and Run scripts from URL...)."  << "\n\n";
 
     stream << "## Preconditions" << "\n";
-    stream << "- In an empty region of a domain with editing rights." << "\n\n";
+    stream << "- In an empty region of a domain with editing rights." << "\n";
+    stream << "\n";
+
+    // ExpectedImage_00000.png OR ExpectedImage_some_stu-ff_00000.png
+    const QRegularExpression firstExpectedImage("^ExpectedImage(_[-_\\w]*)?_00000\\.png$");
+    std::vector<QString> testDescriptors;
+    std::vector<TestFilter> testFilters;
+
+    for (const auto& potentialImageFile : qDirectory.entryInfoList()) {
+        if (potentialImageFile.isDir()) {
+            continue;
+        }
+
+        auto firstExpectedImageMatch = firstExpectedImage.match(potentialImageFile.fileName());
+        if (!firstExpectedImageMatch.hasMatch()) {
+            continue;
+        }
+
+        QString testDescriptor = firstExpectedImageMatch.captured(1);
+        auto filterString = QString(testDescriptor).replace("_", ".").replace("-", ",");
+        TestFilter descriptorAsFilter(filterString);
+
+        testDescriptors.push_back(testDescriptor);
+        testFilters.push_back(descriptorAsFilter);
+    }
 
     stream << "## Steps\n";
     stream << "Press '" + ADVANCE_KEY + "' key to advance step by step\n\n"; // note apostrophes surrounding 'ADVANCE_KEY'
-
     int snapShotIndex { 0 };
     for (size_t i = 0; i < testScriptLines.stepList.size(); ++i) {
         stream << "### Step " << QString::number(i + 1) << "\n";
         stream << "- " << testScriptLines.stepList[i]->text << "\n";
         if ((i + 1 < testScriptLines.stepList.size()) && testScriptLines.stepList[i]->takeSnapshot) {
-            stream << "- ![](./ExpectedImage_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
+            for (int i = 0; i < (int)testDescriptors.size(); ++i) {
+                const auto& testDescriptor = testDescriptors[i];
+                const auto& descriptorAsFilter = testFilters[i];
+                if (descriptorAsFilter.isValid()) {
+                    stream << "- Expected image on ";
+                    stream << (descriptorAsFilter.allowedTiers.empty() ? "any" : joinVector(descriptorAsFilter.allowedTiers, "/")) << " tier, ";
+                    stream << (descriptorAsFilter.allowedOperatingSystems.empty() ? "any" : joinVector(descriptorAsFilter.allowedOperatingSystems, "/")) << " OS, ";
+                    stream << (descriptorAsFilter.allowedGPUs.empty() ? "any" : joinVector(descriptorAsFilter.allowedGPUs, "/")) << " GPU";
+                    stream << ":";
+                } else {
+                    // Fall back to displaying file name
+                    stream << "- ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png";
+                }
+                stream << "\n";
+                stream << "- ![](./ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
+            }
             ++snapShotIndex;
         }
     }
