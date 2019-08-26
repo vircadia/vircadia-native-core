@@ -150,7 +150,7 @@ function getClapPosition() {
     var validLeftJoints = ["LeftHandMiddle2", "LeftHand", "LeftArm"];
     var leftPosition = getValidJointPosition(validLeftJoints);
 
-    var validRightJoints = ["RightHandMiddle2", "RightHand", "RightArm"];;
+    var validRightJoints = ["RightHandMiddle2", "RightHand", "RightArm"];
     var rightPosition = getValidJointPosition(validRightJoints);
 
     var centerPosition = Vec3.sum(leftPosition, rightPosition);
@@ -287,6 +287,7 @@ function mouseMoveEvent(event) {
 }
 
 
+var WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS = 2000;
 function triggerReactionWrapper(reaction) {
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
@@ -294,6 +295,9 @@ function triggerReactionWrapper(reaction) {
 
     MyAvatar.triggerReaction(reaction);
     updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
+    Script.setTimeout(function() {
+        updateEmoteIndicatorIcon("images/emote_Icon.svg");
+    }, WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS);
 }
 
 function maybeClearReticleUpdateLimiterTimeout() {
@@ -326,7 +330,6 @@ function endReactionWrapper(reaction) {
                 mouseMoveEventsConnected = false;
             }
             maybeClearReticleUpdateLimiterTimeout();
-            intersectedEntityOrAvatarID = null;
             deleteOldReticles();
             break;
     }
@@ -538,6 +541,7 @@ var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
+var customEmojiCodeMap;
 function init() {
     deleteOldReticles();
 
