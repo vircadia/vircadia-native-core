@@ -1225,8 +1225,8 @@ void LimitedNodeList::connectedForLocalSocketTest() {
         auto localHostAddress = localIPTestSocket->localAddress();
 
         if (localHostAddress.protocol() == QAbstractSocket::IPv4Protocol) {
-            _hasTCPCheckedLocalSocket = true;
             setLocalSocket(HifiSockAddr { localHostAddress, _nodeSocket.localPort() });
+            _hasTCPCheckedLocalSocket = true;
         }
 
         localIPTestSocket->deleteLater();
@@ -1244,7 +1244,7 @@ void LimitedNodeList::errorTestingLocalSocket() {
             setLocalSocket(HifiSockAddr { getGuessedLocalAddress(), _nodeSocket.localPort() });
         }
 
-        localIPTestSocket->deleteLater();;
+        localIPTestSocket->deleteLater();
     }
 }
 
