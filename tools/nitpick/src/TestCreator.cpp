@@ -817,7 +817,7 @@ bool TestCreator::createMDFile(const QString& directory) {
                     stream << ":";
                 } else {
                     // Fall back to displaying file name
-                    stream << "ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png";
+                    stream << "- ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png";
                 }
                 stream << "\n";
                 stream << "- ![](./ExpectedImage" << testDescriptor << "_" << QString::number(snapShotIndex).rightJustified(5, '0') << ".png)\n";
