@@ -15,8 +15,6 @@
 #include <QHostInfo>
 #include <QImageReader>
 #include <QImageWriter>
-#include <QJsonDocument>
-#include <QJsonArray>
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
@@ -499,24 +497,20 @@ void TestCreator::createTests(const QString& clientProfile) {
     QMessageBox::information(0, "Success", "Test images have been created");
 }
 
-void ExtractedText::error(const QString& fileName, const QString& error) {
-    QMessageBox::critical(0,
-        "Test File Parse Error",
-        error + " Test file: '" + fileName + "'"
-    );
-    hasError = true;
-}
+namespace TestProfile {
+    std::vector<QString> tiers = [](){
+        std::vector<QString> toReturn;
+        for (int tier = (int)platform::Profiler::Tier::LOW; tier < (int)platform::Profiler::Tier::NumTiers; ++tier) {
+            QString tierStringUpper = platform::Profiler::TierNames[tier];
+            toReturn.push_back(tierStringUpper.toLower());
+        }
+        return toReturn;
+    }();
 
-const std::vector<QString> TestProfile::tiers = [](){
-    std::vector<QString> toReturn;
-    for (int tier = (int)platform::Profiler::Tier::LOW; tier < (int)platform::Profiler::Tier::NumTiers; ++tier) {
-        QString tierStringUpper = platform::Profiler::TierNames[tier];
-        toReturn.push_back(tierStringUpper.toLower());
-    }
-    return toReturn;
-}();
-const std::vector<QString> TestProfile::operatingSystems = { "windows", "mac", "linux", "android" };
-const std::vector<QString> TestProfile::gpus = { "amd", "nvidia", "intel" };
+    std::vector<QString> operatingSystems = { "windows", "mac", "linux", "android" };
+
+    std::vector<QString> gpus = { "amd", "nvidia", "intel" };
+};
 
 enum class ProfileCategory {
     TIER,
@@ -536,18 +530,6 @@ const std::map<QString, ProfileCategory> propertyToProfileCategory = [](){
     }
     return toReturn;
 }();
-
-std::vector<TestProfile> TestProfile::getAllTestProfiles() {
-    std::vector<TestProfile> testProfiles;
-    for (int tier = (int)platform::Profiler::Tier::LOW; tier < (int)platform::Profiler::Tier::NumTiers; ++tier) {
-        for (const auto& os : operatingSystems) {
-            for (const auto& gpu : gpus) {
-                testProfiles.push_back(TestProfile((platform::Profiler::Tier)tier, os, gpu));
-            }
-        }
-    }
-    return testProfiles;
-}
 
 TestFilter::TestFilter(const QString& filterString) {
     auto filterParts = filterString.split(".", QString::SkipEmptyParts);
@@ -594,13 +576,6 @@ TestFilter::TestFilter(const QString& filterString) {
     }
 }
 
-bool TestFilter::matches(const TestProfile& testProfile) const {
-    return isValid() &&
-           (allowedTiers.empty() || std::find(allowedTiers.cbegin(), allowedTiers.cend(), testProfile.tier) != allowedTiers.cend()) &&
-           (allowedOperatingSystems.empty() || std::find(allowedOperatingSystems.cbegin(), allowedOperatingSystems.cend(), testProfile.os) != allowedOperatingSystems.cend()) &&
-           (allowedGPUs.empty() || std::find(allowedGPUs.cbegin(), allowedGPUs.cend(), testProfile.gpu) != allowedGPUs.cend());
-}
-
 bool TestFilter::isValid() const {
     return error.isEmpty();
 }
@@ -608,12 +583,6 @@ bool TestFilter::isValid() const {
 QString TestFilter::getError() const {
     return error;
 }
-
-enum class ParseTarget {
-    PERFORM_FUNCTION = 0,
-    TEST_FILTER,
-    NITPICK_COMMANDS
-};
 
 ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     ExtractedText relevantTextFromTest;
@@ -627,19 +596,16 @@ ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
         );
     }
 
+    QTextStream stream(&inputFile);
+    QString line = stream.readLine();
+
     // Name of test is the string in the following line:
     //        nitpick.perform("Apply Material Entities to Avatars", Script.resolvePath("."), "secondary", undefined, function(testType) {...
-    const QString ws("\\h*");    // One or more white-space characters
+    const QString ws("\\h*");    //white-space character
     const QString functionPerformName(ws + "nitpick" + ws + "\\." + ws + "perform");
-    const QString quote("[\"\']");
-    const QString notAQuote("[^\"\']");
-    const QString quotedString(quote + notAQuote + "*" + quote);
+    const QString quotedString("\\\".+\\\"");
     QString regexTestTitle(ws + functionPerformName + "\\(" + quotedString);
     QRegularExpression lineContainingTitle = QRegularExpression(regexTestTitle);
-
-    // Test filter, for example: undefined, [["high"]], [["linux,mac,windows", "tier.gpu"]], etc...
-    // This is currently the only Nitpick property that can be set to undefined
-    const QRegularExpression testFilter = QRegularExpression("(undefined|(\\[[\\[\"'\\w\\h\\.,\\]]*\\])*)" + ws + ",");
 
 
     // Each step is either of the following forms:
@@ -653,86 +619,29 @@ ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     const QString regexStep(ws + functionAddStepName + ws + "\\(" + ws + quotedString + ".*");
     const QRegularExpression lineStep = QRegularExpression(regexStep);
 
-    QTextStream stream(&inputFile);
-    int lineNumber = 1;
-    ParseTarget parseTarget = ParseTarget::PERFORM_FUNCTION;
-    for (QString line = stream.readLine(); !line.isNull(); line = stream.readLine()) {
-        switch (parseTarget) {
-        case ParseTarget::PERFORM_FUNCTION:
-            if (lineContainingTitle.match(line).hasMatch()) {
-                QStringList tokens = line.split('"');
-                relevantTextFromTest.title = tokens[1];
-                parseTarget = ParseTarget::TEST_FILTER;
-            } else {
-                break;
-            }
-        case ParseTarget::TEST_FILTER:
-            {
-                auto result = testFilter.match(line);
-                if (result.hasMatch()) {
-                    // Therefore, must be in the form of a list, ideally a double list [[...]]
-                    QString filterListDefinition = result.captured(1);
-                    if (filterListDefinition != "undefined") {
-                        std::string filterListDefinitionStd = filterListDefinition.toStdString();
-                        QJsonDocument filterListJSON = QJsonDocument::fromRawData(filterListDefinitionStd.c_str(), (int)filterListDefinitionStd.size());
-                        QJsonArray filterList = filterListJSON.array();
+    while (!line.isNull()) {
+        line = stream.readLine();
+        if (lineContainingTitle.match(line).hasMatch()) {
+            QStringList tokens = line.split('"');
+            relevantTextFromTest.title = tokens[1];
+        } else if (lineStepSnapshot.match(line).hasMatch()) {
+            QStringList tokens = line.split('"');
+            QString nameOfStep = tokens[1];
 
-                        std::vector<TestFilter> testFilters;
-                        testFilters.reserve((size_t)filterList.size());
-                        for (const auto& filter : filterList) {
-                            QJsonArray filterArgs = filter.toArray();
-                            if (filterArgs.isEmpty()) {
-                                relevantTextFromTest.error(testFileName, "Invalid empty list of test filters at line " + QString::number(lineNumber) + ".");
-                                return relevantTextFromTest;
-                            }
+            Step *step = new Step();
+            step->text = nameOfStep;
+            step->takeSnapshot = true;
+            relevantTextFromTest.stepList.emplace_back(step);
 
-                            auto filterString = filterArgs[0].toString();
-                            TestFilter testFilter(filterString);
-                            if (!testFilter.isValid()) {
-                                relevantTextFromTest.error(testFileName, testFilter.getError() + " at line " + QString::number(lineNumber) + ".");
-                                return relevantTextFromTest;
-                            } else {
-                                testFilters.push_back(testFilter);
-                            }
-                        }
+        } else if (lineStep.match(line).hasMatch()) {
+            QStringList tokens = line.split('"');
+            QString nameOfStep = tokens[1];
 
-                        std::vector<TestProfile> allowedVariants;
-                        for (const auto& variant : TestProfile::getAllTestProfiles()) {
-                            for (const auto& filter : testFilters) {
-                                if (filter.matches(variant)) {
-                                    allowedVariants.push_back(variant);
-                                }
-                            }
-                        }
-                        relevantTextFromTest.expectedImageProfileVariants = allowedVariants;
-
-                        parseTarget = ParseTarget::NITPICK_COMMANDS;
-                    }
-                }
-            }
-            break;
-        case ParseTarget::NITPICK_COMMANDS:
-            if (lineStepSnapshot.match(line).hasMatch()) {
-                QStringList tokens = line.split('"');
-                QString nameOfStep = tokens[1];
-
-                Step *step = new Step();
-                step->text = nameOfStep;
-                step->takeSnapshot = true;
-                relevantTextFromTest.stepList.emplace_back(step);
-            } else if (lineStep.match(line).hasMatch()) {
-                QStringList tokens = line.split('"');
-                QString nameOfStep = tokens[1];
-
-                Step *step = new Step();
-                step->text = nameOfStep;
-                step->takeSnapshot = false;
-                relevantTextFromTest.stepList.emplace_back(step);
-            }
-            break;
+            Step *step = new Step();
+            step->text = nameOfStep;
+            step->takeSnapshot = false;
+            relevantTextFromTest.stepList.emplace_back(step);
         }
-
-        ++lineNumber;
     }
 
     inputFile.close();
@@ -835,7 +744,6 @@ QString joinVector(const std::vector<QString>& qStringVector, char* separator) {
     return joined;
 }
 
-// TODO: Rename this function + related functions, testScriptLines
 bool TestCreator::createMDFile(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
@@ -846,9 +754,6 @@ bool TestCreator::createMDFile(const QString& directory) {
     }
 
     ExtractedText testScriptLines = getTestScriptLines(testFileName);
-    if (testScriptLines.hasError) {
-        return false;
-    }
 
     QDir qDirectory(directory);
 
