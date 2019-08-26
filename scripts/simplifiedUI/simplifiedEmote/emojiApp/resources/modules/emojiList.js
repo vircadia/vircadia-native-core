@@ -2987,8 +2987,7 @@ var emojiList = [
         "shortName": "unamused face",
         "keywords": [
             "face",
-            "unamused",
-            "unhappy"
+            "unamused"
         ],
         "mainCategory": "Smileys & Emotion",
         "subCategory": "face-neutral-skeptical",
@@ -38734,10 +38733,7 @@ var emojiList = [
         }
     }
 ]
-try {
-    if (module) {
-        module.exports = emojiList;
-    }
-} catch (e) {
-    console.log("error exporting:\n", e);
+
+if (module.exports) {
+    module.exports = emojiList;
 }

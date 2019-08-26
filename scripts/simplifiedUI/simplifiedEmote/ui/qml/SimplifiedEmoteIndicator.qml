@@ -171,10 +171,10 @@ Rectangle {
                 id: buttonsModel
                 ListElement { imageURL: "images/positive_Icon.svg"; hotkey: "Z"; method: "positive" }
                 ListElement { imageURL: "images/negative_Icon.svg"; hotkey: "X"; method: "negative" }
-                ListElement { imageURL: "images/raiseHand_Icon.svg"; hotkey: "C"; method: "raiseHand" }
-                ListElement { imageURL: "images/applaud_Icon.svg"; hotkey: "V"; method: "applaud" }
+                ListElement { imageURL: "images/applaud_Icon.svg"; hotkey: "C"; method: "applaud" }
+                ListElement { imageURL: "images/raiseHand_Icon.svg"; hotkey: "V"; method: "raiseHand" }
                 ListElement { imageURL: "images/point_Icon.svg"; hotkey: "B"; method: "point" }
-                ListElement { imageURL: "images/emote_Icon.svg"; hotkey: "F"; method: "toggleEmojiApp" }
+                ListElement { imageURL: "images/emoji_Icon.svg"; hotkey: "F"; method: "toggleEmojiApp" }
             }
 
             Rectangle {
@@ -211,7 +211,7 @@ Rectangle {
                     opacity: 0.8
                     radius: 4
 
-                    HifiStylesUit.GraphikRegular {
+                    HifiStylesUit.GraphikSemiBold {
                         id: toolTipText
                         anchors.left: parent.left
                         anchors.leftMargin: 2
@@ -222,7 +222,7 @@ Rectangle {
                         verticalAlignment: TextInput.AlignBottom
                         horizontalAlignment: TextInput.AlignLeft
                         color: simplifiedUI.colors.text.white
-                        size: 22
+                        size: 20
                     }
                 }
 
@@ -230,16 +230,36 @@ Rectangle {
                     id: emoteTrayMouseArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: {
-                        Tablet.playSound(TabletEnums.ButtonClick);
-                        sendToScript({
-                            "source": "EmoteAppBar.qml",
-                            "method": model.method
-                        });
-                    }
 
                     onEntered: {
                         Tablet.playSound(TabletEnums.ButtonHover);
+                    }
+
+                    onPressed: {
+                        Tablet.playSound(TabletEnums.ButtonClick);
+                        sendToScript({
+                            "source": "EmoteAppBar.qml",
+                            "method": model.method,
+                            "data": { "isPressingAndHolding": true }
+                        });
+                    }
+
+                    onReleased: {
+                        sendToScript({
+                            "source": "EmoteAppBar.qml",
+                            "method": model.method,
+                            "data": { "isPressingAndHolding": false }
+                        });
+                    }
+
+                    onExited: {
+                        if (pressed) {
+                            sendToScript({
+                                "source": "EmoteAppBar.qml",
+                                "method": model.method,
+                                "data": { "isPressingAndHolding": false }
+                            });
+                        }
                     }
                 }
             }

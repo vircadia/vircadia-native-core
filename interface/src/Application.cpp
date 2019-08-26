@@ -3562,6 +3562,9 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
         surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
+        // This `module` context property is blank for the QML scripting interface so that we don't get log errors when importing
+        // certain JS files from both scripts (in the JS context) and QML (in the QML context).
+        surfaceContext->setContextProperty("module", "");
     }
 }
 
