@@ -3,13 +3,17 @@
 #include <QQuickView>
 #include <QString>
 #include <QtPlugin>
-/*Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+//Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
-Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);*/
+Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
 int main(int argc, char *argv[])
 {
     QString name { "QtExamples" };
+
+
+    std::cout << "Hello world\n";
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
 
@@ -17,7 +21,7 @@ int main(int argc, char *argv[])
 
     QQuickView view;
     view.setFlags(Qt::FramelessWindowHint);
-    view.setSource(QUrl("/Users/danteruiz/github/test/qml/root.qml"));
+    //view.setSource(QUrl("/Users/danteruiz/github/test/qml/root.qml"));
     if (view.status() == QQuickView::Error)
         return -1;
     view.setResizeMode(QQuickView::SizeRootObjectToView);

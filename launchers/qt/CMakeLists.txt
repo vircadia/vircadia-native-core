@@ -8,13 +8,14 @@ set(CMAKE_AUTORCC ON)
 #set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-
 foreach(plugin ${Qt5Gui_PLUGINS})
   get_target_property(_loc ${plugin} LOCATION)
   message("Plugin ${plugin} is at location ${_loc}")
   set(plugin_libs ${plugin_libs} ${_loc})
+endforeach()
+
+foreach(qt_lib_name ${Qt_LIBRARIES})
+  message("lib ${qt_lib_name} is at location")
 endforeach()
 
 set(src_files
@@ -28,8 +29,25 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   Qt5::QuickControls2
   Qt5::Qml
   Qt5::Gui
+  Qt5::Network
+  ${Qt_LIBRARIES}
   ${OPENGL_LIBRARIES}
-  ${plugin_libs})
+  ${plugin_libs}
+  wsock32 ws2_32 Winmm version imm32 dwmapi
+  "${_qt5Core_install_prefix}/lib/qtpcre2.lib"
+  "${_qt5Core_install_prefix}/lib/qtlibpng.lib"
+  "${_qt5Core_install_prefix}/lib/qtfreetype.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5AccessibilitySupport.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5FbSupport.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5OpenGLExtensions.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5QuickTemplates2.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5FontDatabaseSupport.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5ThemeSupport.lib"
+#  "${_qt5Core_install_prefix}/lib/Qt5Bootstrap.lib"
+  "${_qt5Core_install_prefix}/lib/Qt5EventDispatcherSupport.lib"
+  "${_qt5Core_install_prefix}/qml/QtQuick.2/qtquick2plugin.lib"
+  "${_qt5Core_install_prefix}/qml/QtQuick/Controls.2/qtquickcontrols2plugin.lib"
+  "${_qt5Core_install_prefix}/qml/QtQuick/Templates.2/qtquicktemplates2plugin.lib")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${Qt5Core_INCLUDE_DIRS}
