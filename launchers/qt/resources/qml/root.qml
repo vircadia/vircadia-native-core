@@ -6,7 +6,7 @@ Image {
     id: root
     width: 515
     height: 450
-    source: "../images/Hifi_window@2x.png"
+    source: "../images/hifi_window@2x.png"
 
     Text {
         id: text
