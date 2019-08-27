@@ -1036,7 +1036,7 @@ bool getProcessorInfo(ProcessorInfo& info) {
 
 
 const QString& getInterfaceSharedMemoryName() {
-    static const QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
+    static const QString applicationName = "High Fidelity - " + qgetenv("USERNAME");
     return applicationName;
 }
 
