@@ -139,6 +139,28 @@ Rectangle {
             opacity: emoteIndicator.source.toString().indexOf("Icon.svg") > -1 ? 1.0 : 0.0
         }
 
+        Image {
+            id: lockIcon
+            width: 12
+            height: 12
+            anchors.top: parent.top
+            anchors.topMargin: 2
+            anchors.left: parent.left
+            anchors.leftMargin: 0
+            source: "images/lock_Icon.svg"
+            fillMode: Image.PreserveAspectFit
+            mipmap: true
+            visible: false
+        }
+
+        ColorOverlay {
+            id: lockIconColorOverlay
+            anchors.fill: lockIcon
+            source: lockIcon
+            color: "#ffffff"
+            visible: drawerContainer.keepDrawerExpanded
+        }
+
         MouseArea {
             id: emoteIndicatorMouseArea
             anchors.fill: parent
@@ -147,14 +169,21 @@ Rectangle {
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
                 drawerContainer.keepDrawerExpanded = !drawerContainer.keepDrawerExpanded;
+                // If the drawer is no longer expanded, disable this MouseArea (which will close
+                // the emote tray) until the user's cursor leaves the MouseArea (see `onExited()` below).
+                if (!drawerContainer.keepDrawerExpanded) {
+                    emoteIndicatorMouseArea.enabled = false;
+                }
             }
 
             onEntered: {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }
-        }
 
-        
+            onExited: {
+                emoteIndicatorMouseArea.enabled = true;
+            }
+        }
     }
 
     Row {
