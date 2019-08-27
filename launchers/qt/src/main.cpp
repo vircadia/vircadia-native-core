@@ -3,6 +3,8 @@
 #include <QQuickView>
 #include <QString>
 #include <QtPlugin>
+#include <QResource>
+#include <QFileInfo>
 //Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 Q_IMPORT_PLUGIN(QtQuick2Plugin);
@@ -19,9 +21,12 @@ int main(int argc, char *argv[])
 
     QGuiApplication app(argc, argv);
 
+    QString resourceBinaryLocation =  QGuiApplication::applicationDirPath() + "/resources.rcc";
+    QResource::registerResource(resourceBinaryLocation);
+
     QQuickView view;
     view.setFlags(Qt::FramelessWindowHint);
-    //view.setSource(QUrl("/Users/danteruiz/github/test/qml/root.qml"));
+    view.setSource(QUrl("qrc:/qml/root.qml"));
     if (view.status() == QQuickView::Error)
         return -1;
     view.setResizeMode(QQuickView::SizeRootObjectToView);
