@@ -168,8 +168,16 @@ void AnimRandomSwitch::addState(RandomSwitchState::Pointer randomState) {
 }
 
 void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp) {
+
+    auto prevStateNode = _children[_currentState->getChildIndex()];
     auto nextStateNode = _children[desiredState->getChildIndex()];
+
+    // activate/deactivate states
+    prevStateNode->setActive(false);
+    nextStateNode->setActive(true);
+
     _lastPlayedState = nextStateNode->getID();
+
     if (shouldInterp) {
 
         bool interpActive = _duringInterp;
