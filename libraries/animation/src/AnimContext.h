@@ -34,6 +34,13 @@ enum class AnimNodeType {
     NumTypes
 };
 
+enum AnimBlendType {
+    AnimBlendType_Normal,
+    AnimBlendType_AddRelative,
+    AnimBlendType_AddAbsolute,
+    AnimBlendType_NumTypes
+};
+
 class AnimContext {
 public:
     AnimContext() {}

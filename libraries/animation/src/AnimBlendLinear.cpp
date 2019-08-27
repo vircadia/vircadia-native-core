@@ -14,9 +14,10 @@
 #include "AnimUtil.h"
 #include "AnimClip.h"
 
-AnimBlendLinear::AnimBlendLinear(const QString& id, float alpha) :
+AnimBlendLinear::AnimBlendLinear(const QString& id, float alpha, AnimBlendType blendType) :
     AnimNode(AnimNode::Type::BlendLinear, id),
-    _alpha(alpha) {
+    _alpha(alpha),
+    _blendType(blendType) {
 
 }
 
@@ -79,7 +80,23 @@ void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, c
         if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
             _poses.resize(prevPoses.size());
 
-            ::blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+            if (_blendType == AnimBlendType_Normal) {
+                ::blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+            } else if (_blendType == AnimBlendType_AddRelative) {
+                ::blendAdd(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+            } else if (_blendType == AnimBlendType_AddAbsolute) {
+                // onvert from relative to absolute
+                AnimPoseVec prev = prevPoses;
+                _skeleton->convertRelativePosesToAbsolute(prev);
+                AnimPoseVec next = nextPoses;
+                _skeleton->convertRelativePosesToAbsolute(next);
+
+                // then blend
+                ::blendAdd(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
+
+                // convert result back into relative
+                _skeleton->convertAbsolutePosesToRelative(_poses);
+            }
         }
     }
 }

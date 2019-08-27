@@ -161,6 +161,19 @@ static EasingType stringToEasingType(const QString& str) {
     }
 }
 
+static AnimBlendType stringToAnimBlendType(const QString& str) {
+    if (str == "normal") {
+        return AnimBlendType_Normal;
+    } else if (str == "addRelative") {
+        return AnimBlendType_AddRelative;
+    } else if (str == "addAbsolute") {
+        return AnimBlendType_AddAbsolute;
+    } else {
+        return AnimBlendType_NumTypes;
+    }
+}
+
+
 static const char* animManipulatorJointVarTypeToString(AnimManipulator::JointVar::Type type) {
     switch (type) {
     case AnimManipulator::JointVar::Type::Absolute: return "absolute";
@@ -413,10 +426,19 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
 static AnimNode::Pointer loadBlendLinearNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
     READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
-
+    READ_OPTIONAL_STRING(blendType, jsonObj);
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
 
-    auto node = std::make_shared<AnimBlendLinear>(id, alpha);
+    AnimBlendType blendTypeEnum = AnimBlendType_Normal;  // default value
+    if (!blendType.isEmpty()) {
+        blendTypeEnum = stringToAnimBlendType(blendType);
+        if (blendTypeEnum == AnimBlendType_NumTypes) {
+            qCCritical(animation) << "AnimNodeLoader, bad blendType on blendLinear, id = " << id;
+            return nullptr;
+        }
+    }
+
+    auto node = std::make_shared<AnimBlendLinear>(id, alpha, blendTypeEnum);
 
     if (!alphaVar.isEmpty()) {
         node->setAlphaVar(alphaVar);

@@ -16,6 +16,9 @@
 // this is where the magic happens
 void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result);
 
+// additive blending
+void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result);
+
 glm::quat averageQuats(size_t numQuats, const glm::quat* quats);
 
 float accumulateTime(float startFrame, float endFrame, float timeScale, float currentFrame, float dt, bool loopFlag,
