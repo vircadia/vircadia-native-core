@@ -31,6 +31,9 @@ Rectangle {
     // if this is true, then hovering doesn't allow showing other icons
     property bool isSelected: false
 
+    KeyNavigation.backtab: emojiSearchTextField
+    KeyNavigation.tab: emojiSearchTextField
+
     // Update the selected emoji image whenever the code property is changed.
     onCurrentCodeChanged: {
         mainEmojiImage.source = emojiBaseURL + currentCode;
@@ -209,6 +212,18 @@ Rectangle {
             }
         }
     }
+    
+    // If this MouseArea is hit, the user is clicking on an area not handled
+    // by any other MouseArea
+    MouseArea {
+        anchors.fill: parent
+        onClicked: {
+            // The grid will forward keypresses to the main Interface window
+            grid.forceActiveFocus();
+            // Necessary to get keyboard keyPress/keyRelease forwarding to work. See `Application::hasFocus()`;
+            Window.setFocus();
+        }
+    }
 
     Rectangle {
         id: emojiIndicatorContainer
@@ -302,6 +317,7 @@ Rectangle {
                     MouseArea {
                         hoverEnabled: enabled
                         anchors.fill: parent
+                        propagateComposedEvents: false
                         onEntered: {
                             grid.currentIndex = index
                             // don't allow a hover image change of the main emoji image 
@@ -313,6 +329,10 @@ Rectangle {
                         }
                         onClicked: {
                             root.selectEmoji(model.code.utf);
+                            // The grid will forward keypresses to the main Interface window
+                            grid.forceActiveFocus();
+                            // Necessary to get keyboard keyPress/keyRelease forwarding to work. See `Application::hasFocus()`;
+                            Window.setFocus();
                         }
                     }
                 }
@@ -330,6 +350,10 @@ Rectangle {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
                     root.selectEmoji(grid.model.get(grid.currentIndex).code.utf);
                 }
+                root.keyPressEvent(event.key, event.modifiers);
+            }
+            Keys.onReleased: {
+                root.keyReleaseEvent(event.key, event.modifiers);
             }
         }
 
@@ -429,6 +453,7 @@ Rectangle {
                 id: attributionMouseArea
                 hoverEnabled: enabled
                 anchors.fill: parent
+                propagateComposedEvents: false
                 onClicked: {
                     popupContainer.visible = true;
                 }
@@ -458,8 +483,15 @@ Rectangle {
         }
     }
 
-
-    signal sendToScript(var message);
+    signal sendToScript(var message)
+    signal keyPressEvent(int key, int modifiers)
+    signal keyReleaseEvent(int key, int modifiers)
+    Keys.onPressed: {
+        root.keyPressEvent(event.key, event.modifiers);
+    }
+    Keys.onReleased: {
+        root.keyReleaseEvent(event.key, event.modifiers);
+    }
 
     function fromScript(message) {
         if (message.source !== "simplifiedEmoji.js") {

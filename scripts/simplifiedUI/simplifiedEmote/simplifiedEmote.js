@@ -127,14 +127,51 @@ function getSounds() {
 }
 
 
+// Returns the first valid joint position from the list of supplied test joint positions.
+// If none are valid, returns MyAvatar.position.
+function getValidJointPosition(jointsToTest) {
+    var currentJointIndex;
+
+    for (var i = 0; i < jointsToTest.length; i++) {
+        currentJointIndex = MyAvatar.getJointIndex(jointsToTest[i]);
+
+        if (currentJointIndex > -1) {
+            return MyAvatar.getJointPosition(jointsToTest[i]);
+        }
+    }
+
+    return Vec3.sum(MyAvatar.position, Vec3.multiply(0.25, Quat.getForward(MyAvatar.orientation)));
+} 
+
+
+// Returns the world position halfway between the user's hands
+var HALF = 0.5;
+function getClapPosition() {
+    var validLeftJoints = ["LeftHandMiddle2", "LeftHand", "LeftArm"];
+    var leftPosition = getValidJointPosition(validLeftJoints);
+
+    var validRightJoints = ["RightHandMiddle2", "RightHand", "RightArm"];
+    var rightPosition = getValidJointPosition(validRightJoints);
+
+    var centerPosition = Vec3.sum(leftPosition, rightPosition);
+    centerPosition = Vec3.multiply(centerPosition, HALF);
+
+    return centerPosition;
+}
+
+
 var clapSoundInterval = false;
-var CLAP_SOUND_INTERVAL_MS = 260; // Must match the clap animation interval
+var CLAP_SOUND_INTERVAL_MS_FLOOR = 260;
+var CLAP_SOUND_INTERVAL_MS_CEIL = 320;
 function startClappingSounds() {
     maybeClearClapSoundInterval();
 
+    // Compute a random clap sound interval to avoid strange echos between many people clapping simultaneously
+    var clapSoundIntervalMS = Math.floor(randomFloat(CLAP_SOUND_INTERVAL_MS_FLOOR, CLAP_SOUND_INTERVAL_MS_CEIL));
+
     clapSoundInterval = Script.setInterval(function() {
-        playSound(clapSounds[Math.floor(Math.random() * clapSounds.length)], MyAvatar.position, true);
-    }, CLAP_SOUND_INTERVAL_MS);
+        playSound(clapSounds[Math.floor(Math.random() * clapSounds.length)], getClapPosition(), true);
+    }, clapSoundIntervalMS);
 }
 
 
@@ -151,10 +188,15 @@ function toggleReaction(reaction) {
 
     if (reactionEnding) {
         endReactionWrapper(reaction);
-        updateEmoteIndicatorIcon("images/emote_Icon.svg");
     } else {
         beginReactionWrapper(reaction);
-        updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
+    }
+}
+
+function maybeDeleteRemoteIndicatorTimeout() {
+    if (restoreEmoteIndicatorTimeout) {
+        Script.clearTimeout(restoreEmoteIndicatorTimeout);
+        restoreEmoteIndicatorTimeout = null;
     }
 }
 
@@ -162,6 +204,8 @@ var reactionsBegun = [];
 var pointReticle = null;
 var mouseMoveEventsConnected = false;
 function beginReactionWrapper(reaction) {
+    maybeDeleteRemoteIndicatorTimeout();
+
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
@@ -169,6 +213,8 @@ function beginReactionWrapper(reaction) {
     if (MyAvatar.beginReaction(reaction)) {
         reactionsBegun.push(reaction);
     }
+    
+    updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
 
     // Insert reaction-specific logic here:
     switch (reaction) {
@@ -235,10 +281,10 @@ function mouseMoveEvent(event) {
         Entities.editEntity(pointReticle, { position: reticlePosition });
     } else if (reticlePosition) {
         pointReticle = Entities.addEntity({
-            type: "Sphere",
+            type: "Box",
             name: "Point Reticle",
             position: reticlePosition,
-            dimensions: { x: 0.1, y: 0.1, z: 0.1 },
+            dimensions: { x: 0.075, y: 0.075, z: 0.075 },
             color: { red: 255, green: 0, blue: 0 },
             collisionless: true,
             ignorePickIntersection: true,
@@ -250,13 +296,22 @@ function mouseMoveEvent(event) {
 }
 
 
+var WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS = 2000;
+var restoreEmoteIndicatorTimeout;
 function triggerReactionWrapper(reaction) {
+    maybeDeleteRemoteIndicatorTimeout();
+
     reactionsBegun.forEach(function(react) {
         endReactionWrapper(react);
     });
 
     MyAvatar.triggerReaction(reaction);
     updateEmoteIndicatorIcon("images/" + reaction + "_Icon.svg");
+
+    restoreEmoteIndicatorTimeout = Script.setTimeout(function() {
+        updateEmoteIndicatorIcon("images/emote_Icon.svg");
+        restoreEmoteIndicatorTimeout = null;
+    }, WAIT_TO_RESTORE_EMOTE_INDICATOR_ICON_MS);
 }
 
 function maybeClearReticleUpdateLimiterTimeout() {
@@ -275,6 +330,8 @@ function endReactionWrapper(reaction) {
             reactionsBegun.splice(reactionsBegunIndex, 1);
         }
     }
+    
+    updateEmoteIndicatorIcon("images/emote_Icon.svg");
 
     // Insert reaction-specific logic here:
     switch (reaction) {
@@ -287,7 +344,6 @@ function endReactionWrapper(reaction) {
                 mouseMoveEventsConnected = false;
             }
             maybeClearReticleUpdateLimiterTimeout();
-            intersectedEntityOrAvatarID = null;
             deleteOldReticles();
             break;
     }
@@ -301,19 +357,35 @@ function onMessageFromEmoteAppBar(message) {
     }
     switch (message.method) {
         case "positive":
+            if (!message.data.isPressingAndHolding) {
+                return;
+            }
             triggerReactionWrapper("positive");
-            updateEmoteIndicatorIcon("images/" + message.method + "_Icon.svg");
             break;
         case "negative":
+            if (!message.data.isPressingAndHolding) {
+                return;
+            }
             triggerReactionWrapper("negative");
-            updateEmoteIndicatorIcon("images/" + message.method + "_Icon.svg");
             break;
-        case "raiseHand":
         case "applaud":
+            if (message.data.isPressingAndHolding) {
+                beginReactionWrapper(message.method);
+            } else {
+                endReactionWrapper(message.method);
+            }
+            break;
         case "point":
+        case "raiseHand":
+            if (!message.data.isPressingAndHolding) {
+                return;
+            }
             toggleReaction(message.method);
             break;
         case "toggleEmojiApp": 
+            if (!message.data.isPressingAndHolding) {
+                return;
+            }
             toggleEmojiApp();
             break;
         default:
@@ -363,8 +435,8 @@ function onWindowMinimizedChanged(isMinimized) {
 // for the tooltips to match the actual keys.
 var POSITIVE_KEY = "z";
 var NEGATIVE_KEY = "x";
-var RAISE_HAND_KEY = "c";
-var APPLAUD_KEY = "v";
+var APPLAUD_KEY = "c";
+var RAISE_HAND_KEY = "v";
 var POINT_KEY = "b";
 var EMOTE_WINDOW = "f";
 function keyPressHandler(event) {
@@ -383,7 +455,7 @@ function keyPressHandler(event) {
             toggleReaction("applaud");
         } else if (event.text === POINT_KEY) {
             toggleReaction("point");
-        } else if (event.text === EMOTE_WINDOW) {
+        } else if (event.text === EMOTE_WINDOW && !(Settings.getValue("io.highfidelity.isEditing", false))) {
             toggleEmojiApp();
         }
     }
@@ -392,17 +464,9 @@ function keyPressHandler(event) {
 
 function keyReleaseHandler(event) {
     if (!event.isAutoRepeat) {
-        if (event.text === RAISE_HAND_KEY) {
-            if (reactionsBegun.indexOf("raiseHand") > -1) {
-                toggleReaction("raiseHand");
-            }
-        } else if (event.text === APPLAUD_KEY) {
+        if (event.text === APPLAUD_KEY) {
             if (reactionsBegun.indexOf("applaud") > -1) {
                 toggleReaction("applaud");
-            }
-        } else if (event.text === POINT_KEY) {
-            if (reactionsBegun.indexOf("point") > -1) {
-                toggleReaction("point");
             }
         }
     }
@@ -491,6 +555,7 @@ var EmojiAPI = Script.require("./emojiApp/simplifiedEmoji.js");
 var emojiAPI = new EmojiAPI();
 var keyPressSignalsConnected = false;
 var emojiCodeMap;
+var customEmojiCodeMap;
 function init() {
     deleteOldReticles();
 
@@ -552,6 +617,7 @@ function shutdown() {
     emojiAPI.unload();
     maybeClearClapSoundInterval();
     maybeClearReticleUpdateLimiterTimeout();
+    maybeDeleteRemoteIndicatorTimeout();
 
     Window.minimizedChanged.disconnect(onWindowMinimizedChanged);
     Window.geometryChanged.disconnect(onGeometryChanged);
@@ -657,7 +723,6 @@ var EMOJI_APP_WINDOW_FLAGS = 0x00000001 | // Qt::Window
     0x00008000 | // Qt::WindowMaximizeButtonHint
     0x00004000; // Qt::WindowMinimizeButtonHint
 var emojiAppWindow = false;
-var POPOUT_SAFE_MARGIN_X = 30;
 var POPOUT_SAFE_MARGIN_Y = 30;
 var emojiAppWindowSignalsConnected = false;
 function toggleEmojiApp() {
@@ -678,7 +743,7 @@ function toggleEmojiApp() {
             y: EMOJI_APP_HEIGHT_PX
         },
         position: {
-            x: Math.max(Window.x + POPOUT_SAFE_MARGIN_X, Window.x + Window.innerWidth / 2 - EMOJI_APP_WIDTH_PX / 2),
+            x: Window.x + EMOTE_APP_BAR_LEFT_MARGIN,
             y: Math.max(Window.y + POPOUT_SAFE_MARGIN_Y, Window.y + Window.innerHeight / 2 - EMOJI_APP_HEIGHT_PX / 2)
         },
         overrideFlags: EMOJI_APP_WINDOW_FLAGS

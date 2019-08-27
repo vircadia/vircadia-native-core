@@ -129,7 +129,7 @@ CharacterController::CharacterController() {
     // ATM CharacterController is a singleton.  When we want more we'll have to
     // overhaul the applyPairwiseFilter() logic to handle multiple instances.
     ++_numCharacterControllers;
-    assert(numCharacterControllers == 1);
+    assert(_numCharacterControllers == 1);
 }
 
 CharacterController::~CharacterController() {
@@ -189,7 +189,7 @@ void CharacterController::addToWorld() {
     _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
     // enable CCD
-    _rigidBody->setCcdSweptSphereRadius(_radius);
+    _rigidBody->setCcdSweptSphereRadius(2.0f * (_radius + _halfHeight));
     _rigidBody->setCcdMotionThreshold(_radius);
 
     btCollisionShape* shape = _rigidBody->getCollisionShape();
@@ -225,6 +225,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     float deepestDistance = 0.0f;
     float strongestImpulse = 0.0f;
 
+    _netCollisionImpulse = btVector3(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < numManifolds; i++) {
         btPersistentManifold* contactManifold = dispatcher->getManifoldByIndexInternal(i);
         if (_rigidBody == contactManifold->getBody1() || _rigidBody == contactManifold->getBody0()) {
@@ -245,6 +246,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                     deepestDistance = distance;
                 }
                 float impulse = contact.getAppliedImpulse();
+                _netCollisionImpulse += impulse * normal;
                 if (impulse > strongestImpulse) {
                     strongestImpulse = impulse;
                 }
@@ -554,7 +556,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
 
     if (_rigidBody) {
         // update CCD with new _radius
-        _rigidBody->setCcdSweptSphereRadius(_radius);
+        _rigidBody->setCcdSweptSphereRadius(2.0f * (_radius + _halfHeight));
         _rigidBody->setCcdMotionThreshold(_radius);
     }
 }
@@ -777,14 +779,50 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     velocity += dt * _linearAcceleration;
     // Note the differences between these two variables:
     // _targetVelocity = ideal final velocity according to input
-    // velocity = real final velocity after motors are applied to current velocity
+    // velocity = new final velocity after motors are applied to currentVelocity
 
-    bool gettingStuck = !_isStuck && _stuckTransitionCount > 1 && _state == State::Hover;
-    if (gettingStuck && velocity.length2() > currentVelocity.length2()) {
-        // we are probably trying to fly fast into a mesh obstacle
-        // which is causing us to tickle the "stuck" detection code
-        // so we average our new velocity with currentVeocity to prevent a "safe landing" response
-        velocity = 0.5f * (velocity + currentVelocity);
+    // but we want to avoid getting stuck and tunelling through geometry so we perform
+    // further checks and modify/abandon our velocity calculations
+
+    if (_isStuck || _stuckTransitionCount == 0) {
+        // we are either definitely stuck, or definitely not --> nothing to do
+        return;
+    }
+
+    const float SAFE_COLLISION_SPEED = glm::abs(STUCK_PENETRATION) * (float)NUM_SUBSTEPS_PER_SECOND;
+    const float SAFE_COLLISION_SPEED_SQUARED = SAFE_COLLISION_SPEED * SAFE_COLLISION_SPEED;
+    bool fast = velocity.length2() > SAFE_COLLISION_SPEED_SQUARED;
+
+    const float STRONG_IMPACT_IMPULSE_DOT = -1000.0f; // this tuned manually
+    bool strongImpact = velocity.dot(_netCollisionImpulse) < STRONG_IMPACT_IMPULSE_DOT;
+
+    if (fast && strongImpact) {
+        const float REFLECTION_COEFFICIENT = 1.5f;
+        if (velocity.dot(currentVelocity) > 0.0f) {
+            // our new velocity points in the same direction as our currentVelocity
+            // but strongImpact means new velocity points against netImpulse
+            if (currentVelocity.dot(_netCollisionImpulse) > 0.0f) {
+                // currentVelocity points positively with netImpulse
+                // so we will assume collisions will save us and use it for our new velocity
+                velocity = currentVelocity;
+            } else {
+                // can't trust physical simulation --> reflect velocity against netImpulse
+                btVector3 impulseDirection = _netCollisionImpulse.normalized();
+                velocity -= (REFLECTION_COEFFICIENT * velocity.dot(impulseDirection)) * impulseDirection;
+                // also attenuate the velocity to help slow down the character before its penetration gets worse
+                const float ATTENUATION_COEFFICIENT = 0.8f;
+                velocity *=  ATTENUATION_COEFFICIENT;
+            }
+        } else {
+            // currentVelocity points against new velocity, which means it is probably better but...
+            // this doesn't mean it points in a good direction yet, so we must check
+            if (currentVelocity.dot(_netCollisionImpulse) < 0.0f) {
+                // currentVelocity points against netImpulse, so we reflect it
+                btVector3 impulseDirection = _netCollisionImpulse.normalized();
+                currentVelocity -= (REFLECTION_COEFFICIENT * currentVelocity.dot(impulseDirection)) * impulseDirection;
+            }
+            velocity = currentVelocity;
+        }
     }
 }
 

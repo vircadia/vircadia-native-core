@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <array>
+        <dict>
+            <key>name</key>
+            <string>thunderURL</string>
+            <key>defaultValue</key>
+            <string>https://thunder.highfidelity.com</string>
+            <key>environmentVariable</key>
+            <string>HIFI_THUNDER_URL</string>
+        </dict>
+    </array>
+</plist>
