@@ -497,6 +497,9 @@ public slots:
     bool gpuTextureMemSizeStable();
     void showUrlHandler(const QUrl& url);
 
+    // used to test "shutdown" crash annotation.
+    void crashOnShutdown();
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -844,5 +847,7 @@ private:
     bool _overrideEntry { false };
 
     VisionSqueeze _visionSqueeze;
+
+    bool _crashOnShutdown { false };
 };
 #endif // hifi_Application_h
