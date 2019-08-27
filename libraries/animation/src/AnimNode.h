@@ -73,6 +73,7 @@ public:
     }
 
     void setCurrentFrame(float frame);
+    void setActive(bool active);
 
     template <typename F>
     bool traverse(F func) {
@@ -104,6 +105,7 @@ protected:
 
     virtual void setCurrentFrameInternal(float frame) {}
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) { _skeleton = skeleton; }
+    virtual void setActiveInternal(bool active) {}
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const = 0;
@@ -116,6 +118,7 @@ protected:
     AnimSkeleton::ConstPointer _skeleton;
     std::weak_ptr<AnimNode> _parent;
     std::vector<QString> _outputJointNames;
+    bool _active { false };
 
     // no copies
     AnimNode(const AnimNode&) = delete;
