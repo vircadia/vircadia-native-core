@@ -45,6 +45,7 @@ public:
     bool getEnableDebugDrawIKChains() const { return _enableDebugDrawIKChains; }
     const glm::mat4& getGeometryToRigMatrix() const { return _geometryToRigMatrix; }
     const glm::mat4& getRigToWorldMatrix() const { return _rigToWorldMatrix; }
+    int getEvaluationCount() const { return _evaluationCount; }
 
     float getDebugAlpha(const QString& key) const {
         auto it = _debugAlphaMap.find(key);
@@ -86,6 +87,7 @@ protected:
     bool _enableDebugDrawIKChains { false };
     glm::mat4 _geometryToRigMatrix;
     glm::mat4 _rigToWorldMatrix;
+    int _evaluationCount{ 0 };
 
     // used for debugging internal state of animation system.
     mutable DebugAlphaMap _debugAlphaMap;
