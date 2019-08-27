@@ -784,19 +784,20 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     // but we want to avoid getting stuck and tunelling through geometry so we perform
     // further checks and modify/abandon our velocity calculations
 
-    if (_isStuck || _stuckTransitionCount == 0) {
-        // we are either definitely stuck, or definitely not --> nothing to do
+    const float SAFE_COLLISION_SPEED = glm::abs(STUCK_PENETRATION) * (float)NUM_SUBSTEPS_PER_SECOND;
+    const float SAFE_COLLISION_SPEED_SQUARED = SAFE_COLLISION_SPEED * SAFE_COLLISION_SPEED;
+
+    const float STRONG_IMPACT_THRESHOLD = -1000.0f; // this tuned manually
+    const float VERY_STRONG_IMPACT_THRESHOLD = -2000.0f; // this tuned manually
+    float velocityDotImpulse = velocity.dot(_netCollisionImpulse);
+
+    if ((velocityDotImpulse < VERY_STRONG_IMPACT_THRESHOLD && _stuckTransitionCount == 0) || _isStuck) {
+        // we are either definitely NOT stuck, or definitely are --> nothing to do here
         return;
     }
 
-    const float SAFE_COLLISION_SPEED = glm::abs(STUCK_PENETRATION) * (float)NUM_SUBSTEPS_PER_SECOND;
-    const float SAFE_COLLISION_SPEED_SQUARED = SAFE_COLLISION_SPEED * SAFE_COLLISION_SPEED;
-    bool fast = velocity.length2() > SAFE_COLLISION_SPEED_SQUARED;
-
-    const float STRONG_IMPACT_IMPULSE_DOT = -1000.0f; // this tuned manually
-    bool strongImpact = velocity.dot(_netCollisionImpulse) < STRONG_IMPACT_IMPULSE_DOT;
-
-    if (fast && strongImpact) {
+    if (velocityDotImpulse < VERY_STRONG_IMPACT_THRESHOLD ||
+            (velocity.length2() > SAFE_COLLISION_SPEED_SQUARED && velocityDotImpulse < STRONG_IMPACT_THRESHOLD)) {
         const float REFLECTION_COEFFICIENT = 1.5f;
         if (velocity.dot(currentVelocity) > 0.0f) {
             // our new velocity points in the same direction as our currentVelocity
