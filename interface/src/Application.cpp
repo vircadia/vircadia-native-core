@@ -73,6 +73,7 @@
 #include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
+#include <CrashHelpers.h>
 #include <CursorManager.h>
 #include <VirtualPadManager.h>
 #include <DebugDraw.h>
@@ -167,7 +168,6 @@
 #include "avatar/MyCharacterController.h"
 #include "CrashRecoveryHandler.h"
 #include "CrashHandler.h"
-#include <CrashHelpers.h>
 #include "devices/DdeFaceTracker.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
