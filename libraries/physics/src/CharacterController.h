@@ -128,6 +128,7 @@ public:
     void setPhysicsEngine(const PhysicsEnginePointer& engine);
     bool isEnabledAndReady() const { return (bool)_physicsEngine; }
     bool isStuck() const { return _isStuck; }
+    float getCollisionBrakeAttenuationFactor() const;
 
     void setCollisionless(bool collisionless);
 
@@ -221,6 +222,7 @@ protected:
     bool _isPushingUp;
     bool _isStuck { false };
     bool _isSeated { false };
+    float _collisionBrake { 0.0f };
 
     PhysicsEnginePointer _physicsEngine { nullptr };
     btRigidBody* _rigidBody { nullptr };

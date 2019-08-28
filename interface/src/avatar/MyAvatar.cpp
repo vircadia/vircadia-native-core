@@ -3586,6 +3586,8 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f * _walkSpeedScalar;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
+        // use feedback from CharacterController to prevent tunneling under high motorspeed
+        motorSpeed *= _characterController.getCollisionBrakeAttenuationFactor();
         const float maxBoostSpeed = sensorToWorldScale * MAX_BOOST_SPEED;
 
         if (_isPushing) {

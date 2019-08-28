@@ -570,6 +570,11 @@ void CharacterController::setPhysicsEngine(const PhysicsEnginePointer& engine) {
     }
 }
 
+float CharacterController::getCollisionBrakeAttenuationFactor() const {
+    // _collisionBrake ranges from 0.0 (no brake) to 1.0 (max brake)
+    return 1.0f - 0.5f * _collisionBrake;
+}
+
 void CharacterController::setCollisionless(bool collisionless) {
     if (collisionless != _collisionless) {
         _collisionless = collisionless;
@@ -787,18 +792,36 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     const float SAFE_COLLISION_SPEED = glm::abs(STUCK_PENETRATION) * (float)NUM_SUBSTEPS_PER_SECOND;
     const float SAFE_COLLISION_SPEED_SQUARED = SAFE_COLLISION_SPEED * SAFE_COLLISION_SPEED;
 
-    const float STRONG_IMPACT_THRESHOLD = -1000.0f; // this tuned manually
-    const float VERY_STRONG_IMPACT_THRESHOLD = -2000.0f; // this tuned manually
+    // NOTE: the thresholds are negative because that indicates the vectors oppose each other
+    const float STRONG_OPPOSING_IMPACT_THRESHOLD = -1000.0f;
+    const float VERY_STRONG_OPPOSING_IMPACT_THRESHOLD = -2000.0f;
     float velocityDotImpulse = velocity.dot(_netCollisionImpulse);
 
-    if ((velocityDotImpulse < VERY_STRONG_IMPACT_THRESHOLD && _stuckTransitionCount == 0) || _isStuck) {
-        // we are either definitely NOT stuck, or definitely are --> nothing to do here
+    const float COLLISION_BRAKE_DECAY_TIMESCALE = 0.20f; // seconds
+    const float MIN_COLLISION_BRAKE = 0.05f;
+    if ((velocityDotImpulse > VERY_STRONG_OPPOSING_IMPACT_THRESHOLD && _stuckTransitionCount == 0) || _isStuck) {
+        // we are either definitely NOT stuck (in which case nothing to do)
+        // or definitely are (in which case we'll be temporarily disabling collisions with the offending object
+        // and we don't mind tunnelling as an escape route out of stuck)
+        if (_collisionBrake > MIN_COLLISION_BRAKE) {
+            _collisionBrake *= (1.0f - dt / COLLISION_BRAKE_DECAY_TIMESCALE);
+            if (_collisionBrake < MIN_COLLISION_BRAKE) {
+                _collisionBrake = 0.0f;
+            }
+        }
         return;
     }
 
-    if (velocityDotImpulse < VERY_STRONG_IMPACT_THRESHOLD ||
-            (velocity.length2() > SAFE_COLLISION_SPEED_SQUARED && velocityDotImpulse < STRONG_IMPACT_THRESHOLD)) {
-        const float REFLECTION_COEFFICIENT = 1.5f;
+    if (velocityDotImpulse < VERY_STRONG_OPPOSING_IMPACT_THRESHOLD ||
+            (velocityDotImpulse < STRONG_OPPOSING_IMPACT_THRESHOLD && velocity.length2() > SAFE_COLLISION_SPEED_SQUARED)) {
+        if (_collisionBrake < 1.0f) {
+            _collisionBrake += (1.0f - _collisionBrake) * (dt / COLLISION_BRAKE_DECAY_TIMESCALE);
+            const float MAX_COLLISION_BRAKE = 1.0f - MIN_COLLISION_BRAKE;
+            if (_collisionBrake > MAX_COLLISION_BRAKE) {
+                _collisionBrake = 1.0f;
+            }
+        }
+        const float REFLECTION_COEFFICIENT = 1.0f;
         if (velocity.dot(currentVelocity) > 0.0f) {
             // our new velocity points in the same direction as our currentVelocity
             // but strongImpact means new velocity points against netImpulse
@@ -810,9 +833,6 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
                 // can't trust physical simulation --> reflect velocity against netImpulse
                 btVector3 impulseDirection = _netCollisionImpulse.normalized();
                 velocity -= (REFLECTION_COEFFICIENT * velocity.dot(impulseDirection)) * impulseDirection;
-                // also attenuate the velocity to help slow down the character before its penetration gets worse
-                const float ATTENUATION_COEFFICIENT = 0.8f;
-                velocity *=  ATTENUATION_COEFFICIENT;
             }
         } else {
             // currentVelocity points against new velocity, which means it is probably better but...
