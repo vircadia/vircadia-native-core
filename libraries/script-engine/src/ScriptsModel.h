@@ -151,9 +151,30 @@ public:
     };
 
 protected slots:
+
+    /**jsdoc
+     * @function ScriptsModel.updateScriptsLocation
+     * @param {string} newPath - New path.
+     * @deprecated This method is deprecated and will be removed from the API.
+     */
     void updateScriptsLocation(const QString& newPath);
+
+    /**jsdoc
+     * @function ScriptsModel.downloadFinished
+     * @deprecated This method is deprecated and will be removed from the API.
+     */
     void downloadFinished();
+
+    /**jsdoc
+     * @function ScriptsModel.reloadLocalFiles
+     * @deprecated This method is deprecated and will be removed from the API.
+     */
     void reloadLocalFiles();
+
+    /**jsdoc
+     * @function ScriptsModel.reloadDefaultFiles
+     * @deprecated This method is deprecated and will be removed from the API.
+     */
     void reloadDefaultFiles();
 
 protected:
