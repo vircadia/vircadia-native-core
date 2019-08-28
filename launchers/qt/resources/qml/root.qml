@@ -2,6 +2,7 @@
 
 import QtQuick 2.3
 import QtQuick.Controls 2.1
+import "HFControls"
 Image {
     id: root
     width: 515
@@ -23,11 +24,10 @@ Image {
         color: "#FFFFFF"
     }
 
-    TextField {
+    HFTextField {
         id: textField
-        background: Rectangle {
-            color: "#00000000"
-        }
+        width: 150
+        height: 50
         anchors {
             left: root.left
             leftMargin: 40
@@ -38,21 +38,8 @@ Image {
         placeholderText: "Organization"
     }
 
-    Rectangle {
-        id: seperator
-        anchors {
-            left: textField.left
-            right: textField.right
-            top: textField.bottom
-            topMargin: 1
-        }
 
-        height: 1
-        color: "#FFFFFF"
-    }
-
-
-    Button {
+   HFButton {
         anchors {
             left: root.left
             leftMargin: 40
@@ -61,15 +48,6 @@ Image {
         }
         id: button
         text: "NEXT"
-        background: Rectangle {
-            implicitWidth: 100
-            implicitHeight: 40
-            color: "#00000000"
-            opacity: 1
-            border.color: "#FFFFFF"
-            border.width: 4
-            radius: 2
-        }
     }
 
 

@@ -30,7 +30,9 @@ foreach(plugin ${Qt5Gui_PLUGINS})
 endforeach()
 
 set(src_files
-  src/main.cpp)
+  src/main.cpp
+  src/LauncherWindow.h
+  src/LauncherWindow.cpp)
 
 add_executable(${PROJECT_NAME} ${src_files})
 
