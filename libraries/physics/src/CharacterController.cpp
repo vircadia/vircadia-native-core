@@ -189,7 +189,7 @@ void CharacterController::addToWorld() {
     _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
     // enable CCD
-    _rigidBody->setCcdSweptSphereRadius(2.0f * (_radius + _halfHeight));
+    _rigidBody->setCcdSweptSphereRadius(_halfHeight);
     _rigidBody->setCcdMotionThreshold(_radius);
 
     btCollisionShape* shape = _rigidBody->getCollisionShape();
@@ -556,7 +556,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
 
     if (_rigidBody) {
         // update CCD with new _radius
-        _rigidBody->setCcdSweptSphereRadius(2.0f * (_radius + _halfHeight));
+        _rigidBody->setCcdSweptSphereRadius(_halfHeight);
         _rigidBody->setCcdMotionThreshold(_radius);
     }
 }
