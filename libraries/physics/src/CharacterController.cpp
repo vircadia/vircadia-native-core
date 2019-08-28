@@ -572,6 +572,7 @@ void CharacterController::setPhysicsEngine(const PhysicsEnginePointer& engine) {
 
 float CharacterController::getCollisionBrakeAttenuationFactor() const {
     // _collisionBrake ranges from 0.0 (no brake) to 1.0 (max brake)
+    // which we use to compute a corresponding attenutation factor from 1.0 to 0.5
     return 1.0f - 0.5f * _collisionBrake;
 }
 
@@ -792,19 +793,21 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     const float SAFE_COLLISION_SPEED = glm::abs(STUCK_PENETRATION) * (float)NUM_SUBSTEPS_PER_SECOND;
     const float SAFE_COLLISION_SPEED_SQUARED = SAFE_COLLISION_SPEED * SAFE_COLLISION_SPEED;
 
-    // NOTE: the thresholds are negative because that indicates the vectors oppose each other
+    // NOTE: the thresholds are negative which indicates the vectors oppose each other
+    // and which means comparison operators against them may look wrong at first glance.
+    // The magnitudes of the thresholds have been tuned manually.
     const float STRONG_OPPOSING_IMPACT_THRESHOLD = -1000.0f;
     const float VERY_STRONG_OPPOSING_IMPACT_THRESHOLD = -2000.0f;
     float velocityDotImpulse = velocity.dot(_netCollisionImpulse);
 
-    const float COLLISION_BRAKE_DECAY_TIMESCALE = 0.20f; // seconds
+    const float COLLISION_BRAKE_TIMESCALE = 0.20f; // must be > PHYSICS_ENGINE_FIXED_SUBSTEP for stability
     const float MIN_COLLISION_BRAKE = 0.05f;
     if ((velocityDotImpulse > VERY_STRONG_OPPOSING_IMPACT_THRESHOLD && _stuckTransitionCount == 0) || _isStuck) {
         // we are either definitely NOT stuck (in which case nothing to do)
         // or definitely are (in which case we'll be temporarily disabling collisions with the offending object
         // and we don't mind tunnelling as an escape route out of stuck)
         if (_collisionBrake > MIN_COLLISION_BRAKE) {
-            _collisionBrake *= (1.0f - dt / COLLISION_BRAKE_DECAY_TIMESCALE);
+            _collisionBrake *= (1.0f - dt / COLLISION_BRAKE_TIMESCALE);
             if (_collisionBrake < MIN_COLLISION_BRAKE) {
                 _collisionBrake = 0.0f;
             }
@@ -815,30 +818,35 @@ void CharacterController::computeNewVelocity(btScalar dt, btVector3& velocity) {
     if (velocityDotImpulse < VERY_STRONG_OPPOSING_IMPACT_THRESHOLD ||
             (velocityDotImpulse < STRONG_OPPOSING_IMPACT_THRESHOLD && velocity.length2() > SAFE_COLLISION_SPEED_SQUARED)) {
         if (_collisionBrake < 1.0f) {
-            _collisionBrake += (1.0f - _collisionBrake) * (dt / COLLISION_BRAKE_DECAY_TIMESCALE);
+            _collisionBrake += (1.0f - _collisionBrake) * (dt / COLLISION_BRAKE_TIMESCALE);
             const float MAX_COLLISION_BRAKE = 1.0f - MIN_COLLISION_BRAKE;
             if (_collisionBrake > MAX_COLLISION_BRAKE) {
                 _collisionBrake = 1.0f;
             }
         }
-        const float REFLECTION_COEFFICIENT = 1.0f;
+
+        // NOTE about REFLECTION_COEFFICIENT: a value of 2.0 provides full reflection
+        // (zero attenuation) whereas a value of 1.0 zeros it (full attenuation).
+        const float REFLECTION_COEFFICIENT = 1.1f;
+
         if (velocity.dot(currentVelocity) > 0.0f) {
             // our new velocity points in the same direction as our currentVelocity
-            // but strongImpact means new velocity points against netImpulse
+            // but negative "impact" means new velocity points against netCollisionImpulse
             if (currentVelocity.dot(_netCollisionImpulse) > 0.0f) {
-                // currentVelocity points positively with netImpulse
-                // so we will assume collisions will save us and use it for our new velocity
+                // currentVelocity points positively with netCollisionImpulse --> trust physics to save us
                 velocity = currentVelocity;
             } else {
-                // can't trust physical simulation --> reflect velocity against netImpulse
+                // can't trust physics --> use new velocity but reflect it
                 btVector3 impulseDirection = _netCollisionImpulse.normalized();
                 velocity -= (REFLECTION_COEFFICIENT * velocity.dot(impulseDirection)) * impulseDirection;
             }
         } else {
             // currentVelocity points against new velocity, which means it is probably better but...
-            // this doesn't mean it points in a good direction yet, so we must check
+            // when the physical simulation starts to fail (e.g. in deep penetration in mesh geometry)
+            // the currentVelocity can point in unhelpful directions, so we check it and reflect any component
+            // opposing netCollisionImpulse in hopes netCollisionImpulse points toward good exit
             if (currentVelocity.dot(_netCollisionImpulse) < 0.0f) {
-                // currentVelocity points against netImpulse, so we reflect it
+                // currentVelocity points against netCollisionImpulse --> reflect
                 btVector3 impulseDirection = _netCollisionImpulse.normalized();
                 currentVelocity -= (REFLECTION_COEFFICIENT * currentVelocity.dot(impulseDirection)) * impulseDirection;
             }
