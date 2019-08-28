@@ -423,9 +423,9 @@ void ScriptEngine::waitTillDoneRunning() {
                 qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                 abortEvaluation();
             } else {
-                qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                 auto context = currentContext();
                 if (context) {
+                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                     context->throwError("Timed out during shutdown");
                 }
             }
@@ -450,9 +450,9 @@ void ScriptEngine::waitTillDoneRunning() {
                     qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                     abortEvaluation();
                 } else {
-                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                     auto context = currentContext();
                     if (context) {
+                        qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                         context->throwError("Timed out during shutdown");
                     }
                 }
