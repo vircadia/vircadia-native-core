@@ -1,11 +1,12 @@
 #include <iostream>
-#include <QGuiApplication>
+
 #include <QString>
 #include <QtPlugin>
 #include <QResource>
 #include <QFileInfo>
 
 #include "LauncherWindow.h"
+#include "Launcher.h"
 //Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 Q_IMPORT_PLUGIN(QtQuick2Plugin);
@@ -17,7 +18,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setOrganizationName(name);
 
-    QGuiApplication app(argc, argv);
+    Launcher launcher(argc, argv);
 
     QString resourceBinaryLocation =  QGuiApplication::applicationDirPath() + "/resources.rcc";
     QResource::registerResource(resourceBinaryLocation);
@@ -30,5 +31,5 @@ int main(int argc, char *argv[])
     }
     launcherWindow.setResizeMode(QQuickView::SizeRootObjectToView);
     launcherWindow.show();
-    return app.exec();
+    return launcher.exec();
 }

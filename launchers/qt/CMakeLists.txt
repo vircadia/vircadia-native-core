@@ -31,6 +31,8 @@ endforeach()
 
 set(src_files
   src/main.cpp
+  src/Launcher.h
+  src/Launcher.cpp
   src/LauncherWindow.h
   src/LauncherWindow.cpp)
 
