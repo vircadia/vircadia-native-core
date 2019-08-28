@@ -16,6 +16,7 @@
 #if !defined(Q_OS_ANDROID)
 #include <QtWebEngine/QQuickWebEngineProfile>
 #include <QtWebEngineCore/QWebEngineUrlRequestInterceptor>
+#include <NumericalConstants.h>
 
 class QQmlContext;
 
@@ -23,7 +24,8 @@ class ContextAwareProfile : public QQuickWebEngineProfile {
     Q_OBJECT
 public:
     static void restrictContext(QQmlContext* context, bool restrict = true);
-    Q_INVOKABLE bool isRestricted();
+    bool isRestricted();
+    Q_INVOKABLE bool isRestrictedInternal();
 protected:
 
     class RequestInterceptor : public QWebEngineUrlRequestInterceptor {
@@ -35,7 +37,10 @@ protected:
     };
 
     ContextAwareProfile(QQmlContext* parent);
-    QQmlContext* _context;
+    QQmlContext* _context{ nullptr };
+    bool _cachedValue{ false };
+    quint64 _lastCacheCheck{ 0 };
+    static const quint64 MAX_CACHE_AGE = MSECS_PER_SECOND;
 };
 #endif
 

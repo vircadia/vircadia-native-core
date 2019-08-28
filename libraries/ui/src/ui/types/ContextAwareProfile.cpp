@@ -10,12 +10,14 @@
 //
 
 #include "ContextAwareProfile.h"
-#include <QtCore/QThread>
-#include <shared/QtHelpers.h>
-
 #if !defined(Q_OS_ANDROID)
 
+#include <QtCore/QThread>
 #include <QtQml/QQmlContext>
+
+#include <shared/QtHelpers.h>
+#include <SharedUtil.h>
+
 
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
@@ -27,12 +29,23 @@ void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
     context->setContextProperty(RESTRICTED_FLAG_PROPERTY, restrict);
 }
 
-bool ContextAwareProfile::isRestricted() {
+bool ContextAwareProfile::isRestrictedInternal() {
     if (QThread::currentThread() != thread()) {
         bool restrictedResult = false;
-        BLOCKING_INVOKE_METHOD(this, "isRestricted", Q_RETURN_ARG(bool, restrictedResult));
+        BLOCKING_INVOKE_METHOD(this, "isRestrictedInternal", Q_RETURN_ARG(bool, restrictedResult));
+        return restrictedResult;
     }
     return _context->contextProperty(RESTRICTED_FLAG_PROPERTY).toBool();
+}
+
+bool ContextAwareProfile::isRestricted() {
+    auto now = usecTimestampNow();
+    auto cacheAge = now - _lastCacheCheck;
+    if (cacheAge > MAX_CACHE_AGE) {
+        _cachedValue = isRestrictedInternal();
+        _lastCacheCheck = now;
+    }
+    return _cachedValue;
 }
 
 #endif
