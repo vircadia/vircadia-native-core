@@ -85,6 +85,9 @@ QModelIndex ScriptsModel::index(int row, int column, const QModelIndex& parent) 
 }
 
 QModelIndex ScriptsModel::parent(const QModelIndex& child) const {
+    if (!child.isValid()) {
+        return QModelIndex();
+    }
     TreeNodeFolder* parent = (static_cast<TreeNodeBase*>(child.internalPointer()))->getParent();
     if (!parent) {
         return QModelIndex();
