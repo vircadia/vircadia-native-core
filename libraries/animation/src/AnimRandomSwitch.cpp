@@ -21,12 +21,16 @@ AnimRandomSwitch::~AnimRandomSwitch() {
 
 }
 
+void AnimRandomSwitch::setActiveInternal(bool active) {
+    _active = active;
+    _triggerNewRandomState = active;
+}
+
 const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     float parentDebugAlpha = context.getDebugAlpha(_id);
 
     AnimRandomSwitch::RandomSwitchState::Pointer desiredState = _currentState;
-    if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1 || animVars.lookup(_triggerRandomSwitchVar, false)) {
-
+    if (_triggerNewRandomState || animVars.lookup(_triggerRandomSwitchVar, false)) {
         // filter states different to the last random state and with priorities.
         bool currentStateHasPriority = false;
         std::vector<RandomSwitchState::Pointer> randomStatesToConsider;
@@ -56,8 +60,9 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
             }
             lowerBound = upperBound;
         }
-        if (abs(_randomSwitchEvaluationCount - context.getEvaluationCount()) > 1) {
+        if (_triggerNewRandomState) {
             switchRandomState(animVars, context, desiredState, false);
+            _triggerNewRandomState = false;
         } else {
             // firing a random switch, be sure that we aren't completing a previously triggered transition
             if (currentStateHasPriority) {
@@ -70,7 +75,6 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         }
         _triggerTime = randFloatInRange(_triggerTimeMin, _triggerTimeMax);
         _randomSwitchTime = randFloatInRange(_randomSwitchTimeMin, _randomSwitchTimeMax);
-
     } else {
 
         // here we are checking to see if we want a temporary movement
@@ -143,7 +147,6 @@ const AnimPoseVec& AnimRandomSwitch::evaluate(const AnimVariantMap& animVars, co
         _poses = currentStateNode->evaluate(animVars, context, dt, triggersOut);
     }
 
-    _randomSwitchEvaluationCount = context.getEvaluationCount();
     processOutputJoints(triggersOut);
 
     context.addStateMachineInfo(_id, _currentState->getID(), _previousState->getID(), _duringInterp, _alpha);
@@ -165,8 +168,16 @@ void AnimRandomSwitch::addState(RandomSwitchState::Pointer randomState) {
 }
 
 void AnimRandomSwitch::switchRandomState(const AnimVariantMap& animVars, const AnimContext& context, RandomSwitchState::Pointer desiredState, bool shouldInterp) {
+
+    auto prevStateNode = _children[_currentState->getChildIndex()];
     auto nextStateNode = _children[desiredState->getChildIndex()];
+
+    // activate/deactivate states
+    prevStateNode->setActive(false);
+    nextStateNode->setActive(true);
+
     _lastPlayedState = nextStateNode->getID();
+
     if (shouldInterp) {
 
         bool interpActive = _duringInterp;

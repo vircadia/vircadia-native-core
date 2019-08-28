@@ -74,6 +74,7 @@
 #include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
+#include <CrashHelpers.h>
 #include <CursorManager.h>
 #include <VirtualPadManager.h>
 #include <DebugDraw.h>
@@ -2679,6 +2680,8 @@ void Application::updateHeartbeat() const {
 }
 
 void Application::onAboutToQuit() {
+    setCrashAnnotation("shutdown", "1");
+
     // quickly save AvatarEntityData before the EntityTree is dismantled
     getMyAvatar()->saveAvatarEntityDataToSettings();
 
@@ -2716,6 +2719,11 @@ void Application::onAboutToQuit() {
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
+
+    if (_crashOnShutdown) {
+        // triggered by crash menu
+        crash::nullDeref();
+    }
 
     getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::SHUTDOWN);
 }
@@ -9527,6 +9535,14 @@ void Application::showUrlHandler(const QUrl& url) {
         }
     });
 }
+
+// used to test "shutdown" crash annotation.
+void Application::crashOnShutdown() {
+    qDebug() << "crashOnShutdown(), ON PURPOSE!";
+    _crashOnShutdown = true;
+    quit();
+}
+
 void Application::overrideEntry(){
     _overrideEntry = true;
 }
