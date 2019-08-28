@@ -20,16 +20,16 @@
 class QQmlContext;
 
 class ContextAwareProfile : public QQuickWebEngineProfile {
+    Q_OBJECT
 public:
-    static void restrictContext(QQmlContext* context);
-    static bool isRestricted(QQmlContext* context);
-    QQmlContext* getContext() const { return _context; }
+    static void restrictContext(QQmlContext* context, bool restrict = true);
+    Q_INVOKABLE bool isRestricted();
 protected:
 
     class RequestInterceptor : public QWebEngineUrlRequestInterceptor {
     public:
         RequestInterceptor(ContextAwareProfile* parent) : QWebEngineUrlRequestInterceptor(parent), _profile(parent) {}
-        QQmlContext* getContext() const { return _profile->getContext(); }
+        bool isRestricted() { return _profile->isRestricted(); }
     protected:
         ContextAwareProfile* _profile;
     };
