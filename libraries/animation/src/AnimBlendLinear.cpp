@@ -85,17 +85,31 @@ void AnimBlendLinear::evaluateAndBlendChildren(const AnimVariantMap& animVars, c
             } else if (_blendType == AnimBlendType_AddRelative) {
                 ::blendAdd(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
             } else if (_blendType == AnimBlendType_AddAbsolute) {
-                // onvert from relative to absolute
-                AnimPoseVec prev = prevPoses;
-                _skeleton->convertRelativePosesToAbsolute(prev);
-                AnimPoseVec next = nextPoses;
-                _skeleton->convertRelativePosesToAbsolute(next);
+                // convert prev from relative to absolute
+                AnimPoseVec absPrev = prevPoses;
+                _skeleton->convertRelativePosesToAbsolute(absPrev);
+
+                // rotate the offset rotations from next into the parent relative frame of each joint.
+                AnimPoseVec relOffsetPoses;
+                relOffsetPoses.reserve(nextPoses.size());
+                for (size_t i = 0; i < nextPoses.size(); ++i) {
+                    // copy translation and scale from nextPoses
+                    AnimPose pose = nextPoses[i];
+
+                    // AJT: HACK nuke trans
+                    pose.trans() = glm::vec3(0.0f);
+
+                    int parentIndex = _skeleton->getParentIndex(i);
+                    if (parentIndex >= 0) {
+                        // but transform nextPoses rot into absPrev parent frame.
+                        pose.rot() = glm::inverse(absPrev[parentIndex].rot()) * nextPoses[i].rot();
+                    }
+
+                    relOffsetPoses.push_back(pose);
+                }
 
                 // then blend
-                ::blendAdd(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
-
-                // convert result back into relative
-                _skeleton->convertAbsolutePosesToRelative(_poses);
+                ::blendAdd(_poses.size(), &prevPoses[0], &relOffsetPoses[0], alpha, &_poses[0]);
             }
         }
     }

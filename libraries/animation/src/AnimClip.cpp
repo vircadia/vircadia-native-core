@@ -41,7 +41,7 @@ static std::vector<int> buildJointIndexMap(const AnimSkeleton& dstSkeleton, cons
     return jointIndexMap;
 }
 
-static void bakeRelativeAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses) {
+static void bakeRelativeDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses) {
 
     // invert all the basePoses
     AnimPoseVec invBasePoses = basePoses;
@@ -55,9 +55,38 @@ static void bakeRelativeAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& 
 
         // for each joint in animPoses
         for (size_t i = 0; i < animPoses.size(); ++i) {
-
-            // convert this AnimPose into a relative animation.
+            // convert this relative AnimPose into a delta animation.
             animPoses[i] = animPoses[i] * invBasePoses[i];
+        }
+    }
+}
+
+void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses, AnimSkeleton::ConstPointer skeleton) {
+
+    // invert all the basePoses
+    AnimPoseVec invBasePoses = basePoses;
+    for (auto&& invBasePose : invBasePoses) {
+        invBasePose = invBasePose.inverse();
+    }
+
+    AnimPoseVec absBasePoses = basePoses;
+    skeleton->convertRelativePosesToAbsolute(absBasePoses);
+
+    // for each frame of the animation
+    for (auto&& animPoses : anim) {
+        ASSERT(animPoses.size() == basePoses.size());
+
+        // for each joint in animPoses
+        for (size_t i = 0; i < animPoses.size(); ++i) {
+
+            // scale and translation are relative frame
+            animPoses[i] = animPoses[i] * invBasePoses[i];
+
+            // but transform the rotation delta into the absolute frame.
+            int parentIndex = skeleton->getParentIndex(i);
+            if (parentIndex >= 0) {
+                animPoses[i].rot() = absBasePoses[parentIndex].rot() * animPoses[i].rot();
+            }
         }
     }
 }
@@ -264,8 +293,13 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
             // copy & retarget baseAnim!
             auto baseAnim = copyAndRetargetFromNetworkAnim(_baseNetworkAnim, _skeleton);
 
-            // make _anim relative to the baseAnim reference frame.
-            bakeRelativeAnim(_anim, baseAnim[(int)_baseFrame]);
+//#define BLEND_ADD_ABSOLUTE
+
+#ifdef BLEND_ADD_ABSOLUTE
+            bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton);
+#else
+            bakeRelativeDeltaAnim(_anim, baseAnim[(int)_baseFrame]);
+#endif
         }
     }
 
