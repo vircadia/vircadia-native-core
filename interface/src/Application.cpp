@@ -7507,7 +7507,11 @@ void Application::registerScriptEngineWithApplicationServices(const ScriptEngine
     if (clientScript) {
         scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
     } else {
-        scriptEngine->registerGlobalObject("Desktop", new DesktopScriptingInterface(scriptEngine.get(), true));
+        auto desktopScriptingInterface = new DesktopScriptingInterface(nullptr, true);
+        scriptEngine->registerGlobalObject("Desktop", desktopScriptingInterface);
+        if (QThread::currentThread() != thread()) {
+            desktopScriptingInterface->moveToThread(thread());
+        }
     }
 #endif
 
