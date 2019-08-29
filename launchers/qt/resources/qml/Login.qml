@@ -105,5 +105,7 @@ Item {
             horizontalCenter: instruction.horizontalCenter
             topMargin: 48
         }
+
+        onClicked: LauncherState.login(username.text, password.text)
     }
 }

@@ -1,13 +1,49 @@
 cmake_minimum_required(VERSION 3.11)
+
 project(HQLauncher)
+
 set(CMAKE_CXX_STANDARD_REQUIRED_ON)
-include("cmake/init.cmake")
-find_package(Qt5 COMPONENTS Core Gui Qml Quick QuickControls2 Network REQUIRED)
-find_package(OpenGL)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 #set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+
+include("cmake/init.cmake")
+
+include(ExternalProject)
+
+if (WIN32)
+
+    ExternalProject_Add(
+        qtlite
+        URL "https://hifi-public.s3.amazonaws.com/huffman/launcher/qt-lite-ssl.zip"
+        URL_HASH MD5=83eeba1565e5727aef11655acf893c15
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+        LOG_DOWNLOAD 1
+    )
+
+
+  ExternalProject_Get_Property(qtlite SOURCE_DIR)
+  ExternalProject_Get_Property(qtlite STAMP_DIR)
+
+  include("${STAMP_DIR}/download-qtlite.cmake")
+  include("${STAMP_DIR}/extract-qtlite.cmake")
+  include("${STAMP_DIR}/verify-qtlite.cmake")
+
+  message("${SOURCE_DIR}/lib/cmake")
+
+  list(APPEND CMAKE_PREFIX_PATH ${SOURCE_DIR}/lib/cmake)
+
+  set(SSL_DIR ${SOURCE_DIR}/ssl)
+  message("SSL dir is ${SSL_DIR}")
+
+endif ()
+
+find_package(Qt5 COMPONENTS Core Gui Qml Quick QuickControls2 Network REQUIRED)
+find_package(OpenGL)
 
 set(CUSTOM_LAUNCHER_QRC_PATHS "")
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
@@ -38,9 +74,12 @@ set(src_files
   src/LauncherWindow.h
   src/LauncherWindow.cpp)
 
+set(TARGET_NAME ${PROJECT_NAME})
 add_executable(${PROJECT_NAME} ${src_files})
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
+#target_openssl()
+
+target_link_libraries(${PROJECT_NAME}
   Qt5::Core
   Qt5::Quick
   Qt5::QuickControls2
@@ -51,6 +90,9 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   ${OPENGL_LIBRARIES}
   ${plugin_libs}
   wsock32 ws2_32 Winmm version imm32 dwmapi
+  Crypt32 Iphlpapi
+  "${SSL_DIR}/lib/libeay32.lib"
+  "${SSL_DIR}/lib/ssleay32.lib"
   "${_qt5Core_install_prefix}/lib/qtpcre2.lib"
   "${_qt5Core_install_prefix}/lib/qtlibpng.lib"
   "${_qt5Core_install_prefix}/lib/qtfreetype.lib"
