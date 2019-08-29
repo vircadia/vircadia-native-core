@@ -1,9 +1,4 @@
-#include <iostream>
-
-#include <QString>
 #include <QtPlugin>
-#include <QResource>
-#include <QFileInfo>
 
 #include "LauncherWindow.h"
 #include "Launcher.h"
@@ -19,17 +14,5 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(name);
 
     Launcher launcher(argc, argv);
-
-    QString resourceBinaryLocation =  QGuiApplication::applicationDirPath() + "/resources.rcc";
-    QResource::registerResource(resourceBinaryLocation);
-
-    LauncherWindow launcherWindow;
-    launcherWindow.setFlags(Qt::FramelessWindowHint);
-    launcherWindow.setSource(QUrl("qrc:/qml/root.qml"));
-    if (launcherWindow.status() == QQuickView::Error) {
-        return -1;
-    }
-    launcherWindow.setResizeMode(QQuickView::SizeRootObjectToView);
-    launcherWindow.show();
     return launcher.exec();
 }

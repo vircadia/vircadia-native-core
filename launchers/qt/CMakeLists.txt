@@ -33,6 +33,8 @@ set(src_files
   src/main.cpp
   src/Launcher.h
   src/Launcher.cpp
+  src/LauncherState.h
+  src/LauncherState.cpp
   src/LauncherWindow.h
   src/LauncherWindow.cpp)
 
