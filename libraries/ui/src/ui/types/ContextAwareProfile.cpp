@@ -36,7 +36,15 @@ bool ContextAwareProfile::isRestrictedInternal() {
         BLOCKING_INVOKE_METHOD(this, "isRestrictedInternal", Q_RETURN_ARG(bool, restrictedResult));
         return restrictedResult;
     }
-    return _context->contextProperty(RESTRICTED_FLAG_PROPERTY).toBool();
+
+    QVariant variant = _context->contextProperty(RESTRICTED_FLAG_PROPERTY);
+    if (variant.isValid()) {
+        return variant.toBool();
+    }
+
+    // BUGZ-1365 - we MUST defalut to restricted mode in the absence of a flag, or it's too easy for someone to make 
+    // a new mechanism for loading web content that fails to restrict access to local files
+    return true;
 }
 
 bool ContextAwareProfile::isRestricted() {

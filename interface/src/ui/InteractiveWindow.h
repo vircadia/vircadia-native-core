@@ -126,7 +126,7 @@ class InteractiveWindow : public QObject {
     Q_PROPERTY(int presentationMode READ getPresentationMode WRITE setPresentationMode)
 
 public:
-    InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties);
+    InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties, bool restricted);
     ~InteractiveWindow();
 
 private:

@@ -54,6 +54,8 @@ class DesktopScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(int CLOSE_BUTTON_HIDES READ flagCloseButtonHides CONSTANT FINAL)
 
 public:
+    DesktopScriptingInterface(QObject* parent= nullptr, bool restricted = false);
+
     /**jsdoc
      * Sets the opacity of the HUD surface.
      * @function Desktop.setHUDAlpha
@@ -106,6 +108,7 @@ private:
     static QVariantMap getDockArea();
 
     Q_INVOKABLE static QVariantMap getPresentationMode();
+    const bool _restricted;
 };
 
 

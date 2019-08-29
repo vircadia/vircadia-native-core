@@ -139,6 +139,7 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <ui/types/ContextAwareProfile.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -3285,6 +3286,9 @@ void Application::initializeUi() {
         }
         return result.toPoint();
     });
+
+    // BUGZ-1365 - the root context should explicitly default to being unable to load local HTML content
+    ContextAwareProfile::restrictContext(offscreenUi->getSurfaceContext(), true);
     offscreenUi->resume();
 #endif
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
@@ -7457,7 +7461,7 @@ void Application::addingEntityWithCertificate(const QString& certificateID, cons
     ledger->updateLocation(certificateID, placeName);
 }
 
-void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
+void Application::registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -7496,9 +7500,15 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
+    bool clientScript = scriptEngine->isClientScript();
+
 #if !defined(DISABLE_QML)
     scriptEngine->registerGlobalObject("OffscreenFlags", getOffscreenUI()->getFlags());
-    scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    if (clientScript) {
+        scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    } else {
+        scriptEngine->registerGlobalObject("Desktop", new DesktopScriptingInterface(scriptEngine.get(), true));
+    }
 #endif
 
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
@@ -7523,7 +7533,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    bool clientScript = scriptEngine->isClientScript();
     scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
 #if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
     scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
