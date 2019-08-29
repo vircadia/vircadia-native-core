@@ -43,8 +43,8 @@ protected:
 
     AnimPoseVec _poses;
 
-    AnimBlendType _blendType;
     float _alpha;
+    AnimBlendType _blendType;
 
     QString _alphaVar;
 
