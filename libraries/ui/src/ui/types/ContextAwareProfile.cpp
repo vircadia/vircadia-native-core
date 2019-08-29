@@ -10,19 +10,20 @@
 //
 
 #include "ContextAwareProfile.h"
-#if !defined(Q_OS_ANDROID)
 
+#include <cassert>
 #include <QtCore/QThread>
 #include <QtQml/QQmlContext>
 
 #include <shared/QtHelpers.h>
 #include <SharedUtil.h>
 
-
 static const QString RESTRICTED_FLAG_PROPERTY = "RestrictFileAccess";
 
 ContextAwareProfile::ContextAwareProfile(QQmlContext* context) :
-    QQuickWebEngineProfile(context), _context(context) { }
+    QQuickWebEngineProfile(context), _context(context) { 
+    assert(context);
+}
 
 
 void ContextAwareProfile::restrictContext(QQmlContext* context, bool restrict) {
@@ -40,12 +41,9 @@ bool ContextAwareProfile::isRestrictedInternal() {
 
 bool ContextAwareProfile::isRestricted() {
     auto now = usecTimestampNow();
-    auto cacheAge = now - _lastCacheCheck;
-    if (cacheAge > MAX_CACHE_AGE) {
+    if (now > _cacheExpiry) {
         _cachedValue = isRestrictedInternal();
-        _lastCacheCheck = now;
+        _cacheExpiry = now + MAX_CACHE_AGE;
     }
     return _cachedValue;
 }
-
-#endif
