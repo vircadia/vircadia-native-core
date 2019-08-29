@@ -83,9 +83,9 @@ void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& ba
             animPoses[i] = animPoses[i] * invBasePoses[i];
 
             // but transform the rotation delta into the absolute frame.
-            int parentIndex = skeleton->getParentIndex(i);
+            int parentIndex = skeleton->getParentIndex((int)i);
             if (parentIndex >= 0) {
-                animPoses[i].rot() = absBasePoses[parentIndex].rot() * animPoses[i].rot();
+                animPoses[i].rot() = absBasePoses[parentIndex].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[parentIndex].rot());
             }
         }
     }
@@ -226,7 +226,7 @@ static std::vector<AnimPoseVec> copyAndRetargetFromNetworkAnim(AnimationPointer 
 }
 
 AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag,
-                   bool relativeFlag, const QString& baseURL, float baseFrame) :
+                   AnimBlendType blendType, const QString& baseURL, float baseFrame) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
@@ -234,12 +234,12 @@ AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, floa
     _loopFlag(loopFlag),
     _mirrorFlag(mirrorFlag),
     _frame(startFrame),
-    _relativeFlag(relativeFlag),
+    _blendType(blendType),
     _baseFrame(baseFrame)
 {
     loadURL(url);
 
-    if (relativeFlag) {
+    if (blendType != AnimBlendType_Normal) {
         auto animCache = DependencyManager::get<AnimationCache>();
         _baseNetworkAnim = animCache->getAnimation(baseURL);
         _baseURL = baseURL;
@@ -263,7 +263,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
     _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
 
     // poll network anim to see if it's finished loading yet.
-    if (!_relativeFlag) {
+    if (_blendType == AnimBlendType_Normal) {
         if (_networkAnim && _networkAnim->isLoaded() && _skeleton) {
             // loading is complete, copy & retarget animation.
             _anim = copyAndRetargetFromNetworkAnim(_networkAnim, _skeleton);
@@ -277,6 +277,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
             _poses.resize(_skeleton->getNumJoints());
         }
     } else {
+        // an additive blend type
         if (_networkAnim && _networkAnim->isLoaded() && _baseNetworkAnim && _baseNetworkAnim->isLoaded() && _skeleton) {
             // loading is complete, copy & retarget animation.
             _anim = copyAndRetargetFromNetworkAnim(_networkAnim, _skeleton);
@@ -293,13 +294,12 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
             // copy & retarget baseAnim!
             auto baseAnim = copyAndRetargetFromNetworkAnim(_baseNetworkAnim, _skeleton);
 
-//#define BLEND_ADD_ABSOLUTE
-
-#ifdef BLEND_ADD_ABSOLUTE
-            bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton);
-#else
-            bakeRelativeDeltaAnim(_anim, baseAnim[(int)_baseFrame]);
-#endif
+            if (_blendType == AnimBlendType_AddAbsolute) {
+                bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton);
+            } else {
+                // AnimBlendType_AddRelative
+                bakeRelativeDeltaAnim(_anim, baseAnim[(int)_baseFrame]);
+            }
         }
     }
 
