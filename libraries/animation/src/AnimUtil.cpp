@@ -28,19 +28,22 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
 
 // additive blend
 void blendAdd(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, AnimPose* result) {
+
+    const glm::quat identity = glm::quat();
     for (size_t i = 0; i < numPoses; i++) {
         const AnimPose& aPose = a[i];
         const AnimPose& bPose = b[i];
 
         result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
 
-        // adjust sign of bPose.rot() if necessary
-        glm::quat bTemp = bPose.rot();
-        float dot = glm::dot(aPose.rot(), bTemp);
-        if (dot < 0.0f) {
-            bTemp = -bTemp;
+        // ensure that delta has the same "polarity" as the identity quat.
+        // we don't need to do a full dot product, just sign of w is sufficient.
+        glm::quat delta = bPose.rot();
+        if (delta.w < 0.0f) {
+            delta = -delta;
         }
-        result[i].rot() = glm::normalize((alpha * bTemp) * aPose.rot());
+        delta = glm::lerp(identity, delta, alpha);
+        result[i].rot() = glm::normalize(delta * aPose.rot());
 
         result[i].trans() = aPose.trans() + (alpha * bPose.trans());
     }

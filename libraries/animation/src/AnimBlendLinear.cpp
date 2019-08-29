@@ -37,6 +37,19 @@ const AnimPoseVec& AnimBlendLinear::evaluate(const AnimVariantMap& animVars, con
     } else if (_children.size() == 1) {
         _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
         context.setDebugAlpha(_children[0]->getID(), parentDebugAlpha, _children[0]->getType());
+    } else if (_children.size() == 2 && _blendType != AnimBlendType_Normal) {
+        // special case for additive blending
+        float alpha = glm::clamp(_alpha, 0.0f, 1.0f);
+        const size_t prevPoseIndex = 0;
+        const size_t nextPoseIndex = 1;
+        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
+
+        // for animation stack debugging
+        float weight2 = alpha;
+        float weight1 = 1.0f - weight2;
+        context.setDebugAlpha(_children[prevPoseIndex]->getID(), weight1 * parentDebugAlpha, _children[prevPoseIndex]->getType());
+        context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
+
     } else {
         float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
         size_t prevPoseIndex = glm::floor(clampedAlpha);
