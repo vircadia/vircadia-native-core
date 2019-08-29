@@ -49,7 +49,7 @@ void Head::simulate(float deltaTime) {
 
     // Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
-    const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
+    const float AUDIO_LONG_TERM_AVERAGING_SECS = 15.0f;
     _averageLoudness = glm::mix(_averageLoudness, audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
 
     if (_longTermAverageLoudness == -1.0f) {
@@ -84,7 +84,7 @@ void Head::simulate(float deltaTime) {
     if (getHasProceduralBlinkFaceMovement()) {
         // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
-        const float TALKING_LOUDNESS = 100.0f;
+        const float TALKING_LOUDNESS = 150.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
         _timeWithoutTalking += deltaTime;
         if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
@@ -176,7 +176,7 @@ void Head::simulate(float deltaTime) {
 }
 
 void Head::calculateMouthShapes(float deltaTime) {
-    const float JAW_OPEN_SCALE = 0.015f;
+    const float JAW_OPEN_SCALE = 0.25f;
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
     const float TIMESTEP_CONSTANT = 0.0032f;
@@ -192,7 +192,9 @@ void Head::calculateMouthShapes(float deltaTime) {
     float deltaTimeRatio = deltaTime / (1.0f / NORMAL_HZ);
 
     // From the change in loudness, decide how much to open or close the jaw
-    float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
+    float MAX_DELTA_LOUDNESS = 300.0f;
+    float deltaLoudness = glm::max(glm::min(_averageLoudness - _longTermAverageLoudness, MAX_DELTA_LOUDNESS), 0.0f) / MAX_DELTA_LOUDNESS;
+    float audioDelta = powf(deltaLoudness, 2.0f) * JAW_OPEN_SCALE;
     if (audioDelta > _audioJawOpen) {
         _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE * deltaTimeRatio;
     } else {

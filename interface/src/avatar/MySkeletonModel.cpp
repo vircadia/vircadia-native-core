@@ -313,8 +313,8 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     if (spine2Joint >= 0) {
         params.spine2ShapeInfo = hfmModel.joints[spine2Joint].shapeInfo;
     }
-
-    params.isTalking = head->getTimeWithoutTalking() <= 1.5f;
+    const float TALKING_TIME_THRESHOLD = 0.75f;
+    params.isTalking = head->getTimeWithoutTalking() <= TALKING_TIME_THRESHOLD;
 
     myAvatar->updateRigControllerParameters(params);
 
