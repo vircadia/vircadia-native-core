@@ -60,7 +60,7 @@ Item {
     ProgressBar {
         id: progressBar
         width: 394
-        height: 12
+        height: 8
 
         anchors {
             top: secondText.bottom
@@ -71,18 +71,18 @@ Item {
         background: Rectangle {
             implicitWidth: progressBar.width
             implicitHeight: progressBar.height
-            radius: 4
+            radius: 8
             color: "#252525"
         }
 
         contentItem: Item {
             implicitWidth: progressBar.width
-            implicitHeight: progressBar.height * 0.90
+            implicitHeight: progressBar.height * 0.85
 
             Rectangle {
                 width: progressBar.visualPosition * parent.width
                 height: parent.height
-                radius: 3
+                radius: 6
                 color: "#01B2ED"
             }
         }
