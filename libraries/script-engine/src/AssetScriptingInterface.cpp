@@ -127,6 +127,9 @@ void AssetScriptingInterface::setBakingEnabled(QString path, bool enabled, QScri
     auto setBakingEnabledRequest = DependencyManager::get<AssetClient>()->createSetBakingEnabledRequest({ path }, enabled);
 
     Promise deferred = jsPromiseReady(makePromise(__FUNCTION__), thisObject(), callback);
+    if (!deferred) {
+        return;
+    }
 
     connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, setBakingEnabledRequest, [deferred](SetBakingEnabledRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
