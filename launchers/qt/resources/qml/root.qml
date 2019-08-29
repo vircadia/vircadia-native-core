@@ -11,7 +11,6 @@ Image {
     source: "../images/hifi_window@2x.png"
 
     Loader {
-        anchors.centerIn: parent
         anchors.fill: parent
         id: loader
     }

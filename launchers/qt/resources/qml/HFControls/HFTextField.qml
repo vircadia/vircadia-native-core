@@ -9,7 +9,6 @@ TextField {
     verticalAlignment: TextInput.AlignVCenter
     horizontalAlignment: TextInput.AlignLeft
     placeholderText: "PlaceHolder"
-    echoMode: TextInput.Password
     property string seperatorColor: "#FFFFFF"
     background: Item {
         anchors.fill: parent
