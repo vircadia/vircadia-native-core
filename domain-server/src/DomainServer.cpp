@@ -1746,8 +1746,8 @@ void DomainServer::nodePingMonitor() {
 }
 
 void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessage> message) {
-    qDebug() << "Received octree data persist message";
     auto data = message->readAll();
+    qDebug() << "Received octree data persist message" << (data.size() / 1000) << "kbytes.";
     auto filePath = getEntitiesFilePath();
 
     QDir dir(getEntitiesDirPath());
@@ -1759,12 +1759,16 @@ void DomainServer::processOctreeDataPersistMessage(QSharedPointer<ReceivedMessag
     QFile f(filePath);
     if (f.open(QIODevice::WriteOnly)) {
         f.write(data);
+#ifdef EXPENSIVE_NETWORK_DIAGNOSTICS
+        // These diagnostics take take more than 200ms (depending on content size),
+        // causing Socket::readPendingDatagrams to overrun its timebox.
         OctreeUtils::RawEntityData entityData;
         if (entityData.readOctreeDataInfoFromData(data)) {
             qCDebug(domain_server) << "Wrote new entities file" << entityData.id << entityData.dataVersion;
         } else {
             qCDebug(domain_server) << "Failed to read new octree data info";
         }
+#endif
     } else {
         qCDebug(domain_server) << "Failed to write new entities file:" << filePath;
     }
