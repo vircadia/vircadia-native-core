@@ -176,7 +176,7 @@ void Head::simulate(float deltaTime) {
 }
 
 void Head::calculateMouthShapes(float deltaTime) {
-    const float JAW_OPEN_SCALE = 0.25f;
+    const float JAW_OPEN_SCALE = 0.35f;
     const float JAW_OPEN_RATE = 0.9f;
     const float JAW_CLOSE_RATE = 0.90f;
     const float TIMESTEP_CONSTANT = 0.0032f;
@@ -188,11 +188,11 @@ void Head::calculateMouthShapes(float deltaTime) {
     const float FUNNEL_SPEED = 2.335f;
     const float STOP_GAIN = 5.0f;
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
+    const float MAX_DELTA_LOUDNESS = 100.0f;
 
     float deltaTimeRatio = deltaTime / (1.0f / NORMAL_HZ);
 
     // From the change in loudness, decide how much to open or close the jaw
-    float MAX_DELTA_LOUDNESS = 300.0f;
     float deltaLoudness = glm::max(glm::min(_averageLoudness - _longTermAverageLoudness, MAX_DELTA_LOUDNESS), 0.0f) / MAX_DELTA_LOUDNESS;
     float audioDelta = powf(deltaLoudness, 2.0f) * JAW_OPEN_SCALE;
     if (audioDelta > _audioJawOpen) {
