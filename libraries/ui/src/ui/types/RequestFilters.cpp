@@ -63,8 +63,8 @@ namespace {
      }
 }
 
-void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info, QQmlContext* context) {
-    if (ContextAwareProfile::isRestricted(context) && blockLocalFiles(info)) {
+void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info, bool restricted) {
+    if (restricted && blockLocalFiles(info)) {
         return;
     }
 
@@ -90,7 +90,7 @@ void RequestFilters::interceptHFWebEngineRequest(QWebEngineUrlRequestInfo& info,
     info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
 }
 
-void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info, QQmlContext* context) {
+void RequestFilters::interceptFileType(QWebEngineUrlRequestInfo& info) {
     QString filename = info.requestUrl().fileName();
     if (isScript(filename) || isJSON(filename)) {
         static const QString CONTENT_HEADER = "Accept";

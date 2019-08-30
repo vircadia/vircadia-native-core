@@ -64,7 +64,9 @@ function simplifiedStatusIndicator(properties) {
         
         queryParamString += "&displayName=" + displayNameToSend;
         queryParamString += "&status=" + currentStatus;
-        queryParamString += "&organization=" + location.hostname;
+        var domainID = location.domainID;
+        domainID = domainID.substring(1, domainID.length - 1);
+        queryParamString += "&organization=" + domainID;
 
         var uri = REQUEST_URL + "?" + queryParamString;
 
