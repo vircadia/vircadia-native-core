@@ -59,6 +59,7 @@ protected:
     BOOL getTextFormat(int ResID, TextFormat& formatOut);
     void showWindows(std::vector<CStatic*> windows, bool show);
     POINT getMouseCoords(MSG* pMsg);
+    void MarkWindowAsUnpinnable();
 
 
     bool _isConsoleRunning { false };
