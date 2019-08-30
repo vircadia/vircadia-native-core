@@ -2,11 +2,13 @@
 
 #include "LauncherWindow.h"
 #include "Launcher.h"
+
 //Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
 Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
+
 int main(int argc, char *argv[])
 {
     QString name { "HQLauncher" };
@@ -14,5 +16,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(name);
 
     Launcher launcher(argc, argv);
+
     return launcher.exec();
+
 }

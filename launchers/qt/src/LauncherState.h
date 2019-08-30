@@ -1,11 +1,24 @@
 #include <QObject>
 #include <QString>
+#include <QNetworkAccessManager>
+
+struct Build {
+    QString tag;
+    int latestVersion;
+    int buildNumber;
+    QString installerZipURL;
+};
+
+struct LatestBuilds {
+    QString defaultTag;
+    std::vector<Build> builds;
+};
 
 class LauncherState : public QObject {
     Q_OBJECT
 
 public:
-    LauncherState() = default;
+    LauncherState();
     ~LauncherState() = default;
 
     enum UIState {
@@ -36,10 +49,18 @@ public:
     void setLastLoginError(LastLoginError lastLoginError);
     LastLoginError getLastLoginError() const;
 
+
+
+    // LOGIN
+    Q_INVOKABLE void login(QString username, QString password);
+
 signals:
     void updateSourceUrl(QString sourceUrl);
 
 private:
+    QNetworkAccessManager _networkAccessManager;
+    LatestBuilds _latestBuilds;
+
     UIState _uiState { SPLASH_SCREEN };
     LastLoginError _lastLoginError { NONE };
 };

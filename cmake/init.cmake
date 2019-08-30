@@ -30,12 +30,14 @@ endif ()
 # CMAKE_CURRENT_SOURCE_DIR is the parent folder here
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
-set(HF_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(HF_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 set(MACRO_DIR "${HF_CMAKE_DIR}/macros")
 set(EXTERNAL_PROJECT_DIR "${HF_CMAKE_DIR}/externals")
 
-file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
+file(GLOB HIFI_CUSTOM_MACROS "${HF_CMAKE_DIR}/macros/*.cmake")
+message("CMAKE FILEs: ${CMAKE_CURRENT_LIST_DIR} ${MACRO_DIR} ||")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
+    message("CMAKE FILE: ${CUSTOM_MACRO}")
   include(${CUSTOM_MACRO})
 endforeach()
 unset(HIFI_CUSTOM_MACROS)
