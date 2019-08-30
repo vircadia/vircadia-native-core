@@ -19,6 +19,8 @@
 #include <QQuickView>
 
 #include <ui/types/ContextAwareProfile.h>
+#include <ui/types/HFWebEngineProfile.h>
+#include <ui/types/FileTypeProfile.h>
 #include <DependencyManager.h>
 #include <DockWidget.h>
 #include <RegisteredMetaTypes.h>
@@ -135,7 +137,7 @@ void InteractiveWindow::emitMainWindowResizeEvent() {
  *     Set at window creation. Possible flag values are provided as {@link Desktop|Desktop.ALWAYS_ON_TOP} and {@link Desktop|Desktop.CLOSE_BUTTON_HIDES}.
  *     Additional flag values can be found on Qt's website at https://doc.qt.io/qt-5/qt.html#WindowType-enum.
  */
-InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties) {
+InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap& properties, bool restricted) {
     InteractiveWindowPresentationMode presentationMode = InteractiveWindowPresentationMode::Native;
 
     if (properties.contains(PRESENTATION_MODE_PROPERTY)) {
@@ -230,10 +232,11 @@ InteractiveWindow::InteractiveWindow(const QString& sourceUrl, const QVariantMap
         mainWindow->addDockWidget(dockArea, _dockWidget.get());
     } else {
         auto contextInitLambda = [&](QQmlContext* context) {
+            // If the restricted flag is on, the web content will not be able to access local files
+            ContextAwareProfile::restrictContext(context, restricted);
 #if !defined(Q_OS_ANDROID)
-            // If the restricted flag is on, override the FileTypeProfile and HFWebEngineProfile objects in the 
-            // QML surface root context with local ones
-            ContextAwareProfile::restrictContext(context, false);
+            FileTypeProfile::registerWithContext(context);
+            HFWebEngineProfile::registerWithContext(context);
 #endif
         };
 

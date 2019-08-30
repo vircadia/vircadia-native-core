@@ -137,10 +137,8 @@ void QmlWindowClass::initQml(QVariantMap properties) {
         // If the restricted flag is on, override the FileTypeProfile and HFWebEngineProfile objects in the 
         // QML surface root context with local ones
         ContextAwareProfile::restrictContext(context, _restricted);
-        if (_restricted) {
-            FileTypeProfile::registerWithContext(context);
-            HFWebEngineProfile::registerWithContext(context);
-        }
+        FileTypeProfile::registerWithContext(context);
+        HFWebEngineProfile::registerWithContext(context);
 #endif
     };
 
