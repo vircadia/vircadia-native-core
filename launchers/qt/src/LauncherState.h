@@ -32,6 +32,28 @@ public:
     };
     Q_ENUMS(UIState);
 
+    enum class ApplicationState {
+        INIT,
+
+        REQUESTING_BUILDS,
+        REQUESTING_BUILDS_FAILED,
+
+        WAITING_FOR_LOGIN,
+        REQUESTING_LOGIN,
+
+        WAITING_FOR_SIGNUP,
+        REQUESTING_SIGNUP,
+
+        DOWNLOADING_CONTENT,
+        DOWNLOADING_HIGH_FIDELITY,
+
+        EXTRACTING_DATA,
+
+        LAUNCHING_HIGH_FIDELITY
+    };
+    Q_ENUMS(ApplicationState);
+
+
     enum LastLoginError {
         NONE = 0,
         ORGINIZATION,
@@ -41,6 +63,8 @@ public:
     Q_ENUMS(LastLoginError);
     Q_INVOKABLE QString getCurrentUISource() const;
 
+    void LauncherState::ASSERT_STATE(LauncherState::ApplicationState state) const;
+
     static void declareQML();
 
     void setUIState(UIState state);
@@ -49,10 +73,21 @@ public:
     void setLastLoginError(LastLoginError lastLoginError);
     LastLoginError getLastLoginError() const;
 
+    // Request builds
+    void requestBuilds();
+    Q_INVOKABLE void receivedBuildsReply();
 
-
-    // LOGIN
+    // Login
     Q_INVOKABLE void login(QString username, QString password);
+    Q_INVOKABLE void receivedLoginReply();
+
+    // Download
+    void download();
+    Q_INVOKABLE void contentDownloadComplete();
+    Q_INVOKABLE void clientDownloadComplete();
+
+    // Launching
+    void launchClient();
 
 signals:
     void updateSourceUrl(QString sourceUrl);
@@ -61,6 +96,7 @@ private:
     QNetworkAccessManager _networkAccessManager;
     LatestBuilds _latestBuilds;
 
+    ApplicationState _appState { ApplicationState::INIT };
     UIState _uiState { SPLASH_SCREEN };
     LastLoginError _lastLoginError { NONE };
 };

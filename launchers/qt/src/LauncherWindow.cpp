@@ -7,6 +7,9 @@
 void LauncherWindow::keyPressEvent(QKeyEvent* event) {
     QQuickView::keyPressEvent(event);
     if (!event->isAccepted()) {
+        if (event->key() == Qt::Key_Escape) {
+            exit(0);
+        }
     }
 }
 
