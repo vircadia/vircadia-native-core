@@ -61,6 +61,7 @@ LauncherState::LauncherState() {
                 }
             }
         }
+        setUIState(LauncherState::LOGIN_SCREEN);
     });
 }
 
@@ -74,6 +75,7 @@ void LauncherState::declareQML() {
 
 void LauncherState::setUIState(UIState state) {
     _uiState = state;
+    emit updateSourceUrl(getCurrentUISource());
 }
 
 LauncherState::UIState LauncherState::getUIState() const {
