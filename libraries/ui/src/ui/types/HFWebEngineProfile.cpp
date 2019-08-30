@@ -28,7 +28,7 @@ HFWebEngineProfile::HFWebEngineProfile(QQmlContext* parent) : Parent(parent)
 }
 
 void HFWebEngineProfile::RequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {
-    RequestFilters::interceptHFWebEngineRequest(info, getContext());
+    RequestFilters::interceptHFWebEngineRequest(info, isRestricted());
 }
 
 void HFWebEngineProfile::registerWithContext(QQmlContext* context) {
