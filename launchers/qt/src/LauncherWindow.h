@@ -1,5 +1,5 @@
 #include <QQuickView>
-
+#include <QPoint>
 
 class LauncherWindow : public QQuickView {
 public:
@@ -7,4 +7,8 @@ public:
     void mousePressEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
+
+private:
+    bool _drag { false };
+    QPoint _previousMousePos;
 };

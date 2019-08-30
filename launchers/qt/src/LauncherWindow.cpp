@@ -2,30 +2,37 @@
 
 #include <iostream>
 
+#include <QCursor>
+
 void LauncherWindow::keyPressEvent(QKeyEvent* event) {
     QQuickView::keyPressEvent(event);
     if (!event->isAccepted()) {
-        // std::cout << "Key press event\n";
     }
 }
 
 void LauncherWindow::mousePressEvent(QMouseEvent* event) {
     QQuickView::mousePressEvent(event);
     if (!event->isAccepted()) {
-        //std::cout << "mouse press event\n";
+        if (event->button() == Qt::LeftButton) {
+            _drag = true;
+            _previousMousePos = QCursor::pos();
+        }
     }
 }
 
 void LauncherWindow::mouseReleaseEvent(QMouseEvent* event) {
     QQuickView::mouseReleaseEvent(event);
-    if (!event->isAccepted()) {
-        //std::cout << "mouse release event\n";
-    }
+    _drag = false;
 }
 
 void LauncherWindow::mouseMoveEvent(QMouseEvent* event) {
     QQuickView::mouseMoveEvent(event);
     if (!event->isAccepted()) {
-        // std::cout << "mouse move event\n";
+        if (_drag) {
+            QPoint cursorPos = QCursor::pos();
+            QPoint offset = _previousMousePos - cursorPos;
+            _previousMousePos = cursorPos;
+            setPosition(position() - offset);
+        }
     }
 }
