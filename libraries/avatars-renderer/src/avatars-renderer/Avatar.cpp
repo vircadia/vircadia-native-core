@@ -1848,13 +1848,6 @@ void Avatar::setPositionViaScript(const glm::vec3& position) {
     updateAttitude(getWorldOrientation());
 }
 
-void Avatar::setFeetPositionViaScript(const glm::vec3& position) {
-    auto feetAjustment = getWorldPosition() - getWorldFeetPosition();
-    auto _goToPosition = position + feetAjustment;
-    setWorldPosition(_goToPosition);
-    updateAttitude(getWorldOrientation());
-}
-
 void Avatar::setOrientationViaScript(const glm::quat& orientation) {
     setWorldOrientation(orientation);
     updateAttitude(orientation);

@@ -437,7 +437,6 @@ public:
     Q_INVOKABLE glm::vec3 getWorldFeetPosition();
 
     void setPositionViaScript(const glm::vec3& position) override;
-    void setFeetPositionViaScript(const glm::vec3& position) override;
     void setOrientationViaScript(const glm::quat& orientation) override;
 
     /**jsdoc

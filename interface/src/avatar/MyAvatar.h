@@ -154,6 +154,7 @@ class MyAvatar : public Avatar {
      *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
      *
+     * @property {Vec3} feetPosition - The position of the avatar's feet.
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
      *     otherwise it is not rendered for you (but it is still rendered for other users).
      * @property {Vec3} motorVelocity=Vec3.ZERO - The target velocity of your avatar to be achieved by a scripted motor.
@@ -340,6 +341,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
     QVector3D getQmlPosition() { auto p = getWorldPosition(); return QVector3D(p.x, p.y, p.z); }
 
+    Q_PROPERTY(glm::vec3 feetPosition READ getWorldFeetPosition WRITE goToFeetLocation)
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)

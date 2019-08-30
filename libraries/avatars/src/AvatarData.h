@@ -488,7 +488,6 @@ class AvatarData : public QObject, public SpatiallyNestable {
     // IMPORTANT: The JSDoc for the following properties should be copied to MyAvatar.h and ScriptableAvatar.h.
     /*
      * @property {Vec3} position - The position of the avatar.
-     * @property {Vec3} feetPosition - The feet position of the avatar.
      * @property {number} scale=1.0 - The scale of the avatar. The value can be set to anything between <code>0.005</code> and
      *     <code>1000.0</code>. When the scale value is fetched, it may temporarily be further limited by the domain's settings.
      * @property {number} density - The density of the avatar in kg/m<sup>3</sup>. The density is used to work out its mass in
@@ -537,7 +536,6 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     <em>Read-only.</em>
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
-    Q_PROPERTY(glm::vec3 feetPosition READ getWorldFeetPosition WRITE setFeetPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
     Q_PROPERTY(float density READ getDensity)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
@@ -631,7 +629,6 @@ public:
     void setBodyRoll(float bodyRoll);
 
     virtual void setPositionViaScript(const glm::vec3& position);
-    virtual void setFeetPositionViaScript(const glm::vec3& position);
     virtual void setOrientationViaScript(const glm::quat& orientation);
 
     virtual void updateAttitude(const glm::quat& orientation) {}
