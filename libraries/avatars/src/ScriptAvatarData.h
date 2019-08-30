@@ -20,6 +20,7 @@
  * Information about an avatar.
  * @typedef {object} AvatarData
  * @property {Vec3} position - The avatar's position.
+ * @property {Vec3} feetPosition - The avatar's feet position.
  * @property {number} scale - The target scale of the avatar without any restrictions on permissible values imposed by the 
  *     domain.
  * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar but 
@@ -70,6 +71,7 @@ class ScriptAvatarData : public QObject {
     // PHYSICAL PROPERTIES: POSITION AND ORIENTATION
     //
     Q_PROPERTY(glm::vec3 position READ getPosition)
+    Q_PROPERTY(glm::vec3 feetPosition READ getFeetPosition)
     Q_PROPERTY(float scale READ getTargetScale)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition)
     Q_PROPERTY(float bodyPitch READ getBodyPitch)
@@ -124,6 +126,7 @@ public:
     // PHYSICAL PROPERTIES: POSITION AND ORIENTATION
     //
     glm::vec3 getPosition() const;
+    glm::vec3 getFeetPosition() const;
     float getTargetScale() const;
     glm::vec3 getHandPosition() const;
     float getBodyPitch() const;

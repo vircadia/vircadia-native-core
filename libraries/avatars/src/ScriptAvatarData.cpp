@@ -31,6 +31,13 @@ glm::vec3 ScriptAvatarData::getPosition() const {
         return glm::vec3();
     }
 }
+glm::vec3 ScriptAvatarData::getFeetPosition() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getWorldFeetPosition();
+    } else {
+        return glm::vec3();
+    }
+}
 float ScriptAvatarData::getTargetScale() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getTargetScale();
