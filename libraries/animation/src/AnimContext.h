@@ -31,6 +31,7 @@ enum class AnimNodeType {
     TwoBoneIK,
     SplineIK,
     PoleVectorConstraint,
+    BlendDirectional,
     NumTypes
 };
 

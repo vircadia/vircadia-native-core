@@ -99,6 +99,15 @@ public:
         return result;
     }
 
+    int findChildIndexByName(const QString& id) {
+        for (int i = 0; i < _children.size(); ++i) {
+            if (_children[i]->getID() == id) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     const AnimPoseVec& getPoses() const { return getPosesInternal(); }
 
 protected:
