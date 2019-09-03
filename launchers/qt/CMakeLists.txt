@@ -1,18 +1,39 @@
 cmake_minimum_required(VERSION 3.11)
-
 project(HQLauncher)
 
-set(CMAKE_CXX_STANDARD_REQUIRED_ON)
+if (APPLE)
+  set(ENV{MACOSX_DEPLOYMENT_TARGET} 10.9)
+endif()
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/Modules")
+include("cmake/macros/SetPackagingParameters.cmake")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 #set(CMAKE_AUTOUIC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
+#add_compile_options(-W -Wall -Wextra -Wpedantic -Werror -std=c++1z)
 
 include("cmake/init.cmake")
+include("cmake/macros/SetPackagingParameters.cmake")
+
+
+function(set_from_env _RESULT_NAME _ENV_VAR_NAME _DEFAULT_VALUE)
+  if (NOT DEFINED ${_RESULT_NAME})
+    if ("$ENV{${_ENV_VAR_NAME}}" STREQUAL "")
+      set (${_RESULT_NAME} ${_DEFAULT_VALUE} PARENT_SCOPE)
+    else()
+      set (${_RESULT_NAME} $ENV{${_ENV_VAR_NAME}} PARENT_SCOPE)
+    endif()
+  endif()
+endfunction()
 
 include(ExternalProject)
 
+if (APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "-framework Cocoa -framework CoreServices -framework Carbon -framework IOKit -framework Security -framework SystemConfiguration")
+endif()
 if (WIN32)
 
     ExternalProject_Add(
@@ -42,8 +63,43 @@ if (WIN32)
 
 endif ()
 
+
+if (APPLE)
+  ExternalProject_Add(
+    qtlite
+    URL "https://dantescalves.com/launcher//qt-lite-ssl-mac.zip"
+    URL_HASH MD5=2b073937a7c5dbae6e6ed244d2063398
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD 1
+    )
+
+
+  ExternalProject_Get_Property(qtlite SOURCE_DIR)
+  ExternalProject_Get_Property(qtlite STAMP_DIR)
+
+  include("${STAMP_DIR}/download-qtlite.cmake")
+  include("${STAMP_DIR}/extract-qtlite.cmake")
+  include("${STAMP_DIR}/verify-qtlite.cmake")
+
+  message("${SOURCE_DIR}/lib/cmake")
+
+  list(APPEND CMAKE_PREFIX_PATH ${SOURCE_DIR}/lib/cmake)
+
+  set(SSL_DIR ${SOURCE_DIR}/ssl)
+  set(OPENSSL_ROOT_DIR ${SSL_DIR})
+  message("SSL dir is ${SSL_DIR}")
+endif()
+
+if (APPLE)
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  find_package(OpenSSL REQUIRED)
+endif()
+
 find_package(Qt5 COMPONENTS Core Gui Qml Quick QuickControls2 Network REQUIRED)
-find_package(OpenGL)
+find_package(OpenGL REQUIRED)
+find_package(QtStaticDeps REQUIRED)
 
 set(CUSTOM_LAUNCHER_QRC_PATHS "")
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
@@ -61,7 +117,6 @@ add_custom_target(resources ALL DEPENDS ${GENERATE_QRC_DEPENDS})
 
 foreach(plugin ${Qt5Gui_PLUGINS})
   get_target_property(_loc ${plugin} LOCATION)
-  message("Plugin ${plugin} is at location ${_loc}")
   set(plugin_libs ${plugin_libs} ${_loc})
 endforeach()
 
@@ -75,9 +130,18 @@ set(src_files
   src/LauncherWindow.cpp)
 
 set(TARGET_NAME ${PROJECT_NAME})
-add_executable(${PROJECT_NAME} ${src_files})
 
-#target_openssl()
+
+set_packaging_parameters()
+if (WIN32)
+  add_executable(${PROJECT_NAME} ${src_files})
+elseif (APPLE)
+  set_target_properties(${this_target} PROPERTIES
+    MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
+
+  set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
+  add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   Qt5::Core
@@ -89,31 +153,38 @@ target_link_libraries(${PROJECT_NAME}
   ${Qt_LIBRARIES}
   ${OPENGL_LIBRARIES}
   ${plugin_libs}
-  wsock32 ws2_32 Winmm version imm32 dwmapi
-  Crypt32 Iphlpapi
-  "${SSL_DIR}/lib/libeay32.lib"
-  "${SSL_DIR}/lib/ssleay32.lib"
-  "${_qt5Core_install_prefix}/lib/qtpcre2.lib"
-  "${_qt5Core_install_prefix}/lib/qtlibpng.lib"
-  "${_qt5Core_install_prefix}/lib/qtfreetype.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5AccessibilitySupport.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5FbSupport.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5OpenGLExtensions.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5QuickTemplates2.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5FontDatabaseSupport.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5ThemeSupport.lib"
-#  "${_qt5Core_install_prefix}/lib/Qt5Bootstrap.lib"
-  "${_qt5Core_install_prefix}/lib/Qt5EventDispatcherSupport.lib"
-  "${_qt5Core_install_prefix}/qml/QtQuick.2/qtquick2plugin.lib"
-  "${_qt5Core_install_prefix}/qml/QtQuick/Controls.2/qtquickcontrols2plugin.lib"
-  "${_qt5Core_install_prefix}/qml/QtQuick/Templates.2/qtquicktemplates2plugin.lib")
+  ${QT_STATIC_LIBS}
+  )
+
+if (WIN32)
+  target_link_libraries(${PROJECT_NAME}
+    wsock32 ws2_32 Winmm version imm32 dwmapi
+    Crypt32 Iphlpapi
+    "${SSL_DIR}/lib/libeay32.lib"
+    "${SSL_DIR}/lib/ssleay32.lib"
+    "${_qt5Core_install_prefix}/qml/QtQuick.2/qtquick2plugin.lib"
+    "${_qt5Core_install_prefix}/qml/QtQuick/Controls.2/qtquickcontrols2plugin.lib"
+    "${_qt5Core_install_prefix}/qml/QtQuick/Templates.2/qtquicktemplates2plugin.lib")
+elseif (APPLE)
+  target_link_libraries(${PROJECT_NAME}
+    ${OPENSSL_LIBRARIES}
+    "${_qt5Core_install_prefix}/qml/QtQuick.2/libqtquick2plugin.a"
+    "${_qt5Core_install_prefix}/qml/QtQuick/Controls.2/libqtquickcontrols2plugin.a"
+    "${_qt5Core_install_prefix}/qml/QtQuick/Templates.2/libqtquicktemplates2plugin.a"
+    "${_qt5Core_install_prefix}/plugins/platforms/libqcocoa.a")
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   ${Qt5Core_INCLUDE_DIRS}
   ${Qt5Quick_INCLUDE_DIRS}
   ${Qt5Gui_INCLUDE_DIRS}
-  ${Qt5Qml_INCLUDE_DIRS})
+  ${Qt5Qml_INCLUDE_DIRS}
+  )
 
+if (APPLE)
+  target_include_directories(${PROJECT_NAME} PUBLIC
+    ${OPENSSL_INCLUDE_DIR})
+endif()
 
 set(INTERFACE_EXEC_DIR "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
 set(RESOURCES_DEV_DIR "${INTERFACE_EXEC_DIR}/resources")
@@ -121,3 +192,29 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different
   "${RESOURCES_RCC}"
   "${INTERFACE_EXEC_DIR}")
+
+
+
+if (APPLE)
+  install(
+    TARGETS HQLauncher
+    BUNDLE DESTINATION "."
+    COMPONENT applications)
+
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
+
+  include(CPackComponent)
+
+  set(CPACK_PACKAGE_NAME "HQ Launcher")
+  set(CPACK_PACKAGE_VENDOR "High Fidelity")
+  set(CPACK_PACKAGE_FILE_NAME "HQ Launcher")
+
+  set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
+
+  set(DMG_SUBFOLDER_NAME "High Fidelity")
+  set(ESCAPED_DMG_SUBFOLDER_NAME "")
+  set(DMG_SUBFOLDER_ICON "${CMAKE_SOURCE_DIR}/cmake/installer/install-folder.rsrc")
+
+  set(CPACK_GENERATOR "DragNDrop")
+  include(CPack)
+endif()

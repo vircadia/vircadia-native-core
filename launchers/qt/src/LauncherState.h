@@ -30,7 +30,7 @@ public:
         ERROR_SCREEN,
         UI_STATE_NUM
     };
-    Q_ENUMS(UIState);
+    Q_ENUMS(UIState)
 
     enum LastLoginError {
         NONE = 0,
@@ -38,7 +38,7 @@ public:
         CREDENTIALS,
         LAST_ERROR_NUM
     };
-    Q_ENUMS(LastLoginError);
+    Q_ENUMS(LastLoginError)
     Q_INVOKABLE QString getCurrentUISource() const;
 
     static void declareQML();

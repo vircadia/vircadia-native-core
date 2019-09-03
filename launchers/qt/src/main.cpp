@@ -3,8 +3,8 @@
 #include "LauncherWindow.h"
 #include "Launcher.h"
 
-//Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
-Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+//Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
 Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
