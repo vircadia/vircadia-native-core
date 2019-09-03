@@ -351,8 +351,10 @@ public:
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
     /**jsdoc
-     * Starts running another script in Interface.
-     * <table><tr><th>Available in:</th><td>Interface Scripts</td><td>Avatar Scripts</td></tr></table>
+     * Starts running another script in Interface, if it isn't already running. The script is not automatically loaded next 
+     * time Interface starts.
+     * <p class="availableIn"><strong>Supported Script Types:</strong> Interface Scripts &bull; Avatar Scripts</p>
+     * <p>See also, {@link ScriptDiscoveryService.loadScript}.</p>
      * @function Script.load
      * @param {string} filename - The URL of the script to load. This can be relative to the current script's URL.
      * @example <caption>Load a script from another script.</caption>
@@ -754,8 +756,8 @@ signals:
     void cleanupMenuItem(const QString& menuItemString);
 
     /**jsdoc
-     * Triggered when a script prints a message to the program log via {@link Script.print}, {@link  print}, 
-     * {@link console.log}, {@link console.info}, {@link console.warn}, {@link console.error}, or {@link console.debug}.
+     * Triggered when the script prints a message to the program log via {@link  print}, {@link Script.print}, 
+     * {@link console.log}, or {@link console.debug}.
      * @function Script.printedMessage
      * @param {string} message - The message.
      * @param {string} scriptName - The name of the script that generated the message.
@@ -764,7 +766,7 @@ signals:
     void printedMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
-     * Triggered when a script generates an error or {@link console.error} is called.
+     * Triggered when the script generates an error or {@link console.error} is called.
      * @function Script.errorMessage
      * @param {string} message - The error message.
      * @param {string} scriptName - The name of the script that generated the error message.
@@ -773,7 +775,7 @@ signals:
     void errorMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
-     * Triggered when a script generates a warning or {@link console.warn} is called.
+     * Triggered when the script generates a warning or {@link console.warn} is called.
      * @function Script.warningMessage
      * @param {string} message - The warning message.
      * @param {string} scriptName - The name of the script that generated the warning message.
@@ -782,7 +784,7 @@ signals:
     void warningMessage(const QString& message, const QString& scriptName);
 
     /**jsdoc
-     * Triggered when a script generates an information message or {@link console.info} is called.
+     * Triggered when the script generates an information message or {@link console.info} is called.
      * @function Script.infoMessage
      * @param {string} message - The information message.
      * @param {string} scriptName - The name of the script that generated the information message.
@@ -845,8 +847,9 @@ signals:
      * @param {Uuid} entityID - The ID of the entity that the script is running in.
      * @returns {Signal}
      * @example <caption>Get the ID of the entity that a client entity script is running in.</caption>
-     * var entityScript = (function () {
+     * var entityScript = function () {
      *     this.entityID = Uuid.NULL;
+     * };
      *
      * Script.entityScriptPreloadFinished.connect(function (entityID) {
      *     this.entityID = entityID;

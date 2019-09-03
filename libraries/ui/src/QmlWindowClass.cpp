@@ -136,13 +136,9 @@ void QmlWindowClass::initQml(QVariantMap properties) {
 #if !defined(Q_OS_ANDROID)
         // If the restricted flag is on, override the FileTypeProfile and HFWebEngineProfile objects in the 
         // QML surface root context with local ones
-        qDebug() << "Context initialization lambda";
-        if (_restricted) {
-            qDebug() << "Restricting web content";
-            ContextAwareProfile::restrictContext(context);
-            FileTypeProfile::registerWithContext(context);
-            HFWebEngineProfile::registerWithContext(context);
-        }
+        ContextAwareProfile::restrictContext(context, _restricted);
+        FileTypeProfile::registerWithContext(context);
+        HFWebEngineProfile::registerWithContext(context);
 #endif
     };
 
