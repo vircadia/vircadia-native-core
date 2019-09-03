@@ -8,9 +8,10 @@
 {
     self.progressPercentage = 0.0;
     self.taskProgressPercentage = 0.0;
-    NSURLRequest* request = [NSURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
-                                             cachePolicy:NSURLRequestUseProtocolCachePolicy
-                                         timeoutInterval:60.0];
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:downloadUrl]
+                                                           cachePolicy:NSURLRequestUseProtocolCachePolicy
+                                                       timeoutInterval:60.0];
+    [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
 
     NSURLSessionConfiguration *defaultConfigObject = [NSURLSessionConfiguration defaultSessionConfiguration];
     NSURLSession *defaultSession = [NSURLSession sessionWithConfiguration: defaultConfigObject delegate: self delegateQueue: [NSOperationQueue mainQueue]];
@@ -21,7 +22,10 @@
 
 -(void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
     CGFloat prog = (float)totalBytesWritten/totalBytesExpectedToWrite;
-    NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
+    
+    if ((int)(100.0 * prog) != (int)self.progressPercentage) {
+        NSLog(@"interface downloaded %d%%", (int)(100.0*prog));
+    }
 
     self.progressPercentage = (100.0 * prog);
     [[Launcher sharedLauncher] updateProgressIndicator];

@@ -58,6 +58,7 @@
 
 #include <shared/FileUtils.h>
 #include <shared/QtHelpers.h>
+#include <shared/PlatformHelper.h>
 #include <shared/GlobalAppProperties.h>
 #include <StatTracker.h>
 #include <Trace.h>
@@ -73,6 +74,7 @@
 #include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
+#include <CrashHelpers.h>
 #include <CursorManager.h>
 #include <VirtualPadManager.h>
 #include <DebugDraw.h>
@@ -137,6 +139,7 @@
 #include <SoundCacheScriptingInterface.h>
 #include <ui/TabletScriptingInterface.h>
 #include <ui/ToolbarScriptingInterface.h>
+#include <ui/types/ContextAwareProfile.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -255,10 +258,6 @@
 extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
-#endif
-
-#ifdef Q_OS_MAC
-#include "MacHelper.h"
 #endif
 
 #if defined(Q_OS_ANDROID)
@@ -550,13 +549,6 @@ public:
                 }
                 qApp->setActiveWindow(applicationWindow);  // Flashes the taskbar icon if not focus.
                 return true;
-            }
-
-            if (message->message == WM_POWERBROADCAST) {
-                if (message->wParam == PBT_APMRESUMEAUTOMATIC) {
-                    qCInfo(interfaceapp) << "Waking up from sleep or hybernation.";
-                    QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
-                }
             }
 
             if (message->message == WM_COPYDATA) {
@@ -964,9 +956,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
-#ifdef Q_OS_MAC
-    DependencyManager::set<MacHelper>();
-#endif
+    PlatformHelper::setup();
+    
+    QObject::connect(PlatformHelper::instance(), &PlatformHelper::systemWillWake, [] {
+        QMetaObject::invokeMethod(DependencyManager::get<NodeList>().data(), "noteAwakening", Qt::QueuedConnection);
+    });
+
 
     QString setBookmarkValue = getCmdOption(argc, constArgv, "--setBookmark");
     if (!setBookmarkValue.isEmpty()) {
@@ -1149,7 +1144,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Regular.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Graphik-Medium.ttf");
-    _window->setWindowTitle("High Fidelity Interface");
+    _window->setWindowTitle("High Fidelity");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -1172,6 +1167,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         deadlockWatchdogThread->setMainThreadID(QThread::currentThreadId());
         deadlockWatchdogThread->start();
 
+        // Pause the deadlock watchdog when we sleep, or it might 
+        // trigger a false positive when we wake back up
+        auto platformHelper = PlatformHelper::instance();
+
+        connect(platformHelper, &PlatformHelper::systemWillSleep, [] {
+            DeadlockWatchdogThread::pause();
+        });
+
+        connect(platformHelper, &PlatformHelper::systemWillWake, [] {
+            DeadlockWatchdogThread::resume();
+        });
 
         // Main thread timer to keep the watchdog updated
         QTimer* watchdogUpdateTimer = new QTimer(this);
@@ -2675,6 +2681,8 @@ void Application::updateHeartbeat() const {
 }
 
 void Application::onAboutToQuit() {
+    setCrashAnnotation("shutdown", "1");
+
     // quickly save AvatarEntityData before the EntityTree is dismantled
     getMyAvatar()->saveAvatarEntityDataToSettings();
 
@@ -2712,6 +2720,11 @@ void Application::onAboutToQuit() {
     _aboutToQuit = true;
 
     cleanupBeforeQuit();
+
+    if (_crashOnShutdown) {
+        // triggered by crash menu
+        crash::nullDeref();
+    }
 
     getRefreshRateManager().setRefreshRateRegime(RefreshRateManager::RefreshRateRegime::SHUTDOWN);
 }
@@ -2868,9 +2881,7 @@ Application::~Application() {
     _gameWorkload.shutdown();
 
     DependencyManager::destroy<Preferences>();
-#ifdef Q_OS_MAC
-    DependencyManager::destroy<MacHelper>();
-#endif
+    PlatformHelper::shutdown();
 
     _entityClipboard->eraseAllOctreeElements();
     _entityClipboard.reset();
@@ -3140,7 +3151,7 @@ void Application::showLoginScreen() {
         QJsonObject loginData = {};
         loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
-        _window->setWindowTitle("High Fidelity Interface");
+        _window->setWindowTitle("High Fidelity");
     } else {
         resumeAfterLoginDialogActionTaken();
     }
@@ -3275,6 +3286,9 @@ void Application::initializeUi() {
         }
         return result.toPoint();
     });
+
+    // BUGZ-1365 - the root context should explicitly default to being unable to load local HTML content
+    ContextAwareProfile::restrictContext(offscreenUi->getSurfaceContext(), true);
     offscreenUi->resume();
 #endif
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
@@ -3562,6 +3576,9 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
         surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
         surfaceContext->setContextProperty("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
+        // This `module` context property is blank for the QML scripting interface so that we don't get log errors when importing
+        // certain JS files from both scripts (in the JS context) and QML (in the QML context).
+        surfaceContext->setContextProperty("module", "");
     }
 }
 
@@ -6282,11 +6299,13 @@ void Application::tryToEnablePhysics() {
         // process octree stats packets are sent in between full sends of a scene (this isn't currently true).
         // We keep physics disabled until we've received a full scene and everything near the avatar in that
         // scene is ready to compute its collision shape.
-        if (getMyAvatar()->isReadyForPhysics()) {
+        auto myAvatar = getMyAvatar();
+        if (myAvatar->isReadyForPhysics()) {
+            myAvatar->getCharacterController()->setPhysicsEngine(_physicsEngine);
             _octreeProcessor.resetSafeLanding();
             _physicsEnabled = true;
             setIsInterstitialMode(false);
-            getMyAvatar()->updateMotionBehaviorFromMenu();
+            myAvatar->updateMotionBehaviorFromMenu();
         }
     }
 }
@@ -6577,7 +6596,7 @@ void Application::update(float deltaTime) {
                 avatarManager->handleProcessedPhysicsTransaction(transaction);
 
                 myAvatar->prepareForPhysicsSimulation();
-                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+                myAvatar->getCharacterController()->preSimulation();
             }
         }
 
@@ -6630,6 +6649,7 @@ void Application::update(float deltaTime) {
 
                         {
                             PROFILE_RANGE(simulation_physics, "MyAvatar");
+                            myAvatar->getCharacterController()->postSimulation();
                             myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
                         }
 
@@ -7441,7 +7461,7 @@ void Application::addingEntityWithCertificate(const QString& certificateID, cons
     ledger->updateLocation(certificateID, placeName);
 }
 
-void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) {
+void Application::registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) {
 
     scriptEngine->setEmitScriptUpdatesFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
@@ -7480,9 +7500,19 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     qScriptRegisterMetaType(scriptEngine.data(), RayToOverlayIntersectionResultToScriptValue,
                             RayToOverlayIntersectionResultFromScriptValue);
 
+    bool clientScript = scriptEngine->isClientScript();
+
 #if !defined(DISABLE_QML)
     scriptEngine->registerGlobalObject("OffscreenFlags", getOffscreenUI()->getFlags());
-    scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    if (clientScript) {
+        scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+    } else {
+        auto desktopScriptingInterface = new DesktopScriptingInterface(nullptr, true);
+        scriptEngine->registerGlobalObject("Desktop", desktopScriptingInterface);
+        if (QThread::currentThread() != thread()) {
+            desktopScriptingInterface->moveToThread(thread());
+        }
+    }
 #endif
 
     qScriptRegisterMetaType(scriptEngine.data(), wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
@@ -7507,7 +7537,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    bool clientScript = scriptEngine->isClientScript();
     scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
 #if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
     scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
@@ -9519,6 +9548,14 @@ void Application::showUrlHandler(const QUrl& url) {
         }
     });
 }
+
+// used to test "shutdown" crash annotation.
+void Application::crashOnShutdown() {
+    qDebug() << "crashOnShutdown(), ON PURPOSE!";
+    _crashOnShutdown = true;
+    quit();
+}
+
 void Application::overrideEntry(){
     _overrideEntry = true;
 }

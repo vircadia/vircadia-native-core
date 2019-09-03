@@ -56,6 +56,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
     });
 
     connect(qApp->getWindow(), &MainWindow::windowGeometryChanged, this, &WindowScriptingInterface::onWindowGeometryChanged);
+    connect(qApp->getWindow(), &MainWindow::windowMinimizedChanged, this, &WindowScriptingInterface::minimizedChanged);
     connect(qApp, &Application::interstitialModeChanged, [this] (bool interstitialMode) {
         emit interstitialModeChanged(interstitialMode);
     });

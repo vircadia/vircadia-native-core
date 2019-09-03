@@ -56,7 +56,6 @@ static FilePersistThread* _persistThreadInstance;
 
 QString getLogRollerFilename() {
     QString result = FileUtils::standardPath(LOGS_DIRECTORY);
-    QHostAddress clientAddress = getGuessedLocalAddress();
     QDateTime now = QDateTime::currentDateTime();
     QString fileSessionID;
 

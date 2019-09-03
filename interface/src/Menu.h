@@ -72,6 +72,7 @@ namespace MenuOption {
     const QString CrashNullDereferenceThreaded = "Null Dereference (threaded)";
     const QString CrashAbort = "Abort";
     const QString CrashAbortThreaded = "Abort (threaded)";
+    const QString CrashOnShutdown = "Crash During Shutdown";
     const QString CrashOutOfBoundsVectorAccess = "Out of Bounds Vector Access";
     const QString CrashOutOfBoundsVectorAccessThreaded = "Out of Bounds Vector Access (threaded)";
     const QString CrashNewFault = "New Fault";

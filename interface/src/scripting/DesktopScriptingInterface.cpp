@@ -52,6 +52,9 @@ static const QVariantMap DOCK_AREA {
     { "RIGHT", DockArea::RIGHT }
 };
 
+DesktopScriptingInterface::DesktopScriptingInterface(QObject* parent, bool restricted) 
+    : QObject(parent), _restricted(restricted) { }
+
 int DesktopScriptingInterface::getWidth() {
     QSize size = qApp->getWindow()->windowHandle()->screen()->virtualSize();
     return size.width();
@@ -128,7 +131,7 @@ InteractiveWindowPointer DesktopScriptingInterface::createWindow(const QString& 
         return nullptr;
     }
 
-    return new InteractiveWindow(sourceUrl, properties);
+    return new InteractiveWindow(sourceUrl, properties, _restricted);
 }
 
 InteractiveWindowPointer DesktopScriptingInterface::createWindowOnThread(const QString& sourceUrl, const QVariantMap& properties, QThread* targetThread) {
@@ -139,7 +142,7 @@ InteractiveWindowPointer DesktopScriptingInterface::createWindowOnThread(const Q
     if (!urlValidator(sourceUrl)) {
         return nullptr;
     }
-    InteractiveWindowPointer window = new InteractiveWindow(sourceUrl, properties);
+    InteractiveWindowPointer window = new InteractiveWindow(sourceUrl, properties, _restricted);
     window->moveToThread(targetThread);
     return window;
 }

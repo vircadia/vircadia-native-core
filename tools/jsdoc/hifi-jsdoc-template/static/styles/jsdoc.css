@@ -40,9 +40,9 @@ body
     letter-spacing: 0.5px;  
 }
 
-#main p {
-    line-height: 24px;
-    margin-bottom: 24px;
+p {
+    font-size: 0.95rem;
+    line-height: 20px;
 }
 
 section
@@ -118,30 +118,17 @@ h5, .container-overview .subsection-title
 **************************** Table styles **************************
 ********************************************************************/
 
-table
-{
-    width: 100%;
-    background-color: #fff;
+table {
     border-collapse: collapse;
-    border-spacing: 0;
-	border: solid #d8e1d9 1px;
-    text-align: left;
-    overflow: auto;
-    font-size: 0.9rem;
-    line-height: 1.5;
+    border: solid #d8e1d9 1px;
     margin-bottom: 1.5rem;
+    width: 100%
 }
 
-table > thead {
+thead {
     border-color: #d8e1d9;
-    background: #d8e1d9;
-    font-weight: 400;
-}
-
-table th, table td {
-    padding: 0.5rem;
-    border-left: 1px solid #d8e1d9;
-    font-size: .95em;
+    background:#d8e1d9;
+    text-align: left;    
 }
 
 table tr {
@@ -150,6 +137,23 @@ table tr {
 
 table tr:nth-child(even) {
     background-color: #f8f8f8;
+}
+
+td {
+    border: solid #c7cccb 1px;
+}
+
+article table thead tr th, article table tbody tr td, article table tbody tr td p {
+    font-size: .89rem;
+    line-height: 20px;
+}
+
+article table thead tr th, article table tbody tr td {
+    padding: 0.5rem;
+}
+
+article table tbody tr td ul li {
+    font-size: .89rem;
 }
 
 /*******************************************************************
@@ -169,19 +173,13 @@ a, a:hover, a:active, a:visited {
 ********************************************************************/
 
 article ul {
-    margin-bottom: 1.7em;
+    margin-bottom: 1em;
 }
 
 article li {
     font-size: .95rem;
+    line-height: 20px;
     padding-bottom: 5px;
-}
-
-.readme ul {
-    font-size: 0.95rem;
-    line-height: 24px;
-    margin-bottom: 24px;
-
 }
 
 /*******************************************************************
@@ -388,19 +386,15 @@ tt, code, kbd, samp {
   font-size: 0.9rem;
 }
 
-
-
 img {
   display: block;
   max-width: 100%;
   margin: auto;
 }
 
-p, ul, ol, blockquote {
+ul, ol, blockquote {
   margin-bottom: 1em;
 }
-
-
 
 .class-description {
   font-size: 130%;
@@ -422,7 +416,6 @@ header {
   display: block;
   padding: 0px 4px;
 }
-
 
 .apiLinks 
 {
@@ -529,7 +522,6 @@ header {
 
 .code-caption {
   font-style: italic;
-  font-size: 107%;
   margin: 0;
 }
 
@@ -694,51 +686,6 @@ span.param-type, .params td .param-type, .param-type dd {
   height: 100%;
   background: hsla(0, 0%, 0%, 0.5);
   z-index: 1;
-}
-
-/********************************************************************
-**************************** Mobile styles **************************
-*********************************************************************/
-
-@media only screen and (min-width: 320px) and (max-width: 680px) {
-  body {
-    overflow-x: hidden;
-  }
-
-  nav {
-    background: #FFF;
-    width: 250px;
-    height: 100%;
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: -250px;
-    z-index: 3;
-    padding: 0 10px;
-    transition: left 0.2s;
-  }
-
-  .navicon-button {
-    display: inline-block;
-    position: fixed;
-    top: 1.5em;
-    right: 0;
-    z-index: 2;
-  }
-
-  #main {
-    width: 100%;
-    min-width: 360px;
-  }
-
-  #main section {
-    padding: 0;
-  }
-
-  footer {
-    margin-left: 0;
-  }
 }
 
 /** Add a '#' to static members */

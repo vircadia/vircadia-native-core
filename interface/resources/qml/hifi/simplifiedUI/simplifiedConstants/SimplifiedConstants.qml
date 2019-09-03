@@ -230,7 +230,7 @@ QtObject {
                 readonly property int textSize: 14
             }
             readonly property QtObject textField: QtObject {
-                readonly property int editPencilPadding: 6
+                readonly property int rightGlyphPadding: 6
             }
             readonly property QtObject scrollBar: QtObject {
                 readonly property int backgroundWidth: 9

@@ -498,7 +498,8 @@ bool AccountManager::checkAndSignalForAccessToken() {
 
 bool AccountManager::needsToRefreshToken() {
     if (!_accountInfo.getAccessToken().token.isEmpty() && _accountInfo.getAccessToken().expiryTimestamp > 0) {
-        qlonglong expireThreshold = QDateTime::currentDateTime().addSecs(1 * 60 * 60).toMSecsSinceEpoch();
+        static constexpr int MIN_REMAINING_MS = 1 * SECS_PER_HOUR * MSECS_PER_SECOND;  // 1 h
+        auto expireThreshold = QDateTime::currentDateTimeUtc().addMSecs(MIN_REMAINING_MS).toMSecsSinceEpoch();
         return _accountInfo.getAccessToken().expiryTimestamp < expireThreshold;
     } else {
         return false;

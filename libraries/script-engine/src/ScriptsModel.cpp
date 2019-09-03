@@ -78,13 +78,16 @@ TreeNodeBase* ScriptsModel::getTreeNodeFromIndex(const QModelIndex& index) const
 }
 
 QModelIndex ScriptsModel::index(int row, int column, const QModelIndex& parent) const {
-    if (row < 0 || column < 0) {
+    if (row < 0 || row >= rowCount(parent) || column < 0  || column >= columnCount(parent)) {
         return QModelIndex();
     }
     return createIndex(row, column, getFolderNodes(static_cast<TreeNodeFolder*>(getTreeNodeFromIndex(parent))).at(row));
 }
 
 QModelIndex ScriptsModel::parent(const QModelIndex& child) const {
+    if (!child.isValid()) {
+        return QModelIndex();
+    }
     TreeNodeFolder* parent = (static_cast<TreeNodeBase*>(child.internalPointer()))->getParent();
     if (!parent) {
         return QModelIndex();

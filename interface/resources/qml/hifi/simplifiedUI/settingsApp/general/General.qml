@@ -113,6 +113,49 @@ Flickable {
         }
 
         ColumnLayout {
+            id: emoteContainer
+            Layout.preferredWidth: parent.width
+            spacing: 0
+
+            HifiStylesUit.GraphikSemiBold {
+                    id: emoteTitle
+                    text: "Emote UI"
+                    Layout.maximumWidth: parent.width
+                    height: paintedHeight
+                    size: 22
+                    color: simplifiedUI.colors.text.white
+                }
+
+            ColumnLayout {
+                id: emoteSwitchGroup
+                Layout.preferredWidth: parent.width
+                Layout.topMargin: simplifiedUI.margins.settings.settingsGroupTopMargin
+
+                SimplifiedControls.Switch {
+                    id: emoteSwitch
+                    Layout.preferredHeight: 18
+                    Layout.preferredWidth: parent.width
+                    labelTextOn: "Show Emote UI"
+                    checked: Settings.getValue("simplifiedUI/emoteIndicatorVisible", true)
+                    onClicked: {
+                        var currentSetting = Settings.getValue("simplifiedUI/emoteIndicatorVisible", true);
+                        Settings.setValue("simplifiedUI/emoteIndicatorVisible", !currentSetting);
+                    }                    
+
+                    Connections {
+                        target: Settings
+
+                        onValueChanged: {
+                            if (setting === "simplifiedUI/emoteIndicatorVisible") {
+                                emoteSwitch.checked = value;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
             id: performanceContainer
             Layout.preferredWidth: parent.width
             spacing: 0
@@ -197,7 +240,7 @@ Flickable {
                     }
                 }
                 
-              Connections {
+                Connections {
                     target: Camera
 
                     onModeUpdated: {
@@ -207,7 +250,7 @@ Flickable {
                             thirdPerson.checked = true
                         }
                     }
-              }
+                }
             }
         }
 
@@ -248,4 +291,5 @@ Flickable {
     }
 
     signal sendNameTagInfo(var message);
+    signal sendEmoteVisible(var message);
 }

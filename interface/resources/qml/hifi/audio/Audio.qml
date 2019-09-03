@@ -186,15 +186,6 @@ Rectangle {
                     backgroundOnColor: "#E3E3E3";
                     checked: muted;
                     onClicked: {
-                        if (pushToTalk && !checked) {
-                            // disable push to talk if unmuting
-                            if (bar.currentIndex === 0) {
-                                AudioScriptingInterface.pushToTalkDesktop = false;
-                            }
-                            else {
-                                AudioScriptingInterface.pushToTalkHMD = false;
-                            }
-                        }
                         if (bar.currentIndex === 0) {
                             AudioScriptingInterface.mutedDesktop = checked;
                         }
