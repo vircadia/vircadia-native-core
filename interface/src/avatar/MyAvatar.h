@@ -1940,9 +1940,8 @@ public slots:
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from
      *      the new position and orientate the avatar to face the position.
      */
-    void goToFeetLocation(const glm::vec3& newPosition,
-        bool hasOrientation, const glm::quat& newOrientation,
-        bool shouldFaceLocation);
+    void goToFeetLocation(const glm::vec3& newPosition, bool hasOrientation = false, 
+        const glm::quat& newOrientation = glm::quat(), bool shouldFaceLocation = false);
 
     /**jsdoc
      * Moves the avatar to a new position and/or orientation in the domain.
