@@ -18,6 +18,12 @@ Column {
 
     property var config: Render.getConfig("RenderMainView.DebugBloom")
 
+    Prop.PropBool {
+        label: "Apply Bloom"
+        object: Render.getConfig("RenderMainView.LightingModel")
+        property: "enableBloom"
+    } 
+    
     function setDebugMode(mode) {
         console.log("Bloom mode is " + mode)
         bloom.config.enabled = (mode != 0);
@@ -38,11 +44,5 @@ Column {
 
         valueVarSetter: function (mode) { bloom.setDebugMode(mode) }
     }
-
-    Prop.PropBool {
-        label: "Debug Bloom Buffer"
-        object: Render.getConfig("RenderMainView.Bloom")
-        property: "enabled"
-    } 
 }
 

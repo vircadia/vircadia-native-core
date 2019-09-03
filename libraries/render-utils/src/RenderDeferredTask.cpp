@@ -227,7 +227,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Add bloom
-    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame).asVarying();
+    const auto bloomInputs = BloomEffect::Inputs(deferredFrameTransform, lightingFramebuffer, bloomFrame, lightingModel).asVarying();
     task.addJob<BloomEffect>("Bloom", bloomInputs);
 
     const auto destFramebuffer = static_cast<gpu::FramebufferPointer>(nullptr);

@@ -35,12 +35,13 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
     const auto frameTransform = inputs.get0();
     const auto inputFrameBuffer = inputs.get1();
     const auto bloomFrame = inputs.get2();
+    const auto lightingModel = inputs.get3();
     const auto& bloomStage = renderContext->_scene->getStage<BloomStage>();
     graphics::BloomPointer bloom;
     if (bloomStage && bloomFrame->_blooms.size()) {
         bloom = bloomStage->getBloom(bloomFrame->_blooms.front());
     }
-    if (!bloom) {
+    if (!bloom || (lightingModel && !lightingModel->isBloomEnabled())) {
         renderContext->taskFlow.abortTask();
         return;
     }

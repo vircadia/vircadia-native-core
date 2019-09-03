@@ -17,6 +17,7 @@
 #include "BloomStage.h"
 
 #include "DeferredFrameTransform.h"
+#include "LightingModel.h"
 
 class BloomConfig : public render::Task::Config {
     Q_OBJECT
@@ -28,7 +29,7 @@ class BloomThresholdConfig : public render::Job::Config {
 
 class BloomThreshold {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer, LightingModelPointer>;
     using Outputs = render::VaryingSet3<gpu::FramebufferPointer, float, graphics::BloomPointer>;
     using Config = BloomThresholdConfig;
     using JobModel = render::Job::ModelIO<BloomThreshold, Inputs, Outputs, Config>;
@@ -131,14 +132,14 @@ private:
 
 class BloomEffect {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, gpu::FramebufferPointer, BloomStage::FramePointer, LightingModelPointer>;
     using Config = BloomConfig;
-	using JobModel = render::Task::ModelI<BloomEffect, Inputs, Config>;
+    using JobModel = render::Task::ModelI<BloomEffect, Inputs, Config>;
 
-	BloomEffect();
+    BloomEffect();
 
-	void configure(const Config& config);
-	void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void configure(const Config& config);
+    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
 };
 
