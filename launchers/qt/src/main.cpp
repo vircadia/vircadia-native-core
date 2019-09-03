@@ -3,8 +3,13 @@
 #include "LauncherWindow.h"
 #include "Launcher.h"
 
+
+#ifdef Q_OS_WIN
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#elif defined(Q_OS_MACOS)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
-//Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
+#endif
+
 Q_IMPORT_PLUGIN(QtQuick2Plugin);
 Q_IMPORT_PLUGIN(QtQuickControls2Plugin);
 Q_IMPORT_PLUGIN(QtQuickTemplates2Plugin);
