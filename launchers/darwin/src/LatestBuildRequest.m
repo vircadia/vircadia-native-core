@@ -26,9 +26,8 @@
     [request setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
 
-    // We're using an ephermeral session here to ensure the tags api response is never cached.
-    NSURLSession* session = [NSURLSession sessionWithConfiguration:NSURLSessionConfiguration.ephemeralSessionConfiguration];
-    NSURLSessionDataTask* dataTask = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    request.cachePolicy = NSURLRequestReloadIgnoringLocalCacheData;
+    NSURLSessionDataTask* dataTask = [NSURLSession.sharedSession dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         NSLog(@"Latest Build Request error: %@", error);
         NSLog(@"Latest Build Request Data: %@", data);
          NSHTTPURLResponse* ne = (NSHTTPURLResponse *)response;
