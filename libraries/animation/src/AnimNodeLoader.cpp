@@ -780,7 +780,7 @@ static AnimNode::Pointer loadPoleVectorConstraintNode(const QJsonObject& jsonObj
 
 static AnimNode::Pointer loadBlendDirectionalNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
 
-    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
+    READ_VEC3(alpha, jsonObj, id, jsonUrl, nullptr);
     READ_OPTIONAL_STRING(alphaVar, jsonObj);
 
     READ_OPTIONAL_STRING(centerId, jsonObj);

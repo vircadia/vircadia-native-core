@@ -61,7 +61,7 @@ static void bakeRelativeDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPose
     }
 }
 
-void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses, AnimSkeleton::ConstPointer skeleton) {
+void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& basePoses, AnimSkeleton::ConstPointer skeleton, const QString& url, int baseFrame) {
 
     // invert all the basePoses
     AnimPoseVec invBasePoses = basePoses;
@@ -73,6 +73,7 @@ void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& ba
     skeleton->convertRelativePosesToAbsolute(absBasePoses);
 
     // for each frame of the animation
+    int frame = 0;
     for (auto&& animPoses : anim) {
         ASSERT(animPoses.size() == basePoses.size());
 
@@ -88,6 +89,7 @@ void bakeAbsoluteDeltaAnim(std::vector<AnimPoseVec>& anim, const AnimPoseVec& ba
                 animPoses[i].rot() = absBasePoses[parentIndex].rot() * animPoses[i].rot() * glm::inverse(absBasePoses[parentIndex].rot());
             }
         }
+        frame++;
     }
 }
 
@@ -295,7 +297,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, const Anim
             auto baseAnim = copyAndRetargetFromNetworkAnim(_baseNetworkAnim, _skeleton);
 
             if (_blendType == AnimBlendType_AddAbsolute) {
-                bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton);
+                bakeAbsoluteDeltaAnim(_anim, baseAnim[(int)_baseFrame], _skeleton, _url, _baseFrame);
             } else {
                 // AnimBlendType_AddRelative
                 bakeRelativeDeltaAnim(_anim, baseAnim[(int)_baseFrame]);

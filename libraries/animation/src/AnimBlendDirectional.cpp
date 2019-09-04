@@ -13,11 +13,12 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-AnimBlendDirectional::AnimBlendDirectional(const QString& id, float alpha, const QString& centerId,
+AnimBlendDirectional::AnimBlendDirectional(const QString& id, glm::vec3 alpha, const QString& centerId,
                                            const QString& upId, const QString& downId, const QString& leftId, const QString& rightId,
                                            const QString& upLeftId, const QString& upRightId, const QString& downLeftId, const QString& downRightId) :
     AnimNode(AnimNode::Type::BlendDirectional, id),
     _alpha(alpha),
+    _centerId(centerId),
     _upId(upId),
     _downId(downId),
     _leftId(leftId),
@@ -35,52 +36,73 @@ AnimBlendDirectional::~AnimBlendDirectional() {
 
 const AnimPoseVec& AnimBlendDirectional::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
-    _alpha = animVars.lookup(_alphaVar, _alpha);
+    // lookupRaw don't transform the vector.
+    _alpha = animVars.lookupRaw(_alphaVar, _alpha);
     float parentDebugAlpha = context.getDebugAlpha(_id);
 
-    /*
-    if (_children.size() == 0) {
+    if (_children.size() == 9) {
+
+        // try to keep the order the same as quadrants, for _childIndices.
+        // +---+---+
+        // | 1 | 0 |
+        // +---+---+
+        // | 2 | 3 |
+        // +---+---+
+
+        std::array<int, 4> indices;
+        glm::vec2 alpha = _alpha;
+        if (_alpha.x > 0.0f) {
+            if (_alpha.y > 0.0f) {
+                // quadrant 0
+                indices = { _childIndices[0][2], _childIndices[0][1], _childIndices[1][1], _childIndices[1][2] };
+            } else {
+                // quadrant 3
+                indices = { _childIndices[1][2], _childIndices[1][1], _childIndices[2][1], _childIndices[2][2] };
+                // shift alpha up so both alpha.x and alpha.y are in the (0, 1) range.
+                alpha.y += 1.0f;
+            }
+        } else {
+            if (_alpha.y > 0.0f) {
+                // quadrant 1
+                indices = { _childIndices[0][1], _childIndices[0][0], _childIndices[1][0], _childIndices[1][1] };
+                // shift alpha right so both alpha.x and alpha.y are in the (0, 1) range.
+                alpha.x += 1.0f;
+            } else {
+                // quadrant 2
+                indices = { _childIndices[1][1], _childIndices[1][0], _childIndices[2][0], _childIndices[2][1] };
+                // shift alpha up and right so both alpha.x and alpha.y are in the (0, 1) range.
+                alpha.x += 1.0f;
+                alpha.y += 1.0f;
+            }
+        }
+        std::array<float, 4> alphas = {
+            alpha.x * alpha.y,
+            (1.0f - alpha.x) * alpha.y,
+            (1.0f - alpha.x) * (1.0f - alpha.y),
+            alpha.x * (1.0f - alpha.y)
+        };
+
+        // evaluate children
+        std::array<AnimPoseVec, 4> poseVecs;
+        for (int i = 0; i < 4; i++) {
+            poseVecs[i] = _children[indices[i]]->evaluate(animVars, context, dt, triggersOut);
+        }
+
+        // blend children
+        size_t minSize = INT_MAX;
+        for (int i = 0; i < 4; i++) {
+            if (poseVecs[i].size() < minSize) {
+                minSize = poseVecs[i].size();
+            }
+        }
+        _poses.resize(minSize);
+        blend4(minSize, &poseVecs[0][0], &poseVecs[1][0], &poseVecs[2][0], &poseVecs[3][0], &alphas[0], &_poses[0]);
+
+    } else {
         for (auto&& pose : _poses) {
             pose = AnimPose::identity;
         }
-    } else if (_children.size() == 1) {
-        _poses = _children[0]->evaluate(animVars, context, dt, triggersOut);
-        context.setDebugAlpha(_children[0]->getID(), parentDebugAlpha, _children[0]->getType());
-    } else if (_children.size() == 2 && _blendType != AnimBlendType_Normal) {
-        // special case for additive blending
-        float alpha = glm::clamp(_alpha, 0.0f, 1.0f);
-        const size_t prevPoseIndex = 0;
-        const size_t nextPoseIndex = 1;
-        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
-
-        // for animation stack debugging
-        float weight2 = alpha;
-        float weight1 = 1.0f - weight2;
-        context.setDebugAlpha(_children[prevPoseIndex]->getID(), weight1 * parentDebugAlpha, _children[prevPoseIndex]->getType());
-        context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
-
-    } else {
-        float clampedAlpha = glm::clamp(_alpha, 0.0f, (float)(_children.size() - 1));
-        size_t prevPoseIndex = glm::floor(clampedAlpha);
-        size_t nextPoseIndex = glm::ceil(clampedAlpha);
-        auto alpha = glm::fract(clampedAlpha);
-        evaluateAndBlendChildren(animVars, context, triggersOut, alpha, prevPoseIndex, nextPoseIndex, dt);
-
-        // weights are for animation stack debug purposes only.
-        float weight1 = 0.0f;
-        float weight2 = 0.0f;
-        if (prevPoseIndex == nextPoseIndex) {
-            weight2 = 1.0f;
-            context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
-        } else {
-            weight2 = alpha;
-            weight1 = 1.0f - weight2;
-            context.setDebugAlpha(_children[prevPoseIndex]->getID(), weight1 * parentDebugAlpha, _children[prevPoseIndex]->getType());
-            context.setDebugAlpha(_children[nextPoseIndex]->getID(), weight2 * parentDebugAlpha, _children[nextPoseIndex]->getType());
-        }
     }
-    processOutputJoints(triggersOut);
-    */
 
     return _poses;
 }
@@ -90,71 +112,29 @@ const AnimPoseVec& AnimBlendDirectional::getPosesInternal() const {
     return _poses;
 }
 
-/*
-void AnimBlendDirectional::evaluateAndBlendChildren(const AnimVariantMap& animVars, const AnimContext& context, AnimVariantMap& triggersOut, float alpha,
-                                               size_t prevPoseIndex, size_t nextPoseIndex, float dt) {
-    if (prevPoseIndex == nextPoseIndex) {
-        // this can happen if alpha is on an integer boundary
-        _poses = _children[prevPoseIndex]->evaluate(animVars, context, dt, triggersOut);
-    } else {
-        // need to eval and blend between two children.
-        auto prevPoses = _children[prevPoseIndex]->evaluate(animVars, context, dt, triggersOut);
-        auto nextPoses = _children[nextPoseIndex]->evaluate(animVars, context, dt, triggersOut);
-
-        if (prevPoses.size() > 0 && prevPoses.size() == nextPoses.size()) {
-            _poses.resize(prevPoses.size());
-
-            if (_blendType == AnimBlendType_Normal) {
-                ::blend(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
-            } else if (_blendType == AnimBlendType_AddRelative) {
-                ::blendAdd(_poses.size(), &prevPoses[0], &nextPoses[0], alpha, &_poses[0]);
-            } else if (_blendType == AnimBlendType_AddAbsolute) {
-                // convert prev from relative to absolute
-                AnimPoseVec absPrev = prevPoses;
-                _skeleton->convertRelativePosesToAbsolute(absPrev);
-
-                // rotate the offset rotations from next into the parent relative frame of each joint.
-                AnimPoseVec relOffsetPoses;
-                relOffsetPoses.reserve(nextPoses.size());
-                for (size_t i = 0; i < nextPoses.size(); ++i) {
-
-                    // copy translation and scale from nextPoses
-                    AnimPose pose = nextPoses[i];
-
-                    int parentIndex = _skeleton->getParentIndex((int)i);
-                    if (parentIndex >= 0) {
-                        // but transform nextPoses rot into absPrev parent frame.
-                        pose.rot() = glm::inverse(absPrev[parentIndex].rot()) * pose.rot() * absPrev[parentIndex].rot();
-                    }
-
-                    relOffsetPoses.push_back(pose);
-                }
-
-                // then blend
-                ::blendAdd(_poses.size(), &prevPoses[0], &relOffsetPoses[0], alpha, &_poses[0]);
-            }
-        }
-    }
-}
-*/
-
 bool AnimBlendDirectional::lookupChildIds() {
-    _center = findChildIndexByName(_centerId);
-    _up = findChildIndexByName(_upId);
-    _down = findChildIndexByName(_downId);
-    _left = findChildIndexByName(_leftId);
-    _right = findChildIndexByName(_rightId);
-    _upLeft = findChildIndexByName(_upLeftId);
-    _upRight = findChildIndexByName(_upRightId);
-    _downLeft = findChildIndexByName(_downLeftId);
-    _downRight = findChildIndexByName(_downRightId);
+    _childIndices[0][0] = findChildIndexByName(_upLeftId);
+    _childIndices[0][1] = findChildIndexByName(_upId);
+    _childIndices[0][2] = findChildIndexByName(_upRightId);
+
+    _childIndices[1][0] = findChildIndexByName(_leftId);
+    _childIndices[1][1] = findChildIndexByName(_centerId);
+    _childIndices[1][2] = findChildIndexByName(_rightId);
+
+    _childIndices[2][0] = findChildIndexByName(_downLeftId);
+    _childIndices[2][1] = findChildIndexByName(_downId);
+    _childIndices[2][2] = findChildIndexByName(_downRightId);
 
     // manditory children
     // TODO: currently all are manditory.
-    if (_center == -1 || _up == -1 || _down == -1 || _left == -1 || _right== -1 ||
-        _upLeft == -1 || _upRight == -1 || _downLeft == -1 || _downRight == -1) {
-        return false;
-    } else {
-        return true;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (_childIndices[i][j] == -1) {
+                qDebug(animation) << "Error in AnimBlendDirectional::lookupChildIds() could not find child[" << i << "," << j << "]";
+                return false;
+            }
+        }
     }
+
+    return true;
 }

@@ -19,7 +19,7 @@ class AnimBlendDirectional : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimBlendDirectional(const QString& id, float alpha, const QString& centerId,
+    AnimBlendDirectional(const QString& id, glm::vec3 alpha, const QString& centerId,
                          const QString& upId, const QString& downId, const QString& leftId, const QString& rightId,
                          const QString& upLeftId, const QString& upRightId, const QString& downLeftId, const QString& downRightId);
     virtual ~AnimBlendDirectional() override;
@@ -36,7 +36,7 @@ protected:
 
     AnimPoseVec _poses;
 
-    float _alpha;
+    glm::vec3 _alpha;
     QString _centerId;
     QString _upId;
     QString _downId;
@@ -49,15 +49,7 @@ protected:
 
     QString _alphaVar;
 
-    int _center;
-    int _up;
-    int _down;
-    int _left;
-    int _right;
-    int _upLeft;
-    int _upRight;
-    int _downLeft;
-    int _downRight;
+    int _childIndices[3][3];
 
     // no copies
     AnimBlendDirectional(const AnimBlendDirectional&) = delete;
