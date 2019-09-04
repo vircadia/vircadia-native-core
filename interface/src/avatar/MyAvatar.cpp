@@ -733,7 +733,7 @@ void MyAvatar::update(float deltaTime) {
         // When needed and ready, arrange to check and fix.
         _physicsSafetyPending = false;
         if (_goToSafe) {
-            safeLanding(_goToPosition); // no-op if already safe
+            safeLanding(_goToPosition); // no-op if safeLanding logic determines already safe
         }
     }
 
@@ -2733,24 +2733,22 @@ void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position;
     glm::quat orientation;
-    if (_characterController.isEnabledAndReady()) {
+    if (_characterController.isEnabledAndReady() && !(_characterController.needsSafeLandingSupport() || _goToPending)) {
         _characterController.getPositionAndOrientation(position, orientation);
+        setWorldVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
     } else {
         position = getWorldPosition();
         orientation = getWorldOrientation();
+        if (_characterController.needsSafeLandingSupport() && !_goToPending) {
+            _characterController.resetStuckCounter();
+            _physicsSafetyPending = true;
+            _goToSafe = true;
+            _goToPosition = position;
+        }
+        setWorldVelocity(getWorldVelocity() + _characterController.getFollowVelocity());
     }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
-
-    if (_characterController.isEnabledAndReady()) {
-        setWorldVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-        if (_characterController.isStuck()) {
-            _physicsSafetyPending = true;
-            _goToPosition = getWorldPosition();
-        }
-    } else {
-        setWorldVelocity(getWorldVelocity() + _characterController.getFollowVelocity());
-    }
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -3588,6 +3586,8 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f * _walkSpeedScalar;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
+        // use feedback from CharacterController to prevent tunneling under high motorspeed
+        motorSpeed *= _characterController.getCollisionBrakeAttenuationFactor();
         const float maxBoostSpeed = sensorToWorldScale * MAX_BOOST_SPEED;
 
         if (_isPushing) {
@@ -5865,8 +5865,13 @@ bool MyAvatar::endReaction(QString reactionName) {
     int reactionIndex = beginEndReactionNameToIndex(reactionName);
     if (reactionIndex >= 0 && reactionIndex < (int)NUM_AVATAR_BEGIN_END_REACTIONS) {
         std::lock_guard<std::mutex> guard(_reactionLock);
-        _reactionEnabledRefCounts[reactionIndex]--;
-        return true;
+        if (_reactionEnabledRefCounts[reactionIndex] > 0) {
+            _reactionEnabledRefCounts[reactionIndex]--;
+            return true;
+        } else {
+            _reactionEnabledRefCounts[reactionIndex] = 0;
+            return false;
+        }
     }
     return false;
 }
@@ -6245,31 +6250,43 @@ void MyAvatar::setSitDriveKeysStatus(bool enabled) {
 }
 
 void MyAvatar::beginSit(const glm::vec3& position, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "beginSit", Q_ARG(glm::vec3, position), Q_ARG(glm::quat, rotation));
+        return;
+    }
+
     _characterController.setSeated(true);
-    setCollisionsEnabled(false);    
+    setCollisionsEnabled(false);
     setHMDLeanRecenterEnabled(false);
     // Disable movement
     setSitDriveKeysStatus(false);
     centerBody();
     int hipIndex = getJointIndex("Hips");
     clearPinOnJoint(hipIndex);
-    goToLocation(position, true, rotation, false, false);
     pinJoint(hipIndex, position, rotation);
 }
 
 void MyAvatar::endSit(const glm::vec3& position, const glm::quat& rotation) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "endSit", Q_ARG(glm::vec3, position), Q_ARG(glm::quat, rotation));
+        return;
+    }
+
     if (_characterController.getSeated()) {
         clearPinOnJoint(getJointIndex("Hips"));
         _characterController.setSeated(false);
         setCollisionsEnabled(true);
         setHMDLeanRecenterEnabled(true);
         centerBody();
-        goToLocation(position, true, rotation, false, false);
+        slamPosition(position);
+        setWorldOrientation(rotation);
+
+        // the jump key is used to exit the chair.  We add a delay here to prevent
+        // the avatar from jumping right as they exit the chair.
         float TIME_BEFORE_DRIVE_ENABLED_MS = 150.0f;
         QTimer::singleShot(TIME_BEFORE_DRIVE_ENABLED_MS, [this]() {
             // Enable movement again
             setSitDriveKeysStatus(true);
         });
     }
-
 }

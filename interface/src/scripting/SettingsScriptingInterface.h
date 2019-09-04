@@ -64,6 +64,9 @@ public slots:
      * print("Value: " + (typeof value) + " " + JSON.stringify(value));  // object {"x":0,"y":10,"z":0}
      */
     void setValue(const QString& setting, const QVariant& value);
+
+signals:
+    void valueChanged(const QString& setting, const QVariant& value);
 };
 
 #endif // hifi_SettingsScriptingInterface_h

@@ -68,6 +68,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
     withWriteLock([&] {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
+        _needsRenderUpdate |= pulsePropertiesChanged;
     });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
@@ -229,6 +230,7 @@ bool WebEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, co
 
 void WebEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _color != value;
         _color = value;
     });
 }
@@ -241,6 +243,7 @@ glm::u8vec3 WebEntityItem::getColor() const {
 
 void WebEntityItem::setAlpha(float alpha) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _alpha != alpha;
         _alpha = alpha;
     });
 }
@@ -259,12 +262,14 @@ BillboardMode WebEntityItem::getBillboardMode() const {
 
 void WebEntityItem::setBillboardMode(BillboardMode value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _billboardMode != value;
         _billboardMode = value;
     });
 }
 
 void WebEntityItem::setSourceUrl(const QString& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _sourceUrl != value;
         _sourceUrl = value;
     });
 }
@@ -277,6 +282,7 @@ QString WebEntityItem::getSourceUrl() const {
 
 void WebEntityItem::setDPI(uint16_t value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _dpi != value;
         _dpi = value;
     });
 }
@@ -288,16 +294,18 @@ uint16_t WebEntityItem::getDPI() const {
 }
 
 void WebEntityItem::setScriptURL(const QString& value) {
-    withWriteLock([&] {
-        if (_scriptURL != value) {
-            auto newURL = QUrl::fromUserInput(value);
+    auto newURL = QUrl::fromUserInput(value);
 
-            if (newURL.isValid()) {
-                _scriptURL = newURL.toDisplayString();
-            } else {
+    if (!newURL.isValid()) {
                 qCDebug(entities) << "Not setting web entity script URL since" << value << "cannot be parsed to a valid URL.";
-            }
-        }
+        return;
+    }
+
+    auto urlString = newURL.toDisplayString();
+
+    withWriteLock([&] {
+        _needsRenderUpdate |= _scriptURL != urlString;
+        _scriptURL = urlString;
     });
 }
 
@@ -309,6 +317,7 @@ QString WebEntityItem::getScriptURL() const {
 
 void WebEntityItem::setMaxFPS(uint8_t value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _maxFPS != value;
         _maxFPS = value;
     });
 }
@@ -321,6 +330,7 @@ uint8_t WebEntityItem::getMaxFPS() const {
 
 void WebEntityItem::setInputMode(const WebInputMode& value) {
     withWriteLock([&] {
+        _needsRenderUpdate |= _inputMode != value;
         _inputMode = value;
     });
 }

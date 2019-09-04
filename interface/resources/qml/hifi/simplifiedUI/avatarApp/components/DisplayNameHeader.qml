@@ -91,6 +91,7 @@ Item {
 
             SimplifiedControls.TextField {
                 id: myDisplayNameText
+                rightGlyph: simplifiedUI.glyphs.pencil
                 text: MyAvatar.displayName
                 maximumLength: 256
                 clip: true

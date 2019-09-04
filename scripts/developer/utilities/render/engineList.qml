@@ -24,7 +24,7 @@ Item {
     property var mainViewTask: Render.getConfig("RenderMainView")
 
     Jet.TaskList {
-        rootConfig: Render
+        rootConfig: Render.getConfig("")
         anchors.fill: render        
     }
 }

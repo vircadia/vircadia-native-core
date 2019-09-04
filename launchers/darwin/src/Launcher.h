@@ -55,6 +55,8 @@ struct LatestBuildInfo {
 @property (nonatomic) BOOL waitingForInterfaceToTerminate;
 @property (nonatomic) BOOL shouldDownloadInterface;
 @property (nonatomic) BOOL latestBuildRequestFinished;
+@property (nonatomic, assign) NSArray* latestBuilds;
+@property (nonatomic, assign) NSString* defaultBuildTag;
 @property (nonatomic, assign) NSTimer* updateProgressIndicatorTimer;
 @property (nonatomic, assign, readwrite) ProcessState processState;
 @property (nonatomic, assign, readwrite) LoginError loginError;
@@ -70,6 +72,7 @@ struct LatestBuildInfo {
 - (void) domainContentDownloadFinished;
 - (void) domainScriptsDownloadFinished;
 - (void) setDomainURLInfo:(NSString*) aDomainURL :(NSString*) aDomainContentUrl :(NSString*) aDomainScriptsUrl;
+- (void) setOrganizationBuildTag:(NSString*) organizationBuildTag;
 - (void) organizationRequestFinished:(BOOL) aOriginzationAccepted;
 - (BOOL) loginShouldSetErrorState;
 - (void) displayErrorPage;
@@ -81,7 +84,9 @@ struct LatestBuildInfo {
 - (void) setCurrentProcessState:(ProcessState) aProcessState;
 - (void) setLoginErrorState:(LoginError) aLoginError;
 - (LoginError) getLoginErrorState;
-- (void) shouldDownloadLatestBuild:(BOOL) shouldDownload :(NSString*) downloadUrl :(BOOL) newLauncherAvailable :(NSString*) launcherUrl;
+- (void) updateLatestBuildInfo;
+- (void) shouldDownloadLatestBuild:(NSArray*) latestBuilds :(NSString*) defaultBuildTag :(BOOL) newLauncherAvailable :(NSString*) launcherUrl;
+- (void) tryDownloadLatestBuild:(BOOL)progressScreenAlreadyDisplayed;
 - (void) interfaceFinishedDownloading;
 - (NSString*) getDownloadPathForContentAndScripts;
 - (void) launchInterface;
@@ -97,11 +102,9 @@ struct LatestBuildInfo {
 - (NSString*) getDownloadFilename;
 - (void) startUpdateProgressIndicatorTimer;
 - (void) endUpdateProgressIndicatorTimer;
-- (BOOL) isLoadedIn;
+- (BOOL) isLoggedIn;
 - (NSString*) getAppPath;
 - (void) updateProgressIndicator;
-- (void) setLatestBuildInfo:(struct LatestBuildInfo) latestBuildInfo;
-- (struct LatestBuildInfo) getLatestBuildInfo;
 
 + (id) sharedLauncher;
 @end

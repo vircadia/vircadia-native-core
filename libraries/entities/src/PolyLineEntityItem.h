@@ -15,7 +15,7 @@
 #include "EntityItem.h"
 
 class PolyLineEntityItem : public EntityItem {
- public:
+public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     PolyLineEntityItem(const EntityItemID& entityItemID);
@@ -58,16 +58,16 @@ class PolyLineEntityItem : public EntityItem {
     void setStrokeColors(const QVector<glm::vec3>& strokeColors);
     QVector<glm::vec3> getStrokeColors() const;
 
-    void setIsUVModeStretch(bool isUVModeStretch){ _isUVModeStretch = isUVModeStretch; }
+    void setIsUVModeStretch(bool isUVModeStretch);
     bool getIsUVModeStretch() const{ return _isUVModeStretch; }
 
     QString getTextures() const;
     void setTextures(const QString& textures);
 
-    void setGlow(bool glow) { _glow = glow; }
+    void setGlow(bool glow);
     bool getGlow() const { return _glow; }
 
-    void setFaceCamera(bool faceCamera) { _faceCamera = faceCamera; }
+    void setFaceCamera(bool faceCamera);
     bool getFaceCamera() const { return _faceCamera; }
 
     bool pointsChanged() const { return _pointsChanged; } 
@@ -90,10 +90,12 @@ class PolyLineEntityItem : public EntityItem {
                                                   BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
+    void computeTightLocalBoundingBox(AABox& box) const;
+
     virtual void debugDump() const override;
 private:
-    void computeAndUpdateDimensionsAndPosition();
-    
+    void computeAndUpdateDimensions();
+
  protected:
     glm::u8vec3 _color;
     QVector<glm::vec3> _points;

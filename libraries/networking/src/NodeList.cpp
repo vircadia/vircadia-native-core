@@ -425,7 +425,15 @@ void NodeList::sendDomainServerCheckIn() {
             auto accountManager = DependencyManager::get<AccountManager>();
             packetStream << FingerprintUtils::getMachineFingerprint();
 
-            auto desc = platform::getAll();
+            platform::json all = platform::getAll();
+            platform::json desc;
+            // only pull out those items that will fit within a packet
+            desc[platform::keys::COMPUTER] = all[platform::keys::COMPUTER];
+            desc[platform::keys::MEMORY] = all[platform::keys::MEMORY];
+            desc[platform::keys::CPUS] = all[platform::keys::CPUS];
+            desc[platform::keys::GPUS] = all[platform::keys::GPUS];
+            desc[platform::keys::DISPLAYS] = all[platform::keys::DISPLAYS];
+            desc[platform::keys::NICS] = all[platform::keys::NICS];
 
             QByteArray systemInfo(desc.dump().c_str());
             QByteArray compressedSystemInfo = qCompress(systemInfo);

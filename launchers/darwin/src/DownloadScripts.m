@@ -5,9 +5,11 @@
 
 - (void) downloadScripts:(NSString*) scriptsUrl
 {
-    /*NSURLRequest* theRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:scriptsUrl]
+    /*NSMutableURLRequest* theRequest = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:scriptsUrl]
                                                 cachePolicy:NSURLRequestUseProtocolCachePolicy
                                             timeoutInterval:6000.0];
+     [theRequest setValue:@USER_AGENT_STRING forHTTPHeaderField:@"User-Agent"];
+
     NSURLDownload  *theDownload = [[NSURLDownload alloc] initWithRequest:theRequest delegate:self];
     
     if (!theDownload) {

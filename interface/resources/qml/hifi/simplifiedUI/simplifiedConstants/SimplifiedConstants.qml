@@ -153,6 +153,10 @@ QtObject {
                 readonly property color background: "#474747"
                 readonly property color contentItem: "#0198CB"
             }
+            readonly property QtObject table: QtObject {
+                readonly property color cellBackground: "#000000"
+                readonly property color textColor: "#ffffff"
+            }
         }
 
         readonly property color darkSeparator: "#595959"
@@ -226,7 +230,7 @@ QtObject {
                 readonly property int textSize: 14
             }
             readonly property QtObject textField: QtObject {
-                readonly property int editPencilPadding: 6
+                readonly property int rightGlyphPadding: 6
             }
             readonly property QtObject scrollBar: QtObject {
                 readonly property int backgroundWidth: 9

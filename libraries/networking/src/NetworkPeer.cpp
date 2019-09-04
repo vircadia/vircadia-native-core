@@ -140,7 +140,7 @@ void NetworkPeer::activatePublicSocket() {
 
 void NetworkPeer::activateSymmetricSocket() {
     if (_activeSocket != &_symmetricSocket) {
-        qCDebug(networking) << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+        qCDebug(networking) << "Activating symmetric socket (" << _symmetricSocket << ") for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
         setActiveSocket(&_symmetricSocket);
     }
 }

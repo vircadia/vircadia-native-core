@@ -245,6 +245,7 @@ Rectangle {
             width: outputDeviceButton.outputMuted ? 25 : 26
             height: 22
             visible: false
+            mipmap: true
         }
 
         ColorOverlay {
@@ -319,6 +320,7 @@ Rectangle {
             anchors.centerIn: parent
             width: statusButton.currentStatus === "busy" ? 13 : 14
             height: statusButton.currentStatus === "busy" ? 2 : 10
+            mipmap: true
         }
 
         ColorOverlay {
@@ -352,19 +354,20 @@ Rectangle {
     Item {
         id: hmdButtonContainer
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: settingsButtonContainer.left
-        anchors.rightMargin: 8
+        anchors.right: helpButtonContainer.left
+        anchors.rightMargin: 3
         width: 48
         height: width
         visible: false
 
         Image {
             id: displayModeImage
-            source: HMD.active ? "./images/desktopMode.svg" : "./images/vrMode.svg"
+            source: HMD.active ? "images/desktopMode.svg" : "images/vrMode.svg"
             anchors.centerIn: parent
             width: HMD.active ? 25 : 26
             height: HMD.active ? 22 : 14
             visible: false
+            mipmap: true
         }
 
         ColorOverlay {
@@ -417,6 +420,49 @@ Rectangle {
     }
 
 
+    Item {
+        id: helpButtonContainer
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.right: settingsButtonContainer.left
+        anchors.rightMargin: 4
+        width: 36
+        height: width
+
+        Image {
+            id: helpButtonImage
+            source: "images/questionMark.svg"
+            anchors.centerIn: parent
+            width: 13
+            height: 22
+            visible: false
+            mipmap: true
+        }
+
+        ColorOverlay {
+            opacity: helpButtonMouseArea.containsMouse ? 1.0 : 0.7
+            anchors.fill: helpButtonImage
+            source: helpButtonImage
+            color: simplifiedUI.colors.text.white
+        }
+
+        MouseArea {
+            id: helpButtonMouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onEntered: {
+                Tablet.playSound(TabletEnums.ButtonHover);
+            }
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+                sendToScript({
+                    "source": "SimplifiedTopBar.qml",
+                    "method": "toggleHelpApp"
+                });
+            }
+        }
+    }
+
+
 
     Item {
         id: settingsButtonContainer
@@ -428,11 +474,12 @@ Rectangle {
 
         Image {
             id: settingsButtonImage
-            source: "./images/settings.svg"
+            source: "images/settings.svg"
             anchors.centerIn: parent
             width: 22
             height: 22
             visible: false
+            mipmap: true
         }
 
         ColorOverlay {

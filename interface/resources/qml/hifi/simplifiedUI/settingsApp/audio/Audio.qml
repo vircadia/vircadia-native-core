@@ -174,7 +174,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: micControlsTitle
                 text: "Default Mute Controls"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
@@ -244,7 +244,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: inputDeviceTitle
                 text: "Which input device?"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white
@@ -340,7 +340,7 @@ Flickable {
             HifiStylesUit.GraphikSemiBold {
                 id: outputDeviceTitle
                 text: "Which output device?"
-                Layout.maximumWidth: parent.width
+                Layout.preferredWidth: parent.width
                 height: paintedHeight
                 size: 22
                 color: simplifiedUI.colors.text.white

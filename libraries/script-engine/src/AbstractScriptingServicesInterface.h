@@ -18,7 +18,7 @@
 class AbstractScriptingServicesInterface {
 public:
     /// Registers application specific services with a script engine.
-    virtual void registerScriptEngineWithApplicationServices(ScriptEnginePointer scriptEngine) = 0;
+    virtual void registerScriptEngineWithApplicationServices(const ScriptEnginePointer& scriptEngine) = 0;
 };
 
 

@@ -79,8 +79,8 @@ void JobConfig::refresh() {
     _jobConcept->applyConfiguration();
 }
 
-TaskConfig* TaskConfig::getRootConfig(const std::string& jobPath, std::string& jobName) const {
-    TaskConfig* root = const_cast<TaskConfig*> (this);
+JobConfig* JobConfig::getRootConfig(const std::string& jobPath, std::string& jobName) const {
+    JobConfig* root = const_cast<JobConfig*> (this);
 
     std::list<std::string> tokens;
     std::size_t pos = 0, sepPos;
@@ -105,7 +105,7 @@ TaskConfig* TaskConfig::getRootConfig(const std::string& jobPath, std::string& j
         while (tokens.size() > 1) {
             auto taskName = tokens.front();
             tokens.pop_front();
-            root = root->findChild<TaskConfig*>((taskName.empty() ? QString() : QString(taskName.c_str())));
+            root = root->findChild<JobConfig*>((taskName.empty() ? QString() : QString(taskName.c_str())));
             if (!root) {
                 return nullptr;
             }
@@ -115,7 +115,7 @@ TaskConfig* TaskConfig::getRootConfig(const std::string& jobPath, std::string& j
     return root;
 }
 
-JobConfig* TaskConfig::getJobConfig(const std::string& jobPath) const {
+JobConfig* JobConfig::getJobConfig(const std::string& jobPath) const {
     std::string jobName;
     auto root = getRootConfig(jobPath, jobName);
 
@@ -134,7 +134,7 @@ JobConfig* TaskConfig::getJobConfig(const std::string& jobPath) const {
     }
 }
 
-void SwitchConfig::setBranch(uint8_t branch) {
+void JobConfig::setBranch(uint8_t branch) {
     if (_branch != branch) {
         _branch = branch;
         // We can re-use this signal here

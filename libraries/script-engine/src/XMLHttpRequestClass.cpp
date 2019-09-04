@@ -218,12 +218,12 @@ void XMLHttpRequestClass::requestFinished() {
         }
     }
 
+    setReadyState(DONE);
+    emit requestComplete();
+
     disconnectFromReply(_reply);
     _reply->deleteLater();
     _reply = nullptr;
-
-    setReadyState(DONE);
-    emit requestComplete();
 }
 
 void XMLHttpRequestClass::abortRequest() {

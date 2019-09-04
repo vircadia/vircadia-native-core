@@ -90,16 +90,25 @@ void Audio::setMuted(bool isMuted) {
 
 void Audio::setMutedDesktop(bool isMuted) {
     bool changed = false;
+    bool isHMD = qApp->isHMDMode();
     withWriteLock([&] {
         if (_mutedDesktop != isMuted) {
             changed = true;
             _mutedDesktop = isMuted;
-            auto client = DependencyManager::get<AudioClient>().data();
-            QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            if (!isHMD) {
+                auto client = DependencyManager::get<AudioClient>().data();
+                QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            }
         }
     });
+    if (!isMuted && _settingsLoaded && !_pushingToTalk) {
+        // If the user is not pushing to talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
+        setPTTDesktop(isMuted);
+    }
     if (changed) {
-        emit mutedChanged(isMuted);
+        if (!isHMD) {
+            emit mutedChanged(isMuted);
+        }
         emit mutedDesktopChanged(isMuted);
     }
 }
@@ -112,16 +121,25 @@ bool Audio::getMutedDesktop() const {
 
 void Audio::setMutedHMD(bool isMuted) {
     bool changed = false;
+    bool isHMD = qApp->isHMDMode();
     withWriteLock([&] {
         if (_mutedHMD != isMuted) {
             changed = true;
             _mutedHMD = isMuted;
-            auto client = DependencyManager::get<AudioClient>().data();
-            QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            if (isHMD) {
+                auto client = DependencyManager::get<AudioClient>().data();
+                QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+            }
         }
     });
+    if (!isMuted && _settingsLoaded && !_pushingToTalk) {
+        // If the user is not pushing to talk and muted is changed to false, disable Push-To-Talk. Settings also need to be loaded.
+        setPTTHMD(isMuted);
+    }
     if (changed) {
-        emit mutedChanged(isMuted);
+        if (isHMD) {
+            emit mutedChanged(isMuted);
+        }
         emit mutedHMDChanged(isMuted);
     }
 }
@@ -177,9 +195,9 @@ void Audio::setPTTDesktop(bool enabled) {
             _pttDesktop = enabled;
         }
     });
-    if (enabled || _settingsLoaded) {
+    if (enabled && _settingsLoaded) {
         // Set to default behavior (muted for Desktop) on Push-To-Talk disable or when enabled. Settings also need to be loaded.
-        setMutedDesktop(true);
+        setMutedDesktop(enabled);
     }
     if (changed) {
         emit pushToTalkChanged(enabled);
@@ -201,7 +219,7 @@ void Audio::setPTTHMD(bool enabled) {
             _pttHMD = enabled;
         }
     });
-    if (enabled || _settingsLoaded) {
+    if (enabled && _settingsLoaded) {
         // Set to default behavior (unmuted for HMD) on Push-To-Talk disable or muted for when PTT is enabled.
         setMutedHMD(enabled);
     }
@@ -386,6 +404,7 @@ void Audio::onContextChanged() {
             changed = true;
         }
     });
+
     if (_settingsLoaded) {
         bool isMuted = isHMD ? getMutedHMD() : getMutedDesktop();
         setMuted(isMuted);
@@ -395,6 +414,12 @@ void Audio::onContextChanged() {
     }
     if (changed) {
         emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
+
+        bool mutedHMD = getMutedHMD();
+        bool mutedDesktop = getMutedDesktop();
+        if (mutedHMD != mutedDesktop) {
+            emit mutedChanged(isHMD ? mutedHMD : mutedDesktop);
+        }
     }
 }
 

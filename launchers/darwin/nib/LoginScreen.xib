@@ -76,7 +76,7 @@
                 <button focusRingType="exterior" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="jKE-fV-Tjv" customClass="HFButton">
                     <rect key="frame" x="197" y="57" width="110" height="35"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="square" title="NEXT" bezelStyle="shadowlessSquare" alignment="center" state="on" borderStyle="border" focusRingType="exterior" imageScaling="proportionallyUpOrDown" inset="2" id="RZM-vz-5eS">
+                    <buttonCell key="cell" type="square" title="LOG IN" bezelStyle="shadowlessSquare" alignment="center" state="on" borderStyle="border" focusRingType="exterior" imageScaling="proportionallyUpOrDown" inset="2" id="RZM-vz-5eS">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="systemBold" size="18"/>
                     </buttonCell>

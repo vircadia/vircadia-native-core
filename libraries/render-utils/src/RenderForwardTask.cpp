@@ -48,6 +48,17 @@ using namespace render;
 
 extern void initForwardPipelines(ShapePlumber& plumber);
 
+void PreparePrimaryFramebufferMSAAConfig::setResolutionScale(float scale) {
+    const float SCALE_RANGE_MIN = 0.1f;
+    const float SCALE_RANGE_MAX = 2.0f;
+    resolutionScale = std::max(SCALE_RANGE_MIN, std::min(SCALE_RANGE_MAX, scale));
+}
+
+void PreparePrimaryFramebufferMSAAConfig::setNumSamples(int num) {
+    numSamples = std::max(1, std::min(32, num));
+    emit dirty();
+}
+
 void RenderForwardTask::configure(const Config& config) {
     // Propagate resolution scale to sub jobs who need it
     auto preparePrimaryBufferConfig = config.getConfig<PreparePrimaryFramebufferMSAA>("PreparePrimaryBufferForward");

@@ -422,6 +422,12 @@ void ScriptEngine::waitTillDoneRunning() {
             if (isEvaluating()) {
                 qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                 abortEvaluation();
+            } else {
+                auto context = currentContext();
+                if (context) {
+                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
+                    context->throwError("Timed out during shutdown");
+                }
             }
 
             // Wait for the scripting thread to stop running, as
@@ -444,9 +450,9 @@ void ScriptEngine::waitTillDoneRunning() {
                     qCWarning(scriptengine) << "Script Engine has been running too long, aborting:" << getFilename();
                     abortEvaluation();
                 } else {
-                    qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                     auto context = currentContext();
                     if (context) {
+                        qCWarning(scriptengine) << "Script Engine has been running too long, throwing:" << getFilename();
                         context->throwError("Timed out during shutdown");
                     }
                 }
@@ -2470,13 +2476,14 @@ QList<EntityItemID> ScriptEngine::getListOfEntityScriptIDs() {
     return _entityScripts.keys();
 }
 
-void ScriptEngine::unloadAllEntityScripts() {
+void ScriptEngine::unloadAllEntityScripts(bool blockingCall) {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::unloadAllEntityScripts() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "]";
 #endif
 
-        QMetaObject::invokeMethod(this, "unloadAllEntityScripts");
+        QMetaObject::invokeMethod(this, "unloadAllEntityScripts",
+            blockingCall ? Qt::BlockingQueuedConnection : Qt::QueuedConnection);
         return;
     }
 #ifdef THREAD_DEBUGGING

@@ -69,7 +69,7 @@ class JobConcept {
 public:
     using Config = JobConfig;
 
-    JobConcept(const std::string& name, QConfigPointer config) : _config(config), _name(name) {}
+    JobConcept(const std::string& name, QConfigPointer config) : _config(config), _name(name) { config->_jobConcept = this; }
     virtual ~JobConcept() = default;
     
     const std::string& getName() const { return _name; }
@@ -80,7 +80,7 @@ public:
 
     virtual QConfigPointer& getConfiguration() { return _config; }
     virtual void applyConfiguration() = 0;
-    void setCPURunTime(const std::chrono::nanoseconds& runtime) { std::static_pointer_cast<Config>(_config)->setCPURunTime(runtime); }
+    void setCPURunTime(const std::chrono::nanoseconds& runtime) { (_config)->setCPURunTime(runtime); }
 
     QConfigPointer _config;
 protected:
@@ -93,9 +93,6 @@ template <class T, class C> void jobConfigure(T& data, const C& configuration) {
 }
 template<class T> void jobConfigure(T&, const JobConfig&) {
     // nop, as the default JobConfig was used, so the data does not need a configure method
-}
-template<class T> void jobConfigure(T&, const TaskConfig&) {
-    // nop, as the default TaskConfig was used, so the data does not need a configure method
 }
 
 template <class T, class JC> void jobRun(T& data, const JC& jobContext, const JobNoIO& input, JobNoIO& output) {
@@ -158,7 +155,17 @@ public:
             return std::make_shared<Model>(name, input, std::make_shared<C>(), std::forward<A>(args)...);
         }
 
-
+        void createConfiguration() {
+            // A brand new config
+            auto config = std::make_shared<C>();
+            // Make sure we transfer the former children configs to the new config
+            config->transferChildrenConfigs(Concept::_config);
+            // swap
+            Concept::_config = config;
+            // Capture this
+            Concept::_config->_jobConcept = this;
+        }
+        
         void applyConfiguration() override {
             TimeProfiler probe(("configure::" + JobConcept::getName()));
 
@@ -228,7 +235,7 @@ public:
     using Context = JC;
     using TimeProfiler = TP;
     using ContextPointer = std::shared_ptr<Context>;
-    using Config = TaskConfig;
+    using Config = JobConfig; //TaskConfig;
     using JobType = Job<JC, TP>;
     using None = typename JobType::None;
     using Concept = typename JobType::Concept;
@@ -247,14 +254,14 @@ public:
         const Varying getOutput() const override { return _output; }
         Varying& editInput() override { return _input; }
 
-        TaskConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {}
+        TaskConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {config->_isTask = true;}
 
         // Create a new job in the container's queue; returns the job's output
         template <class NT, class... NA> const Varying addJob(std::string name, const Varying& input, NA&&... args) {
             _jobs.emplace_back((NT::JobModel::create(name, input, std::forward<NA>(args)...)));
 
             // Conect the child config to this task's config
-            std::static_pointer_cast<TaskConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
+            std::static_pointer_cast<JobConfig>(Concept::getConfiguration())->connectChildConfig(_jobs.back().getConfiguration(), name);
 
             return _jobs.back().getOutput();
         }
@@ -284,9 +291,6 @@ public:
                 TimeProfiler probe("build::" + model->getName());
                 model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
             }
-            // Recreate the Config to use the templated type
-            model->createConfiguration();
-            model->applyConfiguration();
 
             return model;
         }
@@ -369,7 +373,7 @@ public:
     using Context = JC;
     using TimeProfiler = TP;
     using ContextPointer = std::shared_ptr<Context>;
-    using Config = SwitchConfig;
+    using Config = JobConfig; //SwitchConfig;
     using JobType = Job<JC, TP>;
     using None = typename JobType::None;
     using Concept = typename JobType::Concept;
@@ -388,14 +392,15 @@ public:
         const Varying getOutput() const override { return _output; }
         Varying& editInput() override { return _input; }
 
-        SwitchConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input) {}
+        SwitchConcept(const std::string& name, const Varying& input, QConfigPointer config) : Concept(name, config), _input(input)
+        {config->_isTask = true; config->_isSwitch = true; }
 
         template <class NT, class... NA> const Varying addBranch(std::string name, uint8_t index, const Varying& input, NA&&... args) {
             auto& branch = _branches[index];
             branch = JobType(NT::JobModel::create(name, input, std::forward<NA>(args)...));
 
             // Conect the child config to this task's config
-            std::static_pointer_cast<SwitchConfig>(Concept::getConfiguration())->connectChildConfig(branch.getConfiguration(), name);
+            std::static_pointer_cast<JobConfig>(Concept::getConfiguration())->connectChildConfig(branch.getConfiguration(), name);
 
             return branch.getOutput();
         }
@@ -405,7 +410,7 @@ public:
         }
     };
 
-    template <class T, class C = SwitchConfig, class I = None, class O = None> class SwitchModel : public SwitchConcept {
+    template <class T, class C = Config, class I = None, class O = None> class SwitchModel : public SwitchConcept {
     public:
         using Data = T;
         using Input = I;
@@ -426,9 +431,6 @@ public:
                 TimeProfiler probe("build::" + model->getName());
                 model->_data.build(*(model), model->_input, model->_output, std::forward<A>(args)...);
             }
-            // Recreate the Config to use the templated type
-            model->createConfiguration();
-            model->applyConfiguration();
 
             return model;
         }
@@ -475,8 +477,8 @@ public:
             }
         }
     };
-    template <class T, class C = SwitchConfig> using Model = SwitchModel<T, C, None, None>;
-    template <class T, class I, class C = SwitchConfig> using ModelI = SwitchModel<T, C, I, None>;
+    template <class T, class C = Config> using Model = SwitchModel<T, C, None, None>;
+    template <class T, class I, class C = Config> using ModelI = SwitchModel<T, C, I, None>;
     // TODO: Switches don't support Outputs yet
     //template <class T, class O, class C = SwitchConfig> using ModelO = SwitchModel<T, C, None, O>;
     //template <class T, class I, class O, class C = SwitchConfig> using ModelIO = SwitchModel<T, C, I, O>;
@@ -500,7 +502,7 @@ class Engine : public Task<JC, TP> {
 public:
     using Context = JC;
     using ContextPointer = std::shared_ptr<Context>;
-    using Config = TaskConfig;
+    using Config = JobConfig; //TaskConfig;
 
     using TaskType = Task<JC, TP>;
     using ConceptPointer = typename TaskType::ConceptPointer;
@@ -526,10 +528,11 @@ protected:
 
 }
 
+
 #define Task_DeclareTypeAliases(ContextType, TimeProfiler) \
     using JobConfig = task::JobConfig; \
-    using TaskConfig = task::TaskConfig; \
-    using SwitchConfig = task::SwitchConfig; \
+    using TaskConfig = task::JobConfig; \
+    using SwitchConfig = task::JobConfig; \
     template <class T> using PersistentConfig = task::PersistentConfig<T>; \
     using Job = task::Job<ContextType, TimeProfiler>; \
     using Switch = task::Switch<ContextType, TimeProfiler>; \

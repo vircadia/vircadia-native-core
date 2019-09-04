@@ -132,6 +132,9 @@ void AssetScriptingInterface::setBakingEnabled(QString path, bool enabled, QScri
     auto setBakingEnabledRequest = DependencyManager::get<AssetClient>()->createSetBakingEnabledRequest({ path }, enabled);
 
     Promise deferred = jsPromiseReady(makePromise(__FUNCTION__), thisObject(), callback);
+    if (!deferred) {
+        return;
+    }
 
     connect(setBakingEnabledRequest, &SetBakingEnabledRequest::finished, setBakingEnabledRequest, [deferred](SetBakingEnabledRequest* request) {
         Q_ASSERT(QThread::currentThread() == request->thread());
@@ -265,8 +268,11 @@ void AssetScriptingInterface::getAsset(QScriptValue options, QScriptValue scope,
               QString("Invalid responseType: '%1' (expected: %2)").arg(responseType).arg(RESPONSE_TYPES.join(" | ")));
 
     Promise fetched = jsPromiseReady(makePromise("fetched"), scope, callback);
-    Promise mapped = makePromise("mapped");
+    if (!fetched) {
+        return;
+    }
 
+    Promise mapped = makePromise("mapped");
     mapped->fail(fetched);
     mapped->then([=](QVariantMap result) {
         QString hash = result.value("hash").toString();

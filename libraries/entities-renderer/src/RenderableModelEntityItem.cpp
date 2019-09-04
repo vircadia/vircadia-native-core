@@ -1229,17 +1229,9 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             return true;
         }
 
-        if (_parsedModelURL != entity->getModelURL()) {
-            return true;
-        }
-
         // No model to render, early exit
         if (!_hasModel) {
             return false;
-        }
-
-        if (_textures != entity->getTextures()) {
-            return true;
         }
 
         if (_animating != entity->isAnimatingSomething()) {
@@ -1273,10 +1265,6 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 
         if (model->getScaleToFitDimensions() != entity->getScaledDimensions() ||
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {
-            return true;
-        }
-
-        if (model->isGroupCulled() != entity->getGroupCulled()) {
             return true;
         }
     }
