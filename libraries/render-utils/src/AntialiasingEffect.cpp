@@ -139,6 +139,11 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 }
 #else
 
+void AntialiasingConfig::setAAMode(int mode) {
+    _mode = std::min((int)AntialiasingConfig::MODE_COUNT, std::max(0, mode));
+    emit dirty();
+}
+
 Antialiasing::Antialiasing(bool isSharpenEnabled) : 
     _isSharpenEnabled{ isSharpenEnabled } {
 }
@@ -189,6 +194,8 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 }
 
 void Antialiasing::configure(const Config& config) {
+    _mode = (AntialiasingConfig::Mode) config.getAAMode();
+
     _sharpen = config.sharpen * 0.25f;
     if (!_isSharpenEnabled) {
         _sharpen = 0.0f;
@@ -298,29 +305,33 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     });
 }
 
-
 void JitterSampleConfig::setIndex(int current) {
     _index = (current) % JitterSample::SEQUENCE_LENGTH;    
     emit dirty();
 }
 
-int JitterSampleConfig::cycleStopPauseRun() {
-    _state = (_state + 1) % 3;
+void JitterSampleConfig::setState(int state) {
+    _state = (state) % 3;
     switch (_state) {
-        case 0: {
-            return none();
-            break;
-        }
-        case 1: {
-            return pause();
-            break;
-        }
-        case 2:
-        default: {
-            return play();
-            break;
-        }
+    case 0: {
+        none();
+        break;
     }
+    case 1: {
+        pause();
+        break;
+    }
+    case 2:
+    default: {
+        play();
+        break;
+    }
+    }
+    emit dirty();
+}
+
+int JitterSampleConfig::cycleStopPauseRun() {
+    setState((_state + 1) % 3);
     return _state;
 }
 
