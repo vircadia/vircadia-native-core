@@ -37,7 +37,6 @@ Rectangle {
         ) ? expandedWidth : originalWidth;
     readonly property int totalEmojiDurationMS: 7000 // Must match `TOTAL_EMOJI_DURATION_MS` in `simplifiedEmoji.js`
     readonly property string emoteIconSource: "images/emote_Icon.svg"
-    // property bool trayDisabled: Settings.getValue("simplifiedUI/showEmoteUI", false)
     property bool showEmoteUI: Settings.getValue("simplifiedUI/showEmoteUI", false)
 
 
