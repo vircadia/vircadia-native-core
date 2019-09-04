@@ -587,7 +587,6 @@ function init() {
     Controller.keyReleaseEvent.connect(keyReleaseHandler);
     keyPressSignalsConnected = true;
 
-    Script.scriptEnding.connect(shutdown);
 }
 
 

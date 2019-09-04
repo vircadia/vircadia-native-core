@@ -416,7 +416,6 @@ function init() {
 
     Window.domainChanged.connect(onDomainChanged);
     MyAvatar.scaleChanged.connect(onScaleChanged);
-    Script.scriptEnding.connect(scriptEnding);
     signalsConnected = true;
 }
 
@@ -430,18 +429,6 @@ function init() {
 // START cleanup
 // *************************************
 // #region cleanup
-
-
-function scriptEnding() {
-    resetEmojis();
-    if (signalsConnected) {
-        Script.scriptEnding.disconnect(scriptEnding);
-        Window.domainChanged.disconnect(onDomainChanged);
-        MyAvatar.scaleChanged.disconnect(onScaleChanged);
-        signalsConnected = false;
-    }
-}
-
 
 // #endregion
 // *************************************
@@ -476,7 +463,12 @@ function addEmojiFromQML(code) {
 }
 
 function unload() {
-    scriptEnding();
+    resetEmojis();
+    if (signalsConnected) {
+        Window.domainChanged.disconnect(onDomainChanged);
+        MyAvatar.scaleChanged.disconnect(onScaleChanged);
+        signalsConnected = false;
+    }
 }
 
 function startup() {
