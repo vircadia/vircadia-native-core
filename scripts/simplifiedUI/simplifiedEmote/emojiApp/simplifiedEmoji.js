@@ -388,11 +388,13 @@ function playPopAnimation() {
 var emojiCodeMap;
 var customEmojiCodeMap;
 var signalsConnected = false;
-function init() {
+var _this;
+function startup() {
     // make a map of just the utf codes to help with accesing
     emojiCodeMap = emojiList.reduce(function (codeMap, currentEmojiInList, index) {
         if (
             currentEmojiInList && 
+            
             currentEmojiInList.code && 
             currentEmojiInList.code.length > 0 && 
             currentEmojiInList.code[UTF_CODE]) {
@@ -414,9 +416,22 @@ function init() {
 
     pruneOldAvimojis();
 
+    Script.scriptEnding.connect(unload);
     Window.domainChanged.connect(onDomainChanged);
     MyAvatar.scaleChanged.connect(onScaleChanged);
     signalsConnected = true;
+
+    function AviMoji() {
+        _this = this;
+        this._avimojiQMLWindow;
+    }
+
+    AviMoji.prototype = {
+        addEmoji: addEmojiFromQML,
+        registerAvimojiQMLWindow: registerAvimojiQMLWindow
+    };
+
+    return new AviMoji();
 }
 
 
@@ -439,12 +454,6 @@ function init() {
 // START API
 // *************************************
 // #region API
-
-var _this;
-function AviMoji() {
-    _this = this;
-    this._avimojiQMLWindow;
-}
 
 function registerAvimojiQMLWindow(avimojiQMLWindow) {
     this._avimojiQMLWindow = avimojiQMLWindow;
@@ -471,17 +480,7 @@ function unload() {
     }
 }
 
-function startup() {
-    init();
-}
-
-AviMoji.prototype = {
-    startup: startup,
-    addEmoji: addEmojiFromQML,
-    unload: unload,
-    registerAvimojiQMLWindow: registerAvimojiQMLWindow
-};
-
+var AviMoji = startup();
 
 module.exports = AviMoji;
 

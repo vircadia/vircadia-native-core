@@ -583,12 +583,11 @@ function restoreLODSettings() {
 }
 
 
-var SimplifiedNametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
-var SimplifiedStatusIndicator = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now());
-var SimplifiedEmote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
-var si;
-var nametag;
-var emote;
+var nametag = Script.require("./simplifiedNametag/simplifiedNametag.js?" + Date.now());
+var si = Script.require("./simplifiedStatusIndicator/simplifiedStatusIndicator.js?" + Date.now())
+var emote = Script.require("../simplifiedEmote/simplifiedEmote.js?" + Date.now());
+// var nametag;
+// var emote;
 var oldShowAudioTools;
 var oldShowBubbleTools;
 var keepExistingUIAndScriptsSetting = Settings.getValue("simplifiedUI/keepExistingUIAndScripts", false);
@@ -607,16 +606,8 @@ function startup() {
 
     loadSimplifiedTopBar();
 
-    si = new SimplifiedStatusIndicator({
-        statusChanged: onStatusChanged
-    });
-    si.startup();
     
-    nametag = new SimplifiedNametag();
-    nametag.startup();
-
-    emote = new SimplifiedEmote();
-    emote.startup();
+    si.updateProperties({ statusChanged: onStatusChanged });
 
     updateInputDeviceMutedOverlay(Audio.muted);
     updateOutputDeviceMutedOverlay(isOutputMuted());
@@ -664,10 +655,6 @@ function shutdown() {
 
     maybeDeleteInputDeviceMutedOverlay();
     maybeDeleteOutputDeviceMutedOverlay();
-
-    nametag.unload();
-    si.unload();
-    emote.unload();
 
     Audio.mutedDesktopChanged.disconnect(onDesktopInputDeviceMutedChanged);
     Audio.mutedHMDChanged.disconnect(onHMDInputDeviceMutedChanged);
