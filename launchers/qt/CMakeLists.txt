@@ -141,6 +141,7 @@ elseif (APPLE)
 
   set(MACOSX_BUNDLE_ICON_FILE "interface.icns")
   add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${src_files})
+  set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
 endif()
 
 target_link_libraries(${PROJECT_NAME}
