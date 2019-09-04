@@ -416,8 +416,10 @@ public:
      * Provides access to methods or objects provided in an external JavaScript or JSON file. 
      * See {@link https://docs.highfidelity.com/script/js-tips.html} for further details.
      * @function Script.require
-     * @param {string} module - The module to use. May be a JavaScript file or the name of a system module such as 
-     *     <code>"sppUi"</code>.
+     * @param {string} module - The module to use. May be a JavaScript file, a JSON file, or the name of a system module such 
+     *     as <code>"appUi"</code> (i.e., the "appUi.js" system module JavaScript file).
+     * @returns {object|array} The value assigned to <code>module.exports</code> in the JavaScript file, or the value defined 
+     *     in the JSON file.
      */
     Q_INVOKABLE QScriptValue require(const QString& moduleId);
 
