@@ -86,18 +86,7 @@ function handleAvatarNametagMode(newAvatarNameTagMode) {
 }
 
 
-// *************************************
-// START api
-// *************************************
-// #region api
-
-
 var nameTag = startup();
 
 module.exports = nameTag;
 
-
-// #endregion
-// *************************************
-// END api
-// *************************************
